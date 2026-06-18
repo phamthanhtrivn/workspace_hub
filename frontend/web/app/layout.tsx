@@ -1,0 +1,25 @@
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+
+const inter = Inter({
+  subsets: ["latin", "vietnamese"],
+});
+
+export const metadata: Metadata = {
+  title: "WorkspaceHub",
+  description:
+    "Smart platform for tasks management, files management, learning, scheduling, collaboration and productivity with AI assistance.",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="vi" className={inter.className}>
+      <body className="min-h-screen">{children}</body>
+    </html>
+  );
+}
