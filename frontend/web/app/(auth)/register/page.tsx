@@ -1,10 +1,15 @@
 import Link from "next/link";
-import { Calendar, Lock, Mail, User, UserPlus } from "lucide-react";
+import { Calendar, Lock, Mail, User, UserPlus, ArrowLeft } from "lucide-react";
 import Image from "next/image";
 
 export default function RegisterPage() {
   return (
     <div>
+      <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[var(--color-primary)] transition mb-6">
+        <ArrowLeft className="h-4 w-4" />
+        Quay về trang chủ
+      </Link>
+      
       <div className="mb-8 text-center">
         <h2 className="mt-3 text-3xl font-black tracking-tight text-[var(--color-primary-dark)] sm:text-4xl">
           Đăng kí
