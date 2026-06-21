@@ -1,0 +1,20 @@
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: user-service
+    url: http://localhost:8081
+    routes:
+      - name: user-routes
+        paths:
+          - /api/users
+          - /api/auth
+
+  - name: project-service
+    url: http://localhost:8082
+    routes:
+      - name: project-routes
+        paths:
+          - /api/projects
+          - /api/tasks
+          - /api/pomodoros
