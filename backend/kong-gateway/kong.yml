@@ -3,18 +3,35 @@ _transform: true
 
 services:
   - name: user-service
-    url: http://localhost:8081
+    url: http://host.docker.internal:8081
     routes:
       - name: user-routes
         paths:
           - /api/users
           - /api/auth
+        strip_path: false
 
   - name: project-service
-    url: http://localhost:8082
+    url: http://host.docker.internal:8082
     routes:
       - name: project-routes
         paths:
           - /api/projects
           - /api/tasks
           - /api/pomodoros
+        strip_path: false
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - http://localhost:3000
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers: "*"
+      credentials: true

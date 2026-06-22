@@ -19,7 +19,7 @@ public class ProjectMember {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne()
+    @ManyToOne
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 

@@ -13,10 +13,10 @@ services:
       - KONG_ADMIN_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
     ports:
-      - "8000:8000"
-      - "8443:8443"
-      - "8001:8001"
-      - "8444:8444"
+      - "8000:8000" # Proxy HTTP Port
+      - "8443:8443" # Proxy HTTPS Port
+      - "8001:8001" # Admin HTTP Port
+      - "8444:8444" # Admin HTTPS Port
     volumes:
       - ../kong-gateway:/usr/local/kong/declarative
     restart: on-failure
@@ -25,10 +25,10 @@ services:
     image: postgres:15-alpine
     container_name: workspace_hub_postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 123456
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: always

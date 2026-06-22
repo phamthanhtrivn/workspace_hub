@@ -20,7 +20,7 @@ public class PomodoroSession {
     private UUID id;
 
     @ManyToOne
-    @JoinColumn(name = "task_id", nullable = false)
+    @JoinColumn(name = "task_id")
     private Task task;
 
     @Column(name = "user_id", nullable = false)
