@@ -15,14 +15,14 @@ export default function AuthLayout({
           <div className="absolute left-16 top-14 h-24 w-24 rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/30 backdrop-blur" />
           <div className="absolute bottom-12 right-10 h-44 w-44 rounded-[3rem] border border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/40 backdrop-blur" />
 
-          <div className="relative z-10 flex h-full w-full flex-col justify-center px-14 py-12 xl:px-20">
+          <div className="relative z-10 flex h-full w-full flex-col justify-start pt-54 px-20">
             <Link
-                href="/"
-                className="inline-flex w-fit items-center gap-2 text-sm mb-8 font-medium text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Về trang chủ
-              </Link>
+              href="/"
+              className="inline-flex w-fit items-center gap-2 text-sm mb-8 font-medium text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Về trang chủ
+            </Link>
             <div className="max-w-2xl">
               <div className="mb-8 inline-flex items-center gap-2 rounded-md border border-white/12 bg-white/8 px-3.5 py-2 text-sm font-medium text-cyan-50 shadow-xl shadow-blue-950/20 backdrop-blur-md">
                 <Sparkles className="h-4 w-4 text-[#9fd8e7]" />

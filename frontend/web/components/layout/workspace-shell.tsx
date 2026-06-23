@@ -139,7 +139,7 @@ export default function WorkspaceShell({
           })}
         </nav>
 
-        <div className="absolute inset-x-4 bottom-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="absolute inset-x-4 bottom-2 rounded-2xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex items-center gap-3">
             <div className="grid h-10 w-10 place-items-center rounded-xl bg-white text-[var(--color-primary)] shadow-sm ring-1 ring-slate-200">
               <Settings className="h-4 w-4" strokeWidth={2} />
