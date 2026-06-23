@@ -39,6 +39,7 @@ public class GlobalExceptionHandler {
         ApiResponse<?> response = ApiResponse.builder()
                 .success(false)
                 .message(ex.getMessage())
+                .errors(null)
                 .timestamp(LocalDateTime.now())
                 .build();
 

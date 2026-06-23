@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import { ToastContainer } from "react-toastify";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -19,7 +20,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className={inter.className}>
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        {children}{" "}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          draggable
+        />
+      </body>
     </html>
   );
 }
