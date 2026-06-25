@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { setCredentials } from "@/store/auth-slice";
 import type { AppDispatch } from "@/store/store";
+import Link from "next/link";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -86,9 +87,14 @@ export default function LoginForm() {
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* EMAIL */}
       <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-semibold text-slate-700">
-          Email
-        </label>
+        <div className="flex items-center justify-between gap-4">
+          <label
+            htmlFor="email"
+            className="text-sm font-semibold text-slate-700"
+          >
+            Email <span className="text-red-500">*</span>
+          </label>
+        </div>
 
         <InputField
           id="email"
@@ -108,8 +114,16 @@ export default function LoginForm() {
             htmlFor="password"
             className="text-sm font-semibold text-slate-700"
           >
-            Mật khẩu
+            Mật khẩu <span className="text-red-500">*</span>
           </label>
+          <div>
+            <Link
+              href="/forgot-password"
+              className="text-sm font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
         </div>
 
         <InputField

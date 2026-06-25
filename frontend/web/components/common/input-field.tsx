@@ -34,7 +34,7 @@ export default function InputField({
           <button
             type="button"
             onClick={onRightClick}
-            className="text-slate-400 hover:text-slate-600 transition"
+            className="text-slate-400 hover:text-slate-600 transition cursor-pointer"
           >
             {rightIcon}
           </button>
