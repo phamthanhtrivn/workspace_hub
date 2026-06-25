@@ -89,7 +89,7 @@ export default function WorkspaceShell({
   }, [pathname]);
 
   return (
-    <div className="flex min-h-dvh bg-[#f5f9fb] text-[var(--color-primary-dark)]">
+    <div className="flex h-dvh overflow-hidden bg-[#f5f9fb] text-[var(--color-primary-dark)]">
       {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
         <div
@@ -101,7 +101,7 @@ export default function WorkspaceShell({
       {/* Sidebar */}
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/80 bg-white/90 px-4 py-5 shadow-[18px_0_48px_rgba(15,40,84,0.06)] backdrop-blur-xl transition-all duration-300 ease-in-out lg:static lg:block",
+          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/80 bg-white/90 px-4 py-5 shadow-[18px_0_48px_rgba(15,40,84,0.06)] backdrop-blur-xl transition-all duration-300 ease-in-out lg:relative lg:block",
           isMobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0",
@@ -109,45 +109,52 @@ export default function WorkspaceShell({
           "w-72", // Mobile width is always 72
         ].join(" ")}
       >
+        <button
+          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          className="absolute -right-3 top-8 z-50 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600 hover:shadow lg:flex cursor-pointer"
+        >
+          {isSidebarCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+
         <div className="flex items-center justify-between">
           <Link
             href="/dashboard"
             className={[
-              "flex items-center gap-3 rounded-2xl p-2 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20",
-              isSidebarCollapsed ? "mx-auto" : "",
+              "flex min-w-0 items-center rounded-2xl p-2 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20",
+              isSidebarCollapsed ? "lg:mx-auto" : "",
             ].join(" ")}
           >
-            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--color-primary-dark)] text-sm font-black text-white shadow-[0_14px_28px_rgba(15,40,84,0.22)]">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--color-primary-dark)] text-sm font-black text-white shadow-[0_14px_28px_rgba(15,40,84,0.22)] transition-all">
               W
             </span>
-            {!isSidebarCollapsed && (
-              <span className="overflow-hidden whitespace-nowrap">
+            <div
+              className={[
+                "transition-all duration-300 ease-in-out overflow-hidden",
+                isSidebarCollapsed
+                  ? "lg:w-0 lg:opacity-0"
+                  : "w-auto lg:w-48 opacity-100",
+              ].join(" ")}
+            >
+              <div className="pl-3 whitespace-nowrap">
                 <span className="block text-base font-black leading-tight">
                   WorkspaceHub
                 </span>
                 <span className="block text-xs font-semibold text-slate-500">
                   Intelligent workspace
                 </span>
-              </span>
-            )}
+              </div>
+            </div>
           </Link>
 
           <button
             onClick={() => setIsMobileMenuOpen(false)}
-            className="p-2 text-slate-500 hover:text-slate-700 lg:hidden"
+            className="shrink-0 p-2 text-slate-500 hover:text-slate-700 lg:hidden cursor-pointer"
           >
             <X className="h-6 w-6" />
-          </button>
-
-          <button
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-            className="hidden lg:flex w-full mt-4 items-center justify-center p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition"
-          >
-            {isSidebarCollapsed ? (
-              <ChevronRight className="h-5 w-5" />
-            ) : (
-              <ChevronLeft className="h-5 w-5" />
-            )}
           </button>
         </div>
 
@@ -165,11 +172,11 @@ export default function WorkspaceShell({
                 href={item.href}
                 title={isSidebarCollapsed ? item.label : undefined}
                 className={[
-                  "group flex items-center gap-3 rounded-2xl p-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20",
+                  "group flex items-center rounded-2xl p-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20",
                   isActive
-                    ? "bg-[var(--color-primary-dark)] text-white shadow-[0_16px_34px_rgba(15,40,84,0.18)]"
+                    ? "bg-[var(--color-primary-dark)] text-white"
                     : "text-slate-600 hover:bg-slate-100 hover:text-[var(--color-primary-dark)]",
-                  isSidebarCollapsed ? "justify-center" : "",
+                  isSidebarCollapsed ? "lg:justify-center" : "",
                 ].join(" ")}
                 aria-current={isActive ? "page" : undefined}
               >
@@ -183,8 +190,15 @@ export default function WorkspaceShell({
                 >
                   <Icon className="h-4 w-4" strokeWidth={2} />
                 </span>
-                {!isSidebarCollapsed && (
-                  <span className="min-w-0 overflow-hidden whitespace-nowrap">
+                <div
+                  className={[
+                    "transition-all duration-300 ease-in-out overflow-hidden",
+                    isSidebarCollapsed
+                      ? "lg:w-0 lg:opacity-0"
+                      : "w-auto lg:w-48 opacity-100",
+                  ].join(" ")}
+                >
+                  <div className="pl-3 whitespace-nowrap">
                     <span className="block leading-tight">{item.label}</span>
                     <span
                       className={[
@@ -194,8 +208,8 @@ export default function WorkspaceShell({
                     >
                       {item.description}
                     </span>
-                  </span>
-                )}
+                  </div>
+                </div>
               </Link>
             );
           })}
@@ -205,26 +219,33 @@ export default function WorkspaceShell({
           <div
             className={[
               "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300",
-              isSidebarCollapsed ? "px-2 flex justify-center" : "",
+              isSidebarCollapsed ? "lg:px-2 lg:flex lg:justify-center" : "",
             ].join(" ")}
           >
             <div
               className={[
-                "flex items-center gap-3",
-                isSidebarCollapsed ? "justify-center" : "",
+                "flex items-center",
+                isSidebarCollapsed ? "lg:justify-center" : "",
               ].join(" ")}
             >
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[var(--color-primary)] shadow-sm ring-1 ring-slate-200">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-[var(--color-primary)] shadow-sm ring-1 ring-slate-200 transition-all">
                 <Settings className="h-4 w-4" strokeWidth={2} />
               </div>
-              {!isSidebarCollapsed && (
-                <div className="overflow-hidden whitespace-nowrap">
+              <div
+                className={[
+                  "transition-all duration-300 ease-in-out overflow-hidden",
+                  isSidebarCollapsed
+                    ? "lg:w-0 lg:opacity-0"
+                    : "w-auto lg:w-48 opacity-100",
+                ].join(" ")}
+              >
+                <div className="pl-3 whitespace-nowrap">
                   <p className="text-sm font-black">Workspace Settings</p>
                   <p className="text-xs font-semibold text-slate-500">
                     Hồ sơ và nhóm
                   </p>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -237,7 +258,7 @@ export default function WorkspaceShell({
             <div className="flex min-w-0 items-center gap-3">
               <button
                 onClick={() => setIsMobileMenuOpen(true)}
-                className="-ml-2 rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden"
+                className="-ml-2 rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden cursor-pointer"
               >
                 <Menu className="h-6 w-6" />
               </button>
@@ -266,7 +287,7 @@ export default function WorkspaceShell({
           </div>
         </header>
 
-        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
