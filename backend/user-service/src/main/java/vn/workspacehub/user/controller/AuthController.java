@@ -13,9 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.CookieValue;
 import java.util.Map;
 import vn.workspacehub.user.common.ApiResponse;
-import vn.workspacehub.user.dto.request.LoginRequestDto;
-import vn.workspacehub.user.dto.request.RegisterRequestDto;
-import vn.workspacehub.user.dto.request.SocialLoginRequestDto;
+import vn.workspacehub.user.dto.request.*;
 import vn.workspacehub.user.service.AuthService;
 
 @RestController
@@ -68,6 +66,26 @@ public class AuthController {
     public ResponseEntity<ApiResponse<?>> logout(HttpServletRequest request, HttpServletResponse response) {
         authService.logout(request, response);
         return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
+    }
+
+    private final vn.workspacehub.user.service.PasswordResetService passwordResetService;
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<?>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestForgotPassword(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã gửi mã OTP đến email của bạn"));
+    }
+
+    @PostMapping("/verify-reset-otp")
+    public ResponseEntity<ApiResponse<?>> verifyResetOtp(@Valid @RequestBody VerifyOtpRequest request) {
+        String resetToken = passwordResetService.verifyOtp(request);
+        return ResponseEntity.ok(ApiResponse.success(Map.of("resetToken", resetToken), "Xác thực OTP thành công"));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<?>> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật mật khẩu thành công"));
     }
 
 }
