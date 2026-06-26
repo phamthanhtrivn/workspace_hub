@@ -4,14 +4,20 @@ services:
   kong:
     image: kong:latest
     container_name: workspace_hub_kong
+    env_file:
+      - ../kong-gateway/.env
     environment:
       - KONG_DATABASE=off
-      - KONG_DECLARATIVE_CONFIG=/usr/local/kong/declarative/kong.yml
+      - KONG_DECLARATIVE_CONFIG=/tmp/kong.yml
       - KONG_PROXY_ACCESS_LOG=/dev/stdout
       - KONG_ADMIN_ACCESS_LOG=/dev/stdout
       - KONG_PROXY_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_ERROR_LOG=/dev/stderr
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+    command: >
+      /bin/sh -c "
+      sed -e \"s|\\$$FRONTEND_URL|$$FRONTEND_URL|g\" -e \"s|\\$$JWT_SECRET_KEY|$$JWT_SECRET_KEY|g\" /usr/local/kong/declarative/kong.yml > /tmp/kong.yml &&
+      /docker-entrypoint.sh kong docker-start"
     ports:
       - "8000:8000" # Proxy HTTP Port
       - "8443:8443" # Proxy HTTPS Port
@@ -33,5 +39,15 @@ services:
       - postgres_data:/var/lib/postgresql/data
     restart: always
 
+  redis:
+    image: redis:7-alpine
+    container_name: workspace_hub_redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
 volumes:
   postgres_data:
+  redis_data:

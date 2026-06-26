@@ -1,14 +1,25 @@
 _format_version: "3.0"
 _transform: true
 
+consumers:
+  - username: workspace-hub-api
+    jwt_secrets:
+      - key: workspace-hub
+        secret: $JWT_SECRET_KEY
+        algorithm: HS256
+
 services:
   - name: user-service
     url: http://host.docker.internal:8081
     routes:
+      - name: auth-routes
+        paths:
+          - /api/auth
+        strip_path: false
+
       - name: user-routes
         paths:
           - /api/users
-          - /api/auth
         strip_path: false
 
   - name: project-service
@@ -25,7 +36,7 @@ plugins:
   - name: cors
     config:
       origins:
-        - "*"
+        - $FRONTEND_URL
       methods:
         - GET
         - POST
@@ -39,4 +50,19 @@ plugins:
         - Content-Type
         - Origin
         - X-Requested-With
+        - Cookie
+      exposed_headers:
+        - Set-Cookie
       credentials: true
+
+  - name: jwt
+    route: user-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt
+    route: project-routes
+    config:
+      claims_to_verify:
+        - exp

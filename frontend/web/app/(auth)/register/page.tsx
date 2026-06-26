@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import Image from "next/image";
 import RegisterForm from "@/features/auth/components/register-form";
+import SocialLoginButtons from "@/features/auth/components/social-login-buttons";
 
 export default function RegisterPage() {
   return (
@@ -32,32 +33,7 @@ export default function RegisterPage() {
         <div className="h-px flex-1 bg-slate-200" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <button
-          type="button"
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer"
-        >
-          <Image
-            src="https://thesvg.org/icons/google/default.svg"
-            alt="Google"
-            width={20}
-            height={20}
-          />
-          Google
-        </button>
-        <button
-          type="button"
-          className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer"
-        >
-          <Image
-            src="https://thesvg.org/icons/linkedin/default.svg"
-            alt="Google"
-            width={20}
-            height={20}
-          />
-          LinkedIn
-        </button>
-      </div>
+      <SocialLoginButtons />
 
       <p className="mt-8 text-center text-sm text-slate-500">
         Đã có tài khoản?{" "}

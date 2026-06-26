@@ -9,16 +9,22 @@ export default function AuthLayout({
   return (
     <main className="min-h-dvh bg-[#f5f9fb] text-[var(--color-primary-dark)]">
       <div className="grid min-h-dvh lg:grid-cols-[1.08fr_0.92fr]">
-        <section className="relative hidden overflow-hidden bg-[#071b34] lg:flex">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(73,136,196,0.38),transparent_34%),radial-gradient(circle_at_88%_82%,rgba(189,232,245,0.18),transparent_30%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:72px_72px]" />
-          <div className="absolute left-16 top-14 h-24 w-24 rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/30 backdrop-blur" />
-          <div className="absolute bottom-12 right-10 h-44 w-44 rounded-[3rem] border border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/40 backdrop-blur" />
+        <section className="hidden overflow-hidden bg-[#071b34] lg:grid lg:grid-cols-1 lg:grid-rows-1">
+          <div className="col-start-1 row-start-1 bg-[radial-gradient(circle_at_20%_10%,rgba(73,136,196,0.38),transparent_34%),radial-gradient(circle_at_88%_82%,rgba(189,232,245,0.18),transparent_30%)]" />
+          <div className="col-start-1 row-start-1 bg-[linear-gradient(to_right,#ffffff0a_1px,transparent_1px),linear-gradient(to_bottom,#ffffff0a_1px,transparent_1px)] bg-[size:72px_72px]" />
 
-          <div className="relative z-10 flex h-full w-full flex-col justify-start pt-54 px-20">
+          <div className="pointer-events-none col-start-1 row-start-1 h-full w-full">
+            <div className="h-24 w-24 translate-x-16 translate-y-14 rounded-[2rem] border border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/30 backdrop-blur" />
+          </div>
+
+          <div className="pointer-events-none col-start-1 row-start-1 flex h-full w-full items-end justify-end">
+            <div className="mb-12 mr-10 h-44 w-44 rounded-[3rem] b    order border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/40 backdrop-blur" />
+          </div>
+
+          <div className="z-10 col-start-1 row-start-1 flex h-full w-full flex-col justify-start px-20 pt-54">
             <Link
               href="/"
-              className="inline-flex w-fit items-center gap-2 text-sm mb-8 font-medium text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              className="mb-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ArrowLeft className="h-4 w-4" />
               Về trang chủ
@@ -42,8 +48,8 @@ export default function AuthLayout({
           </div>
         </section>
 
-        <section className="relative flex min-h-dvh items-center justify-center overflow-hidden px-5 py-8 sm:px-8 lg:px-10">
-          <div className="relative w-full max-w-[29rem]">
+        <section className="flex min-h-dvh items-center justify-center overflow-hidden px-5 py-8 sm:px-8 lg:px-10">
+          <div className="w-full max-w-[29rem]">
             <div className="rounded-[1.75rem] border border-white/80 bg-white/88 p-5 shadow-[0_24px_70px_rgba(15,40,84,0.14)] backdrop-blur-xl sm:p-8">
               {children}
             </div>

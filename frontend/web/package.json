@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
+    "@react-oauth/google": "^0.13.5",
+    "@reduxjs/toolkit": "^2.12.0",
     "axios": "^1.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -17,6 +19,7 @@
     "next": "16.2.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-redux": "^9.3.0",
     "react-toastify": "^11.1.0",
     "shadcn": "^4.11.0",
     "tailwind-merge": "^3.6.0",
