@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import StoreProvider from "@/store/store-provider";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -22,9 +23,11 @@ export default function RootLayout({
   return (
     <html lang="vi" className={inter.className}>
       <body className="min-h-screen">
-        <StoreProvider>
-          {children}
-        </StoreProvider>
+        <GoogleOAuthProvider
+          clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
+        >
+          <StoreProvider>{children}</StoreProvider>
+        </GoogleOAuthProvider>
         <ToastContainer
           position="top-right"
           autoClose={3000}
@@ -38,4 +41,3 @@ export default function RootLayout({
     </html>
   );
 }
-

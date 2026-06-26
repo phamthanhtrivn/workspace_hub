@@ -11,6 +11,11 @@ export const loginApi = async (payload: LoginRequest) => {
   return response.data;
 };
 
+export const socialLoginApi = async (provider: string, credential: string) => {
+  const response = await api.post("/api/auth/social", { provider, credential });
+  return response.data;
+};
+
 export const refreshApi = async () => {
   const response = await api.post("/api/auth/refresh");
   return response.data;

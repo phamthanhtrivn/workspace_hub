@@ -15,6 +15,7 @@ import java.util.Map;
 import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.dto.request.LoginRequestDto;
 import vn.workspacehub.user.dto.request.RegisterRequestDto;
+import vn.workspacehub.user.dto.request.SocialLoginRequestDto;
 import vn.workspacehub.user.service.AuthService;
 
 @RestController
@@ -38,6 +39,16 @@ public class AuthController {
     ) {
         var loginResponse = authService.login(loginRequest.getEmail(), loginRequest.getPassword(), request, response);
         return ResponseEntity.ok(ApiResponse.success(loginResponse, "Đăng nhập thành công"));
+    }
+
+    @PostMapping("/social")
+    public ResponseEntity<ApiResponse<?>> socialLogin(
+            @Valid @RequestBody SocialLoginRequestDto requestDto,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        var loginResponse = authService.socialLogin(requestDto.getProvider(), requestDto.getCredential(), request, response);
+        return ResponseEntity.ok(ApiResponse.success(loginResponse, "Đăng nhập mạng xã hội thành công"));
     }
 
     @PostMapping("/refresh")

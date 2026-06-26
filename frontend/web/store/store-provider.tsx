@@ -9,7 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { refreshApi } from "@/features/auth/api/auth.api";
 import axios from "axios";
 
-const PUBLIC_PATHS = ["/login", "/register", "/"];
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password", "/"];
 
 function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATHS.some(
