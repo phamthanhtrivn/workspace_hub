@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useSelector } from "react-redux";
 import { RootState, useAppSelector } from "@/store/store";
+import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
 
 const menuItems = [
   {
@@ -85,6 +86,7 @@ export default function WorkspaceShell({
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 
   const { email } = useAppSelector((state) => state.auth);
 
@@ -221,8 +223,9 @@ export default function WorkspaceShell({
 
         <div className="mt-auto mb-2 pt-4">
           <div
+            onClick={() => setIsSettingsModalOpen(true)}
             className={[
-              "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300",
+              "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300 cursor-pointer hover:bg-slate-100",
               isSidebarCollapsed ? "lg:px-2 lg:flex lg:justify-center" : "",
             ].join(" ")}
           >
@@ -244,7 +247,7 @@ export default function WorkspaceShell({
                 ].join(" ")}
               >
                 <div className="pl-3 whitespace-nowrap">
-                  <p className="text-sm font-black">Settings</p>
+                  <p className="text-sm font-black text-slate-800 hover:text-[var(--color-primary-dark)]">Cài đặt chung</p>
                   <p className="truncate text-[0.7rem] font-semibold text-slate-500">
                     {email}
                   </p>
@@ -295,6 +298,11 @@ export default function WorkspaceShell({
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
+
+      <UserSettingsModal 
+        isOpen={isSettingsModalOpen} 
+        onClose={() => setIsSettingsModalOpen(false)} 
+      />
     </div>
   );
 }

@@ -14,15 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import vn.workspacehub.user.dto.request.RegisterRequestDto;
 import vn.workspacehub.user.dto.response.LoginResponseDto;
-import vn.workspacehub.user.entity.RefreshToken;
-import vn.workspacehub.user.entity.User;
-import vn.workspacehub.user.entity.UserProfile;
+import vn.workspacehub.user.entity.*;
 import vn.workspacehub.user.enums.UserRole;
 import vn.workspacehub.user.enums.UserStatus;
 import vn.workspacehub.user.exception.BusinessException;
-import vn.workspacehub.user.repository.RefreshTokenRepository;
-import vn.workspacehub.user.repository.UserProfileRepository;
-import vn.workspacehub.user.repository.UserRepository;
+import vn.workspacehub.user.repository.*;
 import vn.workspacehub.user.util.CookieUtils;
 import vn.workspacehub.user.util.HashUtils;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -30,8 +26,6 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import vn.workspacehub.user.enums.OAuthProvider;
-import vn.workspacehub.user.repository.OAuthAccountRepository;
-import vn.workspacehub.user.entity.OAuthAccount;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -49,6 +43,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserProfileRepository userProfileRepository;
     private final OAuthAccountRepository oauthAccountRepository;
+    private final AccountSettingRepository accountSettingRepository;
 
     private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
     private static final String COOKIE_PATH = "/api/auth";
@@ -159,6 +154,16 @@ public class AuthService {
                         .avatarUrl(avatarUrl)
                         .build();
                 userProfileRepository.save(userProfile);
+
+                AccountSetting accountSetting = AccountSetting.builder()
+                        .user(user)
+                        .theme("light")
+                        .language("vi")
+                        .timezone("Asia/Ho_Chi_Minh")
+                        .emailNotificationEnabled(true)
+                        .pushNotificationEnabled(true)
+                        .build();
+                accountSettingRepository.save(accountSetting);
             }
 
             // 4. Tạo và lưu OAuth Account
@@ -274,6 +279,16 @@ public class AuthService {
                 .build();
 
         userProfileRepository.save(userProfile);
+
+        AccountSetting accountSetting = AccountSetting.builder()
+                .user(savedUser)
+                .theme("light")
+                .language("vi")
+                .timezone("Asia/Ho_Chi_Minh")
+                .emailNotificationEnabled(true)
+                .pushNotificationEnabled(true)
+                .build();
+        accountSettingRepository.save(accountSetting);
     }
 
     // ── Private helpers ──
