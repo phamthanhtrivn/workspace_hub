@@ -42,8 +42,15 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<?>> refresh(HttpServletRequest request, HttpServletResponse response) {
-        var refreshResponse = authService.refresh(request, response);
-        return ResponseEntity.ok(ApiResponse.success(refreshResponse, "Làm mới token thành công"));
+        try {
+            var refreshResponse = authService.refresh(request, response);
+            return ResponseEntity.ok(ApiResponse.success(refreshResponse, "Làm mới token thành công"));
+        } catch (vn.workspacehub.user.exception.BusinessException e) {
+            if (e.getMessage() != null && e.getMessage().contains("Refresh token")) {
+                return ResponseEntity.ok(ApiResponse.success(null, "Chưa đăng nhập"));
+            }
+            throw e;
+        }
     }
 
     @PostMapping("/logout")
@@ -52,16 +59,6 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
     }
 
-    @GetMapping("/session")
-    public ResponseEntity<?> checkSession(
-            @CookieValue(name = "refreshToken", required = false)
-            String refreshToken
-    ) {
-        if (refreshToken == null || refreshToken.isBlank()) {
-            return ResponseEntity.ok(Map.of("authenticated", false));
-        }
-        return ResponseEntity.ok(Map.of("authenticated", true));
-    }
 }
 
 

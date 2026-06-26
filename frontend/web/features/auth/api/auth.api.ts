@@ -21,7 +21,3 @@ export const logoutApi = async () => {
   return response.data;
 };
 
-export const checkSessionApi = async () => {
-  const response = await api.get("/api/auth/session");
-  return response.data;
-};

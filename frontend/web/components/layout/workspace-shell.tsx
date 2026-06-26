@@ -19,6 +19,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import { useSelector } from "react-redux";
+import { RootState, useAppSelector } from "@/store/store";
 
 const menuItems = [
   {
@@ -83,6 +85,8 @@ export default function WorkspaceShell({
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const { email } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -240,9 +244,9 @@ export default function WorkspaceShell({
                 ].join(" ")}
               >
                 <div className="pl-3 whitespace-nowrap">
-                  <p className="text-sm font-black">Workspace Settings</p>
-                  <p className="text-xs font-semibold text-slate-500">
-                    Hồ sơ và nhóm
+                  <p className="text-sm font-black">Settings</p>
+                  <p className="truncate text-[0.7rem] font-semibold text-slate-500">
+                    {email}
                   </p>
                 </div>
               </div>

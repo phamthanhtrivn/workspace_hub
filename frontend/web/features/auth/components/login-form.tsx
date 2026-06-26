@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import InputField from "@/components/common/input-field";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
-import { setCredentials } from "@/store/auth-slice";
+import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
 import Link from "next/link";
 

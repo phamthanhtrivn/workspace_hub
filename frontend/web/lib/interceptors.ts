@@ -1,6 +1,7 @@
+import axios from "axios";
 import { api } from "./axios";
 import { store } from "@/store/store";
-import { setCredentials, clearCredentials } from "@/store/auth-slice";
+import { setCredentials, clearCredentials } from "@/store/auth/auth-slice";
 import { refreshApi } from "@/features/auth/api/auth.api";
 
 // ── Request Interceptor: attach accessToken from Redux ──
@@ -73,6 +74,10 @@ api.interceptors.response.use(
       const response = await refreshApi();
       const data = response.data;
 
+      if (!data || !data.accessToken) {
+        throw new Error("Chưa đăng nhập");
+      }
+
       store.dispatch(
         setCredentials({
           accessToken: data.accessToken,
@@ -90,7 +95,17 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError);
       store.dispatch(clearCredentials());
-      
+
+      try {
+        await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`,
+          {},
+          { withCredentials: true },
+        );
+      } catch (e) {
+        console.error("Lỗi xóa cookie:", e);
+      }
+
       if (typeof window !== "undefined") {
         window.location.href = "/login";
       }
