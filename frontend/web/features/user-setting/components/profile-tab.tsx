@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Camera, Save, Loader2 } from "lucide-react";
 import { UserProfile } from "../types/user-setting.types";
-import { getUserProfile, updateUserProfile } from "../api/user-setting.api";
+import { getUserProfile, updateUserProfile, getAvatarPresignedUrl } from "../api/user-setting.api";
 import { useAppSelector } from "@/store/store";
 import { toast } from "react-toastify";
+import axios from "axios";
 
 export default function ProfileTab() {
   const { email } = useAppSelector((state) => state.auth);
   const [profileForm, setProfileForm] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadProfile();
@@ -33,7 +35,51 @@ export default function ProfileTab() {
     }
   };
 
-  const handleSaveProfile = async () => {};
+  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !profileForm) return;
+
+    try {
+      toast.info("Đang tải ảnh lên...");
+      const response = await getAvatarPresignedUrl(file.name, file.type);
+      if (response && response.success) {
+        const { presignedUrl, fileUrl } = response.data;
+        
+        await axios.put(presignedUrl, file, {
+          headers: {
+            "Content-Type": file.type,
+          },
+        });
+
+        setProfileForm({ ...profileForm, avatarUrl: fileUrl });
+        toast.success("Tải ảnh lên thành công! Bấm Lưu thay đổi để hoàn tất.");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("Không thể tải ảnh lên. Vui lòng thử lại.");
+    } finally {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!profileForm) return;
+    setIsSavingProfile(true);
+    try {
+      const response = await updateUserProfile(profileForm);
+      if (response && response.success !== false) {
+        toast.success("Cập nhật thông tin hồ sơ thành công!");
+      }
+    } catch (error: any) {
+      console.error(error);
+      const response = error?.response?.data;
+      toast.error(response?.message ?? "Đã xảy ra lỗi khi lưu thông tin.");
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -64,9 +110,19 @@ export default function ProfileTab() {
               "W"
             )}
           </div>
-          <button className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer">
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer"
+          >
             <Camera className="h-6 w-6" />
           </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
+            onChange={handleAvatarChange}
+          />
         </div>
         <div className="text-center sm:text-left w-full sm:w-auto">
           <p className="font-semibold text-slate-500 mb-1">Email</p>

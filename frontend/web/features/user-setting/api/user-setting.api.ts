@@ -12,3 +12,13 @@ export const updateUserProfile = async (
   const response = await api.put("/api/users/me/profile", profile);
   return response.data;
 };
+
+export const getAvatarPresignedUrl = async (
+  fileName: string,
+  contentType: string
+): Promise<any> => {
+  const response = await api.get("/api/users/me/profile/avatar/presigned-url", {
+    params: { fileName, contentType }
+  });
+  return response.data;
+};
