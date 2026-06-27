@@ -66,3 +66,61 @@ plugins:
     config:
       claims_to_verify:
         - exp
+
+  - name: pre-function
+    route: user-routes
+    config:
+      access:
+        - |
+          local auth = kong.request.get_header("Authorization")
+          if auth then
+            local _, _, token = string.find(auth, "Bearer%s+(.+)")
+            if token then
+              local p64 = ""
+              local i = 0
+              for p in string.gmatch(token, "[^%.]+") do
+                i = i + 1
+                if i == 2 then p64 = p; break end
+              end
+              if p64 ~= "" then
+                local rem = #p64 % 4
+                if rem > 0 then p64 = p64 .. string.rep("=", 4 - rem) end
+                p64 = string.gsub(p64, "-", "+")
+                p64 = string.gsub(p64, "_", "/")
+                local p_str = ngx.decode_base64(p64)
+                if p_str then
+                  local _, _, sub = string.find(p_str, '"sub"%s*:%s*"([^"]+)"')
+                  if sub then kong.service.request.set_header("X-User-Id", sub) end
+                end
+              end
+            end
+          end
+
+  - name: pre-function
+    route: project-routes
+    config:
+      access:
+        - |
+          local auth = kong.request.get_header("Authorization")
+          if auth then
+            local _, _, token = string.find(auth, "Bearer%s+(.+)")
+            if token then
+              local p64 = ""
+              local i = 0
+              for p in string.gmatch(token, "[^%.]+") do
+                i = i + 1
+                if i == 2 then p64 = p; break end
+              end
+              if p64 ~= "" then
+                local rem = #p64 % 4
+                if rem > 0 then p64 = p64 .. string.rep("=", 4 - rem) end
+                p64 = string.gsub(p64, "-", "+")
+                p64 = string.gsub(p64, "_", "/")
+                local p_str = ngx.decode_base64(p64)
+                if p_str then
+                  local _, _, sub = string.find(p_str, '"sub"%s*:%s*"([^"]+)"')
+                  if sub then kong.service.request.set_header("X-User-Id", sub) end
+                end
+              end
+            end
+          end

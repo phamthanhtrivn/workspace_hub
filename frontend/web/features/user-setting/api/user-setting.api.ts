@@ -1,20 +1,14 @@
 import { api } from "@/lib/axios";
-import {
-  UserSettingsOverview,
-  UserSettings,
-} from "../types/user-setting.types";
+import { UserProfile } from "../types/user-setting.types";
 
-export const getUserSettingsOverview = async (): Promise<{
-  success: boolean;
-  data: UserSettingsOverview;
-}> => {
-  const response = await api.get("/users/me/settings");
+export const getUserProfile = async (): Promise<any> => {
+  const response = await api.get("/api/users/me/profile");
   return response.data;
 };
 
-export const updateUserSettings = async (
-  settings: UserSettings,
-): Promise<{ success: boolean; data: UserSettings }> => {
-  const response = await api.put("/users/me/settings", settings);
+export const updateUserProfile = async (
+  profile: Partial<UserProfile>,
+): Promise<any> => {
+  const response = await api.put("/api/users/me/profile", profile);
   return response.data;
 };

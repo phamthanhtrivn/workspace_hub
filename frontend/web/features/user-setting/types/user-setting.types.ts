@@ -5,9 +5,6 @@ export type UserProfile = {
   phoneNumber?: string;
   dob?: string;
   bio?: string;
-  role?: string;
-  status?: string;
-  createdAt?: string;
 };
 
 export type UserSettings = {
