@@ -8,6 +8,7 @@ import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.dto.request.UpdateUserProfileRequest;
 import vn.workspacehub.user.dto.response.PresignedUrlResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
+import vn.workspacehub.user.service.S3Service;
 import vn.workspacehub.user.service.UserProfileService;
 
 import java.util.UUID;
@@ -18,7 +19,7 @@ import java.util.UUID;
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
-    private final vn.workspacehub.user.service.S3Service s3Service;
+    private final S3Service s3Service;
 
     @GetMapping
     public ResponseEntity<ApiResponse<UserProfileResponse>> getMyProfile(

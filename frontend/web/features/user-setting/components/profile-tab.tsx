@@ -17,6 +17,7 @@ export default function ProfileTab() {
   const [profileForm, setProfileForm] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,8 +51,6 @@ export default function ProfileTab() {
       if (response && response.success) {
         const { presignedUrl, fileUrl } = response.data;
 
-        console.log(presignedUrl, fileUrl);
-
         await axios.put(presignedUrl, file, {
           headers: {
             "Content-Type": file.type,
@@ -73,6 +72,7 @@ export default function ProfileTab() {
   const handleSaveProfile = async () => {
     if (!profileForm) return;
     setIsSavingProfile(true);
+    setErrors({});
     try {
       const response = await updateUserProfile(profileForm);
       if (response && response.success !== false) {
@@ -81,6 +81,12 @@ export default function ProfileTab() {
     } catch (error: any) {
       console.error(error);
       const response = error?.response?.data;
+      
+      if (response?.errors && Object.keys(response.errors).length > 0) {
+        setErrors(response.errors);
+        return;
+      }
+
       toast.error(response?.message ?? "Đã xảy ra lỗi khi lưu thông tin.");
     } finally {
       setIsSavingProfile(false);
@@ -144,12 +150,20 @@ export default function ProfileTab() {
           <input
             type="text"
             value={profileForm.fullName || ""}
-            onChange={(e) =>
-              setProfileForm({ ...profileForm, fullName: e.target.value })
-            }
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+            onChange={(e) => {
+              setProfileForm({ ...profileForm, fullName: e.target.value });
+              setErrors((prev) => ({ ...prev, fullName: "" }));
+            }}
+            className={`rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:ring-2 ${
+              errors.fullName
+                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+            }`}
             placeholder="Nhập họ và tên..."
           />
+          {errors.fullName && (
+            <p className="text-xs text-red-500">{errors.fullName}</p>
+          )}
         </div>
 
         <div className="flex flex-col gap-1">
@@ -159,12 +173,20 @@ export default function ProfileTab() {
           <input
             type="tel"
             value={profileForm.phoneNumber || ""}
-            onChange={(e) =>
-              setProfileForm({ ...profileForm, phoneNumber: e.target.value })
-            }
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+            onChange={(e) => {
+              setProfileForm({ ...profileForm, phoneNumber: e.target.value });
+              setErrors((prev) => ({ ...prev, phoneNumber: "" }));
+            }}
+            className={`rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:ring-2 ${
+              errors.phoneNumber
+                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+                : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+            }`}
             placeholder="Nhập số điện thoại..."
           />
+          {errors.phoneNumber && (
+            <p className="text-xs text-red-500">{errors.phoneNumber}</p>
+          )}
         </div>
       </div>
 
@@ -173,11 +195,19 @@ export default function ProfileTab() {
         <input
           type="date"
           value={profileForm.dob || ""}
-          onChange={(e) =>
-            setProfileForm({ ...profileForm, dob: e.target.value })
-          }
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 w-full sm:w-1/2"
+          onChange={(e) => {
+            setProfileForm({ ...profileForm, dob: e.target.value });
+            setErrors((prev) => ({ ...prev, dob: "" }));
+          }}
+          className={`rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:ring-2 w-full sm:w-1/2 ${
+            errors.dob
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+              : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+          }`}
         />
+        {errors.dob && (
+          <p className="text-xs text-red-500">{errors.dob}</p>
+        )}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -186,13 +216,21 @@ export default function ProfileTab() {
         </label>
         <textarea
           value={profileForm.bio || ""}
-          onChange={(e) =>
-            setProfileForm({ ...profileForm, bio: e.target.value })
-          }
+          onChange={(e) => {
+            setProfileForm({ ...profileForm, bio: e.target.value });
+            setErrors((prev) => ({ ...prev, bio: "" }));
+          }}
           rows={3}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 resize-none"
+          className={`rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:ring-2 resize-none ${
+            errors.bio
+              ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
+              : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
+          }`}
           placeholder="Một vài dòng giới thiệu về bạn..."
         />
+        {errors.bio && (
+          <p className="text-xs text-red-500">{errors.bio}</p>
+        )}
       </div>
 
       <button
