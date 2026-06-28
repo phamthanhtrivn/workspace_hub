@@ -3,7 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { Camera, Save, Loader2 } from "lucide-react";
 import { UserProfile } from "../types/user-setting.types";
-import { getUserProfile, updateUserProfile, getAvatarPresignedUrl } from "../api/user-setting.api";
+import {
+  getUserProfile,
+  updateUserProfile,
+  getAvatarPresignedUrl,
+} from "../api/user-setting.api";
 import { useAppSelector } from "@/store/store";
 import { toast } from "react-toastify";
 import axios from "axios";
@@ -24,7 +28,7 @@ export default function ProfileTab() {
     try {
       const response = await getUserProfile();
       if (response.success) {
-        setProfileForm(response.data || response);
+        setProfileForm(response.data);
       }
     } catch (error: any) {
       console.log(error);
@@ -35,16 +39,19 @@ export default function ProfileTab() {
     }
   };
 
-  const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !profileForm) return;
 
     try {
-      toast.info("Đang tải ảnh lên...");
       const response = await getAvatarPresignedUrl(file.name, file.type);
       if (response && response.success) {
         const { presignedUrl, fileUrl } = response.data;
-        
+
+        console.log(presignedUrl, fileUrl);
+
         await axios.put(presignedUrl, file, {
           headers: {
             "Content-Type": file.type,
@@ -52,7 +59,6 @@ export default function ProfileTab() {
         });
 
         setProfileForm({ ...profileForm, avatarUrl: fileUrl });
-        toast.success("Tải ảnh lên thành công! Bấm Lưu thay đổi để hoàn tất.");
       }
     } catch (error) {
       console.error(error);
@@ -110,7 +116,7 @@ export default function ProfileTab() {
               "W"
             )}
           </div>
-          <button 
+          <button
             onClick={() => fileInputRef.current?.click()}
             className="absolute inset-0 bg-black/50 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer"
           >

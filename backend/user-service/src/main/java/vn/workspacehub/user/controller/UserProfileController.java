@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.dto.request.UpdateUserProfileRequest;
+import vn.workspacehub.user.dto.response.PresignedUrlResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
 import vn.workspacehub.user.service.UserProfileService;
 
@@ -45,7 +46,7 @@ public class UserProfileController {
     }
 
     @GetMapping("/avatar/presigned-url")
-    public ResponseEntity<ApiResponse<vn.workspacehub.user.dto.response.PresignedUrlResponse>> getAvatarPresignedUrl(
+    public ResponseEntity<ApiResponse<PresignedUrlResponse>> getAvatarPresignedUrl(
             @RequestHeader(value = "X-User-Id") UUID userId,
             @RequestParam("fileName") String fileName,
             @RequestParam("contentType") String contentType) {
@@ -56,8 +57,8 @@ public class UserProfileController {
             extension = fileName.substring(i);
         }
         
-        String objectKey = "avatars/" + userId.toString() + "/" + UUID.randomUUID().toString() + extension;
-        vn.workspacehub.user.dto.response.PresignedUrlResponse response = s3Service.generatePresignedUrl(objectKey, contentType);
+        String objectKey = "avatars/" + userId.toString() + "/" + UUID.randomUUID() + extension;
+        PresignedUrlResponse response = s3Service.generatePresignedUrl(objectKey, contentType);
         
         return ResponseEntity.ok(ApiResponse.<vn.workspacehub.user.dto.response.PresignedUrlResponse>builder()
                 .success(true)

@@ -19,7 +19,6 @@ import java.util.UUID;
 public class UserProfileService {
 
     private final UserProfileRepository userProfileRepository;
-    private final UserRepository userRepository;
     private final UserProfileMapper userProfileMapper;
 
     @Transactional(readOnly = true)

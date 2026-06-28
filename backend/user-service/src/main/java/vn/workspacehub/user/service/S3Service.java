@@ -25,9 +25,6 @@ public class S3Service {
     @Value("${aws.s3.region}")
     private String region;
 
-    @Value("${aws.s3.endpoint:}")
-    private String endpoint;
-
     @Value("${aws.s3.cloudfront-url:}")
     private String cloudfrontUrl;
 
@@ -57,9 +54,6 @@ public class S3Service {
     private String generateFileUrl(String objectKey) {
         if (cloudfrontUrl != null && !cloudfrontUrl.isEmpty()) {
             return cloudfrontUrl.endsWith("/") ? cloudfrontUrl + objectKey : cloudfrontUrl + "/" + objectKey;
-        }
-        if (endpoint != null && !endpoint.isEmpty()) {
-            return endpoint + "/" + bucketName + "/" + objectKey;
         }
         return "https://" + bucketName + ".s3." + region + ".amazonaws.com/" + objectKey;
     }
