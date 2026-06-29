@@ -2,9 +2,9 @@ export type UserProfile = {
   email: string;
   fullName: string;
   avatarUrl: string;
-  phoneNumber?: string;
-  dob?: string;
-  bio?: string;
+  phoneNumber: string;
+  dob: string;
+  bio: string;
 };
 
 export type UserSettings = {

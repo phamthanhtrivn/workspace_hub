@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, User, Settings, Shield } from "lucide-react";
 import ProfileTab from "./profile-tab";
 import SettingsTab from "./settings-tab";
@@ -9,15 +9,23 @@ import SessionsTab from "./sessions-tab";
 type UserSettingsModalProps = {
   isOpen: boolean;
   onClose: () => void;
+  initialTab?: "profile" | "settings" | "sessions";
 };
 
 export default function UserSettingsModal({
   isOpen,
   onClose,
+  initialTab = "profile",
 }: UserSettingsModalProps) {
   const [activeTab, setActiveTab] = useState<
     "profile" | "settings" | "sessions"
-  >("profile");
+  >(initialTab);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 

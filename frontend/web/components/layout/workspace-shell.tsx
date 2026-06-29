@@ -84,11 +84,12 @@ export default function WorkspaceShell({
   const pathname = usePathname();
   const currentTitle = pageTitles.get(pathname) ?? "Workspace";
 
-  console.log(currentTitle);
-
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<
+    "profile" | "settings" | "sessions"
+  >("profile");
 
   const { email } = useAppSelector((state) => state.auth);
 
@@ -267,6 +268,10 @@ export default function WorkspaceShell({
         <WorkspaceHeader
           currentTitle={currentTitle}
           onMenuClick={() => setIsMobileMenuOpen(true)}
+          onOpenSettings={(tab) => {
+            setActiveSettingsTab(tab);
+            setIsSettingsModalOpen(true);
+          }}
         />
 
         <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -277,6 +282,7 @@ export default function WorkspaceShell({
       <UserSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
+        initialTab={activeSettingsTab}
       />
     </div>
   );

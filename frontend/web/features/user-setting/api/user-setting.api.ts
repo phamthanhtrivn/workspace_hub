@@ -15,10 +15,10 @@ export const updateUserProfile = async (
 
 export const getAvatarPresignedUrl = async (
   fileName: string,
-  contentType: string
+  contentType: string,
 ): Promise<any> => {
   const response = await api.get("/api/users/me/profile/avatar/presigned-url", {
-    params: { fileName, contentType }
+    params: { fileName, contentType },
   });
   return response.data;
 };
@@ -35,10 +35,10 @@ export const getUserSessions = async (): Promise<any> => {
 
 export const revokeUserSession = async (
   sessionId: string,
-  password?: string
+  password?: string,
 ): Promise<any> => {
   const response = await api.delete(`/api/users/me/sessions/${sessionId}`, {
-    data: { password: password || "" }
+    data: { password: password || "" },
   });
   return response.data;
 };
