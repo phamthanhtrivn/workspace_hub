@@ -20,10 +20,11 @@ export type UserSession = {
   deviceName: string;
   browser: string;
   operatingSystem: string;
+  platform: string;
   location: string;
   ipAddress: string;
   expiresAt: string;
-  isCurrentSession: boolean;
+  currentSession: boolean;
 };
 
 export type UserSettingsOverview = {

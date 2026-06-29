@@ -107,12 +107,12 @@ export default function WorkspaceShell({
       {/* Sidebar */}
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/80 bg-white/90 px-4 py-5 shadow-[18px_0_48px_rgba(15,40,84,0.06)] backdrop-blur-xl transition-all duration-300 ease-in-out lg:relative lg:block",
+          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/80 bg-white/90 px-4 py-5 shadow-[18px_0_48px_rgba(15,40,84,0.06)] backdrop-blur-xl transition-all duration-300 ease-in-out lg:relative lg:flex",
           isMobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0",
           isSidebarCollapsed ? "lg:w-24" : "lg:w-72",
-          "w-72", // Mobile width is always 72
+          "w-72 shrink-0", // Mobile width is always 72, shrink-0 prevents it from shrinking
         ].join(" ")}
       >
         <button

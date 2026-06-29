@@ -2,28 +2,53 @@
 
 import { useState, useEffect } from "react";
 import { Monitor, Smartphone, LogOut, Loader2 } from "lucide-react";
-import { UserSession } from "../types/user-setting.types";
+import { UserSession } from "@/features/user-setting/types/user-setting.types";
+import {
+  getUserSessions,
+  revokeUserSession,
+} from "@/features/user-setting/api/user-setting.api";
+import RevokeSessionModal from "./revoke-session-modal";
 
 export default function SessionsTab() {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Modal state
+  const [revokingSessionId, setRevokingSessionId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     loadSessions();
   }, []);
 
   const loadSessions = async () => {
-    // setIsLoading(true);
-    // try {
-    //   const response = await getUserSettingsOverview();
-    //   if (response.success && response.data.sessions) {
-    //     setSessions(response.data.sessions);
-    //   }
-    // } catch (error) {
-    //   console.error("Failed to load sessions:", error);
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    setIsLoading(true);
+    try {
+      const response = await getUserSessions();
+      if (response && response.success) {
+        setSessions(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to load sessions:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRevokeClick = (sessionId: string) => {
+    setRevokingSessionId(sessionId);
+  };
+
+  const handleConfirmRevoke = async (password: string) => {
+    if (!revokingSessionId) return;
+
+    // The error will be caught by the modal
+    const res = await revokeUserSession(revokingSessionId, password);
+    if (res && res.success) {
+      setRevokingSessionId(null);
+      loadSessions(); // Reload list
+    }
   };
 
   if (isLoading) {
@@ -33,6 +58,8 @@ export default function SessionsTab() {
       </div>
     );
   }
+
+  console.log(sessions);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
@@ -59,15 +86,14 @@ export default function SessionsTab() {
               <div>
                 <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
                   {session.deviceName || "Thiết bị không xác định"}
-                  {session.isCurrentSession && (
+                  {session.currentSession && (
                     <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-green-700">
-                      Hiện tại
+                      Thiết bị hiện tại
                     </span>
                   )}
                 </p>
                 <p className="text-xs font-semibold text-slate-500">
-                  {session.browser || "Unknown browser"} trên{" "}
-                  {session.operatingSystem || "Unknown OS"}
+                  {session.platform || "Nền tảng không xác định"}
                 </p>
                 <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
                   {session.location || session.ipAddress} • Hết hạn:{" "}
@@ -76,8 +102,11 @@ export default function SessionsTab() {
               </div>
             </div>
 
-            {!session.isCurrentSession && (
-              <button className="flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-100 cursor-pointer">
+            {!session.currentSession && (
+              <button
+                onClick={() => handleRevokeClick(session.id)}
+                className="flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-100 cursor-pointer"
+              >
                 <LogOut className="h-3 w-3" />
                 Đăng xuất
               </button>
@@ -91,6 +120,12 @@ export default function SessionsTab() {
           </p>
         )}
       </div>
+
+      <RevokeSessionModal
+        isOpen={!!revokingSessionId}
+        onClose={() => setRevokingSessionId(null)}
+        onConfirm={handleConfirmRevoke}
+      />
     </div>
   );
 }
