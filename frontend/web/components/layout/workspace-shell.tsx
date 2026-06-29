@@ -106,7 +106,6 @@ export default function WorkspaceShell({
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
-
       {/* Sidebar */}
       <aside
         className={[
@@ -262,7 +261,6 @@ export default function WorkspaceShell({
           </div>
         </div>
       </aside>
-
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col min-w-0 bg-background text-foreground">
         <WorkspaceHeader
@@ -274,11 +272,12 @@ export default function WorkspaceShell({
           }}
         />
 
-        <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
+        <main className="flex-1 overflow-y-auto relative flex flex-col">
+          <div className="flex-1 w-full h-full flex flex-col">
+            {children}
+          </div>
         </main>
       </div>
-
       <UserSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={() => setIsSettingsModalOpen(false)}
