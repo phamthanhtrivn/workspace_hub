@@ -23,6 +23,11 @@ export const getAvatarPresignedUrl = async (
   return response.data;
 };
 
+export const getUserSettings = async (): Promise<any> => {
+  const response = await api.get("/api/users/me/settings");
+  return response.data;
+};
+
 export const getUserSessions = async (): Promise<any> => {
   const response = await api.get("/api/users/me/sessions");
   return response.data;

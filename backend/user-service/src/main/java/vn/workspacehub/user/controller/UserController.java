@@ -7,8 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.dto.request.RevokeSessionRequest;
+import vn.workspacehub.user.dto.response.AccountSettingResponse;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
 import vn.workspacehub.user.service.AuthService;
+import vn.workspacehub.user.service.UserService;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,6 +21,7 @@ import java.util.UUID;
 public class UserController {
 
     private final AuthService authService;
+    private final UserService userService;
 
     @GetMapping("/me/sessions")
     public ResponseEntity<ApiResponse<List<UserSessionResponse>>> getActiveSessions(
@@ -43,6 +46,18 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
                 .message("Đăng xuất thiết bị thành công")
+                .build());
+    }
+
+    @GetMapping("/me/settings")
+    public ResponseEntity<ApiResponse<AccountSettingResponse>> getAccountSettings(
+            @RequestHeader(value = "X-User-Id") UUID userId) {
+        
+        AccountSettingResponse settings = userService.getAccountSettings(userId);
+        return ResponseEntity.ok(ApiResponse.<AccountSettingResponse>builder()
+                .success(true)
+                .message("Lấy thông tin cài đặt thành công")
+                .data(settings)
                 .build());
     }
 }

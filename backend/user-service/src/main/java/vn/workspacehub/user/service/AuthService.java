@@ -166,8 +166,6 @@ public class AuthService {
                         .theme("light")
                         .language("vi")
                         .timezone("Asia/Ho_Chi_Minh")
-                        .emailNotificationEnabled(true)
-                        .pushNotificationEnabled(true)
                         .build();
                 accountSettingRepository.save(accountSetting);
             }
@@ -290,8 +288,6 @@ public class AuthService {
                 .theme("light")
                 .language("vi")
                 .timezone("Asia/Ho_Chi_Minh")
-                .emailNotificationEnabled(true)
-                .pushNotificationEnabled(true)
                 .build();
         accountSettingRepository.save(accountSetting);
     }
@@ -302,7 +298,7 @@ public class AuthService {
         String currentTokenHash = (rawRefreshToken != null && !rawRefreshToken.isBlank())
                 ? HashUtils.hmacSha256(rawRefreshToken, jwtSecret)
                 : null;
-        
+
         List<RefreshToken> tokens = refreshTokenRepository.findByUserIdAndRevokedFalseOrderByCreatedAtDesc(userId);
         return tokens.stream().map(token -> {
             boolean isCurrent = currentTokenHash != null && currentTokenHash.equals(token.getTokenHash());

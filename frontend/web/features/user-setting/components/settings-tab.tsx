@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Save, Loader2 } from "lucide-react";
 import { UserSettings } from "../types/user-setting.types";
+import { getUserSettings } from "../api/user-setting.api";
 
 export default function SettingsTab() {
   const [settingsForm, setSettingsForm] = useState<UserSettings | null>(null);
@@ -14,17 +15,17 @@ export default function SettingsTab() {
   }, []);
 
   const loadSettings = async () => {
-    // setIsLoading(true);
-    // try {
-    //   const response = await getUserSettingsOverview();
-    //   if (response.success && response.data.settings) {
-    //     setSettingsForm(response.data.settings);
-    //   }
-    // } catch (error) {
-    //   console.error("Failed to load settings:", error);
-    // } finally {
-    //   setIsLoading(false);
-    // }
+    setIsLoading(true);
+    try {
+      const response = await getUserSettings();
+      if (response && response.success) {
+        setSettingsForm(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to load settings:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -71,7 +72,6 @@ export default function SettingsTab() {
           >
             <option value="light">Sáng (Light)</option>
             <option value="dark">Tối (Dark)</option>
-            <option value="system">Theo hệ thống</option>
           </select>
         </div>
 
@@ -84,7 +84,7 @@ export default function SettingsTab() {
             }
             className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
           >
-            <option value="vi">Tiếng Việt</option>
+            <option value="vi">Vietnamese</option>
             <option value="en">English</option>
           </select>
         </div>
@@ -101,29 +101,6 @@ export default function SettingsTab() {
             <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (GMT+7)</option>
             <option value="UTC">UTC</option>
           </select>
-        </div>
-
-        <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4">
-          <div>
-            <p className="font-bold text-slate-700">Thông báo qua Email</p>
-            <p className="text-xs font-semibold text-slate-500">
-              Nhận cập nhật công việc qua email
-            </p>
-          </div>
-          <label className="relative inline-flex cursor-pointer items-center">
-            <input
-              type="checkbox"
-              className="peer sr-only"
-              checked={settingsForm.emailNotificationEnabled}
-              onChange={(e) =>
-                setSettingsForm({
-                  ...settingsForm,
-                  emailNotificationEnabled: e.target.checked,
-                })
-              }
-            />
-            <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-[var(--color-primary)] peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--color-primary)]/20"></div>
-          </label>
         </div>
 
         <button

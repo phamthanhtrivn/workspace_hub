@@ -27,12 +27,6 @@ public class AccountSetting {
     private String language;
     private String timezone;
 
-    @Column(name = "email_notification_enabled")
-    private boolean emailNotificationEnabled;
-
-    @Column(name = "push_notification_enabled")
-    private boolean pushNotificationEnabled;
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
