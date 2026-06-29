@@ -14,15 +14,12 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import vn.workspacehub.user.dto.request.RegisterRequestDto;
 import vn.workspacehub.user.dto.response.LoginResponseDto;
-import vn.workspacehub.user.entity.RefreshToken;
-import vn.workspacehub.user.entity.User;
-import vn.workspacehub.user.entity.UserProfile;
+import vn.workspacehub.user.dto.response.UserSessionResponse;
+import vn.workspacehub.user.entity.*;
 import vn.workspacehub.user.enums.UserRole;
 import vn.workspacehub.user.enums.UserStatus;
 import vn.workspacehub.user.exception.BusinessException;
-import vn.workspacehub.user.repository.RefreshTokenRepository;
-import vn.workspacehub.user.repository.UserProfileRepository;
-import vn.workspacehub.user.repository.UserRepository;
+import vn.workspacehub.user.repository.*;
 import vn.workspacehub.user.util.CookieUtils;
 import vn.workspacehub.user.util.HashUtils;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
@@ -30,14 +27,14 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import vn.workspacehub.user.enums.OAuthProvider;
-import vn.workspacehub.user.repository.OAuthAccountRepository;
-import vn.workspacehub.user.entity.OAuthAccount;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,9 +46,9 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserProfileRepository userProfileRepository;
     private final OAuthAccountRepository oauthAccountRepository;
+    private final AccountSettingRepository accountSettingRepository;
 
     private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
-    private static final String COOKIE_PATH = "/api/auth";
 
     @Value("${jwt.secret_key}")
     private String jwtSecret;
@@ -61,7 +58,8 @@ public class AuthService {
     private String googleClientId;
 
     @Transactional
-    public LoginResponseDto login(String email, String password, HttpServletRequest request, HttpServletResponse response) {
+    public LoginResponseDto login(String email, String password, HttpServletRequest request,
+            HttpServletResponse response) {
         User user = userRepository.findUserByEmail(email)
                 .orElseThrow(() -> new BusinessException("Email hoặc mật khẩu không chính xác"));
 
@@ -70,8 +68,7 @@ public class AuthService {
         }
 
         String accessToken = jwtService.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name()
-        );
+                user.getId(), user.getEmail(), user.getRole().name());
 
         String ipAddress = getClientIpAddress(request);
 
@@ -87,7 +84,8 @@ public class AuthService {
     }
 
     @Transactional
-    public LoginResponseDto socialLogin(OAuthProvider provider, String credential, HttpServletRequest request, HttpServletResponse response) {
+    public LoginResponseDto socialLogin(OAuthProvider provider, String credential, HttpServletRequest request,
+            HttpServletResponse response) {
         if (provider == OAuthProvider.GOOGLE) {
             return processGoogleLogin(credential, request, response);
         }
@@ -95,7 +93,8 @@ public class AuthService {
         throw new BusinessException("Provider không được hỗ trợ");
     }
 
-    private LoginResponseDto processGoogleLogin(String credential, HttpServletRequest request, HttpServletResponse response) {
+    private LoginResponseDto processGoogleLogin(String credential, HttpServletRequest request,
+            HttpServletResponse response) {
         try {
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
@@ -108,8 +107,7 @@ public class AuthService {
                         "https://www.googleapis.com/oauth2/v3/userinfo",
                         HttpMethod.GET,
                         entity,
-                        Map.class
-                );
+                        Map.class);
             } catch (org.springframework.web.client.HttpClientErrorException e) {
                 throw new BusinessException("Lỗi xác thực Google: " + e.getResponseBodyAsString());
             }
@@ -124,16 +122,19 @@ public class AuthService {
             String fullName = (String) payload.get("name");
             String avatarUrl = (String) payload.get("picture");
 
-            return processOAuthUser(email, providerUserId, OAuthProvider.GOOGLE, fullName, avatarUrl, request, response);
+            return processOAuthUser(email, providerUserId, OAuthProvider.GOOGLE, fullName, avatarUrl, request,
+                    response);
         } catch (Exception e) {
             e.printStackTrace();
             throw new BusinessException("Xác thực Google thất bại: " + e.getClass().getName() + " - " + e.getMessage());
         }
     }
 
-    private LoginResponseDto processOAuthUser(String email, String providerUserId, OAuthProvider provider, String fullName, String avatarUrl, HttpServletRequest request, HttpServletResponse response) {
+    private LoginResponseDto processOAuthUser(String email, String providerUserId, OAuthProvider provider,
+            String fullName, String avatarUrl, HttpServletRequest request, HttpServletResponse response) {
         // 1. Kiểm tra OAuth Account đã liên kết chưa
-        Optional<OAuthAccount> optionalOAuth = oauthAccountRepository.findByProviderAndProviderUserId(provider, providerUserId);
+        Optional<OAuthAccount> optionalOAuth = oauthAccountRepository.findByProviderAndProviderUserId(provider,
+                providerUserId);
 
         User user;
         if (optionalOAuth.isPresent()) {
@@ -159,6 +160,14 @@ public class AuthService {
                         .avatarUrl(avatarUrl)
                         .build();
                 userProfileRepository.save(userProfile);
+
+                AccountSetting accountSetting = AccountSetting.builder()
+                        .user(user)
+                        .theme("light")
+                        .language("vi")
+                        .timezone("Asia/Ho_Chi_Minh")
+                        .build();
+                accountSettingRepository.save(accountSetting);
             }
 
             // 4. Tạo và lưu OAuth Account
@@ -176,8 +185,7 @@ public class AuthService {
 
         // Tạo JWT cho session
         String accessToken = jwtService.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name()
-        );
+                user.getId(), user.getEmail(), user.getRole().name());
 
         String ipAddress = getClientIpAddress(request);
         String rawRefreshToken = createAndSaveRefreshToken(user, request, ipAddress);
@@ -218,7 +226,8 @@ public class AuthService {
 
         boolean ipMismatch = storedToken.getIpAddress() != null && !storedToken.getIpAddress().equals(currentIp);
         boolean browserMismatch = storedToken.getBrowser() != null && !storedToken.getBrowser().equals(currentBrowser);
-        boolean osMismatch = storedToken.getOperatingSystem() != null && !storedToken.getOperatingSystem().equals(currentOs);
+        boolean osMismatch = storedToken.getOperatingSystem() != null
+                && !storedToken.getOperatingSystem().equals(currentOs);
 
         if (ipMismatch || browserMismatch || osMismatch) {
             revokeToken(storedToken);
@@ -228,8 +237,7 @@ public class AuthService {
         User user = storedToken.getUser();
 
         String newAccessToken = jwtService.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name()
-        );
+                user.getId(), user.getEmail(), user.getRole().name());
 
         return LoginResponseDto.builder()
                 .userId(user.getId())
@@ -249,7 +257,7 @@ public class AuthService {
                     .ifPresent(this::revokeToken);
         }
 
-        CookieUtils.clearCookie(response, REFRESH_TOKEN_COOKIE, COOKIE_PATH);
+        CookieUtils.clearCookie(response, REFRESH_TOKEN_COOKIE, "/");
     }
 
     @Transactional
@@ -274,6 +282,55 @@ public class AuthService {
                 .build();
 
         userProfileRepository.save(userProfile);
+
+        AccountSetting accountSetting = AccountSetting.builder()
+                .user(savedUser)
+                .theme("light")
+                .language("vi")
+                .timezone("Asia/Ho_Chi_Minh")
+                .build();
+        accountSettingRepository.save(accountSetting);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserSessionResponse> getActiveSessions(UUID userId, HttpServletRequest request) {
+        String rawRefreshToken = CookieUtils.extractCookie(request, REFRESH_TOKEN_COOKIE);
+        String currentTokenHash = (rawRefreshToken != null && !rawRefreshToken.isBlank())
+                ? HashUtils.hmacSha256(rawRefreshToken, jwtSecret)
+                : null;
+
+        List<RefreshToken> tokens = refreshTokenRepository.findByUserIdAndRevokedFalseOrderByCreatedAtDesc(userId);
+        return tokens.stream().map(token -> {
+            boolean isCurrent = currentTokenHash != null && currentTokenHash.equals(token.getTokenHash());
+            return UserSessionResponse.builder()
+                    .id(token.getId())
+                    .deviceId(token.getDeviceId())
+                    .deviceName(token.getDeviceName())
+                    .browser(token.getBrowser())
+                    .operatingSystem(token.getOperatingSystem())
+                    .platform(token.getPlatform())
+                    .location(token.getLocation())
+                    .ipAddress(token.getIpAddress())
+                    .expiresAt(token.getExpiresAt())
+                    .createdAt(token.getCreatedAt())
+                    .isCurrentSession(isCurrent)
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void revokeSession(UUID userId, UUID sessionId, String password) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("Người dùng không tồn tại"));
+
+        if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+            throw new BusinessException("Mật khẩu không chính xác");
+        }
+
+        RefreshToken token = refreshTokenRepository.findByIdAndUserIdAndRevokedFalse(sessionId, userId)
+                .orElseThrow(() -> new BusinessException("Phiên đăng nhập không tồn tại hoặc đã bị thu hồi"));
+
+        revokeToken(token);
     }
 
     // ── Private helpers ──
@@ -285,7 +342,6 @@ public class AuthService {
         }
         return xfHeader.split(",")[0].trim();
     }
-
 
     private String createAndSaveRefreshToken(User user, HttpServletRequest request, String ipAddress) {
         String rawRefreshToken = UUID.randomUUID().toString();
@@ -318,7 +374,7 @@ public class AuthService {
 
     private void setRefreshTokenCookie(HttpServletResponse response, String rawRefreshToken) {
         CookieUtils.setCookie(response, REFRESH_TOKEN_COOKIE, rawRefreshToken,
-                (int) (refreshTokenExpirationMs / 1000), COOKIE_PATH);
+                (int) (refreshTokenExpirationMs / 1000), "/");
     }
 
     private void revokeToken(RefreshToken token) {
@@ -327,5 +383,3 @@ public class AuthService {
         refreshTokenRepository.save(token);
     }
 }
-
-

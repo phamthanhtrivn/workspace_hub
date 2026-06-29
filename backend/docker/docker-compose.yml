@@ -2,13 +2,16 @@ version: '3.8'
 
 services:
   kong:
-    image: kong:latest
+    build: 
+      context: ../kong-gateway
+      dockerfile: Dockerfile
     container_name: workspace_hub_kong
     env_file:
       - ../kong-gateway/.env
     environment:
       - KONG_DATABASE=off
       - KONG_DECLARATIVE_CONFIG=/tmp/kong.yml
+      - KONG_PLUGINS=bundled,jwt-user-context
       - KONG_PROXY_ACCESS_LOG=/dev/stdout
       - KONG_ADMIN_ACCESS_LOG=/dev/stdout
       - KONG_PROXY_ERROR_LOG=/dev/stderr
@@ -24,7 +27,7 @@ services:
       - "8001:8001" # Admin HTTP Port
       - "8444:8444" # Admin HTTPS Port
     volumes:
-      - ../kong-gateway:/usr/local/kong/declarative
+      - ../kong-gateway/kong.yml:/usr/local/kong/declarative/kong.yml
     restart: on-failure
 
   postgres:

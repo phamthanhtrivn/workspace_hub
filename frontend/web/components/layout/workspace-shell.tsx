@@ -19,8 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useSelector } from "react-redux";
-import { RootState, useAppSelector } from "@/store/store";
+import { useAppSelector } from "@/store/store";
+import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
+import WorkspaceHeader from "./workspace-header";
 
 const menuItems = [
   {
@@ -85,6 +86,10 @@ export default function WorkspaceShell({
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<
+    "profile" | "settings" | "sessions"
+  >("profile");
 
   const { email } = useAppSelector((state) => state.auth);
 
@@ -105,12 +110,12 @@ export default function WorkspaceShell({
       {/* Sidebar */}
       <aside
         className={[
-          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/80 bg-white/90 px-4 py-5 shadow-[18px_0_48px_rgba(15,40,84,0.06)] backdrop-blur-xl transition-all duration-300 ease-in-out lg:relative lg:block",
+          "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/80 bg-white/90 px-4 py-5 shadow-[18px_0_48px_rgba(15,40,84,0.06)] backdrop-blur-xl transition-all duration-300 ease-in-out lg:relative lg:flex",
           isMobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0",
           isSidebarCollapsed ? "lg:w-24" : "lg:w-72",
-          "w-72", // Mobile width is always 72
+          "w-72 shrink-0", // Mobile width is always 72, shrink-0 prevents it from shrinking
         ].join(" ")}
       >
         <button
@@ -221,8 +226,9 @@ export default function WorkspaceShell({
 
         <div className="mt-auto mb-2 pt-4">
           <div
+            onClick={() => setIsSettingsModalOpen(true)}
             className={[
-              "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300",
+              "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300 cursor-pointer hover:bg-slate-100",
               isSidebarCollapsed ? "lg:px-2 lg:flex lg:justify-center" : "",
             ].join(" ")}
           >
@@ -244,7 +250,9 @@ export default function WorkspaceShell({
                 ].join(" ")}
               >
                 <div className="pl-3 whitespace-nowrap">
-                  <p className="text-sm font-black">Settings</p>
+                  <p className="text-sm font-black text-slate-800 hover:text-[var(--color-primary-dark)]">
+                    Cài đặt chung
+                  </p>
                   <p className="truncate text-[0.7rem] font-semibold text-slate-500">
                     {email}
                   </p>
@@ -256,45 +264,26 @@ export default function WorkspaceShell({
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex flex-1 flex-col min-w-0">
-        <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-[#f5f9fb]/86 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="-ml-2 rounded-xl p-2 text-slate-600 hover:bg-slate-100 lg:hidden cursor-pointer"
-              >
-                <Menu className="h-6 w-6" />
-              </button>
-              <div className="min-w-0">
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
-                  Workspace
-                </p>
-                <h2 className="truncate text-xl font-black text-[var(--color-primary-dark)]">
-                  {currentTitle}
-                </h2>
-              </div>
-            </div>
-
-            <div className="hidden min-w-[18rem] items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-400 shadow-sm md:flex">
-              <Search className="h-4 w-4" strokeWidth={2} />
-              Search workspace
-            </div>
-
-            <button
-              type="button"
-              className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-[var(--color-primary-dark)] shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20"
-              aria-label="Open profile"
-            >
-              TT
-            </button>
-          </div>
-        </header>
+      <div className="flex flex-1 flex-col min-w-0 bg-background text-foreground">
+        <WorkspaceHeader
+          currentTitle={currentTitle}
+          onMenuClick={() => setIsMobileMenuOpen(true)}
+          onOpenSettings={(tab) => {
+            setActiveSettingsTab(tab);
+            setIsSettingsModalOpen(true);
+          }}
+        />
 
         <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>
+
+      <UserSettingsModal
+        isOpen={isSettingsModalOpen}
+        onClose={() => setIsSettingsModalOpen(false)}
+        initialTab={activeSettingsTab}
+      />
     </div>
   );
 }
