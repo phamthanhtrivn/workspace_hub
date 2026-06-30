@@ -34,7 +34,7 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
   };
 
   return (
-    <div className="w-80 h-full bg-white border-l border-gray-200 flex flex-col">
+    <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="font-semibold text-gray-800">Details</h2>

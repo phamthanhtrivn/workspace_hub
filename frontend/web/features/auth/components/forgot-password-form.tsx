@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, KeyRound } from "lucide-react";
 import InputField from "@/components/common/input-field";
-import { OtpInput } from "@/components/common/OtpInput";
+import { OtpInput } from "@/components/common/otp-input";
 import { toast } from "react-toastify";
 import { api } from "@/lib/axios";
 

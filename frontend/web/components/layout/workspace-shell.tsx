@@ -273,9 +273,7 @@ export default function WorkspaceShell({
         />
 
         <main className="flex-1 overflow-y-auto relative flex flex-col">
-          <div className="flex-1 w-full h-full flex flex-col">
-            {children}
-          </div>
+          <div className="flex-1 w-full h-full flex flex-col">{children}</div>
         </main>
       </div>
       <UserSettingsModal

@@ -49,8 +49,8 @@ export default function UserSettingsModal({
               onClick={() => setActiveTab("profile")}
               className={`flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
                 activeTab === "profile"
-                  ? "bg-white text-[var(--color-primary-dark)] shadow-sm"
-                  : "text-slate-600 hover:bg-slate-200/50"
+                  ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
+                  : "text-slate-600 hover:bg-slate-300/70"
               }`}
             >
               <User className="h-5 w-5 md:h-4 md:w-4" />
@@ -60,8 +60,8 @@ export default function UserSettingsModal({
               onClick={() => setActiveTab("settings")}
               className={`flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
                 activeTab === "settings"
-                  ? "bg-white text-[var(--color-primary-dark)] shadow-sm"
-                  : "text-slate-600 hover:bg-slate-200/50"
+                  ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
+                  : "text-slate-600 hover:bg-slate-300/70"
               }`}
             >
               <Settings className="h-5 w-5 md:h-4 md:w-4" />
@@ -71,8 +71,8 @@ export default function UserSettingsModal({
               onClick={() => setActiveTab("sessions")}
               className={`flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
                 activeTab === "sessions"
-                  ? "bg-white text-[var(--color-primary-dark)] shadow-sm"
-                  : "text-slate-600 hover:bg-slate-200/50"
+                  ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
+                  : "text-slate-600 hover:bg-slate-300/70"
               }`}
             >
               <Shield className="h-5 w-5 md:h-4 md:w-4" />
