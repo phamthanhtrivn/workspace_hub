@@ -40,8 +40,6 @@ export default function ProfileTab() {
     }
   };
 
-  console.log(profileForm);
-
   const handleAvatarChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {

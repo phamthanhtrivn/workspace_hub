@@ -72,8 +72,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   }, [currentUserId]);
 
   const handleSelectConversation = (conv: any) => {
-    console.log("conv", conv);
-
     dispatch(setActiveConversation(conv));
     dispatch(setMemberProfilesAction(memberProfiles));
     if (onSelectChat) onSelectChat();

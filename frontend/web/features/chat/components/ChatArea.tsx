@@ -58,7 +58,6 @@ export default function ChatArea({
       });
 
       const handleNewMessage = (message: any) => {
-        console.log("New message:", message);
         if (message.conversationId === activeConversation?.id) {
           setMessages((prev) => [...prev, message]);
         }
