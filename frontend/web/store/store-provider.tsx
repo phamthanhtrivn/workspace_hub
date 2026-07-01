@@ -42,7 +42,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
           }),
         );
 
-        if (pathname === "/login" || pathname === "/register") {
+        if (PUBLIC_PATHS.includes(pathname)) {
           router.replace("/dashboard");
         }
       } catch (error) {

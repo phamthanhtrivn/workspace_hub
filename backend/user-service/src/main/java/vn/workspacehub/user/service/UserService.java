@@ -5,10 +5,15 @@ import org.springframework.stereotype.Service;
 import vn.workspacehub.user.repository.UserRepository;
 import vn.workspacehub.user.repository.AccountSettingRepository;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
+import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.exception.BusinessException;
 import vn.workspacehub.user.entity.AccountSetting;
+import vn.workspacehub.user.entity.User;
+import vn.workspacehub.user.entity.UserProfile;
 
 import java.util.UUID;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,5 +31,22 @@ public class UserService {
                 .language(setting.getLanguage())
                 .timezone(setting.getTimezone())
                 .build();
+    }
+
+    public List<UserSearchResponse> searchUserByEmail(UUID userId, String email) {
+        List<User> users = userRepository.findByEmailContainingIgnoreCase(email);
+
+        return users.stream()
+                .filter(user -> !user.getId().equals(userId))
+                .map(user -> {
+                    UserProfile profile = user.getProfile();
+                    return UserSearchResponse.builder()
+                            .id(user.getId())
+                            .email(user.getEmail())
+                            .fullName(profile != null ? profile.getFullName() : null)
+                            .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }

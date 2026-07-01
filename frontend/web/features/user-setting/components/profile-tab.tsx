@@ -40,6 +40,8 @@ export default function ProfileTab() {
     }
   };
 
+  console.log(profileForm);
+
   const handleAvatarChange = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -81,7 +83,7 @@ export default function ProfileTab() {
     } catch (error: any) {
       console.error(error);
       const response = error?.response?.data;
-      
+
       if (response?.errors && Object.keys(response.errors).length > 0) {
         setErrors(response.errors);
         return;
@@ -205,9 +207,7 @@ export default function ProfileTab() {
               : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
           }`}
         />
-        {errors.dob && (
-          <p className="text-xs text-red-500">{errors.dob}</p>
-        )}
+        {errors.dob && <p className="text-xs text-red-500">{errors.dob}</p>}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -228,9 +228,7 @@ export default function ProfileTab() {
           }`}
           placeholder="Một vài dòng giới thiệu về bạn..."
         />
-        {errors.bio && (
-          <p className="text-xs text-red-500">{errors.bio}</p>
-        )}
+        {errors.bio && <p className="text-xs text-red-500">{errors.bio}</p>}
       </div>
 
       <button
