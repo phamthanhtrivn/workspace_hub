@@ -6,6 +6,7 @@ import vn.workspacehub.user.repository.UserRepository;
 import vn.workspacehub.user.repository.AccountSettingRepository;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
 import vn.workspacehub.user.dto.response.UserSearchResponse;
+import vn.workspacehub.user.dto.response.UserProfileResponse;
 import vn.workspacehub.user.exception.BusinessException;
 import vn.workspacehub.user.entity.AccountSetting;
 import vn.workspacehub.user.entity.User;
@@ -48,5 +49,20 @@ public class UserService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    public UserProfileResponse getPublicProfile(UUID id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
+
+        UserProfile profile = user.getProfile();
+        return UserProfileResponse.builder()
+                .email(user.getEmail())
+                .fullName(profile != null ? profile.getFullName() : null)
+                .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
+                .phoneNumber(profile != null ? profile.getPhoneNumber() : null)
+                .dob(profile != null ? profile.getDob() : null)
+                .bio(profile != null ? profile.getBio() : null)
+                .build();
     }
 }

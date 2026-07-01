@@ -10,6 +10,7 @@ import vn.workspacehub.user.dto.request.RevokeSessionRequest;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
 import vn.workspacehub.user.dto.response.UserSearchResponse;
+import vn.workspacehub.user.dto.response.UserProfileResponse;
 import vn.workspacehub.user.service.AuthService;
 import vn.workspacehub.user.service.UserService;
 
@@ -72,6 +73,18 @@ public class UserController {
                 .success(true)
                 .message("Tìm kiếm người dùng thành công")
                 .data(users)
+                .build());
+    }
+
+    @GetMapping("/{id}/profile")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getPublicProfile(
+            @PathVariable UUID id) {
+        
+        UserProfileResponse profile = userService.getPublicProfile(id);
+        return ResponseEntity.ok(ApiResponse.<UserProfileResponse>builder()
+                .success(true)
+                .message("Lấy thông tin người dùng thành công")
+                .data(profile)
                 .build());
     }
 }

@@ -4,3 +4,12 @@ export interface UserSearchResponse {
   fullName: string | null;
   avatarUrl: string | null;
 }
+
+export interface UserProfileResponse {
+  email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+  phoneNumber: string | null;
+  dob: string | null;
+  bio: string | null;
+}

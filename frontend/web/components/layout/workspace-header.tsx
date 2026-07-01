@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, Search, Bell, Plus, Settings, LogOut, User } from "lucide-react";
+import { Menu, Search, Bell, Settings, LogOut, User } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { clearCredentials } from "@/store/auth/auth-slice";
@@ -130,7 +130,7 @@ export default function WorkspaceHeader({
               className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-white text-sm font-black text-[var(--color-primary-dark)] shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer"
               aria-label="Open user menu"
             >
-              {userProfile.avatarUrl && (
+              {userProfile.avatarUrl ? (
                 <Image
                   src={userProfile.avatarUrl}
                   alt="Avatar"
@@ -138,6 +138,8 @@ export default function WorkspaceHeader({
                   height={44}
                   className="rounded-full"
                 />
+              ) : (
+                <User size={22} className="text-gray-700" />
               )}
             </button>
 

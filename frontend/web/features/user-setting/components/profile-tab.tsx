@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Camera, Save, Loader2 } from "lucide-react";
+import { Camera, Save, Loader2, User } from "lucide-react";
 import { UserProfile } from "../types/user-setting.types";
 import {
   getUserProfile,
@@ -111,17 +111,15 @@ export default function ProfileTab() {
 
       <div className="flex flex-col items-center sm:flex-row sm:items-center gap-5 pb-5 border-b border-slate-100">
         <div className="relative group shrink-0">
-          <div className="grid h-20 w-20 place-items-center rounded-full bg-[var(--color-primary-dark)] text-2xl font-bold text-white shadow-md overflow-hidden">
+          <div className="grid h-20 w-20 place-items-center rounded-full border border-gray-700 bg-white text-2xl font-bold text-white shadow-md overflow-hidden">
             {profileForm.avatarUrl ? (
               <img
                 src={profileForm.avatarUrl}
                 alt="Avatar"
                 className="h-full w-full object-cover"
               />
-            ) : profileForm.fullName ? (
-              profileForm.fullName.charAt(0).toUpperCase()
             ) : (
-              "W"
+              <User size={30} className="text-gray-700" />
             )}
           </div>
           <button
