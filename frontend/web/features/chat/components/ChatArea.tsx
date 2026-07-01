@@ -5,8 +5,7 @@ import ChatInput from "./ChatInput";
 import ChatHeader from "./ChatHeader";
 import ChatMessage from "./ChatMessage";
 import { useAppSelector } from "@/store/store";
-import { getConversationMessages, getPublicProfile } from "../api/chat.api";
-import { UserProfileResponse } from "../types/chat.types";
+import { getConversationMessages } from "../api/chat.api";
 import { socketService } from "../api/socket.service";
 import { ChatEvent } from "../api/chat.events";
 
@@ -19,17 +18,12 @@ export default function ChatArea({
   onToggleRightPanel,
   onBack,
 }: ChatAreaProps) {
-  const memberProfile = useAppSelector((state) => state.chat.memberProfile);
-  const activeConversationId = useAppSelector(
-    (state) => state.chat.activeConversationId,
+  const { activeConversation, memberProfiles } = useAppSelector(
+    (state) => state.chat,
   );
   const auth = useAppSelector((state) => state.auth);
 
   const [messages, setMessages] = useState<any[]>([]);
-  const [userProfiles, setUserProfiles] = useState<
-    Record<string, UserProfileResponse>
-  >({});
-  const fetchedProfiles = useRef<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -41,40 +35,10 @@ export default function ChatArea({
   }, [messages]);
 
   useEffect(() => {
-    const missingSenderIds = new Set<string>();
-    messages.forEach((msg) => {
-      if (
-        msg.senderId !== auth.userId &&
-        !fetchedProfiles.current.has(msg.senderId)
-      ) {
-        missingSenderIds.add(msg.senderId);
-      }
-    });
-
-    if (missingSenderIds.size > 0) {
-      missingSenderIds.forEach((id) => fetchedProfiles.current.add(id));
-
-      const fetchProfiles = async () => {
-        const newProfiles: Record<string, UserProfileResponse> = {};
-        for (const id of missingSenderIds) {
-          try {
-            const profile = await getPublicProfile(id);
-            newProfiles[id] = profile;
-          } catch (error) {
-            console.error("Failed to fetch user profile", error);
-          }
-        }
-        setUserProfiles((prev) => ({ ...prev, ...newProfiles }));
-      };
-      fetchProfiles();
-    }
-  }, [messages, auth.userId]);
-
-  useEffect(() => {
     const fetchHistory = async () => {
-      if (activeConversationId) {
+      if (activeConversation?.id) {
         try {
-          const history = await getConversationMessages(activeConversationId);
+          const history = await getConversationMessages(activeConversation.id);
           setMessages(history);
         } catch (error) {
           console.error("Failed to fetch messages", error);
@@ -83,24 +47,19 @@ export default function ChatArea({
     };
 
     fetchHistory();
-  }, [activeConversationId]);
-
-  console.log(messages);
+  }, [activeConversation?.id]);
 
   useEffect(() => {
-    if (auth.accessToken) {
-      socketService.connect(auth.accessToken);
-    }
     const socket = socketService.getSocket();
 
-    if (socket && activeConversationId) {
+    if (socket && activeConversation?.id) {
       socket.emit(ChatEvent.JOIN_CONVERSATION, {
-        conversationId: activeConversationId,
+        conversationId: activeConversation.id,
       });
 
       const handleNewMessage = (message: any) => {
         console.log("New message:", message);
-        if (message.conversationId === activeConversationId) {
+        if (message.conversationId === activeConversation?.id) {
           setMessages((prev) => [...prev, message]);
         }
       };
@@ -111,28 +70,22 @@ export default function ChatArea({
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
       };
     }
-  }, [activeConversationId, auth.accessToken]);
+  }, [activeConversation?.id]);
 
   const handleSendMessage = (content: string) => {
     const socket = socketService.getSocket();
-    if (socket && activeConversationId) {
+    if (socket && activeConversation?.id) {
       socket.emit(ChatEvent.SEND_MESSAGE, {
-        conversationId: activeConversationId,
+        conversationId: activeConversation?.id,
         content,
       });
     }
   };
 
-  console.log(messages);
-
   return (
     <div className="flex-1 flex flex-col bg-white h-full min-h-0">
       {/* Header */}
-      <ChatHeader
-        memberProfile={memberProfile}
-        onToggleRightPanel={onToggleRightPanel}
-        onBack={onBack}
-      />
+      <ChatHeader onToggleRightPanel={onToggleRightPanel} onBack={onBack} />
 
       {/* Message List Area */}
       <div className="flex-1 overflow-y-auto p-4 bg-gray-200 space-y-1">
@@ -153,7 +106,9 @@ export default function ChatArea({
                 msg={msg}
                 isMe={isMe}
                 showAvatar={showAvatar}
-                memberProfile={!isMe ? userProfiles[msg.senderId] : null}
+                memberProfile={
+                  !isMe ? memberProfiles?.[msg.senderId] || null : null
+                }
               />
             );
           })

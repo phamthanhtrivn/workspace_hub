@@ -1,29 +1,38 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { UserProfileResponse } from "@/features/chat/types/chat.types";
+import {
+  UserProfileResponse,
+  ConversationResponse,
+} from "@/features/chat/types/chat.types";
 
 interface ChatState {
-  activeConversationId: string | null;
-  memberProfile: UserProfileResponse | null;
+  activeConversation: ConversationResponse | null;
+  memberProfiles: Record<string, UserProfileResponse> | null;
 }
 
 const initialState: ChatState = {
-  activeConversationId: null,
-  memberProfile: null,
+  activeConversation: null,
+  memberProfiles: null,
 };
 
 const chatSlice = createSlice({
   name: "chat",
   initialState,
   reducers: {
-    setActiveConversationId: (state, action: PayloadAction<string | null>) => {
-      state.activeConversationId = action.payload;
+    setActiveConversation: (
+      state,
+      action: PayloadAction<ConversationResponse | null>,
+    ) => {
+      state.activeConversation = action.payload;
     },
-    setMemberProfile: (state, action: PayloadAction<UserProfileResponse | null>) => {
-      state.memberProfile = action.payload;
+    setMemberProfiles: (
+      state,
+      action: PayloadAction<Record<string, UserProfileResponse> | null>,
+    ) => {
+      state.memberProfiles = action.payload;
     },
   },
 });
 
-export const { setActiveConversationId, setMemberProfile } = chatSlice.actions;
+export const { setActiveConversation, setMemberProfiles } = chatSlice.actions;
 
 export default chatSlice.reducer;

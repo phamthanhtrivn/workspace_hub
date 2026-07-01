@@ -1,17 +1,17 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Send, 
-  Image as ImageIcon, 
-  Paperclip, 
-  CheckSquare, 
-  BarChart2, 
-  Calendar, 
-  FileText, 
-  Smile, 
-  Plus
-} from 'lucide-react';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Send,
+  Image as ImageIcon,
+  Paperclip,
+  CheckSquare,
+  BarChart2,
+  Calendar,
+  FileText,
+  Smile,
+  Plus,
+} from "lucide-react";
 import { useAppSelector } from "@/store/store";
 
 interface ChatInputProps {
@@ -19,10 +19,12 @@ interface ChatInputProps {
 }
 
 export default function ChatInput({ onSendMessage }: ChatInputProps) {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [showOptions, setShowOptions] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const activeConversationId = useAppSelector((state) => state.chat.activeConversationId);
+  const activeConversationId = useAppSelector(
+    (state) => state.chat.activeConversation?.id,
+  );
 
   useEffect(() => {
     if (activeConversationId && textareaRef.current) {
@@ -33,16 +35,18 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
   return (
     <div className="p-4 bg-white border-t border-gray-200">
       <div className="flex items-end gap-2 bg-gray-50 rounded-2xl p-2 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
-        
         {/* Attachment Options Menu */}
         <div className="relative">
-          <button 
+          <button
             onClick={() => setShowOptions(!showOptions)}
-            className={`p-2 rounded-full transition-colors ${showOptions ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-200'}`}
+            className={`p-2 rounded-full transition-colors ${showOptions ? "bg-blue-100 text-blue-600" : "text-gray-500 hover:bg-gray-200"}`}
           >
-            <Plus size={20} className={`transition-transform ${showOptions ? 'rotate-45' : ''}`} />
+            <Plus
+              size={20}
+              className={`transition-transform ${showOptions ? "rotate-45" : ""}`}
+            />
           </button>
-          
+
           {showOptions && (
             <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[160px] animate-in fade-in zoom-in-95 duration-200 z-10">
               <button className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left">
@@ -77,11 +81,11 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
           className="flex-1 max-h-32 min-h-[40px] bg-transparent resize-none outline-none px-2 py-2 text-gray-800 placeholder-gray-400"
           rows={1}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               if (message.trim() && onSendMessage) {
                 onSendMessage(message.trim());
-                setMessage('');
+                setMessage("");
               }
             }
           }}
@@ -92,13 +96,13 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
           <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition">
             <Smile size={20} />
           </button>
-          <button 
-            className={`p-2 rounded-full transition-colors flex items-center justify-center ${message.trim() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400'}`}
+          <button
+            className={`p-2 rounded-full transition-colors flex items-center justify-center ${message.trim() ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-gray-200 text-gray-400"}`}
             disabled={!message.trim()}
             onClick={() => {
               if (message.trim() && onSendMessage) {
                 onSendMessage(message.trim());
-                setMessage('');
+                setMessage("");
               }
             }}
           >

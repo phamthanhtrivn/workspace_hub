@@ -1,11 +1,11 @@
-import React from "react";
-import { User, Users } from "lucide-react";
+import { User } from "lucide-react";
 import Image from "next/image";
 
 interface ConversationItemProps {
   conv: any;
   currentUserId: string | null;
   memberProfiles: Record<string, any>;
+  isActive?: boolean;
   onClick: (conv: any) => void;
 }
 
@@ -13,6 +13,7 @@ export default function ConversationItem({
   conv,
   currentUserId,
   memberProfiles,
+  isActive,
   onClick,
 }: ConversationItemProps) {
   const isDirect = conv.type === "DIRECT";
@@ -42,7 +43,11 @@ export default function ConversationItem({
 
   return (
     <div
-      className="flex items-center p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition"
+      className={`flex items-center p-3 rounded-xl cursor-pointer transition ${
+        isActive
+          ? "bg-blue-100 border border-blue-200"
+          : "hover:bg-gray-50 border border-transparent"
+      }`}
       onClick={() => onClick(conv)}
     >
       <div className="relative">

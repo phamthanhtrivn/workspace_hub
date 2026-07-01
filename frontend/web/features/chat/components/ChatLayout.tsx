@@ -6,13 +6,24 @@ import ChatArea from "./ChatArea";
 import ChatRightPanel from "./ChatRightPanel";
 import { useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
+import { socketService } from "../api/socket.service";
 
 export default function ChatLayout() {
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
   const activeConversationId = useAppSelector(
-    (state) => state.chat.activeConversationId,
+    (state) => state.chat.activeConversation?.id,
   );
+  const auth = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (auth.accessToken) {
+      socketService.connect(auth.accessToken);
+    }
+    return () => {
+      socketService.disconnect();
+    };
+  }, [auth.accessToken]);
 
   useEffect(() => {
     if (activeConversationId) {

@@ -7,9 +7,10 @@ import ConversationItem from "./ConversationItem";
 import { getUserConversations, getPublicProfile } from "../api/chat.api";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
-  setActiveConversationId,
-  setMemberProfile,
+  setActiveConversation,
+  setMemberProfiles as setMemberProfilesAction,
 } from "@/store/chat/chat-slice";
+import { UserProfileResponse } from "../types/chat.types";
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
@@ -21,10 +22,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   );
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
-  const [memberProfiles, setMemberProfiles] = useState<Record<string, any>>({});
+  const [memberProfiles, setMemberProfiles] = useState<
+    Record<string, UserProfileResponse>
+  >({});
   const [loading, setLoading] = useState(true);
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
+  const { activeConversation } = useAppSelector((state) => state.chat);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -68,19 +72,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   }, [currentUserId]);
 
   const handleSelectConversation = (conv: any) => {
-    dispatch(setActiveConversationId(conv.id));
-    if (conv.type === "DIRECT") {
-      const otherMember = conv.members?.find(
-        (m: any) => m.userId !== currentUserId,
-      );
-      if (otherMember && memberProfiles[otherMember.userId]) {
-        dispatch(setMemberProfile(memberProfiles[otherMember.userId]));
-      } else {
-        dispatch(setMemberProfile(null));
-      }
-    } else {
-      dispatch(setMemberProfile(null));
-    }
+    console.log("conv", conv);
+
+    dispatch(setActiveConversation(conv));
+    dispatch(setMemberProfilesAction(memberProfiles));
     if (onSelectChat) onSelectChat();
   };
 
@@ -90,8 +85,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     if (activeTab === "groups") return conv.type === "GROUP";
     return true;
   });
-
-  console.log(conversations);
 
   return (
     <div className="w-full h-full bg-white border-r border-gray-200 flex flex-col">
@@ -163,6 +156,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 conv={conv}
                 currentUserId={currentUserId}
                 memberProfiles={memberProfiles}
+                isActive={activeConversation?.id === conv.id}
                 onClick={handleSelectConversation}
               />
             ))}

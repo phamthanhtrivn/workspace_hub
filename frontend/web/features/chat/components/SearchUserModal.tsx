@@ -21,7 +21,7 @@ import { UserSearchResponse, UserProfileResponse } from "../types/chat.types";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useAppDispatch } from "@/store/store";
-import { setActiveConversationId } from "@/store/chat/chat-slice";
+import { setActiveConversation } from "@/store/chat/chat-slice";
 
 interface SearchUserModalProps {
   isOpen: boolean;
@@ -110,7 +110,7 @@ export default function SearchUserModal({
   const handleMessage = async (user: UserSearchResponse) => {
     try {
       const conversation = await createDirectConversation(user.id);
-      dispatch(setActiveConversationId(conversation.id));
+      dispatch(setActiveConversation(conversation));
       toast.success("Tạo phòng chat thành công!");
 
       // Update URL so ChatLayout knows which chat is active, if needed

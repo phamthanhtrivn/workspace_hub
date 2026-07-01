@@ -13,7 +13,6 @@ export class ConversationService {
       );
     }
 
-    // Check if direct conversation already exists between the two users
     const existingConversation = await this.prisma.conversation.findFirst({
       where: {
         type: ConversationType.DIRECT,

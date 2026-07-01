@@ -27,9 +27,31 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "members",
   );
-  const memberProfile = useAppSelector(
-    (state) => state.chat.memberProfile,
+  const { activeConversation, memberProfiles } = useAppSelector(
+    (state) => state.chat,
   );
+  const currentUserId = useAppSelector((state) => state.auth.userId);
+
+  const isDirect = activeConversation?.type === "DIRECT";
+
+  let displayName = "Group Chat";
+  let displayAvatarUrl = null;
+  let displayDescription = `${activeConversation?.members?.length || 0} thành viên`;
+
+  if (isDirect) {
+    const otherMember = activeConversation?.members?.find(
+      (m) => m.userId !== currentUserId,
+    );
+    if (otherMember && memberProfiles?.[otherMember.userId]) {
+      const profile = memberProfiles[otherMember.userId];
+      displayName = profile.fullName || "User";
+      displayAvatarUrl = profile.avatarUrl;
+      displayDescription = profile.email || "";
+    }
+  } else if (activeConversation) {
+    displayName = activeConversation.name || "Group Chat";
+    displayAvatarUrl = activeConversation.avatarUrl;
+  }
 
   const toggleSection = (section: string) => {
     if (expandedSection === section) {
@@ -56,23 +78,25 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
         {/* Info Area */}
         <div className="p-6 flex flex-col items-center border-b border-gray-100">
           <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden">
-            {memberProfile?.avatarUrl ? (
+            {displayAvatarUrl ? (
               <Image
-                src={memberProfile.avatarUrl}
+                src={displayAvatarUrl}
                 alt="Avatar"
                 width={80}
                 height={80}
                 className="rounded-full"
               />
-            ) : (
+            ) : isDirect ? (
               <User size={40} className="text-gray-400" />
+            ) : (
+              <Users size={40} className="text-gray-400" />
             )}
           </div>
           <h3 className="font-bold text-gray-900 text-lg">
-            {memberProfile?.fullName || "Người dùng ẩn danh"}
+            {displayName}
           </h3>
           <p className="text-sm text-gray-500 mb-4">
-            {memberProfile?.email || "Group • 4 members"}
+            {displayDescription}
           </p>
 
           <div className="flex gap-4">
@@ -111,22 +135,38 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
 
             {expandedSection === "members" && (
               <div className="px-4 pb-2 space-y-2">
-                {["You", "Alice", "Bob", "Charlie"].map((name, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition cursor-pointer"
-                  >
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xs">
-                      {name[0]}
+                {activeConversation?.members?.map((member, i) => {
+                  const profile = memberProfiles?.[member.userId];
+                  const name = profile?.fullName || "User";
+                  const isMe = member.userId === currentUserId;
+                  const displayName = isMe ? "Bạn" : name;
+
+                  return (
+                    <div
+                      key={member.userId}
+                      className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition cursor-pointer"
+                    >
+                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xs overflow-hidden">
+                        {profile?.avatarUrl ? (
+                          <Image src={profile.avatarUrl} alt="Avatar" width={32} height={32} className="rounded-full" />
+                        ) : (
+                          name[0]?.toUpperCase()
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-700">{displayName}</span>
+                      {member.role === "OWNER" && (
+                        <span className="ml-auto text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
+                          Admin
+                        </span>
+                      )}
+                      {member.role === "ADMIN" && (
+                        <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                          Mod
+                        </span>
+                      )}
                     </div>
-                    <span className="text-sm text-gray-700">{name}</span>
-                    {i === 0 && (
-                      <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                        Admin
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
                 <button className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1">
                   <div className="w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
                     <Users size={14} />
