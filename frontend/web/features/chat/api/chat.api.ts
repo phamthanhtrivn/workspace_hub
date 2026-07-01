@@ -25,3 +25,17 @@ export const getPublicProfile = async (
   const response = await api.get(`/api/users/${userId}/profile`);
   return response.data?.data;
 };
+
+export const getUserConversations = async (): Promise<any[]> => {
+  const response = await api.get("/api/conversations");
+  return response.data?.data || [];
+};
+
+export const getConversationMessages = async (
+  conversationId: string,
+): Promise<any[]> => {
+  const response = await api.get(
+    `/api/conversations/${conversationId}/messages`,
+  );
+  return response.data?.data || [];
+};

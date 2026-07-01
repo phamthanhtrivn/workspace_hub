@@ -12,10 +12,16 @@ import {
   Info,
   MessageCircle,
 } from "lucide-react";
-import { searchUserByEmail, getPublicProfile } from "../api/chat.api";
+import {
+  searchUserByEmail,
+  getPublicProfile,
+  createDirectConversation,
+} from "../api/chat.api";
 import { UserSearchResponse, UserProfileResponse } from "../types/chat.types";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { useAppDispatch } from "@/store/store";
+import { setActiveConversationId } from "@/store/chat/chat-slice";
 
 interface SearchUserModalProps {
   isOpen: boolean;
@@ -31,6 +37,7 @@ export default function SearchUserModal({
   const [results, setResults] = useState<UserSearchResponse[]>([]);
   const [error, setError] = useState("");
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   // Selected User Profile states
   const [selectedUser, setSelectedUser] = useState<UserSearchResponse | null>(
@@ -102,12 +109,13 @@ export default function SearchUserModal({
 
   const handleMessage = async (user: UserSearchResponse) => {
     try {
-      // Assuming createDirectConversation returns an object with conversation id
-      // For now, just toast or push somewhere.
-      // const conversation = await createDirectConversation(user.id);
-      // router.push(`/chat/${conversation.id}`);
+      const conversation = await createDirectConversation(user.id);
+      dispatch(setActiveConversationId(conversation.id));
+      toast.success("Tạo phòng chat thành công!");
 
-      toast.success("Tính năng tạo phòng chat đang được hoàn thiện!");
+      // Update URL so ChatLayout knows which chat is active, if needed
+      router.push(`/chat?id=${conversation.id}`);
+
       onClose();
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Lỗi khi tạo phòng chat");
@@ -293,10 +301,8 @@ export default function SearchUserModal({
                   </div>
                   <div className="flex items-start gap-3 text-sm text-gray-700 mt-2 pt-2 border-t border-gray-200">
                     <Info size={18} className="text-gray-400 shrink-0 mt-0.5" />
-                    {userProfile?.bio || selectedUser.bio ? (
-                      <span className="italic">
-                        "{userProfile?.bio || selectedUser.bio}"
-                      </span>
+                    {userProfile?.bio ? (
+                      <span className="italic">"{userProfile?.bio}"</span>
                     ) : (
                       <span>Chưa cập nhật tiểu sử</span>
                     )}

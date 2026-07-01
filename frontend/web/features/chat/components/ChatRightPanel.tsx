@@ -13,7 +13,10 @@ import {
   LogOut,
   ChevronDown,
   ChevronRight,
+  User,
 } from "lucide-react";
+import Image from "next/image";
+import { useAppSelector } from "@/store/store";
 
 interface ChatRightPanelProps {
   onClose: () => void;
@@ -23,6 +26,9 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "members",
+  );
+  const memberProfile = useAppSelector(
+    (state) => state.chat.memberProfile,
   );
 
   const toggleSection = (section: string) => {
@@ -49,11 +55,25 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
       <div className="flex-1 overflow-y-auto">
         {/* Info Area */}
         <div className="p-6 flex flex-col items-center border-b border-gray-100">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-3xl mb-3 shadow-sm">
-            T
+          <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden">
+            {memberProfile?.avatarUrl ? (
+              <Image
+                src={memberProfile.avatarUrl}
+                alt="Avatar"
+                width={80}
+                height={80}
+                className="rounded-full"
+              />
+            ) : (
+              <User size={40} className="text-gray-400" />
+            )}
           </div>
-          <h3 className="font-bold text-gray-900 text-lg">Team Project</h3>
-          <p className="text-sm text-gray-500 mb-4">Group • 4 members</p>
+          <h3 className="font-bold text-gray-900 text-lg">
+            {memberProfile?.fullName || "Người dùng ẩn danh"}
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">
+            {memberProfile?.email || "Group • 4 members"}
+          </p>
 
           <div className="flex gap-4">
             <button

@@ -5,13 +5,15 @@ import { ConversationModule } from './modules/conversation/conversation.module';
 import { MessageModule } from './modules/message/message.module';
 import { PollModule } from './modules/poll/poll.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 @Module({
   imports: [
     PrismaModule,
     ConversationModule, 
     MessageModule, 
-    PollModule
+    PollModule,
+    ChatModule
   ],
   controllers: [AppController],
   providers: [AppService],

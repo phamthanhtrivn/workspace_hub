@@ -32,11 +32,24 @@ services:
           - /api/pomodoros
         strip_path: false
 
+  - name: communication-service
+    url: http://host.docker.internal:8083
+    routes:
+      - name: communication-routes
+        paths:
+          - /api/conversations
+        strip_path: false
+
+      - name: websocket-route
+        paths:
+          - /socket.io
+        strip_path: false
+
 plugins:
   # ==========================================
   # GLOBAL PLUGINS (Applied to all routes)
   # ==========================================
-  
+
   - name: cors
     config:
       origins:
@@ -81,7 +94,7 @@ plugins:
   # ==========================================
   # ROUTE-SPECIFIC PLUGINS (Authentication)
   # ==========================================
-  
+
   # user-routes
   - name: jwt
     route: user-routes
@@ -105,6 +118,20 @@ plugins:
 
   - name: jwt-user-context
     route: project-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+
+  # communication-routes
+  - name: jwt
+    route: communication-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt-user-context
+    route: communication-routes
     config:
       header_user_id: X-User-Id
       header_user_email: X-User-Email

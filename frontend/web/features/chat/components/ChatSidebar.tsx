@@ -1,8 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Plus, UserPlus, Users, MessageSquare } from "lucide-react";
 import SearchUserModal from "./SearchUserModal";
+import ConversationItem from "./ConversationItem";
+import { getUserConversations, getPublicProfile } from "../api/chat.api";
+import { useAppSelector, useAppDispatch } from "@/store/store";
+import {
+  setActiveConversationId,
+  setMemberProfile,
+} from "@/store/chat/chat-slice";
+
 interface ChatSidebarProps {
   onSelectChat?: () => void;
 }
@@ -12,6 +20,78 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     "all",
   );
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [memberProfiles, setMemberProfiles] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(true);
+
+  const currentUserId = useAppSelector((state) => state.auth.userId);
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    const fetchConversations = async () => {
+      try {
+        setLoading(true);
+        const data = await getUserConversations();
+        setConversations(data);
+
+        const uniqueUserIds = new Set<string>();
+        data.forEach((conv: any) => {
+          conv.members?.forEach((m: any) => {
+            if (m.userId !== currentUserId) {
+              uniqueUserIds.add(m.userId);
+            }
+          });
+        });
+
+        const profiles: Record<string, any> = {};
+        await Promise.all(
+          Array.from(uniqueUserIds).map(async (userId) => {
+            try {
+              const profile = await getPublicProfile(userId);
+              profiles[userId] = profile;
+            } catch (e) {
+              profiles[userId] = { fullName: "Unknown User" };
+            }
+          }),
+        );
+        setMemberProfiles(profiles);
+      } catch (error) {
+        console.error("Failed to fetch conversations", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (currentUserId) {
+      fetchConversations();
+    }
+  }, [currentUserId]);
+
+  const handleSelectConversation = (conv: any) => {
+    dispatch(setActiveConversationId(conv.id));
+    if (conv.type === "DIRECT") {
+      const otherMember = conv.members?.find(
+        (m: any) => m.userId !== currentUserId,
+      );
+      if (otherMember && memberProfiles[otherMember.userId]) {
+        dispatch(setMemberProfile(memberProfiles[otherMember.userId]));
+      } else {
+        dispatch(setMemberProfile(null));
+      }
+    } else {
+      dispatch(setMemberProfile(null));
+    }
+    if (onSelectChat) onSelectChat();
+  };
+
+  const filteredConversations = conversations.filter((conv) => {
+    if (activeTab === "all") return true;
+    if (activeTab === "personal") return conv.type === "DIRECT";
+    if (activeTab === "groups") return conv.type === "GROUP";
+    return true;
+  });
+
+  console.log(conversations);
 
   return (
     <div className="w-full h-full bg-white border-r border-gray-200 flex flex-col">
@@ -41,7 +121,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           />
           <input
             type="text"
-            placeholder="Search messages or users..."
+            placeholder="Tìm kiếm tin nhắn hoặc người dùng..."
             className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
           />
         </div>
@@ -51,19 +131,19 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       <div className="flex px-4 py-2 gap-4 border-b border-gray-100 bg-white">
         <button
           onClick={() => setActiveTab("all")}
-          className={`flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "all" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          className={`cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "all" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
           <MessageSquare size={16} /> Tất cả
         </button>
         <button
           onClick={() => setActiveTab("personal")}
-          className={`flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "personal" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          className={`cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "personal" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
           <UserPlus size={16} /> Cá nhân
         </button>
         <button
           onClick={() => setActiveTab("groups")}
-          className={`flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "groups" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          className={`cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "groups" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
         >
           <Users size={16} /> Nhóm
         </button>
@@ -71,64 +151,26 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       {/* List */}
       <div className="flex-1 overflow-y-auto p-2 bg-white">
-        {(activeTab === "all" || activeTab === "groups") && (
-          <div className="space-y-1">
-            {/* Mock Chat Item */}
-            <div
-              className="flex items-center p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition"
-              onClick={onSelectChat}
-            >
-              <div className="relative">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-lg">
-                  T
-                </div>
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-              </div>
-              <div className="ml-3 flex-1 overflow-hidden">
-                <div className="flex justify-between items-baseline">
-                  <h3 className="font-semibold text-sm text-gray-800 truncate">
-                    Team Project
-                  </h3>
-                  <span className="text-xs text-gray-500">10:42 AM</span>
-                </div>
-                <p className="text-sm text-gray-500 truncate">
-                  Can we review the new design?
-                </p>
-              </div>
-            </div>
+        {loading ? (
+          <div className="flex justify-center p-4 text-gray-400">
+            Đang tải...
           </div>
-        )}
-
-        {(activeTab === "all" || activeTab === "personal") && (
-          <div className="space-y-1 mt-1">
-            {/* Mock Chat Item 2 */}
-            <div
-              className="flex items-center p-3 hover:bg-gray-50 rounded-xl cursor-pointer transition bg-blue-50/50"
-              onClick={onSelectChat}
-            >
-              <div className="relative">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-bold text-lg">
-                  A
-                </div>
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-gray-400 border-2 border-white rounded-full"></div>
-              </div>
-              <div className="ml-3 flex-1 overflow-hidden">
-                <div className="flex justify-between items-baseline">
-                  <h3 className="font-semibold text-sm text-gray-800 truncate">
-                    Alice Smith
-                  </h3>
-                  <span className="text-xs text-blue-600 font-medium">
-                    Yesterday
-                  </span>
-                </div>
-                <p className="text-sm text-gray-800 font-medium truncate">
-                  Sounds good!
-                </p>
-              </div>
-              <div className="ml-2 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
-                2
-              </div>
-            </div>
+        ) : filteredConversations.length > 0 ? (
+          <div className="space-y-1">
+            {filteredConversations.map((conv) => (
+              <ConversationItem
+                key={conv.id}
+                conv={conv}
+                currentUserId={currentUserId}
+                memberProfiles={memberProfiles}
+                onClick={handleSelectConversation}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center p-8 text-gray-500">
+            <MessageSquare size={32} className="mx-auto text-gray-300 mb-2" />
+            <p className="text-sm">Chưa có cuộc trò chuyện nào</p>
           </div>
         )}
       </div>

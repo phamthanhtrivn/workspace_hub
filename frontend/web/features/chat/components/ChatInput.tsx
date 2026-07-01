@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Send, 
   Image as ImageIcon, 
@@ -12,10 +12,23 @@ import {
   Smile, 
   Plus
 } from 'lucide-react';
+import { useAppSelector } from "@/store/store";
 
-export default function ChatInput() {
+interface ChatInputProps {
+  onSendMessage?: (content: string) => void;
+}
+
+export default function ChatInput({ onSendMessage }: ChatInputProps) {
   const [message, setMessage] = useState('');
   const [showOptions, setShowOptions] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const activeConversationId = useAppSelector((state) => state.chat.activeConversationId);
+
+  useEffect(() => {
+    if (activeConversationId && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [activeConversationId]);
 
   return (
     <div className="p-4 bg-white border-t border-gray-200">
@@ -57,6 +70,7 @@ export default function ChatInput() {
 
         {/* Message Textarea */}
         <textarea
+          ref={textareaRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Type a message..."
@@ -65,8 +79,10 @@ export default function ChatInput() {
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              // Handle send
-              setMessage('');
+              if (message.trim() && onSendMessage) {
+                onSendMessage(message.trim());
+                setMessage('');
+              }
             }
           }}
         />
@@ -79,6 +95,12 @@ export default function ChatInput() {
           <button 
             className={`p-2 rounded-full transition-colors flex items-center justify-center ${message.trim() ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-200 text-gray-400'}`}
             disabled={!message.trim()}
+            onClick={() => {
+              if (message.trim() && onSendMessage) {
+                onSendMessage(message.trim());
+                setMessage('');
+              }
+            }}
           >
             <Send size={18} className="mr-0.5" />
           </button>
