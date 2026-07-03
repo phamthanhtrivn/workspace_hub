@@ -6,6 +6,7 @@ interface ConversationItemProps {
   currentUserId: string | null;
   memberProfiles: Record<string, any>;
   isActive?: boolean;
+  isOnline?: boolean;
   onClick: (conv: any) => void;
 }
 
@@ -14,6 +15,7 @@ export default function ConversationItem({
   currentUserId,
   memberProfiles,
   isActive,
+  isOnline,
   onClick,
 }: ConversationItemProps) {
   const isDirect = conv.type === "DIRECT";
@@ -64,7 +66,7 @@ export default function ConversationItem({
             <User size={22} className="text-gray-400" />
           )}
         </div>
-        {isDirect && (
+        {isDirect && isOnline && (
           <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
         )}
       </div>

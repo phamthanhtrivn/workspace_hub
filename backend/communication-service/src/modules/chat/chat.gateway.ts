@@ -22,6 +22,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private connectedUsers = new Set<string>();
+
   constructor(private readonly prisma: PrismaService) {}
 
   async handleConnection(client: Socket) {
@@ -35,14 +37,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const decoded = JSON.parse(
         Buffer.from(payloadBase64, 'base64').toString(),
       );
-      client.data.userId = decoded.sub || decoded.id; // standard fields
+      const userId = decoded.sub || decoded.id;
+      client.data.userId = userId; // standard fields
+
+      client.join(userId);
+      this.connectedUsers.add(userId);
+
+      // Notify others that this user is online
+      this.server.emit(ChatEvent.USER_ONLINE, { userId });
+      // Send current online users to this newly connected client
+      client.emit(ChatEvent.ONLINE_USERS, Array.from(this.connectedUsers));
     } catch (e) {
       client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket) {
-    // console.log(`Client disconnected: ${client.id}`);
+    const userId = client.data.userId;
+    if (userId) {
+      this.connectedUsers.delete(userId);
+      this.server.emit(ChatEvent.USER_OFFLINE, { userId });
+    }
   }
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
@@ -77,8 +92,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         },
       });
 
-      // Emit to everyone in the room
-      this.server.to(data.conversationId).emit(ChatEvent.NEW_MESSAGE, message);
+      // Update conversation updatedAt
+      await this.prisma.conversation.update({
+        where: { id: data.conversationId },
+        data: { updatedAt: new Date() },
+      });
+
+      // Fetch all members to send push notification to their personal rooms
+      const members = await this.prisma.conversationMember.findMany({
+        where: { conversationId: data.conversationId },
+        select: { userId: true },
+      });
+      const memberUserIds = members.map((m) => m.userId);
+
+      // Emit to everyone in the room AND all personal rooms (Socket.io will deduplicate)
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, message);
+
       return { status: 'success', data: message };
     } catch (error) {
       console.error(error);

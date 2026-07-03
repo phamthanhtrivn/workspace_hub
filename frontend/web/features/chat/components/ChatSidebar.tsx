@@ -11,6 +11,8 @@ import {
   setMemberProfiles as setMemberProfilesAction,
 } from "@/store/chat/chat-slice";
 import { UserProfileResponse } from "../types/chat.types";
+import { socketService } from "../api/socket.service";
+import { ChatEvent } from "../api/chat.events";
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
@@ -22,6 +24,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   );
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [memberProfiles, setMemberProfiles] = useState<
     Record<string, UserProfileResponse>
   >({});
@@ -69,6 +72,61 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     if (currentUserId) {
       fetchConversations();
     }
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const timeout = setTimeout(() => {
+      const socket = socketService.getSocket();
+      if (!socket) return;
+
+      const handleNewMessage = (message: any) => {
+        setConversations((prev) => {
+          const index = prev.findIndex((c) => c.id === message.conversationId);
+          if (index > -1) {
+            const conv = { ...prev[index] };
+            conv.updatedAt = message.createdAt;
+            conv.messages = [message];
+            const newConversations = [...prev];
+            newConversations.splice(index, 1);
+            newConversations.unshift(conv);
+            return newConversations;
+          }
+          return prev;
+        });
+      };
+
+      const handleUserOnline = (data: { userId: string }) => {
+        setOnlineUsers((prev) => new Set(prev).add(data.userId));
+      };
+
+      const handleUserOffline = (data: { userId: string }) => {
+        setOnlineUsers((prev) => {
+          const next = new Set(prev);
+          next.delete(data.userId);
+          return next;
+        });
+      };
+
+      const handleOnlineUsers = (userIds: string[]) => {
+        setOnlineUsers(new Set(userIds));
+      };
+
+      socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
+      socket.on(ChatEvent.USER_ONLINE, handleUserOnline);
+      socket.on(ChatEvent.USER_OFFLINE, handleUserOffline);
+      socket.on(ChatEvent.ONLINE_USERS, handleOnlineUsers);
+
+      return () => {
+        socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
+        socket.off(ChatEvent.USER_ONLINE, handleUserOnline);
+        socket.off(ChatEvent.USER_OFFLINE, handleUserOffline);
+        socket.off(ChatEvent.ONLINE_USERS, handleOnlineUsers);
+      };
+    }, 500); // Allow time for layout to connect socket
+
+    return () => clearTimeout(timeout);
   }, [currentUserId]);
 
   const handleSelectConversation = (conv: any) => {
@@ -148,16 +206,27 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           </div>
         ) : filteredConversations.length > 0 ? (
           <div className="space-y-1">
-            {filteredConversations.map((conv) => (
-              <ConversationItem
-                key={conv.id}
-                conv={conv}
-                currentUserId={currentUserId}
-                memberProfiles={memberProfiles}
-                isActive={activeConversation?.id === conv.id}
-                onClick={handleSelectConversation}
-              />
-            ))}
+            {filteredConversations.map((conv) => {
+              const isDirect = conv.type === "DIRECT";
+              const otherMember = isDirect
+                ? conv.members?.find((m: any) => m.userId !== currentUserId)
+                : null;
+              const isOnline = otherMember
+                ? onlineUsers.has(otherMember.userId)
+                : false;
+
+              return (
+                <ConversationItem
+                  key={conv.id}
+                  conv={conv}
+                  currentUserId={currentUserId}
+                  memberProfiles={memberProfiles}
+                  isActive={activeConversation?.id === conv.id}
+                  isOnline={isOnline}
+                  onClick={handleSelectConversation}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="text-center p-8 text-gray-500">
