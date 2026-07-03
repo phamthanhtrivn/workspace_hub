@@ -133,4 +133,47 @@ export class ConversationService {
       },
     });
   }
+
+  async createGroupConversation(userId: string, data: { name?: string; avatarUrl?: string; participantIds: string[] }) {
+    // Prevent adding oneself to participantIds
+    const otherParticipantIds = data.participantIds.filter(id => id !== userId);
+    
+    // Create members array: creator is OWNER, others are MEMBER
+    const members = [
+      { userId: userId, role: ConversationRole.OWNER },
+      ...otherParticipantIds.map(id => ({
+        userId: id,
+        role: ConversationRole.MEMBER,
+      }))
+    ];
+
+    return this.prisma.$transaction(async (prisma) => {
+      const conversation = await prisma.conversation.create({
+        data: {
+          type: ConversationType.GROUP,
+          name: data.name || null,
+          avatarUrl: data.avatarUrl || null,
+          createdBy: userId,
+          members: {
+            create: members,
+          },
+          setting: {
+            create: {
+              allowMemberInvite: true,
+              approvalRequired: false,
+              allowSendMessage: true,
+              allowCreateNote: true,
+              allowCreatePoll: true,
+              allowPinMessage: true,
+            },
+          },
+        },
+        include: {
+          members: true,
+        },
+      });
+
+      return conversation;
+    });
+  }
 }

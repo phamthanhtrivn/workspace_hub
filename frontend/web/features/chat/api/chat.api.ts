@@ -3,11 +3,11 @@ import { UserSearchResponse, UserProfileResponse } from "../types/chat.types";
 
 export const searchUserByEmail = async (
   email: string,
-): Promise<UserSearchResponse[]> => {
+): Promise<any> => {
   const response = await api.get("/api/users/search", {
     params: { email },
   });
-  return response.data?.data || [];
+  return response.data;
 };
 
 export const createDirectConversation = async (
@@ -16,26 +16,39 @@ export const createDirectConversation = async (
   const response = await api.post("/api/conversations/direct", {
     participantId,
   });
-  return response.data?.data;
+  return response.data;
+};
+
+export const createGroupConversation = async (
+  name: string | undefined,
+  avatarUrl: string | undefined,
+  participantIds: string[],
+): Promise<any> => {
+  const response = await api.post("/api/conversations/group", {
+    name,
+    avatarUrl,
+    participantIds,
+  });
+  return response.data;
 };
 
 export const getPublicProfile = async (
   userId: string,
-): Promise<UserProfileResponse> => {
+): Promise<any> => {
   const response = await api.get(`/api/users/${userId}/profile`);
-  return response.data?.data;
+  return response.data;
 };
 
-export const getUserConversations = async (): Promise<any[]> => {
+export const getUserConversations = async (): Promise<any> => {
   const response = await api.get("/api/conversations");
-  return response.data?.data || [];
+  return response.data;
 };
 
 export const getConversationMessages = async (
   conversationId: string,
-): Promise<any[]> => {
+): Promise<any> => {
   const response = await api.get(
     `/api/conversations/${conversationId}/messages`,
   );
-  return response.data?.data || [];
+  return response.data;
 };

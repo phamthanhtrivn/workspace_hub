@@ -77,7 +77,8 @@ export default function SearchUserModal({
       setLoading(true);
       setError("");
       try {
-        const users = await searchUserByEmail(email);
+        const response = await searchUserByEmail(email);
+        const users = response?.success ? response.data : [];
         setResults(users);
         if (users.length === 0) {
           setError("Không tìm thấy người dùng");
@@ -97,8 +98,8 @@ export default function SearchUserModal({
     setSelectedUser(user);
     setLoadingProfile(true);
     try {
-      const profile = await getPublicProfile(user.id);
-      setUserProfile(profile);
+      const response = await getPublicProfile(user.id);
+      setUserProfile(response?.success ? response.data : null);
     } catch (err) {
       toast.error("Không thể lấy thông tin chi tiết người dùng");
       setSelectedUser(null); // Go back if error
@@ -109,14 +110,17 @@ export default function SearchUserModal({
 
   const handleMessage = async (user: UserSearchResponse) => {
     try {
-      const conversation = await createDirectConversation(user.id);
-      dispatch(setActiveConversation(conversation));
-      toast.success("Tạo phòng chat thành công!");
+      const response = await createDirectConversation(user.id);
+      if (response && response.success) {
+        dispatch(setActiveConversation(response.data));
 
-      // Update URL so ChatLayout knows which chat is active, if needed
-      router.push(`/chat?id=${conversation.id}`);
+        // Update URL so ChatLayout knows which chat is active, if needed
+        router.push(`/chat?id=${response.data.id}`);
 
-      onClose();
+        onClose();
+      } else {
+        toast.error(response?.message || "Lỗi khi tạo phòng chat");
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Lỗi khi tạo phòng chat");
     }

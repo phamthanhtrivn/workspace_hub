@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { User, Users } from "lucide-react";
 import Image from "next/image";
 
 interface ConversationItemProps {
@@ -6,7 +6,6 @@ interface ConversationItemProps {
   currentUserId: string | null;
   memberProfiles: Record<string, any>;
   isActive?: boolean;
-  isOnline?: boolean;
   onClick: (conv: any) => void;
 }
 
@@ -15,7 +14,6 @@ export default function ConversationItem({
   currentUserId,
   memberProfiles,
   isActive,
-  isOnline,
   onClick,
 }: ConversationItemProps) {
   const isDirect = conv.type === "DIRECT";
@@ -24,8 +22,8 @@ export default function ConversationItem({
     : null;
   const profile = otherMember ? memberProfiles[otherMember.userId] : null;
 
-  const name = isDirect ? profile?.fullName || "Unknown User" : "Group Chat";
-  const avatarUrl = isDirect ? profile?.avatarUrl : null;
+  const name = isDirect ? profile?.fullName || "Unknown User" : conv.name || "Group Chat";
+  const avatarUrl = isDirect ? profile?.avatarUrl : conv.avatarUrl;
 
   const latestMessage = conv.messages?.[0];
   const time = latestMessage
@@ -62,13 +60,12 @@ export default function ConversationItem({
               height={44}
               className="rounded-full"
             />
-          ) : (
+          ) : isDirect ? (
             <User size={22} className="text-gray-400" />
+          ) : (
+            <Users size={22} className="text-gray-400" />
           )}
         </div>
-        {isDirect && isOnline && (
-          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-        )}
       </div>
       <div className="ml-3 flex-1 overflow-hidden">
         <div className="flex justify-between items-baseline">

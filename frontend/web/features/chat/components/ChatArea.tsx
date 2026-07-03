@@ -38,8 +38,8 @@ export default function ChatArea({
     const fetchHistory = async () => {
       if (activeConversation?.id) {
         try {
-          const history = await getConversationMessages(activeConversation.id);
-          setMessages(history);
+          const response = await getConversationMessages(activeConversation.id);
+          setMessages(response?.success ? response.data : []);
         } catch (error) {
           console.error("Failed to fetch messages", error);
         }
@@ -89,7 +89,7 @@ export default function ChatArea({
       {/* Message List Area */}
       <div className="flex-1 overflow-y-auto p-4 bg-gray-200 space-y-1">
         {messages.length === 0 ? (
-          <div className="text-center text-gray-400 mt-10">
+          <div className="flex justify-center items-center h-full text-gray-400">
             Chưa có tin nhắn nào. Hãy gửi lời chào!
           </div>
         ) : (

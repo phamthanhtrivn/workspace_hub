@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Search, Plus, UserPlus, Users, MessageSquare } from "lucide-react";
 import SearchUserModal from "./SearchUserModal";
+import CreateGroupModal from "./CreateGroupModal";
 import ConversationItem from "./ConversationItem";
 import { getUserConversations, getPublicProfile } from "../api/chat.api";
 import { useAppSelector, useAppDispatch } from "@/store/store";
@@ -23,8 +24,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     "all",
   );
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
   const [conversations, setConversations] = useState<any[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [memberProfiles, setMemberProfiles] = useState<
     Record<string, UserProfileResponse>
   >({});
@@ -38,7 +39,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     const fetchConversations = async () => {
       try {
         setLoading(true);
-        const data = await getUserConversations();
+        const response = await getUserConversations();
+        const data = response?.success ? response.data : [];
         setConversations(data);
 
         const uniqueUserIds = new Set<string>();
@@ -54,8 +56,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         await Promise.all(
           Array.from(uniqueUserIds).map(async (userId) => {
             try {
-              const profile = await getPublicProfile(userId);
-              profiles[userId] = profile;
+              const profileRes = await getPublicProfile(userId);
+              profiles[userId] = profileRes?.success
+                ? profileRes.data
+                : { fullName: "Unknown User" };
             } catch (e) {
               profiles[userId] = { fullName: "Unknown User" };
             }
@@ -97,32 +101,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         });
       };
 
-      const handleUserOnline = (data: { userId: string }) => {
-        setOnlineUsers((prev) => new Set(prev).add(data.userId));
-      };
-
-      const handleUserOffline = (data: { userId: string }) => {
-        setOnlineUsers((prev) => {
-          const next = new Set(prev);
-          next.delete(data.userId);
-          return next;
-        });
-      };
-
-      const handleOnlineUsers = (userIds: string[]) => {
-        setOnlineUsers(new Set(userIds));
-      };
-
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
-      socket.on(ChatEvent.USER_ONLINE, handleUserOnline);
-      socket.on(ChatEvent.USER_OFFLINE, handleUserOffline);
-      socket.on(ChatEvent.ONLINE_USERS, handleOnlineUsers);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
-        socket.off(ChatEvent.USER_ONLINE, handleUserOnline);
-        socket.off(ChatEvent.USER_OFFLINE, handleUserOffline);
-        socket.off(ChatEvent.ONLINE_USERS, handleOnlineUsers);
       };
     }, 500); // Allow time for layout to connect socket
 
@@ -156,7 +138,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             >
               <UserPlus size={18} />
             </button>
-            <button className="p-2 bg-blue-50 hover:bg-blue-100 rounded-full text-blue-600 transition">
+            <button
+              onClick={() => setIsCreateGroupModalOpen(true)}
+              className="p-2 bg-blue-50 hover:bg-blue-100 rounded-full text-blue-600 transition cursor-pointer"
+              title="Tạo nhóm trò chuyện"
+            >
               <Plus size={18} />
             </button>
           </div>
@@ -170,8 +156,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           />
           <input
             type="text"
-            placeholder="Tìm kiếm tin nhắn hoặc người dùng..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
+            placeholder="Tìm kiếm cuộc hội thoại..."
+            className="w-full pl-10 text-sm pr-4 py-2 bg-gray-100 border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
           />
         </div>
       </div>
@@ -206,27 +192,16 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           </div>
         ) : filteredConversations.length > 0 ? (
           <div className="space-y-1">
-            {filteredConversations.map((conv) => {
-              const isDirect = conv.type === "DIRECT";
-              const otherMember = isDirect
-                ? conv.members?.find((m: any) => m.userId !== currentUserId)
-                : null;
-              const isOnline = otherMember
-                ? onlineUsers.has(otherMember.userId)
-                : false;
-
-              return (
-                <ConversationItem
-                  key={conv.id}
-                  conv={conv}
-                  currentUserId={currentUserId}
-                  memberProfiles={memberProfiles}
-                  isActive={activeConversation?.id === conv.id}
-                  isOnline={isOnline}
-                  onClick={handleSelectConversation}
-                />
-              );
-            })}
+            {filteredConversations.map((conv) => (
+              <ConversationItem
+                key={conv.id}
+                conv={conv}
+                currentUserId={currentUserId}
+                memberProfiles={memberProfiles}
+                isActive={activeConversation?.id === conv.id}
+                onClick={handleSelectConversation}
+              />
+            ))}
           </div>
         ) : (
           <div className="text-center p-8 text-gray-500">
@@ -240,6 +215,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       <SearchUserModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
+      />
+      <CreateGroupModal
+        isOpen={isCreateGroupModalOpen}
+        onClose={() => setIsCreateGroupModalOpen(false)}
       />
     </div>
   );

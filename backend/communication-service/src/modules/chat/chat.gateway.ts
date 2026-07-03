@@ -22,8 +22,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private connectedUsers = new Set<string>();
-
   constructor(private readonly prisma: PrismaService) {}
 
   async handleConnection(client: Socket) {
@@ -41,23 +39,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.userId = userId; // standard fields
 
       client.join(userId);
-      this.connectedUsers.add(userId);
-
-      // Notify others that this user is online
-      this.server.emit(ChatEvent.USER_ONLINE, { userId });
-      // Send current online users to this newly connected client
-      client.emit(ChatEvent.ONLINE_USERS, Array.from(this.connectedUsers));
     } catch (e) {
       client.disconnect();
     }
   }
 
   handleDisconnect(client: Socket) {
-    const userId = client.data.userId;
-    if (userId) {
-      this.connectedUsers.delete(userId);
-      this.server.emit(ChatEvent.USER_OFFLINE, { userId });
-    }
+    // disconnected
   }
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)

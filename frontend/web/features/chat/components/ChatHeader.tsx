@@ -62,16 +62,13 @@ export default function ChatHeader({
               <Users size={20} className="text-gray-400" />
             )}
           </div>
-          {isDirect && (
-            <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full"></div>
-          )}
         </div>
         <div>
-          <h2 className="font-semibold text-gray-800">
-            {displayName}
-          </h2>
+          <h2 className="font-semibold text-gray-800">{displayName}</h2>
           <p className="text-xs text-gray-500">
-            {isDirect ? "Đang hoạt động" : `${activeConversation?.members?.length || 0} thành viên`}
+            {isDirect
+              ? "Trò chuyện cá nhân"
+              : `${activeConversation?.members?.length || 0} thành viên`}
           </p>
         </div>
       </div>
