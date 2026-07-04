@@ -22,6 +22,7 @@ import {
 import { useAppSelector } from "@/store/store";
 import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
 import WorkspaceHeader from "./workspace-header";
+import { socketService } from "@/features/chat/api/socket.service";
 
 const menuItems = [
   {
@@ -91,7 +92,16 @@ export default function WorkspaceShell({
     "profile" | "settings" | "sessions"
   >("profile");
 
-  const { email } = useAppSelector((state) => state.auth);
+  const { email, accessToken } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (accessToken) {
+      socketService.connect(accessToken);
+    }
+    return () => {
+      socketService.disconnect();
+    };
+  }, [accessToken]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);

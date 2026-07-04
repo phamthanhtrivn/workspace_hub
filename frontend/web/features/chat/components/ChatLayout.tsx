@@ -14,16 +14,6 @@ export default function ChatLayout() {
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversation?.id,
   );
-  const auth = useAppSelector((state) => state.auth);
-
-  useEffect(() => {
-    if (auth.accessToken) {
-      socketService.connect(auth.accessToken);
-    }
-    return () => {
-      socketService.disconnect();
-    };
-  }, [auth.accessToken]);
 
   useEffect(() => {
     if (activeConversationId) {

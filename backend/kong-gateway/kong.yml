@@ -46,10 +46,19 @@ services:
           - /socket.io
         strip_path: false
 
+  - name: notification-service
+    url: http://host.docker.internal:8084
+    routes:
+      - name: notification-routes
+        paths:
+          - /api/notifications
+        strip_path: false
+
 plugins:
   # ==========================================
   # GLOBAL PLUGINS (Applied to all routes)
   # ==========================================
+
 
   - name: cors
     config:
@@ -137,3 +146,18 @@ plugins:
       header_user_id: X-User-Id
       header_user_email: X-User-Email
       header_user_role: X-User-Role
+
+  # notification-routes
+  - name: jwt
+    route: notification-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt-user-context
+    route: notification-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+
