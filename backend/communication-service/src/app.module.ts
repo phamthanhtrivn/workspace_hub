@@ -6,6 +6,7 @@ import { MessageModule } from './modules/message/message.module';
 import { PollModule } from './modules/poll/poll.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { InvitationModule } from './modules/invitation/invitation.module';
 
 @Module({
   imports: [
@@ -13,7 +14,8 @@ import { ChatModule } from './modules/chat/chat.module';
     ConversationModule, 
     MessageModule, 
     PollModule,
-    ChatModule
+    ChatModule,
+    InvitationModule
   ],
   controllers: [AppController],
   providers: [AppService],

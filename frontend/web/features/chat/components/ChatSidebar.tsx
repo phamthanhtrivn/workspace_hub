@@ -2,18 +2,22 @@
 
 import React, { useState, useEffect } from "react";
 import { Search, Plus, UserPlus, Users, MessageSquare } from "lucide-react";
+import { useRouter } from "next/navigation";
 import SearchUserModal from "./SearchUserModal";
 import CreateGroupModal from "./CreateGroupModal";
 import ConversationItem from "./ConversationItem";
+import InvitationList from "./InvitationList";
 import { getUserConversations, getPublicProfile } from "../api/chat.api";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   setActiveConversation,
   setMemberProfiles as setMemberProfilesAction,
+  addMemberProfiles as addMemberProfilesAction,
 } from "@/store/chat/chat-slice";
 import { UserProfileResponse } from "../types/chat.types";
 import { socketService } from "../api/socket.service";
 import { ChatEvent } from "../api/chat.events";
+import { MdOutlineGroupAdd } from "react-icons/md";
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
@@ -34,6 +38,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const { activeConversation } = useAppSelector((state) => state.chat);
   const dispatch = useAppDispatch();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchConversations = async () => {
@@ -117,6 +122,63 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     if (onSelectChat) onSelectChat();
   };
 
+  const handleNewConversation = async (newConversation: any) => {
+    // 1. Add to top of conversations list (avoid duplicates)
+    setConversations((prev) => {
+      const exists = prev.some((c) => c.id === newConversation.id);
+      if (exists) return prev;
+      return [newConversation, ...prev];
+    });
+
+    // 2. Fetch profiles for new members not yet in memberProfiles
+    const newProfiles: Record<string, UserProfileResponse> = {};
+    const membersToFetch = (newConversation.members || []).filter(
+      (m: any) => m.userId !== currentUserId && !memberProfiles[m.userId],
+    );
+
+    await Promise.all(
+      membersToFetch.map(async (m: any) => {
+        try {
+          const res = await getPublicProfile(m.userId);
+          newProfiles[m.userId] = res?.success
+            ? res.data
+            : { fullName: "Unknown User" };
+        } catch {
+          newProfiles[m.userId] = { fullName: "Unknown User" } as any;
+        }
+      }),
+    );
+
+    // 3. Update local state + Redux store
+    const mergedProfiles = { ...memberProfiles, ...newProfiles };
+    setMemberProfiles(mergedProfiles);
+    dispatch(setActiveConversation(newConversation));
+    dispatch(setMemberProfilesAction(mergedProfiles));
+
+    // 4. Navigate to the new conversation
+    router.push(`/chat?id=${newConversation.id}`);
+
+    if (onSelectChat) onSelectChat();
+  };
+
+  const handleAcceptInvitation = async (conversationId: string) => {
+    // Refresh conversations list to include the new one
+    try {
+      const response = await getUserConversations();
+      const data = response?.success ? response.data : [];
+      setConversations(data);
+
+      const newConv = data.find((c: any) => c.id === conversationId);
+      if (newConv) {
+        dispatch(setActiveConversation(newConv));
+        router.push(`/chat?id=${newConv.id}`);
+        if (onSelectChat) onSelectChat();
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
   const filteredConversations = conversations.filter((conv) => {
     if (activeTab === "all") return true;
     if (activeTab === "personal") return conv.type === "DIRECT";
@@ -131,6 +193,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-800">Đoạn chat</h2>
           <div className="flex gap-2">
+            <InvitationList
+              currentUserId={currentUserId}
+              onAccept={handleAcceptInvitation}
+            />
             <button
               onClick={() => setIsSearchModalOpen(true)}
               className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition cursor-pointer"
@@ -143,7 +209,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               className="p-2 bg-blue-50 hover:bg-blue-100 rounded-full text-blue-600 transition cursor-pointer"
               title="Tạo nhóm trò chuyện"
             >
-              <Plus size={18} />
+              <MdOutlineGroupAdd size={18} />
             </button>
           </div>
         </div>
@@ -215,10 +281,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       <SearchUserModal
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
+        onConversationCreated={handleNewConversation}
       />
       <CreateGroupModal
         isOpen={isCreateGroupModalOpen}
         onClose={() => setIsCreateGroupModalOpen(false)}
+        onConversationCreated={handleNewConversation}
       />
     </div>
   );

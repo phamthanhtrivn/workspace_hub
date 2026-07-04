@@ -58,6 +58,7 @@ model Conversation {
   setting     ConversationSetting?
   members     ConversationMember[]
   messages    Message[]
+  invitations GroupInvitation[]
 
   @@map("conversations")
 }
@@ -181,4 +182,25 @@ model PollVote {
   option       PollOption @relation(fields: [pollOptionId], references: [id])
 
   @@map("poll_votes")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model GroupInvitation {
+  id               String           @id @default(uuid()) @db.Uuid
+  conversationId   String           @map("conversation_id") @db.Uuid
+  invitedUserId    String           @map("invited_user_id") @db.Uuid
+  invitedBy        String           @map("invited_by") @db.Uuid
+  status           InvitationStatus @default(PENDING)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  respondedAt      DateTime?        @map("responded_at")
+
+  conversation     Conversation     @relation(fields: [conversationId], references: [id])
+
+  @@unique([conversationId, invitedUserId])
+  @@map("group_invitations")
 }

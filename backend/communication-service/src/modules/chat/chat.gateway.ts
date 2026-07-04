@@ -9,8 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatEvent } from './chat.events';
-import { PrismaService } from '../../prisma/prisma.service';
-import { MessageType } from '@prisma/client';
+import { MessageService } from '../message/message.service';
 
 @WebSocketGateway({
   cors: {
@@ -22,7 +21,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly messageService: MessageService) {}
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token || client.handshake.query?.token;
@@ -70,30 +69,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     try {
-      // Save message to DB
-      const message = await this.prisma.message.create({
-        data: {
-          conversationId: data.conversationId,
-          senderId: userId,
-          content: data.content,
-          type: MessageType.TEXT,
-        },
-      });
+      const message = await this.messageService.createMessage(
+        data.conversationId,
+        userId,
+        data.content,
+      );
 
-      // Update conversation updatedAt
-      await this.prisma.conversation.update({
-        where: { id: data.conversationId },
-        data: { updatedAt: new Date() },
-      });
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
 
-      // Fetch all members to send push notification to their personal rooms
-      const members = await this.prisma.conversationMember.findMany({
-        where: { conversationId: data.conversationId },
-        select: { userId: true },
-      });
-      const memberUserIds = members.map((m) => m.userId);
-
-      // Emit to everyone in the room AND all personal rooms (Socket.io will deduplicate)
+      // Emit to conversation room + all personal rooms (Socket.io deduplicates)
       const targetRooms = [data.conversationId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, message);
 

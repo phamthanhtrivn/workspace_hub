@@ -1,5 +1,6 @@
 import { User, Users } from "lucide-react";
 import Image from "next/image";
+import { formatConversationTime } from "@/lib/date";
 
 interface ConversationItemProps {
   conv: any;
@@ -22,18 +23,15 @@ export default function ConversationItem({
     : null;
   const profile = otherMember ? memberProfiles[otherMember.userId] : null;
 
-  const name = isDirect ? profile?.fullName || "Unknown User" : conv.name || "Group Chat";
+  const name = isDirect
+    ? profile?.fullName || "Unknown User"
+    : conv.name || "Group Chat";
   const avatarUrl = isDirect ? profile?.avatarUrl : conv.avatarUrl;
 
   const latestMessage = conv.messages?.[0];
   const time = latestMessage
-    ? new Date(latestMessage.createdAt).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })
-    : new Date(
-        conv.updatedAt || conv.createdAt || Date.now(),
-      ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    ? formatConversationTime(latestMessage.createdAt)
+    : formatConversationTime(conv.updatedAt || conv.createdAt || Date.now());
 
   const snippet = latestMessage
     ? latestMessage.content

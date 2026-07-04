@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Save, Loader2 } from "lucide-react";
 import { UserSettings } from "../types/user-setting.types";
-import { getUserSettings } from "../api/user-setting.api";
+import { getUserSettings, updatePrivacySettings } from "../api/user-setting.api";
 
 export default function SettingsTab() {
   const [settingsForm, setSettingsForm] = useState<UserSettings | null>(null);
@@ -29,19 +29,23 @@ export default function SettingsTab() {
   };
 
   const handleSaveSettings = async () => {
-    // if (!settingsForm) return;
-    // setIsSaving(true);
-    // try {
-    //   const response = await updateUserSettings(settingsForm);
-    //   if (response.success) {
-    //     alert("Cập nhật cài đặt thành công!");
-    //   }
-    // } catch (error) {
-    //   console.error("Failed to save settings:", error);
-    //   alert("Đã xảy ra lỗi khi lưu cài đặt.");
-    // } finally {
-    //   setIsSaving(false);
-    // }
+    // Other settings (theme, language) - backend API not yet ready
+  };
+
+  const handlePrivacyChange = async (checked: boolean) => {
+    if (!settingsForm) return;
+    const previousSettings = { ...settingsForm };
+    
+    // Optimistic update
+    setSettingsForm({ ...settingsForm, allowSearchByEmail: checked });
+    
+    try {
+      await updatePrivacySettings({ allowSearchByEmail: checked });
+    } catch (error) {
+      console.error("Failed to update privacy settings:", error);
+      // Revert on error
+      setSettingsForm(previousSettings);
+    }
   };
 
   if (isLoading) {
@@ -101,6 +105,25 @@ export default function SettingsTab() {
             <option value="Asia/Ho_Chi_Minh">Asia/Ho_Chi_Minh (GMT+7)</option>
             <option value="UTC">UTC</option>
           </select>
+        </div>
+
+        <hr className="my-4 border-slate-200" />
+        <h4 className="text-lg font-bold text-slate-800">Quyền riêng tư</h4>
+        
+        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div>
+            <p className="font-bold text-slate-800 text-sm">Cho phép tìm kiếm qua email</p>
+            <p className="text-xs text-slate-500 mt-0.5">Người khác có thể tìm thấy bạn bằng địa chỉ email</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer"
+              checked={settingsForm.allowSearchByEmail ?? true}
+              onChange={(e) => handlePrivacyChange(e.target.checked)}
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--color-primary)]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+          </label>
         </div>
 
         <button

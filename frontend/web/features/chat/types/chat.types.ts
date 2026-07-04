@@ -50,3 +50,16 @@ export interface ConversationResponse {
   members: ConversationMember[];
   messages?: any[];
 }
+
+export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+
+export interface GroupInvitation {
+  id: string;
+  conversationId: string;
+  invitedUserId: string;
+  invitedBy: string;
+  status: InvitationStatus;
+  createdAt: string;
+  respondedAt?: string;
+  conversation?: any; // To hold full conversation info
+}

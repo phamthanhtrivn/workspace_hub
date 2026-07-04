@@ -18,26 +18,23 @@ import {
   createDirectConversation,
 } from "../api/chat.api";
 import { UserSearchResponse, UserProfileResponse } from "../types/chat.types";
-import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { useAppDispatch } from "@/store/store";
-import { setActiveConversation } from "@/store/chat/chat-slice";
 
 interface SearchUserModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConversationCreated?: (conversation: any) => void;
 }
 
 export default function SearchUserModal({
   isOpen,
   onClose,
+  onConversationCreated,
 }: SearchUserModalProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<UserSearchResponse[]>([]);
   const [error, setError] = useState("");
-  const router = useRouter();
-  const dispatch = useAppDispatch();
 
   // Selected User Profile states
   const [selectedUser, setSelectedUser] = useState<UserSearchResponse | null>(
@@ -112,11 +109,7 @@ export default function SearchUserModal({
     try {
       const response = await createDirectConversation(user.id);
       if (response && response.success) {
-        dispatch(setActiveConversation(response.data));
-
-        // Update URL so ChatLayout knows which chat is active, if needed
-        router.push(`/chat?id=${response.data.id}`);
-
+        onConversationCreated?.(response.data);
         onClose();
       } else {
         toast.error(response?.message || "Lỗi khi tạo phòng chat");

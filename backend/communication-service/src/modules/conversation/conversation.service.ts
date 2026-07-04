@@ -1,10 +1,15 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConversationType, ConversationRole } from '@prisma/client';
+import { ChatGateway } from '../chat/chat.gateway';
+import { ChatEvent } from '../chat/chat.events';
 
 @Injectable()
 export class ConversationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatGateway: ChatGateway,
+  ) {}
 
   async createDirectConversation(userId: string, participantId: string) {
     if (userId === participantId) {
@@ -138,14 +143,16 @@ export class ConversationService {
     // Prevent adding oneself to participantIds
     const otherParticipantIds = data.participantIds.filter(id => id !== userId);
     
-    // Create members array: creator is OWNER, others are MEMBER
+    // Create members array: only creator is OWNER initially
     const members = [
-      { userId: userId, role: ConversationRole.OWNER },
-      ...otherParticipantIds.map(id => ({
-        userId: id,
-        role: ConversationRole.MEMBER,
-      }))
+      { userId: userId, role: ConversationRole.OWNER }
     ];
+
+    const invitations = otherParticipantIds.map(id => ({
+      invitedUserId: id,
+      invitedBy: userId,
+      status: 'PENDING' as const,
+    }));
 
     return this.prisma.$transaction(async (prisma) => {
       const conversation = await prisma.conversation.create({
@@ -156,6 +163,10 @@ export class ConversationService {
           createdBy: userId,
           members: {
             create: members,
+          },
+          // @ts-ignore - Prisma client needs to be regenerated
+          invitations: {
+            create: invitations,
           },
           setting: {
             create: {
@@ -171,6 +182,15 @@ export class ConversationService {
         include: {
           members: true,
         },
+      });
+
+      // Emit invitation events
+      invitations.forEach(inv => {
+        this.chatGateway.server.to(inv.invitedUserId).emit(ChatEvent.GROUP_INVITATION, {
+          conversationId: conversation.id,
+          invitedBy: userId,
+          conversation: conversation,
+        });
       });
 
       return conversation;

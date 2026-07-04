@@ -63,6 +63,18 @@ public class UserController {
                 .build());
     }
 
+    @PutMapping("/me/settings/privacy")
+    public ResponseEntity<ApiResponse<Void>> updatePrivacySettings(
+            @RequestHeader(value = "X-User-Id") UUID userId,
+            @RequestBody vn.workspacehub.user.dto.request.UpdatePrivacyRequest request) {
+        
+        userService.updatePrivacySettings(userId, request);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Cập nhật cài đặt riêng tư thành công")
+                .build());
+    }
+
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<UserSearchResponse>>> searchUserByEmail(
             @RequestHeader("X-User-Id") UUID userId,

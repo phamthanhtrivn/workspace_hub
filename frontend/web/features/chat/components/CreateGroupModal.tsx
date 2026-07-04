@@ -14,20 +14,20 @@ import {
 import { searchUserByEmail, createGroupConversation } from "../api/chat.api";
 import { UserSearchResponse } from "../types/chat.types";
 import { getAvatarPresignedUrl } from "../../user-setting/api/user-setting.api";
-import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import { setActiveConversation } from "@/store/chat/chat-slice";
+import { useAppSelector } from "@/store/store";
 import axios from "axios";
 
 interface CreateGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConversationCreated?: (conversation: any) => void;
 }
 
 export default function CreateGroupModal({
   isOpen,
   onClose,
+  onConversationCreated,
 }: CreateGroupModalProps) {
   const [email, setEmail] = useState("");
   const [groupName, setGroupName] = useState("");
@@ -42,8 +42,6 @@ export default function CreateGroupModal({
   const [isCreating, setIsCreating] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const router = useRouter();
-  const dispatch = useAppDispatch();
   const currentUserId = useAppSelector((state) => state.auth.userId);
 
   // For portal to work in SSR Next.js safely
@@ -103,7 +101,6 @@ export default function CreateGroupModal({
 
   const handleSelectUser = (user: UserSearchResponse) => {
     setSelectedUsers((prev) => [...prev, user]);
-    setEmail(""); // Clear search box
   };
 
   const handleRemoveUser = (userId: string) => {
@@ -162,8 +159,7 @@ export default function CreateGroupModal({
       );
 
       if (response && response.success) {
-        dispatch(setActiveConversation(response.data));
-        router.push(`/chat?id=${response.data.id}`);
+        onConversationCreated?.(response.data);
         onClose();
       } else {
         toast.error(response?.message || "Lỗi khi tạo nhóm chat");

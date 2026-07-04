@@ -11,6 +11,7 @@ import vn.workspacehub.user.exception.BusinessException;
 import vn.workspacehub.user.entity.AccountSetting;
 import vn.workspacehub.user.entity.User;
 import vn.workspacehub.user.entity.UserProfile;
+import vn.workspacehub.user.dto.request.UpdatePrivacyRequest;
 
 import java.util.UUID;
 import java.util.List;
@@ -31,6 +32,7 @@ public class UserService {
                 .theme(setting.getTheme())
                 .language(setting.getLanguage())
                 .timezone(setting.getTimezone())
+                .allowSearchByEmail(setting.isAllowSearchByEmail())
                 .build();
     }
 
@@ -39,6 +41,10 @@ public class UserService {
 
         return users.stream()
                 .filter(user -> !user.getId().equals(userId))
+                .filter(user -> {
+                    AccountSetting setting = user.getAccountSetting();
+                    return setting == null || setting.isAllowSearchByEmail();
+                })
                 .map(user -> {
                     UserProfile profile = user.getProfile();
                     return UserSearchResponse.builder()
@@ -49,6 +55,14 @@ public class UserService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    public void updatePrivacySettings(UUID userId, UpdatePrivacyRequest request) {
+        AccountSetting setting = accountSettingRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException("Không tìm thấy cài đặt cho người dùng này"));
+
+        setting.setAllowSearchByEmail(request.isAllowSearchByEmail());
+        accountSettingRepository.save(setting);
     }
 
     public UserProfileResponse getPublicProfile(UUID id) {

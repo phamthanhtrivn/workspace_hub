@@ -30,9 +30,16 @@ const chatSlice = createSlice({
     ) => {
       state.memberProfiles = action.payload;
     },
+    addMemberProfiles: (
+      state,
+      action: PayloadAction<Record<string, UserProfileResponse>>,
+    ) => {
+      state.memberProfiles = { ...state.memberProfiles, ...action.payload };
+    },
   },
 });
 
-export const { setActiveConversation, setMemberProfiles } = chatSlice.actions;
+export const { setActiveConversation, setMemberProfiles, addMemberProfiles } =
+  chatSlice.actions;
 
 export default chatSlice.reducer;

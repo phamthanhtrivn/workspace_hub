@@ -32,10 +32,23 @@ export const createGroupConversation = async (
   return response.data;
 };
 
-export const getPublicProfile = async (
-  userId: string,
-): Promise<any> => {
-  const response = await api.get(`/api/users/${userId}/profile`);
+export const getPublicProfile = async (id: string): Promise<any> => {
+  const response = await api.get(`/api/users/${id}/profile`);
+  return response.data;
+};
+
+export const getPendingInvitations = async (): Promise<any> => {
+  const response = await api.get("/api/invitations/pending");
+  return response.data;
+};
+
+export const acceptInvitation = async (invitationId: string): Promise<any> => {
+  const response = await api.post(`/api/invitations/${invitationId}/accept`);
+  return response.data;
+};
+
+export const declineInvitation = async (invitationId: string): Promise<any> => {
+  const response = await api.post(`/api/invitations/${invitationId}/decline`);
   return response.data;
 };
 

@@ -38,6 +38,7 @@ services:
       - name: communication-routes
         paths:
           - /api/conversations
+          - /api/invitations
         strip_path: false
 
       - name: websocket-route
