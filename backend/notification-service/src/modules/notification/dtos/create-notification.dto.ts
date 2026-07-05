@@ -1,4 +1,16 @@
-import { IsNotEmpty, IsOptional, IsString, IsObject } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsObject,
+  IsEnum,
+} from "class-validator";
+
+export enum NotificationType {
+  CHAT_GROUP_INVITATION = "CHAT_GROUP_INVITATION",
+  CHAT_INVITATION_ACCEPTED = "CHAT_INVITATION_ACCEPTED",
+  CHAT_INVITATION_DECLINED = "CHAT_INVITATION_DECLINED",
+}
 
 export class CreateNotificationDto {
   @IsString()
@@ -9,17 +21,9 @@ export class CreateNotificationDto {
   @IsOptional()
   senderId?: string;
 
-  @IsString()
-  @IsOptional()
-  senderName?: string;
-
-  @IsString()
-  @IsOptional()
-  senderAvatar?: string;
-
-  @IsString()
+  @IsEnum(NotificationType)
   @IsNotEmpty()
-  type: string;
+  type: NotificationType;
 
   @IsString()
   @IsNotEmpty()

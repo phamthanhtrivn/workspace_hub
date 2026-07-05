@@ -37,7 +37,7 @@ export class NotificationService {
   async getNotifications(
     recipientId: string,
     page = 1,
-    limit = 20,
+    limit = 10,
     isRead?: boolean,
   ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
     const where: any = { recipientId };

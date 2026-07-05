@@ -18,12 +18,10 @@ import {
 export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly chatGateway: ChatGateway,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
 
   async getPendingInvitations(userId: string) {
-    // @ts-ignore - Prisma client needs to be regenerated
     return this.prisma.groupInvitation.findMany({
       where: {
         invitedUserId: userId,
@@ -39,7 +37,6 @@ export class InvitationService {
   }
 
   async acceptInvitation(userId: string, invitationId: string) {
-    // @ts-ignore
     const invitation = await this.prisma.groupInvitation.findUnique({
       where: { id: invitationId },
       include: { conversation: true },
@@ -60,8 +57,6 @@ export class InvitationService {
     }
 
     return this.prisma.$transaction(async (prisma) => {
-      // 1. Update status
-      // @ts-ignore
       const updatedInvitation = await prisma.groupInvitation.update({
         where: { id: invitationId },
         data: {
@@ -70,7 +65,6 @@ export class InvitationService {
         },
       });
 
-      // 2. Add to conversation members
       await prisma.conversationMember.create({
         data: {
           conversationId: invitation.conversationId,
@@ -79,17 +73,6 @@ export class InvitationService {
         },
       });
 
-      // 3. Emit socket event to creator and others
-      this.chatGateway.server
-        .to(invitation.conversationId)
-        .emit(ChatEvent.INVITATION_ACCEPTED, {
-          conversationId: invitation.conversationId,
-          userId: userId,
-          invitationId: invitation.id,
-        });
-
-      // 4. Publish to notification-service
-      // @ts-ignore
       this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
         key: invitation.invitedBy,
         value: {
@@ -98,7 +81,7 @@ export class InvitationService {
           type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
           title: 'Lời mời đã được chấp nhận',
           content: 'Chấp nhận lời mời vào nhóm',
-          link: `/chat`,
+          link: `/chat?id=${invitation.conversationId}`,
         },
       });
 
@@ -107,7 +90,6 @@ export class InvitationService {
   }
 
   async declineInvitation(userId: string, invitationId: string) {
-    // @ts-ignore
     const invitation = await this.prisma.groupInvitation.findUnique({
       where: { id: invitationId },
     });
@@ -126,7 +108,6 @@ export class InvitationService {
       throw new BadRequestException('Lời mời này đã được xử lý');
     }
 
-    // @ts-ignore
     const updatedInvitation = await this.prisma.groupInvitation.update({
       where: { id: invitationId },
       data: {
@@ -135,17 +116,6 @@ export class InvitationService {
       },
     });
 
-    // Emit event to creator
-    this.chatGateway.server
-      .to(invitation.invitedBy)
-      .emit(ChatEvent.INVITATION_DECLINED, {
-        conversationId: invitation.conversationId,
-        userId: userId,
-        invitationId: invitation.id,
-      });
-
-    // Publish to notification-service
-    // @ts-ignore
     this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
       key: invitation.invitedBy,
       value: {

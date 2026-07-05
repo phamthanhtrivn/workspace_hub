@@ -18,7 +18,6 @@ import { KAFKA_TOPICS } from "../../common/constants/kafka.constants";
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
-  // Kafka Consumer
   @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)
   async handleIncomingNotification(@Payload() data: any) {
     try {
@@ -27,8 +26,6 @@ export class NotificationController {
       await this.notificationService.createNotification({
         recipientId: payload.recipientId,
         senderId: payload.senderId,
-        senderName: payload.senderName,
-        senderAvatar: payload.senderAvatar,
         type: payload.type,
         title: payload.title,
         content: payload.content,
@@ -40,7 +37,6 @@ export class NotificationController {
     }
   }
 
-  // REST endpoints for frontend client (Routed through Kong Gateway)
   @Get()
   async getNotifications(
     @Headers("x-user-id") userId: string,
@@ -53,7 +49,7 @@ export class NotificationController {
     }
 
     const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 20;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
 
     let isRead: boolean | undefined = undefined;
     if (isReadStr === "true") isRead = true;
@@ -67,7 +63,7 @@ export class NotificationController {
     );
 
     return {
-      message: "Get notifications list successfully",
+      message: "Lấy danh sách thông báo thành công",
       data: result.list,
       pagination: {
         page: pageNum,
@@ -86,7 +82,7 @@ export class NotificationController {
 
     const unreadCount = await this.notificationService.getUnreadCount(userId);
     return {
-      message: "Get unread notification count successfully",
+      message: "Lấy số lượng thông báo chưa đọc thành công",
       data: { unreadCount },
     };
   }
@@ -110,7 +106,7 @@ export class NotificationController {
     }
 
     return {
-      message: "Marked notification as read successfully",
+      message: "Đánh dấu đã đọc thành công",
       data: notification,
     };
   }
@@ -123,7 +119,7 @@ export class NotificationController {
 
     const count = await this.notificationService.markAllAsRead(userId);
     return {
-      message: "Marked all notifications as read successfully",
+      message: "Đánh dấu tất cả đã đọc thành công",
       data: { modifiedCount: count },
     };
   }
@@ -147,7 +143,7 @@ export class NotificationController {
     }
 
     return {
-      message: "Deleted notification successfully",
+      message: "Xóa thông báo thành công",
       data: { success },
     };
   }

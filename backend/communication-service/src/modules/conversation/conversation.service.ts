@@ -4,7 +4,10 @@ import { ConversationType, ConversationRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatEvent } from '../chat/chat.events';
 import { ClientKafka } from '@nestjs/microservices';
-import { KAFKA_TOPICS, KAFKA_EVENTS } from '../../common/constants/kafka.constants';
+import {
+  KAFKA_TOPICS,
+  KAFKA_EVENTS,
+} from '../../common/constants/kafka.constants';
 
 @Injectable()
 export class ConversationService {
@@ -142,16 +145,19 @@ export class ConversationService {
     });
   }
 
-  async createGroupConversation(userId: string, data: { name?: string; avatarUrl?: string; participantIds: string[] }) {
+  async createGroupConversation(
+    userId: string,
+    data: { name?: string; avatarUrl?: string; participantIds: string[] },
+  ) {
     // Prevent adding oneself to participantIds
-    const otherParticipantIds = data.participantIds.filter(id => id !== userId);
-    
-    // Create members array: only creator is OWNER initially
-    const members = [
-      { userId: userId, role: ConversationRole.OWNER }
-    ];
+    const otherParticipantIds = data.participantIds.filter(
+      (id) => id !== userId,
+    );
 
-    const invitations = otherParticipantIds.map(id => ({
+    // Create members array: only creator is OWNER initially
+    const members = [{ userId: userId, role: ConversationRole.OWNER }];
+
+    const invitations = otherParticipantIds.map((id) => ({
       invitedUserId: id,
       invitedBy: userId,
       status: 'PENDING' as const,
@@ -205,7 +211,7 @@ export class ConversationService {
               metadata: {
                 invitationId: inv.id,
                 conversationId: conversation.id,
-              }
+              },
             },
           });
         });
