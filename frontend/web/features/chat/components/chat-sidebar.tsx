@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Search, Plus, UserPlus, Users, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
-import SearchUserModal from "./SearchUserModal";
-import CreateGroupModal from "./CreateGroupModal";
-import ConversationItem from "./ConversationItem";
-import InvitationList from "./InvitationList";
+import SearchUserModal from "./search-user-modal";
+import CreateGroupModal from "./create-group-modal";
+import ConversationItem from "./conversation-item";
+
 import { getUserConversations, getPublicProfile } from "../api/chat.api";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
@@ -193,10 +193,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-800">Đoạn chat</h2>
           <div className="flex gap-2">
-            <InvitationList
-              currentUserId={currentUserId}
-              onAccept={handleAcceptInvitation}
-            />
             <button
               onClick={() => setIsSearchModalOpen(true)}
               className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition cursor-pointer"

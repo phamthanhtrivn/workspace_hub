@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
-import ChatInput from "./ChatInput";
-import ChatHeader from "./ChatHeader";
-import ChatMessage from "./ChatMessage";
+import { useEffect, useState, useRef } from "react";
+import ChatInput from "./chat-input";
+import ChatHeader from "./chat-header";
+import ChatMessage from "./chat-message";
 import { useAppSelector } from "@/store/store";
 import { getConversationMessages } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";

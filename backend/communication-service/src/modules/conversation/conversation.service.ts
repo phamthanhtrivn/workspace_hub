@@ -184,30 +184,32 @@ export class ConversationService {
         },
         include: {
           members: true,
+          // @ts-ignore - Prisma client needs to be regenerated
+          invitations: true,
         },
       });
 
       // Emit invitation events and notifications
-      invitations.forEach(inv => {
-        this.chatGateway.server.to(inv.invitedUserId).emit(ChatEvent.GROUP_INVITATION, {
-          conversationId: conversation.id,
-          invitedBy: userId,
-          conversation: conversation,
+      if ((conversation as any).invitations) {
+        (conversation as any).invitations.forEach((inv: any) => {
+          // Publish to notification-service ONLY, no chat websocket
+          this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+            key: inv.invitedUserId,
+            value: {
+              recipientId: inv.invitedUserId,
+              senderId: userId,
+              type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
+              title: 'Lời mời vào nhóm chat',
+              content: 'Bạn được mời vào nhóm chat mới',
+              link: '/chat',
+              metadata: {
+                invitationId: inv.id,
+                conversationId: conversation.id,
+              }
+            },
+          });
         });
-
-        // Publish to notification-service
-        this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-          key: inv.invitedUserId,
-          value: {
-            recipientId: inv.invitedUserId,
-            senderId: userId,
-            type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
-            title: 'Lời mời vào nhóm chat',
-            content: 'Bạn được mời vào nhóm chat mới',
-            link: '/chat',
-          },
-        });
-      });
+      }
 
       return conversation;
     });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   X,
   Bell,
@@ -92,12 +92,8 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
               <Users size={40} className="text-gray-400" />
             )}
           </div>
-          <h3 className="font-bold text-gray-900 text-lg">
-            {displayName}
-          </h3>
-          <p className="text-sm text-gray-500 mb-4">
-            {displayDescription}
-          </p>
+          <h3 className="font-bold text-gray-900 text-lg">{displayName}</h3>
+          <p className="text-sm text-gray-500 mb-4">{displayDescription}</p>
 
           <div className="flex gap-4">
             <button
@@ -148,12 +144,20 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
                     >
                       <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xs overflow-hidden">
                         {profile?.avatarUrl ? (
-                          <Image src={profile.avatarUrl} alt="Avatar" width={32} height={32} className="rounded-full" />
+                          <Image
+                            src={profile.avatarUrl}
+                            alt="Avatar"
+                            width={32}
+                            height={32}
+                            className="rounded-full"
+                          />
                         ) : (
                           name[0]?.toUpperCase()
                         )}
                       </div>
-                      <span className="text-sm text-gray-700">{displayName}</span>
+                      <span className="text-sm text-gray-700">
+                        {displayName}
+                      </span>
                       {member.role === "OWNER" && (
                         <span className="ml-auto text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
                           Admin

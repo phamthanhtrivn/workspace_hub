@@ -24,7 +24,7 @@ import UserSettingsModal from "@/features/user-setting/components/user-settings-
 import WorkspaceHeader from "./workspace-header";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
 import { toast } from "react-toastify";
-import { addNotification } from "@/features/notification/store/notification.slice";
+import { addNotification } from "@/store/notification/notification.slice";
 
 const menuItems = [
   {

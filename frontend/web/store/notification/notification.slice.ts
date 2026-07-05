@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Notification } from "../types/notification.types";
+import { Notification } from "../../features/notification/types/notification.types";
 
 interface NotificationState {
   list: Notification[];
@@ -24,7 +24,11 @@ const notificationSlice = createSlice({
     },
     setNotifications: (
       state,
-      action: PayloadAction<{ list: Notification[]; total: number; unreadCount: number }>,
+      action: PayloadAction<{
+        list: Notification[];
+        total: number;
+        unreadCount: number;
+      }>,
     ) => {
       state.list = action.payload.list;
       state.total = action.payload.total;

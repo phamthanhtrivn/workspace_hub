@@ -1,4 +1,3 @@
-import React from "react";
 import { User } from "lucide-react";
 import Image from "next/image";
 import { UserProfileResponse } from "../types/chat.types";

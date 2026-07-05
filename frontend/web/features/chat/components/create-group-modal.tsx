@@ -2,15 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import {
-  Search,
-  X,
-  User,
-  Users,
-  Camera,
-  Loader2,
-  CheckCircle2,
-} from "lucide-react";
+import { Search, X, User, Users, Camera, Loader2 } from "lucide-react";
 import { searchUserByEmail, createGroupConversation } from "../api/chat.api";
 import { UserSearchResponse } from "../types/chat.types";
 import { getAvatarPresignedUrl } from "../../user-setting/api/user-setting.api";

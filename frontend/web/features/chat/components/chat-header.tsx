@@ -1,4 +1,3 @@
-import React from "react";
 import { ArrowLeft, Info, User, Users } from "lucide-react";
 import Image from "next/image";
 import { useAppSelector } from "@/store/store";

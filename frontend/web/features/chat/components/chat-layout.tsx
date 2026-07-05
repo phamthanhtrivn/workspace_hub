@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import ChatSidebar from "./ChatSidebar";
-import ChatArea from "./ChatArea";
-import ChatRightPanel from "./ChatRightPanel";
+import { useState, useEffect } from "react";
+import ChatSidebar from "./chat-sidebar";
+import ChatArea from "./chat-area";
+import ChatRightPanel from "./chat-right-panel";
 import { useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import { socketService } from "../api/chat-socket.service";

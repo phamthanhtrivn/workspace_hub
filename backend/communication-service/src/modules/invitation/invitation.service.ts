@@ -1,10 +1,18 @@
-import { Injectable, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  Inject,
+} from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConversationRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatEvent } from '../chat/chat.events';
 import { ClientKafka } from '@nestjs/microservices';
-import { KAFKA_TOPICS, KAFKA_EVENTS } from '../../common/constants/kafka.constants';
+import {
+  KAFKA_TOPICS,
+  KAFKA_EVENTS,
+} from '../../common/constants/kafka.constants';
 
 @Injectable()
 export class InvitationService {
@@ -34,7 +42,7 @@ export class InvitationService {
     // @ts-ignore
     const invitation = await this.prisma.groupInvitation.findUnique({
       where: { id: invitationId },
-      include: { conversation: true }
+      include: { conversation: true },
     });
 
     if (!invitation) {
@@ -42,7 +50,9 @@ export class InvitationService {
     }
 
     if (invitation.invitedUserId !== userId) {
-      throw new BadRequestException('Bạn không có quyền thao tác với lời mời này');
+      throw new BadRequestException(
+        'Bạn không có quyền thao tác với lời mời này',
+      );
     }
 
     if (invitation.status !== 'PENDING') {
@@ -70,11 +80,13 @@ export class InvitationService {
       });
 
       // 3. Emit socket event to creator and others
-      this.chatGateway.server.to(invitation.conversationId).emit(ChatEvent.INVITATION_ACCEPTED, {
-        conversationId: invitation.conversationId,
-        userId: userId,
-        invitationId: invitation.id,
-      });
+      this.chatGateway.server
+        .to(invitation.conversationId)
+        .emit(ChatEvent.INVITATION_ACCEPTED, {
+          conversationId: invitation.conversationId,
+          userId: userId,
+          invitationId: invitation.id,
+        });
 
       // 4. Publish to notification-service
       // @ts-ignore
@@ -85,7 +97,7 @@ export class InvitationService {
           senderId: userId,
           type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
           title: 'Lời mời đã được chấp nhận',
-          content: 'Người dùng đã chấp nhận lời mời vào nhóm',
+          content: 'Chấp nhận lời mời vào nhóm',
           link: `/chat`,
         },
       });
@@ -105,7 +117,9 @@ export class InvitationService {
     }
 
     if (invitation.invitedUserId !== userId) {
-      throw new BadRequestException('Bạn không có quyền thao tác với lời mời này');
+      throw new BadRequestException(
+        'Bạn không có quyền thao tác với lời mời này',
+      );
     }
 
     if (invitation.status !== 'PENDING') {
@@ -122,11 +136,13 @@ export class InvitationService {
     });
 
     // Emit event to creator
-    this.chatGateway.server.to(invitation.invitedBy).emit(ChatEvent.INVITATION_DECLINED, {
-      conversationId: invitation.conversationId,
-      userId: userId,
-      invitationId: invitation.id,
-    });
+    this.chatGateway.server
+      .to(invitation.invitedBy)
+      .emit(ChatEvent.INVITATION_DECLINED, {
+        conversationId: invitation.conversationId,
+        userId: userId,
+        invitationId: invitation.id,
+      });
 
     // Publish to notification-service
     // @ts-ignore
@@ -137,7 +153,7 @@ export class InvitationService {
         senderId: userId,
         type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_DECLINED,
         title: 'Lời mời bị từ chối',
-        content: 'Người dùng đã từ chối lời mời vào nhóm',
+        content: 'Từ chối lời mời vào nhóm',
         link: `/chat`,
       },
     });

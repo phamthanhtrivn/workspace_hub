@@ -18,8 +18,6 @@ export class NotificationService {
       data: {
         recipientId: createDto.recipientId,
         senderId: createDto.senderId,
-        senderName: createDto.senderName,
-        senderAvatar: createDto.senderAvatar,
         type: createDto.type,
         title: createDto.title,
         content: createDto.content,
@@ -29,8 +27,9 @@ export class NotificationService {
     });
 
     // Publish to realtime socket room
-    this.notificationGateway.server.to(saved.recipientId).emit('new_notification', saved);
-    console.log(`Notification WebSocket: Emitted new_notification to user ${saved.recipientId}`);
+    this.notificationGateway.server
+      .to(saved.recipientId)
+      .emit("new_notification", saved);
 
     return saved;
   }
