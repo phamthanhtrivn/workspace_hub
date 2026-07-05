@@ -1,14 +1,17 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConversationRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatEvent } from '../chat/chat.events';
+import { ClientKafka } from '@nestjs/microservices';
+import { KAFKA_TOPICS, KAFKA_EVENTS } from '../../common/constants/kafka.constants';
 
 @Injectable()
 export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
+    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
 
   async getPendingInvitations(userId: string) {
@@ -73,6 +76,20 @@ export class InvitationService {
         invitationId: invitation.id,
       });
 
+      // 4. Publish to notification-service
+      // @ts-ignore
+      this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+        key: invitation.invitedBy,
+        value: {
+          recipientId: invitation.invitedBy,
+          senderId: userId,
+          type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
+          title: 'Lời mời đã được chấp nhận',
+          content: 'Người dùng đã chấp nhận lời mời vào nhóm',
+          link: `/chat`,
+        },
+      });
+
       return updatedInvitation;
     });
   }
@@ -109,6 +126,20 @@ export class InvitationService {
       conversationId: invitation.conversationId,
       userId: userId,
       invitationId: invitation.id,
+    });
+
+    // Publish to notification-service
+    // @ts-ignore
+    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+      key: invitation.invitedBy,
+      value: {
+        recipientId: invitation.invitedBy,
+        senderId: userId,
+        type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_DECLINED,
+        title: 'Lời mời bị từ chối',
+        content: 'Người dùng đã từ chối lời mời vào nhóm',
+        link: `/chat`,
+      },
     });
 
     return updatedInvitation;

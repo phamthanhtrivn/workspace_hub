@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 
-class SocketService {
+class NotificationSocketService {
   private socket: Socket | null = null;
 
   connect(token: string) {
@@ -9,18 +9,18 @@ class SocketService {
       const baseUrl = apiUrl.replace(/\/api$/, "");
 
       this.socket = io(baseUrl, {
-        path: "/communication.io",
+        path: "/notification.io",
         auth: {
           token,
         },
       });
 
       this.socket.on("connect", () => {
-        console.log("Connected to Chat Socket");
+        console.log("Connected to Notification Socket");
       });
 
       this.socket.on("disconnect", () => {
-        console.log("Disconnected from Chat Socket");
+        console.log("Disconnected from Notification Socket");
       });
     }
   }
@@ -37,4 +37,4 @@ class SocketService {
   }
 }
 
-export const socketService = new SocketService();
+export const notificationSocketService = new NotificationSocketService();

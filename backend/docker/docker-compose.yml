@@ -70,6 +70,18 @@ services:
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
     restart: always
 
+  kafka-init:
+    image: apache/kafka:latest
+    container_name: workspace_hub_kafka_init
+    depends_on:
+      - kafka
+    command: >
+      /bin/sh -c "
+      echo 'Waiting for Kafka to be ready...' &&
+      sleep 10 &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic notification-topic --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
+      echo 'Kafka topic notification-topic created successfully.'
+      "
 
 volumes:
   postgres_data:

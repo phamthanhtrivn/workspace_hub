@@ -1,9 +1,13 @@
 export const KAFKA_TOPICS = {
-  // Topic where other services publish raw notifications to be persisted
   NOTIFICATION_TOPIC: 'notification-topic',
-  
-  // Topic where notification-service publishes saved notifications for real-time WebSocket delivery
-  REALTIME_NOTIFICATION_TOPIC: 'realtime-notification-topic',
+};
+
+export const KAFKA_EVENTS = {
+  NOTIFICATION: {
+    CHAT_GROUP_INVITATION: 'CHAT_GROUP_INVITATION',
+    CHAT_INVITATION_ACCEPTED: 'CHAT_INVITATION_ACCEPTED',
+    CHAT_INVITATION_DECLINED: 'CHAT_INVITATION_DECLINED',
+  }
 };
 
 export const KAFKA_CLIENTS = {
@@ -13,6 +17,5 @@ export const KAFKA_CLIENTS = {
   },
   COMMUNICATION_SERVICE: {
     CLIENT_ID: 'communication-service',
-    GROUP_ID: 'communication-service-notification-group',
   },
 };

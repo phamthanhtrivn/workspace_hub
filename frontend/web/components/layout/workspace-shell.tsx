@@ -94,14 +94,9 @@ export default function WorkspaceShell({
 
   const { email, accessToken } = useAppSelector((state) => state.auth);
 
-  useEffect(() => {
-    if (accessToken) {
-      socketService.connect(accessToken);
-    }
-    return () => {
-      socketService.disconnect();
-    };
-  }, [accessToken]);
+  // Notification connection is handled in workspace-header.tsx
+  // Chat socket connection is handled in the chat page
+
 
   useEffect(() => {
     setIsMobileMenuOpen(false);

@@ -103,31 +103,40 @@ export default function WorkspaceHeader({
     fetchNotis();
   }, [accessToken, dispatch]);
 
-  // Setup real-time notification socket listener
+  // Connect to Notification WebSocket
   useEffect(() => {
     if (!accessToken) return;
     
-    socketService.connect(accessToken);
-    const socket = socketService.getSocket();
-    
-    if (socket) {
-      const handleNewNotification = (noti: any) => {
-        dispatch(addNotification(noti));
-        toast.info(
-          <div className="flex flex-col text-left">
-            <span className="font-bold text-sm text-slate-800">{noti.title}</span>
-            <span className="text-xs text-slate-600 mt-0.5">{noti.content}</span>
-          </div>,
-          { autoClose: 4000 },
-        );
-      };
+    // Dynamically import to avoid circular dependencies if any
+    import("@/features/notification/api/notification-socket.service").then(({ notificationSocketService }) => {
+      notificationSocketService.connect(accessToken);
+      const socket = notificationSocketService.getSocket();
 
-      socket.on("new_notification", handleNewNotification);
+      if (socket) {
+        const handleNewNotification = (noti: any) => {
+          dispatch(addNotification(noti));
+          toast.info(
+            <div className="flex flex-col text-left">
+              <span className="font-bold text-sm text-slate-800">{noti.title}</span>
+              <span className="text-xs text-slate-600 mt-0.5">{noti.content}</span>
+            </div>,
+            { autoClose: 4000 },
+          );
+        };
 
-      return () => {
-        socket.off("new_notification", handleNewNotification);
-      };
-    }
+        socket.on("new_notification", handleNewNotification);
+      }
+    });
+
+    return () => {
+      import("@/features/notification/api/notification-socket.service").then(({ notificationSocketService }) => {
+        const socket = notificationSocketService.getSocket();
+        if (socket) {
+          socket.off("new_notification");
+        }
+        notificationSocketService.disconnect();
+      });
+    };
   }, [accessToken, dispatch]);
 
   const handleLogout = async () => {

@@ -14,12 +14,24 @@ export default function ChatLayout() {
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversation?.id,
   );
+  const accessToken = useAppSelector((state) => state.auth.accessToken);
 
   useEffect(() => {
     if (activeConversationId) {
       setMobileView("chat");
     }
   }, [activeConversationId]);
+
+  // Connect to communication service websocket when entering chat
+  useEffect(() => {
+    if (accessToken) {
+      socketService.connect(accessToken);
+    }
+    return () => {
+      socketService.disconnect();
+    };
+  }, [accessToken]);
+
 
   const toggleRightPanel = () => {
     setShowRightPanel((prev) => !prev);

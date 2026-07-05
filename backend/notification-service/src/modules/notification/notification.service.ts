@@ -1,42 +1,36 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { ClientKafka } from '@nestjs/microservices';
-import { Notification, NotificationDocument } from './notification.schema';
-import { CreateNotificationDto } from './dtos/create-notification.dto';
-import { KAFKA_TOPICS } from '../../common/constants/kafka.constants';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "../../prisma/prisma.service";
+import { CreateNotificationDto } from "./dtos/create-notification.dto";
+import { NotificationGateway } from "./notification.gateway";
+import { Notification } from "@prisma/client";
 
 @Injectable()
-export class NotificationService implements OnModuleInit {
+export class NotificationService {
   constructor(
-    @InjectModel(Notification.name)
-    private readonly notificationModel: Model<NotificationDocument>,
-    @Inject('KAFKA_PRODUCER')
-    private readonly kafkaClient: ClientKafka,
+    private readonly prisma: PrismaService,
+    private readonly notificationGateway: NotificationGateway,
   ) {}
 
-  async onModuleInit() {
-    // Connect to Kafka broker on start
-    try {
-      await this.kafkaClient.connect();
-      console.log('Notification Service: Successfully connected to Kafka Producer');
-    } catch (error) {
-      console.error('Notification Service: Failed to connect to Kafka Producer', error);
-    }
-  }
-
-  async createNotification(createDto: CreateNotificationDto): Promise<NotificationDocument> {
-    const createdNotification = new this.notificationModel(createDto);
-    const saved = await createdNotification.save();
-    
-    // Transform to JSON structure
-    const payload = saved.toJSON();
-
-    // Publish to realtime topic for socket-gateway push
-    this.kafkaClient.emit(KAFKA_TOPICS.REALTIME_NOTIFICATION_TOPIC, {
-      key: payload.recipientId, // Partition key
-      value: payload,
+  async createNotification(
+    createDto: CreateNotificationDto,
+  ): Promise<Notification> {
+    const saved = await this.prisma.notification.create({
+      data: {
+        recipientId: createDto.recipientId,
+        senderId: createDto.senderId,
+        senderName: createDto.senderName,
+        senderAvatar: createDto.senderAvatar,
+        type: createDto.type,
+        title: createDto.title,
+        content: createDto.content,
+        link: createDto.link,
+        metadata: createDto.metadata ? (createDto.metadata as any) : null,
+      },
     });
+
+    // Publish to realtime socket room
+    this.notificationGateway.server.to(saved.recipientId).emit('new_notification', saved);
+    console.log(`Notification WebSocket: Emitted new_notification to user ${saved.recipientId}`);
 
     return saved;
   }
@@ -46,53 +40,72 @@ export class NotificationService implements OnModuleInit {
     page = 1,
     limit = 20,
     isRead?: boolean,
-  ): Promise<{ list: NotificationDocument[]; total: number; unreadCount: number }> {
-    const query: any = { recipientId };
+  ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
+    const where: any = { recipientId };
     if (isRead !== undefined) {
-      query.isRead = isRead;
+      where.isRead = isRead;
     }
 
     const skip = (page - 1) * limit;
 
     const [list, total, unreadCount] = await Promise.all([
-      this.notificationModel
-        .find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .exec(),
-      this.notificationModel.countDocuments(query).exec(),
-      this.notificationModel.countDocuments({ recipientId, isRead: false }).exec(),
+      this.prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      this.prisma.notification.count({ where }),
+      this.prisma.notification.count({ where: { recipientId, isRead: false } }),
     ]);
 
     return { list, total, unreadCount };
   }
 
   async getUnreadCount(recipientId: string): Promise<number> {
-    return this.notificationModel.countDocuments({ recipientId, isRead: false }).exec();
+    return this.prisma.notification.count({
+      where: { recipientId, isRead: false },
+    });
   }
 
-  async markAsRead(id: string, recipientId: string): Promise<NotificationDocument | null> {
-    return this.notificationModel
-      .findOneAndUpdate(
-        { _id: id, recipientId },
-        { $set: { isRead: true } },
-        { new: true },
-      )
-      .exec();
+  async markAsRead(
+    id: string,
+    recipientId: string,
+  ): Promise<Notification | null> {
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, recipientId },
+    });
+
+    if (!notification) {
+      return null;
+    }
+
+    return this.prisma.notification.update({
+      where: { id: notification.id },
+      data: { isRead: true },
+    });
   }
 
   async markAllAsRead(recipientId: string): Promise<number> {
-    const result = await this.notificationModel
-      .updateMany({ recipientId, isRead: false }, { $set: { isRead: true } })
-      .exec();
-    return result.modifiedCount;
+    const result = await this.prisma.notification.updateMany({
+      where: { recipientId, isRead: false },
+      data: { isRead: true },
+    });
+    return result.count;
   }
 
   async deleteNotification(id: string, recipientId: string): Promise<boolean> {
-    const result = await this.notificationModel
-      .deleteOne({ _id: id, recipientId })
-      .exec();
-    return result.deletedCount > 0;
+    const notification = await this.prisma.notification.findFirst({
+      where: { id, recipientId },
+    });
+
+    if (!notification) {
+      return false;
+    }
+
+    await this.prisma.notification.delete({
+      where: { id: notification.id },
+    });
+    return true;
   }
 }

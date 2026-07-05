@@ -7,8 +7,6 @@ import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { MicroserviceOptions, Transport } from '@nestjs/microservices';
-import { KAFKA_CLIENTS } from './common/constants/kafka.constants';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,24 +18,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Connect Kafka Microservice for receiving realtime notification events
-  const kafkaBroker = process.env.KAFKA_BROKER || 'localhost:9092';
-  app.connectMicroservice<MicroserviceOptions>({
-    transport: Transport.KAFKA,
-    options: {
-      client: {
-        clientId: KAFKA_CLIENTS.COMMUNICATION_SERVICE.CLIENT_ID,
-        brokers: [kafkaBroker],
-      },
-      consumer: {
-        groupId: KAFKA_CLIENTS.COMMUNICATION_SERVICE.GROUP_ID,
-      },
-    },
-  });
-
-  await app.startAllMicroservices();
-  console.log(`Communication Kafka Microservice is listening on broker: ${kafkaBroker}`);
-
+  // Microservice initialization is no longer needed since this service only produces events
 
   // Setup Global Pipes, Interceptors, and Filters
   app.useGlobalPipes(

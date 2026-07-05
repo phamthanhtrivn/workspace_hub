@@ -1,14 +1,17 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConversationType, ConversationRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatEvent } from '../chat/chat.events';
+import { ClientKafka } from '@nestjs/microservices';
+import { KAFKA_TOPICS, KAFKA_EVENTS } from '../../common/constants/kafka.constants';
 
 @Injectable()
 export class ConversationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
+    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
 
   async createDirectConversation(userId: string, participantId: string) {
@@ -184,12 +187,25 @@ export class ConversationService {
         },
       });
 
-      // Emit invitation events
+      // Emit invitation events and notifications
       invitations.forEach(inv => {
         this.chatGateway.server.to(inv.invitedUserId).emit(ChatEvent.GROUP_INVITATION, {
           conversationId: conversation.id,
           invitedBy: userId,
           conversation: conversation,
+        });
+
+        // Publish to notification-service
+        this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+          key: inv.invitedUserId,
+          value: {
+            recipientId: inv.invitedUserId,
+            senderId: userId,
+            type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
+            title: 'Lời mời vào nhóm chat',
+            content: 'Bạn được mời vào nhóm chat mới',
+            link: '/chat',
+          },
         });
       });
 

@@ -12,6 +12,7 @@ import { ChatEvent } from './chat.events';
 import { MessageService } from '../message/message.service';
 
 @WebSocketGateway({
+  path: '/communication.io',
   cors: {
     origin: true,
     credentials: true,

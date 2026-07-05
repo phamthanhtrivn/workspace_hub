@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
-import { DatabaseModule } from './modules/database/database.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
-    DatabaseModule,
+    PrismaModule,
     NotificationModule,
   ],
 })

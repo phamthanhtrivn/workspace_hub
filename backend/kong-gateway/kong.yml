@@ -43,7 +43,7 @@ services:
 
       - name: websocket-route
         paths:
-          - /socket.io
+          - /communication.io
         strip_path: false
 
   - name: notification-service
@@ -52,6 +52,11 @@ services:
       - name: notification-routes
         paths:
           - /api/notifications
+        strip_path: false
+      
+      - name: notification-socket-route
+        paths:
+          - /notification.io
         strip_path: false
 
 plugins:
