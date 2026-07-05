@@ -20,7 +20,6 @@ import { getUserProfile } from "@/features/user-setting/api/user-setting.api";
 import { UserProfile } from "@/features/user-setting/types/user-setting.types";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import { socketService } from "@/features/chat/api/socket.service";
 
 import {
   getNotifications,
@@ -35,6 +34,7 @@ import {
   markAllReadSuccess,
   deleteNotificationSuccess,
 } from "@/features/notification/store/notification.slice";
+import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
 
 interface WorkspaceHeaderProps {
   currentTitle: string;
@@ -103,42 +103,6 @@ export default function WorkspaceHeader({
     fetchNotis();
   }, [accessToken, dispatch]);
 
-  // Connect to Notification WebSocket
-  useEffect(() => {
-    if (!accessToken) return;
-    
-    // Dynamically import to avoid circular dependencies if any
-    import("@/features/notification/api/notification-socket.service").then(({ notificationSocketService }) => {
-      notificationSocketService.connect(accessToken);
-      const socket = notificationSocketService.getSocket();
-
-      if (socket) {
-        const handleNewNotification = (noti: any) => {
-          dispatch(addNotification(noti));
-          toast.info(
-            <div className="flex flex-col text-left">
-              <span className="font-bold text-sm text-slate-800">{noti.title}</span>
-              <span className="text-xs text-slate-600 mt-0.5">{noti.content}</span>
-            </div>,
-            { autoClose: 4000 },
-          );
-        };
-
-        socket.on("new_notification", handleNewNotification);
-      }
-    });
-
-    return () => {
-      import("@/features/notification/api/notification-socket.service").then(({ notificationSocketService }) => {
-        const socket = notificationSocketService.getSocket();
-        if (socket) {
-          socket.off("new_notification");
-        }
-        notificationSocketService.disconnect();
-      });
-    };
-  }, [accessToken, dispatch]);
-
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
@@ -148,6 +112,7 @@ export default function WorkspaceHeader({
       console.error("Logout error:", error);
       toast.error("Đăng xuất thất bại");
     } finally {
+      notificationSocketService.disconnect();
       dispatch(clearCredentials());
       setIsLoggingOut(false);
       router.push("/login");
@@ -301,7 +266,9 @@ export default function WorkspaceHeader({
               <div className="absolute right-0 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white p-3 shadow-xl ring-1 ring-black/5 focus:outline-none z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-800">Thông báo</span>
+                    <span className="text-sm font-bold text-slate-800">
+                      Thông báo
+                    </span>
                     {unreadCount > 0 && (
                       <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-600">
                         {unreadCount} mới
@@ -323,7 +290,9 @@ export default function WorkspaceHeader({
                   <button
                     onClick={() => setNotiTab("all")}
                     className={`pb-1 px-1 transition relative cursor-pointer ${
-                      notiTab === "all" ? "text-slate-800 font-bold border-b-2 border-blue-500" : "hover:text-slate-700"
+                      notiTab === "all"
+                        ? "text-slate-800 font-bold border-b-2 border-blue-500"
+                        : "hover:text-slate-700"
                     }`}
                   >
                     Tất cả
@@ -331,7 +300,9 @@ export default function WorkspaceHeader({
                   <button
                     onClick={() => setNotiTab("unread")}
                     className={`pb-1 px-1 transition relative cursor-pointer ${
-                      notiTab === "unread" ? "text-slate-800 font-bold border-b-2 border-blue-500" : "hover:text-slate-700"
+                      notiTab === "unread"
+                        ? "text-slate-800 font-bold border-b-2 border-blue-500"
+                        : "hover:text-slate-700"
                     }`}
                   >
                     Chưa đọc
@@ -343,7 +314,9 @@ export default function WorkspaceHeader({
                   {filteredNotis.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-slate-400">
                       <Bell className="h-8 w-8 text-slate-300 mb-2 stroke-[1.5]" />
-                      <p className="text-xs font-medium">Không có thông báo nào</p>
+                      <p className="text-xs font-medium">
+                        Không có thông báo nào
+                      </p>
                     </div>
                   ) : (
                     <div className="flex flex-col gap-0.5">
@@ -376,7 +349,9 @@ export default function WorkspaceHeader({
                                   />
                                 ) : (
                                   <div className="grid h-full w-full place-items-center bg-slate-100 text-xs font-bold text-slate-600">
-                                    {(noti.senderName || "U").charAt(0).toUpperCase()}
+                                    {(noti.senderName || "U")
+                                      .charAt(0)
+                                      .toUpperCase()}
                                   </div>
                                 )}
                               </div>

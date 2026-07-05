@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -19,10 +19,12 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useAppSelector } from "@/store/store";
+import { useAppSelector, useAppDispatch } from "@/store/store";
 import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
 import WorkspaceHeader from "./workspace-header";
-import { socketService } from "@/features/chat/api/socket.service";
+import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
+import { toast } from "react-toastify";
+import { addNotification } from "@/features/notification/store/notification.slice";
 
 const menuItems = [
   {
@@ -93,10 +95,33 @@ export default function WorkspaceShell({
   >("profile");
 
   const { email, accessToken } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+  const notificationConnectedRef = useRef(false);
 
-  // Notification connection is handled in workspace-header.tsx
-  // Chat socket connection is handled in the chat page
+  useEffect(() => {
+    if (!accessToken || notificationConnectedRef.current) return;
 
+    notificationSocketService.connect(accessToken);
+    notificationConnectedRef.current = true;
+
+    const socket = notificationSocketService.getSocket();
+    if (socket) {
+      socket.on("new_notification", (noti: any) => {
+        dispatch(addNotification(noti));
+        toast.info(
+          <div className="flex flex-col text-left">
+            <span className="font-bold text-sm text-slate-800">
+              {noti.title}
+            </span>
+            <span className="text-xs text-slate-600 mt-0.5">
+              {noti.content}
+            </span>
+          </div>,
+          { autoClose: 4000 },
+        );
+      });
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);

@@ -10,7 +10,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   // Enable CORS
   app.enableCors({
     origin: true,
@@ -43,7 +43,7 @@ async function bootstrap() {
       },
     }),
   );
-  
+
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
 
@@ -52,6 +52,6 @@ async function bootstrap() {
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
 
-  await app.listen(process.env.PORT ?? 8083);
+  await app.listen(process.env.PORT!);
 }
 bootstrap();

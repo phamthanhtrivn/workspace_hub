@@ -6,7 +6,7 @@ import ChatArea from "./ChatArea";
 import ChatRightPanel from "./ChatRightPanel";
 import { useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
-import { socketService } from "../api/socket.service";
+import { socketService } from "../api/chat-socket.service";
 
 export default function ChatLayout() {
   const [showRightPanel, setShowRightPanel] = useState(false);
@@ -31,7 +31,6 @@ export default function ChatLayout() {
       socketService.disconnect();
     };
   }, [accessToken]);
-
 
   const toggleRightPanel = () => {
     setShowRightPanel((prev) => !prev);

@@ -15,7 +15,7 @@ import {
   addMemberProfiles as addMemberProfilesAction,
 } from "@/store/chat/chat-slice";
 import { UserProfileResponse } from "../types/chat.types";
-import { socketService } from "../api/socket.service";
+import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { MdOutlineGroupAdd } from "react-icons/md";
 

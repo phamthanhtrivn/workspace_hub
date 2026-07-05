@@ -6,7 +6,7 @@ import ChatHeader from "./ChatHeader";
 import ChatMessage from "./ChatMessage";
 import { useAppSelector } from "@/store/store";
 import { getConversationMessages } from "../api/chat.api";
-import { socketService } from "../api/socket.service";
+import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 
 interface ChatAreaProps {

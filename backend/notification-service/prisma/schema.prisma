@@ -9,19 +9,21 @@ datasource db {
 
 model Notification {
   id           String   @id @default(uuid())
-  recipientId  String
-  senderId     String?
-  senderName   String?
-  senderAvatar String?
-  type         String
-  title        String
-  content      String
-  isRead       Boolean  @default(false)
-  link         String?
-  metadata     Json?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  recipientId  String   @map("recipient_id")
+  senderId     String?  @map("sender_id")
+  senderName   String?  @map("sender_name")
+  senderAvatar String?  @map("sender_avatar")
+  type         String   @map("type")
+  title        String   @map("title")
+  content      String   @map("content")
+  isRead       Boolean  @default(false) @map("is_read")
+  link         String?  @map("link")
+  metadata     Json?    @map("metadata")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   @@index([recipientId])
   @@index([senderId])
+
+  @@map("notifications")
 }

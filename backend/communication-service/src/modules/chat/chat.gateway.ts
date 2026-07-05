@@ -44,9 +44,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
-    // disconnected
-  }
+  handleDisconnect(_: Socket) {}
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
   handleJoinConversation(

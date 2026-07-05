@@ -9,12 +9,12 @@ import {
   Headers,
   BadRequestException,
   NotFoundException,
-} from '@nestjs/common';
-import { EventPattern, Payload } from '@nestjs/microservices';
-import { NotificationService } from './notification.service';
-import { KAFKA_TOPICS } from '../../common/constants/kafka.constants';
+} from "@nestjs/common";
+import { EventPattern, Payload } from "@nestjs/microservices";
+import { NotificationService } from "./notification.service";
+import { KAFKA_TOPICS } from "../../common/constants/kafka.constants";
 
-@Controller('api/notifications')
+@Controller("api/notifications")
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
@@ -22,11 +22,8 @@ export class NotificationController {
   @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)
   async handleIncomingNotification(@Payload() data: any) {
     try {
-      console.log('Received notification event from Kafka:', data);
-      
-      // If the incoming message is wrapped by Kafkajs value payload
       const payload = data.value || data;
-      
+
       await this.notificationService.createNotification({
         recipientId: payload.recipientId,
         senderId: payload.senderId,
@@ -39,28 +36,28 @@ export class NotificationController {
         metadata: payload.metadata,
       });
     } catch (error) {
-      console.error('Failed to process Kafka notification event:', error);
+      console.error("Failed to process Kafka notification event:", error);
     }
   }
 
   // REST endpoints for frontend client (Routed through Kong Gateway)
   @Get()
   async getNotifications(
-    @Headers('x-user-id') userId: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('isRead') isReadStr?: string,
+    @Headers("x-user-id") userId: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+    @Query("isRead") isReadStr?: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('Missing User Context Header');
+      throw new BadRequestException("Missing User Context Header");
     }
 
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 20;
-    
+
     let isRead: boolean | undefined = undefined;
-    if (isReadStr === 'true') isRead = true;
-    if (isReadStr === 'false') isRead = false;
+    if (isReadStr === "true") isRead = true;
+    if (isReadStr === "false") isRead = false;
 
     const result = await this.notificationService.getNotifications(
       userId,
@@ -70,7 +67,7 @@ export class NotificationController {
     );
 
     return {
-      message: 'Get notifications list successfully',
+      message: "Get notifications list successfully",
       data: result.list,
       pagination: {
         page: pageNum,
@@ -81,26 +78,26 @@ export class NotificationController {
     };
   }
 
-  @Get('unread-count')
-  async getUnreadCount(@Headers('x-user-id') userId: string) {
+  @Get("unread-count")
+  async getUnreadCount(@Headers("x-user-id") userId: string) {
     if (!userId) {
-      throw new BadRequestException('Missing User Context Header');
+      throw new BadRequestException("Missing User Context Header");
     }
 
     const unreadCount = await this.notificationService.getUnreadCount(userId);
     return {
-      message: 'Get unread notification count successfully',
+      message: "Get unread notification count successfully",
       data: { unreadCount },
     };
   }
 
-  @Patch(':id/read')
+  @Patch(":id/read")
   async markAsRead(
-    @Headers('x-user-id') userId: string,
-    @Param('id') notificationId: string,
+    @Headers("x-user-id") userId: string,
+    @Param("id") notificationId: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('Missing User Context Header');
+      throw new BadRequestException("Missing User Context Header");
     }
 
     const notification = await this.notificationService.markAsRead(
@@ -109,35 +106,35 @@ export class NotificationController {
     );
 
     if (!notification) {
-      throw new NotFoundException('Notification not found');
+      throw new NotFoundException("Notification not found");
     }
 
     return {
-      message: 'Marked notification as read successfully',
+      message: "Marked notification as read successfully",
       data: notification,
     };
   }
 
-  @Put('read-all')
-  async markAllAsRead(@Headers('x-user-id') userId: string) {
+  @Put("read-all")
+  async markAllAsRead(@Headers("x-user-id") userId: string) {
     if (!userId) {
-      throw new BadRequestException('Missing User Context Header');
+      throw new BadRequestException("Missing User Context Header");
     }
 
     const count = await this.notificationService.markAllAsRead(userId);
     return {
-      message: 'Marked all notifications as read successfully',
+      message: "Marked all notifications as read successfully",
       data: { modifiedCount: count },
     };
   }
 
-  @Delete(':id')
+  @Delete(":id")
   async deleteNotification(
-    @Headers('x-user-id') userId: string,
-    @Param('id') notificationId: string,
+    @Headers("x-user-id") userId: string,
+    @Param("id") notificationId: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('Missing User Context Header');
+      throw new BadRequestException("Missing User Context Header");
     }
 
     const success = await this.notificationService.deleteNotification(
@@ -146,11 +143,11 @@ export class NotificationController {
     );
 
     if (!success) {
-      throw new NotFoundException('Notification not found');
+      throw new NotFoundException("Notification not found");
     }
 
     return {
-      message: 'Deleted notification successfully',
+      message: "Deleted notification successfully",
       data: { success },
     };
   }

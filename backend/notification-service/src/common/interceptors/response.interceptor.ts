@@ -3,9 +3,9 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
-} from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+} from "@nestjs/common";
+import { Observable } from "rxjs";
+import { map } from "rxjs/operators";
 
 export interface Response<T> {
   success: boolean;
@@ -27,27 +27,27 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
         // If the response is already in the ApiResponse format, return it directly
         if (
           res &&
-          typeof res === 'object' &&
-          'success' in res &&
-          'timestamp' in res
+          typeof res === "object" &&
+          "success" in res &&
+          "timestamp" in res
         ) {
           return res;
         }
 
-        let message = 'Thành công';
+        let message = "Thành công";
         let data = res;
         let pagination = undefined;
 
         // If the controller returned an object with message and data
         if (
           res &&
-          typeof res === 'object' &&
-          'message' in res &&
-          'data' in res
+          typeof res === "object" &&
+          "message" in res &&
+          "data" in res
         ) {
           message = res.message;
           data = res.data;
-          if ('pagination' in res) {
+          if ("pagination" in res) {
             pagination = res.pagination;
           }
         }

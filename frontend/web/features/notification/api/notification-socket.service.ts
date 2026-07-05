@@ -15,13 +15,9 @@ class NotificationSocketService {
         },
       });
 
-      this.socket.on("connect", () => {
-        console.log("Connected to Notification Socket");
-      });
+      this.socket.on("connect", () => {});
 
-      this.socket.on("disconnect", () => {
-        console.log("Disconnected from Notification Socket");
-      });
+      this.socket.on("disconnect", () => {});
     }
   }
 
