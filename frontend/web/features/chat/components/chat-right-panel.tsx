@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { socketService } from "../api/chat-socket.service";
+import { ChatEvent } from "../api/chat.events";
 import {
   X,
   Bell,
@@ -27,6 +29,7 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "members",
   );
+  const [mediaItems, setMediaItems] = useState<any[]>([]);
   const { activeConversation, memberProfiles } = useAppSelector(
     (state) => state.chat,
   );
@@ -60,6 +63,22 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
       setExpandedSection(section);
     }
   };
+
+  useEffect(() => {
+    const socket = socketService.getSocket();
+    if (socket) {
+      const handleMediaUpdated = (data: any) => {
+        if (data.conversationId === activeConversation?.id && data.media) {
+          setMediaItems((prev) => [...data.media, ...prev]);
+        }
+      };
+      
+      socket.on(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
+      return () => {
+        socket.off(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
+      };
+    }
+  }, [activeConversation?.id]);
 
   return (
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
@@ -202,13 +221,37 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
 
             {expandedSection === "media" && (
               <div className="px-4 pb-4">
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="aspect-square bg-gray-200 rounded-lg"></div>
-                  <div className="aspect-square bg-gray-200 rounded-lg"></div>
-                  <div className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 font-medium text-xs">
-                    +5
+                {mediaItems.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-2">Chưa có file phương tiện nào</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {mediaItems.slice(0, 6).map((item, idx) => (
+                      <div key={idx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
+                        {item.mimeType?.startsWith("image/") ? (
+                          item.fileUrl ? (
+                            <img src={item.fileUrl} alt={item.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-blue-300">
+                              <ImageIcon size={24} />
+                            </div>
+                          )
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <FileText size={24} />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                           <span className="text-white text-[10px] truncate max-w-full px-1">{item.name}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {mediaItems.length > 6 && (
+                      <div className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 font-medium text-xs">
+                        +{mediaItems.length - 6}
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>

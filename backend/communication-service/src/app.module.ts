@@ -7,6 +7,8 @@ import { PollModule } from './modules/poll/poll.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { InvitationModule } from './modules/invitation/invitation.module';
+import { S3Module } from './modules/s3/s3.module';
+import { MediaModule } from './modules/media/media.module';
 
 @Module({
   imports: [
@@ -15,7 +17,9 @@ import { InvitationModule } from './modules/invitation/invitation.module';
     MessageModule, 
     PollModule,
     ChatModule,
-    InvitationModule
+    InvitationModule,
+    S3Module,
+    MediaModule
   ],
   controllers: [AppController],
   providers: [AppService],

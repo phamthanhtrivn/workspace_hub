@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { MessageType } from '@prisma/client';
+import { MessageType, Prisma } from '@prisma/client';
 
 @Injectable()
 export class MessageService {
@@ -11,7 +11,13 @@ export class MessageService {
     senderId: string,
     content: string,
     type: MessageType = MessageType.TEXT,
-  ) {
+    medias?: {
+      name: string;
+      s3Key: string;
+      mimeType: string;
+      sizeBytes: number;
+    }[],
+  ): Promise<Prisma.MessageGetPayload<{ include: { medias: true } }>> {
     return this.prisma.$transaction(async (tx) => {
       const message = await tx.message.create({
         data: {
@@ -19,6 +25,27 @@ export class MessageService {
           senderId,
           content,
           type,
+          medias:
+            medias && medias.length > 0
+              ? {
+                  create: medias.map((m) => {
+                    let mediaType = 'FILE';
+                    if (m.mimeType.startsWith('image/')) mediaType = 'IMAGE';
+                    else if (m.mimeType.startsWith('video/')) mediaType = 'VIDEO';
+                    
+                    return {
+                      name: m.name,
+                      s3Key: m.s3Key,
+                      mimeType: m.mimeType,
+                      sizeBytes: m.sizeBytes,
+                      type: mediaType as any,
+                    };
+                  }),
+                }
+              : undefined,
+        },
+        include: {
+          medias: true,
         },
       });
 

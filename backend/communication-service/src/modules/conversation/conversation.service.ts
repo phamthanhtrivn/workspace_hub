@@ -2,13 +2,13 @@ import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConversationType, ConversationRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
-import { ChatEvent } from '../chat/chat.events';
 import { ClientKafka } from '@nestjs/microservices';
 import {
   KAFKA_TOPICS,
   KAFKA_EVENTS,
 } from '../../common/constants/kafka.constants';
 import { getSenderProfile } from '../../common/utils/user.util';
+import { mapMediaWithUrl } from '../../common/utils/file.util';
 
 @Injectable()
 export class ConversationService {
@@ -132,7 +132,7 @@ export class ConversationService {
   }
 
   async getConversationMessages(conversationId: string) {
-    return this.prisma.message.findMany({
+    const messages = await this.prisma.message.findMany({
       where: {
         conversationId: conversationId,
       },
@@ -141,9 +141,14 @@ export class ConversationService {
       },
       include: {
         reactions: true,
-        attachments: true,
+        medias: true,
       },
     });
+
+    return messages.map((message) => ({
+      ...message,
+      medias: mapMediaWithUrl(message.medias),
+    }));
   }
 
   async createGroupConversation(
@@ -173,7 +178,6 @@ export class ConversationService {
           members: {
             create: members,
           },
-          // @ts-ignore - Prisma client needs to be regenerated
           invitations: {
             create: invitations,
           },
@@ -190,14 +194,13 @@ export class ConversationService {
         },
         include: {
           members: true,
-          // @ts-ignore - Prisma client needs to be regenerated
           invitations: true,
         },
       });
 
       // Emit invitation events and notifications
-      if ((conversation as any).invitations) {
-        (conversation as any).invitations.forEach((inv: any) => {
+      if (conversation.invitations) {
+        conversation.invitations.forEach((inv) => {
           // Publish to notification-service ONLY, no chat websocket
           this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
             key: inv.invitedUserId,

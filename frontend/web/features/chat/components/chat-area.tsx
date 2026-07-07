@@ -26,6 +26,8 @@ export default function ChatArea({
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  console.log(messages);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -71,12 +73,13 @@ export default function ChatArea({
     }
   }, [activeConversation?.id]);
 
-  const handleSendMessage = (content: string) => {
+  const handleSendMessage = (content: string, medias?: any[]) => {
     const socket = socketService.getSocket();
     if (socket && activeConversation?.id) {
       socket.emit(ChatEvent.SEND_MESSAGE, {
         conversationId: activeConversation?.id,
         content,
+        medias,
       });
     }
   };

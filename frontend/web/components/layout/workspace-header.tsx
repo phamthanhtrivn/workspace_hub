@@ -38,7 +38,7 @@ export default function WorkspaceHeader({
   }, [accessToken, dispatch]);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-gray-50 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-gray-50 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
         {/* Left: Breadcrumbs & Mobile Menu */}
         <div className="flex min-w-0 items-center gap-3">

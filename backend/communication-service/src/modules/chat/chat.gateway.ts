@@ -10,6 +10,8 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatEvent } from './chat.events';
 import { MessageService } from '../message/message.service';
+import { MessageType } from '@prisma/client';
+import { mapMediaWithUrl } from '../../common/utils/file.util';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -59,11 +61,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.SEND_MESSAGE)
   async handleSendMessage(
-    @MessageBody() data: { conversationId: string; content: string },
+    @MessageBody()
+    data: {
+      conversationId: string;
+      content: string;
+      type?: MessageType;
+      medias?: {
+        name: string;
+        s3Key: string;
+        mimeType: string;
+        sizeBytes: number;
+      }[];
+    },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.conversationId || !data.content) {
+    if (
+      !userId ||
+      !data.conversationId ||
+      (data.content === undefined && (!data.medias || data.medias.length === 0))
+    ) {
       return { status: 'error', message: 'Invalid data' };
     }
 
@@ -71,18 +88,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const message = await this.messageService.createMessage(
         data.conversationId,
         userId,
-        data.content,
+        data.content || '',
+        data.type || MessageType.TEXT,
+        data.medias,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
         data.conversationId,
       );
 
-      // Emit to conversation room + all personal rooms (Socket.io deduplicates)
-      const targetRooms = [data.conversationId, ...memberUserIds];
-      this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, message);
+      const messageWithUrls = {
+        ...message,
+        medias: mapMediaWithUrl(message.medias),
+      };
 
-      return { status: 'success', data: message };
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
+
+      if (data.medias && data.medias.length > 0) {
+        this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
+          conversationId: data.conversationId,
+          messageId: message.id,
+          media: messageWithUrls.medias,
+        });
+      }
+
+      return { status: 'success', data: messageWithUrls };
     } catch (error) {
       console.error(error);
       return { status: 'error', message: 'Failed to send message' };

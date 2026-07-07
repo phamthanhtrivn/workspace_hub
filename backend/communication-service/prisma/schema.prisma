@@ -13,6 +13,12 @@ enum ConversationRole {
   MEMBER
 }
 
+enum MediaType {
+  FILE
+  IMAGE
+  VIDEO
+}
+
 enum ConversationType {
   DIRECT
   GROUP
@@ -20,8 +26,6 @@ enum ConversationType {
 
 enum MessageType {
   TEXT
-  IMAGE
-  FILE
   SYSTEM
   TASK
   POLL
@@ -98,24 +102,25 @@ model Message {
   replies          Message[] @relation("MessageReplies")
   
   reactions        Reaction[]
-  attachments      Attachment[]
+  medias           Media[]
   note             Note?
   poll             Poll?
 
   @@map("messages")
 }
 
-model Attachment {
+model Media {
   id        String @id @default(uuid()) @db.Uuid
   messageId String @map("message_id") @db.Uuid
   name      String
   s3Key     String @map("s3_key")
   mimeType  String @map("mime_type")
   sizeBytes BigInt @map("size_bytes")
+  type      MediaType
 
   message   Message @relation(fields: [messageId], references: [id])
 
-  @@map("attachments")
+  @@map("medias")
 }
 
 model Reaction {

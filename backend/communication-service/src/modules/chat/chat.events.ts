@@ -6,4 +6,5 @@ export enum ChatEvent {
   GROUP_INVITATION = 'group_invitation',
   INVITATION_ACCEPTED = 'invitation_accepted',
   INVITATION_DECLINED = 'invitation_declined',
+  MEDIA_UPDATED = 'media_updated',
 }
