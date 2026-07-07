@@ -19,12 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { useAppSelector, useAppDispatch } from "@/store/store";
+import { useAppSelector } from "@/store/store";
 import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
 import WorkspaceHeader from "./workspace-header";
-import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
-import { toast } from "react-toastify";
-import { addNotification } from "@/store/notification/notification.slice";
 
 const menuItems = [
   {
@@ -94,34 +91,7 @@ export default function WorkspaceShell({
     "profile" | "settings" | "sessions"
   >("profile");
 
-  const { email, accessToken } = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
-  const notificationConnectedRef = useRef(false);
-
-  useEffect(() => {
-    if (!accessToken || notificationConnectedRef.current) return;
-
-    notificationSocketService.connect(accessToken);
-    notificationConnectedRef.current = true;
-
-    const socket = notificationSocketService.getSocket();
-    if (socket) {
-      socket.on("new_notification", (noti: any) => {
-        dispatch(addNotification(noti));
-        toast.info(
-          <div className="flex flex-col text-left">
-            <span className="font-bold text-sm text-slate-800">
-              {noti.title}
-            </span>
-            <span className="text-xs text-slate-600 mt-0.5">
-              {noti.content}
-            </span>
-          </div>,
-          { autoClose: 4000 },
-        );
-      });
-    }
-  }, [accessToken]);
+  const { email } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);

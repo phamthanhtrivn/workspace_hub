@@ -13,6 +13,7 @@ import {
   KAFKA_TOPICS,
   KAFKA_EVENTS,
 } from '../../common/constants/kafka.constants';
+import { getSenderProfile } from '../../common/utils/user.util';
 
 @Injectable()
 export class InvitationService {
@@ -56,6 +57,8 @@ export class InvitationService {
       throw new BadRequestException('Lời mời này đã được xử lý');
     }
 
+    const { senderName, senderAvatar } = await getSenderProfile(userId);
+
     return this.prisma.$transaction(async (prisma) => {
       const updatedInvitation = await prisma.groupInvitation.update({
         where: { id: invitationId },
@@ -78,10 +81,16 @@ export class InvitationService {
         value: {
           recipientId: invitation.invitedBy,
           senderId: userId,
+          senderName: senderName,
+          senderAvatar: senderAvatar,
           type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
           title: 'Lời mời đã được chấp nhận',
           content: 'Chấp nhận lời mời vào nhóm',
           link: `/chat?id=${invitation.conversationId}`,
+          metadata: {
+            conversationId: invitation.conversationId,
+            conversationName: invitation.conversation.name,
+          },
         },
       });
 
@@ -92,6 +101,7 @@ export class InvitationService {
   async declineInvitation(userId: string, invitationId: string) {
     const invitation = await this.prisma.groupInvitation.findUnique({
       where: { id: invitationId },
+      include: { conversation: true },
     });
 
     if (!invitation) {
@@ -108,6 +118,8 @@ export class InvitationService {
       throw new BadRequestException('Lời mời này đã được xử lý');
     }
 
+    const { senderName, senderAvatar } = await getSenderProfile(userId);
+
     const updatedInvitation = await this.prisma.groupInvitation.update({
       where: { id: invitationId },
       data: {
@@ -121,10 +133,16 @@ export class InvitationService {
       value: {
         recipientId: invitation.invitedBy,
         senderId: userId,
+        senderName: senderName,
+        senderAvatar: senderAvatar,
         type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_DECLINED,
         title: 'Lời mời bị từ chối',
         content: 'Từ chối lời mời vào nhóm',
         link: `/chat`,
+        metadata: {
+          conversationId: invitation.conversationId,
+          conversationName: invitation.conversation?.name,
+        },
       },
     });
 

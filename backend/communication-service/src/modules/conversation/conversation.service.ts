@@ -8,6 +8,7 @@ import {
   KAFKA_TOPICS,
   KAFKA_EVENTS,
 } from '../../common/constants/kafka.constants';
+import { getSenderProfile } from '../../common/utils/user.util';
 
 @Injectable()
 export class ConversationService {
@@ -149,12 +150,11 @@ export class ConversationService {
     userId: string,
     data: { name?: string; avatarUrl?: string; participantIds: string[] },
   ) {
-    // Prevent adding oneself to participantIds
+    const { senderName, senderAvatar } = await getSenderProfile(userId);
     const otherParticipantIds = data.participantIds.filter(
       (id) => id !== userId,
     );
 
-    // Create members array: only creator is OWNER initially
     const members = [{ userId: userId, role: ConversationRole.OWNER }];
 
     const invitations = otherParticipantIds.map((id) => ({
@@ -204,13 +204,17 @@ export class ConversationService {
             value: {
               recipientId: inv.invitedUserId,
               senderId: userId,
+              senderName: senderName,
+              senderAvatar: senderAvatar,
               type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
               title: 'Lời mời vào nhóm chat',
-              content: 'Bạn được mời vào nhóm chat mới',
+              content: `Bạn được mời vào nhóm chat ${conversation.name || 'mới'}`,
               link: '/chat',
               metadata: {
                 invitationId: inv.id,
                 conversationId: conversation.id,
+                conversationName: conversation.name,
+                conversationAvatarUrl: conversation.avatarUrl,
               },
             },
           });

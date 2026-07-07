@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Headers, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Headers, BadRequestException, Body } from '@nestjs/common';
 import { InvitationService } from './invitation.service';
 
 @Controller('api/invitations')
@@ -20,7 +20,7 @@ export class InvitationController {
   @Post(':id/accept')
   async acceptInvitation(
     @Headers('x-user-id') userId: string,
-    @Param('id') invitationId: string,
+    @Param('id') invitationId: string
   ) {
     if (!userId) {
       throw new BadRequestException('Thiếu userId');
@@ -35,7 +35,7 @@ export class InvitationController {
   @Post(':id/decline')
   async declineInvitation(
     @Headers('x-user-id') userId: string,
-    @Param('id') invitationId: string,
+    @Param('id') invitationId: string
   ) {
     if (!userId) {
       throw new BadRequestException('Thiếu userId');

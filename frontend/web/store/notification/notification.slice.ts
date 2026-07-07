@@ -35,8 +35,6 @@ const notificationSlice = createSlice({
       state.unreadCount = action.payload.unreadCount;
     },
     addNotification: (state, action: PayloadAction<Notification>) => {
-      // Add new notification to the beginning of the list
-      // Avoid duplicate keys
       if (!state.list.some((n) => n.id === action.payload.id)) {
         state.list.unshift(action.payload);
         state.total += 1;

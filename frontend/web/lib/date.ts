@@ -36,3 +36,5 @@ export function formatConversationTime(dateInput: string | number | Date): strin
     return `${day}/${month}/${year}`;
   }
 }
+
+export const formatTimeAgo = formatConversationTime;

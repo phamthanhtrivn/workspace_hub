@@ -18,6 +18,8 @@ export class NotificationService {
       data: {
         recipientId: createDto.recipientId,
         senderId: createDto.senderId,
+        senderName: createDto.senderName,
+        senderAvatar: createDto.senderAvatar,
         type: createDto.type,
         title: createDto.title,
         content: createDto.content,

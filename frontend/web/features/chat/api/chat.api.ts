@@ -1,9 +1,7 @@
 import { api } from "@/lib/axios";
 import { UserSearchResponse, UserProfileResponse } from "../types/chat.types";
 
-export const searchUserByEmail = async (
-  email: string,
-): Promise<any> => {
+export const searchUserByEmail = async (email: string): Promise<any> => {
   const response = await api.get("/api/users/search", {
     params: { email },
   });

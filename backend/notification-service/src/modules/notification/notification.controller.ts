@@ -26,6 +26,8 @@ export class NotificationController {
       await this.notificationService.createNotification({
         recipientId: payload.recipientId,
         senderId: payload.senderId,
+        senderName: payload.senderName,
+        senderAvatar: payload.senderAvatar,
         type: payload.type,
         title: payload.title,
         content: payload.content,

@@ -21,6 +21,14 @@ export class CreateNotificationDto {
   @IsOptional()
   senderId?: string;
 
+  @IsString()
+  @IsOptional()
+  senderName?: string;
+
+  @IsString()
+  @IsOptional()
+  senderAvatar?: string;
+
   @IsEnum(NotificationType)
   @IsNotEmpty()
   type: NotificationType;

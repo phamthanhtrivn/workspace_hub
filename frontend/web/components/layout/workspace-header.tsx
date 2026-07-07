@@ -1,8 +1,12 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Menu, Search } from "lucide-react";
 import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
+import { addNotification } from "@/store/notification/notification.slice";
 
 interface WorkspaceHeaderProps {
   currentTitle: string;
@@ -15,6 +19,24 @@ export default function WorkspaceHeader({
   onMenuClick,
   onOpenSettings,
 }: WorkspaceHeaderProps) {
+  const { accessToken } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
+  const notificationConnectedRef = useRef(false);
+
+  useEffect(() => {
+    if (!accessToken || notificationConnectedRef.current) return;
+
+    notificationSocketService.connect(accessToken);
+    notificationConnectedRef.current = true;
+
+    const socket = notificationSocketService.getSocket();
+    if (socket) {
+      socket.on("new_notification", (noti: any) => {
+        dispatch(addNotification(noti));
+      });
+    }
+  }, [accessToken, dispatch]);
+
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-gray-50 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
