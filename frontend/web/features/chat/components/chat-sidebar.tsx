@@ -40,6 +40,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
 
+  console.log(conversations);
+
   useEffect(() => {
     const fetchConversations = async () => {
       try {

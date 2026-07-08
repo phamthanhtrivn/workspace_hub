@@ -115,7 +115,7 @@ model Media {
   name      String
   s3Key     String @map("s3_key")
   mimeType  String @map("mime_type")
-  sizeBytes BigInt @map("size_bytes")
+  sizeBytes Int @map("size_bytes")
   type      MediaType
 
   message   Message @relation(fields: [messageId], references: [id])
