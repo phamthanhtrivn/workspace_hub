@@ -37,9 +37,12 @@ export default function ChatMessage({
   if (msg.type === "SYSTEM") {
     return (
       <div className="flex justify-center my-4 w-full">
-        <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 text-center shadow-sm">
-          {msg.content}
-        </span>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] text-gray-700 font-medium">{time}</span>
+          <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 text-center shadow-sm">
+            {msg.content}
+          </span>
+        </div>
       </div>
     );
   }

@@ -1,6 +1,7 @@
 import { User, Users } from "lucide-react";
 import Image from "next/image";
 import { formatConversationTime } from "@/lib/date";
+import MessageSnippet from "./message-snippet";
 
 interface ConversationItemProps {
   conv: any;
@@ -33,11 +34,7 @@ export default function ConversationItem({
     ? formatConversationTime(latestMessage.createdAt)
     : formatConversationTime(conv.updatedAt || conv.createdAt || Date.now());
 
-  const snippet = latestMessage
-    ? latestMessage.content
-    : isDirect
-      ? "Bắt đầu nhắn tin ngay..."
-      : "Nhóm trò chuyện";
+  console.log(latestMessage);
 
   return (
     <div
@@ -72,7 +69,12 @@ export default function ConversationItem({
           </h3>
           <span className="text-xs text-gray-500">{time}</span>
         </div>
-        <p className="text-sm text-gray-500 truncate">{snippet}</p>
+        <MessageSnippet
+          latestMessage={latestMessage}
+          currentUserId={currentUserId}
+          isDirect={isDirect}
+          memberProfiles={memberProfiles}
+        />
       </div>
     </div>
   );
