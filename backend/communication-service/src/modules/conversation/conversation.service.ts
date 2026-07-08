@@ -227,4 +227,29 @@ export class ConversationService {
       return conversation;
     });
   }
+
+  async getConversationMedia(conversationId: string) {
+    const medias = await this.prisma.media.findMany({
+      where: {
+        message: {
+          conversationId,
+        },
+      },
+      orderBy: {
+        message: {
+          createdAt: 'desc',
+        },
+      },
+      include: {
+        message: {
+          select: {
+            senderId: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    return mapMediaWithUrl(medias);
+  }
 }

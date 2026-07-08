@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
+import { getConversationMedia } from "../api/chat.api";
+import MediaLightbox from "./media-lightbox";
+import MembersSection from "./right-panel/members-section";
+import ImagesVideosSection from "./right-panel/images-videos-section";
+import FilesSection from "./right-panel/files-section";
+import PollsSection from "./right-panel/polls-section";
+import NotesSection from "./right-panel/notes-section";
+import TasksSection from "./right-panel/tasks-section";
 import {
   X,
   Bell,
   BellOff,
-  Users,
-  Image as ImageIcon,
-  FileText,
-  CheckSquare,
-  BarChart2,
   LogOut,
-  ChevronDown,
-  ChevronRight,
   User,
+  Users,
 } from "lucide-react";
 import Image from "next/image";
 import { useAppSelector, useAppDispatch } from "@/store/store";
@@ -35,6 +37,9 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
     "members",
   );
   const [mediaItems, setMediaItems] = useState<any[]>([]);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
+  const lastFetchedConversationId = useRef<string | null>(null);
+
   const { activeConversation, memberProfiles } = useAppSelector(
     (state) => state.chat,
   );
@@ -73,6 +78,31 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
       setExpandedSection(section);
     }
   };
+
+  useEffect(() => {
+    if (
+      activeConversation?.id &&
+      (expandedSection === "images" || expandedSection === "files") &&
+      lastFetchedConversationId.current !== activeConversation.id
+    ) {
+      getConversationMedia(activeConversation.id)
+        .then((res: any) => {
+          if (res.data) {
+            setMediaItems(res.data);
+            lastFetchedConversationId.current = activeConversation.id;
+          }
+        })
+        .catch((err: any) => console.error("Failed to fetch media", err));
+    }
+  }, [activeConversation?.id, expandedSection]);
+
+  // Reset fetch tracker when conversation changes so it can fetch again if expanded
+  useEffect(() => {
+    if (activeConversation?.id && lastFetchedConversationId.current !== activeConversation.id) {
+       // We don't fetch yet, but we clear mediaItems to avoid showing old ones
+       setMediaItems([]);
+    }
+  }, [activeConversation?.id]);
 
   useEffect(() => {
     const socket = socketService.getSocket();
@@ -174,228 +204,51 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
 
         {/* Accordions */}
         <div className="py-2">
-          {/* Members Section */}
           {!isDirect && (
-            <div>
-              <div>
-                <button
-                  onClick={() => toggleSection("members")}
-                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
-                >
-                  <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-                    <Users size={18} className="text-gray-500" />
-                    Thành viên ({activeConversation?.members?.length})
-                  </div>
-                  {expandedSection === "members" ? (
-                    <ChevronDown size={16} className="text-gray-400" />
-                  ) : (
-                    <ChevronRight size={16} className="text-gray-400" />
-                  )}
-                </button>
-
-                {expandedSection === "members" && (
-                  <div className="px-4 pb-2 space-y-2">
-                    {activeConversation?.members?.map((member, i) => {
-                      const profile = memberProfiles?.[member.userId];
-                      const name = profile?.fullName || "User";
-                      const isMe = member.userId === currentUserId;
-                      const displayName = isMe ? "Bạn" : name;
-
-                      return (
-                        <div
-                          key={member.userId}
-                          onClick={() =>
-                            !isMe &&
-                            dispatch(setSelectedProfileUserId(member.userId))
-                          }
-                          className={`flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition ${!isMe ? "cursor-pointer" : ""}`}
-                        >
-                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xs overflow-hidden">
-                            {profile?.avatarUrl ? (
-                              <Image
-                                src={profile.avatarUrl}
-                                alt="Avatar"
-                                width={32}
-                                height={32}
-                                className="rounded-full border-gray-200 border-1"
-                              />
-                            ) : (
-                              <User size={22} className="text-gray-400" />
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-1">
-                            <span className="text-sm text-gray-700">
-                              {displayName}
-                            </span>
-                            {member.role === "OWNER" && (
-                              <span className="text-xs bg-blue-100 text-blue-600 text-center w-fit px-2 py-0.5 rounded">
-                                Trưởng nhóm
-                              </span>
-                            )}
-                            {member.role === "ADMIN" && (
-                              <span className="text-xs bg-gray-100 text-gray-500 text-center w-fit px-2 py-0.5 rounded">
-                                Phó nhóm
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <button className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1">
-                      <div className="w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
-                        <Users size={14} />
-                      </div>
-                      <span className="text-sm font-medium">
-                        Thêm thành viên
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className="h-px bg-gray-100 mx-4 my-1"></div>
-            </div>
+            <MembersSection
+              isExpanded={expandedSection === "members"}
+              onToggle={() => toggleSection("members")}
+              activeConversation={activeConversation}
+              memberProfiles={memberProfiles}
+              currentUserId={currentUserId}
+            />
           )}
 
-          {/* Media & Files Section */}
-          <div>
-            <button
-              onClick={() => toggleSection("media")}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
-            >
-              <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-                <ImageIcon size={18} className="text-gray-500" />
-                Media, Links & Docs
-              </div>
-              {expandedSection === "media" ? (
-                <ChevronDown size={16} className="text-gray-400" />
-              ) : (
-                <ChevronRight size={16} className="text-gray-400" />
-              )}
-            </button>
-
-            {expandedSection === "media" && (
-              <div className="px-4 pb-4">
-                {mediaItems.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-2">
-                    Chưa có file phương tiện nào
-                  </p>
-                ) : (
-                  <div className="grid grid-cols-3 gap-2">
-                    {mediaItems.slice(0, 6).map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group"
-                      >
-                        {item.mimeType?.startsWith("image/") ? (
-                          item.fileUrl ? (
-                            <img
-                              src={item.fileUrl}
-                              alt={item.name}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-blue-300">
-                              <ImageIcon size={24} />
-                            </div>
-                          )
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <FileText size={24} />
-                          </div>
-                        )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <span className="text-white text-[10px] truncate max-w-full px-1">
-                            {item.name}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                    {mediaItems.length > 6 && (
-                      <div className="aspect-square bg-gray-200 rounded-lg flex items-center justify-center text-gray-500 font-medium text-xs">
-                        +{mediaItems.length - 6}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+          <ImagesVideosSection
+            isExpanded={expandedSection === "images"}
+            onToggle={() => toggleSection("images")}
+            imagesAndVideos={mediaItems.filter(
+              (m) =>
+                m.mimeType?.startsWith("image/") ||
+                m.mimeType?.startsWith("video/"),
             )}
-          </div>
+            onOpenLightbox={(idx) => setLightboxIndex(idx)}
+          />
 
-          <div className="h-px bg-gray-100 mx-4 my-1"></div>
-
-          {/* Polls Section */}
-          <div>
-            <button
-              onClick={() => toggleSection("polls")}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
-            >
-              <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-                <BarChart2 size={18} className="text-gray-500" />
-                Polls
-              </div>
-              {expandedSection === "polls" ? (
-                <ChevronDown size={16} className="text-gray-400" />
-              ) : (
-                <ChevronRight size={16} className="text-gray-400" />
-              )}
-            </button>
-            {expandedSection === "polls" && (
-              <div className="px-4 pb-4">
-                <div className="p-3 bg-gray-50 border border-gray-100 rounded-lg">
-                  <p className="text-xs font-semibold text-gray-700 mb-1">
-                    What time works best?
-                  </p>
-                  <p className="text-xs text-gray-500">Active • 2 votes</p>
-                </div>
-              </div>
+          <FilesSection
+            isExpanded={expandedSection === "files"}
+            onToggle={() => toggleSection("files")}
+            filesAndDocs={mediaItems.filter(
+              (m) =>
+                !m.mimeType?.startsWith("image/") &&
+                !m.mimeType?.startsWith("video/"),
             )}
-          </div>
+          />
 
-          <div className="h-px bg-gray-100 mx-4 my-1"></div>
+          <PollsSection
+            isExpanded={expandedSection === "polls"}
+            onToggle={() => toggleSection("polls")}
+          />
 
-          {/* Notes Section */}
-          <div>
-            <button
-              onClick={() => toggleSection("notes")}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
-            >
-              <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-                <FileText size={18} className="text-gray-500" />
-                Notes
-              </div>
-              {expandedSection === "notes" ? (
-                <ChevronDown size={16} className="text-gray-400" />
-              ) : (
-                <ChevronRight size={16} className="text-gray-400" />
-              )}
-            </button>
-            {expandedSection === "notes" && (
-              <div className="px-4 pb-4 text-center text-sm text-gray-500 py-4">
-                No notes yet
-              </div>
-            )}
-          </div>
+          <NotesSection
+            isExpanded={expandedSection === "notes"}
+            onToggle={() => toggleSection("notes")}
+          />
 
-          <div className="h-px bg-gray-100 mx-4 my-1"></div>
-
-          {/* Tasks Section */}
-          <div>
-            <button
-              onClick={() => toggleSection("tasks")}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
-            >
-              <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-                <CheckSquare size={18} className="text-gray-500" />
-                Tasks
-              </div>
-              {expandedSection === "tasks" ? (
-                <ChevronDown size={16} className="text-gray-400" />
-              ) : (
-                <ChevronRight size={16} className="text-gray-400" />
-              )}
-            </button>
-          </div>
+          <TasksSection
+            isExpanded={expandedSection === "tasks"}
+            onToggle={() => toggleSection("tasks")}
+          />
         </div>
       </div>
 
@@ -406,6 +259,15 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
           Rời nhóm
         </button>
       </div>
+
+      {/* Lightbox */}
+      {lightboxIndex >= 0 && (
+        <MediaLightbox
+          medias={mediaItems.filter(m => m.mimeType?.startsWith('image/') || m.mimeType?.startsWith('video/'))}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(-1)}
+        />
+      )}
     </div>
   );
 }

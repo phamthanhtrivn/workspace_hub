@@ -84,4 +84,16 @@ export class ConversationController {
       data: messages,
     };
   }
+
+  @Get(':id/media')
+  async getConversationMedia(@Param('id') conversationId: string) {
+    if (!conversationId) {
+      throw new BadRequestException('Thiếu conversationId');
+    }
+    const media = await this.conversationService.getConversationMedia(conversationId);
+    return {
+      message: 'Lấy dữ liệu media thành công',
+      data: media,
+    };
+  }
 }

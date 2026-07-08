@@ -63,3 +63,10 @@ export const getConversationMessages = async (
   );
   return response.data;
 };
+
+export const getConversationMedia = async (
+  conversationId: string,
+): Promise<any> => {
+  const response = await api.get(`/api/conversations/${conversationId}/media`);
+  return response.data;
+};
