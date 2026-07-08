@@ -119,4 +119,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: 'error', message: 'Failed to send message' };
     }
   }
+
+  async sendSystemMessage(
+    conversationId: string,
+    userId: string,
+    content: string,
+  ) {
+    try {
+      const message = await this.messageService.createMessage(
+        conversationId,
+        userId,
+        content,
+        MessageType.SYSTEM,
+      );
+
+      const memberUserIds =
+        await this.messageService.getConversationMemberIds(conversationId);
+
+      const messageWithUrls = {
+        ...message,
+        medias: [],
+      };
+
+      const targetRooms = [conversationId, ...memberUserIds];
+      this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
+      return { status: 'success', data: messageWithUrls };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to send system message' };
+    }
+  }
+
+  emitMemberJoin(targetRooms: string[], payload: any) {
+    this.server.to(targetRooms).emit(ChatEvent.JOIN_CONVERSATION, payload);
+  }
 }

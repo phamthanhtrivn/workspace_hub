@@ -18,7 +18,8 @@ import {
   User,
 } from "lucide-react";
 import Image from "next/image";
-import { useAppSelector } from "@/store/store";
+import { useAppSelector, useAppDispatch } from "@/store/store";
+import { setActiveConversation, addMemberProfiles } from "@/store/chat/chat-slice";
 
 interface ChatRightPanelProps {
   onClose: () => void;
@@ -34,6 +35,7 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
     (state) => state.chat,
   );
   const currentUserId = useAppSelector((state) => state.auth.userId);
+  const dispatch = useAppDispatch();
 
   const isDirect = activeConversation?.type === "DIRECT";
 
@@ -72,13 +74,32 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
           setMediaItems((prev) => [...data.media, ...prev]);
         }
       };
+
+      const handleMemberJoin = (data: any) => {
+        if (activeConversation && data.conversationId === activeConversation.id && data.member && data.profile) {
+          const isAlreadyMember = activeConversation.members?.some(
+            (m) => m.userId === data.member.userId
+          );
+          if (!isAlreadyMember) {
+            const updatedConversation = {
+              ...activeConversation,
+              members: [...(activeConversation.members || []), data.member],
+            };
+            dispatch(setActiveConversation(updatedConversation));
+            dispatch(addMemberProfiles({ [data.profile.id]: data.profile }));
+          }
+        }
+      };
       
       socket.on(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
+      socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
+      
       return () => {
         socket.off(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
+        socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
       };
     }
-  }, [activeConversation?.id]);
+  }, [activeConversation, dispatch]);
 
   return (
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">

@@ -5,9 +5,10 @@ import {
   Inject,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ConversationRole } from '@prisma/client';
+import { ConversationRole, MessageType } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatEvent } from '../chat/chat.events';
+import { MessageService } from '../message/message.service';
 import { ClientKafka } from '@nestjs/microservices';
 import {
   KAFKA_TOPICS,
@@ -20,6 +21,8 @@ export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
+    private readonly chatGateway: ChatGateway,
+    private readonly messageService: MessageService,
   ) {}
 
   async getPendingInvitations(userId: string) {
@@ -73,6 +76,31 @@ export class InvitationService {
           conversationId: invitation.conversationId,
           userId: userId,
           role: ConversationRole.MEMBER,
+        },
+      });
+
+      await this.chatGateway.sendSystemMessage(
+        invitation.conversationId,
+        userId,
+        `${senderName} đã tham gia vào nhóm chat`
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        invitation.conversationId,
+      );
+      const targetRooms = [invitation.conversationId, ...memberUserIds];
+      
+      this.chatGateway.emitMemberJoin(targetRooms, {
+        conversationId: invitation.conversationId,
+        member: {
+          conversationId: invitation.conversationId,
+          userId: userId,
+          role: ConversationRole.MEMBER,
+        },
+        profile: {
+          id: userId,
+          fullName: senderName,
+          avatarUrl: senderAvatar,
         },
       });
 
