@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Camera, Save, Loader2, User } from "lucide-react";
 import { UserProfile } from "../types/user-setting.types";
 import {
@@ -12,7 +12,7 @@ import { useAppSelector } from "@/store/store";
 import { toast } from "react-toastify";
 import axios from "axios";
 
-export default function ProfileTab() {
+const ProfileTab = React.memo(function ProfileTab() {
   const { email } = useAppSelector((state) => state.auth);
   const [profileForm, setProfileForm] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -241,4 +241,6 @@ export default function ProfileTab() {
       </button>
     </div>
   );
-}
+});
+
+export default ProfileTab;

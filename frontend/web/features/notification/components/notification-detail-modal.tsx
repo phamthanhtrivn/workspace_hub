@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { Notification } from "../types/notification.types";
 import { getNotificationRenderer } from "./notification-registry";
@@ -15,7 +15,7 @@ interface NotificationDetailModalProps {
   onClose: () => void;
 }
 
-export default function NotificationDetailModal({
+const NotificationDetailModal = React.memo(function NotificationDetailModal({
   notification,
   onClose,
 }: NotificationDetailModalProps) {
@@ -35,13 +35,13 @@ export default function NotificationDetailModal({
     }
   }, [notification, dispatch]);
 
-  const handleMarkAsRead = (id: string) => {
+  const handleMarkAsRead = useCallback((id: string) => {
     if (!notification.isRead) {
       markAsRead(id)
         .then(() => dispatch(markReadSuccess(id)))
         .catch(console.error);
     }
-  };
+  }, [notification.isRead, dispatch]);
 
   const renderer = getNotificationRenderer(notification.type);
   const ModalContent = renderer ? renderer.modalRenderer : DefaultModalRenderer;
@@ -75,4 +75,6 @@ export default function NotificationDetailModal({
     </div>,
     document.body,
   );
-}
+});
+
+export default NotificationDetailModal;

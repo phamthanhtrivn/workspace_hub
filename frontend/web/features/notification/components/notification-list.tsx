@@ -10,7 +10,7 @@ interface NotificationListProps {
   isLoading?: boolean;
 }
 
-export default function NotificationList({ notifications, onItemClick, isLoading }: NotificationListProps) {
+const NotificationList = React.memo(function NotificationList({ notifications, onItemClick, isLoading }: NotificationListProps) {
   if (isLoading && notifications.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500">
@@ -39,4 +39,6 @@ export default function NotificationList({ notifications, onItemClick, isLoading
       ))}
     </div>
   );
-}
+});
+
+export default NotificationList;

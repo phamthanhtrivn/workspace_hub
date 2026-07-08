@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Bell, Check, Loader2 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
   setNotifications,
   setLoading,
-  addNotification,
   markAllReadSuccess,
 } from "@/store/notification/notification.slice";
 import {
@@ -14,7 +13,6 @@ import {
   getUnreadCount,
   markAllAsRead,
 } from "@/features/notification/api/notification.api";
-import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
 import {
   Notification,
   NotificationType,
@@ -68,7 +66,7 @@ if (!isRegistryInitialized) {
   isRegistryInitialized = true;
 }
 
-export default function NotificationDropdown() {
+const NotificationDropdown = React.memo(function NotificationDropdown() {
   const dispatch = useAppDispatch();
   const {
     list: notifications,
@@ -245,4 +243,6 @@ export default function NotificationDropdown() {
       )}
     </div>
   );
-}
+});
+
+export default NotificationDropdown;

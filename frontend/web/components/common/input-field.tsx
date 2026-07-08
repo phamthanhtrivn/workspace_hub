@@ -1,4 +1,6 @@
-export default function InputField({
+import React from "react";
+
+const InputField = React.memo(function InputField({
   id,
   type,
   icon: Icon,
@@ -44,4 +46,6 @@ export default function InputField({
       {error && <p className="text-xs text-red-500">{error}</p>}
     </div>
   );
-}
+});
+
+export default InputField;

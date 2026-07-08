@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search,
   Plus,
@@ -84,11 +84,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     }
   };
 
-  const handleReload = () => {
+  const handleReload = useCallback(() => {
     router.push("/chat");
     dispatch(setActiveConversation(null));
     fetchConversations();
-  };
+  }, [router, dispatch]);
 
   useEffect(() => {
     if (currentUserId) {
@@ -129,27 +129,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     return () => clearTimeout(timeout);
   }, [currentUserId]);
 
-  useEffect(() => {
-    const handleRefreshEvent = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail) {
-        handleNewConversation(customEvent.detail);
-      }
-    };
-
-    window.addEventListener("REFRESH_CONVERSATIONS", handleRefreshEvent);
-    return () => {
-      window.removeEventListener("REFRESH_CONVERSATIONS", handleRefreshEvent);
-    };
-  }, [memberProfiles]);
-
-  const handleSelectConversation = (conv: any) => {
+  const handleSelectConversation = useCallback((conv: any) => {
     dispatch(setActiveConversation(conv));
     dispatch(setMemberProfilesAction(memberProfiles));
     if (onSelectChat) onSelectChat();
-  };
+  }, [dispatch, memberProfiles, onSelectChat]);
 
-  const handleNewConversation = async (newConversation: any) => {
+  const handleNewConversation = useCallback(async (newConversation: any) => {
     // 1. Add to top of conversations list (avoid duplicates)
     setConversations((prev) => {
       const exists = prev.some((c) => c.id === newConversation.id);
@@ -169,7 +155,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           const res = await getPublicProfile(m.userId);
           newProfiles[m.userId] = res?.success
             ? res.data
-            : { fullName: "Unknown User" };
+            : { fullName: "Unknown User" } as any;
         } catch {
           newProfiles[m.userId] = { fullName: "Unknown User" } as any;
         }
@@ -186,14 +172,30 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     router.push(`/chat?id=${newConversation.id}`);
 
     if (onSelectChat) onSelectChat();
-  };
+  }, [memberProfiles, dispatch, router, onSelectChat]);
 
-  const filteredConversations = conversations.filter((conv) => {
-    if (activeTab === "all") return true;
-    if (activeTab === "personal") return conv.type === "DIRECT";
-    if (activeTab === "groups") return conv.type === "GROUP";
-    return true;
-  });
+  useEffect(() => {
+    const handleRefreshEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        handleNewConversation(customEvent.detail);
+      }
+    };
+
+    window.addEventListener("REFRESH_CONVERSATIONS", handleRefreshEvent);
+    return () => {
+      window.removeEventListener("REFRESH_CONVERSATIONS", handleRefreshEvent);
+    };
+  }, [handleNewConversation]);
+
+  const filteredConversations = useMemo(() => {
+    return conversations.filter((conv) => {
+      if (activeTab === "all") return true;
+      if (activeTab === "personal") return conv.type === "DIRECT";
+      if (activeTab === "groups") return conv.type === "GROUP";
+      return true;
+    });
+  }, [conversations, activeTab]);
 
   return (
     <div className="w-full h-full bg-white border-r border-gray-200 flex flex-col">

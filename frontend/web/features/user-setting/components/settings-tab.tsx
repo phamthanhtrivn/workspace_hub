@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Save, Loader2 } from "lucide-react";
 import { UserSettings } from "../types/user-setting.types";
 import { getUserSettings, updatePrivacySettings } from "../api/user-setting.api";
 
-export default function SettingsTab() {
+const SettingsTab = React.memo(function SettingsTab() {
   const [settingsForm, setSettingsForm] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -141,4 +141,6 @@ export default function SettingsTab() {
       </div>
     </div>
   );
-}
+});
+
+export default SettingsTab;

@@ -9,7 +9,7 @@ interface MessageSnippetProps {
   memberProfiles: Record<string, UserProfileResponse>;
 }
 
-export default function MessageSnippet({
+const MessageSnippet = React.memo(function MessageSnippet({
   latestMessage,
   currentUserId,
   isDirect,
@@ -61,4 +61,6 @@ export default function MessageSnippet({
       <span>Đã gửi tệp</span>
     </p>
   );
-}
+});
+
+export default MessageSnippet;

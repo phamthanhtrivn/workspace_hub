@@ -10,7 +10,7 @@ interface NotificationItemProps {
   onClick: (notification: Notification) => void;
 }
 
-export default function NotificationItem({ notification, onClick }: NotificationItemProps) {
+const NotificationItem = React.memo(function NotificationItem({ notification, onClick }: NotificationItemProps) {
   const renderer = getNotificationRenderer(notification.type);
   
   if (renderer) {
@@ -19,4 +19,6 @@ export default function NotificationItem({ notification, onClick }: Notification
   }
 
   return <DefaultListItemRenderer notification={notification} onClick={() => onClick(notification)} />;
-}
+});
+
+export default NotificationItem;

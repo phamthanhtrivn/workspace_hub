@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { User, Settings, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -17,7 +17,7 @@ interface UserProfileDropdownProps {
   onOpenSettings: (tab: "profile" | "settings" | "sessions") => void;
 }
 
-export default function UserProfileDropdown({
+const UserProfileDropdown = React.memo(function UserProfileDropdown({
   onOpenSettings,
 }: UserProfileDropdownProps) {
   const router = useRouter();
@@ -140,4 +140,6 @@ export default function UserProfileDropdown({
       )}
     </div>
   );
-}
+});
+
+export default UserProfileDropdown;

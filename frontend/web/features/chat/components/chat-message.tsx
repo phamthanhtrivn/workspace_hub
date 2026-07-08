@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { User, FileText, Download, Play } from "lucide-react";
 import Image from "next/image";
 import { UserProfileResponse } from "../types/chat.types";
@@ -14,7 +14,7 @@ interface ChatMessageProps {
   memberProfile: UserProfileResponse | null;
 }
 
-export default function ChatMessage({
+const ChatMessage = React.memo(function ChatMessage({
   msg,
   isMe,
   showAvatar,
@@ -23,19 +23,30 @@ export default function ChatMessage({
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const dispatch = useAppDispatch();
 
-  const time = new Date(msg.createdAt).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const time = useMemo(() => {
+    return new Date(msg.createdAt).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }, [msg.createdAt]);
 
   const hasText = msg.content && msg.content.trim().length > 0;
 
-  const visualMedias =
-    msg.medias?.filter((m: any) => m.type === "IMAGE" || m.type === "VIDEO") ||
-    [];
-  const fileMedias =
-    msg.medias?.filter((m: any) => m.type !== "IMAGE" && m.type !== "VIDEO") ||
-    [];
+  const visualMedias = useMemo(() => {
+    return (
+      msg.medias?.filter(
+        (m: any) => m.type === "IMAGE" || m.type === "VIDEO",
+      ) || []
+    );
+  }, [msg.medias]);
+
+  const fileMedias = useMemo(() => {
+    return (
+      msg.medias?.filter(
+        (m: any) => m.type !== "IMAGE" && m.type !== "VIDEO",
+      ) || []
+    );
+  }, [msg.medias]);
 
   if (msg.type === "SYSTEM") {
     return (
@@ -221,4 +232,6 @@ export default function ChatMessage({
       )}
     </>
   );
-}
+});
+
+export default ChatMessage;

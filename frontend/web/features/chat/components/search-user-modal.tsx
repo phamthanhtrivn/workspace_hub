@@ -26,7 +26,7 @@ interface SearchUserModalProps {
   onConversationCreated?: (conversation: any) => void;
 }
 
-export default function SearchUserModal({
+const SearchUserModal = React.memo(function SearchUserModal({
   isOpen,
   onClose,
   onConversationCreated,
@@ -321,4 +321,6 @@ export default function SearchUserModal({
   );
 
   return createPortal(modalContent, document.body);
-}
+});
+
+export default SearchUserModal;

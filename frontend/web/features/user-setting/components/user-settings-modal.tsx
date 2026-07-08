@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { X, User, Settings, Shield } from "lucide-react";
 import ProfileTab from "./profile-tab";
 import SettingsTab from "./settings-tab";
@@ -12,7 +12,7 @@ type UserSettingsModalProps = {
   initialTab?: "profile" | "settings" | "sessions";
 };
 
-export default function UserSettingsModal({
+const UserSettingsModal = React.memo(function UserSettingsModal({
   isOpen,
   onClose,
   initialTab = "profile",
@@ -99,4 +99,6 @@ export default function UserSettingsModal({
       </div>
     </div>
   );
-}
+});
+
+export default UserSettingsModal;

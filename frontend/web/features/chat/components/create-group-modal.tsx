@@ -16,7 +16,7 @@ interface CreateGroupModalProps {
   onConversationCreated?: (conversation: any) => void;
 }
 
-export default function CreateGroupModal({
+const CreateGroupModal = React.memo(function CreateGroupModal({
   isOpen,
   onClose,
   onConversationCreated,
@@ -353,8 +353,7 @@ export default function CreateGroupModal({
   );
 
   return createPortal(modalContent, document.body);
-}
-
+});
 function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
@@ -374,3 +373,5 @@ function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export default CreateGroupModal;

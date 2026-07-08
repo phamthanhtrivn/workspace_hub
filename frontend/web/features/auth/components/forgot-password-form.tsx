@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, KeyRound } from "lucide-react";
 import InputField from "@/components/common/input-field";
@@ -10,7 +10,7 @@ import { api } from "@/lib/axios";
 
 type Step = "EMAIL" | "OTP" | "PASSWORD";
 
-export default function ForgotPasswordForm() {
+const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
   const [step, setStep] = useState<Step>("EMAIL");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -292,4 +292,6 @@ export default function ForgotPasswordForm() {
       )}
     </div>
   );
-}
+});
+
+export default ForgotPasswordForm;

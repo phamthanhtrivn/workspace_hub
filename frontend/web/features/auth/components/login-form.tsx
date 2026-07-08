@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
 import { loginApi } from "../api/auth.api";
 import { toast } from "react-toastify";
@@ -11,7 +11,7 @@ import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
 import Link from "next/link";
 
-export default function LoginForm() {
+const LoginForm = React.memo(function LoginForm() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const [loading, setLoading] = useState(false);
@@ -23,7 +23,7 @@ export default function LoginForm() {
     password: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
 
     setFormData((prev) => ({
@@ -35,7 +35,7 @@ export default function LoginForm() {
       ...prev,
       [id]: "",
     }));
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -156,4 +156,6 @@ export default function LoginForm() {
       </button>
     </form>
   );
-}
+});
+
+export default LoginForm;

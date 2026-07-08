@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import { Menu, Search } from "lucide-react";
 import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
@@ -14,7 +14,7 @@ interface WorkspaceHeaderProps {
   onOpenSettings: (tab: "profile" | "settings" | "sessions") => void;
 }
 
-export default function WorkspaceHeader({
+const WorkspaceHeader = React.memo(function WorkspaceHeader({
   currentTitle,
   onMenuClick,
   onOpenSettings,
@@ -78,4 +78,6 @@ export default function WorkspaceHeader({
       </div>
     </header>
   );
-}
+});
+
+export default WorkspaceHeader;

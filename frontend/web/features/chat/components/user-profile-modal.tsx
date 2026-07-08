@@ -9,7 +9,7 @@ import { getPublicProfile, createDirectConversation } from "../api/chat.api";
 import { UserProfileResponse } from "../types/chat.types";
 import { toast } from "react-toastify";
 
-export default function UserProfileModal() {
+const UserProfileModal = React.memo(function UserProfileModal() {
   const dispatch = useAppDispatch();
   const selectedProfileUserId = useAppSelector(
     (state) => state.chat.selectedProfileUserId,
@@ -161,4 +161,6 @@ export default function UserProfileModal() {
   );
 
   return createPortal(modalContent, document.body);
-}
+});
+
+export default UserProfileModal;

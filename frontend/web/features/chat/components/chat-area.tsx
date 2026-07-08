@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import ChatInput from "./chat-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./chat-message";
@@ -26,13 +26,13 @@ export default function ChatArea({
   const [messages, setMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -71,16 +71,19 @@ export default function ChatArea({
     }
   }, [activeConversation?.id]);
 
-  const handleSendMessage = (content: string, medias?: any[]) => {
-    const socket = socketService.getSocket();
-    if (socket && activeConversation?.id) {
-      socket.emit(ChatEvent.SEND_MESSAGE, {
-        conversationId: activeConversation?.id,
-        content,
-        medias,
-      });
-    }
-  };
+  const handleSendMessage = useCallback(
+    (content: string, medias?: any[]) => {
+      const socket = socketService.getSocket();
+      if (socket && activeConversation?.id) {
+        socket.emit(ChatEvent.SEND_MESSAGE, {
+          conversationId: activeConversation?.id,
+          content,
+          medias,
+        });
+      }
+    },
+    [activeConversation?.id],
+  );
 
   return (
     <div className="flex-1 flex flex-col bg-white h-full min-h-0">

@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import { User, Users } from "lucide-react";
 import Image from "next/image";
 import { formatConversationTime } from "@/lib/date";
@@ -11,7 +12,7 @@ interface ConversationItemProps {
   onClick: (conv: any) => void;
 }
 
-export default function ConversationItem({
+const ConversationItem = React.memo(function ConversationItem({
   conv,
   currentUserId,
   memberProfiles,
@@ -19,20 +20,28 @@ export default function ConversationItem({
   onClick,
 }: ConversationItemProps) {
   const isDirect = conv.type === "DIRECT";
-  const otherMember = isDirect
-    ? conv.members?.find((m: any) => m.userId !== currentUserId)
-    : null;
+  
+  const otherMember = useMemo(() => {
+    return isDirect
+      ? conv.members?.find((m: any) => m.userId !== currentUserId)
+      : null;
+  }, [isDirect, conv.members, currentUserId]);
+  
   const profile = otherMember ? memberProfiles[otherMember.userId] : null;
 
   const name = isDirect
     ? profile?.fullName || "Unknown User"
     : conv.name || "Group Chat";
+    
   const avatarUrl = isDirect ? profile?.avatarUrl : conv.avatarUrl;
 
   const latestMessage = conv.messages?.[0];
-  const time = latestMessage
-    ? formatConversationTime(latestMessage.createdAt)
-    : formatConversationTime(conv.updatedAt || conv.createdAt || Date.now());
+  
+  const time = useMemo(() => {
+    return latestMessage
+      ? formatConversationTime(latestMessage.createdAt)
+      : formatConversationTime(conv.updatedAt || conv.createdAt || Date.now());
+  }, [latestMessage, conv.updatedAt, conv.createdAt]);
 
   return (
     <div
@@ -76,4 +85,6 @@ export default function ConversationItem({
       </div>
     </div>
   );
-}
+});
+
+export default ConversationItem;

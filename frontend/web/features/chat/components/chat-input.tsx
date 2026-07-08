@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   Send,
   Image as ImageIcon,
@@ -32,7 +32,7 @@ interface UploadingMedia {
   sizeBytes: number;
 }
 
-export default function ChatInput({ onSendMessage }: ChatInputProps) {
+const ChatInput = React.memo(function ChatInput({ onSendMessage }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [showOptions, setShowOptions] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
@@ -51,7 +51,7 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
     }
   }, [activeConversationId]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
       const validFiles = newFiles.filter((f) => f.size <= 100 * 1024 * 1024);
@@ -132,11 +132,11 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
         );
       }
     }
-  };
+  }, [activeConversationId]);
 
-  const removeFile = (id: string) => {
+  const removeFile = useCallback((id: string) => {
     setUploadingMedia((prev) => prev.filter((m) => m.id !== id));
-  };
+  }, []);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -146,7 +146,7 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  const handleSend = () => {
+  const handleSend = useCallback(() => {
     if (!message.trim() && uploadingMedia.length === 0) return;
     if (isUploading) {
       toast.warning("Vui lòng đợi file tải lên hoàn tất.");
@@ -168,7 +168,7 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
     onSendMessage(message.trim(), mediaList.length > 0 ? mediaList : undefined);
     setMessage("");
     setUploadingMedia([]);
-  };
+  }, [message, uploadingMedia, isUploading, onSendMessage]);
 
   return (
     <div className="p-4 bg-white border-t border-gray-200">
@@ -327,4 +327,6 @@ export default function ChatInput({ onSendMessage }: ChatInputProps) {
       </div>
     </div>
   );
-}
+});
+
+export default ChatInput;
