@@ -7,6 +7,7 @@ import ChatRightPanel from "./chat-right-panel";
 import { useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import { socketService } from "../api/chat-socket.service";
+import UserProfileModal from "./user-profile-modal";
 
 export default function ChatLayout() {
   const [showRightPanel, setShowRightPanel] = useState(false);
@@ -80,6 +81,7 @@ export default function ChatLayout() {
           <ChatRightPanel onClose={() => setShowRightPanel(false)} />
         </div>
       )}
+      <UserProfileModal />
     </div>
   );
 }

@@ -7,11 +7,15 @@ import {
 interface ChatState {
   activeConversation: ConversationResponse | null;
   memberProfiles: Record<string, UserProfileResponse> | null;
+  isMobileSidebarOpen: boolean;
+  selectedProfileUserId: string | null;
 }
 
 const initialState: ChatState = {
   activeConversation: null,
-  memberProfiles: null,
+  memberProfiles: {},
+  isMobileSidebarOpen: false,
+  selectedProfileUserId: null,
 };
 
 const chatSlice = createSlice({
@@ -36,10 +40,21 @@ const chatSlice = createSlice({
     ) => {
       state.memberProfiles = { ...state.memberProfiles, ...action.payload };
     },
+    toggleMobileSidebar: (state) => {
+      state.isMobileSidebarOpen = !state.isMobileSidebarOpen;
+    },
+    setSelectedProfileUserId: (state, action: PayloadAction<string | null>) => {
+      state.selectedProfileUserId = action.payload;
+    },
   },
 });
 
-export const { setActiveConversation, setMemberProfiles, addMemberProfiles } =
-  chatSlice.actions;
+export const {
+  setActiveConversation,
+  setMemberProfiles,
+  addMemberProfiles,
+  toggleMobileSidebar,
+  setSelectedProfileUserId,
+} = chatSlice.actions;
 
 export default chatSlice.reducer;

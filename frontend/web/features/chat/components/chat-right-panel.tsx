@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useAppSelector, useAppDispatch } from "@/store/store";
-import { setActiveConversation, addMemberProfiles } from "@/store/chat/chat-slice";
+import {
+  setActiveConversation,
+  addMemberProfiles,
+  setSelectedProfileUserId,
+} from "@/store/chat/chat-slice";
 
 interface ChatRightPanelProps {
   onClose: () => void;
@@ -76,9 +80,14 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
       };
 
       const handleMemberJoin = (data: any) => {
-        if (activeConversation && data.conversationId === activeConversation.id && data.member && data.profile) {
+        if (
+          activeConversation &&
+          data.conversationId === activeConversation.id &&
+          data.member &&
+          data.profile
+        ) {
           const isAlreadyMember = activeConversation.members?.some(
-            (m) => m.userId === data.member.userId
+            (m) => m.userId === data.member.userId,
           );
           if (!isAlreadyMember) {
             const updatedConversation = {
@@ -90,10 +99,10 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
           }
         }
       };
-      
+
       socket.on(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
       socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
-      
+
       return () => {
         socket.off(ChatEvent.MEDIA_UPDATED, handleMediaUpdated);
         socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
@@ -153,75 +162,87 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
         {/* Accordions */}
         <div className="py-2">
           {/* Members Section */}
-          <div>
-            <button
-              onClick={() => toggleSection("members")}
-              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
-            >
-              <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
-                <Users size={18} className="text-gray-500" />
-                Members (4)
-              </div>
-              {expandedSection === "members" ? (
-                <ChevronDown size={16} className="text-gray-400" />
-              ) : (
-                <ChevronRight size={16} className="text-gray-400" />
-              )}
-            </button>
-
-            {expandedSection === "members" && (
-              <div className="px-4 pb-2 space-y-2">
-                {activeConversation?.members?.map((member, i) => {
-                  const profile = memberProfiles?.[member.userId];
-                  const name = profile?.fullName || "User";
-                  const isMe = member.userId === currentUserId;
-                  const displayName = isMe ? "Bạn" : name;
-
-                  return (
-                    <div
-                      key={member.userId}
-                      className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition cursor-pointer"
-                    >
-                      <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xs overflow-hidden">
-                        {profile?.avatarUrl ? (
-                          <Image
-                            src={profile.avatarUrl}
-                            alt="Avatar"
-                            width={32}
-                            height={32}
-                            className="rounded-full"
-                          />
-                        ) : (
-                          name[0]?.toUpperCase()
-                        )}
-                      </div>
-                      <span className="text-sm text-gray-700">
-                        {displayName}
-                      </span>
-                      {member.role === "OWNER" && (
-                        <span className="ml-auto text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
-                          Admin
-                        </span>
-                      )}
-                      {member.role === "ADMIN" && (
-                        <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                          Mod
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-                <button className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1">
-                  <div className="w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
-                    <Users size={14} />
+          {!isDirect && (
+            <div>
+              <div>
+                <button
+                  onClick={() => toggleSection("members")}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+                >
+                  <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
+                    <Users size={18} className="text-gray-500" />
+                    Thành viên ({activeConversation?.members?.length})
                   </div>
-                  <span className="text-sm font-medium">Add members</span>
+                  {expandedSection === "members" ? (
+                    <ChevronDown size={16} className="text-gray-400" />
+                  ) : (
+                    <ChevronRight size={16} className="text-gray-400" />
+                  )}
                 </button>
-              </div>
-            )}
-          </div>
 
-          <div className="h-px bg-gray-100 mx-4 my-1"></div>
+                {expandedSection === "members" && (
+                  <div className="px-4 pb-2 space-y-2">
+                    {activeConversation?.members?.map((member, i) => {
+                      const profile = memberProfiles?.[member.userId];
+                      const name = profile?.fullName || "User";
+                      const isMe = member.userId === currentUserId;
+                      const displayName = isMe ? "Bạn" : name;
+
+                      return (
+                        <div
+                          key={member.userId}
+                          onClick={() =>
+                            !isMe &&
+                            dispatch(setSelectedProfileUserId(member.userId))
+                          }
+                          className={`flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition ${!isMe ? "cursor-pointer" : ""}`}
+                        >
+                          <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xs overflow-hidden">
+                            {profile?.avatarUrl ? (
+                              <Image
+                                src={profile.avatarUrl}
+                                alt="Avatar"
+                                width={32}
+                                height={32}
+                                className="rounded-full border-gray-200 border-1"
+                              />
+                            ) : (
+                              <User size={22} className="text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm text-gray-700">
+                              {displayName}
+                            </span>
+                            {member.role === "OWNER" && (
+                              <span className="text-xs bg-blue-100 text-blue-600 text-center w-fit px-2 py-0.5 rounded">
+                                Trưởng nhóm
+                              </span>
+                            )}
+                            {member.role === "ADMIN" && (
+                              <span className="text-xs bg-gray-100 text-gray-500 text-center w-fit px-2 py-0.5 rounded">
+                                Phó nhóm
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <button className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1">
+                      <div className="w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
+                        <Users size={14} />
+                      </div>
+                      <span className="text-sm font-medium">
+                        Thêm thành viên
+                      </span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="h-px bg-gray-100 mx-4 my-1"></div>
+            </div>
+          )}
 
           {/* Media & Files Section */}
           <div>
@@ -243,14 +264,23 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
             {expandedSection === "media" && (
               <div className="px-4 pb-4">
                 {mediaItems.length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-2">Chưa có file phương tiện nào</p>
+                  <p className="text-xs text-gray-400 text-center py-2">
+                    Chưa có file phương tiện nào
+                  </p>
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
                     {mediaItems.slice(0, 6).map((item, idx) => (
-                      <div key={idx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group">
+                      <div
+                        key={idx}
+                        className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group"
+                      >
                         {item.mimeType?.startsWith("image/") ? (
                           item.fileUrl ? (
-                            <img src={item.fileUrl} alt={item.name} className="w-full h-full object-cover" />
+                            <img
+                              src={item.fileUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-blue-300">
                               <ImageIcon size={24} />
@@ -262,7 +292,9 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
                           </div>
                         )}
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                           <span className="text-white text-[10px] truncate max-w-full px-1">{item.name}</span>
+                          <span className="text-white text-[10px] truncate max-w-full px-1">
+                            {item.name}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -358,7 +390,7 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
       <div className="p-4 border-t border-gray-100">
         <button className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition font-medium text-sm">
           <LogOut size={16} />
-          Leave Group
+          Rời nhóm
         </button>
       </div>
     </div>

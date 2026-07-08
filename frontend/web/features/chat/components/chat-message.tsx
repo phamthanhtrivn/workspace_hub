@@ -4,6 +4,8 @@ import Image from "next/image";
 import { UserProfileResponse } from "../types/chat.types";
 import { formatFileSize } from "@/lib/file";
 import MediaLightbox from "./media-lightbox";
+import { useAppDispatch } from "@/store/store";
+import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 
 interface ChatMessageProps {
   msg: any;
@@ -19,6 +21,7 @@ export default function ChatMessage({
   memberProfile,
 }: ChatMessageProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
+  const dispatch = useAppDispatch();
 
   const time = new Date(msg.createdAt).toLocaleTimeString([], {
     hour: "2-digit",
@@ -160,8 +163,9 @@ export default function ChatMessage({
       <div className={`flex items-end gap-2 ${isMe ? "justify-end" : ""}`}>
         {!isMe && (
           <div
+            onClick={() => showAvatar && msg.senderId && dispatch(setSelectedProfileUserId(msg.senderId))}
             className={`w-8 h-8 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold overflow-hidden ${
-              showAvatar ? "bg-gradient-to-br from-gray-100 to-gray-200" : ""
+              showAvatar ? "bg-gradient-to-br from-gray-100 to-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all" : ""
             }`}
           >
             {showAvatar ? (

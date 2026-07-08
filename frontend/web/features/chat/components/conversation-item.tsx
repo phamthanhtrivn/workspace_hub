@@ -34,8 +34,6 @@ export default function ConversationItem({
     ? formatConversationTime(latestMessage.createdAt)
     : formatConversationTime(conv.updatedAt || conv.createdAt || Date.now());
 
-  console.log(latestMessage);
-
   return (
     <div
       className={`flex items-center p-3 rounded-xl cursor-pointer transition ${

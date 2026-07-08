@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, Plus, UserPlus, Users, MessageSquare } from "lucide-react";
+import {
+  Search,
+  Plus,
+  UserPlus,
+  Users,
+  MessageSquare,
+  RefreshCw,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import SearchUserModal from "./search-user-modal";
 import CreateGroupModal from "./create-group-modal";
@@ -40,44 +47,50 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const dispatch = useAppDispatch();
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchConversations = async () => {
-      try {
-        setLoading(true);
-        const response = await getUserConversations();
-        const data = response?.success ? response.data : [];
-        setConversations(data);
+  const fetchConversations = async () => {
+    try {
+      setLoading(true);
+      const response = await getUserConversations();
+      const data = response?.success ? response.data : [];
+      setConversations(data);
 
-        const uniqueUserIds = new Set<string>();
-        data.forEach((conv: any) => {
-          conv.members?.forEach((m: any) => {
-            if (m.userId !== currentUserId) {
-              uniqueUserIds.add(m.userId);
-            }
-          });
+      const uniqueUserIds = new Set<string>();
+      data.forEach((conv: any) => {
+        conv.members?.forEach((m: any) => {
+          if (m.userId) {
+            uniqueUserIds.add(m.userId);
+          }
         });
+      });
 
-        const profiles: Record<string, any> = {};
-        await Promise.all(
-          Array.from(uniqueUserIds).map(async (userId) => {
-            try {
-              const profileRes = await getPublicProfile(userId);
-              profiles[userId] = profileRes?.success
-                ? profileRes.data
-                : { fullName: "Unknown User" };
-            } catch (e) {
-              profiles[userId] = { fullName: "Unknown User" };
-            }
-          }),
-        );
-        setMemberProfiles(profiles);
-      } catch (error) {
-        console.error("Failed to fetch conversations", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+      const profiles: Record<string, any> = {};
+      await Promise.all(
+        Array.from(uniqueUserIds).map(async (userId) => {
+          try {
+            const profileRes = await getPublicProfile(userId);
+            profiles[userId] = profileRes?.success
+              ? profileRes.data
+              : { fullName: "Unknown User" };
+          } catch (e) {
+            profiles[userId] = { fullName: "Unknown User" };
+          }
+        }),
+      );
+      setMemberProfiles(profiles);
+    } catch (error) {
+      console.error("Failed to fetch conversations", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleReload = () => {
+    router.push("/chat");
+    dispatch(setActiveConversation(null));
+    fetchConversations();
+  };
+
+  useEffect(() => {
     if (currentUserId) {
       fetchConversations();
     }
@@ -116,6 +129,20 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     return () => clearTimeout(timeout);
   }, [currentUserId]);
 
+  useEffect(() => {
+    const handleRefreshEvent = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail) {
+        handleNewConversation(customEvent.detail);
+      }
+    };
+
+    window.addEventListener("REFRESH_CONVERSATIONS", handleRefreshEvent);
+    return () => {
+      window.removeEventListener("REFRESH_CONVERSATIONS", handleRefreshEvent);
+    };
+  }, [memberProfiles]);
+
   const handleSelectConversation = (conv: any) => {
     dispatch(setActiveConversation(conv));
     dispatch(setMemberProfilesAction(memberProfiles));
@@ -133,7 +160,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     // 2. Fetch profiles for new members not yet in memberProfiles
     const newProfiles: Record<string, UserProfileResponse> = {};
     const membersToFetch = (newConversation.members || []).filter(
-      (m: any) => m.userId !== currentUserId && !memberProfiles[m.userId],
+      (m: any) => m.userId && !memberProfiles[m.userId],
     );
 
     await Promise.all(
@@ -161,24 +188,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     if (onSelectChat) onSelectChat();
   };
 
-  const handleAcceptInvitation = async (conversationId: string) => {
-    // Refresh conversations list to include the new one
-    try {
-      const response = await getUserConversations();
-      const data = response?.success ? response.data : [];
-      setConversations(data);
-
-      const newConv = data.find((c: any) => c.id === conversationId);
-      if (newConv) {
-        dispatch(setActiveConversation(newConv));
-        router.push(`/chat?id=${newConv.id}`);
-        if (onSelectChat) onSelectChat();
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   const filteredConversations = conversations.filter((conv) => {
     if (activeTab === "all") return true;
     if (activeTab === "personal") return conv.type === "DIRECT";
@@ -193,6 +202,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold text-gray-800">Đoạn chat</h2>
           <div className="flex gap-2">
+            <button
+              onClick={handleReload}
+              className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition cursor-pointer"
+              title="Tải lại"
+            >
+              <RefreshCw size={18} />
+            </button>
             <button
               onClick={() => setIsSearchModalOpen(true)}
               className="p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-600 transition cursor-pointer"
