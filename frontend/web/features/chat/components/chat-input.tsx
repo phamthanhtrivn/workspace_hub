@@ -32,14 +32,15 @@ interface UploadingMedia {
   sizeBytes: number;
 }
 
-const ChatInput = React.memo(function ChatInput({ onSendMessage }: ChatInputProps) {
+const ChatInput = React.memo(function ChatInput({
+  onSendMessage,
+}: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [showOptions, setShowOptions] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
   const isUploading = uploadingMedia.some((m) => m.status === "uploading");
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversation?.id,
@@ -51,59 +52,68 @@ const ChatInput = React.memo(function ChatInput({ onSendMessage }: ChatInputProp
     }
   }, [activeConversationId]);
 
-  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      const validFiles = newFiles.filter((f) => f.size <= 100 * 1024 * 1024);
-      if (validFiles.length < newFiles.length) {
-        toast.error("Không được upload file vượt quá 100MB.");
-      }
+  const handleFileChange = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        const newFiles = Array.from(e.target.files);
+        const validFiles = newFiles.filter((f) => f.size <= 100 * 1024 * 1024);
+        if (validFiles.length < newFiles.length) {
+          toast.error("Không được upload file vượt quá 100MB.");
+        }
 
-      if (validFiles.length === 0) return;
+        if (validFiles.length === 0) return;
 
-      const newUploads: UploadingMedia[] = validFiles.map((f) => ({
-        id: Math.random().toString(36).substring(7) + Date.now(),
-        file: f,
-        status: "uploading",
-        name: f.name,
-        mimeType: f.type,
-        sizeBytes: f.size,
-      }));
-
-      setUploadingMedia((prev) => [...prev, ...newUploads]);
-      setShowOptions(false);
-      e.target.value = "";
-
-      try {
-        if (!activeConversationId) throw new Error("No active conversation");
-
-        const presignRequests = newUploads.map((u) => ({
-          fileName: u.name,
-          mimeType: u.mimeType,
-          sizeBytes: u.sizeBytes,
+        const newUploads: UploadingMedia[] = validFiles.map((f) => ({
+          id: Math.random().toString(36).substring(7) + Date.now(),
+          file: f,
+          status: "uploading",
+          name: f.name,
+          mimeType: f.type,
+          sizeBytes: f.size,
         }));
 
-        const presignedUrls = await getPresignedUrls(
-          activeConversationId,
-          presignRequests,
-        );
+        setUploadingMedia((prev) => [...prev, ...newUploads]);
+        setShowOptions(false);
+        e.target.value = "";
 
-        newUploads.forEach(async (upload, idx) => {
-          const presignedInfo = presignedUrls[idx];
-          try {
-            const success = await uploadToS3(
-              upload.file,
-              presignedInfo.presignedUrl,
-            );
-            if (success) {
-              setUploadingMedia((prev) =>
-                prev.map((m) =>
-                  m.id === upload.id
-                    ? { ...m, status: "success", s3Key: presignedInfo.s3Key }
-                    : m,
-                ),
+        try {
+          if (!activeConversationId) throw new Error("No active conversation");
+
+          const presignRequests = newUploads.map((u) => ({
+            fileName: u.name,
+            mimeType: u.mimeType,
+            sizeBytes: u.sizeBytes,
+          }));
+
+          const presignedUrls = await getPresignedUrls(
+            activeConversationId,
+            presignRequests,
+          );
+
+          newUploads.forEach(async (upload, idx) => {
+            const presignedInfo = presignedUrls[idx];
+            try {
+              const success = await uploadToS3(
+                upload.file,
+                presignedInfo.presignedUrl,
               );
-            } else {
+              if (success) {
+                setUploadingMedia((prev) =>
+                  prev.map((m) =>
+                    m.id === upload.id
+                      ? { ...m, status: "success", s3Key: presignedInfo.s3Key }
+                      : m,
+                  ),
+                );
+              } else {
+                setUploadingMedia((prev) =>
+                  prev.map((m) =>
+                    m.id === upload.id ? { ...m, status: "error" } : m,
+                  ),
+                );
+                toast.error(`Lỗi khi tải lên file ${upload.name}`);
+              }
+            } catch (err) {
               setUploadingMedia((prev) =>
                 prev.map((m) =>
                   m.id === upload.id ? { ...m, status: "error" } : m,
@@ -111,28 +121,22 @@ const ChatInput = React.memo(function ChatInput({ onSendMessage }: ChatInputProp
               );
               toast.error(`Lỗi khi tải lên file ${upload.name}`);
             }
-          } catch (err) {
-            setUploadingMedia((prev) =>
-              prev.map((m) =>
-                m.id === upload.id ? { ...m, status: "error" } : m,
-              ),
-            );
-            toast.error(`Lỗi khi tải lên file ${upload.name}`);
-          }
-        });
-      } catch (error) {
-        console.error(error);
-        toast.error("Không thể khởi tạo phiên tải lên.");
-        setUploadingMedia((prev) =>
-          prev.map((m) =>
-            newUploads.find((nu) => nu.id === m.id)
-              ? { ...m, status: "error" }
-              : m,
-          ),
-        );
+          });
+        } catch (error) {
+          console.error(error);
+          toast.error("Không thể khởi tạo phiên tải lên.");
+          setUploadingMedia((prev) =>
+            prev.map((m) =>
+              newUploads.find((nu) => nu.id === m.id)
+                ? { ...m, status: "error" }
+                : m,
+            ),
+          );
+        }
       }
-    }
-  }, [activeConversationId]);
+    },
+    [activeConversationId],
+  );
 
   const removeFile = useCallback((id: string) => {
     setUploadingMedia((prev) => prev.filter((m) => m.id !== id));
@@ -230,15 +234,6 @@ const ChatInput = React.memo(function ChatInput({ onSendMessage }: ChatInputProp
           type="file"
           multiple
           hidden
-          accept="image/*,video/*"
-          ref={imageInputRef}
-          onChange={handleFileChange}
-          disabled={isUploading}
-        />
-        <input
-          type="file"
-          multiple
-          hidden
           accept="*/*"
           ref={fileInputRef}
           onChange={handleFileChange}
@@ -260,12 +255,6 @@ const ChatInput = React.memo(function ChatInput({ onSendMessage }: ChatInputProp
 
           {showOptions && (
             <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-10">
-              <button
-                onClick={() => imageInputRef.current?.click()}
-                className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
-              >
-                <ImageIcon size={16} className="text-blue-500" /> Image / Video
-              </button>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"

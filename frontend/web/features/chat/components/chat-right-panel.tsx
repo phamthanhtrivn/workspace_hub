@@ -46,16 +46,20 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
   let displayName = "Group Chat";
   let displayAvatarUrl = null;
   let displayDescription = `${activeConversation?.members?.length || 0} thành viên`;
+  let otherMemberId: string | null = null;
 
   if (isDirect) {
     const otherMember = activeConversation?.members?.find(
       (m) => m.userId !== currentUserId,
     );
-    if (otherMember && memberProfiles?.[otherMember.userId]) {
-      const profile = memberProfiles[otherMember.userId];
-      displayName = profile.fullName || "User";
-      displayAvatarUrl = profile.avatarUrl;
-      displayDescription = profile.email || "";
+    if (otherMember) {
+      otherMemberId = otherMember.userId;
+      if (memberProfiles?.[otherMember.userId]) {
+        const profile = memberProfiles[otherMember.userId];
+        displayName = profile.fullName || "User";
+        displayAvatarUrl = profile.avatarUrl;
+        displayDescription = profile.email || "";
+      }
     }
   } else if (activeConversation) {
     displayName = activeConversation.name || "Group Chat";
@@ -126,7 +130,16 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
       <div className="flex-1 overflow-y-auto">
         {/* Info Area */}
         <div className="p-6 flex flex-col items-center border-b border-gray-100">
-          <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden">
+          <div
+            className={`w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden ${
+              isDirect ? "cursor-pointer" : ""
+            }`}
+            onClick={() => {
+              if (isDirect && otherMemberId) {
+                dispatch(setSelectedProfileUserId(otherMemberId));
+              }
+            }}
+          >
             {displayAvatarUrl ? (
               <Image
                 src={displayAvatarUrl}

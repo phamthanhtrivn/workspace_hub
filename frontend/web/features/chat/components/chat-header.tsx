@@ -1,7 +1,7 @@
 import { ArrowLeft, Info, User, Users } from "lucide-react";
 import Image from "next/image";
-import { useAppSelector } from "@/store/store";
-
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 interface ChatHeaderProps {
   onToggleRightPanel: () => void;
   onBack?: () => void;
@@ -15,20 +15,25 @@ export default function ChatHeader({
     (state) => state.chat,
   );
   const currentUserId = useAppSelector((state) => state.auth.userId);
+  const dispatch = useAppDispatch();
 
   const isDirect = activeConversation?.type === "DIRECT";
 
   let displayName = "Group Chat";
   let displayAvatarUrl = null;
+  let otherMemberId: string | null = null;
 
   if (isDirect) {
     const otherMember = activeConversation?.members?.find(
       (m) => m.userId !== currentUserId,
     );
-    if (otherMember && memberProfiles?.[otherMember.userId]) {
-      const profile = memberProfiles[otherMember.userId];
-      displayName = profile.fullName || "User";
-      displayAvatarUrl = profile.avatarUrl;
+    if (otherMember) {
+      otherMemberId = otherMember.userId;
+      if (memberProfiles?.[otherMember.userId]) {
+        const profile = memberProfiles[otherMember.userId];
+        displayName = profile.fullName || "User";
+        displayAvatarUrl = profile.avatarUrl;
+      }
     }
   } else if (activeConversation) {
     displayName = activeConversation.name || "Group Chat";
@@ -45,7 +50,14 @@ export default function ChatHeader({
             <ArrowLeft size={20} />
           </button>
         )}
-        <div className="relative">
+        <div
+          className={`relative ${isDirect ? "cursor-pointer" : ""}`}
+          onClick={() => {
+            if (isDirect && otherMemberId) {
+              dispatch(setSelectedProfileUserId(otherMemberId));
+            }
+          }}
+        >
           <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold overflow-hidden">
             {displayAvatarUrl ? (
               <Image
