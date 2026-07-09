@@ -6,13 +6,18 @@ interface FilesSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
   filesAndDocs: any[];
+  onSeeAll?: () => void;
 }
 
 export default function FilesSection({
   isExpanded,
   onToggle,
   filesAndDocs,
+  onSeeAll,
 }: FilesSectionProps) {
+  const displayItems = filesAndDocs.slice(0, 3);
+  const hasMore = filesAndDocs.length > 3;
+
   const handleDownload = async (
     e: React.MouseEvent,
     url: string,
@@ -53,39 +58,49 @@ export default function FilesSection({
               Chưa có tài liệu nào
             </p>
           ) : (
-            <div className="flex flex-col gap-2">
-              {filesAndDocs.map((item, idx) => (
-                <div
-                  key={item.id || idx}
-                  className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition border-2 border-gray-200"
+            <>
+              <div className="flex flex-col gap-2">
+                {displayItems.map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition border-2 border-gray-200"
+                  >
+                    <div className="w-10 h-10 bg-blue-500 text-white rounded flex items-center justify-center">
+                      <FileText size={20} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-800 font-medium truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        {item.sizeBytes
+                          ? (item.sizeBytes / 1024).toFixed(2)
+                          : "0"}{" "}
+                        KB
+                      </p>
+                    </div>
+                    {item.fileUrl && (
+                      <button
+                        onClick={(e) =>
+                          handleDownload(e, item.fileUrl, item.name)
+                        }
+                        className="cursor-pointer p-1.5 text-gray-400 hover:text-blue-700 hover:bg-blue-100 rounded transition"
+                      >
+                        <Download size={18} />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {hasMore && (
+                <button
+                  onClick={onSeeAll}
+                  className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50  rounded-lg transition"
                 >
-                  <div className="w-10 h-10 bg-blue-500 text-white rounded flex items-center justify-center">
-                    <FileText size={20} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-800 font-medium truncate">
-                      {item.name}
-                    </p>
-                    <p className="text-xs text-gray-600">
-                      {item.sizeBytes
-                        ? (item.sizeBytes / 1024).toFixed(2)
-                        : "0"}{" "}
-                      KB
-                    </p>
-                  </div>
-                  {item.fileUrl && (
-                    <button
-                      onClick={(e) =>
-                        handleDownload(e, item.fileUrl, item.name)
-                      }
-                      className="cursor-pointer p-1.5 text-gray-400 hover:text-blue-700 hover:bg-blue-100 rounded transition"
-                    >
-                      <Download size={18} />
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+                  Xem tất cả
+                </button>
+              )}
+            </>
           )}
         </div>
       )}

@@ -11,14 +11,8 @@ import FilesSection from "./right-panel/files-section";
 import PollsSection from "./right-panel/polls-section";
 import NotesSection from "./right-panel/notes-section";
 import TasksSection from "./right-panel/tasks-section";
-import {
-  X,
-  Bell,
-  BellOff,
-  LogOut,
-  User,
-  Users,
-} from "lucide-react";
+import MediaDetailView from "./right-panel/media-detail-view";
+import { X, Bell, BellOff, LogOut, User, Users } from "lucide-react";
 import Image from "next/image";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
@@ -36,6 +30,7 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "members",
   );
+  const [detailView, setDetailView] = useState<"images" | "files" | null>(null);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const lastFetchedConversationId = useRef<string | null>(null);
@@ -87,8 +82,8 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
     ) {
       getConversationMedia(activeConversation.id)
         .then((res: any) => {
-          if (res.data) {
-            setMediaItems(res.data);
+          if (res.data && res.data.medias) {
+            setMediaItems(res.data.medias);
             lastFetchedConversationId.current = activeConversation.id;
           }
         })
@@ -98,9 +93,12 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
 
   // Reset fetch tracker when conversation changes so it can fetch again if expanded
   useEffect(() => {
-    if (activeConversation?.id && lastFetchedConversationId.current !== activeConversation.id) {
-       // We don't fetch yet, but we clear mediaItems to avoid showing old ones
-       setMediaItems([]);
+    if (
+      activeConversation?.id &&
+      lastFetchedConversationId.current !== activeConversation.id
+    ) {
+      // We don't fetch yet, but we clear mediaItems to avoid showing old ones
+      setMediaItems([]);
     }
   }, [activeConversation?.id]);
 
@@ -143,6 +141,18 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
       };
     }
   }, [activeConversation, dispatch]);
+
+  if (detailView) {
+    return (
+      <div className="w-full h-full bg-white border-l border-gray-200">
+        <MediaDetailView
+          conversationId={activeConversation!.id}
+          type={detailView}
+          onBack={() => setDetailView(null)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
@@ -223,6 +233,7 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
                 m.mimeType?.startsWith("video/"),
             )}
             onOpenLightbox={(idx) => setLightboxIndex(idx)}
+            onSeeAll={() => setDetailView("images")}
           />
 
           <FilesSection
@@ -233,6 +244,7 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
                 !m.mimeType?.startsWith("image/") &&
                 !m.mimeType?.startsWith("video/"),
             )}
+            onSeeAll={() => setDetailView("files")}
           />
 
           <PollsSection
@@ -263,7 +275,11 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
       {/* Lightbox */}
       {lightboxIndex >= 0 && (
         <MediaLightbox
-          medias={mediaItems.filter(m => m.mimeType?.startsWith('image/') || m.mimeType?.startsWith('video/'))}
+          medias={mediaItems.filter(
+            (m) =>
+              m.mimeType?.startsWith("image/") ||
+              m.mimeType?.startsWith("video/"),
+          )}
           initialIndex={lightboxIndex}
           onClose={() => setLightboxIndex(-1)}
         />

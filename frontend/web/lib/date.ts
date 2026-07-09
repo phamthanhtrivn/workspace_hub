@@ -38,3 +38,48 @@ export function formatConversationTime(dateInput: string | number | Date): strin
 }
 
 export const formatTimeAgo = formatConversationTime;
+
+export function formatDividerTime(dateInput: string | number | Date): string {
+  const date = new Date(dateInput);
+  const now = new Date();
+  
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+  
+  // Check if it's today
+  if (
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear()
+  ) {
+    return "Hôm nay";
+  }
+  
+  // Check if it's yesterday
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear()
+  ) {
+    return "Hôm qua";
+  }
+  
+  // Otherwise, return Day of week, dd/mm/yyyy
+  const days = [
+    "Chủ Nhật",
+    "Thứ Hai",
+    "Thứ Ba",
+    "Thứ Tư",
+    "Thứ Năm",
+    "Thứ Sáu",
+    "Thứ Bảy",
+  ];
+  const dayName = days[date.getDay()];
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear();
+  
+  return `${dayName} ${day}/${month}/${year}`;
+}

@@ -6,6 +6,7 @@ import {
   Body,
   Headers,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { ConversationService } from './conversation.service';
 import { CreateDirectConversationDto } from './dto/create-direct-conversation.dto';
@@ -44,8 +45,13 @@ export class ConversationController {
     if (!userId) {
       throw new BadRequestException('Thiếu userId');
     }
-    if (!createGroupDto.participantIds || createGroupDto.participantIds.length === 0) {
-      throw new BadRequestException('Phải có ít nhất một thành viên khác trong nhóm');
+    if (
+      !createGroupDto.participantIds ||
+      createGroupDto.participantIds.length === 0
+    ) {
+      throw new BadRequestException(
+        'Phải có ít nhất một thành viên khác trong nhóm',
+      );
     }
 
     const conversation = await this.conversationService.createGroupConversation(
@@ -65,7 +71,8 @@ export class ConversationController {
       throw new BadRequestException('Thiếu userId');
     }
 
-    const conversations = await this.conversationService.getUserConversations(userId);
+    const conversations =
+      await this.conversationService.getUserConversations(userId);
 
     return {
       message: 'Lấy danh sách cuộc trò chuyện thành công',
@@ -74,11 +81,20 @@ export class ConversationController {
   }
 
   @Get(':id/messages')
-  async getConversationMessages(@Param('id') conversationId: string) {
+  async getConversationMessages(
+    @Param('id') conversationId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
     if (!conversationId) {
       throw new BadRequestException('Thiếu conversationId');
     }
-    const messages = await this.conversationService.getConversationMessages(conversationId);
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const messages = await this.conversationService.getConversationMessages(
+      conversationId,
+      cursor,
+      parsedLimit,
+    );
     return {
       message: 'Lấy lịch sử tin nhắn thành công',
       data: messages,
@@ -86,11 +102,20 @@ export class ConversationController {
   }
 
   @Get(':id/media')
-  async getConversationMedia(@Param('id') conversationId: string) {
+  async getConversationMedia(
+    @Param('id') conversationId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
     if (!conversationId) {
       throw new BadRequestException('Thiếu conversationId');
     }
-    const media = await this.conversationService.getConversationMedia(conversationId);
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const media = await this.conversationService.getConversationMedia(
+      conversationId,
+      cursor,
+      parsedLimit,
+    );
     return {
       message: 'Lấy dữ liệu media thành công',
       data: media,

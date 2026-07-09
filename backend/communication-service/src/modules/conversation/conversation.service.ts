@@ -131,13 +131,20 @@ export class ConversationService {
     });
   }
 
-  async getConversationMessages(conversationId: string) {
+  async getConversationMessages(
+    conversationId: string,
+    cursor?: string,
+    limit: number = 20,
+  ) {
     const messages = await this.prisma.message.findMany({
       where: {
         conversationId: conversationId,
       },
+      take: limit + 1,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
       orderBy: {
-        createdAt: 'asc',
+        createdAt: 'desc',
       },
       include: {
         reactions: true,
@@ -145,10 +152,19 @@ export class ConversationService {
       },
     });
 
-    return messages.map((message) => ({
-      ...message,
-      medias: mapMediaWithUrl(message.medias),
-    }));
+    let nextCursor: string | undefined = undefined;
+    if (messages.length > limit) {
+      const nextItem = messages.pop();
+      nextCursor = nextItem?.id;
+    }
+
+    return {
+      messages: messages.reverse().map((message) => ({
+        ...message,
+        medias: mapMediaWithUrl(message.medias),
+      })),
+      nextCursor,
+    };
   }
 
   async createGroupConversation(
@@ -228,13 +244,20 @@ export class ConversationService {
     });
   }
 
-  async getConversationMedia(conversationId: string) {
+  async getConversationMedia(
+    conversationId: string,
+    cursor?: string,
+    limit: number = 20,
+  ) {
     const medias = await this.prisma.media.findMany({
       where: {
         message: {
           conversationId,
         },
       },
+      take: limit + 1,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
       orderBy: {
         message: {
           createdAt: 'desc',
@@ -250,6 +273,15 @@ export class ConversationService {
       },
     });
 
-    return mapMediaWithUrl(medias);
+    let nextCursor: string | undefined = undefined;
+    if (medias.length > limit) {
+      const nextItem = medias.pop();
+      nextCursor = nextItem?.id;
+    }
+
+    return {
+      medias: mapMediaWithUrl(medias),
+      nextCursor,
+    };
   }
 }

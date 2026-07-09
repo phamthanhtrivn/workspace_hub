@@ -152,8 +152,7 @@ const ChatMessage = React.memo(function ChatMessage({
         {fileMedias.map((media: any) => (
           <div
             key={media.id}
-            onClick={(e) => handleDownload(e, media.fileUrl, media.name)}
-            className={`flex items-center justify-between gap-3  py-2 px-3 rounded-xl border ${isMe ? "bg-[#DBEAFE] border-blue-500/50 hover:bg-blue-600/50" : "bg-gray-50 border-gray-200 hover:bg-gray-100"} transition cursor-pointer`}
+            className={`flex items-center justify-between gap-3  py-2 px-3 rounded-xl border ${isMe ? "bg-[#DBEAFE] border-blue-500/50 " : "bg-gray-50 border-gray-200 hover:bg-gray-100"} transition `}
           >
             <div className="flex gap-3">
               <div
@@ -174,8 +173,9 @@ const ChatMessage = React.memo(function ChatMessage({
             </div>
             <div>
               <Download
+                onClick={(e) => handleDownload(e, media.fileUrl, media.name)}
                 size={16}
-                className={`ml-1 cursor-pointer ${isMe ? "text-gray-900" : "text-gray-500"}`}
+                className={`ml-1 cursor-pointer ${isMe ? "text-gray-900 hover:bg-blue-100 hover:text-blue-600 rounded-full" : "text-gray-500 hover:bg-gray-100 hover:text-gray-600 rounded-full"}`}
               />
             </div>
           </div>

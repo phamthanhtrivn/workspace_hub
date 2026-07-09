@@ -57,16 +57,25 @@ export const getUserConversations = async (): Promise<any> => {
 
 export const getConversationMessages = async (
   conversationId: string,
+  cursor?: string,
+  limit?: number,
 ): Promise<any> => {
   const response = await api.get(
     `/api/conversations/${conversationId}/messages`,
+    {
+      params: { cursor, limit },
+    },
   );
   return response.data;
 };
 
 export const getConversationMedia = async (
   conversationId: string,
+  cursor?: string,
+  limit?: number,
 ): Promise<any> => {
-  const response = await api.get(`/api/conversations/${conversationId}/media`);
+  const response = await api.get(`/api/conversations/${conversationId}/media`, {
+    params: { cursor, limit },
+  });
   return response.data;
 };

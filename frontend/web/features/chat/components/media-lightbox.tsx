@@ -151,9 +151,7 @@ export default function MediaLightbox({
     >
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-4 flex items-center justify-between z-10 bg-gradient-to-b from-black/50 to-transparent">
-        <span className="text-white text-sm">
-          {currentIndex + 1} / {medias.length} - {currentMedia.name}
-        </span>
+        <span className="text-white text-sm">{currentMedia.name}</span>
         <div className="flex items-center gap-2">
           <button
             onClick={handleDownload}
