@@ -99,7 +99,9 @@ export default function ChatArea({
 
   const allMessages = useMemo(() => {
     if (!data?.pages) return [...newSocketMessages].reverse();
-    const pagesMessages = data.pages.flatMap((page) => [...page.messages].reverse());
+    const pagesMessages = data.pages.flatMap((page) =>
+      [...page.messages].reverse(),
+    );
     return [...[...newSocketMessages].reverse(), ...pagesMessages];
   }, [data?.pages, newSocketMessages]);
 
@@ -239,10 +241,13 @@ export default function ChatArea({
         ref={chatContainerRef}
         className="flex-1 overflow-y-auto p-4 bg-[#e8e8e8] space-y-1 relative flex flex-col-reverse"
       >
-        <div ref={(el) => {
-          bottomBoundaryRef(el);
-          messagesEndRef.current = el;
-        }} className="h-1 shrink-0" />
+        <div
+          ref={(el) => {
+            bottomBoundaryRef(el);
+            messagesEndRef.current = el;
+          }}
+          className="h-1 shrink-0"
+        />
         {renderMessages()}
       </div>
 

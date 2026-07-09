@@ -123,6 +123,9 @@ export class ConversationService {
           orderBy: {
             createdAt: 'desc',
           },
+          include: {
+            medias: true,
+          },
         },
       },
       orderBy: {
