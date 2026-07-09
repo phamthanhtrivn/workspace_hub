@@ -14,7 +14,7 @@ export default function PollsSection({
     <div>
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <BarChart2 size={18} className="text-gray-500" />

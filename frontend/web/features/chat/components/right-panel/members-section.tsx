@@ -26,7 +26,7 @@ export default function MembersSection({
       <div>
         <button
           onClick={onToggle}
-          className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+          className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
         >
           <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
             <Users size={18} className="text-gray-500" />
@@ -53,7 +53,7 @@ export default function MembersSection({
                   onClick={() =>
                     !isMe && dispatch(setSelectedProfileUserId(member.userId))
                   }
-                  className={`flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition ${
+                  className={`flex items-center gap-3 p-2  hover:bg-gray-100 rounded-lg transition ${
                     !isMe ? "cursor-pointer" : ""
                   }`}
                 >

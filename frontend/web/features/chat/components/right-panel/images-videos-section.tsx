@@ -23,7 +23,7 @@ export default function ImagesVideosSection({
     <div>
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <ImageIcon size={18} className="text-gray-500" />
@@ -50,7 +50,7 @@ export default function ImagesVideosSection({
                 return (
                   <div
                     key={item.id || idx}
-                    className="aspect-square bg-gray-100 rounded-lg overflow-hidden relative group cursor-pointer"
+                    className="aspect-square bg-gray-100 rounded-lg border-2 border-gray-200 overflow-hidden relative group cursor-pointer"
                     onClick={() => onOpenLightbox(idx)}
                   >
                     {item.fileUrl ? (

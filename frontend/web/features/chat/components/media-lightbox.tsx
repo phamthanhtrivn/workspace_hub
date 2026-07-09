@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { saveAs } from "file-saver";
 import {
   X,
   ZoomIn,
@@ -136,21 +137,10 @@ export default function MediaLightbox({
     e.stopPropagation();
     try {
       const response = await fetch(currentMedia.fileUrl);
-
       const blob = await response.blob();
-
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = currentMedia.name;
-      document.body.appendChild(a);
-      a.click();
-
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (err) {
-      console.error(err);
+      saveAs(blob, currentMedia.name);
+    } catch (error) {
+      console.error("Download error:", error);
     }
   };
 
@@ -202,8 +192,12 @@ export default function MediaLightbox({
       <div
         className="relative w-full h-full flex items-center justify-center overflow-hidden"
         onWheel={currentMedia.type !== "VIDEO" ? handleWheel : undefined}
-        onMouseDown={currentMedia.type !== "VIDEO" ? handleMouseDown : undefined}
-        onMouseMove={currentMedia.type !== "VIDEO" ? handleMouseMove : undefined}
+        onMouseDown={
+          currentMedia.type !== "VIDEO" ? handleMouseDown : undefined
+        }
+        onMouseMove={
+          currentMedia.type !== "VIDEO" ? handleMouseMove : undefined
+        }
         onMouseUp={currentMedia.type !== "VIDEO" ? handleMouseUp : undefined}
         onMouseLeave={currentMedia.type !== "VIDEO" ? handleMouseUp : undefined}
       >
@@ -224,7 +218,8 @@ export default function MediaLightbox({
             className="cursor-pointer max-w-full max-h-full object-contain transition-transform duration-200 ease-out"
             style={{
               transform: `translate(${position.x}px, ${position.y}px) scale(${scale}) rotate(${rotation}deg)`,
-              cursor: scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+              cursor:
+                scale > 1 ? (isDragging ? "grabbing" : "grab") : "default",
             }}
             draggable={false}
             onClick={(e) => e.stopPropagation()}
@@ -251,39 +246,39 @@ export default function MediaLightbox({
           className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-black/50 px-6 py-3 rounded-full backdrop-blur-md z-10"
           onClick={(e) => e.stopPropagation()}
         >
-        <button
-          onClick={handleZoomOut}
-          className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-          title="Thu nhỏ"
-        >
-          <ZoomOut size={20} />
-        </button>
-        <span className="cursor-pointer text-white text-sm font-medium w-12 text-center">
-          {Math.round(scale * 100)}%
-        </span>
-        <button
-          onClick={handleZoomIn}
-          className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-          title="Phóng to"
-        >
-          <ZoomIn size={20} />
-        </button>
-        <div className="w-[1px] h-6 bg-white/20 mx-2"></div>
-        <button
-          onClick={handleRotate}
-          className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-          title="Xoay ảnh"
-        >
-          <RotateCcw size={18} style={{ transform: "scaleX(-1)" }} />
-        </button>
-        <button
-          onClick={handleReset}
-          className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-          title="Đặt lại"
-        >
-          <RotateCcw size={18} />
-        </button>
-      </div>
+          <button
+            onClick={handleZoomOut}
+            className="cursor-pointer p-2 text-white/80 hover:text-white transition"
+            title="Thu nhỏ"
+          >
+            <ZoomOut size={20} />
+          </button>
+          <span className="cursor-pointer text-white text-sm font-medium w-12 text-center">
+            {Math.round(scale * 100)}%
+          </span>
+          <button
+            onClick={handleZoomIn}
+            className="cursor-pointer p-2 text-white/80 hover:text-white transition"
+            title="Phóng to"
+          >
+            <ZoomIn size={20} />
+          </button>
+          <div className="w-[1px] h-6 bg-white/20 mx-2"></div>
+          <button
+            onClick={handleRotate}
+            className="cursor-pointer p-2 text-white/80 hover:text-white transition"
+            title="Xoay ảnh"
+          >
+            <RotateCcw size={18} style={{ transform: "scaleX(-1)" }} />
+          </button>
+          <button
+            onClick={handleReset}
+            className="cursor-pointer p-2 text-white/80 hover:text-white transition"
+            title="Đặt lại"
+          >
+            <RotateCcw size={18} />
+          </button>
+        </div>
       )}
     </div>
   );

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { UserProfileResponse } from "../types/chat.types";
 import { formatFileSize } from "@/lib/file";
 import MediaLightbox from "./media-lightbox";
+import { saveAs } from "file-saver";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 
@@ -128,16 +129,30 @@ const ChatMessage = React.memo(function ChatMessage({
     );
   };
 
+  const handleDownload = async (
+    e: React.MouseEvent,
+    url: string,
+    name: string,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      saveAs(blob, name);
+    } catch (error) {
+      console.error("Download error:", error);
+    }
+  };
+
   const renderFileMedias = () => {
     if (fileMedias.length === 0) return null;
     return (
       <div className="flex flex-col gap-2 max-w-full">
         {fileMedias.map((media: any) => (
-          <a
+          <div
             key={media.id}
-            href={media.fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            onClick={(e) => handleDownload(e, media.fileUrl, media.name)}
             className={`flex items-center justify-between gap-3  py-2 px-3 rounded-xl border ${isMe ? "bg-[#DBEAFE] border-blue-500/50 hover:bg-blue-600/50" : "bg-gray-50 border-gray-200 hover:bg-gray-100"} transition cursor-pointer`}
           >
             <div className="flex gap-3">
@@ -163,7 +178,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 className={`ml-1 cursor-pointer ${isMe ? "text-gray-900" : "text-gray-500"}`}
               />
             </div>
-          </a>
+          </div>
         ))}
       </div>
     );
@@ -174,9 +189,15 @@ const ChatMessage = React.memo(function ChatMessage({
       <div className={`flex items-end gap-2 ${isMe ? "justify-end" : ""}`}>
         {!isMe && (
           <div
-            onClick={() => showAvatar && msg.senderId && dispatch(setSelectedProfileUserId(msg.senderId))}
+            onClick={() =>
+              showAvatar &&
+              msg.senderId &&
+              dispatch(setSelectedProfileUserId(msg.senderId))
+            }
             className={`w-8 h-8 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold overflow-hidden ${
-              showAvatar ? "bg-gradient-to-br from-gray-100 to-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all" : ""
+              showAvatar
+                ? "bg-gradient-to-br from-gray-100 to-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all"
+                : ""
             }`}
           >
             {showAvatar ? (

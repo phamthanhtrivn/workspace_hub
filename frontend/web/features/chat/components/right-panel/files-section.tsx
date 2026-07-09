@@ -1,5 +1,6 @@
 import React from "react";
-import { FileText, ChevronDown, ChevronRight } from "lucide-react";
+import { FileText, ChevronDown, ChevronRight, Download } from "lucide-react";
+import { saveAs } from "file-saver";
 
 interface FilesSectionProps {
   isExpanded: boolean;
@@ -12,15 +13,31 @@ export default function FilesSection({
   onToggle,
   filesAndDocs,
 }: FilesSectionProps) {
+  const handleDownload = async (
+    e: React.MouseEvent,
+    url: string,
+    name: string,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      saveAs(blob, name);
+    } catch (error) {
+      console.error("Download error:", error);
+    }
+  };
+
   return (
     <div>
       <button
         onClick={onToggle}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
+        className="cursor-pointer w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition"
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <FileText size={18} className="text-gray-500" />
-          Tài liệu & Files
+          Files
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -40,16 +57,16 @@ export default function FilesSection({
               {filesAndDocs.map((item, idx) => (
                 <div
                   key={item.id || idx}
-                  className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition"
+                  className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition border-2 border-gray-200"
                 >
-                  <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-gray-500">
+                  <div className="w-10 h-10 bg-blue-500 text-white rounded flex items-center justify-center">
                     <FileText size={20} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-800 font-medium truncate">
                       {item.name}
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-gray-600">
                       {item.sizeBytes
                         ? (item.sizeBytes / 1024).toFixed(2)
                         : "0"}{" "}
@@ -57,28 +74,14 @@ export default function FilesSection({
                     </p>
                   </div>
                   {item.fileUrl && (
-                    <a
-                      href={item.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition"
+                    <button
+                      onClick={(e) =>
+                        handleDownload(e, item.fileUrl, item.name)
+                      }
+                      className="cursor-pointer p-1.5 text-gray-400 hover:text-blue-700 hover:bg-blue-100 rounded transition"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                    </a>
+                      <Download size={18} />
+                    </button>
                   )}
                 </div>
               ))}
