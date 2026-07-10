@@ -17,7 +17,26 @@ export class MessageService {
       mimeType: string;
       sizeBytes: number;
     }[],
-  ): Promise<Prisma.MessageGetPayload<{ include: { medias: true } }>> {
+    pollData?: {
+      title: string;
+      multipleChoice?: boolean;
+      allowAddOptions?: boolean;
+      anonymous?: boolean;
+      options: string[];
+    },
+    noteData?: {
+      title: string;
+      content: string;
+    },
+  ): Promise<
+    Prisma.MessageGetPayload<{
+      include: {
+        medias: true;
+        poll: { include: { options: true } };
+        note: true;
+      };
+    }>
+  > {
     return this.prisma.$transaction(async (tx) => {
       const message = await tx.message.create({
         data: {
@@ -31,8 +50,9 @@ export class MessageService {
                   create: medias.map((m) => {
                     let mediaType = 'FILE';
                     if (m.mimeType.startsWith('image/')) mediaType = 'IMAGE';
-                    else if (m.mimeType.startsWith('video/')) mediaType = 'VIDEO';
-                    
+                    else if (m.mimeType.startsWith('video/'))
+                      mediaType = 'VIDEO';
+
                     return {
                       name: m.name,
                       s3Key: m.s3Key,
@@ -43,9 +63,38 @@ export class MessageService {
                   }),
                 }
               : undefined,
+          poll:
+            type === MessageType.POLL && pollData
+              ? {
+                  create: {
+                    title: pollData.title,
+                    multipleChoice: pollData.multipleChoice ?? true,
+                    allowAddOptions: pollData.allowAddOptions ?? true,
+                    anonymous: pollData.anonymous ?? false,
+                    createdBy: senderId,
+                    options: {
+                      create: pollData.options.map((opt: string) => ({
+                        text: opt,
+                      })),
+                    },
+                  },
+                }
+              : undefined,
+          note:
+            type === MessageType.NOTE && noteData
+              ? {
+                  create: {
+                    title: noteData.title,
+                    content: noteData.content,
+                    createdBy: senderId,
+                  },
+                }
+              : undefined,
         },
         include: {
           medias: true,
+          poll: { include: { options: { include: { votes: true } } } },
+          note: true,
         },
       });
 
@@ -64,5 +113,43 @@ export class MessageService {
       select: { userId: true },
     });
     return members.map((m) => m.userId);
+  }
+
+  async addReaction(messageId: string, userId: string, emoji: string) {
+    return this.prisma.reaction.create({
+      data: {
+        messageId,
+        userId,
+        emoji,
+      },
+    });
+  }
+
+  async removeReaction(messageId: string, userId: string, emoji: string) {
+    return this.prisma.reaction.deleteMany({
+      where: {
+        messageId,
+        userId,
+        emoji,
+      },
+    });
+  }
+
+  async markAsRead(messageId: string, userId: string) {
+    return this.prisma.messageReadReceipt.upsert({
+      where: {
+        messageId_userId: {
+          messageId,
+          userId,
+        },
+      },
+      update: {
+        readAt: new Date(),
+      },
+      create: {
+        messageId,
+        userId,
+      },
+    });
   }
 }

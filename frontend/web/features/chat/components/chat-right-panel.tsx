@@ -12,6 +12,7 @@ import PollsSection from "./right-panel/polls-section";
 import NotesSection from "./right-panel/notes-section";
 import TasksSection from "./right-panel/tasks-section";
 import MediaDetailView from "./right-panel/media-detail-view";
+import PollDetailView from "./right-panel/poll-detail-view";
 import { X, Bell, BellOff, LogOut, User, Users } from "lucide-react";
 import Image from "next/image";
 import { useAppSelector, useAppDispatch } from "@/store/store";
@@ -30,7 +31,9 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "members",
   );
-  const [detailView, setDetailView] = useState<"images" | "files" | null>(null);
+  const [detailView, setDetailView] = useState<
+    "images" | "files" | "polls" | null
+  >(null);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const lastFetchedConversationId = useRef<string | null>(null);
@@ -142,12 +145,23 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
     }
   }, [activeConversation, dispatch]);
 
-  if (detailView) {
+  if (detailView === "images" || detailView === "files") {
     return (
-      <div className="w-full h-full bg-white border-l border-gray-200">
+      <div className="w-80 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeConversation!.id}
           type={detailView}
+          onBack={() => setDetailView(null)}
+        />
+      </div>
+    );
+  }
+
+  if (detailView === "polls") {
+    return (
+      <div className="w-80 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+        <PollDetailView
+          conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
         />
       </div>
@@ -250,6 +264,7 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
           <PollsSection
             isExpanded={expandedSection === "polls"}
             onToggle={() => toggleSection("polls")}
+            onSeeAll={() => setDetailView("polls")}
           />
 
           <NotesSection

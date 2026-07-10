@@ -125,6 +125,8 @@ export class ConversationService {
           },
           include: {
             medias: true,
+            poll: true,
+            note: true,
           },
         },
       },
@@ -152,6 +154,9 @@ export class ConversationService {
       include: {
         reactions: true,
         medias: true,
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        readReceipts: true,
       },
     });
 

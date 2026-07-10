@@ -20,6 +20,8 @@ import { toast } from "react-toastify";
 
 interface ChatInputProps {
   onSendMessage?: (content: string, media?: any[]) => void;
+  onCreatePoll?: () => void;
+  onCreateNote?: () => void;
 }
 
 interface UploadingMedia {
@@ -34,6 +36,8 @@ interface UploadingMedia {
 
 const ChatInput = React.memo(function ChatInput({
   onSendMessage,
+  onCreatePoll,
+  onCreateNote,
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [showOptions, setShowOptions] = useState(false);
@@ -265,13 +269,19 @@ const ChatInput = React.memo(function ChatInput({
               <button className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left">
                 <CheckSquare size={16} className="text-green-500" /> Task
               </button>
-              <button className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left">
+              <button 
+                onClick={() => { setShowOptions(false); onCreatePoll?.(); }}
+                className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+              >
                 <BarChart2 size={16} className="text-purple-500" /> Poll
               </button>
               <button className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left">
                 <Calendar size={16} className="text-orange-500" /> Event
               </button>
-              <button className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left">
+              <button 
+                onClick={() => { setShowOptions(false); onCreateNote?.(); }}
+                className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+              >
                 <FileText size={16} className="text-yellow-500" /> Note
               </button>
             </div>

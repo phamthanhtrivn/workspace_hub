@@ -11,14 +11,17 @@ import {
 import ChatInput from "./chat-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./chat-message";
-import { useAppSelector } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 import { getConversationMessages } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import TimeDivider from "./time-divider";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
+import CreatePollModal from "./create-poll-modal";
+import CreateNoteModal from "./create-note-modal";
+import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
@@ -34,10 +37,14 @@ export default function ChatArea({
   );
   const auth = useAppSelector((state) => state.auth);
   const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
 
   const [newSocketMessages, setNewSocketMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [isPollModalOpen, setIsPollModalOpen] = useState(false);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery({
@@ -89,10 +96,111 @@ export default function ChatArea({
         }
       };
 
+      const updateMessageInState = (
+        messageId: string,
+        updater: (msg: any) => any,
+      ) => {
+        // Update newSocketMessages
+        setNewSocketMessages((prev) =>
+          prev.map((msg) => (msg.id === messageId ? updater(msg) : msg)),
+        );
+
+        // Update react-query cache
+        queryClient.setQueryData(
+          ["messages", activeConversation.id],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              pages: oldData.pages.map((page: any) => ({
+                ...page,
+                messages: page.messages.map((msg: any) =>
+                  msg.id === messageId ? updater(msg) : msg,
+                ),
+              })),
+            };
+          },
+        );
+      };
+
+      const handleReactionUpdated = (data: any) => {
+        if (data.conversationId === activeConversation.id) {
+          updateMessageInState(data.messageId, (msg) => {
+            const reactions = msg.reactions ? [...msg.reactions] : [];
+            if (data.action === "add") {
+              reactions.push({ userId: data.userId, emoji: data.emoji });
+            } else {
+              const idx = reactions.findIndex(
+                (r: any) => r.userId === data.userId && r.emoji === data.emoji,
+              );
+              if (idx !== -1) reactions.splice(idx, 1);
+            }
+            return { ...msg, reactions };
+          });
+        }
+      };
+
+      const handleMessageRead = (data: any) => {
+        if (data.conversationId === activeConversation.id) {
+          updateMessageInState(data.messageId, (msg) => {
+            const readReceipts = msg.readReceipts ? [...msg.readReceipts] : [];
+            const idx = readReceipts.findIndex(
+              (r: any) => r.userId === data.userId,
+            );
+            if (idx === -1) {
+              readReceipts.push({ userId: data.userId, readAt: data.readAt });
+            } else {
+              readReceipts[idx].readAt = data.readAt;
+            }
+            return { ...msg, readReceipts };
+          });
+        }
+      };
+
+      const handlePollUpdated = (data: any) => {
+        if (data.conversationId === activeConversation.id) {
+          updateMessageInState(data.messageId, (msg) => {
+            return { ...msg, poll: data.poll };
+          });
+        }
+      };
+
+      const handleMessageMoved = (msg: any) => {
+        if (msg.conversationId === activeConversation.id) {
+          // Xoá tin nhắn cũ
+          setNewSocketMessages((prev) => {
+            const filtered = prev.filter((m) => m.id !== msg.id);
+            return [msg, ...filtered];
+          });
+
+          queryClient.setQueryData(
+            ["messages", activeConversation.id],
+            (oldData: any) => {
+              if (!oldData) return oldData;
+              return {
+                ...oldData,
+                pages: oldData.pages.map((page: any) => ({
+                  ...page,
+                  messages: page.messages.filter((m: any) => m.id !== msg.id),
+                })),
+              };
+            },
+          );
+        }
+      };
+
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
+      socket.on(ChatEvent.REACTION_UPDATED, handleReactionUpdated);
+      socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
+      socket.on(ChatEvent.POLL_UPDATED, handlePollUpdated);
+      socket.on(ChatEvent.MESSAGE_MOVED, handleMessageMoved);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
+        socket.off(ChatEvent.REACTION_UPDATED, handleReactionUpdated);
+        socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
+        socket.off(ChatEvent.POLL_UPDATED, handlePollUpdated);
+        socket.off(ChatEvent.MESSAGE_MOVED, handleMessageMoved);
       };
     }
   }, [activeConversation?.id, auth.userId]);
@@ -122,6 +230,86 @@ export default function ChatArea({
     },
     [activeConversation?.id],
   );
+
+  const handleCreatePoll = (data: any) => {
+    if (!activeConversation) return;
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.emit(ChatEvent.SEND_MESSAGE, {
+        conversationId: activeConversation.id,
+        content: "",
+        type: "POLL",
+        pollData: data,
+      });
+    }
+  };
+
+  const handleCreateNote = (data: any) => {
+    if (!activeConversation) return;
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.emit(ChatEvent.SEND_MESSAGE, {
+        conversationId: activeConversation.id,
+        content: "",
+        type: "NOTE",
+        noteData: data,
+      });
+    }
+  };
+
+  const handleReactMessage = useCallback((messageId: string, emoji: string, action: "add" | "remove") => {
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.emit(ChatEvent.REACT_MESSAGE, {
+        conversationId: activeConversation?.id,
+        messageId,
+        emoji,
+        action,
+      });
+    }
+  }, [activeConversation?.id]);
+
+  const handlePollVoteMessage = useCallback((messageId: string, pollOptionId: string) => {
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.emit(ChatEvent.VOTE_POLL, {
+        conversationId: activeConversation?.id,
+        messageId,
+        pollOptionId,
+      });
+    }
+  }, [activeConversation?.id]);
+
+  const handlePollAddOptionMessage = useCallback((messageId: string, text: string) => {
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.emit(ChatEvent.ADD_POLL_OPTION, {
+        conversationId: activeConversation?.id,
+        messageId,
+        text,
+      });
+    }
+  }, [activeConversation?.id]);
+
+  const handlePollEditMessage = useCallback((messageId: string, title: string, multipleChoice: boolean, allowAddOptions: boolean, anonymous: boolean, isLocked: boolean) => {
+    const socket = socketService.getSocket();
+    if (socket) {
+      socket.emit(ChatEvent.EDIT_POLL, {
+        conversationId: activeConversation?.id,
+        messageId,
+        title,
+        multipleChoice,
+        allowAddOptions,
+        anonymous,
+        isLocked,
+      });
+    }
+  }, [activeConversation?.id]);
+
+  const handleReadClick = useCallback((userId: string) => {
+    dispatch(setSelectedProfileUserId(userId));
+  }, [dispatch]);
+
 
   const renderMessages = () => {
     if (isLoading) {
@@ -181,8 +369,32 @@ export default function ChatArea({
           isMe={isMe}
           showAvatar={showAvatar}
           memberProfile={!isMe ? memberProfiles?.[msg.senderId] || null : null}
+          onReact={handleReactMessage}
+          onPollVote={handlePollVoteMessage}
+          onPollAddOption={handlePollAddOptionMessage}
+          onPollEdit={handlePollEditMessage}
+          onReadClick={handleReadClick}
         />,
       );
+
+      // Trigger read message if it's not mine and not read yet
+      if (!isMe && msg.id && activeConversation?.id) {
+        // Optimistically check if I already read it
+        const hasRead = msg.readReceipts?.some(
+          (r: any) => r.userId === auth.userId,
+        );
+        if (!hasRead) {
+          // Send read receipt if it's visible. For simplicity, just send it if rendered.
+          // We can use an IntersectionObserver for real tracking, but here we just emit when rendering if it's recent.
+          const socket = socketService.getSocket();
+          if (socket) {
+            socket.emit(ChatEvent.READ_MESSAGE, {
+              conversationId: activeConversation.id,
+              messageId: msg.id,
+            });
+          }
+        }
+      }
 
       // Determine TimeDivider (visually ABOVE `msg`, so pushed AFTER `msg` in flex-col-reverse)
       let showDividerAbove = false;
@@ -261,7 +473,23 @@ export default function ChatArea({
       )}
 
       {/* Input Area */}
-      <ChatInput onSendMessage={handleSendMessage} />
+      <ChatInput
+        onSendMessage={handleSendMessage}
+        onCreatePoll={() => setIsPollModalOpen(true)}
+        onCreateNote={() => setIsNoteModalOpen(true)}
+      />
+
+      <CreatePollModal
+        isOpen={isPollModalOpen}
+        onClose={() => setIsPollModalOpen(false)}
+        onSubmit={handleCreatePoll}
+      />
+
+      <CreateNoteModal
+        isOpen={isNoteModalOpen}
+        onClose={() => setIsNoteModalOpen(false)}
+        onSubmit={handleCreateNote}
+      />
     </div>
   );
 }

@@ -7,4 +7,14 @@ export enum ChatEvent {
   INVITATION_ACCEPTED = 'invitation_accepted',
   INVITATION_DECLINED = 'invitation_declined',
   MEDIA_UPDATED = 'media_updated',
+  POLL_UPDATED = 'poll_updated',
+  VOTE_POLL = 'vote_poll',
+  ADD_POLL_OPTION = 'add_poll_option',
+  EDIT_POLL = 'edit_poll',
+  MESSAGE_MOVED = 'message_moved',
+  NOTE_UPDATED = 'note_updated',
+  REACT_MESSAGE = 'react_message',
+  REACTION_UPDATED = 'reaction_updated',
+  READ_MESSAGE = 'read_message', // event from client to server to mark one or more messages as read
+  MESSAGE_READ = 'message_read', // event from server to client to notify that a message has been read
 }

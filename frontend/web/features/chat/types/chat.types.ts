@@ -1,3 +1,5 @@
+export const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
+
 export interface UserSearchResponse {
   id: string;
   email: string;
@@ -51,7 +53,7 @@ export interface ConversationResponse {
   messages?: any[];
 }
 
-export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED';
+export type InvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
 export interface GroupInvitation {
   id: string;

@@ -1,5 +1,5 @@
 import React from "react";
-import { Image as ImageIcon, FileText, Video } from "lucide-react";
+import { Image as ImageIcon, FileText, Video, BarChart2 } from "lucide-react";
 import { UserProfileResponse } from "../types/chat.types";
 
 interface MessageSnippetProps {
@@ -40,6 +40,26 @@ const MessageSnippet = React.memo(function MessageSnippet({
     const profile = memberProfiles[latestMessage.senderId];
     const fullName = profile?.fullName || "User";
     prefix = `${fullName}: `;
+  }
+
+  if (latestMessage.type === "POLL") {
+    return (
+      <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+        {prefix}
+        <BarChart2 size={14} className="inline-block" />
+        <span>Bình chọn {latestMessage.poll.title}</span>
+      </p>
+    );
+  }
+
+  if (latestMessage.type === "NOTE") {
+    return (
+      <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+        {prefix}
+        <FileText size={14} className="inline-block" />
+        <span>Đã tạo ghi chú</span>
+      </p>
+    );
   }
 
   const hasText =

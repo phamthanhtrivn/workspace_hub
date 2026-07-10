@@ -105,6 +105,7 @@ model Message {
   medias           Media[]
   note             Note?
   poll             Poll?
+  readReceipts     MessageReadReceipt[]
 
   @@map("messages")
 }
@@ -155,6 +156,7 @@ model Poll {
   multipleChoice  Boolean  @map("multiple_choice")
   allowAddOptions Boolean  @map("allow_add_options")
   anonymous       Boolean
+  isLocked        Boolean  @default(false) @map("is_locked")
   expiresAt       DateTime? @map("expires_at")
   createdBy       String   @map("created_by") @db.Uuid
   createdAt       DateTime @default(now()) @map("created_at")
@@ -168,8 +170,9 @@ model Poll {
 
 model PollOption {
   id     String @id @default(uuid()) @db.Uuid
-  pollId String @map("poll_id") @db.Uuid
-  text   String
+  pollId    String @map("poll_id") @db.Uuid
+  text      String
+  createdBy String? @map("created_by") @db.Uuid
 
   poll   Poll @relation(fields: [pollId], references: [id])
   votes  PollVote[]
@@ -208,4 +211,16 @@ model GroupInvitation {
 
   @@unique([conversationId, invitedUserId])
   @@map("group_invitations")
+}
+
+model MessageReadReceipt {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  readAt    DateTime @default(now()) @map("read_at")
+
+  message   Message  @relation(fields: [messageId], references: [id])
+  
+  @@unique([messageId, userId])
+  @@map("message_read_receipts")
 }

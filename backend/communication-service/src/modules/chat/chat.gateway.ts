@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatEvent } from './chat.events';
 import { MessageService } from '../message/message.service';
+import { PollService } from '../poll/poll.service';
 import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
 
@@ -24,7 +25,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly messageService: MessageService) {}
+  constructor(
+    private readonly messageService: MessageService,
+    private readonly pollService: PollService,
+  ) {}
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token || client.handshake.query?.token;
@@ -72,6 +76,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         mimeType: string;
         sizeBytes: number;
       }[];
+      pollData?: {
+        title: string;
+        multipleChoice?: boolean;
+        allowAddOptions?: boolean;
+        anonymous?: boolean;
+        options: string[];
+      };
+      noteData?: {
+        title: string;
+        content: string;
+      };
     },
     @ConnectedSocket() client: Socket,
   ) {
@@ -79,7 +94,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (
       !userId ||
       !data.conversationId ||
-      (data.content === undefined && (!data.medias || data.medias.length === 0))
+      (data.content === undefined && (!data.medias || data.medias.length === 0) && !data.pollData && !data.noteData)
     ) {
       return { status: 'error', message: 'Invalid data' };
     }
@@ -91,6 +106,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.content || '',
         data.type || MessageType.TEXT,
         data.medias,
+        data.pollData,
+        data.noteData,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
@@ -110,6 +127,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           conversationId: data.conversationId,
           messageId: message.id,
           media: messageWithUrls.medias,
+        });
+      }
+
+      if (data.pollData && messageWithUrls.poll) {
+        this.server.to(targetRooms).emit(ChatEvent.POLL_UPDATED, {
+          conversationId: data.conversationId,
+          messageId: message.id,
+          poll: messageWithUrls.poll,
+        });
+      }
+
+      if (data.noteData && messageWithUrls.note) {
+        this.server.to(targetRooms).emit(ChatEvent.NOTE_UPDATED, {
+          conversationId: data.conversationId,
+          messageId: message.id,
+          note: messageWithUrls.note,
         });
       }
 
@@ -147,6 +180,131 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       console.error(error);
       return { status: 'error', message: 'Failed to send system message' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.REACT_MESSAGE)
+  async handleReactMessage(
+    @MessageBody() data: { conversationId: string; messageId: string; emoji: string; action: 'add' | 'remove' },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId || !data.emoji) return;
+
+    try {
+      if (data.action === 'add') {
+        await this.messageService.addReaction(data.messageId, userId, data.emoji);
+      } else {
+        await this.messageService.removeReaction(data.messageId, userId, data.emoji);
+      }
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
+        conversationId: data.conversationId,
+        messageId: data.messageId,
+        userId,
+        emoji: data.emoji,
+        action: data.action,
+      });
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to update reaction' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.VOTE_POLL)
+  async handleVotePoll(
+    @MessageBody() data: { conversationId: string; messageId: string; pollOptionId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId || !data.pollOptionId) return;
+
+    try {
+      const updatedMessage = await this.pollService.votePoll(data.messageId, data.pollOptionId, userId);
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to vote poll' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.ADD_POLL_OPTION)
+  async handleAddPollOption(
+    @MessageBody() data: { conversationId: string; messageId: string; text: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId || !data.text) return;
+
+    try {
+      const updatedMessage = await this.pollService.addPollOption(data.messageId, data.text, userId);
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to add poll option' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.EDIT_POLL)
+  async handleEditPoll(
+    @MessageBody() data: { conversationId: string; messageId: string; title: string; multipleChoice: boolean; allowAddOptions: boolean; anonymous?: boolean; isLocked?: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId || !data.title) return;
+
+    try {
+      const updatedMessage = await this.pollService.updatePoll(data.messageId, data.title, data.multipleChoice, data.allowAddOptions, data.anonymous, data.isLocked);
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to edit poll' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.READ_MESSAGE)
+  async handleReadMessage(
+    @MessageBody() data: { conversationId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId) return;
+
+    try {
+      const readReceipt = await this.messageService.markAsRead(data.messageId, userId);
+      
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
+        conversationId: data.conversationId,
+        messageId: data.messageId,
+        userId,
+        readAt: readReceipt.readAt,
+      });
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to mark as read' };
     }
   }
 
