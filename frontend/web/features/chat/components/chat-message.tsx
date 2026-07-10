@@ -1,16 +1,24 @@
 import React, { useState, useMemo } from "react";
-import { User, FileText, Download, Play } from "lucide-react";
+import { MessageOptionsDropdown } from "./message-options-dropdown";
+import { ReadReceiptDetailModal } from "./read-receipt-detail-modal";
+import {
+  FileText,
+  Play,
+  Download,
+  User,
+  SmilePlus,
+  MoreHorizontal,
+} from "lucide-react";
 import Image from "next/image";
 import { QUICK_EMOJIS, UserProfileResponse } from "../types/chat.types";
 import { formatFileSize } from "@/lib/file";
-import MediaLightbox from "./media-lightbox";
 import { saveAs } from "file-saver";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import PollMessage from "./poll-message";
 import NoteMessage from "./note-message";
 import ReactionDetailModal from "./reaction-detail-modal";
-import { SmilePlus } from "lucide-react";
+import MediaLightbox from "./media-lightbox";
 
 interface ChatMessageProps {
   msg: any;
@@ -51,8 +59,20 @@ const ChatMessage = React.memo(function ChatMessage({
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [isReactionDetailOpen, setIsReactionDetailOpen] = useState(false);
+
+  // Message Options state
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const [optionsMenuPosition, setOptionsMenuPosition] = useState({
+    top: 0,
+    left: 0,
+  });
+
+  // Read Receipts Detail state
+  const [isReadReceiptDetailOpen, setIsReadReceiptDetailOpen] = useState(false);
+
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth);
+  const { memberProfiles } = useAppSelector((state) => state.chat);
 
   const time = useMemo(() => {
     return new Date(msg.createdAt).toLocaleTimeString([], {
@@ -281,7 +301,7 @@ const ChatMessage = React.memo(function ChatMessage({
             <button
               key={emoji}
               onClick={() => handleReactionClick(emoji)}
-              className={`flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full border transition-colors ${userReacted ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+              className={`cursor-pointer flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full border transition-colors ${userReacted ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"}`}
             >
               <span>{emoji}</span>
               <span className="font-medium">{count}</span>
@@ -290,7 +310,7 @@ const ChatMessage = React.memo(function ChatMessage({
         })}
         <button
           onClick={() => setIsReactionDetailOpen(true)}
-          className="text-[10px] text-gray-500 hover:underline px-1 py-0.5"
+          className="cursor-pointer text-[10px] text-gray-500 hover:underline px-1 py-0.5"
         >
           Chi tiết
         </button>
@@ -298,37 +318,48 @@ const ChatMessage = React.memo(function ChatMessage({
     );
   };
 
-  console.log(msg.readReceipts);
-
   const renderReadReceipts = () => {
-    if (!msg.readReceipts || msg.readReceipts.length === 0 || !isMe)
-      return null;
-    // Only show for the sender
+    if (!msg.readReceipts || msg.readReceipts.length === 0) return null;
+
+    const otherReaders = msg.readReceipts.filter(
+      (r: any) => r.userId !== currentUser?.userId,
+    );
+
+    if (otherReaders.length === 0) return null;
+
     return (
       <div className="flex items-center gap-1 -space-x-1 mt-0.5 self-end">
-        {msg.readReceipts.slice(0, 5).map((receipt: any, idx: number) => (
+        {otherReaders.slice(0, 5).map((receipt: any, idx: number) => {
+          const readerProfile = memberProfiles?.[receipt.userId];
+          return (
+            <div
+              key={idx}
+              onClick={() => setIsReadReceiptDetailOpen(true)}
+              className="w-3.5 h-3.5 rounded-full bg-gray-200 border border-white cursor-pointer hover:z-10 overflow-hidden relative"
+              title={`${readerProfile?.fullName || "Người dùng"} đã xem lúc ${new Date(receipt.readAt).toLocaleTimeString()}`}
+            >
+              {readerProfile?.avatarUrl ? (
+                <img
+                  src={readerProfile.avatarUrl}
+                  alt="Avatar"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-500 font-medium bg-gradient-to-br from-gray-100 to-gray-200">
+                  {(readerProfile?.fullName || "U").charAt(0).toUpperCase()}
+                </div>
+              )}
+            </div>
+          );
+        })}
+        {otherReaders.length > 5 && (
           <div
-            key={idx}
-            onClick={() => onReadClick?.(receipt.userId)}
-            className="w-3.5 h-3.5 rounded-full bg-gray-200 border border-white cursor-pointer hover:z-10 overflow-hidden relative"
-            title={`Đã xem lúc ${new Date(receipt.readAt).toLocaleTimeString()}`}
+            onClick={() => setIsReadReceiptDetailOpen(true)}
+            className="w-3.5 h-3.5 rounded-full bg-gray-100 border border-white cursor-pointer flex items-center justify-center hover:z-10 relative z-0"
           >
-            {receipt.user?.avatarUrl ? (
-              <img
-                src={receipt.user.avatarUrl}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-300 text-[8px] font-bold text-white">
-                {(receipt.user?.name || "?").charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-        ))}
-        {msg.readReceipts.length > 5 && (
-          <div className="w-3.5 h-3.5 rounded-full bg-gray-100 border border-white flex items-center justify-center text-[7px] text-gray-500 font-medium">
-            +{msg.readReceipts.length - 5}
+            <span className="text-[7px] text-gray-600 font-medium leading-none">
+              +{otherReaders.length - 5}
+            </span>
           </div>
         )}
       </div>
@@ -388,14 +419,14 @@ const ChatMessage = React.memo(function ChatMessage({
               >
                 <p className="whitespace-pre-wrap">{msg.content}</p>
 
-                {/* Reaction Picker Button */}
+                {/* Reaction & Options Buttons */}
                 <div
-                  className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "-left-10" : "-right-10"} opacity-0 group-hover/bubble:opacity-100 transition-opacity`}
+                  className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "right-full mr-2" : "left-full ml-2"} opacity-0 group-hover/bubble:opacity-100 transition-opacity z-10`}
                 >
                   <div className="relative">
                     <button
                       onClick={() => setShowReactionPicker(!showReactionPicker)}
-                      className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm"
+                      className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
                     >
                       <SmilePlus size={16} />
                     </button>
@@ -403,13 +434,16 @@ const ChatMessage = React.memo(function ChatMessage({
                     {/* Quick Emojis Popup */}
                     {showReactionPicker && (
                       <div
-                        className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "right-full mr-2" : "left-full ml-2"} bg-white border border-gray-200 rounded-full shadow-lg p-1.5 flex gap-1 z-20`}
+                        className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "right-full mr-2" : "left-full ml-2"} bg-white border border-gray-200 rounded-full shadow-lg p-1.5 flex gap-1`}
                       >
                         {QUICK_EMOJIS.map((emoji) => (
                           <button
                             key={emoji}
-                            onClick={() => handleReactionClick(emoji)}
-                            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-colors"
+                            onClick={() => {
+                              handleReactionClick(emoji);
+                              setShowReactionPicker(false);
+                            }}
+                            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
                           >
                             {emoji}
                           </button>
@@ -417,6 +451,22 @@ const ChatMessage = React.memo(function ChatMessage({
                       </div>
                     )}
                   </div>
+
+                  <button
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      setOptionsMenuPosition({
+                        top: rect.bottom + window.scrollY,
+                        left: isMe
+                          ? rect.right + window.scrollX
+                          : rect.left + window.scrollX,
+                      });
+                      setIsOptionsMenuOpen(true);
+                    }}
+                    className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
+                  >
+                    <MoreHorizontal size={16} />
+                  </button>
                 </div>
               </div>
             )}
@@ -436,8 +486,34 @@ const ChatMessage = React.memo(function ChatMessage({
       <ReactionDetailModal
         isOpen={isReactionDetailOpen}
         onClose={() => setIsReactionDetailOpen(false)}
-        reactions={msg.reactions || []}
-        onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
+        reactions={(msg.reactions || []).map((r: any) => {
+          const profile = memberProfiles?.[r.userId];
+          return {
+            ...r,
+            user: profile
+              ? { name: profile.fullName, avatarUrl: profile.avatarUrl }
+              : undefined,
+          };
+        })}
+      />
+
+      <MessageOptionsDropdown
+        isOpen={isOptionsMenuOpen}
+        onClose={() => setIsOptionsMenuOpen(false)}
+        position={optionsMenuPosition}
+        isMe={isMe}
+        onViewReadReceipts={() => setIsReadReceiptDetailOpen(true)}
+      />
+
+      <ReadReceiptDetailModal
+        isOpen={isReadReceiptDetailOpen}
+        onClose={() => setIsReadReceiptDetailOpen(false)}
+        readers={(msg.readReceipts || [])
+          .filter((r: any) => r.userId !== currentUser?.userId)
+          .map((r: any) => ({
+            ...r,
+            user: memberProfiles?.[r.userId],
+          }))}
       />
 
       {previewIndex !== null && visualMedias.length > 0 && (

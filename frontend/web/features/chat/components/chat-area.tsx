@@ -126,14 +126,12 @@ export default function ChatArea({
       const handleReactionUpdated = (data: any) => {
         if (data.conversationId === activeConversation.id) {
           updateMessageInState(data.messageId, (msg) => {
-            const reactions = msg.reactions ? [...msg.reactions] : [];
-            if (data.action === "add") {
+            let reactions = msg.reactions ? [...msg.reactions] : [];
+            // Remove any existing reaction from this user
+            reactions = reactions.filter((r: any) => r.userId !== data.userId);
+            
+            if (data.action === "add" || data.action === "update") {
               reactions.push({ userId: data.userId, emoji: data.emoji });
-            } else {
-              const idx = reactions.findIndex(
-                (r: any) => r.userId === data.userId && r.emoji === data.emoji,
-              );
-              if (idx !== -1) reactions.splice(idx, 1);
             }
             return { ...msg, reactions };
           });

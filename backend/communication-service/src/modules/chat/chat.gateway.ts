@@ -194,8 +194,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId || !data.messageId || !data.conversationId || !data.emoji) return;
 
     try {
+      let finalAction = data.action;
+      let finalEmoji = data.emoji;
+
       if (data.action === 'add') {
-        await this.messageService.addReaction(data.messageId, userId, data.emoji);
+        const result = await this.messageService.addReaction(data.messageId, userId, data.emoji);
+        finalAction = result.action as any;
+        finalEmoji = result.emoji;
       } else {
         await this.messageService.removeReaction(data.messageId, userId, data.emoji);
       }
@@ -207,8 +212,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         conversationId: data.conversationId,
         messageId: data.messageId,
         userId,
-        emoji: data.emoji,
-        action: data.action,
+        emoji: finalEmoji,
+        action: finalAction,
       });
       return { status: 'success' };
     } catch (error) {

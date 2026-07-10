@@ -116,13 +116,30 @@ export class MessageService {
   }
 
   async addReaction(messageId: string, userId: string, emoji: string) {
-    return this.prisma.reaction.create({
-      data: {
-        messageId,
-        userId,
-        emoji,
-      },
+    const existing = await this.prisma.reaction.findFirst({
+      where: { messageId, userId },
     });
+
+    if (existing) {
+      if (existing.emoji === emoji) {
+        // Toggle off
+        await this.prisma.reaction.delete({ where: { id: existing.id } });
+        return { action: 'remove', emoji };
+      } else {
+        // Update emoji
+        await this.prisma.reaction.update({
+          where: { id: existing.id },
+          data: { emoji },
+        });
+        return { action: 'update', emoji };
+      }
+    } else {
+      // Create new
+      await this.prisma.reaction.create({
+        data: { messageId, userId, emoji },
+      });
+      return { action: 'add', emoji };
+    }
   }
 
   async removeReaction(messageId: string, userId: string, emoji: string) {
