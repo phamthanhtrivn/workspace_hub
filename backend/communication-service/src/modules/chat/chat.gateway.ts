@@ -319,7 +319,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId || !data.messageId || !data.conversationId) return;
 
     try {
-      const readReceipt = await this.messageService.markAsRead(data.messageId, userId);
+      const readReceipt = await this.messageService.markConversationAsRead(data.conversationId, userId, data.messageId);
       
       const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
       const targetRooms = [data.conversationId, ...memberUserIds];
@@ -328,7 +328,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         conversationId: data.conversationId,
         messageId: data.messageId,
         userId,
-        readAt: readReceipt.readAt,
+        readAt: readReceipt.lastReadAt,
       });
       return { status: 'success' };
     } catch (error) {

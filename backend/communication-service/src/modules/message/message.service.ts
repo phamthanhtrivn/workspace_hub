@@ -152,20 +152,17 @@ export class MessageService {
     });
   }
 
-  async markAsRead(messageId: string, userId: string) {
-    return this.prisma.messageReadReceipt.upsert({
+  async markConversationAsRead(conversationId: string, userId: string, messageId: string) {
+    return this.prisma.conversationMember.update({
       where: {
-        messageId_userId: {
-          messageId,
+        conversationId_userId: {
+          conversationId,
           userId,
         },
       },
-      update: {
-        readAt: new Date(),
-      },
-      create: {
-        messageId,
-        userId,
+      data: {
+        lastReadMessageId: messageId,
+        lastReadAt: new Date(),
       },
     });
   }

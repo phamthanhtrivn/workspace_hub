@@ -7,6 +7,7 @@ interface MessageSnippetProps {
   currentUserId: string | null;
   isDirect: boolean;
   memberProfiles: Record<string, UserProfileResponse>;
+  isUnread?: boolean;
 }
 
 const MessageSnippet = React.memo(function MessageSnippet({
@@ -14,10 +15,12 @@ const MessageSnippet = React.memo(function MessageSnippet({
   currentUserId,
   isDirect,
   memberProfiles,
+  isUnread = false,
 }: MessageSnippetProps) {
+  const textClass = isUnread ? "text-gray-900 font-semibold" : "text-gray-500";
   if (!latestMessage) {
     return (
-      <p className="text-sm text-gray-500 truncate">
+      <p className={`text-sm truncate ${textClass}`}>
         {isDirect ? "Bắt đầu nhắn tin ngay..." : "Nhóm trò chuyện"}
       </p>
     );
@@ -25,7 +28,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
 
   if (latestMessage.type === "SYSTEM") {
     return (
-      <p className="text-sm text-gray-500 truncate italic">
+      <p className={`text-sm truncate italic ${textClass}`}>
         {latestMessage.content}
       </p>
     );
@@ -44,7 +47,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
 
   if (latestMessage.type === "POLL") {
     return (
-      <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+      <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
         {prefix}
         <BarChart2 size={14} className="inline-block" />
         <span>Bình chọn {latestMessage.poll.title}</span>
@@ -54,7 +57,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
 
   if (latestMessage.type === "NOTE") {
     return (
-      <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+      <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
         {prefix}
         <FileText size={14} className="inline-block" />
         <span>Đã tạo ghi chú</span>
@@ -67,7 +70,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
 
   if (hasText) {
     return (
-      <p className="text-sm text-gray-500 truncate">
+      <p className={`text-sm truncate ${textClass}`}>
         {prefix}
         {latestMessage.content}
       </p>
@@ -83,7 +86,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
 
     if (isImage) {
       return (
-        <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+        <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
           {prefix}
           <ImageIcon size={14} className="inline-block" />
           <span>Đã gửi hình ảnh</span>
@@ -93,7 +96,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
 
     if (isVideo) {
       return (
-        <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+        <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
           {prefix}
           <Video size={14} className="inline-block" />
           <span>Đã gửi video</span>
@@ -103,7 +106,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
   }
 
   return (
-    <p className="text-sm text-gray-500 truncate flex items-center gap-1">
+    <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
       {prefix}
       <FileText size={14} className="inline-block" />
       <span>Đã gửi tệp</span>

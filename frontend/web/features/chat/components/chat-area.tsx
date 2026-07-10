@@ -21,7 +21,7 @@ import TimeDivider from "./time-divider";
 import { ChevronDown, Loader2 } from "lucide-react";
 import CreatePollModal from "./create-poll-modal";
 import CreateNoteModal from "./create-note-modal";
-import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
+import { setSelectedProfileUserId, updateWatermark, setWatermarks } from "@/store/chat/chat-slice";
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
@@ -32,7 +32,7 @@ export default function ChatArea({
   onToggleRightPanel,
   onBack,
 }: ChatAreaProps) {
-  const { activeConversation, memberProfiles } = useAppSelector(
+  const { activeConversation, memberProfiles, watermarks } = useAppSelector(
     (state) => state.chat,
   );
   const auth = useAppSelector((state) => state.auth);
@@ -75,7 +75,16 @@ export default function ChatArea({
   // Handle socket messages
   useEffect(() => {
     setNewSocketMessages([]); // Reset on conversation change
-  }, [activeConversation?.id]);
+    if (activeConversation?.members) {
+      const initialWatermarks: Record<string, string> = {};
+      activeConversation.members.forEach((m: any) => {
+        if (m.lastReadMessageId) {
+          initialWatermarks[m.userId] = m.lastReadMessageId;
+        }
+      });
+      dispatch(setWatermarks(initialWatermarks));
+    }
+  }, [activeConversation, dispatch]);
 
   useEffect(() => {
     const socket = socketService.getSocket();
@@ -138,20 +147,9 @@ export default function ChatArea({
         }
       };
 
-      const handleMessageRead = (data: any) => {
+      const handleMessageRead = (data: { conversationId: string; userId: string; messageId: string }) => {
         if (data.conversationId === activeConversation.id) {
-          updateMessageInState(data.messageId, (msg) => {
-            const readReceipts = msg.readReceipts ? [...msg.readReceipts] : [];
-            const idx = readReceipts.findIndex(
-              (r: any) => r.userId === data.userId,
-            );
-            if (idx === -1) {
-              readReceipts.push({ userId: data.userId, readAt: data.readAt });
-            } else {
-              readReceipts[idx].readAt = data.readAt;
-            }
-            return { ...msg, readReceipts };
-          });
+          dispatch(updateWatermark({ userId: data.userId, messageId: data.messageId }));
         }
       };
 
@@ -409,6 +407,7 @@ export default function ChatArea({
           isMe={isMe}
           showAvatar={showAvatar}
           memberProfile={!isMe ? memberProfiles?.[msg.senderId] || null : null}
+          readBy={Object.keys(watermarks || {}).filter((uid) => watermarks[uid] === msg.id && uid !== auth.userId)}
           onReact={handleReactMessage}
           onPollVote={handlePollVoteMessage}
           onPollAddOption={handlePollAddOptionMessage}
@@ -418,15 +417,10 @@ export default function ChatArea({
         />,
       );
 
-      // Trigger read message if it's not mine and not read yet
-      if (!isMe && msg.id && activeConversation?.id) {
-        // Optimistically check if I already read it
-        const hasRead = msg.readReceipts?.some(
-          (r: any) => r.userId === auth.userId,
-        );
-        if (!hasRead) {
-          // Send read receipt if it's visible. For simplicity, just send it if rendered.
-          // We can use an IntersectionObserver for real tracking, but here we just emit when rendering if it's recent.
+      // Trigger read message if it's the newest message and not read yet
+      if (!isMe && msg.id && activeConversation?.id && i === 0) { // i === 0 means it's the newest message because we iterate in reverse
+        const myWatermark = watermarks?.[auth.userId || ""];
+        if (myWatermark !== msg.id) {
           const socket = socketService.getSocket();
           if (socket) {
             socket.emit(ChatEvent.READ_MESSAGE, {

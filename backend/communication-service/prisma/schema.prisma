@@ -73,6 +73,7 @@ model ConversationMember {
   userId            String   @map("user_id") @db.Uuid
   joinedAt          DateTime @default(now()) @map("joined_at")
   lastReadMessageId String?  @map("last_read_message_id") @db.Uuid
+  lastReadAt        DateTime? @map("last_read_at")
   muted             Boolean  @default(false)
   nickname          String?
   role              ConversationRole
@@ -105,7 +106,6 @@ model Message {
   medias           Media[]
   note             Note?
   poll             Poll?
-  readReceipts     MessageReadReceipt[]
 
   @@map("messages")
 }
@@ -213,14 +213,3 @@ model GroupInvitation {
   @@map("group_invitations")
 }
 
-model MessageReadReceipt {
-  id        String   @id @default(uuid()) @db.Uuid
-  messageId String   @map("message_id") @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  readAt    DateTime @default(now()) @map("read_at")
-
-  message   Message  @relation(fields: [messageId], references: [id])
-  
-  @@unique([messageId, userId])
-  @@map("message_read_receipts")
-}

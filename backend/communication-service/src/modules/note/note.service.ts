@@ -46,7 +46,6 @@ export class NoteService {
         note: true,
         medias: true,
         reactions: true,
-        readReceipts: true,
       }
     });
   }

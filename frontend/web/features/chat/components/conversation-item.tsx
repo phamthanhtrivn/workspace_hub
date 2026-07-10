@@ -70,18 +70,28 @@ const ConversationItem = React.memo(function ConversationItem({
         </div>
       </div>
       <div className="ml-3 flex-1 overflow-hidden">
-        <div className="flex justify-between items-baseline">
-          <h3 className="font-semibold text-sm text-gray-800 truncate">
+        <div className="flex justify-between items-baseline mb-0.5">
+          <h3 className={`truncate ${conv.unreadCount ? 'text-sm font-bold text-gray-900' : 'text-sm font-semibold text-gray-800'}`}>
             {name}
           </h3>
-          <span className="text-xs text-gray-500">{time}</span>
+          <span className={`text-xs ${conv.unreadCount ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>{time}</span>
         </div>
-        <MessageSnippet
-          latestMessage={latestMessage}
-          currentUserId={currentUserId}
-          isDirect={isDirect}
-          memberProfiles={memberProfiles}
-        />
+        <div className="flex justify-between items-center">
+          <div className="flex-1 min-w-0">
+            <MessageSnippet
+              latestMessage={latestMessage}
+              currentUserId={currentUserId}
+              isDirect={isDirect}
+              memberProfiles={memberProfiles}
+              isUnread={conv.unreadCount > 0}
+            />
+          </div>
+          {conv.unreadCount > 0 && (
+            <div className="ml-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex-shrink-0">
+              {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

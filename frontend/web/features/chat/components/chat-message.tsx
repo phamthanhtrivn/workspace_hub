@@ -25,6 +25,7 @@ interface ChatMessageProps {
   isMe: boolean;
   showAvatar: boolean;
   memberProfile: UserProfileResponse | null;
+  readBy?: string[];
   onReact?: (
     messageId: string,
     emoji: string,
@@ -49,6 +50,7 @@ const ChatMessage = React.memo(function ChatMessage({
   isMe,
   showAvatar,
   memberProfile,
+  readBy = [],
   onReact,
   onReadClick,
   onPollVote,
@@ -319,24 +321,20 @@ const ChatMessage = React.memo(function ChatMessage({
   };
 
   const renderReadReceipts = () => {
-    if (!msg.readReceipts || msg.readReceipts.length === 0) return null;
-
-    const otherReaders = msg.readReceipts.filter(
-      (r: any) => r.userId !== currentUser?.userId,
-    );
+    const otherReaders = readBy.filter((userId) => userId !== currentUser?.userId);
 
     if (otherReaders.length === 0) return null;
 
     return (
       <div className="flex items-center gap-1 -space-x-1 mt-0.5 self-end">
-        {otherReaders.slice(0, 5).map((receipt: any, idx: number) => {
-          const readerProfile = memberProfiles?.[receipt.userId];
+        {otherReaders.slice(0, 5).map((userId: string, idx: number) => {
+          const readerProfile = memberProfiles?.[userId];
           return (
             <div
               key={idx}
               onClick={() => setIsReadReceiptDetailOpen(true)}
               className="w-3.5 h-3.5 rounded-full bg-gray-200 border border-white cursor-pointer hover:z-10 overflow-hidden relative"
-              title={`${readerProfile?.fullName || "Người dùng"} đã xem lúc ${new Date(receipt.readAt).toLocaleTimeString()}`}
+              title={`${readerProfile?.fullName || "Người dùng"} đã xem`}
             >
               {readerProfile?.avatarUrl ? (
                 <img
@@ -508,11 +506,11 @@ const ChatMessage = React.memo(function ChatMessage({
       <ReadReceiptDetailModal
         isOpen={isReadReceiptDetailOpen}
         onClose={() => setIsReadReceiptDetailOpen(false)}
-        readers={(msg.readReceipts || [])
-          .filter((r: any) => r.userId !== currentUser?.userId)
-          .map((r: any) => ({
-            ...r,
-            user: memberProfiles?.[r.userId],
+        readers={readBy
+          .filter((userId) => userId !== currentUser?.userId)
+          .map((userId) => ({
+            userId,
+            user: memberProfiles?.[userId],
           }))}
       />
 

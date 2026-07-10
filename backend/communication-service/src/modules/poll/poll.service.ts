@@ -69,7 +69,6 @@ export class PollService {
         poll: { include: { options: { include: { votes: true } } } },
         medias: true,
         reactions: true,
-        readReceipts: true,
       },
     });
   }
@@ -99,7 +98,6 @@ export class PollService {
         poll: { include: { options: { include: { votes: true } } } },
         medias: true,
         reactions: true,
-        readReceipts: true,
       },
     });
   }
@@ -130,7 +128,6 @@ export class PollService {
         poll: { include: { options: { include: { votes: true } } } },
         medias: true,
         reactions: true,
-        readReceipts: true,
       },
     });
   }

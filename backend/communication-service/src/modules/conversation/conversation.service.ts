@@ -92,7 +92,7 @@ export class ConversationService {
   }
 
   async getUserConversations(userId: string) {
-    return this.prisma.conversation.findMany({
+    const conversations = await this.prisma.conversation.findMany({
       where: {
         members: {
           some: {
@@ -134,6 +134,33 @@ export class ConversationService {
         updatedAt: 'desc',
       },
     });
+
+    return Promise.all(
+      conversations.map(async (conv) => {
+        const member = conv.members.find((m) => m.userId === userId);
+        let unreadCount = 0;
+        
+        if (member) {
+          const referenceDate = member.lastReadAt || member.joinedAt;
+          unreadCount = await this.prisma.message.count({
+            where: {
+              conversationId: conv.id,
+              createdAt: {
+                gt: referenceDate,
+              },
+              senderId: {
+                not: userId, // don't count own messages as unread
+              },
+            },
+          });
+        }
+
+        return {
+          ...conv,
+          unreadCount,
+        };
+      }),
+    );
   }
 
   async getConversationMessages(
@@ -156,7 +183,6 @@ export class ConversationService {
         medias: true,
         poll: { include: { options: { include: { votes: true } } } },
         note: true,
-        readReceipts: true,
       },
     });
 

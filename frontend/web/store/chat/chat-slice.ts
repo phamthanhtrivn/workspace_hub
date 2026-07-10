@@ -9,6 +9,7 @@ interface ChatState {
   memberProfiles: Record<string, UserProfileResponse> | null;
   isMobileSidebarOpen: boolean;
   selectedProfileUserId: string | null;
+  watermarks: Record<string, string>; // userId -> messageId
 }
 
 const initialState: ChatState = {
@@ -16,6 +17,7 @@ const initialState: ChatState = {
   memberProfiles: {},
   isMobileSidebarOpen: false,
   selectedProfileUserId: null,
+  watermarks: {},
 };
 
 const chatSlice = createSlice({
@@ -46,6 +48,18 @@ const chatSlice = createSlice({
     setSelectedProfileUserId: (state, action: PayloadAction<string | null>) => {
       state.selectedProfileUserId = action.payload;
     },
+    updateWatermark: (
+      state,
+      action: PayloadAction<{ userId: string; messageId: string }>,
+    ) => {
+      state.watermarks[action.payload.userId] = action.payload.messageId;
+    },
+    setWatermarks: (
+      state,
+      action: PayloadAction<Record<string, string>>,
+    ) => {
+      state.watermarks = action.payload;
+    },
   },
 });
 
@@ -55,6 +69,8 @@ export const {
   addMemberProfiles,
   toggleMobileSidebar,
   setSelectedProfileUserId,
+  updateWatermark,
+  setWatermarks,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
