@@ -13,8 +13,9 @@ export enum ChatEvent {
   EDIT_POLL = "edit_poll",
   MESSAGE_MOVED = "message_moved",
   NOTE_UPDATED = "note_updated",
-  REACTION_UPDATED = "reaction_updated",
-  MESSAGE_READ = "message_read",
+  EDIT_NOTE = "edit_note",
   REACT_MESSAGE = "react_message",
+  REACTION_UPDATED = "reaction_updated",
   READ_MESSAGE = "read_message",
+  MESSAGE_READ = "message_read",
 }

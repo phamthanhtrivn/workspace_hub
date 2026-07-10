@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { ChatEvent } from './chat.events';
 import { MessageService } from '../message/message.service';
 import { PollService } from '../poll/poll.service';
+import { NoteService } from '../note/note.service';
 import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
 
@@ -28,6 +29,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly messageService: MessageService,
     private readonly pollService: PollService,
+    private readonly noteService: NoteService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -278,6 +280,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } catch (error) {
       console.error(error);
       return { status: 'error', message: 'Failed to edit poll' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.EDIT_NOTE)
+  async handleEditNote(
+    @MessageBody() data: { conversationId: string; messageId: string; title: string; content: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId || !data.title || !data.content) return;
+
+    try {
+      const updatedMessage = await this.noteService.updateNote(data.messageId, data.title, data.content, userId);
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to edit note' };
     }
   }
 

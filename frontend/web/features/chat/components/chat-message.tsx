@@ -33,6 +33,7 @@ interface ChatMessageProps {
     anonymous: boolean,
     isLocked: boolean,
   ) => void;
+  onNoteEdit?: (messageId: string, title: string, content: string) => void;
 }
 
 const ChatMessage = React.memo(function ChatMessage({
@@ -45,6 +46,7 @@ const ChatMessage = React.memo(function ChatMessage({
   onPollVote,
   onPollAddOption,
   onPollEdit,
+  onNoteEdit,
 }: ChatMessageProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -97,8 +99,21 @@ const ChatMessage = React.memo(function ChatMessage({
         onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
         onVote={(optionId) => onPollVote?.(msg.id, optionId)}
         onAddOption={(text) => onPollAddOption?.(msg.id, text)}
-        onEditPoll={(title, multipleChoice, allowAddOptions, anonymous, isLocked) =>
-          onPollEdit?.(msg.id, title, multipleChoice, allowAddOptions, anonymous, isLocked)
+        onEditPoll={(
+          title,
+          multipleChoice,
+          allowAddOptions,
+          anonymous,
+          isLocked,
+        ) =>
+          onPollEdit?.(
+            msg.id,
+            title,
+            multipleChoice,
+            allowAddOptions,
+            anonymous,
+            isLocked,
+          )
         }
       />
     );
@@ -109,6 +124,7 @@ const ChatMessage = React.memo(function ChatMessage({
       <NoteMessage
         note={msg.note}
         onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
+        onEditNote={(title, content) => onNoteEdit?.(msg.id, title, content)}
       />
     );
   }
@@ -281,6 +297,8 @@ const ChatMessage = React.memo(function ChatMessage({
       </div>
     );
   };
+
+  console.log(msg.readReceipts);
 
   const renderReadReceipts = () => {
     if (!msg.readReceipts || msg.readReceipts.length === 0 || !isMe)

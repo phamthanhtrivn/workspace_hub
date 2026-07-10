@@ -10,12 +10,15 @@ import { InvitationModule } from './modules/invitation/invitation.module';
 import { S3Module } from './modules/s3/s3.module';
 import { MediaModule } from './modules/media/media.module';
 
+import { NoteModule } from './modules/note/note.module';
+
 @Module({
   imports: [
     PrismaModule,
     ConversationModule, 
     MessageModule, 
     PollModule,
+    NoteModule,
     ChatModule,
     InvitationModule,
     S3Module,

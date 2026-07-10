@@ -13,6 +13,7 @@ export enum ChatEvent {
   EDIT_POLL = 'edit_poll',
   MESSAGE_MOVED = 'message_moved',
   NOTE_UPDATED = 'note_updated',
+  EDIT_NOTE = 'edit_note',
   REACT_MESSAGE = 'react_message',
   REACTION_UPDATED = 'reaction_updated',
   READ_MESSAGE = 'read_message', // event from client to server to mark one or more messages as read

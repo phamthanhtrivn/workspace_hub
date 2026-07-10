@@ -231,85 +231,127 @@ export default function ChatArea({
     [activeConversation?.id],
   );
 
-  const handleCreatePoll = (data: any) => {
-    if (!activeConversation) return;
-    const socket = socketService.getSocket();
-    if (socket) {
-      socket.emit(ChatEvent.SEND_MESSAGE, {
-        conversationId: activeConversation.id,
-        content: "",
-        type: "POLL",
-        pollData: data,
-      });
-    }
-  };
+  const handleCreatePoll = useCallback(
+    (data: any) => {
+      if (!activeConversation) return;
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.emit(ChatEvent.SEND_MESSAGE, {
+          conversationId: activeConversation.id,
+          content: "",
+          type: "POLL",
+          pollData: data,
+        });
+      }
+    },
+    [activeConversation?.id],
+  );
 
-  const handleCreateNote = (data: any) => {
-    if (!activeConversation) return;
-    const socket = socketService.getSocket();
-    if (socket) {
-      socket.emit(ChatEvent.SEND_MESSAGE, {
-        conversationId: activeConversation.id,
-        content: "",
-        type: "NOTE",
-        noteData: data,
-      });
-    }
-  };
+  const handleCreateNote = useCallback(
+    (data: any) => {
+      if (!activeConversation) return;
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.emit(ChatEvent.SEND_MESSAGE, {
+          conversationId: activeConversation.id,
+          content: "",
+          type: "NOTE",
+          noteData: data,
+        });
+      }
+    },
+    [activeConversation?.id],
+  );
 
-  const handleReactMessage = useCallback((messageId: string, emoji: string, action: "add" | "remove") => {
-    const socket = socketService.getSocket();
-    if (socket) {
-      socket.emit(ChatEvent.REACT_MESSAGE, {
-        conversationId: activeConversation?.id,
-        messageId,
-        emoji,
-        action,
-      });
-    }
-  }, [activeConversation?.id]);
+  const handleReactMessage = useCallback(
+    (messageId: string, emoji: string, action: "add" | "remove") => {
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.emit(ChatEvent.REACT_MESSAGE, {
+          conversationId: activeConversation?.id,
+          messageId,
+          emoji,
+          action,
+        });
+      }
+    },
+    [activeConversation?.id],
+  );
 
-  const handlePollVoteMessage = useCallback((messageId: string, pollOptionId: string) => {
-    const socket = socketService.getSocket();
-    if (socket) {
-      socket.emit(ChatEvent.VOTE_POLL, {
-        conversationId: activeConversation?.id,
-        messageId,
-        pollOptionId,
-      });
-    }
-  }, [activeConversation?.id]);
+  const handlePollVoteMessage = useCallback(
+    (messageId: string, pollOptionId: string) => {
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.emit(ChatEvent.VOTE_POLL, {
+          conversationId: activeConversation?.id,
+          messageId,
+          pollOptionId,
+        });
+      }
+    },
+    [activeConversation?.id],
+  );
 
-  const handlePollAddOptionMessage = useCallback((messageId: string, text: string) => {
-    const socket = socketService.getSocket();
-    if (socket) {
-      socket.emit(ChatEvent.ADD_POLL_OPTION, {
-        conversationId: activeConversation?.id,
-        messageId,
-        text,
-      });
-    }
-  }, [activeConversation?.id]);
+  const handlePollAddOptionMessage = useCallback(
+    (messageId: string, text: string) => {
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.emit(ChatEvent.ADD_POLL_OPTION, {
+          conversationId: activeConversation?.id,
+          messageId,
+          text,
+        });
+      }
+    },
+    [activeConversation?.id],
+  );
 
-  const handlePollEditMessage = useCallback((messageId: string, title: string, multipleChoice: boolean, allowAddOptions: boolean, anonymous: boolean, isLocked: boolean) => {
-    const socket = socketService.getSocket();
-    if (socket) {
-      socket.emit(ChatEvent.EDIT_POLL, {
-        conversationId: activeConversation?.id,
-        messageId,
-        title,
-        multipleChoice,
-        allowAddOptions,
-        anonymous,
-        isLocked,
-      });
-    }
-  }, [activeConversation?.id]);
+  const handlePollEditMessage = useCallback(
+    (
+      messageId: string,
+      title: string,
+      multipleChoice: boolean,
+      allowAddOptions: boolean,
+      anonymous: boolean,
+      isLocked: boolean,
+    ) => {
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.emit(ChatEvent.EDIT_POLL, {
+          conversationId: activeConversation?.id,
+          messageId,
+          title,
+          multipleChoice,
+          allowAddOptions,
+          anonymous,
+          isLocked,
+        });
+      }
+    },
+    [activeConversation?.id],
+  );
 
-  const handleReadClick = useCallback((userId: string) => {
-    dispatch(setSelectedProfileUserId(userId));
-  }, [dispatch]);
+  const handleNoteEditMessage = useCallback(
+    (messageId: string, title: string, content: string) => {
+      const socket = socketService.getSocket();
+      if (socket) {
+        socket.emit(ChatEvent.EDIT_NOTE, {
+          conversationId: activeConversation?.id,
+          messageId,
+          title,
+          content,
+        });
+      }
+    },
+    [activeConversation?.id],
+  );
 
+  const handleReadClick = useCallback(
+    (userId: string) => {
+      dispatch(setSelectedProfileUserId(userId));
+    },
+    [dispatch],
+  );
 
   const renderMessages = () => {
     if (isLoading) {
@@ -373,6 +415,7 @@ export default function ChatArea({
           onPollVote={handlePollVoteMessage}
           onPollAddOption={handlePollAddOptionMessage}
           onPollEdit={handlePollEditMessage}
+          onNoteEdit={handleNoteEditMessage}
           onReadClick={handleReadClick}
         />,
       );

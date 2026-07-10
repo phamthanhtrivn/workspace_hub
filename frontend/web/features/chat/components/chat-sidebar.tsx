@@ -120,9 +120,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       };
 
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
+      socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
+        socket.off(ChatEvent.MESSAGE_MOVED, handleNewMessage);
       };
     }, 500); // Allow time for layout to connect socket
 

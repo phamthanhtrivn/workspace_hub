@@ -41,6 +41,7 @@ services:
           - /api/invitations
           - /api/medias
           - /api/polls
+          - /api/notes
         strip_path: false
 
       - name: websocket-route
