@@ -5,6 +5,7 @@ import { ChatEvent } from "../../api/chat.events";
 import { socketService } from "../../api/chat-socket.service";
 import { pollApi } from "../../api/poll.api";
 import ViewPollModal from "./../view-poll-modal";
+import { formatDividerTime } from "@/lib/date";
 
 interface PollsSectionProps {
   isExpanded: boolean;
@@ -48,22 +49,37 @@ export default function PollsSection({
     if (!socket || !activeConversation) return;
 
     const handlePollUpdated = (data: any) => {
-      if (data.conversationId === activeConversation.id && data.poll) {
+      let pollData = null;
+      let convId = null;
+
+      if (data.type === "POLL" && data.poll) {
+        // From MESSAGE_MOVED
+        pollData = data.poll;
+        convId = data.conversationId;
+      } else if (data.poll) {
+        // From POLL_UPDATED
+        pollData = data.poll;
+        convId = data.conversationId;
+      }
+
+      if (convId === activeConversation.id && pollData) {
         setPolls((prev) => {
-          const exists = prev.findIndex((p) => p.id === data.poll.id);
+          const exists = prev.findIndex((p) => p.id === pollData.id);
           if (exists !== -1) {
             const newPolls = [...prev];
-            newPolls[exists] = data.poll;
+            newPolls[exists] = pollData;
             return newPolls;
           }
-          return [data.poll, ...prev];
+          return [pollData, ...prev];
         });
       }
     };
 
     socket.on(ChatEvent.POLL_UPDATED, handlePollUpdated);
+    socket.on(ChatEvent.MESSAGE_MOVED, handlePollUpdated);
     return () => {
       socket.off(ChatEvent.POLL_UPDATED, handlePollUpdated);
+      socket.off(ChatEvent.MESSAGE_MOVED, handlePollUpdated);
     };
   }, [activeConversation?.id]);
 
@@ -108,7 +124,7 @@ export default function PollsSection({
                     className="p-3 bg-gray-100 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-200 transition-colors"
                   >
                     <p className="text-xs font-semibold text-gray-700 mb-1 truncate">
-                      {poll.title}
+                      {poll.title} - {formatDividerTime(poll.createdAt)}
                     </p>
                     <p className="text-[10px] text-gray-500">
                       {poll.options?.length || 0} lựa chọn

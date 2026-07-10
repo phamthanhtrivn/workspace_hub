@@ -86,6 +86,6 @@ export default function ViewPollModal({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }

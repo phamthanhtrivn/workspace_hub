@@ -68,7 +68,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
   if (!mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-70 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">
@@ -127,9 +127,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 onChange={(e) => setAnonymous(e.target.checked)}
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
               />
-              <span className="text-sm text-gray-700">
-                Bình chọn ẩn danh
-              </span>
+              <span className="text-sm text-gray-700">Bình chọn ẩn danh</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input

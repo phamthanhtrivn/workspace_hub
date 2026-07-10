@@ -40,26 +40,43 @@ export default function PollDetailView({
     if (!socket) return;
 
     const handlePollUpdated = (data: any) => {
-      if (data.conversationId === conversationId && data.poll) {
+      let pollData = null;
+      let convId = null;
+
+      if (data.type === "POLL" && data.poll) {
+        // From MESSAGE_MOVED
+        pollData = data.poll;
+        convId = data.conversationId;
+      } else if (data.poll) {
+        // From POLL_UPDATED
+        pollData = data.poll;
+        convId = data.conversationId;
+      }
+
+      if (convId === conversationId && pollData) {
         setPolls((prev) => {
-          const exists = prev.findIndex((p) => p.id === data.poll.id);
+          const exists = prev.findIndex((p) => p.id === pollData.id);
           if (exists !== -1) {
             const newPolls = [...prev];
-            newPolls[exists] = data.poll;
+            newPolls[exists] = pollData;
             return newPolls;
           }
-          return [data.poll, ...prev];
+          return [pollData, ...prev];
         });
       }
     };
 
     socket.on(ChatEvent.POLL_UPDATED, handlePollUpdated);
+    socket.on(ChatEvent.MESSAGE_MOVED, handlePollUpdated);
     return () => {
       socket.off(ChatEvent.POLL_UPDATED, handlePollUpdated);
+      socket.off(ChatEvent.MESSAGE_MOVED, handlePollUpdated);
     };
   }, [conversationId]);
 
-  const selectedPoll = polls.find(p => p.id === selectedPollId);
+  const selectedPoll = polls.find((p) => p.id === selectedPollId);
+
+  console.log(polls);
 
   return (
     <div className="w-full h-full flex flex-col bg-white">
