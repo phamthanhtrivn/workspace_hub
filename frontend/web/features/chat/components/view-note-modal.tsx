@@ -37,7 +37,7 @@ export default function ViewNoteModal({
           <h2 className="text-xl font-bold text-gray-800">Ghi chú</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 cursor-pointer"
           >
             <X size={20} />
           </button>

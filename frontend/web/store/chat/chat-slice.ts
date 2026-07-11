@@ -54,10 +54,7 @@ const chatSlice = createSlice({
     ) => {
       state.watermarks[action.payload.userId] = action.payload.messageId;
     },
-    setWatermarks: (
-      state,
-      action: PayloadAction<Record<string, string>>,
-    ) => {
+    setWatermarks: (state, action: PayloadAction<Record<string, string>>) => {
       state.watermarks = action.payload;
     },
   },

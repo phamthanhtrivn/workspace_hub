@@ -22,7 +22,6 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   onEdit,
   onPin,
   onRecall,
-  onViewReadReceipts,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -86,17 +85,6 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
       >
         <Pin size={16} />
         <span>Ghim tin nhắn</span>
-      </button>
-
-      <button
-        onClick={() => {
-          onViewReadReceipts?.();
-          onClose();
-        }}
-        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
-      >
-        <Eye size={16} />
-        <span>Chi tiết đã đọc</span>
       </button>
 
       {isMe && (

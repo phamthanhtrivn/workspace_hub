@@ -21,7 +21,11 @@ import TimeDivider from "./time-divider";
 import { ChevronDown, Loader2 } from "lucide-react";
 import CreatePollModal from "./create-poll-modal";
 import CreateNoteModal from "./create-note-modal";
-import { setSelectedProfileUserId, updateWatermark, setWatermarks } from "@/store/chat/chat-slice";
+import {
+  setSelectedProfileUserId,
+  updateWatermark,
+  setWatermarks,
+} from "@/store/chat/chat-slice";
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
@@ -98,6 +102,9 @@ export default function ChatArea({
         if (message.conversationId === activeConversation?.id) {
           setNewSocketMessages((prev) => [...prev, message]);
 
+          // Update watermark for the sender implicitly
+          dispatch(updateWatermark({ userId: message.senderId, messageId: message.id }));
+
           // Auto scroll to bottom if we are already near bottom, else show badge
           if (isBottomInView || message.senderId === auth.userId) {
             setTimeout(() => scrollToBottom(), 100);
@@ -138,7 +145,7 @@ export default function ChatArea({
             let reactions = msg.reactions ? [...msg.reactions] : [];
             // Remove any existing reaction from this user
             reactions = reactions.filter((r: any) => r.userId !== data.userId);
-            
+
             if (data.action === "add" || data.action === "update") {
               reactions.push({ userId: data.userId, emoji: data.emoji });
             }
@@ -147,9 +154,15 @@ export default function ChatArea({
         }
       };
 
-      const handleMessageRead = (data: { conversationId: string; userId: string; messageId: string }) => {
+      const handleMessageRead = (data: {
+        conversationId: string;
+        userId: string;
+        messageId: string;
+      }) => {
         if (data.conversationId === activeConversation.id) {
-          dispatch(updateWatermark({ userId: data.userId, messageId: data.messageId }));
+          dispatch(
+            updateWatermark({ userId: data.userId, messageId: data.messageId }),
+          );
         }
       };
 
@@ -407,18 +420,22 @@ export default function ChatArea({
           isMe={isMe}
           showAvatar={showAvatar}
           memberProfile={!isMe ? memberProfiles?.[msg.senderId] || null : null}
-          readBy={Object.keys(watermarks || {}).filter((uid) => watermarks[uid] === msg.id && uid !== auth.userId)}
+          readBy={Object.keys(watermarks || {}).filter(
+            (uid) => watermarks[uid] === msg.id && uid !== auth.userId,
+          )}
           onReact={handleReactMessage}
           onPollVote={handlePollVoteMessage}
           onPollAddOption={handlePollAddOptionMessage}
           onPollEdit={handlePollEditMessage}
           onNoteEdit={handleNoteEditMessage}
           onReadClick={handleReadClick}
+          onReadClick={handleReadClick}
         />,
       );
 
       // Trigger read message if it's the newest message and not read yet
-      if (!isMe && msg.id && activeConversation?.id && i === 0) { // i === 0 means it's the newest message because we iterate in reverse
+      if (!isMe && msg.id && activeConversation?.id && i === 0) {
+        // i === 0 means it's the newest message because we iterate in reverse
         const myWatermark = watermarks?.[auth.userId || ""];
         if (myWatermark !== msg.id) {
           const socket = socketService.getSocket();

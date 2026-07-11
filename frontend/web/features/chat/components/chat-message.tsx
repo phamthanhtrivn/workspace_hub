@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from "react";
 import { MessageOptionsDropdown } from "./message-options-dropdown";
-import { ReadReceiptDetailModal } from "./read-receipt-detail-modal";
 import {
   FileText,
   Play,
@@ -52,7 +51,6 @@ const ChatMessage = React.memo(function ChatMessage({
   memberProfile,
   readBy = [],
   onReact,
-  onReadClick,
   onPollVote,
   onPollAddOption,
   onPollEdit,
@@ -68,9 +66,6 @@ const ChatMessage = React.memo(function ChatMessage({
     top: 0,
     left: 0,
   });
-
-  // Read Receipts Detail state
-  const [isReadReceiptDetailOpen, setIsReadReceiptDetailOpen] = useState(false);
 
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth);
@@ -321,53 +316,55 @@ const ChatMessage = React.memo(function ChatMessage({
   };
 
   const renderReadReceipts = () => {
-    const otherReaders = readBy.filter((userId) => userId !== currentUser?.userId);
+    const otherReaders = readBy.filter(
+      (userId) => userId !== currentUser?.userId,
+    );
 
     if (otherReaders.length === 0) return null;
 
     return (
-      <div className="flex items-center gap-1 -space-x-1 mt-0.5 self-end">
-        {otherReaders.slice(0, 5).map((userId: string, idx: number) => {
-          const readerProfile = memberProfiles?.[userId];
-          return (
-            <div
-              key={idx}
-              onClick={() => setIsReadReceiptDetailOpen(true)}
-              className="w-3.5 h-3.5 rounded-full bg-gray-200 border border-white cursor-pointer hover:z-10 overflow-hidden relative"
-              title={`${readerProfile?.fullName || "Người dùng"} đã xem`}
-            >
-              {readerProfile?.avatarUrl ? (
-                <img
-                  src={readerProfile.avatarUrl}
-                  alt="Avatar"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-500 font-medium bg-gradient-to-br from-gray-100 to-gray-200">
-                  {(readerProfile?.fullName || "U").charAt(0).toUpperCase()}
-                </div>
-              )}
+      <div className="flex w-full justify-end px-2 mt-0.5">
+        <div className="flex items-center gap-1 -space-x-1 self-end">
+          {otherReaders.slice(0, 5).map((userId: string, idx: number) => {
+            const readerProfile = memberProfiles?.[userId];
+            return (
+              <div
+                key={idx}
+                className="w-3.5 h-3.5 rounded-full bg-gray-200 border border-white overflow-hidden relative cursor-pointer"
+                title={`${readerProfile?.fullName || "Người dùng"} đã xem`}
+              >
+                {readerProfile?.avatarUrl ? (
+                  <img
+                    src={readerProfile.avatarUrl}
+                    alt="Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-500 font-medium bg-gradient-to-br from-gray-100 to-gray-200">
+                    {(readerProfile?.fullName || "U").charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {otherReaders.length > 5 && (
+            <div className="w-3.5 h-3.5 rounded-full bg-gray-100 border border-white flex items-center justify-center hover:z-10 relative z-0">
+              <span className="text-[7px] text-gray-600 font-medium leading-none">
+                +{otherReaders.length - 5}
+              </span>
             </div>
-          );
-        })}
-        {otherReaders.length > 5 && (
-          <div
-            onClick={() => setIsReadReceiptDetailOpen(true)}
-            className="w-3.5 h-3.5 rounded-full bg-gray-100 border border-white cursor-pointer flex items-center justify-center hover:z-10 relative z-0"
-          >
-            <span className="text-[7px] text-gray-600 font-medium leading-none">
-              +{otherReaders.length - 5}
-            </span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     );
   };
 
   return (
-    <>
+    <div className="w-full flex flex-col mb-1 group">
       <div
-        className={`flex items-end gap-2 group ${isMe ? "justify-end" : ""}`}
+        className={`flex w-full ${
+          isMe ? "justify-end" : "justify-start"
+        } relative`}
         onMouseLeave={() => setShowReactionPicker(false)}
       >
         {!isMe && (
@@ -377,7 +374,7 @@ const ChatMessage = React.memo(function ChatMessage({
               msg.senderId &&
               dispatch(setSelectedProfileUserId(msg.senderId))
             }
-            className={`w-8 h-8 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold overflow-hidden ${
+            className={`w-8 h-8 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold overflow-hidden mt-2 mr-2 ${
               showAvatar
                 ? "bg-gradient-to-br from-gray-100 to-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all"
                 : ""
@@ -476,10 +473,12 @@ const ChatMessage = React.memo(function ChatMessage({
             className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
           >
             <span className={`text-[10px] text-gray-700 px-1`}>{time}</span>
-            {renderReadReceipts()}
           </div>
         </div>
       </div>
+
+      {/* Read receipts placed at the far right of the conversation block */}
+      {renderReadReceipts()}
 
       <ReactionDetailModal
         isOpen={isReactionDetailOpen}
@@ -500,18 +499,6 @@ const ChatMessage = React.memo(function ChatMessage({
         onClose={() => setIsOptionsMenuOpen(false)}
         position={optionsMenuPosition}
         isMe={isMe}
-        onViewReadReceipts={() => setIsReadReceiptDetailOpen(true)}
-      />
-
-      <ReadReceiptDetailModal
-        isOpen={isReadReceiptDetailOpen}
-        onClose={() => setIsReadReceiptDetailOpen(false)}
-        readers={readBy
-          .filter((userId) => userId !== currentUser?.userId)
-          .map((userId) => ({
-            userId,
-            user: memberProfiles?.[userId],
-          }))}
       />
 
       {previewIndex !== null && visualMedias.length > 0 && (
@@ -521,7 +508,7 @@ const ChatMessage = React.memo(function ChatMessage({
           onClose={() => setPreviewIndex(null)}
         />
       )}
-    </>
+    </div>
   );
 });
 

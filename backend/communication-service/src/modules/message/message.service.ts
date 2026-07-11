@@ -103,6 +103,19 @@ export class MessageService {
         data: { updatedAt: new Date() },
       });
 
+      await tx.conversationMember.update({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId: senderId,
+          },
+        },
+        data: {
+          lastReadMessageId: message.id,
+          lastReadAt: new Date(),
+        },
+      });
+
       return message;
     });
   }
@@ -152,7 +165,11 @@ export class MessageService {
     });
   }
 
-  async markConversationAsRead(conversationId: string, userId: string, messageId: string) {
+  async markConversationAsRead(
+    conversationId: string,
+    userId: string,
+    messageId: string,
+  ) {
     return this.prisma.conversationMember.update({
       where: {
         conversationId_userId: {

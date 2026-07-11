@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Search,
   Plus,
@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import SearchUserModal from "./search-user-modal";
 import CreateGroupModal from "./create-group-modal";
 import ConversationItem from "./conversation-item";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { getUserConversations, getPublicProfile } from "../api/chat.api";
 import { useAppSelector, useAppDispatch } from "@/store/store";
@@ -36,26 +37,26 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   );
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [memberProfiles, setMemberProfiles] = useState<
-    Record<string, UserProfileResponse>
-  >({});
-  const [loading, setLoading] = useState(true);
-
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const { activeConversation } = useAppSelector((state) => state.chat);
   const dispatch = useAppDispatch();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  const fetchConversations = async () => {
-    try {
-      setLoading(true);
+  const {
+    data,
+    isLoading: loading,
+    refetch,
+  } = useQuery({
+    queryKey: ["conversations", currentUserId],
+    queryFn: async () => {
+      if (!currentUserId) return { conversations: [], profiles: {} };
+
       const response = await getUserConversations();
-      const data = response?.success ? response.data : [];
-      setConversations(data);
+      const conversationsData = response?.success ? response.data : [];
 
       const uniqueUserIds = new Set<string>();
-      data.forEach((conv: any) => {
+      conversationsData.forEach((conv: any) => {
         conv.members?.forEach((m: any) => {
           if (m.userId) {
             uniqueUserIds.add(m.userId);
@@ -63,38 +64,38 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         });
       });
 
-      const profiles: Record<string, any> = {};
+      const profiles: Record<string, UserProfileResponse> = {};
       await Promise.all(
         Array.from(uniqueUserIds).map(async (userId) => {
           try {
             const profileRes = await getPublicProfile(userId);
             profiles[userId] = profileRes?.success
               ? profileRes.data
-              : { fullName: "Unknown User" };
+              : ({ fullName: "Unknown User" } as any);
           } catch (e) {
-            profiles[userId] = { fullName: "Unknown User" };
+            profiles[userId] = { fullName: "Unknown User" } as any;
           }
         }),
       );
-      setMemberProfiles(profiles);
-    } catch (error) {
-      console.error("Failed to fetch conversations", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return { conversations: conversationsData, profiles };
+    },
+    enabled: !!currentUserId,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const conversations = data?.conversations || [];
+  const memberProfiles = data?.profiles || {};
 
   const handleReload = useCallback(() => {
     router.push("/chat");
     dispatch(setActiveConversation(null));
-    fetchConversations();
-  }, [router, dispatch]);
+    refetch();
+  }, [router, dispatch, refetch]);
 
+  const activeConversationIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (currentUserId) {
-      fetchConversations();
-    }
-  }, [currentUserId]);
+    activeConversationIdRef.current = activeConversation?.id || null;
+  }, [activeConversation?.id]);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -104,77 +105,175 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       if (!socket) return;
 
       const handleNewMessage = (message: any) => {
-        setConversations((prev) => {
-          const index = prev.findIndex((c) => c.id === message.conversationId);
-          if (index > -1) {
-            const conv = { ...prev[index] };
-            conv.updatedAt = message.createdAt;
-            conv.messages = [message];
-            const newConversations = [...prev];
-            newConversations.splice(index, 1);
-            newConversations.unshift(conv);
-            return newConversations;
-          }
-          return prev;
-        });
+        queryClient.setQueryData(
+          ["conversations", currentUserId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            const prev = oldData.conversations;
+            const index = prev.findIndex(
+              (c: any) => c.id === message.conversationId,
+            );
+            if (index > -1) {
+              const conv = { ...prev[index] };
+              conv.updatedAt = message.createdAt;
+              conv.messages = [message];
+
+              // Increment unread count if we are not currently viewing this conversation and didn't send it
+              if (
+                message.senderId !== currentUserId &&
+                message.conversationId !== activeConversationIdRef.current
+              ) {
+                conv.unreadCount = (conv.unreadCount || 0) + 1;
+              }
+
+              // Update sender's lastReadMessageId
+              if (conv.members) {
+                conv.members = conv.members.map((m: any) =>
+                  m.userId === message.senderId
+                    ? { ...m, lastReadMessageId: message.id }
+                    : m,
+                );
+              }
+
+              const newConversations = [...prev];
+              newConversations.splice(index, 1);
+              newConversations.unshift(conv);
+              return { ...oldData, conversations: newConversations };
+            }
+            return oldData;
+          },
+        );
+      };
+
+      const handleMessageRead = (data: {
+        conversationId: string;
+        userId: string;
+        messageId: string;
+      }) => {
+        queryClient.setQueryData(
+          ["conversations", currentUserId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              conversations: oldData.conversations.map((c: any) => {
+                if (c.id === data.conversationId) {
+                  const updatedConv = { ...c };
+                  if (data.userId === currentUserId) {
+                    updatedConv.unreadCount = 0;
+                  }
+                  if (updatedConv.members) {
+                    updatedConv.members = updatedConv.members.map((m: any) =>
+                      m.userId === data.userId
+                        ? { ...m, lastReadMessageId: data.messageId }
+                        : m,
+                    );
+                  }
+                  return updatedConv;
+                }
+                return c;
+              }),
+            };
+          },
+        );
       };
 
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
+      socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
         socket.off(ChatEvent.MESSAGE_MOVED, handleNewMessage);
+        socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
       };
     }, 500); // Allow time for layout to connect socket
 
     return () => clearTimeout(timeout);
   }, [currentUserId]);
 
-  const handleSelectConversation = useCallback((conv: any) => {
-    dispatch(setActiveConversation(conv));
-    dispatch(setMemberProfilesAction(memberProfiles));
-    if (onSelectChat) onSelectChat();
-  }, [dispatch, memberProfiles, onSelectChat]);
+  const handleSelectConversation = useCallback(
+    (conv: any) => {
+      dispatch(setActiveConversation(conv));
+      dispatch(setMemberProfilesAction(memberProfiles));
 
-  const handleNewConversation = useCallback(async (newConversation: any) => {
-    // 1. Add to top of conversations list (avoid duplicates)
-    setConversations((prev) => {
-      const exists = prev.some((c) => c.id === newConversation.id);
-      if (exists) return prev;
-      return [newConversation, ...prev];
-    });
+      // Optimistically clear unread count
+      queryClient.setQueryData(
+        ["conversations", currentUserId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            conversations: oldData.conversations.map((c: any) =>
+              c.id === conv.id ? { ...c, unreadCount: 0 } : c,
+            ),
+          };
+        },
+      );
 
-    // 2. Fetch profiles for new members not yet in memberProfiles
-    const newProfiles: Record<string, UserProfileResponse> = {};
-    const membersToFetch = (newConversation.members || []).filter(
-      (m: any) => m.userId && !memberProfiles[m.userId],
-    );
+      if (onSelectChat) onSelectChat();
+    },
+    [dispatch, memberProfiles, onSelectChat, queryClient, currentUserId],
+  );
 
-    await Promise.all(
-      membersToFetch.map(async (m: any) => {
-        try {
-          const res = await getPublicProfile(m.userId);
-          newProfiles[m.userId] = res?.success
-            ? res.data
-            : { fullName: "Unknown User" } as any;
-        } catch {
-          newProfiles[m.userId] = { fullName: "Unknown User" } as any;
-        }
-      }),
-    );
+  const handleNewConversation = useCallback(
+    async (newConversation: any) => {
+      const newProfiles: Record<string, UserProfileResponse> = {};
+      const membersToFetch = (newConversation.members || []).filter(
+        (m: any) => m.userId && !memberProfiles[m.userId],
+      );
 
-    // 3. Update local state + Redux store
-    const mergedProfiles = { ...memberProfiles, ...newProfiles };
-    setMemberProfiles(mergedProfiles);
-    dispatch(setActiveConversation(newConversation));
-    dispatch(setMemberProfilesAction(mergedProfiles));
+      await Promise.all(
+        membersToFetch.map(async (m: any) => {
+          try {
+            const res = await getPublicProfile(m.userId);
+            newProfiles[m.userId] = res?.success
+              ? res.data
+              : ({ fullName: "Unknown User" } as any);
+          } catch {
+            newProfiles[m.userId] = { fullName: "Unknown User" } as any;
+          }
+        }),
+      );
 
-    // 4. Navigate to the new conversation
-    router.push(`/chat?id=${newConversation.id}`);
+      queryClient.setQueryData(
+        ["conversations", currentUserId],
+        (oldData: any) => {
+          const prevConversations = oldData?.conversations || [];
+          const prevProfiles = oldData?.profiles || {};
 
-    if (onSelectChat) onSelectChat();
-  }, [memberProfiles, dispatch, router, onSelectChat]);
+          const exists = prevConversations.some(
+            (c: any) => c.id === newConversation.id,
+          );
+          const updatedConversations = exists
+            ? prevConversations
+            : [newConversation, ...prevConversations];
+
+          return {
+            conversations: updatedConversations,
+            profiles: { ...prevProfiles, ...newProfiles },
+          };
+        },
+      );
+
+      const mergedProfiles = { ...memberProfiles, ...newProfiles };
+      dispatch(setActiveConversation(newConversation));
+      dispatch(setMemberProfilesAction(mergedProfiles));
+
+      // 4. Navigate to the new conversation
+      router.push(`/chat?id=${newConversation.id}`);
+
+      if (onSelectChat) onSelectChat();
+    },
+    [
+      memberProfiles,
+      dispatch,
+      router,
+      onSelectChat,
+      queryClient,
+      currentUserId,
+    ],
+  );
 
   useEffect(() => {
     const handleRefreshEvent = (e: Event) => {
@@ -191,7 +290,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   }, [handleNewConversation]);
 
   const filteredConversations = useMemo(() => {
-    return conversations.filter((conv) => {
+    return conversations.filter((conv: any) => {
       if (activeTab === "all") return true;
       if (activeTab === "personal") return conv.type === "DIRECT";
       if (activeTab === "groups") return conv.type === "GROUP";
@@ -274,7 +373,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           </div>
         ) : filteredConversations.length > 0 ? (
           <div className="space-y-1">
-            {filteredConversations.map((conv) => (
+            {filteredConversations.map((conv: any) => (
               <ConversationItem
                 key={conv.id}
                 conv={conv}
