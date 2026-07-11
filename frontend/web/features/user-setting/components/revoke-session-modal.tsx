@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Loader2, Lock, Eye, EyeOff } from "lucide-react";
 import InputField from "@/components/common/input-field";
 
@@ -10,7 +10,7 @@ interface RevokeSessionModalProps {
   onConfirm: (password: string) => Promise<void>;
 }
 
-export default function RevokeSessionModal({
+const RevokeSessionModal = React.memo(function RevokeSessionModal({
   isOpen,
   onClose,
   onConfirm,
@@ -97,4 +97,6 @@ export default function RevokeSessionModal({
       </div>
     </div>
   );
-}
+});
+
+export default RevokeSessionModal;

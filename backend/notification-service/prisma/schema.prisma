@@ -1,0 +1,29 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Notification {
+  id           String   @id @default(uuid())
+  recipientId  String   @map("recipient_id")
+  senderId     String?  @map("sender_id")
+  senderName   String?  @map("sender_name")
+  senderAvatar String?  @map("sender_avatar")
+  type         String   @map("type")
+  title        String   @map("title")
+  content      String   @map("content")
+  isRead       Boolean  @default(false) @map("is_read")
+  link         String?  @map("link")
+  metadata     Json?    @map("metadata")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([recipientId])
+  @@index([senderId])
+
+  @@map("notifications")
+}

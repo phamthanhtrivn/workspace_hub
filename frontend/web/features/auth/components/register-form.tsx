@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Calendar,
   Eye,
@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 import InputField from "@/components/common/input-field";
 import { useRouter } from "next/navigation";
 
-export default function RegisterForm() {
+const RegisterForm = React.memo(function RegisterForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -30,7 +30,7 @@ export default function RegisterForm() {
     confirmPassword: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
 
     setFormData((prev) => ({
@@ -42,7 +42,7 @@ export default function RegisterForm() {
       ...prev,
       [id]: "",
     }));
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -205,4 +205,6 @@ export default function RegisterForm() {
       </button>
     </form>
   );
-}
+});
+
+export default RegisterForm;

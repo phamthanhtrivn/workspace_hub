@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Monitor, Smartphone, LogOut, Loader2 } from "lucide-react";
 import { UserSession } from "@/features/user-setting/types/user-setting.types";
 import {
@@ -9,7 +9,7 @@ import {
 } from "@/features/user-setting/api/user-setting.api";
 import RevokeSessionModal from "./revoke-session-modal";
 
-export default function SessionsTab() {
+const SessionsTab = React.memo(function SessionsTab() {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -128,4 +128,6 @@ export default function SessionsTab() {
       />
     </div>
   );
-}
+});
+
+export default SessionsTab;

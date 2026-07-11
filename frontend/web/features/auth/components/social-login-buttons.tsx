@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { toast } from "react-toastify";
 import { socialLoginApi } from "../api/auth.api";
@@ -8,7 +9,7 @@ import { setCredentials } from "@/store/auth/auth-slice";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-export default function SocialLoginButtons() {
+const SocialLoginButtons = React.memo(function SocialLoginButtons() {
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -76,4 +77,6 @@ export default function SocialLoginButtons() {
       </button> */}
     </div>
   );
-}
+});
+
+export default SocialLoginButtons;

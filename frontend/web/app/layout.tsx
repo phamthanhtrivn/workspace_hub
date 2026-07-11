@@ -4,6 +4,7 @@ import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import StoreProvider from "@/store/store-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import QueryProvider from "@/store/query-provider";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -26,7 +27,9 @@ export default function RootLayout({
         <GoogleOAuthProvider
           clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
         >
-          <StoreProvider>{children}</StoreProvider>
+          <QueryProvider>
+            <StoreProvider>{children}</StoreProvider>
+          </QueryProvider>
         </GoogleOAuthProvider>
         <ToastContainer
           position="top-right"

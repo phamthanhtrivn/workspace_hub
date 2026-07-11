@@ -28,6 +28,11 @@ export const getUserSettings = async (): Promise<any> => {
   return response.data;
 };
 
+export const updatePrivacySettings = async (data: { allowSearchByEmail: boolean }): Promise<any> => {
+  const response = await api.put("/api/users/me/settings/privacy", data);
+  return response.data;
+};
+
 export const getUserSessions = async (): Promise<any> => {
   const response = await api.get("/api/users/me/sessions");
   return response.data;

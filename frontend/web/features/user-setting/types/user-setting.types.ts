@@ -13,6 +13,7 @@ export type UserSettings = {
   timezone: string;
   emailNotificationEnabled: boolean;
   pushNotificationEnabled: boolean;
+  allowSearchByEmail: boolean;
 };
 
 export type UserSession = {

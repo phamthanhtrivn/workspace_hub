@@ -10,7 +10,7 @@ interface OtpInputProps {
   className?: string;
 }
 
-export function OtpInput({
+export const OtpInput = React.memo(function OtpInput({
   length = 6,
   value,
   onChange,
@@ -42,7 +42,10 @@ export function OtpInput({
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    index: number,
+  ) => {
     const val = e.target.value;
     if (!/^[0-9]*$/.test(val)) return; // Only allow numbers
 
@@ -66,7 +69,7 @@ export function OtpInput({
     if (!/^[0-9]+$/.test(pastedData)) return;
 
     onChange(pastedData);
-    
+
     // Focus the last filled input or the first empty one
     const focusIndex = Math.min(pastedData.length, length - 1);
     focusInput(focusIndex);
@@ -97,10 +100,12 @@ export function OtpInput({
           className={cn(
             "w-12 h-14 text-center text-2xl font-semibold border-2 rounded-xl bg-transparent transition-all outline-none",
             "focus:border-primary focus:ring-2 focus:ring-primary/20",
-            activeInput === index ? "border-primary" : "border-gray-300 dark:border-gray-700"
+            activeInput === index
+              ? "border-primary"
+              : "border-gray-300 dark:border-gray-700",
           )}
         />
       ))}
     </div>
   );
-}
+});

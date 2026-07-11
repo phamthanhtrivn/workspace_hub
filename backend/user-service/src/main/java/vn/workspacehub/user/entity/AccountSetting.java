@@ -27,6 +27,10 @@ public class AccountSetting {
     private String language;
     private String timezone;
 
+    @Column(name = "allow_search_by_email", nullable = false)
+    @Builder.Default
+    private boolean allowSearchByEmail = true;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

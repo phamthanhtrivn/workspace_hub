@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Camera, Save, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Camera, Save, Loader2, User } from "lucide-react";
 import { UserProfile } from "../types/user-setting.types";
 import {
   getUserProfile,
@@ -12,7 +12,7 @@ import { useAppSelector } from "@/store/store";
 import { toast } from "react-toastify";
 import axios from "axios";
 
-export default function ProfileTab() {
+const ProfileTab = React.memo(function ProfileTab() {
   const { email } = useAppSelector((state) => state.auth);
   const [profileForm, setProfileForm] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,7 +81,7 @@ export default function ProfileTab() {
     } catch (error: any) {
       console.error(error);
       const response = error?.response?.data;
-      
+
       if (response?.errors && Object.keys(response.errors).length > 0) {
         setErrors(response.errors);
         return;
@@ -109,17 +109,15 @@ export default function ProfileTab() {
 
       <div className="flex flex-col items-center sm:flex-row sm:items-center gap-5 pb-5 border-b border-slate-100">
         <div className="relative group shrink-0">
-          <div className="grid h-20 w-20 place-items-center rounded-full bg-[var(--color-primary-dark)] text-2xl font-bold text-white shadow-md overflow-hidden">
+          <div className="grid h-20 w-20 place-items-center rounded-full border border-gray-700 bg-white text-2xl font-bold text-white shadow-md overflow-hidden">
             {profileForm.avatarUrl ? (
               <img
                 src={profileForm.avatarUrl}
                 alt="Avatar"
                 className="h-full w-full object-cover"
               />
-            ) : profileForm.fullName ? (
-              profileForm.fullName.charAt(0).toUpperCase()
             ) : (
-              "W"
+              <User size={30} className="text-gray-700" />
             )}
           </div>
           <button
@@ -205,9 +203,7 @@ export default function ProfileTab() {
               : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
           }`}
         />
-        {errors.dob && (
-          <p className="text-xs text-red-500">{errors.dob}</p>
-        )}
+        {errors.dob && <p className="text-xs text-red-500">{errors.dob}</p>}
       </div>
 
       <div className="flex flex-col gap-1">
@@ -228,9 +224,7 @@ export default function ProfileTab() {
           }`}
           placeholder="Một vài dòng giới thiệu về bạn..."
         />
-        {errors.bio && (
-          <p className="text-xs text-red-500">{errors.bio}</p>
-        )}
+        {errors.bio && <p className="text-xs text-red-500">{errors.bio}</p>}
       </div>
 
       <button
@@ -247,4 +241,6 @@ export default function ProfileTab() {
       </button>
     </div>
   );
-}
+});
+
+export default ProfileTab;

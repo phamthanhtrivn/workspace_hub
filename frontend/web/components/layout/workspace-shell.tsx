@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -76,7 +76,7 @@ const menuItems = [
 
 const pageTitles = new Map(menuItems.map((item) => [item.href, item.label]));
 
-export default function WorkspaceShell({
+const WorkspaceShell = React.memo(function WorkspaceShell({
   children,
 }: {
   children: React.ReactNode;
@@ -97,6 +97,19 @@ export default function WorkspaceShell({
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  const handleMenuClick = useCallback(() => {
+    setIsMobileMenuOpen(true);
+  }, []);
+
+  const handleOpenSettings = useCallback((tab: "profile" | "settings" | "sessions") => {
+    setActiveSettingsTab(tab);
+    setIsSettingsModalOpen(true);
+  }, []);
+
+  const handleCloseSettings = useCallback(() => {
+    setIsSettingsModalOpen(false);
+  }, []);
+
   return (
     <div className="flex h-dvh overflow-hidden bg-[#f5f9fb] text-[var(--color-primary-dark)]">
       {/* Mobile Backdrop */}
@@ -106,7 +119,6 @@ export default function WorkspaceShell({
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
-
       {/* Sidebar */}
       <aside
         className={[
@@ -262,28 +274,25 @@ export default function WorkspaceShell({
           </div>
         </div>
       </aside>
-
       {/* Main Content Area */}
       <div className="flex flex-1 flex-col min-w-0 bg-background text-foreground">
         <WorkspaceHeader
           currentTitle={currentTitle}
-          onMenuClick={() => setIsMobileMenuOpen(true)}
-          onOpenSettings={(tab) => {
-            setActiveSettingsTab(tab);
-            setIsSettingsModalOpen(true);
-          }}
+          onMenuClick={handleMenuClick}
+          onOpenSettings={handleOpenSettings}
         />
 
-        <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">{children}</div>
+        <main className="flex-1 overflow-y-auto relative flex flex-col">
+          <div className="flex-1 w-full h-full flex flex-col">{children}</div>
         </main>
       </div>
-
       <UserSettingsModal
         isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
+        onClose={handleCloseSettings}
         initialTab={activeSettingsTab}
       />
     </div>
   );
-}
+});
+
+export default WorkspaceShell;

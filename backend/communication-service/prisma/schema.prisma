@@ -1,0 +1,215 @@
+  generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ConversationRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MediaType {
+  FILE
+  IMAGE
+  VIDEO
+}
+
+enum ConversationType {
+  DIRECT
+  GROUP
+}
+
+enum MessageType {
+  TEXT
+  SYSTEM
+  TASK
+  POLL
+  NOTE
+  EVENT
+  AI
+}
+
+model ConversationSetting {
+  id                String  @id @default(uuid()) @db.Uuid
+  conversationId    String  @unique @map("conversation_id") @db.Uuid
+  allowMemberInvite Boolean @default(true) @map("allow_member_invite")
+  approvalRequired  Boolean @default(false) @map("approval_required")
+  allowSendMessage  Boolean @default(true) @map("allow_send_message")
+  allowCreatePoll   Boolean @default(true) @map("allow_create_poll")
+  allowCreateNote   Boolean @default(true) @map("allow_create_note")
+  allowPinMessage   Boolean @default(true) @map("allow_pin_message")
+
+  conversation      Conversation @relation(fields: [conversationId], references: [id])
+
+  @@map("conversation_settings")
+}
+
+model Conversation {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        ConversationType
+  name        String?
+  avatarUrl   String?  @map("avatar_url")
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  projectId   String?  @map("project_id") @db.Uuid
+
+  setting     ConversationSetting?
+  members     ConversationMember[]
+  messages    Message[]
+  invitations GroupInvitation[]
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id                String   @id @default(uuid()) @db.Uuid
+  conversationId    String   @map("conversation_id") @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  joinedAt          DateTime @default(now()) @map("joined_at")
+  lastReadMessageId String?  @map("last_read_message_id") @db.Uuid
+  lastReadAt        DateTime? @map("last_read_at")
+  muted             Boolean  @default(false)
+  nickname          String?
+  role              ConversationRole
+
+  conversation      Conversation @relation(fields: [conversationId], references: [id])
+  
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id               String   @id @default(uuid()) @db.Uuid
+  conversationId   String   @map("conversation_id") @db.Uuid
+  senderId         String   @map("sender_id") @db.Uuid
+  content          String?
+  type             MessageType
+  replyToMessageId String?  @map("reply_to_message_id") @db.Uuid
+  edited           Boolean  @default(false)
+  pinned           Boolean  @default(false)
+  recalled         Boolean  @default(false)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  deletedAt        DateTime? @map("deleted_at")
+
+  conversation     Conversation @relation(fields: [conversationId], references: [id])
+  replyTo          Message?  @relation("MessageReplies", fields: [replyToMessageId], references: [id])
+  replies          Message[] @relation("MessageReplies")
+  
+  reactions        Reaction[]
+  medias           Media[]
+  note             Note?
+  poll             Poll?
+
+  @@map("messages")
+}
+
+model Media {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @map("message_id") @db.Uuid
+  name      String
+  s3Key     String @map("s3_key")
+  mimeType  String @map("mime_type")
+  sizeBytes Int @map("size_bytes")
+  type      MediaType
+
+  message   Message @relation(fields: [messageId], references: [id])
+
+  @@map("medias")
+}
+
+model Reaction {
+  id        String @id @default(uuid()) @db.Uuid
+  messageId String @map("message_id") @db.Uuid
+  userId    String @map("user_id") @db.Uuid
+  emoji     String
+
+  message   Message @relation(fields: [messageId], references: [id])
+
+  @@map("reactions")
+}
+
+model Note {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @unique @map("message_id") @db.Uuid
+  title     String
+  content   String
+  createdBy String   @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  message   Message @relation(fields: [messageId], references: [id])
+
+  @@map("notes")
+}
+
+model Poll {
+  id              String   @id @default(uuid()) @db.Uuid
+  messageId       String   @unique @map("message_id") @db.Uuid
+  title           String
+  multipleChoice  Boolean  @map("multiple_choice")
+  allowAddOptions Boolean  @map("allow_add_options")
+  anonymous       Boolean
+  isLocked        Boolean  @default(false) @map("is_locked")
+  expiresAt       DateTime? @map("expires_at")
+  createdBy       String   @map("created_by") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  message         Message @relation(fields: [messageId], references: [id])
+  options         PollOption[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id     String @id @default(uuid()) @db.Uuid
+  pollId    String @map("poll_id") @db.Uuid
+  text      String
+  createdBy String? @map("created_by") @db.Uuid
+
+  poll   Poll @relation(fields: [pollId], references: [id])
+  votes  PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  id           String   @id @default(uuid()) @db.Uuid
+  pollOptionId String   @map("poll_option_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  option       PollOption @relation(fields: [pollOptionId], references: [id])
+
+  @@map("poll_votes")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model GroupInvitation {
+  id               String           @id @default(uuid()) @db.Uuid
+  conversationId   String           @map("conversation_id") @db.Uuid
+  invitedUserId    String           @map("invited_user_id") @db.Uuid
+  invitedBy        String           @map("invited_by") @db.Uuid
+  status           InvitationStatus @default(PENDING)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  respondedAt      DateTime?        @map("responded_at")
+
+  conversation     Conversation     @relation(fields: [conversationId], references: [id])
+
+  @@unique([conversationId, invitedUserId])
+  @@map("group_invitations")
+}
+
