@@ -26,6 +26,7 @@ import {
   updateWatermark,
   setWatermarks,
 } from "@/store/chat/chat-slice";
+import { NO_AVATAR_TYPES } from "../types/chat.types";
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
@@ -103,7 +104,12 @@ export default function ChatArea({
           setNewSocketMessages((prev) => [...prev, message]);
 
           // Update watermark for the sender implicitly
-          dispatch(updateWatermark({ userId: message.senderId, messageId: message.id }));
+          dispatch(
+            updateWatermark({
+              userId: message.senderId,
+              messageId: message.id,
+            }),
+          );
 
           // Auto scroll to bottom if we are already near bottom, else show badge
           if (isBottomInView || message.senderId === auth.userId) {
@@ -355,13 +361,6 @@ export default function ChatArea({
     [activeConversation?.id],
   );
 
-  const handleReadClick = useCallback(
-    (userId: string) => {
-      dispatch(setSelectedProfileUserId(userId));
-    },
-    [dispatch],
-  );
-
   const renderMessages = () => {
     if (isLoading) {
       return (
@@ -407,11 +406,46 @@ export default function ChatArea({
         }
       }
 
-      const showAvatar =
-        !isMe &&
-        (i === 0 ||
+      let showAvatar = false;
+      if (!isMe && !NO_AVATAR_TYPES.includes(msg.type)) {
+        if (
+          i === 0 ||
           allMessages[i - 1].senderId !== msg.senderId ||
-          isNewTimeBlockVisually);
+          NO_AVATAR_TYPES.includes(allMessages[i - 1].type) ||
+          isNewTimeBlockVisually
+        ) {
+          showAvatar = true;
+        }
+      }
+
+      let showTime = true;
+      if (prevMsg) {
+        const currentMsgTime = new Date(msg.createdAt).getTime();
+        const prevMsgTime = new Date(prevMsg.createdAt).getTime();
+        if (
+          prevMsg.senderId === msg.senderId &&
+          prevMsgTime - currentMsgTime <= 5 * 60 * 1000
+        ) {
+          showTime = false;
+        }
+      }
+
+      let showSenderName = false;
+      if (activeConversation?.type === "GROUP" && !isMe) {
+        if (!nextMsg) {
+          showSenderName = true;
+        } else {
+          const currentMsgTime = new Date(msg.createdAt).getTime();
+          const nextMsgTime = new Date(nextMsg.createdAt).getTime();
+          if (
+            nextMsg.senderId !== msg.senderId ||
+            currentMsgTime - nextMsgTime > 5 * 60 * 1000 ||
+            NO_AVATAR_TYPES.includes(nextMsg.type)
+          ) {
+            showSenderName = true;
+          }
+        }
+      }
 
       rendered.push(
         <ChatMessage
@@ -423,13 +457,13 @@ export default function ChatArea({
           readBy={Object.keys(watermarks || {}).filter(
             (uid) => watermarks[uid] === msg.id && uid !== auth.userId,
           )}
+          showTime={showTime}
+          showSenderName={showSenderName}
           onReact={handleReactMessage}
           onPollVote={handlePollVoteMessage}
           onPollAddOption={handlePollAddOptionMessage}
           onPollEdit={handlePollEditMessage}
           onNoteEdit={handleNoteEditMessage}
-          onReadClick={handleReadClick}
-          onReadClick={handleReadClick}
         />,
       );
 

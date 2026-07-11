@@ -1,4 +1,5 @@
 export const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
+export const NO_AVATAR_TYPES = ["POLL", "NOTE", "TASK", "SYSTEM", "EVENT"];
 
 export interface UserSearchResponse {
   id: string;

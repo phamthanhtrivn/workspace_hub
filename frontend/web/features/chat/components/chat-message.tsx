@@ -25,6 +25,8 @@ interface ChatMessageProps {
   showAvatar: boolean;
   memberProfile: UserProfileResponse | null;
   readBy?: string[];
+  showTime?: boolean;
+  showSenderName?: boolean;
   onReact?: (
     messageId: string,
     emoji: string,
@@ -50,6 +52,8 @@ const ChatMessage = React.memo(function ChatMessage({
   showAvatar,
   memberProfile,
   readBy = [],
+  showTime = true,
+  showSenderName = false,
   onReact,
   onPollVote,
   onPollAddOption,
@@ -401,6 +405,11 @@ const ChatMessage = React.memo(function ChatMessage({
             isMe ? "items-end" : "items-start"
           }`}
         >
+          {showSenderName && memberProfile && (
+            <span className="text-[11px] text-gray-500 font-medium px-1 mb-0.5 mt-1">
+              {memberProfile.fullName}
+            </span>
+          )}
           {renderVisualMedias()}
           {renderFileMedias()}
           <div className="flex flex-col relative">
@@ -469,11 +478,13 @@ const ChatMessage = React.memo(function ChatMessage({
             {renderReactions()}
           </div>
 
-          <div
-            className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
-          >
-            <span className={`text-[10px] text-gray-700 px-1`}>{time}</span>
-          </div>
+          {showTime && (
+            <div
+              className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+            >
+              <span className={`text-[10px] text-gray-700 px-1`}>{time}</span>
+            </div>
+          )}
         </div>
       </div>
 
