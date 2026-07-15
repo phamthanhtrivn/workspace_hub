@@ -11,6 +11,7 @@ import {
   Files,
   FolderKanban,
   LayoutDashboard,
+  Mail,
   MessageSquareText,
   Search,
   Settings,
@@ -35,6 +36,12 @@ const menuItems = [
     label: "Projects",
     description: "Dự án",
     icon: FolderKanban,
+  },
+  {
+    href: "/invitations",
+    label: "Invitations",
+    description: "Lời mời",
+    icon: Mail,
   },
   {
     href: "/tasks",

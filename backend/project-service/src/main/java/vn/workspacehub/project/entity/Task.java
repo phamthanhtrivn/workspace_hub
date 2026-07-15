@@ -17,7 +17,8 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"checklists", "assignees", "comments", "activities", "timeTrackings", "labelMappings", "pomodoroSessions"})
+@EqualsAndHashCode(exclude = {"project", "parent", "children", "checklists", "assignees", "comments", "activities", "timeTrackings", "labelMappings", "pomodoroSessions"})
+@ToString(exclude = {"project", "parent", "children", "checklists", "assignees", "comments", "activities", "timeTrackings", "labelMappings", "pomodoroSessions"})
 public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -26,6 +27,14 @@ public class Task {
     @ManyToOne
     @JoinColumn(name = "project_id")
     private Project project;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_task_id")
+    private Task parent;
+
+    @OneToMany(mappedBy = "parent")
+    @OrderBy("rank ASC, createdAt ASC")
+    private List<Task> children;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskChecklist> checklists;
@@ -82,6 +91,12 @@ public class Task {
 
     private String rank;
     private boolean archived;
+
+    @Column(name = "is_parent_task")
+    private Boolean parentTask;
+
+    @Column(name = "auto_complete_sprint")
+    private Boolean autoCompleteSprint;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

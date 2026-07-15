@@ -16,17 +16,37 @@ const ICON_OPTIONS = [
 interface CreateProjectDialogProps {
   open: boolean;
   onClose: () => void;
+  onSubmit?: (payload: {
+    name: string;
+    color: string;
+    icon: string;
+  }) => Promise<void>;
+  isSubmitting?: boolean;
 }
 
 export default function CreateProjectDialog({
   open,
   onClose,
+  onSubmit,
+  isSubmitting = false,
 }: CreateProjectDialogProps) {
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
 
   if (!open) return null;
+
+  const handleSubmit = async () => {
+    if (!name.trim() || isSubmitting) return;
+
+    await onSubmit?.({
+      name: name.trim(),
+      color: selectedColor,
+      icon: selectedIcon,
+    });
+
+    setName("");
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -115,7 +135,6 @@ export default function CreateProjectDialog({
                   ].join(" ")}
                   style={{
                     backgroundColor: color,
-                    ringColor: selectedColor === color ? color : undefined,
                   }}
                 />
               ))}
@@ -150,8 +169,8 @@ export default function CreateProjectDialog({
             Hủy
           </button>
           <button
-            onClick={onClose}
-            disabled={!name.trim()}
+            onClick={handleSubmit}
+            disabled={!name.trim() || isSubmitting}
             className="rounded-xl bg-[var(--color-primary-dark)] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[var(--color-primary-dark)]/20 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Tạo dự án

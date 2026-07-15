@@ -28,7 +28,9 @@ services:
       - name: project-routes
         paths:
           - /api/projects
+          - /api/project-invitations
           - /api/tasks
+          - /api/task-comments
           - /api/pomodoros
         strip_path: false
 

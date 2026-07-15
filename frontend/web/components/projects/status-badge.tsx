@@ -112,12 +112,18 @@ const projectStatusConfig: Record<
 
 // ─── Components ───────────────────────────────────────────────────────────────
 
-export function TaskStatusBadge({ status }: { status: TaskStatus }) {
+export function TaskStatusBadge({
+  status,
+  compact = false,
+}: {
+  status: TaskStatus;
+  compact?: boolean;
+}) {
   const cfg = taskStatusConfig[status];
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.color}`}
+      className={`inline-flex items-center gap-1.5 ${compact ? "rounded-[3px] px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-1 text-xs"} font-bold ${cfg.bg} ${cfg.color}`}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
       {cfg.label}
@@ -125,12 +131,18 @@ export function TaskStatusBadge({ status }: { status: TaskStatus }) {
   );
 }
 
-export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {
+export function TaskPriorityBadge({
+  priority,
+  compact = false,
+}: {
+  priority: TaskPriority;
+  compact?: boolean;
+}) {
   const cfg = taskPriorityConfig[priority];
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.color}`}
+      className={`inline-flex items-center gap-1.5 ${compact ? "rounded-[3px] px-1 py-0.5 text-[10px]" : "rounded-full px-2.5 py-1 text-xs"} font-bold ${cfg.bg} ${cfg.color}`}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
       {cfg.label}

@@ -130,6 +130,10 @@ export interface PomodoroSession {
 export interface Task {
   id: string;
   projectId: string;
+  parentTaskId?: string;
+  childCount?: number;
+  isParentTask?: boolean;
+  autoCompleteSprint?: boolean;
   title: string;
   description: string;
   priority: TaskPriority;

@@ -4,6 +4,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import vn.workspacehub.project.common.ApiResponse;
 
 import java.time.LocalDateTime;
@@ -31,6 +33,30 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<?>> handleUnreadableMessage(
+            HttpMessageNotReadableException ex) {
+        Map<String, String> errors = new HashMap<>();
+        Throwable cause = ex.getMostSpecificCause();
+        errors.put("detail", cause == null ? "Không đọc được request body" : cause.getMessage());
+
+        ApiResponse<?> response = ApiResponse.builder()
+                .success(false)
+                .message("Dữ liệu task không hợp lệ. Kiểm tra parentTaskId, status hoặc priority.")
+                .errors(errors)
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<ApiResponse<?>> handleMissingHeader(
+            MissingRequestHeaderException ex) {
+        return ResponseEntity.badRequest().body(
+                ApiResponse.fail("Thiếu thông tin người dùng. Vui lòng đăng nhập lại."));
     }
 
     @ExceptionHandler(BusinessException.class)
