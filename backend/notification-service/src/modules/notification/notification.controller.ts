@@ -1,9 +1,12 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Put,
   Delete,
+  Body,
+  UnauthorizedException,
   Param,
   Query,
   Headers,
@@ -12,11 +15,35 @@ import {
 } from "@nestjs/common";
 import { EventPattern, Payload } from "@nestjs/microservices";
 import { NotificationService } from "./notification.service";
+import { EmailService } from "./email.service";
+import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-email.dto";
 import { KAFKA_TOPICS } from "../../common/constants/kafka.constants";
 
 @Controller("api/notifications")
 export class NotificationController {
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(
+    private readonly notificationService: NotificationService,
+    private readonly emailService: EmailService,
+  ) {}
+
+  @Post("project-invitations/email")
+  async sendProjectInvitationEmail(
+    @Headers("x-internal-service-key") serviceKey: string,
+    @Body() dto: SendProjectInvitationEmailDto,
+  ) {
+    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+
+    if (!expectedKey || serviceKey !== expectedKey) {
+      throw new UnauthorizedException("Invalid internal service key");
+    }
+
+    await this.emailService.sendProjectInvitationEmail(dto);
+
+    return {
+      message: "Project invitation email sent successfully",
+      data: { sent: true, invitationId: dto.invitationId },
+    };
+  }
 
   @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)
   async handleIncomingNotification(@Payload() data: any) {

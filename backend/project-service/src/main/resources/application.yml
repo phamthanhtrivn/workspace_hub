@@ -1,6 +1,12 @@
 server:
   port: 8082
 
+services:
+  user-service-url: ${USER_SERVICE_URL:http://localhost:8081}
+  notification-service-url: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+  internal-service-key: ${INTERNAL_SERVICE_KEY:}
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+
 spring:
   application:
     name: project-service

@@ -1,8 +1,11 @@
 package vn.workspacehub.project.services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.workspacehub.project.clients.NotificationEmailClient;
+import vn.workspacehub.project.clients.UserServiceClient;
 import vn.workspacehub.project.dto.request.CreateProjectInvitationRequest;
 import vn.workspacehub.project.dto.response.ProjectInvitationResponse;
 import vn.workspacehub.project.entity.Project;
@@ -22,6 +25,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProjectInvitationService {
 
     private static final int INVITATION_EXPIRY_DAYS = 7;
@@ -30,6 +34,8 @@ public class ProjectInvitationService {
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectRepository projectRepository;
     private final ProjectInvitationMapper invitationMapper;
+    private final UserServiceClient userServiceClient;
+    private final NotificationEmailClient notificationEmailClient;
 
     @Transactional
     public ProjectInvitationResponse create(
@@ -64,7 +70,34 @@ public class ProjectInvitationService {
                 .expiresAt(LocalDateTime.now().plusDays(INVITATION_EXPIRY_DAYS))
                 .build();
 
-        return invitationMapper.toResponse(invitationRepository.save(invitation));
+        ProjectInvitation savedInvitation = invitationRepository.save(invitation);
+        sendInvitationEmailSafely(savedInvitation, project, currentUserId, invitedUserId);
+
+        return invitationMapper.toResponse(savedInvitation);
+    }
+
+    private void sendInvitationEmailSafely(
+            ProjectInvitation invitation,
+            Project project,
+            UUID inviterId,
+            UUID recipientId
+    ) {
+        try {
+            UserServiceClient.UserContact recipient = userServiceClient.getContact(recipientId);
+            UserServiceClient.UserContact inviter = userServiceClient.getContact(inviterId);
+            notificationEmailClient.sendProjectInvitationEmail(
+                    invitation,
+                    project,
+                    recipient,
+                    inviter
+            );
+        } catch (Exception exception) {
+            log.error(
+                    "Project invitation {} was created, but its email could not be sent",
+                    invitation.getId(),
+                    exception
+            );
+        }
     }
 
     @Transactional
