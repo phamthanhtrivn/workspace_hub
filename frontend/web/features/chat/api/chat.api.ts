@@ -59,11 +59,12 @@ export const getConversationMessages = async (
   conversationId: string,
   cursor?: string,
   limit?: number,
+  direction?: 'older' | 'newer' | 'around',
 ): Promise<any> => {
   const response = await api.get(
     `/api/conversations/${conversationId}/messages`,
     {
-      params: { cursor, limit },
+      params: { cursor, limit, direction },
     },
   );
   return response.data;

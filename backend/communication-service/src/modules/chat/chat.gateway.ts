@@ -89,6 +89,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         title: string;
         content: string;
       };
+      replyToMessageId?: string;
     },
     @ConnectedSocket() client: Socket,
   ) {
@@ -110,6 +111,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.medias,
         data.pollData,
         data.noteData,
+        data.replyToMessageId,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(

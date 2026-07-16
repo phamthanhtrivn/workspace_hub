@@ -85,6 +85,7 @@ export class ConversationController {
     @Param('id') conversationId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('direction') direction?: 'older' | 'newer' | 'around',
   ) {
     if (!conversationId) {
       throw new BadRequestException('Thiếu conversationId');
@@ -94,6 +95,7 @@ export class ConversationController {
       conversationId,
       cursor,
       parsedLimit,
+      direction,
     );
     return {
       message: 'Lấy lịch sử tin nhắn thành công',

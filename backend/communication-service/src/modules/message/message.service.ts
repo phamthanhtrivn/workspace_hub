@@ -28,12 +28,14 @@ export class MessageService {
       title: string;
       content: string;
     },
+    replyToMessageId?: string,
   ): Promise<
     Prisma.MessageGetPayload<{
       include: {
         medias: true;
         poll: { include: { options: true } };
         note: true;
+        replyTo: true;
       };
     }>
   > {
@@ -44,6 +46,7 @@ export class MessageService {
           senderId,
           content,
           type,
+          replyToMessageId,
           medias:
             medias && medias.length > 0
               ? {
@@ -95,6 +98,7 @@ export class MessageService {
           medias: true,
           poll: { include: { options: { include: { votes: true } } } },
           note: true,
+          replyTo: true,
         },
       });
 

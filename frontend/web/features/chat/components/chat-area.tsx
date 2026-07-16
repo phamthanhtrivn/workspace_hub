@@ -8,7 +8,7 @@ import {
   useMemo,
   useLayoutEffect,
 } from "react";
-import ChatInput from "./chat-input";
+import ChatInput, { ChatInputRef } from "./chat-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./chat-message";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -18,7 +18,7 @@ import { ChatEvent } from "../api/chat.events";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import TimeDivider from "./time-divider";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, X } from "lucide-react";
 import CreatePollModal from "./create-poll-modal";
 import CreateNoteModal from "./create-note-modal";
 import {
@@ -27,6 +27,11 @@ import {
   setWatermarks,
 } from "@/store/chat/chat-slice";
 import { NO_AVATAR_TYPES } from "../types/chat.types";
+
+type PageParam = {
+  cursor?: string;
+  direction: "older" | "newer" | "around";
+};
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
@@ -47,25 +52,46 @@ export default function ChatArea({
   const [newSocketMessages, setNewSocketMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<ChatInputRef>(null);
 
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [jumpTargetId, setJumpTargetId] = useState<string | null>(null);
 
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
-    useInfiniteQuery({
-      queryKey: ["messages", activeConversation?.id],
-      queryFn: async ({ pageParam }) => {
-        const response = await getConversationMessages(
-          activeConversation!.id,
-          pageParam as string | undefined,
-          20,
-        );
-        return response.data; // { messages: [...], nextCursor: '...' }
-      },
-      initialPageParam: undefined as string | undefined,
-      getNextPageParam: (lastPage) => lastPage?.nextCursor,
-      enabled: !!activeConversation?.id,
-    });
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchPreviousPage,
+    hasPreviousPage,
+    isFetchingPreviousPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: ["messages", activeConversation?.id, jumpTargetId],
+    queryFn: async ({ pageParam }) => {
+      const response = await getConversationMessages(
+        activeConversation!.id,
+        pageParam?.cursor,
+        20,
+        pageParam?.direction || "older",
+      );
+      return response.data; // { messages: [...], nextCursor: '...', prevCursor: '...' }
+    },
+    initialPageParam: (jumpTargetId
+      ? { cursor: jumpTargetId, direction: "around" }
+      : { cursor: undefined, direction: "older" }) as PageParam,
+    getNextPageParam: (lastPage): PageParam | undefined =>
+      lastPage?.nextCursor
+        ? { cursor: lastPage.nextCursor, direction: "older" }
+        : undefined,
+    getPreviousPageParam: (firstPage): PageParam | undefined =>
+      firstPage?.prevCursor
+        ? { cursor: firstPage.prevCursor, direction: "newer" }
+        : undefined,
+    enabled: !!activeConversation?.id,
+  });
 
   const { ref: loadMoreRef, inView } = useInView();
   const { ref: bottomBoundaryRef, inView: isBottomInView } = useInView();
@@ -76,6 +102,23 @@ export default function ChatArea({
       fetchNextPage();
     }
   }, [inView, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  // Load more when scrolled to the bottom
+  useEffect(() => {
+    if (isBottomInView && hasPreviousPage && !isFetchingPreviousPage) {
+      fetchPreviousPage();
+    }
+  }, [
+    isBottomInView,
+    hasPreviousPage,
+    isFetchingPreviousPage,
+    fetchPreviousPage,
+  ]);
+
+  // Reset jump target when conversation changes
+  useEffect(() => {
+    setJumpTargetId(null);
+  }, [activeConversation?.id]);
 
   // Handle socket messages
   useEffect(() => {
@@ -222,7 +265,7 @@ export default function ChatArea({
 
   const allMessages = useMemo(() => {
     if (!data?.pages) return [...newSocketMessages].reverse();
-    const pagesMessages = data.pages.flatMap((page) =>
+    const pagesMessages = data.pages.flatMap((page: any) =>
       [...page.messages].reverse(),
     );
     return [...[...newSocketMessages].reverse(), ...pagesMessages];
@@ -240,10 +283,12 @@ export default function ChatArea({
           conversationId: activeConversation?.id,
           content,
           medias,
+          replyToMessageId: replyingTo?.id,
         });
+        setReplyingTo(null);
       }
     },
-    [activeConversation?.id],
+    [activeConversation?.id, replyingTo],
   );
 
   const handleCreatePoll = useCallback(
@@ -361,6 +406,25 @@ export default function ChatArea({
     [activeConversation?.id],
   );
 
+  const handleJumpToMessage = useCallback((messageId: string) => {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("bg-blue-200", "transition-all", "duration-500");
+      setTimeout(() => el.classList.remove("bg-blue-200"), 1500);
+    } else {
+      setJumpTargetId(messageId);
+      setTimeout(() => {
+        const newEl = document.getElementById(`msg-${messageId}`);
+        if (newEl) {
+          newEl.scrollIntoView({ behavior: "auto", block: "center" });
+          newEl.classList.add("bg-blue-200", "transition-all", "duration-500");
+          setTimeout(() => newEl.classList.remove("bg-blue-200"), 1500);
+        }
+      }, 800);
+    }
+  }, []);
+
   const renderMessages = () => {
     if (isLoading) {
       return (
@@ -464,6 +528,13 @@ export default function ChatArea({
           onPollAddOption={handlePollAddOptionMessage}
           onPollEdit={handlePollEditMessage}
           onNoteEdit={handleNoteEditMessage}
+          onReply={(msgToReply) => {
+            setReplyingTo(msgToReply);
+            setTimeout(() => {
+              chatInputRef.current?.focus();
+            }, 50);
+          }}
+          onJumpToMessage={handleJumpToMessage}
         />,
       );
 
@@ -526,6 +597,21 @@ export default function ChatArea({
       );
     }
 
+    if (hasPreviousPage) {
+      rendered.unshift(
+        <div
+          key="load-more-newer"
+          className="h-6 w-full flex justify-center items-center my-2 shrink-0"
+        >
+          {isFetchingPreviousPage && (
+            <span className="text-xs text-gray-400">
+              Đang tải tin nhắn mới...
+            </span>
+          )}
+        </div>,
+      );
+    }
+
     return rendered;
   };
 
@@ -533,6 +619,19 @@ export default function ChatArea({
     <div className="flex-1 flex flex-col bg-white h-full min-h-0 relative">
       {/* Header */}
       <ChatHeader onToggleRightPanel={onToggleRightPanel} onBack={onBack} />
+
+      {jumpTargetId && (
+        <button
+          onClick={() => {
+            setJumpTargetId(null);
+            setTimeout(scrollToBottom, 100);
+          }}
+          className="absolute top-20 cursor-pointer shadow-xl left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition z-20 flex items-center gap-2"
+        >
+          <ChevronDown size={16} />
+          Trở về hiện tại
+        </button>
+      )}
 
       {/* Message List Area */}
       <div
@@ -558,8 +657,39 @@ export default function ChatArea({
         </button>
       )}
 
+      {/* Replying To UI */}
+      {replyingTo && (
+        <div className="bg-blue-50 border-t border-blue-100 p-2 px-4 flex items-center justify-between">
+          <div className="flex flex-col min-w-0 flex-1 border-l-4 border-blue-500 pl-3">
+            <span className="text-xs font-semibold text-blue-600">
+              Đang trả lời{" "}
+              {replyingTo.senderId === auth.userId
+                ? "Bạn"
+                : memberProfiles?.[replyingTo.senderId]?.fullName || "Ai đó"}
+            </span>
+            <span className="text-sm text-gray-600 truncate">
+              {replyingTo.content ||
+                (replyingTo.medias?.length
+                  ? "[Đính kèm]"
+                  : replyingTo.poll
+                    ? "[Bình chọn]"
+                    : replyingTo.note
+                      ? "[Ghi chú]"
+                      : "")}
+            </span>
+          </div>
+          <button
+            onClick={() => setReplyingTo(null)}
+            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-blue-100 rounded-full cursor-pointer ml-2 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Input Area */}
       <ChatInput
+        ref={chatInputRef}
         onSendMessage={handleSendMessage}
         onCreatePoll={() => setIsPollModalOpen(true)}
         onCreateNote={() => setIsNoteModalOpen(true)}

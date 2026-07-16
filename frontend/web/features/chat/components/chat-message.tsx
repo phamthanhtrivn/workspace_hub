@@ -44,6 +44,8 @@ interface ChatMessageProps {
     isLocked: boolean,
   ) => void;
   onNoteEdit?: (messageId: string, title: string, content: string) => void;
+  onReply?: (msg: any) => void;
+  onJumpToMessage?: (messageId: string) => void;
 }
 
 const ChatMessage = React.memo(function ChatMessage({
@@ -59,6 +61,8 @@ const ChatMessage = React.memo(function ChatMessage({
   onPollAddOption,
   onPollEdit,
   onNoteEdit,
+  onReply,
+  onJumpToMessage,
 }: ChatMessageProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -364,7 +368,7 @@ const ChatMessage = React.memo(function ChatMessage({
   };
 
   return (
-    <div className="w-full flex flex-col mb-1 group">
+    <div id={`msg-${msg.id}`} className="w-full flex flex-col mb-1 group">
       <div
         className={`flex w-full ${
           isMe ? "justify-end" : "justify-start"
@@ -413,6 +417,38 @@ const ChatMessage = React.memo(function ChatMessage({
           {renderVisualMedias()}
           {renderFileMedias()}
           <div className="flex flex-col relative">
+            {msg.replyTo && (
+              <div
+                className={`mb-1 px-3 py-2 text-xs border-l-4 rounded-md cursor-pointer hover:opacity-80 transition flex flex-col min-w-[120px] max-w-[250px] truncate ${isMe ? "bg-[#BFDBFE] border-blue-400 text-blue-900" : "bg-gray-100 border-gray-400 text-gray-700"}`}
+                onClick={() => {
+                  if (onJumpToMessage) {
+                    onJumpToMessage(msg.replyTo.id);
+                  } else {
+                    const el = document.getElementById(`msg-${msg.replyTo.id}`);
+                    if (el) {
+                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      el.classList.add(
+                        "bg-blue-200",
+                        "transition-all",
+                        "duration-200",
+                      );
+                      setTimeout(() => el.classList.remove("bg-gray-200"), 1500);
+                    }
+                  }
+                }}
+              >
+                <span className="font-semibold mb-0.5">
+                  {msg.replyTo.senderId === currentUser.userId
+                    ? "Bạn"
+                    : memberProfiles?.[msg.replyTo.senderId]?.fullName ||
+                      "Ai đó"}
+                </span>
+                <span className="truncate opacity-80">
+                  {msg.replyTo.content ||
+                    (msg.replyTo.type !== "TEXT" ? "[Đính kèm]" : "")}
+                </span>
+              </div>
+            )}
             {hasText && (
               <div
                 className={`p-3 shadow-sm text-sm flex flex-col relative group/bubble ${
@@ -510,6 +546,7 @@ const ChatMessage = React.memo(function ChatMessage({
         onClose={() => setIsOptionsMenuOpen(false)}
         position={optionsMenuPosition}
         isMe={isMe}
+        onReply={() => onReply?.(msg)}
       />
 
       {previewIndex !== null && visualMedias.length > 0 && (

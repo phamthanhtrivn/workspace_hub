@@ -127,6 +127,7 @@ export class ConversationService {
             medias: true,
             poll: true,
             note: true,
+            replyTo: true,
           },
         },
       },
@@ -167,38 +168,122 @@ export class ConversationService {
     conversationId: string,
     cursor?: string,
     limit: number = 20,
+    direction: 'older' | 'newer' | 'around' = 'older',
   ) {
-    const messages = await this.prisma.message.findMany({
-      where: {
-        conversationId: conversationId,
-      },
-      take: limit + 1,
-      skip: cursor ? 1 : 0,
-      cursor: cursor ? { id: cursor } : undefined,
-      orderBy: {
-        createdAt: 'desc',
-      },
-      include: {
-        reactions: true,
-        medias: true,
-        poll: { include: { options: { include: { votes: true } } } },
-        note: true,
-      },
-    });
+    const includeQuery = {
+      reactions: true,
+      medias: true,
+      poll: { include: { options: { include: { votes: true } } } },
+      note: true,
+      replyTo: true,
+    };
 
-    let nextCursor: string | undefined = undefined;
-    if (messages.length > limit) {
-      const nextItem = messages.pop();
-      nextCursor = nextItem?.id;
+    if (direction === 'older') {
+      const messages = await this.prisma.message.findMany({
+        where: { conversationId },
+        take: limit + 1,
+        skip: cursor ? 1 : 0,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: { createdAt: 'desc' },
+        include: includeQuery,
+      });
+
+      let nextCursor: string | undefined = undefined;
+      if (messages.length > limit) {
+        const nextItem = messages.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return {
+        messages: messages.reverse().map((message) => ({
+          ...message,
+          medias: mapMediaWithUrl(message.medias),
+        })),
+        nextCursor,
+      };
+    } else if (direction === 'newer') {
+      const messages = await this.prisma.message.findMany({
+        where: { conversationId },
+        take: limit + 1,
+        skip: cursor ? 1 : 0,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: { createdAt: 'asc' },
+        include: includeQuery,
+      });
+
+      let prevCursor: string | undefined = undefined;
+      if (messages.length > limit) {
+        const prevItem = messages.pop();
+        prevCursor = prevItem?.id;
+      }
+
+      return {
+        messages: messages.map((message) => ({
+          ...message,
+          medias: mapMediaWithUrl(message.medias),
+        })),
+        prevCursor,
+      };
+    } else if (direction === 'around' && cursor) {
+      const halfLimit = Math.floor(limit / 2);
+      
+      const [targetMessage, olderMessages, newerMessages] = await Promise.all([
+        this.prisma.message.findUnique({
+          where: { id: cursor },
+          include: includeQuery,
+        }),
+        this.prisma.message.findMany({
+          where: { conversationId },
+          take: halfLimit + 1,
+          skip: 1,
+          cursor: { id: cursor },
+          orderBy: { createdAt: 'desc' },
+          include: includeQuery,
+        }),
+        this.prisma.message.findMany({
+          where: { conversationId },
+          take: halfLimit + 1,
+          skip: 1,
+          cursor: { id: cursor },
+          orderBy: { createdAt: 'asc' },
+          include: includeQuery,
+        }),
+      ]);
+
+      let nextCursor: string | undefined = undefined;
+      if (olderMessages.length > halfLimit) {
+        const nextItem = olderMessages.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      let prevCursor: string | undefined = undefined;
+      if (newerMessages.length > halfLimit) {
+        const prevItem = newerMessages.pop();
+        prevCursor = prevItem?.id;
+      }
+
+      const allMessages: typeof olderMessages = [];
+      if (olderMessages.length > 0) {
+        allMessages.push(...olderMessages.reverse());
+      }
+      if (targetMessage) {
+        allMessages.push(targetMessage);
+      }
+      if (newerMessages.length > 0) {
+        allMessages.push(...newerMessages);
+      }
+
+      return {
+        messages: allMessages.map((message) => ({
+          ...message,
+          medias: mapMediaWithUrl(message.medias),
+        })),
+        nextCursor,
+        prevCursor,
+      };
     }
 
-    return {
-      messages: messages.reverse().map((message) => ({
-        ...message,
-        medias: mapMediaWithUrl(message.medias),
-      })),
-      nextCursor,
-    };
+    return { messages: [], nextCursor: undefined, prevCursor: undefined };
   }
 
   async createGroupConversation(
@@ -247,6 +332,12 @@ export class ConversationService {
           invitations: true,
         },
       });
+
+      await this.chatGateway.sendSystemMessage(
+        conversation.id,
+        userId,
+        `${senderName} đã tạo nhóm`
+      );
 
       // Emit invitation events and notifications
       if (conversation.invitations) {

@@ -82,7 +82,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
             <button
               type="submit"
               disabled={!title.trim() || !content.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Tạo ghi chú
             </button>

@@ -177,7 +177,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
         </form>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 
