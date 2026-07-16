@@ -4,7 +4,7 @@ import { MessageSquare, Edit2, Pin, Trash2, Eye } from "lucide-react";
 interface MessageOptionsDropdownProps {
   isOpen: boolean;
   onClose: () => void;
-  position: { top: number; left: number };
+  buttonRect: DOMRect | null;
   isMe: boolean;
   onReply?: () => void;
   onEdit?: () => void;
@@ -16,7 +16,7 @@ interface MessageOptionsDropdownProps {
 export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   isOpen,
   onClose,
-  position,
+  buttonRect,
   isMe,
   onReply,
   onEdit,
@@ -40,17 +40,29 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !buttonRect) return null;
+
+  const getStyle = (): React.CSSProperties => {
+    const style: React.CSSProperties = {
+      left: isMe ? buttonRect.right : buttonRect.left,
+      transform: isMe ? "translateX(-100%)" : "none",
+    };
+
+    if (buttonRect.bottom > window.innerHeight / 2) {
+      // Open upwards
+      style.bottom = window.innerHeight - buttonRect.top + 10;
+    } else {
+      // Open downwards
+      style.top = buttonRect.bottom + 10;
+    }
+    return style;
+  };
 
   return (
     <div
       ref={menuRef}
       className="fixed z-50 min-w-[180px] bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm text-gray-700 animate-in fade-in zoom-in-95 duration-100"
-      style={{
-        top: position.top,
-        left: position.left,
-        transform: isMe ? "translate(-100%, 10px)" : "translate(0, 10px)",
-      }}
+      style={getStyle()}
     >
       <button
         onClick={() => {

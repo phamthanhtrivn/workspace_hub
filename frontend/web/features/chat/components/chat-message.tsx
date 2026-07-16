@@ -70,10 +70,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
   // Message Options state
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
-  const [optionsMenuPosition, setOptionsMenuPosition] = useState({
-    top: 0,
-    left: 0,
-  });
+  const [optionsMenuRect, setOptionsMenuRect] = useState<DOMRect | null>(null);
 
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth);
@@ -494,13 +491,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
                   <button
                     onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      setOptionsMenuPosition({
-                        top: rect.bottom + window.scrollY,
-                        left: isMe
-                          ? rect.right + window.scrollX
-                          : rect.left + window.scrollX,
-                      });
+                      setOptionsMenuRect(e.currentTarget.getBoundingClientRect());
                       setIsOptionsMenuOpen(true);
                     }}
                     className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
@@ -544,7 +535,7 @@ const ChatMessage = React.memo(function ChatMessage({
       <MessageOptionsDropdown
         isOpen={isOptionsMenuOpen}
         onClose={() => setIsOptionsMenuOpen(false)}
-        position={optionsMenuPosition}
+        buttonRect={optionsMenuRect}
         isMe={isMe}
         onReply={() => onReply?.(msg)}
       />

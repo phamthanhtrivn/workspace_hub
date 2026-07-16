@@ -651,7 +651,7 @@ export default function ChatArea({
       {!isBottomInView && allMessages.length > 0 && (
         <button
           onClick={scrollToBottom}
-          className="absolute bottom-25 cursor-pointer shadow-2xl right-6 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-blue-500 hover:bg-gray-50 transition z-10"
+          className={`absolute ${replyingTo ? "bottom-40" : "bottom-25"} cursor-pointer shadow-2xl right-6 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-blue-500 hover:bg-gray-50 transition z-10`}
         >
           <ChevronDown size={24} />
         </button>
