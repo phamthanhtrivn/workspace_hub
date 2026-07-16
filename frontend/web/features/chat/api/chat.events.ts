@@ -19,4 +19,6 @@ export enum ChatEvent {
   READ_MESSAGE = "read_message",
   MESSAGE_READ = "message_read",
   EDIT_MESSAGE = "edit_message",
+  RECALL_MESSAGE = "recall_message",
+  MESSAGE_UPDATED = "message_updated",
 }

@@ -12,6 +12,7 @@ interface MessageOptionsDropdownProps {
   onRecall?: () => void;
   onViewReadReceipts?: () => void;
   canEdit?: boolean;
+  canRecall?: boolean;
 }
 
 export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
@@ -24,6 +25,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   onPin,
   onRecall,
   canEdit = false,
+  canRecall = true,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -101,7 +103,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         <span>Ghim tin nhắn</span>
       </button>
 
-      {isMe && (
+      {isMe && canRecall && (
         <>
           <div className="h-px bg-gray-100 my-1 mx-2" />
           <button

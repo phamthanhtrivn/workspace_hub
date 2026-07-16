@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MessageType, Prisma } from '@prisma/client';
+import { S3Service } from '../s3/s3.service';
 
 @Injectable()
 export class MessageService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
+  ) {}
 
   async createMessage(
     conversationId: string,
@@ -222,6 +226,56 @@ export class MessageService {
       data: {
         content,
         edited: true,
+      },
+      include: {
+        medias: true,
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        replyTo: true,
+      },
+    });
+  }
+
+  async recallMessage(messageId: string, userId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: { medias: true },
+    });
+
+    if (!message) {
+      throw new Error('Tin nhắn không tìm thấy');
+    }
+
+    if (message.senderId !== userId) {
+      throw new Error('Bạn chỉ có thể thu hồi tin nhắn của chính mình');
+    }
+
+    const now = new Date();
+    const createdAt = new Date(message.createdAt);
+    if (now.getTime() - createdAt.getTime() > 24 * 60 * 60 * 1000) {
+      throw new Error('Chỉ có thể thu hồi tin nhắn trong vòng 24 giờ');
+    }
+
+    // Delete medias from S3
+    if (message.medias && message.medias.length > 0) {
+      for (const media of message.medias) {
+        if (media.s3Key) {
+          await this.s3Service.deleteFile(media.s3Key);
+        }
+      }
+
+      // Delete media records from DB
+      await this.prisma.media.deleteMany({
+        where: { messageId },
+      });
+    }
+
+    // Mark message as recalled, clear content
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: {
+        recalled: true,
+        content: null,
       },
       include: {
         medias: true,

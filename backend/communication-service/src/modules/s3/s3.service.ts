@@ -1,5 +1,5 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
@@ -47,6 +47,20 @@ export class S3Service {
     } catch (error) {
       console.error('Error generating presigned URL:', error);
       throw new InternalServerErrorException('Failed to generate upload URL');
+    }
+  }
+
+  async deleteFile(s3Key: string): Promise<void> {
+    try {
+      const command = new DeleteObjectCommand({
+        Bucket: this.bucketName,
+        Key: s3Key,
+      });
+
+      await this.s3Client.send(command);
+    } catch (error) {
+      console.error(`Error deleting file from S3 (${s3Key}):`, error);
+      throw new InternalServerErrorException('Failed to delete file from S3');
     }
   }
 }

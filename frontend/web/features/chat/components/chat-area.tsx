@@ -173,7 +173,7 @@ export default function ChatArea({
 
         // Update react-query cache
         queryClient.setQueryData(
-          ["messages", activeConversation.id],
+          ["messages", activeConversation.id, jumpTargetId],
           (oldData: any) => {
             if (!oldData) return oldData;
             return {
@@ -233,7 +233,7 @@ export default function ChatArea({
           });
 
           queryClient.setQueryData(
-            ["messages", activeConversation.id],
+            ["messages", activeConversation.id, jumpTargetId],
             (oldData: any) => {
               if (!oldData) return oldData;
               return {
@@ -248,11 +248,18 @@ export default function ChatArea({
         }
       };
 
+      const handleMessageUpdated = (msg: any) => {
+        if (msg.conversationId === activeConversation.id) {
+          updateMessageInState(msg.id, () => msg);
+        }
+      };
+
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.REACTION_UPDATED, handleReactionUpdated);
       socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
       socket.on(ChatEvent.POLL_UPDATED, handlePollUpdated);
       socket.on(ChatEvent.MESSAGE_MOVED, handleMessageMoved);
+      socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -260,6 +267,7 @@ export default function ChatArea({
         socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
         socket.off(ChatEvent.POLL_UPDATED, handlePollUpdated);
         socket.off(ChatEvent.MESSAGE_MOVED, handleMessageMoved);
+        socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
       };
     }
   }, [activeConversation?.id, auth.userId]);
@@ -311,6 +319,19 @@ export default function ChatArea({
           content: "",
           type: "POLL",
           pollData: data,
+        });
+      }
+    },
+    [activeConversation],
+  );
+
+  const handleRecallMessage = useCallback(
+    (msg: any) => {
+      const socket = socketService.getSocket();
+      if (socket && activeConversation?.id) {
+        socket.emit(ChatEvent.RECALL_MESSAGE, {
+          conversationId: activeConversation.id,
+          messageId: msg.id,
         });
       }
     },
@@ -553,6 +574,7 @@ export default function ChatArea({
               chatInputRef.current?.focus();
             }, 50);
           }}
+          onRecallMessage={handleRecallMessage}
           onJumpToMessage={handleJumpToMessage}
         />,
       );

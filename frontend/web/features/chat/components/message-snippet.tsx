@@ -43,6 +43,14 @@ const MessageSnippet = React.memo(function MessageSnippet({
     prefix = `${fullName}: `;
   }
 
+  if (latestMessage.recalled) {
+    return (
+      <p className={`text-sm truncate italic text-gray-400`}>
+        {prefix}Tin nhắn đã bị thu hồi
+      </p>
+    );
+  }
+
   if (latestMessage.type === "POLL") {
     return (
       <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>

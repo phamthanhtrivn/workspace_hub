@@ -46,6 +46,7 @@ interface ChatMessageProps {
   onNoteEdit?: (messageId: string, title: string, content: string) => void;
   onReply?: (msg: any) => void;
   onEditMessage?: (msg: any) => void;
+  onRecallMessage?: (msg: any) => void;
   onJumpToMessage?: (messageId: string) => void;
 }
 
@@ -64,6 +65,7 @@ const ChatMessage = React.memo(function ChatMessage({
   onNoteEdit,
   onReply,
   onEditMessage,
+  onRecallMessage,
   onJumpToMessage,
 }: ChatMessageProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -419,60 +421,77 @@ const ChatMessage = React.memo(function ChatMessage({
               {memberProfile.fullName}
             </span>
           )}
-          {renderVisualMedias()}
-          {renderFileMedias()}
-          <div className="flex flex-col relative">
-            {msg.replyTo && (
-              <div
-                className={`mb-1 px-3 py-2 text-xs border-l-4 rounded-md cursor-pointer hover:opacity-80 transition flex flex-col min-w-[120px] max-w-[250px] truncate ${isMe ? "bg-[#BFDBFE] border-blue-400 text-blue-900" : "bg-gray-100 border-gray-400 text-gray-700"}`}
-                onClick={() => {
-                  if (onJumpToMessage) {
-                    onJumpToMessage(msg.replyTo.id);
-                  } else {
-                    const el = document.getElementById(`msg-${msg.replyTo.id}`);
-                    if (el) {
-                      el.scrollIntoView({
-                        behavior: "smooth",
-                        block: "center",
-                      });
-                      el.classList.add(
-                        "bg-blue-200",
-                        "transition-all",
-                        "duration-200",
-                      );
-                      setTimeout(
-                        () => el.classList.remove("bg-gray-200"),
-                        1500,
-                      );
-                    }
-                  }
-                }}
-              >
-                <span className="font-semibold mb-0.5">
-                  {msg.replyTo.senderId === currentUser.userId
-                    ? "Bạn"
-                    : memberProfiles?.[msg.replyTo.senderId]?.fullName ||
-                      "Ai đó"}
-                </span>
-                <span className="truncate opacity-80">
-                  {msg.replyTo.content || "[Đính kèm]"}
-                </span>
-              </div>
-            )}
-            {hasText && (
-              <div
-                className={`p-3 shadow-sm text-sm flex flex-col relative ${
-                  isMe
-                    ? "bg-[#DBEAFE] text-black rounded-2xl rounded-br-sm"
-                    : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-              </div>
-            )}
 
-            {renderReactions()}
-          </div>
+          {msg.recalled ? (
+            <div
+              className={`p-3 shadow-sm text-sm flex flex-col relative italic text-gray-500 ${
+                isMe
+                  ? "bg-blue-50/50 border border-blue-100 rounded-2xl rounded-br-sm"
+                  : "bg-gray-50/50 border border-gray-100 rounded-2xl rounded-bl-sm"
+              }`}
+            >
+              Tin nhắn đã bị thu hồi
+            </div>
+          ) : (
+            <>
+              {renderVisualMedias()}
+              {renderFileMedias()}
+              <div className="flex flex-col relative">
+                {msg.replyTo && (
+                  <div
+                    className={`mb-1 px-3 py-2 text-xs border-l-4 rounded-md cursor-pointer hover:opacity-80 transition flex flex-col min-w-[120px] max-w-[250px] truncate ${isMe ? "bg-[#BFDBFE] border-blue-400 text-blue-900" : "bg-gray-100 border-gray-400 text-gray-700"}`}
+                    onClick={() => {
+                      if (onJumpToMessage) {
+                        onJumpToMessage(msg.replyTo.id);
+                      } else {
+                        const el = document.getElementById(
+                          `msg-${msg.replyTo.id}`,
+                        );
+                        if (el) {
+                          el.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center",
+                          });
+                          el.classList.add(
+                            "bg-blue-200",
+                            "transition-all",
+                            "duration-200",
+                          );
+                          setTimeout(
+                            () => el.classList.remove("bg-gray-200"),
+                            1500,
+                          );
+                        }
+                      }
+                    }}
+                  >
+                    <span className="font-semibold mb-0.5">
+                      {msg.replyTo.senderId === currentUser.userId
+                        ? "Bạn"
+                        : memberProfiles?.[msg.replyTo.senderId]?.fullName ||
+                          "Ai đó"}
+                    </span>
+                    <span className="truncate opacity-80">
+                      {msg.replyTo.content || "[Đính kèm]"}
+                    </span>
+                  </div>
+                )}
+                {hasText && (
+                  <div
+                    className={`p-3 shadow-sm text-sm flex flex-col relative ${
+                      isMe
+                        ? "bg-[#DBEAFE] text-black rounded-2xl rounded-br-sm"
+                        : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                )}
+
+                {renderReactions()}
+              </div>
+            </>
+          )}
 
           {showTime && (
             <div
@@ -492,48 +511,50 @@ const ChatMessage = React.memo(function ChatMessage({
           )}
 
           {/* Reaction & Options Buttons */}
-          <div
-            className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "right-full mr-2" : "left-full ml-2"} opacity-0 group-hover/bubble:opacity-100 transition-opacity z-10`}
-          >
-            <div className="relative">
+          {!msg.recalled && (
+            <div
+              className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "right-full mr-2" : "left-full ml-2"} opacity-0 group-hover/bubble:opacity-100 transition-opacity z-10`}
+            >
+              <div className="relative">
+                <button
+                  onClick={() => setShowReactionPicker(!showReactionPicker)}
+                  className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
+                >
+                  <SmilePlus size={16} />
+                </button>
+
+                {/* Quick Emojis Popup */}
+                {showReactionPicker && (
+                  <div
+                    className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "right-full mr-2" : "left-full ml-2"} bg-white border border-gray-200 rounded-full shadow-lg p-1.5 flex gap-1`}
+                  >
+                    {QUICK_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => {
+                          handleReactionClick(emoji);
+                          setShowReactionPicker(false);
+                        }}
+                        className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <button
-                onClick={() => setShowReactionPicker(!showReactionPicker)}
+                onClick={(e) => {
+                  setOptionsMenuRect(e.currentTarget.getBoundingClientRect());
+                  setIsOptionsMenuOpen(true);
+                }}
                 className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
               >
-                <SmilePlus size={16} />
+                <MoreHorizontal size={16} />
               </button>
-
-              {/* Quick Emojis Popup */}
-              {showReactionPicker && (
-                <div
-                  className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "right-full mr-2" : "left-full ml-2"} bg-white border border-gray-200 rounded-full shadow-lg p-1.5 flex gap-1`}
-                >
-                  {QUICK_EMOJIS.map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => {
-                        handleReactionClick(emoji);
-                        setShowReactionPicker(false);
-                      }}
-                      className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
-
-            <button
-              onClick={(e) => {
-                setOptionsMenuRect(e.currentTarget.getBoundingClientRect());
-                setIsOptionsMenuOpen(true);
-              }}
-              className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
-            >
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
+          )}
         </div>
       </div>
 
@@ -559,9 +580,11 @@ const ChatMessage = React.memo(function ChatMessage({
         onClose={() => setIsOptionsMenuOpen(false)}
         buttonRect={optionsMenuRect}
         isMe={isMe}
-        canEdit={msg.type === "TEXT" && isWithin24Hours}
+        canEdit={msg.type === "TEXT" && isWithin24Hours && hasText}
+        canRecall={isWithin24Hours}
         onReply={() => onReply?.(msg)}
         onEdit={() => onEditMessage?.(msg)}
+        onRecall={() => onRecallMessage?.(msg)}
       />
 
       {previewIndex !== null && visualMedias.length > 0 && (

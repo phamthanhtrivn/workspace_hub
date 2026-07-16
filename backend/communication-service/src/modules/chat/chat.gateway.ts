@@ -326,11 +326,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
       const targetRooms = [data.conversationId, ...memberUserIds];
       
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
       console.error(error);
       return { status: 'error', message: 'Failed to edit message' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.RECALL_MESSAGE)
+  async handleRecallMessage(
+    @MessageBody() data: { conversationId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId) return;
+
+    try {
+      const updatedMessage = await this.messageService.recallMessage(data.messageId, userId);
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to recall message' };
     }
   }
 

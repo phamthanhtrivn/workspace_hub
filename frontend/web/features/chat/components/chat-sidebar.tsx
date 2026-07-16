@@ -145,6 +145,30 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         );
       };
 
+      const handleMessageUpdated = (message: any) => {
+        queryClient.setQueryData(
+          ["conversations", currentUserId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            const prev = oldData.conversations;
+            const index = prev.findIndex(
+              (c: any) => c.id === message.conversationId,
+            );
+            if (index > -1) {
+              const conv = { ...prev[index] };
+              // Only update the snippet if this edited/recalled message IS the latest message
+              if (conv.messages?.[0]?.id === message.id) {
+                conv.messages = [message];
+                const newConversations = [...prev];
+                newConversations[index] = conv;
+                return { ...oldData, conversations: newConversations };
+              }
+            }
+            return oldData;
+          },
+        );
+      };
+
       const handleMessageRead = (data: {
         conversationId: string;
         userId: string;
@@ -209,12 +233,14 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
+      socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
       socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
       socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
         socket.off(ChatEvent.MESSAGE_MOVED, handleNewMessage);
+        socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
         socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
         socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
       };

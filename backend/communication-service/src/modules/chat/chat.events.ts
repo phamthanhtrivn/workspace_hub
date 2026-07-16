@@ -19,4 +19,6 @@ export enum ChatEvent {
   READ_MESSAGE = 'read_message', // event from client to server to mark one or more messages as read
   MESSAGE_READ = 'message_read', // event from server to client to notify that a message has been read
   EDIT_MESSAGE = 'edit_message',
+  RECALL_MESSAGE = 'recall_message',
+  MESSAGE_UPDATED = 'message_updated',
 }
