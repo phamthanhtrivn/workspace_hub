@@ -140,7 +140,7 @@ export class ConversationService {
       conversations.map(async (conv) => {
         const member = conv.members.find((m) => m.userId === userId);
         let unreadCount = 0;
-        
+
         if (member) {
           const referenceDate = member.lastReadAt || member.joinedAt;
           unreadCount = await this.prisma.message.count({
@@ -226,7 +226,7 @@ export class ConversationService {
       };
     } else if (direction === 'around' && cursor) {
       const halfLimit = Math.floor(limit / 2);
-      
+
       const [targetMessage, olderMessages, newerMessages] = await Promise.all([
         this.prisma.message.findUnique({
           where: { id: cursor },
@@ -303,8 +303,8 @@ export class ConversationService {
       status: 'PENDING' as const,
     }));
 
-    return this.prisma.$transaction(async (prisma) => {
-      const conversation = await prisma.conversation.create({
+    const conversation = await this.prisma.$transaction(async (prisma) => {
+      return prisma.conversation.create({
         data: {
           type: ConversationType.GROUP,
           name: data.name || null,
@@ -332,41 +332,41 @@ export class ConversationService {
           invitations: true,
         },
       });
-
-      await this.chatGateway.sendSystemMessage(
-        conversation.id,
-        userId,
-        `${senderName} đã tạo nhóm`
-      );
-
-      // Emit invitation events and notifications
-      if (conversation.invitations) {
-        conversation.invitations.forEach((inv) => {
-          // Publish to notification-service ONLY, no chat websocket
-          this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-            key: inv.invitedUserId,
-            value: {
-              recipientId: inv.invitedUserId,
-              senderId: userId,
-              senderName: senderName,
-              senderAvatar: senderAvatar,
-              type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
-              title: 'Lời mời vào nhóm chat',
-              content: `Bạn được mời vào nhóm chat ${conversation.name || 'mới'}`,
-              link: '/chat',
-              metadata: {
-                invitationId: inv.id,
-                conversationId: conversation.id,
-                conversationName: conversation.name,
-                conversationAvatarUrl: conversation.avatarUrl,
-              },
-            },
-          });
-        });
-      }
-
-      return conversation;
     });
+
+    await this.chatGateway.sendSystemMessage(
+      conversation.id,
+      userId,
+      `${senderName} đã tạo nhóm`,
+    );
+
+    // Emit invitation events and notifications
+    if (conversation.invitations) {
+      conversation.invitations.forEach((inv) => {
+        // Publish to notification-service ONLY, no chat websocket
+        this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+          key: inv.invitedUserId,
+          value: {
+            recipientId: inv.invitedUserId,
+            senderId: userId,
+            senderName: senderName,
+            senderAvatar: senderAvatar,
+            type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
+            title: 'Lời mời vào nhóm chat',
+            content: `Bạn được mời vào nhóm chat ${conversation.name || 'mới'}`,
+            link: '/chat',
+            metadata: {
+              invitationId: inv.id,
+              conversationId: conversation.id,
+              conversationName: conversation.name,
+              conversationAvatarUrl: conversation.avatarUrl,
+            },
+          },
+        });
+      });
+    }
+
+    return conversation;
   }
 
   async getConversationMedia(

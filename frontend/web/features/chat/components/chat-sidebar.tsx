@@ -178,14 +178,45 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         );
       };
 
+      const handleMemberJoin = (data: any) => {
+        if (data.profile) {
+          dispatch(addMemberProfilesAction({ [data.profile.id]: data.profile }));
+        }
+        
+        queryClient.setQueryData(
+          ["conversations", currentUserId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              conversations: oldData.conversations.map((c: any) => {
+                if (c.id === data.conversationId) {
+                  const updatedConv = { ...c };
+                  const isAlreadyMember = updatedConv.members?.some(
+                    (m: any) => m.userId === data.member?.userId,
+                  );
+                  if (!isAlreadyMember && updatedConv.members && data.member) {
+                    updatedConv.members = [...updatedConv.members, data.member];
+                  }
+                  return updatedConv;
+                }
+                return c;
+              }),
+            };
+          },
+        );
+      };
+
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
+      socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
         socket.off(ChatEvent.MESSAGE_MOVED, handleNewMessage);
         socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
+        socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
       };
     }, 500); // Allow time for layout to connect socket
 

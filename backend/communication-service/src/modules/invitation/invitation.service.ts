@@ -62,8 +62,8 @@ export class InvitationService {
 
     const { senderName, senderAvatar } = await getSenderProfile(userId);
 
-    return this.prisma.$transaction(async (prisma) => {
-      const updatedInvitation = await prisma.groupInvitation.update({
+    const updatedInvitation = await this.prisma.$transaction(async (prisma) => {
+      const updated = await prisma.groupInvitation.update({
         where: { id: invitationId },
         data: {
           status: 'ACCEPTED',
@@ -79,51 +79,53 @@ export class InvitationService {
         },
       });
 
-      await this.chatGateway.sendSystemMessage(
-        invitation.conversationId,
-        userId,
-        `${senderName} đã tham gia vào nhóm chat`
-      );
-
-      const memberUserIds = await this.messageService.getConversationMemberIds(
-        invitation.conversationId,
-      );
-      const targetRooms = [invitation.conversationId, ...memberUserIds];
-      
-      this.chatGateway.emitMemberJoin(targetRooms, {
-        conversationId: invitation.conversationId,
-        member: {
-          conversationId: invitation.conversationId,
-          userId: userId,
-          role: ConversationRole.MEMBER,
-        },
-        profile: {
-          id: userId,
-          fullName: senderName,
-          avatarUrl: senderAvatar,
-        },
-      });
-
-      this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-        key: invitation.invitedBy,
-        value: {
-          recipientId: invitation.invitedBy,
-          senderId: userId,
-          senderName: senderName,
-          senderAvatar: senderAvatar,
-          type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
-          title: 'Lời mời đã được chấp nhận',
-          content: 'Chấp nhận lời mời vào nhóm',
-          link: `/chat?id=${invitation.conversationId}`,
-          metadata: {
-            conversationId: invitation.conversationId,
-            conversationName: invitation.conversation.name,
-          },
-        },
-      });
-
-      return updatedInvitation;
+      return updated;
     });
+
+    await this.chatGateway.sendSystemMessage(
+      invitation.conversationId,
+      userId,
+      `${senderName} đã tham gia vào nhóm chat`
+    );
+
+    const memberUserIds = await this.messageService.getConversationMemberIds(
+      invitation.conversationId,
+    );
+    const targetRooms = [invitation.conversationId, ...memberUserIds];
+    
+    this.chatGateway.emitMemberJoin(targetRooms, {
+      conversationId: invitation.conversationId,
+      member: {
+        conversationId: invitation.conversationId,
+        userId: userId,
+        role: ConversationRole.MEMBER,
+      },
+      profile: {
+        id: userId,
+        fullName: senderName,
+        avatarUrl: senderAvatar,
+      },
+    });
+
+    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+      key: invitation.invitedBy,
+      value: {
+        recipientId: invitation.invitedBy,
+        senderId: userId,
+        senderName: senderName,
+        senderAvatar: senderAvatar,
+        type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
+        title: 'Lời mời đã được chấp nhận',
+        content: 'Chấp nhận lời mời vào nhóm',
+        link: `/chat?id=${invitation.conversationId}`,
+        metadata: {
+          conversationId: invitation.conversationId,
+          conversationName: invitation.conversation.name,
+        },
+      },
+    });
+
+    return updatedInvitation;
   }
 
   async declineInvitation(userId: string, invitationId: string) {

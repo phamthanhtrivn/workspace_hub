@@ -28,9 +28,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
 
   if (latestMessage.type === "SYSTEM") {
     return (
-      <p className={`text-sm truncate italic ${textClass}`}>
-        {latestMessage.content}
-      </p>
+      <p className={`text-sm truncate ${textClass}`}>{latestMessage.content}</p>
     );
   }
 
