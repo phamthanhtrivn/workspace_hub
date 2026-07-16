@@ -312,6 +312,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage(ChatEvent.EDIT_MESSAGE)
+  async handleEditMessage(
+    @MessageBody() data: { conversationId: string; messageId: string; content: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId || data.content === undefined) return;
+
+    try {
+      const updatedMessage = await this.messageService.editMessage(data.messageId, data.content, userId);
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to edit message' };
+    }
+  }
+
   @SubscribeMessage(ChatEvent.READ_MESSAGE)
   async handleReadMessage(
     @MessageBody() data: { conversationId: string; messageId: string },

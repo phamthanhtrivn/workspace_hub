@@ -57,6 +57,7 @@ export default function ChatArea({
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
+  const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const [jumpTargetId, setJumpTargetId] = useState<string | null>(null);
 
   const {
@@ -279,16 +280,25 @@ export default function ChatArea({
     (content: string, medias?: any[]) => {
       const socket = socketService.getSocket();
       if (socket && activeConversation?.id) {
-        socket.emit(ChatEvent.SEND_MESSAGE, {
-          conversationId: activeConversation?.id,
-          content,
-          medias,
-          replyToMessageId: replyingTo?.id,
-        });
-        setReplyingTo(null);
+        if (editingMessage) {
+          socket.emit(ChatEvent.EDIT_MESSAGE, {
+            conversationId: activeConversation.id,
+            messageId: editingMessage.id,
+            content,
+          });
+          setEditingMessage(null);
+        } else {
+          socket.emit(ChatEvent.SEND_MESSAGE, {
+            conversationId: activeConversation?.id,
+            content,
+            medias,
+            replyToMessageId: replyingTo?.id,
+          });
+          setReplyingTo(null);
+        }
       }
     },
-    [activeConversation?.id, replyingTo],
+    [activeConversation?.id, replyingTo, editingMessage],
   );
 
   const handleCreatePoll = useCallback(
@@ -530,7 +540,16 @@ export default function ChatArea({
           onNoteEdit={handleNoteEditMessage}
           onReply={(msgToReply) => {
             setReplyingTo(msgToReply);
+            setEditingMessage(null);
             setTimeout(() => {
+              chatInputRef.current?.focus();
+            }, 50);
+          }}
+          onEditMessage={(msgToEdit) => {
+            setEditingMessage(msgToEdit);
+            setReplyingTo(null);
+            setTimeout(() => {
+              chatInputRef.current?.setMessage(msgToEdit.content || "");
               chatInputRef.current?.focus();
             }, 50);
           }}
@@ -681,6 +700,29 @@ export default function ChatArea({
           <button
             onClick={() => setReplyingTo(null)}
             className="p-1 text-gray-400 hover:text-gray-600 hover:bg-blue-100 rounded-full cursor-pointer ml-2 transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* Editing UI */}
+      {editingMessage && (
+        <div className="bg-orange-50 border-t border-orange-100 p-2 px-4 flex items-center justify-between">
+          <div className="flex flex-col min-w-0 flex-1 border-l-4 border-orange-500 pl-3">
+            <span className="text-xs font-semibold text-orange-600">
+              Chỉnh sửa tin nhắn
+            </span>
+            <span className="text-sm text-gray-600 truncate">
+              {editingMessage.content}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              setEditingMessage(null);
+              chatInputRef.current?.setMessage("");
+            }}
+            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-orange-100 rounded-full cursor-pointer ml-2 transition-colors"
           >
             <X size={16} />
           </button>

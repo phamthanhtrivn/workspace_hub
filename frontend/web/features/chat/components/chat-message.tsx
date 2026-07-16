@@ -45,6 +45,7 @@ interface ChatMessageProps {
   ) => void;
   onNoteEdit?: (messageId: string, title: string, content: string) => void;
   onReply?: (msg: any) => void;
+  onEditMessage?: (msg: any) => void;
   onJumpToMessage?: (messageId: string) => void;
 }
 
@@ -62,6 +63,7 @@ const ChatMessage = React.memo(function ChatMessage({
   onPollEdit,
   onNoteEdit,
   onReply,
+  onEditMessage,
   onJumpToMessage,
 }: ChatMessageProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
@@ -81,6 +83,12 @@ const ChatMessage = React.memo(function ChatMessage({
       hour: "2-digit",
       minute: "2-digit",
     });
+  }, [msg.createdAt]);
+
+  const isWithin24Hours = useMemo(() => {
+    const now = new Date().getTime();
+    const createdAt = new Date(msg.createdAt).getTime();
+    return now - createdAt <= 24 * 60 * 60 * 1000;
   }, [msg.createdAt]);
 
   const hasText = msg.content && msg.content.trim().length > 0;
@@ -470,7 +478,16 @@ const ChatMessage = React.memo(function ChatMessage({
             <div
               className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
             >
-              <span className={`text-[10px] text-gray-700 px-1`}>{time}</span>
+              <span
+                className={`text-[10px] text-gray-700 px-1 flex gap-1 items-center`}
+              >
+                {time}
+                {msg.edited && (
+                  <span className="text-gray-500 text-[10px]">
+                    (Đã chỉnh sửa)
+                  </span>
+                )}
+              </span>
             </div>
           )}
 
@@ -542,7 +559,9 @@ const ChatMessage = React.memo(function ChatMessage({
         onClose={() => setIsOptionsMenuOpen(false)}
         buttonRect={optionsMenuRect}
         isMe={isMe}
+        canEdit={msg.type === "TEXT" && isWithin24Hours}
         onReply={() => onReply?.(msg)}
+        onEdit={() => onEditMessage?.(msg)}
       />
 
       {previewIndex !== null && visualMedias.length > 0 && (

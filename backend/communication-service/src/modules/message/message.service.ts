@@ -187,4 +187,48 @@ export class MessageService {
       },
     });
   }
+
+  async editMessage(messageId: string, content: string, userId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new Error('Không tìm thấy tin nhắn');
+    }
+
+    if (message.senderId !== userId) {
+      throw new Error('Bạn chỉ có thể chỉnh sửa tin nhắn của chính mình');
+    }
+
+    if (message.type !== MessageType.TEXT) {
+      throw new Error('Chỉ có tin nhắn văn bản mới có thể chỉnh sửa');
+    }
+
+    if (content.trim().length === 0) {
+      throw new Error('Nội dung tin nhắn không được để trống');
+    }
+
+    const now = new Date().getTime();
+    const createdAt = new Date(message.createdAt).getTime();
+    const hoursDifference = (now - createdAt) / (1000 * 60 * 60);
+
+    if (hoursDifference > 24) {
+      throw new Error('Tin nhắn chỉ có thể sửa trong vòng 24 tiếng');
+    }
+
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: {
+        content,
+        edited: true,
+      },
+      include: {
+        medias: true,
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        replyTo: true,
+      },
+    });
+  }
 }

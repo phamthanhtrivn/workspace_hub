@@ -11,6 +11,7 @@ interface MessageOptionsDropdownProps {
   onPin?: () => void;
   onRecall?: () => void;
   onViewReadReceipts?: () => void;
+  canEdit?: boolean;
 }
 
 export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
@@ -22,6 +23,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   onEdit,
   onPin,
   onRecall,
+  canEdit = false,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +77,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         <span>Phản hồi</span>
       </button>
 
-      {isMe && (
+      {isMe && canEdit && (
         <button
           onClick={() => {
             onEdit?.();

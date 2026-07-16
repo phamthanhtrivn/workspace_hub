@@ -43,6 +43,7 @@ interface UploadingMedia {
 
 export interface ChatInputRef {
   focus: () => void;
+  setMessage: (content: string) => void;
 }
 
 const ChatInput = React.memo(
@@ -62,6 +63,9 @@ const ChatInput = React.memo(
       focus: () => {
         textareaRef.current?.focus();
       },
+      setMessage: (content: string) => {
+        setMessage(content);
+      }
     }));
     const activeConversationId = useAppSelector(
       (state) => state.chat.activeConversation?.id,
