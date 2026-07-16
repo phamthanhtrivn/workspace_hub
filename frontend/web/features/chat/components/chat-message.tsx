@@ -402,7 +402,7 @@ const ChatMessage = React.memo(function ChatMessage({
         )}
 
         <div
-          className={`max-w-[70%] flex flex-col gap-1 ${
+          className={`max-w-[70%] flex flex-col gap-1 relative group/bubble ${
             isMe ? "items-end" : "items-start"
           }`}
         >
@@ -423,13 +423,19 @@ const ChatMessage = React.memo(function ChatMessage({
                   } else {
                     const el = document.getElementById(`msg-${msg.replyTo.id}`);
                     if (el) {
-                      el.scrollIntoView({ behavior: "smooth", block: "center" });
+                      el.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
                       el.classList.add(
                         "bg-blue-200",
                         "transition-all",
                         "duration-200",
                       );
-                      setTimeout(() => el.classList.remove("bg-gray-200"), 1500);
+                      setTimeout(
+                        () => el.classList.remove("bg-gray-200"),
+                        1500,
+                      );
                     }
                   }
                 }}
@@ -441,64 +447,19 @@ const ChatMessage = React.memo(function ChatMessage({
                       "Ai đó"}
                 </span>
                 <span className="truncate opacity-80">
-                  {msg.replyTo.content ||
-                    (msg.replyTo.type !== "TEXT" ? "[Đính kèm]" : "")}
+                  {msg.replyTo.content || "[Đính kèm]"}
                 </span>
               </div>
             )}
             {hasText && (
               <div
-                className={`p-3 shadow-sm text-sm flex flex-col relative group/bubble ${
+                className={`p-3 shadow-sm text-sm flex flex-col relative ${
                   isMe
                     ? "bg-[#DBEAFE] text-black rounded-2xl rounded-br-sm"
                     : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
                 }`}
               >
                 <p className="whitespace-pre-wrap">{msg.content}</p>
-
-                {/* Reaction & Options Buttons */}
-                <div
-                  className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "right-full mr-2" : "left-full ml-2"} opacity-0 group-hover/bubble:opacity-100 transition-opacity z-10`}
-                >
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowReactionPicker(!showReactionPicker)}
-                      className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
-                    >
-                      <SmilePlus size={16} />
-                    </button>
-
-                    {/* Quick Emojis Popup */}
-                    {showReactionPicker && (
-                      <div
-                        className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "right-full mr-2" : "left-full ml-2"} bg-white border border-gray-200 rounded-full shadow-lg p-1.5 flex gap-1`}
-                      >
-                        {QUICK_EMOJIS.map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => {
-                              handleReactionClick(emoji);
-                              setShowReactionPicker(false);
-                            }}
-                            className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={(e) => {
-                      setOptionsMenuRect(e.currentTarget.getBoundingClientRect());
-                      setIsOptionsMenuOpen(true);
-                    }}
-                    className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
-                  >
-                    <MoreHorizontal size={16} />
-                  </button>
-                </div>
               </div>
             )}
 
@@ -512,6 +473,50 @@ const ChatMessage = React.memo(function ChatMessage({
               <span className={`text-[10px] text-gray-700 px-1`}>{time}</span>
             </div>
           )}
+
+          {/* Reaction & Options Buttons */}
+          <div
+            className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "right-full mr-2" : "left-full ml-2"} opacity-0 group-hover/bubble:opacity-100 transition-opacity z-10`}
+          >
+            <div className="relative">
+              <button
+                onClick={() => setShowReactionPicker(!showReactionPicker)}
+                className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
+              >
+                <SmilePlus size={16} />
+              </button>
+
+              {/* Quick Emojis Popup */}
+              {showReactionPicker && (
+                <div
+                  className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "right-full mr-2" : "left-full ml-2"} bg-white border border-gray-200 rounded-full shadow-lg p-1.5 flex gap-1`}
+                >
+                  {QUICK_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => {
+                        handleReactionClick(emoji);
+                        setShowReactionPicker(false);
+                      }}
+                      className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={(e) => {
+                setOptionsMenuRect(e.currentTarget.getBoundingClientRect());
+                setIsOptionsMenuOpen(true);
+              }}
+              className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
         </div>
       </div>
 
