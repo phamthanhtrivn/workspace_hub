@@ -20,23 +20,23 @@ const ConversationItem = React.memo(function ConversationItem({
   onClick,
 }: ConversationItemProps) {
   const isDirect = conv.type === "DIRECT";
-  
+
   const otherMember = useMemo(() => {
     return isDirect
       ? conv.members?.find((m: any) => m.userId !== currentUserId)
       : null;
   }, [isDirect, conv.members, currentUserId]);
-  
+
   const profile = otherMember ? memberProfiles[otherMember.userId] : null;
 
   const name = isDirect
     ? profile?.fullName || "Unknown User"
     : conv.name || "Group Chat";
-    
+
   const avatarUrl = isDirect ? profile?.avatarUrl : conv.avatarUrl;
 
   const latestMessage = conv.messages?.[0];
-  
+
   const time = useMemo(() => {
     return latestMessage
       ? formatConversationTime(latestMessage.createdAt)
@@ -71,10 +71,16 @@ const ConversationItem = React.memo(function ConversationItem({
       </div>
       <div className="ml-3 flex-1 overflow-hidden">
         <div className="flex justify-between items-baseline mb-0.5">
-          <h3 className={`truncate ${conv.unreadCount ? 'text-sm font-bold text-gray-900' : 'text-sm font-semibold text-gray-800'}`}>
+          <h3
+            className={`truncate ${conv.unreadCount ? "text-sm font-bold text-gray-900" : "text-sm font-semibold text-gray-800"}`}
+          >
             {name}
           </h3>
-          <span className={`text-xs ${conv.unreadCount ? 'text-blue-600 font-semibold' : 'text-gray-500'}`}>{time}</span>
+          <span
+            className={`text-xs ${conv.unreadCount ? "text-blue-600 font-semibold" : "text-gray-500"}`}
+          >
+            {time}
+          </span>
         </div>
         <div className="flex justify-between items-center">
           <div className="flex-1 min-w-0">
@@ -86,9 +92,12 @@ const ConversationItem = React.memo(function ConversationItem({
               isUnread={conv.unreadCount > 0}
             />
           </div>
+          {conv.hasMention && (
+            <span className="text-blue-600 font-semibold">@</span>
+          )}
           {conv.unreadCount > 0 && (
-            <div className="ml-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex-shrink-0">
-              {conv.unreadCount > 99 ? '99+' : conv.unreadCount}
+            <div className="ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex items-center justify-center gap-0.5">
+              <span>{conv.unreadCount > 99 ? "99+" : conv.unreadCount}</span>
             </div>
           )}
         </div>

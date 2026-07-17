@@ -24,9 +24,10 @@ import {
 import { useAppSelector } from "@/store/store";
 import { getPresignedUrls, uploadToS3 } from "../api/media.api";
 import { toast } from "react-toastify";
+import MentionDropdown from "./mention-dropdown";
 
 interface ChatInputProps {
-  onSendMessage?: (content: string, media?: any[]) => void;
+  onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
   onCreatePoll?: () => void;
   onCreateNote?: () => void;
   onTypingChange?: (isTyping: boolean) => void;
@@ -57,14 +58,84 @@ const ChatInput = React.memo(
     const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
     const isUploading = uploadingMedia.some((m) => m.status === "uploading");
 
+    const activeConversation = useAppSelector(
+      (state: any) => state.chat.activeConversation,
+    );
+    const memberProfiles = useAppSelector(
+      (state: any) => state.chat.memberProfiles,
+    );
+    const authUserId = useAppSelector((state: any) => state.auth.userId);
+
+    const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+    const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [mentions, setMentions] = useState<string[]>([]);
+
+    const filteredMembers = React.useMemo(() => {
+      if (
+        mentionQuery === null ||
+        !activeConversation?.members ||
+        !memberProfiles
+      )
+        return [];
+      const query = mentionQuery.toLowerCase();
+      const members = activeConversation.members
+        .map((m: any) => m.userId)
+        .filter((id: string) => id !== authUserId)
+        .map((id: string) => ({
+          id,
+          name: memberProfiles[id]?.fullName || "Ai đó",
+          avatarUrl: memberProfiles[id]?.avatarUrl,
+        }))
+        .filter((m: any) => m.name.toLowerCase().includes(query));
+      return members.slice(0, 4);
+    }, [mentionQuery, activeConversation, memberProfiles, authUserId]);
+
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isTypingRef = useRef(false);
 
+    const insertMention = useCallback(
+      (user: any) => {
+        if (mentionStartIndex === -1) return;
+        const before = message.substring(0, mentionStartIndex);
+        const after = message.substring(
+          textareaRef.current?.selectionStart || message.length,
+        );
+        const newText = `${before}@${user.name} ${after}`;
+        setMessage(newText);
+        setMentionQuery(null);
+        setMentionStartIndex(-1);
+        if (!mentions.includes(user.id)) {
+          setMentions((prev) => [...prev, user.id]);
+        }
+        setTimeout(() => {
+          if (textareaRef.current) {
+            textareaRef.current.focus();
+            const newPos = before.length + user.name.length + 2;
+            textareaRef.current.setSelectionRange(newPos, newPos);
+          }
+        }, 0);
+      },
+      [message, mentionStartIndex, mentions],
+    );
+
     const handleTyping = useCallback(
-      (text: string) => {
+      (text: string, cursorPosition: number) => {
         setMessage(text);
+
+        const textBeforeCursor = text.substring(0, cursorPosition);
+        const match = textBeforeCursor.match(/(?:^|\s)@([^\s]*)$/);
+
+        if (match) {
+          setMentionQuery(match[1]);
+          setMentionStartIndex(textBeforeCursor.lastIndexOf("@"));
+          setSelectedIndex(0);
+        } else {
+          setMentionQuery(null);
+          setMentionStartIndex(-1);
+        }
 
         if (!isTypingRef.current && text.trim().length > 0) {
           isTypingRef.current = true;
@@ -99,9 +170,7 @@ const ChatInput = React.memo(
       },
     }));
 
-    const activeConversationId = useAppSelector(
-      (state) => state.chat.activeConversation?.id,
-    );
+    const activeConversationId = activeConversation?.id;
 
     useEffect(() => {
       if (activeConversationId && textareaRef.current) {
@@ -245,9 +314,12 @@ const ChatInput = React.memo(
       onSendMessage(
         message.trim(),
         mediaList.length > 0 ? mediaList : undefined,
+        mentions.length > 0 ? mentions : undefined,
       );
       setMessage("");
       setUploadingMedia([]);
+      setMentions([]);
+      setMentionQuery(null);
 
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (isTypingRef.current) {
@@ -310,7 +382,7 @@ const ChatInput = React.memo(
           </div>
         )}
 
-        <div className="flex items-end gap-2 bg-gray-50 rounded-2xl p-2 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+        <div className="flex items-end gap-2 bg-gray-50 rounded-2xl p-2 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all relative">
           {/* Hidden Inputs */}
           <input
             type="file"
@@ -372,17 +444,64 @@ const ChatInput = React.memo(
             )}
           </div>
 
+          {/* Mention Dropdown */}
+          <MentionDropdown
+            query={mentionQuery}
+            members={filteredMembers}
+            selectedIndex={selectedIndex}
+            onSelect={insertMention}
+          />
+
           {/* Message Textarea */}
           <textarea
             id="chat-input-textarea"
             ref={textareaRef}
             value={message}
-            onChange={(e) => handleTyping(e.target.value)}
-            placeholder="Type a message..."
+            onChange={(e) =>
+              handleTyping(e.target.value, e.target.selectionStart)
+            }
+            placeholder={
+              activeConversation?.type === "DIRECT"
+                ? `Nhập tin nhắn tới ${
+                    memberProfiles?.[
+                      activeConversation.members?.find(
+                        (m: any) => m.userId !== authUserId
+                      )?.userId
+                    ]?.fullName || "người dùng"
+                  }...`
+                : "Nhập @, tin nhắn tới nhóm " + activeConversation?.name
+            }
             disabled={isUploading}
             className="flex-1 max-h-32 min-h-[40px] bg-transparent resize-none outline-none px-2 py-2 text-gray-800 placeholder-gray-400 disabled:opacity-50"
             rows={1}
             onKeyDown={(e) => {
+              if (mentionQuery !== null && filteredMembers.length > 0) {
+                if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setSelectedIndex((prev) =>
+                    prev > 0 ? prev - 1 : filteredMembers.length - 1,
+                  );
+                  return;
+                }
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setSelectedIndex((prev) =>
+                    prev < filteredMembers.length - 1 ? prev + 1 : 0,
+                  );
+                  return;
+                }
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  insertMention(filteredMembers[selectedIndex]);
+                  return;
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
+                  setMentionQuery(null);
+                  return;
+                }
+              }
+
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();

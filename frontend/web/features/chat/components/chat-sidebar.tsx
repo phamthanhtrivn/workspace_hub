@@ -124,6 +124,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 message.conversationId !== activeConversationIdRef.current
               ) {
                 conv.unreadCount = (conv.unreadCount || 0) + 1;
+                if (message.mentions?.includes(currentUserId)) {
+                  conv.hasMention = true;
+                }
               }
 
               // Update sender's lastReadMessageId
@@ -185,6 +188,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   const updatedConv = { ...c };
                   if (data.userId === currentUserId) {
                     updatedConv.unreadCount = 0;
+                    updatedConv.hasMention = false;
                   }
                   if (updatedConv.members) {
                     updatedConv.members = updatedConv.members.map((m: any) =>
@@ -262,7 +266,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           return {
             ...oldData,
             conversations: oldData.conversations.map((c: any) =>
-              c.id === conv.id ? { ...c, unreadCount: 0 } : c,
+              c.id === conv.id ? { ...c, unreadCount: 0, hasMention: false } : c,
             ),
           };
         },

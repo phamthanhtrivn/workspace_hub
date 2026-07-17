@@ -332,7 +332,7 @@ export default function ChatArea({
   }, []);
 
   const handleSendMessage = useCallback(
-    (content: string, medias?: any[]) => {
+    (content: string, medias?: any[], mentions?: string[]) => {
       const socket = socketService.getSocket();
       if (socket && activeConversation?.id) {
         if (editingMessage) {
@@ -348,6 +348,7 @@ export default function ChatArea({
             content,
             medias,
             replyToMessageId: replyingTo?.id,
+            mentions,
           });
           setReplyingTo(null);
         }

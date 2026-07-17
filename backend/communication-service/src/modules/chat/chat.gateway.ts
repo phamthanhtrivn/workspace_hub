@@ -90,6 +90,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         content: string;
       };
       replyToMessageId?: string;
+      mentions?: string[];
     },
     @ConnectedSocket() client: Socket,
   ) {
@@ -97,7 +98,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (
       !userId ||
       !data.conversationId ||
-      (data.content === undefined && (!data.medias || data.medias.length === 0) && !data.pollData && !data.noteData)
+      (data.content === undefined &&
+        (!data.medias || data.medias.length === 0) &&
+        !data.pollData &&
+        !data.noteData)
     ) {
       return { status: 'error', message: 'Invalid data' };
     }
@@ -121,6 +125,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const messageWithUrls = {
         ...message,
         medias: mapMediaWithUrl(message.medias),
+        mentions: data.mentions,
       };
 
       const targetRooms = [data.conversationId, ...memberUserIds];
@@ -189,27 +194,44 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.REACT_MESSAGE)
   async handleReactMessage(
-    @MessageBody() data: { conversationId: string; messageId: string; emoji: string; action: 'add' | 'remove' },
+    @MessageBody()
+    data: {
+      conversationId: string;
+      messageId: string;
+      emoji: string;
+      action: 'add' | 'remove';
+    },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.emoji) return;
+    if (!userId || !data.messageId || !data.conversationId || !data.emoji)
+      return;
 
     try {
       let finalAction = data.action;
       let finalEmoji = data.emoji;
 
       if (data.action === 'add') {
-        const result = await this.messageService.addReaction(data.messageId, userId, data.emoji);
+        const result = await this.messageService.addReaction(
+          data.messageId,
+          userId,
+          data.emoji,
+        );
         finalAction = result.action as any;
         finalEmoji = result.emoji;
       } else {
-        await this.messageService.removeReaction(data.messageId, userId, data.emoji);
+        await this.messageService.removeReaction(
+          data.messageId,
+          userId,
+          data.emoji,
+        );
       }
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
         conversationId: data.conversationId,
         messageId: data.messageId,
@@ -226,18 +248,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.VOTE_POLL)
   async handleVotePoll(
-    @MessageBody() data: { conversationId: string; messageId: string; pollOptionId: string },
+    @MessageBody()
+    data: { conversationId: string; messageId: string; pollOptionId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.pollOptionId) return;
+    if (
+      !userId ||
+      !data.messageId ||
+      !data.conversationId ||
+      !data.pollOptionId
+    )
+      return;
 
     try {
-      const updatedMessage = await this.pollService.votePoll(data.messageId, data.pollOptionId, userId);
+      const updatedMessage = await this.pollService.votePoll(
+        data.messageId,
+        data.pollOptionId,
+        userId,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
@@ -248,18 +283,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.ADD_POLL_OPTION)
   async handleAddPollOption(
-    @MessageBody() data: { conversationId: string; messageId: string; text: string },
+    @MessageBody()
+    data: { conversationId: string; messageId: string; text: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.text) return;
+    if (!userId || !data.messageId || !data.conversationId || !data.text)
+      return;
 
     try {
-      const updatedMessage = await this.pollService.addPollOption(data.messageId, data.text, userId);
+      const updatedMessage = await this.pollService.addPollOption(
+        data.messageId,
+        data.text,
+        userId,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
@@ -270,18 +313,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.EDIT_POLL)
   async handleEditPoll(
-    @MessageBody() data: { conversationId: string; messageId: string; title: string; multipleChoice: boolean; allowAddOptions: boolean; anonymous?: boolean; isLocked?: boolean },
+    @MessageBody()
+    data: {
+      conversationId: string;
+      messageId: string;
+      title: string;
+      multipleChoice: boolean;
+      allowAddOptions: boolean;
+      anonymous?: boolean;
+      isLocked?: boolean;
+    },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.title) return;
+    if (!userId || !data.messageId || !data.conversationId || !data.title)
+      return;
 
     try {
-      const updatedMessage = await this.pollService.updatePoll(data.messageId, data.title, data.multipleChoice, data.allowAddOptions, data.anonymous, data.isLocked);
+      const updatedMessage = await this.pollService.updatePoll(
+        data.messageId,
+        data.title,
+        data.multipleChoice,
+        data.allowAddOptions,
+        data.anonymous,
+        data.isLocked,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
@@ -292,18 +354,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.EDIT_NOTE)
   async handleEditNote(
-    @MessageBody() data: { conversationId: string; messageId: string; title: string; content: string },
+    @MessageBody()
+    data: {
+      conversationId: string;
+      messageId: string;
+      title: string;
+      content: string;
+    },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.title || !data.content) return;
+    if (
+      !userId ||
+      !data.messageId ||
+      !data.conversationId ||
+      !data.title ||
+      !data.content
+    )
+      return;
 
     try {
-      const updatedMessage = await this.noteService.updateNote(data.messageId, data.title, data.content, userId);
+      const updatedMessage = await this.noteService.updateNote(
+        data.messageId,
+        data.title,
+        data.content,
+        userId,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
@@ -314,19 +396,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.EDIT_MESSAGE)
   async handleEditMessage(
-    @MessageBody() data: { conversationId: string; messageId: string; content: string },
+    @MessageBody()
+    data: { conversationId: string; messageId: string; content: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || data.content === undefined) return;
+    if (
+      !userId ||
+      !data.messageId ||
+      !data.conversationId ||
+      data.content === undefined
+    )
+      return;
 
     try {
-      const updatedMessage = await this.messageService.editMessage(data.messageId, data.content, userId);
+      const updatedMessage = await this.messageService.editMessage(
+        data.messageId,
+        data.content,
+        userId,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
+
+      this.server
+        .to(targetRooms)
+        .emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
       console.error(error);
@@ -343,12 +440,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId || !data.messageId || !data.conversationId) return;
 
     try {
-      const updatedMessage = await this.messageService.recallMessage(data.messageId, userId);
+      const updatedMessage = await this.messageService.recallMessage(
+        data.messageId,
+        userId,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
+
+      this.server
+        .to(targetRooms)
+        .emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
       console.error(error);
@@ -365,11 +469,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId || !data.messageId || !data.conversationId) return;
 
     try {
-      const readReceipt = await this.messageService.markConversationAsRead(data.conversationId, userId, data.messageId);
-      
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const readReceipt = await this.messageService.markConversationAsRead(
+        data.conversationId,
+        userId,
+        data.messageId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
         conversationId: data.conversationId,
         messageId: data.messageId,
@@ -392,9 +502,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId || !data.conversationId) return;
 
     try {
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.TYPING, {
         conversationId: data.conversationId,
         userId,

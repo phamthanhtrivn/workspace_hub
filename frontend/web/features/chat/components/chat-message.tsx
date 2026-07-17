@@ -111,6 +111,50 @@ const ChatMessage = React.memo(function ChatMessage({
     );
   }, [msg.medias]);
 
+  const renderMessageContent = useMemo(() => {
+    if (!msg.content)
+      return <p className="whitespace-pre-wrap">{msg.content}</p>;
+
+    let parts: (string | React.ReactNode)[] = [msg.content];
+
+    const allProfiles = Object.values(memberProfiles || {})
+      .map((profile: any) => ({
+        userId: profile.userId,
+        name: profile.fullName || "Ai đó",
+      }))
+      .sort((a: any, b: any) => b.name.length - a.name.length);
+
+    allProfiles.forEach(({ userId, name }: any) => {
+      const searchStr = `@${name}`;
+      if (!msg.content.includes(searchStr)) return;
+
+      const newParts: (string | React.ReactNode)[] = [];
+      parts.forEach((part, partIdx) => {
+        if (typeof part === "string") {
+          const split = part.split(searchStr);
+          split.forEach((s, idx) => {
+            newParts.push(s);
+            if (idx < split.length - 1) {
+              newParts.push(
+                <span
+                  key={`${userId}-${partIdx}-${idx}`}
+                  className="font-semibold text-blue-600 px-1 rounded transition-colors"
+                >
+                  {searchStr}
+                </span>,
+              );
+            }
+          });
+        } else {
+          newParts.push(part);
+        }
+      });
+      parts = newParts;
+    });
+
+    return <p className="whitespace-pre-wrap">{parts}</p>;
+  }, [msg.content, memberProfiles]);
+
   if (msg.type === "SYSTEM") {
     return (
       <div className="flex justify-center my-4 w-full">
@@ -355,8 +399,8 @@ const ChatMessage = React.memo(function ChatMessage({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-500 font-medium bg-gradient-to-br from-gray-100 to-gray-200">
-                    {(readerProfile?.fullName || "U").charAt(0).toUpperCase()}
+                  <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-gray-100 to-gray-200">
+                    <User size={10} className="text-gray-400" />
                   </div>
                 )}
               </div>
@@ -486,7 +530,7 @@ const ChatMessage = React.memo(function ChatMessage({
                         : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    {renderMessageContent}
                   </div>
                 )}
 
