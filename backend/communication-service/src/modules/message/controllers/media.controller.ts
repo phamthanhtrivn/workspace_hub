@@ -1,6 +1,6 @@
 import { Controller, Post, Body, BadRequestException } from '@nestjs/common';
-import { S3Service } from '../s3/s3.service';
-import { PresignRequestDto } from './dto/presign-request.dto';
+import { S3Service } from '../../../infrastructure/s3/s3.service';
+import { PresignRequestDto } from '../dto/presign-request.dto';
 import { MAX_FILE_SIZE } from 'src/common/utils/file.util';
 
 @Controller('api/medias')

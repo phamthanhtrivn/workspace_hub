@@ -4,23 +4,18 @@ import {
   NotFoundException,
   Inject,
 } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { ConversationRole, MessageType } from '@prisma/client';
-import { ChatGateway } from '../chat/chat.gateway';
-import { ChatEvent } from '../chat/chat.events';
-import { MessageService } from '../message/message.service';
-import { ClientKafka } from '@nestjs/microservices';
-import {
-  KAFKA_TOPICS,
-  KAFKA_EVENTS,
-} from '../../common/constants/kafka.constants';
-import { getSenderProfile } from '../../common/utils/user.util';
+import { ChatGateway } from '../../chat/chat.gateway';
+import { MessageService } from '../../message/services/message.service';
+import { ConversationEventPublisher } from '../events/conversation.publisher';
+import { getSenderProfile } from '../../../common/utils/user.util';
 
 @Injectable()
 export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
+    private readonly conversationPublisher: ConversationEventPublisher,
     private readonly chatGateway: ChatGateway,
     private readonly messageService: MessageService,
   ) {}
@@ -85,14 +80,14 @@ export class InvitationService {
     await this.chatGateway.sendSystemMessage(
       invitation.conversationId,
       userId,
-      `${senderName} đã tham gia vào nhóm chat`
+      `${senderName} đã tham gia vào nhóm chat`,
     );
 
     const memberUserIds = await this.messageService.getConversationMemberIds(
       invitation.conversationId,
     );
     const targetRooms = [invitation.conversationId, ...memberUserIds];
-    
+
     this.chatGateway.emitMemberJoin(targetRooms, {
       conversationId: invitation.conversationId,
       member: {
@@ -107,23 +102,14 @@ export class InvitationService {
       },
     });
 
-    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-      key: invitation.invitedBy,
-      value: {
-        recipientId: invitation.invitedBy,
-        senderId: userId,
-        senderName: senderName,
-        senderAvatar: senderAvatar,
-        type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
-        title: 'Lời mời đã được chấp nhận',
-        content: 'Chấp nhận lời mời vào nhóm',
-        link: `/chat?id=${invitation.conversationId}`,
-        metadata: {
-          conversationId: invitation.conversationId,
-          conversationName: invitation.conversation.name,
-        },
-      },
-    });
+    this.conversationPublisher.publishInvitationAccepted(
+      invitation.invitedBy,
+      userId,
+      senderName,
+      senderAvatar,
+      invitation.conversationId,
+      invitation.conversation.name,
+    );
 
     return updatedInvitation;
   }
@@ -158,23 +144,14 @@ export class InvitationService {
       },
     });
 
-    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-      key: invitation.invitedBy,
-      value: {
-        recipientId: invitation.invitedBy,
-        senderId: userId,
-        senderName: senderName,
-        senderAvatar: senderAvatar,
-        type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_DECLINED,
-        title: 'Lời mời bị từ chối',
-        content: 'Từ chối lời mời vào nhóm',
-        link: `/chat`,
-        metadata: {
-          conversationId: invitation.conversationId,
-          conversationName: invitation.conversation?.name,
-        },
-      },
-    });
+    this.conversationPublisher.publishInvitationDeclined(
+      invitation.invitedBy,
+      userId,
+      senderName,
+      senderAvatar,
+      invitation.conversationId,
+      invitation.conversation?.name,
+    );
 
     return updatedInvitation;
   }

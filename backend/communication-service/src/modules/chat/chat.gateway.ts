@@ -9,11 +9,11 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatEvent } from './chat.events';
-import { MessageService } from '../message/message.service';
-import { PollService } from '../poll/poll.service';
-import { NoteService } from '../note/note.service';
+import { MessageService } from '../message/services/message.service';
 import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
+import { PollService } from '../message/services/poll.service';
+import { NoteService } from '../message/services/note.service';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -551,7 +551,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: 'success' };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: error.message || 'Failed to pin message' };
+      return {
+        status: 'error',
+        message: error.message || 'Failed to pin message',
+      };
     }
   }
 
@@ -585,7 +588,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: 'success' };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: error.message || 'Failed to unpin message' };
+      return {
+        status: 'error',
+        message: error.message || 'Failed to unpin message',
+      };
     }
   }
 }

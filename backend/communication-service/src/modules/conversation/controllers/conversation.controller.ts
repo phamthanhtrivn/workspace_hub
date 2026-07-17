@@ -8,9 +8,9 @@ import {
   BadRequestException,
   Query,
 } from '@nestjs/common';
-import { ConversationService } from './conversation.service';
-import { CreateDirectConversationDto } from './dto/create-direct-conversation.dto';
-import { CreateGroupConversationDto } from './dto/create-group-conversation.dto';
+import { ConversationService } from '../services/conversation.service';
+import { CreateDirectConversationDto } from '../dto/create-direct-conversation.dto';
+import { CreateGroupConversationDto } from '../dto/create-group-conversation.dto';
 
 @Controller('api/conversations')
 export class ConversationController {

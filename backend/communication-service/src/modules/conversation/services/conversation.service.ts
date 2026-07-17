@@ -1,21 +1,17 @@
 import { Injectable, BadRequestException, Inject } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { ConversationType, ConversationRole } from '@prisma/client';
-import { ChatGateway } from '../chat/chat.gateway';
-import { ClientKafka } from '@nestjs/microservices';
-import {
-  KAFKA_TOPICS,
-  KAFKA_EVENTS,
-} from '../../common/constants/kafka.constants';
-import { getSenderProfile } from '../../common/utils/user.util';
-import { mapMediaWithUrl } from '../../common/utils/file.util';
+import { ChatGateway } from '../../chat/chat.gateway';
+import { ConversationEventPublisher } from '../events/conversation.publisher';
+import { getSenderProfile } from '../../../common/utils/user.util';
+import { mapMediaWithUrl } from '../../../common/utils/file.util';
 
 @Injectable()
 export class ConversationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
-    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
+    private readonly conversationPublisher: ConversationEventPublisher,
   ) {}
 
   async createDirectConversation(userId: string, participantId: string) {
@@ -343,26 +339,16 @@ export class ConversationService {
     // Emit invitation events and notifications
     if (conversation.invitations) {
       conversation.invitations.forEach((inv) => {
-        // Publish to notification-service ONLY, no chat websocket
-        this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-          key: inv.invitedUserId,
-          value: {
-            recipientId: inv.invitedUserId,
-            senderId: userId,
-            senderName: senderName,
-            senderAvatar: senderAvatar,
-            type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
-            title: 'Lời mời vào nhóm chat',
-            content: `Bạn được mời vào nhóm chat ${conversation.name || 'mới'}`,
-            link: '/chat',
-            metadata: {
-              invitationId: inv.id,
-              conversationId: conversation.id,
-              conversationName: conversation.name,
-              conversationAvatarUrl: conversation.avatarUrl,
-            },
-          },
-        });
+        this.conversationPublisher.publishGroupInvitation(
+          inv.invitedUserId,
+          userId,
+          senderName,
+          senderAvatar,
+          inv.id,
+          conversation.id,
+          conversation.name,
+          conversation.avatarUrl,
+        );
       });
     }
 

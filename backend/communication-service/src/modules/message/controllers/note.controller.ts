@@ -1,5 +1,5 @@
 import { Controller, Get, Param } from '@nestjs/common';
-import { NoteService } from './note.service';
+import { NoteService } from '../services/note.service';
 
 @Controller('api/notes')
 export class NoteController {

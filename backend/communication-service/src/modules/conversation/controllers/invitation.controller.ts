@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Param, Headers, BadRequestException, Body } from '@nestjs/common';
-import { InvitationService } from './invitation.service';
+import { InvitationService } from '../services/invitation.service';
 
 @Controller('api/invitations')
 export class InvitationController {
