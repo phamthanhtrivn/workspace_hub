@@ -29,6 +29,7 @@ interface ChatInputProps {
   onSendMessage?: (content: string, media?: any[]) => void;
   onCreatePoll?: () => void;
   onCreateNote?: () => void;
+  onTypingChange?: (isTyping: boolean) => void;
 }
 
 interface UploadingMedia {
@@ -48,7 +49,7 @@ export interface ChatInputRef {
 
 const ChatInput = React.memo(
   forwardRef<ChatInputRef, ChatInputProps>(function ChatInput(
-    { onSendMessage, onCreatePoll, onCreateNote },
+    { onSendMessage, onCreatePoll, onCreateNote, onTypingChange },
     ref,
   ) {
     const [message, setMessage] = useState("");
@@ -58,6 +59,36 @@ const ChatInput = React.memo(
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const isTypingRef = useRef(false);
+
+    const handleTyping = useCallback(
+      (text: string) => {
+        setMessage(text);
+
+        if (!isTypingRef.current && text.trim().length > 0) {
+          isTypingRef.current = true;
+          onTypingChange?.(true);
+        }
+
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+
+        if (text.trim().length === 0) {
+          if (isTypingRef.current) {
+            isTypingRef.current = false;
+            onTypingChange?.(false);
+          }
+        } else {
+          typingTimeoutRef.current = setTimeout(() => {
+            isTypingRef.current = false;
+            onTypingChange?.(false);
+          }, 3000);
+        }
+      },
+      [onTypingChange],
+    );
 
     useImperativeHandle(ref, () => ({
       focus: () => {
@@ -65,8 +96,9 @@ const ChatInput = React.memo(
       },
       setMessage: (content: string) => {
         setMessage(content);
-      }
+      },
     }));
+
     const activeConversationId = useAppSelector(
       (state) => state.chat.activeConversation?.id,
     );
@@ -75,7 +107,16 @@ const ChatInput = React.memo(
       if (activeConversationId && textareaRef.current) {
         textareaRef.current.focus();
       }
-    }, [activeConversationId]);
+
+      // Clear typing state when active conversation changes
+      if (isTypingRef.current) {
+        isTypingRef.current = false;
+        onTypingChange?.(false);
+      }
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    }, [activeConversationId, onTypingChange]);
 
     const handleFileChange = useCallback(
       async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -207,7 +248,13 @@ const ChatInput = React.memo(
       );
       setMessage("");
       setUploadingMedia([]);
-    }, [message, uploadingMedia, isUploading, onSendMessage]);
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current) {
+        isTypingRef.current = false;
+        onTypingChange?.(false);
+      }
+    }, [message, uploadingMedia, isUploading, onSendMessage, onTypingChange]);
 
     return (
       <div className="p-4 bg-white border-t border-gray-200">
@@ -330,7 +377,7 @@ const ChatInput = React.memo(
             id="chat-input-textarea"
             ref={textareaRef}
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => handleTyping(e.target.value)}
             placeholder="Type a message..."
             disabled={isUploading}
             className="flex-1 max-h-32 min-h-[40px] bg-transparent resize-none outline-none px-2 py-2 text-gray-800 placeholder-gray-400 disabled:opacity-50"

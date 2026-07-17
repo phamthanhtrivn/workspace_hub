@@ -383,6 +383,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage(ChatEvent.TYPING)
+  async handleTyping(
+    @MessageBody() data: { conversationId: string; isTyping: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.conversationId) return;
+
+    try {
+      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      
+      this.server.to(targetRooms).emit(ChatEvent.TYPING, {
+        conversationId: data.conversationId,
+        userId,
+        isTyping: data.isTyping,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   emitMemberJoin(targetRooms: string[], payload: any) {
     this.server.to(targetRooms).emit(ChatEvent.JOIN_CONVERSATION, payload);
   }

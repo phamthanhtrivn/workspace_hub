@@ -472,7 +472,9 @@ const ChatMessage = React.memo(function ChatMessage({
                           "Ai đó"}
                     </span>
                     <span className="truncate opacity-80">
-                      {msg.replyTo.content || "[Đính kèm]"}
+                      {msg.replyTo.recalled
+                        ? "Tin nhắn đã bị thu hồi"
+                        : msg.replyTo.content || "[Đính kèm]"}
                     </span>
                   </div>
                 )}

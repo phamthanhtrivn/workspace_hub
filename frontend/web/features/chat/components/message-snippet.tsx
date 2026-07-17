@@ -45,7 +45,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
 
   if (latestMessage.recalled) {
     return (
-      <p className={`text-sm truncate italic text-gray-400`}>
+      <p className={`text-sm truncate ${textClass}`}>
         {prefix}Tin nhắn đã bị thu hồi
       </p>
     );

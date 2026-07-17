@@ -21,6 +21,7 @@ import TimeDivider from "./time-divider";
 import { ChevronDown, Loader2, X } from "lucide-react";
 import CreatePollModal from "./create-poll-modal";
 import CreateNoteModal from "./create-note-modal";
+import TypingIndicator from "./typing-indicator";
 import {
   setSelectedProfileUserId,
   updateWatermark,
@@ -50,6 +51,10 @@ export default function ChatArea({
   const dispatch = useAppDispatch();
 
   const [newSocketMessages, setNewSocketMessages] = useState<any[]>([]);
+  const [typingUsers, setTypingUsers] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const typingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
@@ -124,6 +129,10 @@ export default function ChatArea({
   // Handle socket messages
   useEffect(() => {
     setNewSocketMessages([]); // Reset on conversation change
+    setTypingUsers([]);
+    Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+    typingTimeoutsRef.current = {};
+
     if (activeConversation?.members) {
       const initialWatermarks: Record<string, string> = {};
       activeConversation.members.forEach((m: any) => {
@@ -254,12 +263,49 @@ export default function ChatArea({
         }
       };
 
+      const handleTyping = (data: {
+        conversationId: string;
+        userId: string;
+        isTyping: boolean;
+      }) => {
+        if (
+          data.conversationId === activeConversation.id &&
+          data.userId !== auth.userId
+        ) {
+          if (data.isTyping) {
+            setTypingUsers((prev) => {
+              if (prev.find((u) => u.id === data.userId)) return prev;
+              const name = memberProfiles?.[data.userId]?.fullName || "Ai đó";
+              return [...prev, { id: data.userId, name }];
+            });
+
+            if (typingTimeoutsRef.current[data.userId]) {
+              clearTimeout(typingTimeoutsRef.current[data.userId]);
+            }
+            // Auto remove after 5 seconds just in case
+            typingTimeoutsRef.current[data.userId] = setTimeout(() => {
+              setTypingUsers((prev) =>
+                prev.filter((u) => u.id !== data.userId),
+              );
+              delete typingTimeoutsRef.current[data.userId];
+            }, 5000);
+          } else {
+            setTypingUsers((prev) => prev.filter((u) => u.id !== data.userId));
+            if (typingTimeoutsRef.current[data.userId]) {
+              clearTimeout(typingTimeoutsRef.current[data.userId]);
+              delete typingTimeoutsRef.current[data.userId];
+            }
+          }
+        }
+      };
+
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.REACTION_UPDATED, handleReactionUpdated);
       socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
       socket.on(ChatEvent.POLL_UPDATED, handlePollUpdated);
       socket.on(ChatEvent.MESSAGE_MOVED, handleMessageMoved);
       socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
+      socket.on(ChatEvent.TYPING, handleTyping);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -268,9 +314,10 @@ export default function ChatArea({
         socket.off(ChatEvent.POLL_UPDATED, handlePollUpdated);
         socket.off(ChatEvent.MESSAGE_MOVED, handleMessageMoved);
         socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
+        socket.off(ChatEvent.TYPING, handleTyping);
       };
     }
-  }, [activeConversation?.id, auth.userId]);
+  }, [activeConversation?.id, auth.userId, memberProfiles]);
 
   const allMessages = useMemo(() => {
     if (!data?.pages) return [...newSocketMessages].reverse();
@@ -307,6 +354,19 @@ export default function ChatArea({
       }
     },
     [activeConversation?.id, replyingTo, editingMessage],
+  );
+
+  const handleTypingChange = useCallback(
+    (isTyping: boolean) => {
+      const socket = socketService.getSocket();
+      if (socket && activeConversation?.id) {
+        socket.emit(ChatEvent.TYPING, {
+          conversationId: activeConversation.id,
+          isTyping,
+        });
+      }
+    },
+    [activeConversation?.id],
   );
 
   const handleCreatePoll = useCallback(
@@ -751,12 +811,15 @@ export default function ChatArea({
         </div>
       )}
 
+      {typingUsers.length > 0 && <TypingIndicator typingUsers={typingUsers} />}
+
       {/* Input Area */}
       <ChatInput
         ref={chatInputRef}
         onSendMessage={handleSendMessage}
         onCreatePoll={() => setIsPollModalOpen(true)}
         onCreateNote={() => setIsNoteModalOpen(true)}
+        onTypingChange={handleTypingChange}
       />
 
       <CreatePollModal
