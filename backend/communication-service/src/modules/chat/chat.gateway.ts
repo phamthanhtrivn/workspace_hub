@@ -520,4 +520,72 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   emitMemberJoin(targetRooms: string[], payload: any) {
     this.server.to(targetRooms).emit(ChatEvent.JOIN_CONVERSATION, payload);
   }
+
+  @SubscribeMessage(ChatEvent.PIN_MESSAGE)
+  async handlePinMessage(
+    @MessageBody() data: { conversationId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId) return;
+
+    try {
+      const updatedMessage = await this.messageService.pinMessage(
+        data.messageId,
+        userId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      const messageWithUrls = {
+        ...updatedMessage,
+        medias: mapMediaWithUrl(updatedMessage.medias),
+      };
+
+      this.server
+        .to(targetRooms)
+        .emit(ChatEvent.MESSAGE_PINNED, messageWithUrls);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: error.message || 'Failed to pin message' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.UNPIN_MESSAGE)
+  async handleUnpinMessage(
+    @MessageBody() data: { conversationId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId) return;
+
+    try {
+      const updatedMessage = await this.messageService.unpinMessage(
+        data.messageId,
+        userId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      const messageWithUrls = {
+        ...updatedMessage,
+        medias: mapMediaWithUrl(updatedMessage.medias),
+      };
+
+      this.server
+        .to(targetRooms)
+        .emit(ChatEvent.MESSAGE_UNPINNED, messageWithUrls);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: error.message || 'Failed to unpin message' };
+    }
+  }
 }

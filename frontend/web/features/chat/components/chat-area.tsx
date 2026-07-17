@@ -11,8 +11,9 @@ import {
 import ChatInput, { ChatInputRef } from "./chat-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./chat-message";
+import { PinnedMessagesBar } from "./pinned-messages-bar";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { getConversationMessages } from "../api/chat.api";
+import { getConversationMessages, getPinnedMessages } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -64,6 +65,20 @@ export default function ChatArea({
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const [jumpTargetId, setJumpTargetId] = useState<string | null>(null);
+  const [pinnedMessages, setPinnedMessages] = useState<any[]>([]);
+
+  // Fetch pinned messages
+  useEffect(() => {
+    if (activeConversation?.id) {
+      getPinnedMessages(activeConversation.id)
+        .then((res) => {
+          if (res.data) setPinnedMessages(res.data);
+        })
+        .catch(console.error);
+    } else {
+      setPinnedMessages([]);
+    }
+  }, [activeConversation?.id]);
 
   const {
     data,
@@ -257,6 +272,25 @@ export default function ChatArea({
         }
       };
 
+      const handleMessagePinned = (msg: any) => {
+        if (msg.conversationId === activeConversation.id) {
+          setPinnedMessages((prev) => {
+            const exists = prev.some((p) => p.id === msg.id);
+            if (exists) return prev;
+            // Add to top
+            return [msg, ...prev].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+          });
+          updateMessageInState(msg.id, () => msg);
+        }
+      };
+
+      const handleMessageUnpinned = (msg: any) => {
+        if (msg.conversationId === activeConversation.id) {
+          setPinnedMessages((prev) => prev.filter((p) => p.id !== msg.id));
+          updateMessageInState(msg.id, () => msg);
+        }
+      };
+
       const handleMessageUpdated = (msg: any) => {
         if (msg.conversationId === activeConversation.id) {
           updateMessageInState(msg.id, () => msg);
@@ -306,6 +340,8 @@ export default function ChatArea({
       socket.on(ChatEvent.MESSAGE_MOVED, handleMessageMoved);
       socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
       socket.on(ChatEvent.TYPING, handleTyping);
+      socket.on(ChatEvent.MESSAGE_PINNED, handleMessagePinned);
+      socket.on(ChatEvent.MESSAGE_UNPINNED, handleMessageUnpinned);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -315,6 +351,8 @@ export default function ChatArea({
         socket.off(ChatEvent.MESSAGE_MOVED, handleMessageMoved);
         socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
         socket.off(ChatEvent.TYPING, handleTyping);
+        socket.off(ChatEvent.MESSAGE_PINNED, handleMessagePinned);
+        socket.off(ChatEvent.MESSAGE_UNPINNED, handleMessageUnpinned);
       };
     }
   }, [activeConversation?.id, auth.userId, memberProfiles]);
@@ -394,6 +432,30 @@ export default function ChatArea({
           conversationId: activeConversation.id,
           messageId: msg.id,
         });
+      }
+    },
+    [activeConversation?.id],
+  );
+
+  const handlePinMessage = useCallback(
+    (msg: any) => {
+      const socket = socketService.getSocket();
+      if (socket && activeConversation?.id) {
+        if (msg.pinned) {
+          socket.emit(ChatEvent.UNPIN_MESSAGE, {
+            conversationId: activeConversation.id,
+            messageId: msg.id,
+          }, (response: any) => {
+            if (response?.status === 'error') alert(response.message);
+          });
+        } else {
+          socket.emit(ChatEvent.PIN_MESSAGE, {
+            conversationId: activeConversation.id,
+            messageId: msg.id,
+          }, (response: any) => {
+            if (response?.status === 'error') alert(response.message);
+          });
+        }
       }
     },
     [activeConversation?.id],
@@ -637,6 +699,7 @@ export default function ChatArea({
           }}
           onRecallMessage={handleRecallMessage}
           onJumpToMessage={handleJumpToMessage}
+          onPinMessage={handlePinMessage}
         />,
       );
 
@@ -721,6 +784,13 @@ export default function ChatArea({
     <div className="flex-1 flex flex-col bg-white h-full min-h-0 relative">
       {/* Header */}
       <ChatHeader onToggleRightPanel={onToggleRightPanel} onBack={onBack} />
+
+      <PinnedMessagesBar 
+        pinnedMessages={pinnedMessages}
+        onJumpToMessage={handleJumpToMessage}
+        onUnpin={(messageId) => handlePinMessage({ id: messageId, pinned: true })}
+        currentUserId={auth.userId!}
+      />
 
       {jumpTargetId && (
         <button

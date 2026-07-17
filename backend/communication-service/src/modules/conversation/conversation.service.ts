@@ -409,4 +409,27 @@ export class ConversationService {
       nextCursor,
     };
   }
+
+  async getPinnedMessages(conversationId: string) {
+    const messages = await this.prisma.message.findMany({
+      where: {
+        conversationId,
+        pinned: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      include: {
+        medias: true,
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        replyTo: true,
+      },
+    });
+
+    return messages.map((message) => ({
+      ...message,
+      medias: mapMediaWithUrl(message.medias),
+    }));
+  }
 }

@@ -80,3 +80,12 @@ export const getConversationMedia = async (
   });
   return response.data;
 };
+
+export const getPinnedMessages = async (
+  conversationId: string,
+): Promise<any> => {
+  const response = await api.get(
+    `/api/conversations/${conversationId}/pinned-messages`,
+  );
+  return response.data;
+};

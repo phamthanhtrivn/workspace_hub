@@ -22,4 +22,8 @@ export enum ChatEvent {
   RECALL_MESSAGE = "recall_message",
   MESSAGE_UPDATED = "message_updated",
   TYPING = "typing",
+  PIN_MESSAGE = "pin_message",
+  UNPIN_MESSAGE = "unpin_message",
+  MESSAGE_PINNED = "message_pinned",
+  MESSAGE_UNPINNED = "message_unpinned",
 }

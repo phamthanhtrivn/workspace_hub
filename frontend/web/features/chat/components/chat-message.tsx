@@ -7,6 +7,7 @@ import {
   User,
   SmilePlus,
   MoreHorizontal,
+  Pin,
 } from "lucide-react";
 import Image from "next/image";
 import { QUICK_EMOJIS, UserProfileResponse } from "../types/chat.types";
@@ -48,6 +49,7 @@ interface ChatMessageProps {
   onEditMessage?: (msg: any) => void;
   onRecallMessage?: (msg: any) => void;
   onJumpToMessage?: (messageId: string) => void;
+  onPinMessage?: (msg: any) => void;
 }
 
 const ChatMessage = React.memo(function ChatMessage({
@@ -67,6 +69,7 @@ const ChatMessage = React.memo(function ChatMessage({
   onEditMessage,
   onRecallMessage,
   onJumpToMessage,
+  onPinMessage,
 }: ChatMessageProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -478,6 +481,12 @@ const ChatMessage = React.memo(function ChatMessage({
             </div>
           ) : (
             <>
+              {msg.pinned && (
+                <div className="flex items-center gap-1 text-[11px] text-blue-600 font-medium px-1 mb-1">
+                  <Pin size={12} className="fill-blue-600" />
+                  Đã ghim
+                </div>
+              )}
               {renderVisualMedias()}
               {renderFileMedias()}
               <div className="flex flex-col relative">
@@ -628,9 +637,11 @@ const ChatMessage = React.memo(function ChatMessage({
         isMe={isMe}
         canEdit={msg.type === "TEXT" && isWithin24Hours && hasText}
         canRecall={isWithin24Hours}
+        isPinned={msg.pinned}
         onReply={() => onReply?.(msg)}
         onEdit={() => onEditMessage?.(msg)}
         onRecall={() => onRecallMessage?.(msg)}
+        onPin={() => onPinMessage?.(msg)}
       />
 
       {previewIndex !== null && visualMedias.length > 0 && (

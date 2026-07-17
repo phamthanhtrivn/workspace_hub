@@ -285,4 +285,83 @@ export class MessageService {
       },
     });
   }
+
+  async pinMessage(messageId: string, userId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new Error('Tin nhắn không tìm thấy');
+    }
+
+    if (message.pinned) {
+      throw new Error('Tin nhắn đã được ghim');
+    }
+
+    const pinnedCount = await this.prisma.message.count({
+      where: {
+        conversationId: message.conversationId,
+        pinned: true,
+      },
+    });
+
+    if (pinnedCount >= 3) {
+      throw new Error('Chỉ được ghim tối đa 3 tin nhắn');
+    }
+
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { pinned: true },
+      include: {
+        medias: true,
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        replyTo: true,
+      },
+    });
+  }
+
+  async unpinMessage(messageId: string, userId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!message) {
+      throw new Error('Tin nhắn không tìm thấy');
+    }
+
+    if (!message.pinned) {
+      throw new Error('Tin nhắn chưa được ghim');
+    }
+
+    return this.prisma.message.update({
+      where: { id: messageId },
+      data: { pinned: false },
+      include: {
+        medias: true,
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        replyTo: true,
+      },
+    });
+  }
+
+  async getPinnedMessages(conversationId: string) {
+    return this.prisma.message.findMany({
+      where: {
+        conversationId,
+        pinned: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+      include: {
+        medias: true,
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        replyTo: true,
+      },
+    });
+  }
 }

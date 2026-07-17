@@ -123,4 +123,16 @@ export class ConversationController {
       data: media,
     };
   }
+
+  @Get(':id/pinned-messages')
+  async getPinnedMessages(@Param('id') conversationId: string) {
+    if (!conversationId) {
+      throw new BadRequestException('Thiếu conversationId');
+    }
+    const messages = await this.conversationService.getPinnedMessages(conversationId);
+    return {
+      message: 'Lấy danh sách tin nhắn ghim thành công',
+      data: messages,
+    };
+  }
 }
