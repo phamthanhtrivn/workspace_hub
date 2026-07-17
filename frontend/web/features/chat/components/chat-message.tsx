@@ -19,6 +19,7 @@ import PollMessage from "./poll-message";
 import NoteMessage from "./note-message";
 import ReactionDetailModal from "./reaction-detail-modal";
 import MediaLightbox from "./media-lightbox";
+import { renderMessageContent } from "../utils/message-formatter";
 
 interface ChatMessageProps {
   msg: any;
@@ -114,48 +115,8 @@ const ChatMessage = React.memo(function ChatMessage({
     );
   }, [msg.medias]);
 
-  const renderMessageContent = useMemo(() => {
-    if (!msg.content)
-      return <p className="whitespace-pre-wrap">{msg.content}</p>;
-
-    let parts: (string | React.ReactNode)[] = [msg.content];
-
-    const allProfiles = Object.values(memberProfiles || {})
-      .map((profile: any) => ({
-        userId: profile.userId,
-        name: profile.fullName || "Ai đó",
-      }))
-      .sort((a: any, b: any) => b.name.length - a.name.length);
-
-    allProfiles.forEach(({ userId, name }: any) => {
-      const searchStr = `@${name}`;
-      if (!msg.content.includes(searchStr)) return;
-
-      const newParts: (string | React.ReactNode)[] = [];
-      parts.forEach((part, partIdx) => {
-        if (typeof part === "string") {
-          const split = part.split(searchStr);
-          split.forEach((s, idx) => {
-            newParts.push(s);
-            if (idx < split.length - 1) {
-              newParts.push(
-                <span
-                  key={`${userId}-${partIdx}-${idx}`}
-                  className="font-semibold text-blue-600 px-1 rounded transition-colors"
-                >
-                  {searchStr}
-                </span>,
-              );
-            }
-          });
-        } else {
-          newParts.push(part);
-        }
-      });
-      parts = newParts;
-    });
-
-    return <p className="whitespace-pre-wrap">{parts}</p>;
+  const renderedMessageContent = useMemo(() => {
+    return renderMessageContent(msg.content, memberProfiles ?? undefined);
   }, [msg.content, memberProfiles]);
 
   if (msg.type === "SYSTEM") {
@@ -539,7 +500,7 @@ const ChatMessage = React.memo(function ChatMessage({
                         : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
                     }`}
                   >
-                    {renderMessageContent}
+                    {renderedMessageContent}
                   </div>
                 )}
 
