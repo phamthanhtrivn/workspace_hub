@@ -20,6 +20,10 @@ import {
   Plus,
   X,
   Loader2,
+  Mic,
+  Trash2,
+  Voicemail,
+  Type,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { getPresignedUrls, uploadToS3 } from "../api/media.api";
@@ -55,7 +59,17 @@ const ChatInput = React.memo(
   ) {
     const [message, setMessage] = useState("");
     const [showOptions, setShowOptions] = useState(false);
+    const [showMicOptions, setShowMicOptions] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
+    const [isDictating, setIsDictating] = useState(false);
+    const [interimMessage, setInterimMessage] = useState("");
+    const recognitionRef = useRef<any>(null);
+    const [isRecording, setIsRecording] = useState(false);
+    const [recordingTime, setRecordingTime] = useState(0);
+    const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+    const audioChunksRef = useRef<Blob[]>([]);
+    const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
     const isUploading = uploadingMedia.some((m) => m.status === "uploading");
 
     const activeConversation = useAppSelector(
@@ -71,6 +85,91 @@ const ChatInput = React.memo(
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<string[]>([]);
 
+    useEffect(() => {
+      return () => {
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        if (recognitionRef.current && isDictating) {
+          recognitionRef.current.stop();
+        }
+        if (recordingIntervalRef.current)
+          clearInterval(recordingIntervalRef.current);
+        if (
+          mediaRecorderRef.current &&
+          mediaRecorderRef.current.state === "recording"
+        ) {
+          mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
+        }
+      };
+    }, [isDictating]);
+
+    // Khởi tạo SpeechRecognition
+    useEffect(() => {
+      if (typeof window !== "undefined") {
+        const SpeechRecognition =
+          (window as any).SpeechRecognition ||
+          (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+          const recognition = new SpeechRecognition();
+          recognition.continuous = true;
+          recognition.interimResults = true;
+          recognition.lang = "vi-VN";
+
+          recognition.onresult = (event: any) => {
+            let finalTranscript = "";
+            let currentInterim = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+              } else {
+                currentInterim += event.results[i][0].transcript;
+              }
+            }
+            if (finalTranscript) {
+              setMessage(
+                (prev) =>
+                  prev +
+                  (prev.endsWith(" ") || prev === "" ? "" : " ") +
+                  finalTranscript.trim(),
+              );
+            }
+            setInterimMessage(currentInterim);
+          };
+
+          recognition.onerror = (event: any) => {
+            console.error("Speech recognition error", event.error);
+            setIsDictating(false);
+            setInterimMessage("");
+          };
+
+          recognition.onend = () => {
+            setIsDictating(false);
+            setInterimMessage("");
+          };
+
+          recognitionRef.current = recognition;
+        }
+      }
+    }, []);
+
+    const toggleDictation = () => {
+      if (isDictating) {
+        recognitionRef.current?.stop();
+        setIsDictating(false);
+      } else {
+        if (recognitionRef.current) {
+          try {
+            recognitionRef.current.start();
+            setIsDictating(true);
+          } catch (e) {
+            console.error(e);
+          }
+        } else {
+          toast.error(
+            "Trình duyệt của bạn không hỗ trợ tính năng đọc chính tả.",
+          );
+        }
+      }
+    };
     const filteredMembers = React.useMemo(() => {
       if (
         mentionQuery === null ||
@@ -187,98 +286,159 @@ const ChatInput = React.memo(
       }
     }, [activeConversationId, onTypingChange]);
 
+    const uploadFilesList = async (files: File[]) => {
+      const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
+      if (validFiles.length < files.length) {
+        toast.error("Không được upload file vượt quá 100MB.");
+      }
+      if (validFiles.length === 0) return;
+
+      const newUploads: UploadingMedia[] = validFiles.map((f) => ({
+        id: Math.random().toString(36).substring(7) + Date.now(),
+        file: f,
+        status: "uploading",
+        name: f.name,
+        mimeType: f.type,
+        sizeBytes: f.size,
+      }));
+
+      setUploadingMedia((prev) => [...prev, ...newUploads]);
+      setShowOptions(false);
+
+      try {
+        if (!activeConversationId) throw new Error("No active conversation");
+
+        const presignRequests = newUploads.map((u) => ({
+          fileName: u.name,
+          mimeType: u.mimeType,
+          sizeBytes: u.sizeBytes,
+        }));
+
+        const presignedUrls = await getPresignedUrls(
+          activeConversationId,
+          presignRequests,
+        );
+
+        newUploads.forEach(async (upload, idx) => {
+          const presignedInfo = presignedUrls[idx];
+          try {
+            const success = await uploadToS3(
+              upload.file,
+              presignedInfo.presignedUrl,
+            );
+            if (success) {
+              setUploadingMedia((prev) =>
+                prev.map((m) =>
+                  m.id === upload.id
+                    ? { ...m, status: "success", s3Key: presignedInfo.s3Key }
+                    : m,
+                ),
+              );
+            } else {
+              setUploadingMedia((prev) =>
+                prev.map((m) =>
+                  m.id === upload.id ? { ...m, status: "error" } : m,
+                ),
+              );
+            }
+          } catch (e) {
+            setUploadingMedia((prev) =>
+              prev.map((m) =>
+                m.id === upload.id ? { ...m, status: "error" } : m,
+              ),
+            );
+          }
+        });
+      } catch (error) {
+        console.error("Error initiating upload:", error);
+        setUploadingMedia((prev) =>
+          prev.map((m) =>
+            newUploads.some((nu) => nu.id === m.id)
+              ? { ...m, status: "error" }
+              : m,
+          ),
+        );
+      }
+    };
+
     const handleFileChange = useCallback(
       async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
           const newFiles = Array.from(e.target.files);
-          const validFiles = newFiles.filter(
-            (f) => f.size <= 100 * 1024 * 1024,
-          );
-          if (validFiles.length < newFiles.length) {
-            toast.error("Không được upload file vượt quá 100MB.");
-          }
-
-          if (validFiles.length === 0) return;
-
-          const newUploads: UploadingMedia[] = validFiles.map((f) => ({
-            id: Math.random().toString(36).substring(7) + Date.now(),
-            file: f,
-            status: "uploading",
-            name: f.name,
-            mimeType: f.type,
-            sizeBytes: f.size,
-          }));
-
-          setUploadingMedia((prev) => [...prev, ...newUploads]);
-          setShowOptions(false);
           e.target.value = "";
-
-          try {
-            if (!activeConversationId)
-              throw new Error("No active conversation");
-
-            const presignRequests = newUploads.map((u) => ({
-              fileName: u.name,
-              mimeType: u.mimeType,
-              sizeBytes: u.sizeBytes,
-            }));
-
-            const presignedUrls = await getPresignedUrls(
-              activeConversationId,
-              presignRequests,
-            );
-
-            newUploads.forEach(async (upload, idx) => {
-              const presignedInfo = presignedUrls[idx];
-              try {
-                const success = await uploadToS3(
-                  upload.file,
-                  presignedInfo.presignedUrl,
-                );
-                if (success) {
-                  setUploadingMedia((prev) =>
-                    prev.map((m) =>
-                      m.id === upload.id
-                        ? {
-                            ...m,
-                            status: "success",
-                            s3Key: presignedInfo.s3Key,
-                          }
-                        : m,
-                    ),
-                  );
-                } else {
-                  setUploadingMedia((prev) =>
-                    prev.map((m) =>
-                      m.id === upload.id ? { ...m, status: "error" } : m,
-                    ),
-                  );
-                  toast.error(`Lỗi khi tải lên file ${upload.name}`);
-                }
-              } catch (err) {
-                setUploadingMedia((prev) =>
-                  prev.map((m) =>
-                    m.id === upload.id ? { ...m, status: "error" } : m,
-                  ),
-                );
-                toast.error(`Lỗi khi tải lên file ${upload.name}`);
-              }
-            });
-          } catch (error) {
-            console.error(error);
-            toast.error("Không thể khởi tạo phiên tải lên.");
-            setUploadingMedia((prev) =>
-              prev.map((m) =>
-                newUploads.find((nu) => nu.id === m.id)
-                  ? { ...m, status: "error" }
-                  : m,
-              ),
-            );
-          }
+          uploadFilesList(newFiles);
         }
       },
       [activeConversationId],
     );
+
+    const startRecording = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+        const mediaRecorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          if (audioChunksRef.current.length > 0) {
+            const audioBlob = new Blob(audioChunksRef.current, {
+              type: "audio/webm",
+            });
+            const audioFile = new File(
+              [audioBlob],
+              `voice_message_${Date.now()}.webm`,
+              { type: "audio/webm" },
+            );
+            uploadFilesList([audioFile]);
+          }
+          stream.getTracks().forEach((track) => track.stop());
+        };
+
+        mediaRecorder.start();
+        setIsRecording(true);
+        setRecordingTime(0);
+
+        recordingIntervalRef.current = setInterval(() => {
+          setRecordingTime((prev) => prev + 1);
+        }, 1000);
+      } catch (err) {
+        console.error("Error accessing microphone:", err);
+        toast.error("Không thể truy cập microphone. V vui lòng cấp quyền.");
+      }
+    };
+
+    const stopRecording = () => {
+      if (mediaRecorderRef.current && isRecording) {
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+        if (recordingIntervalRef.current)
+          clearInterval(recordingIntervalRef.current);
+      }
+    };
+
+    const cancelRecording = () => {
+      if (mediaRecorderRef.current && isRecording) {
+        audioChunksRef.current = []; // Clear chunks to prevent upload
+        mediaRecorderRef.current.stop();
+        setIsRecording(false);
+        if (recordingIntervalRef.current)
+          clearInterval(recordingIntervalRef.current);
+      }
+    };
+
+    const formatTime = (seconds: number) => {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${m}:${s < 10 ? "0" : ""}${s}`;
+    };
 
     const removeFile = useCallback((id: string) => {
       setUploadingMedia((prev) => prev.filter((m) => m.id !== id));
@@ -312,11 +472,12 @@ const ChatInput = React.memo(
       }));
 
       onSendMessage(
-        message.trim(),
+        message.trim() + (interimMessage ? " " + interimMessage.trim() : ""),
         mediaList.length > 0 ? mediaList : undefined,
         mentions.length > 0 ? mentions : undefined,
       );
       setMessage("");
+      setInterimMessage("");
       setUploadingMedia([]);
       setMentions([]);
       setMentionQuery(null);
@@ -456,16 +617,25 @@ const ChatInput = React.memo(
           <textarea
             id="chat-input-textarea"
             ref={textareaRef}
-            value={message}
-            onChange={(e) =>
-              handleTyping(e.target.value, e.target.selectionStart)
+            value={
+              message +
+              (interimMessage ? (message ? " " : "") + interimMessage : "")
             }
+            onChange={(e) => {
+              if (interimMessage) {
+                // Nếu người dùng gõ phím khi đang có interimMessage, ta chốt luôn interimMessage vào message
+                setMessage(e.target.value);
+                setInterimMessage("");
+              } else {
+                handleTyping(e.target.value, e.target.selectionStart);
+              }
+            }}
             placeholder={
               activeConversation?.type === "DIRECT"
                 ? `Nhập tin nhắn tới ${
                     memberProfiles?.[
                       activeConversation.members?.find(
-                        (m: any) => m.userId !== authUserId
+                        (m: any) => m.userId !== authUserId,
                       )?.userId
                     ]?.fullName || "người dùng"
                   }...`
@@ -510,22 +680,92 @@ const ChatInput = React.memo(
           />
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-1 pb-1">
-            <button
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition"
-              disabled={isUploading}
-            >
-              <Smile size={20} />
-            </button>
-            <button
-              className={`p-2 rounded-full transition-colors flex items-center justify-center ${(message.trim() || uploadingMedia.some((m) => m.status === "success")) && !isUploading ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-gray-200 text-gray-400"}`}
-              disabled={
-                (!message.trim() && uploadingMedia.length === 0) || isUploading
-              }
-              onClick={handleSend}
-            >
-              <Send size={18} className="mr-0.5" />
-            </button>
+          <div className="flex items-center gap-1 pb-1 relative">
+            {isRecording ? (
+              <div className="flex items-center gap-3 px-2 flex-1 animate-in fade-in">
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
+                <span className="text-red-500 font-medium text-sm flex-1">
+                  {formatTime(recordingTime)}
+                </span>
+                <button
+                  onClick={cancelRecording}
+                  className="p-2 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition"
+                  title="Hủy ghi âm"
+                >
+                  <Trash2 size={20} />
+                </button>
+                <button
+                  onClick={stopRecording}
+                  className="p-2 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition"
+                  title="Gửi"
+                >
+                  <Send size={18} className="mr-0.5" />
+                </button>
+              </div>
+            ) : (
+              <>
+                <button
+                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition"
+                  disabled={isUploading}
+                >
+                  <Smile size={20} />
+                </button>
+
+                {/* Unified Mic Button */}
+                <div className="relative">
+                  <button
+                    onClick={() => {
+                      if (isDictating) {
+                        toggleDictation(); // Tắt đọc chính tả nếu đang bật
+                      } else {
+                        setShowMicOptions(!showMicOptions);
+                      }
+                    }}
+                    className={`p-2 rounded-full transition-colors ${isDictating ? "bg-red-100 text-red-600 animate-pulse" : showMicOptions ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"}`}
+                    title="Tuỳ chọn giọng nói"
+                    disabled={isUploading}
+                  >
+                    {isDictating ? <Mic size={20} /> : <Mic size={20} />}
+                  </button>
+
+                  {showMicOptions && !isDictating && (
+                    <div className="absolute bottom-full right-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[200px] animate-in fade-in zoom-in-95 duration-200 z-10">
+                      <button
+                        onClick={() => {
+                          setShowMicOptions(false);
+                          startRecording();
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                      >
+                        <Voicemail size={16} className="text-blue-500" /> Gửi
+                        bản ghi âm
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowMicOptions(false);
+                          toggleDictation();
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                      >
+                        <Type size={16} className="text-green-500" /> Gửi dạng
+                        văn bản
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  className={`p-2 rounded-full transition-colors flex items-center justify-center ${(message.trim() || uploadingMedia.some((m) => m.status === "success")) && !isUploading ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-gray-200 text-gray-400"}`}
+                  disabled={
+                    (!message.trim() && uploadingMedia.length === 0) ||
+                    isUploading
+                  }
+                  onClick={handleSend}
+                >
+                  <Send size={18} className="mr-0.5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

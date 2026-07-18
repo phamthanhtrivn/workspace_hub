@@ -15,6 +15,7 @@ import { formatFileSize } from "@/lib/file";
 import { saveAs } from "file-saver";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
+import { isAudioFile, renderAudioPlayer } from "../utils/media-utils";
 import PollMessage from "./poll-message";
 import NoteMessage from "./note-message";
 import ReactionDetailModal from "./reaction-detail-modal";
@@ -256,37 +257,43 @@ const ChatMessage = React.memo(function ChatMessage({
     if (fileMedias.length === 0) return null;
     return (
       <div className="flex flex-col gap-2 max-w-full">
-        {fileMedias.map((media: any) => (
-          <div
-            key={media.id}
-            className={`flex items-center justify-between gap-3  py-2 px-3 rounded-xl border ${isMe ? "bg-[#DBEAFE] border-blue-500/50 " : "bg-gray-50 border-gray-200 hover:bg-gray-100"} transition `}
-          >
-            <div className="flex gap-3">
-              <div
-                className={`p-2 rounded-lg ${isMe ? "bg-blue-500 text-white" : "bg-white text-blue-500 shadow-sm"}`}
-              >
-                <FileText size={20} />
-              </div>
-              <div className="flex flex-col min-w-0 max-w-[180px]">
-                <span className="text-sm font-medium truncate">
-                  {media.name}
-                </span>
-                <span
-                  className={`text-[10px] ${isMe ? "text-gray-900" : "text-gray-500"}`}
+        {fileMedias.map((media: any) => {
+          if (isAudioFile(media)) {
+            return renderAudioPlayer(media, isMe);
+          }
+
+          return (
+            <div
+              key={media.id}
+              className={`flex items-center justify-between gap-3  py-2 px-3 rounded-xl border ${isMe ? "bg-[#DBEAFE] border-blue-500/50 " : "bg-gray-50 border-gray-200 hover:bg-gray-100"} transition `}
+            >
+              <div className="flex gap-3">
+                <div
+                  className={`p-2 rounded-lg ${isMe ? "bg-blue-500 text-white" : "bg-white text-blue-500 shadow-sm"}`}
                 >
-                  {formatFileSize(media.sizeBytes)}
-                </span>
+                  <FileText size={20} />
+                </div>
+                <div className="flex flex-col min-w-0 max-w-[180px]">
+                  <span className="text-sm font-medium truncate">
+                    {media.name}
+                  </span>
+                  <span
+                    className={`text-[10px] ${isMe ? "text-gray-900" : "text-gray-500"}`}
+                  >
+                    {formatFileSize(media.sizeBytes)}
+                  </span>
+                </div>
+              </div>
+              <div>
+                <Download
+                  onClick={(e) => handleDownload(e, media.fileUrl, media.name)}
+                  size={16}
+                  className={`ml-1 cursor-pointer ${isMe ? "text-gray-900 hover:bg-blue-100 hover:text-blue-600 rounded-full" : "text-gray-500 hover:bg-gray-100 hover:text-gray-600 rounded-full"}`}
+                />
               </div>
             </div>
-            <div>
-              <Download
-                onClick={(e) => handleDownload(e, media.fileUrl, media.name)}
-                size={16}
-                className={`ml-1 cursor-pointer ${isMe ? "text-gray-900 hover:bg-blue-100 hover:text-blue-600 rounded-full" : "text-gray-500 hover:bg-gray-100 hover:text-gray-600 rounded-full"}`}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     );
   };
