@@ -353,12 +353,32 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
   const filteredConversations = useMemo(() => {
     return conversations.filter((conv: any) => {
-      if (activeTab === "all") return true;
-      if (activeTab === "personal") return conv.type === "DIRECT";
-      if (activeTab === "groups") return conv.type === "GROUP";
+      // Lọc theo tab
+      let matchesTab = true;
+      if (activeTab === "personal") matchesTab = conv.type === "DIRECT";
+      if (activeTab === "groups") matchesTab = conv.type === "GROUP";
+      
+      if (!matchesTab) return false;
+
+      // Lọc theo từ khoá tìm kiếm
+      if (searchQuery.trim().length > 0) {
+        const lowerQuery = searchQuery.toLowerCase();
+        let name = "";
+        
+        if (conv.type === "DIRECT") {
+          const otherMember = conv.members?.find((m: any) => m.userId !== currentUserId);
+          const otherProfile = otherMember ? memberProfiles[otherMember.userId] : null;
+          name = otherProfile?.fullName || "Người dùng";
+        } else {
+          name = conv.name || "Nhóm trò chuyện";
+        }
+
+        return name.toLowerCase().includes(lowerQuery);
+      }
+
       return true;
     });
-  }, [conversations, activeTab]);
+  }, [conversations, activeTab, searchQuery, memberProfiles, currentUserId]);
 
   return (
     <div className="w-full h-full bg-white border-r border-gray-200 flex flex-col">
