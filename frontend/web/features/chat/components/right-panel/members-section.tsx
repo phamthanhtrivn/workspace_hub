@@ -67,7 +67,7 @@ export default function MembersSection({
                         className="rounded-full border-gray-200 border-1"
                       />
                     ) : (
-                      <User size={22} className="text-gray-400" />
+                      <User size={18} className="text-gray-400" />
                     )}
                   </div>
                   <div className="flex flex-col gap-1">

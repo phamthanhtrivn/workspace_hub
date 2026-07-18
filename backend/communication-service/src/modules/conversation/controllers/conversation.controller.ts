@@ -135,4 +135,26 @@ export class ConversationController {
       data: messages,
     };
   }
+
+  @Get(':id/messages/search')
+  async searchConversationMessages(
+    @Param('id') conversationId: string,
+    @Query('q') q?: string,
+    @Query('senderId') senderId?: string,
+    @Query('type') type?: string,
+  ) {
+    if (!conversationId) {
+      throw new BadRequestException('Thiếu conversationId');
+    }
+    const messages = await this.conversationService.searchMessages(
+      conversationId,
+      q,
+      senderId,
+      type,
+    );
+    return {
+      message: 'Tìm kiếm tin nhắn thành công',
+      data: messages,
+    };
+  }
 }

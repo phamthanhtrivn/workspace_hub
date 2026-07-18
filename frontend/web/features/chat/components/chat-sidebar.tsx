@@ -35,6 +35,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [activeTab, setActiveTab] = useState<"all" | "personal" | "groups">(
     "all",
   );
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateGroupModalOpen, setIsCreateGroupModalOpen] = useState(false);
   const currentUserId = useAppSelector((state) => state.auth.userId);
@@ -398,6 +399,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           />
           <input
             type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Tìm kiếm cuộc hội thoại..."
             className="w-full pl-10 text-sm pr-4 py-2 bg-gray-100 border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition"
           />

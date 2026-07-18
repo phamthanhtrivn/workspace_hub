@@ -13,7 +13,8 @@ import NotesSection from "./right-panel/notes-section";
 import TasksSection from "./right-panel/tasks-section";
 import MediaDetailView from "./right-panel/media-detail-view";
 import PollDetailView from "./right-panel/poll-detail-view";
-import { X, Bell, BellOff, LogOut, User, Users } from "lucide-react";
+import SearchMessagesSection from "./right-panel/search-messages-section";
+import { X, Bell, BellOff, LogOut, User, Users, Search } from "lucide-react";
 import Image from "next/image";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
@@ -24,19 +25,29 @@ import {
 
 interface ChatRightPanelProps {
   onClose: () => void;
+  initialDetailView?: "images" | "files" | "polls" | "search" | null;
 }
 
-export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
+export default function ChatRightPanel({
+  onClose,
+  initialDetailView,
+}: ChatRightPanelProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "members",
   );
   const [detailView, setDetailView] = useState<
-    "images" | "files" | "polls" | null
-  >(null);
+    "images" | "files" | "polls" | "search" | null
+  >(initialDetailView || null);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const lastFetchedConversationId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (initialDetailView !== undefined) {
+      setDetailView(initialDetailView);
+    }
+  }, [initialDetailView]);
 
   const { activeConversation, memberProfiles } = useAppSelector(
     (state) => state.chat,
@@ -161,6 +172,17 @@ export default function ChatRightPanel({ onClose }: ChatRightPanelProps) {
     return (
       <div className="w-80 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PollDetailView
+          conversationId={activeConversation!.id}
+          onBack={() => setDetailView(null)}
+        />
+      </div>
+    );
+  }
+
+  if (detailView === "search") {
+    return (
+      <div className="w-80 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+        <SearchMessagesSection
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
         />

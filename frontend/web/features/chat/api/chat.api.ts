@@ -59,7 +59,7 @@ export const getConversationMessages = async (
   conversationId: string,
   cursor?: string,
   limit?: number,
-  direction?: 'older' | 'newer' | 'around',
+  direction?: "older" | "newer" | "around",
 ): Promise<any> => {
   const response = await api.get(
     `/api/conversations/${conversationId}/messages`,
@@ -86,6 +86,21 @@ export const getPinnedMessages = async (
 ): Promise<any> => {
   const response = await api.get(
     `/api/conversations/${conversationId}/pinned-messages`,
+  );
+  return response.data;
+};
+
+export const searchConversationMessages = async (
+  conversationId: string,
+  q?: string,
+  senderId?: string,
+  type?: "TEXT",
+): Promise<any> => {
+  const response = await api.get(
+    `/api/conversations/${conversationId}/messages/search`,
+    {
+      params: { q, senderId, type },
+    },
   );
   return response.data;
 };

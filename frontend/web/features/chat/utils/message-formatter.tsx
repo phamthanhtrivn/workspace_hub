@@ -1,11 +1,11 @@
 import React from "react";
 import { UserProfileResponse } from "../types/chat.types";
 
-export const renderMessageContent = (
+export const formatMessageContent = (
   content: string | undefined | null,
   memberProfiles?: Record<string, UserProfileResponse>
-) => {
-  if (!content) return <p className="whitespace-pre-wrap">{content}</p>;
+): (string | React.ReactNode)[] => {
+  if (!content) return [content || ""];
 
   let parts: (string | React.ReactNode)[] = [content];
 
@@ -59,6 +59,7 @@ export const renderMessageContent = (
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-500 hover:underline break-all"
+              onClick={(e) => e.stopPropagation()}
             >
               {s}
             </a>
@@ -71,7 +72,15 @@ export const renderMessageContent = (
       finalParts.push(part);
     }
   });
-  parts = finalParts;
+  
+  return finalParts;
+};
 
+export const renderMessageContent = (
+  content: string | undefined | null,
+  memberProfiles?: Record<string, UserProfileResponse>
+) => {
+  if (!content) return <p className="whitespace-pre-wrap">{content}</p>;
+  const parts = formatMessageContent(content, memberProfiles);
   return <p className="whitespace-pre-wrap leading-relaxed">{parts}</p>;
 };

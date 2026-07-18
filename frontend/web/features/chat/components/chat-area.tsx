@@ -24,9 +24,9 @@ import CreatePollModal from "./create-poll-modal";
 import CreateNoteModal from "./create-note-modal";
 import TypingIndicator from "./typing-indicator";
 import {
-  setSelectedProfileUserId,
   updateWatermark,
   setWatermarks,
+  setHighlightMessageId,
 } from "@/store/chat/chat-slice";
 import { NO_AVATAR_TYPES } from "../types/chat.types";
 
@@ -37,17 +37,22 @@ type PageParam = {
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
+  onOpenSearch?: () => void;
   onBack?: () => void;
 }
 
 export default function ChatArea({
   onToggleRightPanel,
+  onOpenSearch,
   onBack,
 }: ChatAreaProps) {
   const { activeConversation, memberProfiles, watermarks } = useAppSelector(
     (state) => state.chat,
   );
   const auth = useAppSelector((state) => state.auth);
+  const highlightMessageId = useAppSelector(
+    (state) => state.chat.highlightMessageId,
+  );
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
 
@@ -140,6 +145,8 @@ export default function ChatArea({
   useEffect(() => {
     setJumpTargetId(null);
   }, [activeConversation?.id]);
+
+  // (Moved jump target to below handleJumpToMessage)
 
   // Handle socket messages
   useEffect(() => {
@@ -278,7 +285,11 @@ export default function ChatArea({
             const exists = prev.some((p) => p.id === msg.id);
             if (exists) return prev;
             // Add to top
-            return [msg, ...prev].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+            return [msg, ...prev].sort(
+              (a, b) =>
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime(),
+            );
           });
           updateMessageInState(msg.id, () => msg);
         }
@@ -442,19 +453,27 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket && activeConversation?.id) {
         if (msg.pinned) {
-          socket.emit(ChatEvent.UNPIN_MESSAGE, {
-            conversationId: activeConversation.id,
-            messageId: msg.id,
-          }, (response: any) => {
-            if (response?.status === 'error') alert(response.message);
-          });
+          socket.emit(
+            ChatEvent.UNPIN_MESSAGE,
+            {
+              conversationId: activeConversation.id,
+              messageId: msg.id,
+            },
+            (response: any) => {
+              if (response?.status === "error") alert(response.message);
+            },
+          );
         } else {
-          socket.emit(ChatEvent.PIN_MESSAGE, {
-            conversationId: activeConversation.id,
-            messageId: msg.id,
-          }, (response: any) => {
-            if (response?.status === 'error') alert(response.message);
-          });
+          socket.emit(
+            ChatEvent.PIN_MESSAGE,
+            {
+              conversationId: activeConversation.id,
+              messageId: msg.id,
+            },
+            (response: any) => {
+              if (response?.status === "error") alert(response.message);
+            },
+          );
         }
       }
     },
@@ -578,6 +597,14 @@ export default function ChatArea({
       }, 800);
     }
   }, []);
+
+  // Handle jump target from redux search
+  useEffect(() => {
+    if (highlightMessageId) {
+      handleJumpToMessage(highlightMessageId);
+      dispatch(setHighlightMessageId(null));
+    }
+  }, [highlightMessageId, handleJumpToMessage, dispatch]);
 
   const renderMessages = () => {
     if (isLoading) {
@@ -783,12 +810,18 @@ export default function ChatArea({
   return (
     <div className="flex-1 flex flex-col bg-white h-full min-h-0 relative">
       {/* Header */}
-      <ChatHeader onToggleRightPanel={onToggleRightPanel} onBack={onBack} />
+      <ChatHeader
+        onToggleRightPanel={onToggleRightPanel}
+        onOpenSearch={onOpenSearch}
+        onBack={onBack}
+      />
 
-      <PinnedMessagesBar 
+      <PinnedMessagesBar
         pinnedMessages={pinnedMessages}
         onJumpToMessage={handleJumpToMessage}
-        onUnpin={(messageId) => handlePinMessage({ id: messageId, pinned: true })}
+        onUnpin={(messageId) =>
+          handlePinMessage({ id: messageId, pinned: true })
+        }
         currentUserId={auth.userId!}
       />
 

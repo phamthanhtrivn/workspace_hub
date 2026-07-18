@@ -11,6 +11,7 @@ import UserProfileModal from "./user-profile-modal";
 
 export default function ChatLayout() {
   const [showRightPanel, setShowRightPanel] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversation?.id,
@@ -35,6 +36,14 @@ export default function ChatLayout() {
 
   const toggleRightPanel = () => {
     setShowRightPanel((prev) => !prev);
+    if (!showRightPanel) {
+      setRightPanelTab(null);
+    }
+  };
+
+  const handleOpenSearch = () => {
+    setRightPanelTab("search");
+    setShowRightPanel(true);
   };
 
   const handleSelectChat = () => {
@@ -57,6 +66,7 @@ export default function ChatLayout() {
         {activeConversationId ? (
           <ChatArea
             onToggleRightPanel={toggleRightPanel}
+            onOpenSearch={handleOpenSearch}
             onBack={() => setMobileView("sidebar")}
           />
         ) : (
@@ -78,7 +88,10 @@ export default function ChatLayout() {
       {/* Right Panel - Togglable (Only show if active chat) */}
       {showRightPanel && activeConversationId && (
         <div className="absolute inset-y-0 right-0 z-30 w-full md:w-80 md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
-          <ChatRightPanel onClose={() => setShowRightPanel(false)} />
+          <ChatRightPanel
+            onClose={() => setShowRightPanel(false)}
+            initialDetailView={rightPanelTab}
+          />
         </div>
       )}
       <UserProfileModal />

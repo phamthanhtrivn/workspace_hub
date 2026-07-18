@@ -418,4 +418,52 @@ export class ConversationService {
       medias: mapMediaWithUrl(message.medias),
     }));
   }
+
+  async searchMessages(
+    conversationId: string,
+    q?: string,
+    senderId?: string,
+    type?: string,
+  ) {
+    const whereClause: any = {
+      conversationId,
+      deletedAt: null,
+      recalled: false,
+    };
+
+    if (q) {
+      whereClause.OR = [
+        { content: { contains: q, mode: 'insensitive' } },
+        { medias: { some: { name: { contains: q, mode: 'insensitive' } } } },
+      ];
+    }
+
+    if (senderId) {
+      whereClause.senderId = senderId;
+    }
+
+    if (type) {
+      // Assuming type maps directly to MessageType enum from prisma
+      whereClause.type = type;
+    }
+
+    const messages = await this.prisma.message.findMany({
+      where: whereClause,
+      orderBy: {
+        createdAt: 'desc',
+      },
+      include: {
+        medias: true,
+        poll: { include: { options: { include: { votes: true } } } },
+        note: true,
+        replyTo: true,
+      },
+      take: 10, // Limit results
+    });
+
+    return messages.map((message) => ({
+      ...message,
+      medias: mapMediaWithUrl(message.medias),
+    }));
+  }
 }

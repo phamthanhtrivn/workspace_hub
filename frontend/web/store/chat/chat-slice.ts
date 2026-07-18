@@ -10,6 +10,7 @@ interface ChatState {
   isMobileSidebarOpen: boolean;
   selectedProfileUserId: string | null;
   watermarks: Record<string, string>; // userId -> messageId
+  highlightMessageId: string | null;
 }
 
 const initialState: ChatState = {
@@ -18,6 +19,7 @@ const initialState: ChatState = {
   isMobileSidebarOpen: false,
   selectedProfileUserId: null,
   watermarks: {},
+  highlightMessageId: null,
 };
 
 const chatSlice = createSlice({
@@ -29,6 +31,7 @@ const chatSlice = createSlice({
       action: PayloadAction<ConversationResponse | null>,
     ) => {
       state.activeConversation = action.payload;
+      state.highlightMessageId = null; // Reset highlight when changing conversation
     },
     setMemberProfiles: (
       state,
@@ -57,6 +60,9 @@ const chatSlice = createSlice({
     setWatermarks: (state, action: PayloadAction<Record<string, string>>) => {
       state.watermarks = action.payload;
     },
+    setHighlightMessageId: (state, action: PayloadAction<string | null>) => {
+      state.highlightMessageId = action.payload;
+    },
   },
 });
 
@@ -68,6 +74,7 @@ export const {
   setSelectedProfileUserId,
   updateWatermark,
   setWatermarks,
+  setHighlightMessageId,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
