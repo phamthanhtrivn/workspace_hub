@@ -88,7 +88,7 @@ export default function ChatHeader({
 
       <div className="flex items-center gap-1 text-gray-500">
         <button
-          className="p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
+          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onOpenSearch}
           title="Tìm kiếm"
         >
@@ -96,7 +96,7 @@ export default function ChatHeader({
         </button>
         <div className="w-px h-6 bg-gray-200 mx-1"></div>
         <button
-          className="p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
+          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onToggleRightPanel}
           title="Thông tin hội thoại"
         >

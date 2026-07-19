@@ -197,7 +197,7 @@ export default function ChatRightPanel({
         <h2 className="font-semibold text-gray-800">Details</h2>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
+          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
         >
           <X size={20} />
         </button>

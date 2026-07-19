@@ -29,6 +29,7 @@ import { useAppSelector } from "@/store/store";
 import { getPresignedUrls, uploadToS3 } from "../api/media.api";
 import { toast } from "react-toastify";
 import MentionDropdown from "./mention-dropdown";
+import EmojiPickerPopover from "./emoji-picker-popover";
 
 interface ChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -59,6 +60,7 @@ const ChatInput = React.memo(
   ) {
     const [message, setMessage] = useState("");
     const [showOptions, setShowOptions] = useState(false);
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [showMicOptions, setShowMicOptions] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
     const [isDictating, setIsDictating] = useState(false);
@@ -192,8 +194,33 @@ const ChatInput = React.memo(
 
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const emojiButtonRef = useRef<HTMLButtonElement>(null);
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const isTypingRef = useRef(false);
+
+    const handleEmojiSelect = useCallback(
+      (emoji: string) => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const newMessage =
+            message.substring(0, start) + emoji + message.substring(end);
+          setMessage(newMessage);
+          // We need to wait a tick for the message state to update before setting selection
+          setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(
+              start + emoji.length,
+              start + emoji.length,
+            );
+          }, 0);
+        } else {
+          setMessage((prev) => prev + emoji);
+        }
+      },
+      [message],
+    );
 
     const insertMention = useCallback(
       (user: any) => {
@@ -704,12 +731,23 @@ const ChatInput = React.memo(
               </div>
             ) : (
               <>
-                <button
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition"
-                  disabled={isUploading}
-                >
-                  <Smile size={20} />
-                </button>
+                <div className="relative">
+                  <button
+                    ref={emojiButtonRef}
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    className={`cursor-pointer p-2 rounded-full transition-colors ${showEmojiPicker ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"}`}
+                    disabled={isUploading}
+                    title="Chèn biểu tượng cảm xúc"
+                  >
+                    <Smile size={20} />
+                  </button>
+                  <EmojiPickerPopover
+                    isOpen={showEmojiPicker}
+                    onClose={() => setShowEmojiPicker(false)}
+                    triggerRef={emojiButtonRef}
+                    onEmojiSelect={handleEmojiSelect}
+                  />
+                </div>
 
                 {/* Unified Mic Button */}
                 <div className="relative">
@@ -721,7 +759,7 @@ const ChatInput = React.memo(
                         setShowMicOptions(!showMicOptions);
                       }
                     }}
-                    className={`p-2 rounded-full transition-colors ${isDictating ? "bg-red-100 text-red-600 animate-pulse" : showMicOptions ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"}`}
+                    className={`cursor-pointer p-2 rounded-full transition-colors ${isDictating ? "bg-red-100 text-red-600 animate-pulse" : showMicOptions ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"}`}
                     title="Tuỳ chọn giọng nói"
                     disabled={isUploading}
                   >
@@ -745,7 +783,7 @@ const ChatInput = React.memo(
                           setShowMicOptions(false);
                           toggleDictation();
                         }}
-                        className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                        className=" flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                       >
                         <Type size={16} className="text-green-500" /> Gửi dạng
                         văn bản

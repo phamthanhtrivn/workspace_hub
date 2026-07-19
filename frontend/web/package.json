@@ -16,6 +16,7 @@
     "axios": "^1.18.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "emoji-picker-react": "^4.19.1",
     "file-saver": "^2.0.5",
     "lucide-react": "^1.21.0",
     "next": "16.2.9",
