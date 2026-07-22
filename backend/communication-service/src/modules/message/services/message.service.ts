@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { MessageType, Prisma } from '@prisma/client';
+import { MessageType, Prisma, ConversationRole } from '@prisma/client';
 import { S3Service } from '../../../infrastructure/s3/s3.service';
 
 @Injectable()
@@ -44,6 +44,30 @@ export class MessageService {
     }>
   > {
     return this.prisma.$transaction(async (tx) => {
+      if (type !== MessageType.SYSTEM) {
+        const member = await tx.conversationMember.findUnique({
+          where: { conversationId_userId: { conversationId, userId: senderId } },
+          include: { conversation: { include: { setting: true } } },
+        });
+
+        if (!member) {
+          throw new BadRequestException('Bạn không phải là thành viên của nhóm này');
+        }
+
+        if (member.role === ConversationRole.MEMBER && member.conversation.setting) {
+          const setting = member.conversation.setting;
+          if (type === MessageType.TEXT && !setting.allowSendMessage) {
+            throw new BadRequestException('Quản trị viên đã tắt tính năng nhắn tin');
+          }
+          if (type === MessageType.POLL && !setting.allowCreatePoll) {
+            throw new BadRequestException('Quản trị viên đã tắt tính năng tạo bình chọn');
+          }
+          if (type === MessageType.NOTE && !setting.allowCreateNote) {
+            throw new BadRequestException('Quản trị viên đã tắt tính năng tạo ghi chú');
+          }
+        }
+      }
+
       const message = await tx.message.create({
         data: {
           conversationId,
@@ -296,7 +320,20 @@ export class MessageService {
     }
 
     if (message.pinned) {
-      throw new Error('Tin nhắn đã được ghim');
+      throw new BadRequestException('Tin nhắn đã được ghim');
+    }
+
+    const member = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: message.conversationId, userId } },
+      include: { conversation: { include: { setting: true } } },
+    });
+
+    if (!member) {
+      throw new BadRequestException('Bạn không phải là thành viên nhóm này');
+    }
+
+    if (member.role === ConversationRole.MEMBER && member.conversation.setting && !member.conversation.setting.allowPinMessage) {
+      throw new BadRequestException('Quản trị viên đã tắt tính năng ghim tin nhắn');
     }
 
     const pinnedCount = await this.prisma.message.count({
@@ -307,7 +344,7 @@ export class MessageService {
     });
 
     if (pinnedCount >= 3) {
-      throw new Error('Chỉ được ghim tối đa 3 tin nhắn');
+      throw new BadRequestException('Chỉ được ghim tối đa 3 tin nhắn');
     }
 
     return this.prisma.message.update({
@@ -332,7 +369,20 @@ export class MessageService {
     }
 
     if (!message.pinned) {
-      throw new Error('Tin nhắn chưa được ghim');
+      throw new BadRequestException('Tin nhắn chưa được ghim');
+    }
+
+    const member = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId: message.conversationId, userId } },
+      include: { conversation: { include: { setting: true } } },
+    });
+
+    if (!member) {
+      throw new BadRequestException('Bạn không phải là thành viên nhóm này');
+    }
+
+    if (member.role === ConversationRole.MEMBER && member.conversation.setting && !member.conversation.setting.allowPinMessage) {
+      throw new BadRequestException('Quản trị viên đã tắt tính năng ghim tin nhắn');
     }
 
     return this.prisma.message.update({

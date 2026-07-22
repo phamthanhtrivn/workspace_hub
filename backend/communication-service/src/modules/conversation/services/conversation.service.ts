@@ -5,6 +5,7 @@ import { ChatGateway } from '../../chat/chat.gateway';
 import { ConversationEventPublisher } from '../events/conversation.publisher';
 import { getSenderProfile } from '../../../common/utils/user.util';
 import { mapMediaWithUrl } from '../../../common/utils/file.util';
+import { UpdateConversationSettingDto } from '../dto/update-conversation-setting.dto';
 
 @Injectable()
 export class ConversationService {
@@ -465,5 +466,224 @@ export class ConversationService {
       ...message,
       medias: mapMediaWithUrl(message.medias),
     }));
+  }
+
+  async updateConversationSettings(
+    conversationId: string,
+    userId: string,
+    updateSettingDto: UpdateConversationSettingDto,
+  ) {
+    const member = await this.prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+    });
+
+    if (!member || (member.role !== ConversationRole.OWNER && member.role !== ConversationRole.ADMIN)) {
+      throw new BadRequestException('Bạn không có quyền thay đổi cài đặt nhóm');
+    }
+
+    const updatedSettings = await this.prisma.conversationSetting.update({
+      where: { conversationId },
+      data: updateSettingDto,
+    });
+
+    this.chatGateway.server.to(conversationId).emit('group_setting_updated', {
+      conversationId,
+      setting: updatedSettings,
+    });
+
+    return updatedSettings;
+  }
+
+  async updateMemberRole(
+    conversationId: string,
+    userId: string,
+    targetUserId: string,
+    newRole: ConversationRole,
+  ) {
+    if (userId === targetUserId) {
+      throw new BadRequestException('Không thể tự thay đổi vai trò của chính mình');
+    }
+
+    const requester = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    });
+
+    if (!requester || requester.role !== ConversationRole.OWNER) {
+      throw new BadRequestException('Chỉ Trưởng nhóm mới có quyền thay đổi vai trò thành viên');
+    }
+
+    const targetMember = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+    });
+
+    if (!targetMember) {
+      throw new BadRequestException('Thành viên không tồn tại trong nhóm');
+    }
+
+    const updatedMember = await this.prisma.conversationMember.update({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+      data: { role: newRole },
+    });
+
+    this.chatGateway.server.to(conversationId).emit('member_role_updated', {
+      conversationId,
+      member: updatedMember,
+    });
+
+    return updatedMember;
+  }
+
+  async transferOwnership(
+    conversationId: string,
+    userId: string,
+    newOwnerId: string,
+  ) {
+    if (userId === newOwnerId) {
+      throw new BadRequestException('Không thể chuyển quyền cho chính mình');
+    }
+
+    const requester = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    });
+
+    if (!requester || requester.role !== ConversationRole.OWNER) {
+      throw new BadRequestException('Chỉ Trưởng nhóm mới có quyền chuyển đổi trưởng nhóm');
+    }
+
+    const newOwner = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId: newOwnerId } },
+    });
+
+    if (!newOwner) {
+      throw new BadRequestException('Thành viên không tồn tại trong nhóm');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.conversationMember.update({
+        where: { conversationId_userId: { conversationId, userId } },
+        data: { role: ConversationRole.MEMBER },
+      }),
+      this.prisma.conversationMember.update({
+        where: { conversationId_userId: { conversationId, userId: newOwnerId } },
+        data: { role: ConversationRole.OWNER },
+      }),
+    ]);
+
+    this.chatGateway.server.to(conversationId).emit('member_role_updated', {
+      conversationId,
+      member: { ...requester, role: ConversationRole.MEMBER },
+    });
+    this.chatGateway.server.to(conversationId).emit('member_role_updated', {
+      conversationId,
+      member: { ...newOwner, role: ConversationRole.OWNER },
+    });
+
+    return { success: true };
+  }
+
+  async kickMember(
+    conversationId: string,
+    userId: string,
+    memberId: string,
+  ) {
+    if (userId === memberId) {
+      throw new BadRequestException('Không thể tự kích bản thân');
+    }
+
+    const requester = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    });
+
+    const target = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId: memberId } },
+    });
+
+    if (!requester || !target) {
+      throw new BadRequestException('Thành viên không tồn tại');
+    }
+
+    if (requester.role === ConversationRole.MEMBER) {
+      throw new BadRequestException('Bạn không có quyền kích thành viên');
+    }
+
+    if (requester.role === ConversationRole.ADMIN && target.role !== ConversationRole.MEMBER) {
+      throw new BadRequestException('Phó nhóm chỉ có thể kích Thành viên');
+    }
+
+    await this.prisma.conversationMember.delete({
+      where: { conversationId_userId: { conversationId, userId: memberId } },
+    });
+
+    this.chatGateway.server.to(conversationId).emit('member_kicked', {
+      conversationId,
+      userId: memberId,
+    });
+    return { success: true };
+  }
+
+  async leaveConversation(
+    conversationId: string,
+    userId: string,
+  ) {
+    const member = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    });
+
+    if (!member) {
+      throw new BadRequestException('Bạn không phải là thành viên nhóm này');
+    }
+
+    if (member.role === ConversationRole.OWNER) {
+      const otherMembers = await this.prisma.conversationMember.findMany({
+        where: {
+          conversationId,
+          userId: { not: userId },
+        },
+      });
+
+      if (otherMembers.length > 0) {
+        throw new BadRequestException(
+          'Vui lòng chuyển quyền Trưởng nhóm trước khi rời nhóm',
+        );
+      }
+    }
+
+    await this.prisma.conversationMember.delete({
+      where: { conversationId_userId: { conversationId, userId } },
+    });
+
+    this.chatGateway.server.to(conversationId).emit('member_left', {
+      conversationId,
+      userId,
+    });
+    return { success: true };
+  }
+
+  async disbandConversation(conversationId: string, userId: string) {
+    const member = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    });
+
+    if (!member) {
+      throw new BadRequestException('Bạn không phải là thành viên nhóm này');
+    }
+
+    if (member.role !== ConversationRole.OWNER) {
+      throw new BadRequestException('Chỉ Trưởng nhóm mới có quyền giải tán nhóm');
+    }
+
+    await this.prisma.conversation.delete({
+      where: { id: conversationId },
+    });
+
+    this.chatGateway.server.to(conversationId).emit('conversation_disbanded', {
+      conversationId,
+    });
+
+    this.chatGateway.server.in(conversationId).socketsLeave(conversationId);
+
+    return { success: true };
   }
 }

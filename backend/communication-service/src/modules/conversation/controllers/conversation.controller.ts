@@ -7,10 +7,15 @@ import {
   Headers,
   BadRequestException,
   Query,
+  Patch,
+  Put,
+  Delete,
 } from '@nestjs/common';
 import { ConversationService } from '../services/conversation.service';
 import { CreateDirectConversationDto } from '../dto/create-direct-conversation.dto';
 import { CreateGroupConversationDto } from '../dto/create-group-conversation.dto';
+import { UpdateConversationSettingDto } from '../dto/update-conversation-setting.dto';
+import { UpdateMemberRoleDto } from '../dto/update-member-role.dto';
 
 @Controller('api/conversations')
 export class ConversationController {
@@ -155,6 +160,110 @@ export class ConversationController {
     return {
       message: 'Tìm kiếm tin nhắn thành công',
       data: messages,
+    };
+  }
+
+  @Patch(':id/settings')
+  async updateConversationSettings(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() updateSettingDto: UpdateConversationSettingDto,
+  ) {
+    if (!userId || !conversationId) {
+      throw new BadRequestException('Thiếu userId hoặc conversationId');
+    }
+    const result = await this.conversationService.updateConversationSettings(
+      conversationId,
+      userId,
+      updateSettingDto,
+    );
+    return {
+      message: 'Cập nhật cài đặt nhóm thành công',
+      data: result,
+    };
+  }
+
+  @Put(':id/members/:memberId/role')
+  async updateMemberRole(
+    @Param('id') conversationId: string,
+    @Param('memberId') memberId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() updateRoleDto: UpdateMemberRoleDto,
+  ) {
+    if (!userId || !conversationId || !memberId) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    const result = await this.conversationService.updateMemberRole(
+      conversationId,
+      userId,
+      memberId,
+      updateRoleDto.role,
+    );
+    return {
+      message: 'Cập nhật vai trò thành công',
+      data: result,
+    };
+  }
+
+  @Post(':id/transfer-owner')
+  async transferOwnership(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('newOwnerId') newOwnerId: string,
+  ) {
+    if (!userId || !conversationId || !newOwnerId) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    const result = await this.conversationService.transferOwnership(
+      conversationId,
+      userId,
+      newOwnerId,
+    );
+    return {
+      message: 'Chuyển quyền trưởng nhóm thành công',
+      data: result,
+    };
+  }
+
+  @Delete(':id/members/:memberId')
+  async kickMember(
+    @Param('id') conversationId: string,
+    @Param('memberId') memberId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId || !conversationId || !memberId) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    await this.conversationService.kickMember(conversationId, userId, memberId);
+    return {
+      message: 'Đã xoá thành viên khỏi nhóm',
+    };
+  }
+
+  @Delete(':id/leave')
+  async leaveConversation(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId || !conversationId) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    await this.conversationService.leaveConversation(conversationId, userId);
+    return {
+      message: 'Đã rời khỏi nhóm',
+    };
+  }
+  @Delete(':id/disband')
+  async disbandConversation(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId || !conversationId) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    await this.conversationService.disbandConversation(conversationId, userId);
+    return {
+      message: 'Đã giải tán nhóm thành công',
     };
   }
 }

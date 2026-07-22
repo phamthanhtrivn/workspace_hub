@@ -14,7 +14,18 @@ import TasksSection from "./right-panel/tasks-section";
 import MediaDetailView from "./right-panel/media-detail-view";
 import PollDetailView from "./right-panel/poll-detail-view";
 import SearchMessagesSection from "./right-panel/search-messages-section";
-import { X, Bell, BellOff, LogOut, User, Users, Search } from "lucide-react";
+import GroupSettingsModal from "./group-settings-modal";
+import ManageMembersModal from "./manage-members-modal";
+import {
+  X,
+  Bell,
+  BellOff,
+  LogOut,
+  User,
+  Users,
+  Search,
+  Settings,
+} from "lucide-react";
 import Image from "next/image";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
@@ -41,6 +52,8 @@ export default function ChatRightPanel({
   >(initialDetailView || null);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showMembersModal, setShowMembersModal] = useState(false);
   const lastFetchedConversationId = useRef<string | null>(null);
 
   useEffect(() => {
@@ -61,6 +74,11 @@ export default function ChatRightPanel({
   let displayAvatarUrl = null;
   let displayDescription = `${activeConversation?.members?.length || 0} thành viên`;
   let otherMemberId: string | null = null;
+  const currentMember = activeConversation?.members?.find(
+    (m: any) => m.userId === currentUserId,
+  );
+  const isOwnerOrAdmin =
+    currentMember?.role === "OWNER" || currentMember?.role === "ADMIN";
 
   if (isDirect) {
     const otherMember = activeConversation?.members?.find(
@@ -245,6 +263,30 @@ export default function ChatRightPanel({
                 {isMuted ? "Unmute" : "Mute"}
               </span>
             </button>
+
+            {!isDirect && (
+              <button
+                onClick={() => setShowMembersModal(true)}
+                className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              >
+                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Users size={18} />
+                </div>
+                <span className="text-xs font-medium">Thành viên</span>
+              </button>
+            )}
+
+            {!isDirect && isOwnerOrAdmin && (
+              <button
+                onClick={() => setShowSettingsModal(true)}
+                className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              >
+                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Settings size={18} />
+                </div>
+                <span className="text-xs font-medium">Cài đặt</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -319,6 +361,22 @@ export default function ChatRightPanel({
           )}
           initialIndex={lightboxIndex}
           onClose={() => setLightboxIndex(-1)}
+        />
+      )}
+
+      {showSettingsModal && (
+        <GroupSettingsModal
+          conversation={activeConversation}
+          onClose={() => setShowSettingsModal(false)}
+        />
+      )}
+
+      {showMembersModal && currentUserId && (
+        <ManageMembersModal
+          conversation={activeConversation}
+          memberProfiles={memberProfiles}
+          currentUserId={currentUserId}
+          onClose={() => setShowMembersModal(false)}
         />
       )}
     </div>

@@ -516,6 +516,33 @@ const ChatInput = React.memo(
       }
     }, [message, uploadingMedia, isUploading, onSendMessage, onTypingChange]);
 
+    const currentMember = activeConversation?.members?.find(
+      (m: any) => m.userId === authUserId,
+    );
+    const isMember = currentMember?.role === "MEMBER";
+    const allowSendMessage =
+      isMember && activeConversation?.setting
+        ? activeConversation.setting.allowSendMessage
+        : true;
+    const allowCreatePoll =
+      isMember && activeConversation?.setting
+        ? activeConversation.setting.allowCreatePoll
+        : true;
+    const allowCreateNote =
+      isMember && activeConversation?.setting
+        ? activeConversation.setting.allowCreateNote
+        : true;
+
+    if (!allowSendMessage) {
+      return (
+        <div className="p-4 bg-white border-t border-gray-200">
+          <div className="flex items-center justify-center p-3 bg-gray-50 rounded-2xl border border-gray-200 text-gray-500 text-sm">
+            Chỉ quản trị viên mới có thể nhắn tin
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="p-4 bg-white border-t border-gray-200">
         {/* File Previews */}
@@ -587,7 +614,7 @@ const ChatInput = React.memo(
             <button
               onClick={() => setShowOptions(!showOptions)}
               disabled={isUploading}
-              className={`p-2 rounded-full transition-colors ${showOptions ? "bg-blue-100 text-blue-600" : "text-gray-500 hover:bg-gray-200"}`}
+              className={`cursor-pointer p-2 rounded-full transition-colors ${showOptions ? "bg-blue-100 text-blue-600" : "text-gray-500 hover:bg-gray-200"}`}
             >
               <Plus
                 size={20}
@@ -599,35 +626,39 @@ const ChatInput = React.memo(
               <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-10">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                 >
-                  <Paperclip size={16} className="text-gray-500" /> File
+                  <FileText size={16} />
+                  Tài liệu
                 </button>
-                <div className="h-px bg-gray-100 my-1"></div>
-                <button className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left">
-                  <CheckSquare size={16} className="text-green-500" /> Task
-                </button>
-                <button
-                  onClick={() => {
-                    setShowOptions(false);
-                    onCreatePoll?.();
-                  }}
-                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
-                >
-                  <BarChart2 size={16} className="text-purple-500" /> Poll
-                </button>
-                <button className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left">
-                  <Calendar size={16} className="text-orange-500" /> Event
-                </button>
-                <button
-                  onClick={() => {
-                    setShowOptions(false);
-                    onCreateNote?.();
-                  }}
-                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
-                >
-                  <FileText size={16} className="text-yellow-500" /> Note
-                </button>
+
+                {allowCreatePoll && (
+                  <button
+                    onClick={() => {
+                      setShowOptions(false);
+                      onCreatePoll?.();
+                    }}
+                    disabled={isUploading}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <BarChart2 size={16} />
+                    Bình chọn
+                  </button>
+                )}
+
+                {allowCreateNote && (
+                  <button
+                    onClick={() => {
+                      setShowOptions(false);
+                      onCreateNote?.();
+                    }}
+                    disabled={isUploading}
+                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <CheckSquare size={16} />
+                    Ghi chú
+                  </button>
+                )}
               </div>
             )}
           </div>

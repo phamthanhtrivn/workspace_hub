@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-  useMemo,
-  useLayoutEffect,
-} from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import ChatInput, { ChatInputRef } from "./chat-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./chat-message";
@@ -19,7 +12,7 @@ import { ChatEvent } from "../api/chat.events";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import TimeDivider from "./time-divider";
-import { ChevronDown, Loader2, X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import CreatePollModal from "./create-poll-modal";
 import CreateNoteModal from "./create-note-modal";
 import TypingIndicator from "./typing-indicator";
@@ -27,6 +20,10 @@ import {
   updateWatermark,
   setWatermarks,
   setHighlightMessageId,
+  updateGroupSettings,
+  updateMemberRole,
+  removeMember,
+  setActiveConversation,
 } from "@/store/chat/chat-slice";
 import { NO_AVATAR_TYPES } from "../types/chat.types";
 
@@ -344,6 +341,36 @@ export default function ChatArea({
         }
       };
 
+      const handleGroupSettingUpdated = (data: any) => {
+        if (data.conversationId === activeConversation.id) {
+          dispatch(updateGroupSettings(data.setting));
+        }
+      };
+
+      const handleMemberRoleUpdated = (data: any) => {
+        if (data.conversationId === activeConversation.id) {
+          dispatch(
+            updateMemberRole({
+              userId: data.member.userId,
+              role: data.member.role,
+            }),
+          );
+        }
+      };
+
+      const handleMemberKickedOrLeft = (data: any) => {
+        if (data.conversationId === activeConversation.id) {
+          dispatch(removeMember(data.userId));
+        }
+      };
+
+      const handleConversationDisbanded = (data: any) => {
+        if (data.conversationId === activeConversation.id) {
+          dispatch(setActiveConversation(null));
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        }
+      };
+
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.REACTION_UPDATED, handleReactionUpdated);
       socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
@@ -353,6 +380,11 @@ export default function ChatArea({
       socket.on(ChatEvent.TYPING, handleTyping);
       socket.on(ChatEvent.MESSAGE_PINNED, handleMessagePinned);
       socket.on(ChatEvent.MESSAGE_UNPINNED, handleMessageUnpinned);
+      socket.on(ChatEvent.GROUP_SETTING_UPDATED, handleGroupSettingUpdated);
+      socket.on(ChatEvent.MEMBER_ROLE_UPDATED, handleMemberRoleUpdated);
+      socket.on(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
+      socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
+      socket.on(ChatEvent.CONVERSATION_DISBANDED, handleConversationDisbanded);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -364,9 +396,23 @@ export default function ChatArea({
         socket.off(ChatEvent.TYPING, handleTyping);
         socket.off(ChatEvent.MESSAGE_PINNED, handleMessagePinned);
         socket.off(ChatEvent.MESSAGE_UNPINNED, handleMessageUnpinned);
+        socket.off(ChatEvent.GROUP_SETTING_UPDATED, handleGroupSettingUpdated);
+        socket.off(ChatEvent.MEMBER_ROLE_UPDATED, handleMemberRoleUpdated);
+        socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
+        socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
+        socket.off(
+          ChatEvent.CONVERSATION_DISBANDED,
+          handleConversationDisbanded,
+        );
       };
     }
-  }, [activeConversation?.id, auth.userId, memberProfiles]);
+  }, [
+    activeConversation?.id,
+    auth.userId,
+    memberProfiles,
+    dispatch,
+    queryClient,
+  ]);
 
   const allMessages = useMemo(() => {
     if (!data?.pages) return [...newSocketMessages].reverse();

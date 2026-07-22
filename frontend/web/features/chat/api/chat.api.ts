@@ -104,3 +104,61 @@ export const searchConversationMessages = async (
   );
   return response.data;
 };
+
+export const updateConversationSettings = async (
+  conversationId: string,
+  settings: any,
+): Promise<any> => {
+  const response = await api.patch(
+    `/api/conversations/${conversationId}/settings`,
+    settings,
+  );
+  return response.data;
+};
+
+export const updateMemberRole = async (
+  conversationId: string,
+  memberId: string,
+  role: "ADMIN" | "MEMBER",
+): Promise<any> => {
+  const response = await api.put(
+    `/api/conversations/${conversationId}/members/${memberId}/role`,
+    { role },
+  );
+  return response.data;
+};
+
+export const transferOwnership = async (
+  conversationId: string,
+  newOwnerId: string,
+): Promise<any> => {
+  const response = await api.post(
+    `/api/conversations/${conversationId}/transfer-owner`,
+    { newOwnerId },
+  );
+  return response.data;
+};
+
+export const kickMember = async (
+  conversationId: string,
+  memberId: string,
+): Promise<any> => {
+  const response = await api.delete(
+    `/api/conversations/${conversationId}/members/${memberId}`,
+  );
+  return response.data;
+};
+
+export const leaveConversation = async (
+  conversationId: string,
+): Promise<any> => {
+  const response = await api.delete(`/api/conversations/${conversationId}/leave`);
+  return response.data;
+};
+
+export const disbandConversation = async (
+  conversationId: string,
+): Promise<any> => {
+  const response = await api.delete(`/api/conversations/${conversationId}/disband`);
+  return response.data;
+};

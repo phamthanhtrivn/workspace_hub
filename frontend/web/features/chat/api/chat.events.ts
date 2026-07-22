@@ -26,4 +26,9 @@ export enum ChatEvent {
   UNPIN_MESSAGE = "unpin_message",
   MESSAGE_PINNED = "message_pinned",
   MESSAGE_UNPINNED = "message_unpinned",
+  GROUP_SETTING_UPDATED = "group_setting_updated",
+  MEMBER_ROLE_UPDATED = "member_role_updated",
+  MEMBER_KICKED = "member_kicked",
+  MEMBER_LEFT = "member_left",
+  CONVERSATION_DISBANDED = "conversation_disbanded",
 }

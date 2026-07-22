@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastContainer } from "react-toastify";
+import { Toaster } from "sonner";
 import StoreProvider from "@/store/store-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import QueryProvider from "@/store/query-provider";
@@ -40,6 +41,7 @@ export default function RootLayout({
           pauseOnHover
           draggable
         />
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );

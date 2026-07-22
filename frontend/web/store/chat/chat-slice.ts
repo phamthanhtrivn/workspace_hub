@@ -63,6 +63,40 @@ const chatSlice = createSlice({
     setHighlightMessageId: (state, action: PayloadAction<string | null>) => {
       state.highlightMessageId = action.payload;
     },
+    updateGroupSettings: (
+      state,
+      action: PayloadAction<Partial<ConversationResponse["setting"]>>,
+    ) => {
+      if (state.activeConversation && state.activeConversation.setting) {
+        state.activeConversation.setting = {
+          ...state.activeConversation.setting,
+          ...action.payload,
+        };
+      } else if (state.activeConversation) {
+        state.activeConversation.setting = action.payload as any;
+      }
+    },
+    updateMemberRole: (
+      state,
+      action: PayloadAction<{ userId: string; role: any }>,
+    ) => {
+      if (state.activeConversation && state.activeConversation.members) {
+        const member = state.activeConversation.members.find(
+          (m) => m.userId === action.payload.userId,
+        );
+        if (member) {
+          member.role = action.payload.role;
+        }
+      }
+    },
+    removeMember: (state, action: PayloadAction<string>) => {
+      if (state.activeConversation && state.activeConversation.members) {
+        state.activeConversation.members =
+          state.activeConversation.members.filter(
+            (m) => m.userId !== action.payload,
+          );
+      }
+    },
   },
 });
 
@@ -75,6 +109,9 @@ export const {
   updateWatermark,
   setWatermarks,
   setHighlightMessageId,
+  updateGroupSettings,
+  updateMemberRole,
+  removeMember,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
