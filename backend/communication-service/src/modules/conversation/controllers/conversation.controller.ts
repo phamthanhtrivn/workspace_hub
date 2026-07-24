@@ -311,4 +311,24 @@ export class ConversationController {
       message: 'Đã giải tán nhóm thành công',
     };
   }
+
+  @Patch(':id/mute')
+  async muteConversation(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('muted') muted: boolean,
+  ) {
+    if (!userId || !conversationId || muted === undefined) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    const result = await this.conversationService.muteConversation(
+      conversationId,
+      userId,
+      muted,
+    );
+    return {
+      message: muted ? 'Đã tắt thông báo cuộc trò chuyện' : 'Đã bật thông báo cuộc trò chuyện',
+      data: result,
+    };
+  }
 }

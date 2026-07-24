@@ -200,3 +200,15 @@ export const getGroupAvatarPresignedUrl = async (
   );
   return response.data;
 };
+
+export const muteConversation = async (
+  conversationId: string,
+  muted: boolean,
+): Promise<any> => {
+  const response = await api.patch(
+    `/api/conversations/${conversationId}/mute`,
+    { muted },
+  );
+  return response.data;
+};
+

@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { User, Users } from "lucide-react";
+import { User, Users, BellOff } from "lucide-react";
 import Image from "next/image";
 import { formatConversationTime } from "@/lib/date";
 import MessageSnippet from "../message/message-snippet";
@@ -37,6 +37,12 @@ const ConversationItem = React.memo(function ConversationItem({
 
   const latestMessage = conv.messages?.[0];
 
+  const currentMember = useMemo(() => {
+    return conv.members?.find((m: any) => m.userId === currentUserId);
+  }, [conv.members, currentUserId]);
+
+  const isMuted = currentMember?.muted || false;
+
   const time = useMemo(() => {
     return latestMessage
       ? formatConversationTime(latestMessage.createdAt)
@@ -72,9 +78,12 @@ const ConversationItem = React.memo(function ConversationItem({
       <div className="ml-3 flex-1 overflow-hidden">
         <div className="flex justify-between items-baseline mb-0.5">
           <h3
-            className={`truncate ${conv.unreadCount ? "text-sm font-bold text-gray-900" : "text-sm font-semibold text-gray-800"}`}
+            className={`truncate flex items-center gap-1.5 ${conv.unreadCount ? "text-sm font-bold text-gray-900" : "text-sm font-semibold text-gray-800"}`}
           >
-            {name}
+            <span className="truncate">{name}</span>
+            {isMuted && (
+              <BellOff size={13} className="text-gray-600 shrink-0" />
+            )}
           </h3>
           <span
             className={`text-xs ${conv.unreadCount ? "text-blue-600 font-semibold" : "text-gray-500"}`}
@@ -96,7 +105,9 @@ const ConversationItem = React.memo(function ConversationItem({
             <span className="text-blue-600 font-semibold">@</span>
           )}
           {conv.unreadCount > 0 && (
-            <div className="ml-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex items-center justify-center gap-0.5">
+            <div
+              className={`ml-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex items-center justify-center gap-0.5 ${isMuted ? "bg-slate-400" : "bg-red-500"}`}
+            >
               <span>{conv.unreadCount > 99 ? "99+" : conv.unreadCount}</span>
             </div>
           )}

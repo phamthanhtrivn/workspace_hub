@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
-import { getConversationMedia } from "../../api/chat.api";
+import { getConversationMedia, muteConversation } from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
 import MembersSection from "./members-section";
 import ImagesVideosSection from "./images-videos-section";
@@ -27,10 +27,12 @@ import {
   Settings,
 } from "lucide-react";
 import Image from "next/image";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   setActiveConversation,
   setSelectedProfileUserId,
+  updateMuteStatus,
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
@@ -62,12 +64,11 @@ export default function ChatRightPanel({
     }
   }, [initialDetailView]);
 
-  const { activeConversation } = useAppSelector(
-    (state) => state.chat,
-  );
+  const { activeConversation } = useAppSelector((state) => state.chat);
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
 
   const isDirect = activeConversation?.type === "DIRECT";
 
@@ -78,6 +79,53 @@ export default function ChatRightPanel({
   const currentMember = activeConversation?.members?.find(
     (m: any) => m.userId === currentUserId,
   );
+
+  useEffect(() => {
+    setIsMuted(currentMember?.muted || false);
+  }, [currentMember]);
+
+  const handleToggleMute = async () => {
+    if (!activeConversation || !currentUserId) return;
+    const targetMuted = !isMuted;
+    setIsMuted(targetMuted);
+
+    try {
+      await muteConversation(activeConversation.id, targetMuted);
+      dispatch(
+        updateMuteStatus({
+          conversationId: activeConversation.id,
+          userId: currentUserId,
+          muted: targetMuted,
+        }),
+      );
+
+      queryClient.setQueryData(
+        ["conversations", currentUserId],
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            conversations: oldData.conversations.map((c: any) => {
+              if (c.id === activeConversation.id) {
+                return {
+                  ...c,
+                  members: c.members?.map((m: any) =>
+                    m.userId === currentUserId
+                      ? { ...m, muted: targetMuted }
+                      : m,
+                  ),
+                };
+              }
+              return c;
+            }),
+          };
+        },
+      );
+    } catch (error) {
+      setIsMuted(isMuted);
+      console.error("Failed to update mute status:", error);
+    }
+  };
   const isOwnerOrAdmin =
     currentMember?.role === "OWNER" || currentMember?.role === "ADMIN";
 
@@ -253,14 +301,14 @@ export default function ChatRightPanel({
 
           <div className="flex gap-4">
             <button
-              onClick={() => setIsMuted(!isMuted)}
-              className="flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              onClick={handleToggleMute}
+              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
             >
               <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">
-                {isMuted ? "Unmute" : "Mute"}
+                {isMuted ? "Bật thông báo" : "Tắt thông báo"}
               </span>
             </button>
 

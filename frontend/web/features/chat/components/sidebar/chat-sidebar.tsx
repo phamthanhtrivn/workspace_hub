@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Search,
-  Plus,
   UserPlus,
   Users,
   MessageSquare,
@@ -18,6 +17,7 @@ import { getUserConversations, getPublicProfile } from "../../api/chat.api";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   setActiveConversation,
+  updateMuteStatus,
 } from "@/store/chat/chat-slice";
 import { UserProfileResponse } from "../../types/chat.types";
 import { socketService } from "../../api/chat-socket.service";
@@ -280,7 +280,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     ...c,
                     name: data.name !== undefined ? data.name : c.name,
                     avatarUrl:
-                      data.avatarUrl !== undefined ? data.avatarUrl : c.avatarUrl,
+                      data.avatarUrl !== undefined
+                        ? data.avatarUrl
+                        : c.avatarUrl,
                   };
                 }
                 return c;
@@ -290,8 +292,46 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         );
       };
 
-      const handleConversationDisbanded = (data: { conversationId: string }) => {
+      const handleConversationDisbanded = (data: {
+        conversationId: string;
+      }) => {
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      };
+
+      const handleConversationMuteUpdated = (data: {
+        conversationId: string;
+        muted: boolean;
+      }) => {
+        queryClient.setQueryData(
+          ["conversations", currentUserId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              conversations: oldData.conversations.map((c: any) => {
+                if (c.id === data.conversationId) {
+                  return {
+                    ...c,
+                    members: c.members?.map((m: any) =>
+                      m.userId === currentUserId
+                        ? { ...m, muted: data.muted }
+                        : m,
+                    ),
+                  };
+                }
+                return c;
+              }),
+            };
+          },
+        );
+
+        dispatch(
+          updateMuteStatus({
+            conversationId: data.conversationId,
+            userId: currentUserId!,
+            muted: data.muted,
+          }),
+        );
       };
 
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -303,6 +343,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
       socket.on(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
       socket.on(ChatEvent.CONVERSATION_DISBANDED, handleConversationDisbanded);
+      socket.on(
+        ChatEvent.CONVERSATION_MUTE_UPDATED,
+        handleConversationMuteUpdated,
+      );
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -313,7 +357,14 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
         socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
         socket.off(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
-        socket.off(ChatEvent.CONVERSATION_DISBANDED, handleConversationDisbanded);
+        socket.off(
+          ChatEvent.CONVERSATION_DISBANDED,
+          handleConversationDisbanded,
+        );
+        socket.off(
+          ChatEvent.CONVERSATION_MUTE_UPDATED,
+          handleConversationMuteUpdated,
+        );
       };
     }, 500); // Allow time for layout to connect socket
 
@@ -392,13 +443,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       if (onSelectChat) onSelectChat();
     },
-    [
-      dispatch,
-      router,
-      onSelectChat,
-      queryClient,
-      currentUserId,
-    ],
+    [dispatch, router, onSelectChat, queryClient, currentUserId],
   );
 
   useEffect(() => {

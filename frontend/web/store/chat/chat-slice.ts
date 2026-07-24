@@ -99,6 +99,27 @@ const chatSlice = createSlice({
         }
       }
     },
+    updateMuteStatus: (
+      state,
+      action: PayloadAction<{
+        conversationId: string;
+        userId: string;
+        muted: boolean;
+      }>,
+    ) => {
+      if (
+        state.activeConversation &&
+        state.activeConversation.id === action.payload.conversationId &&
+        state.activeConversation.members
+      ) {
+        const member = state.activeConversation.members.find(
+          (m) => m.userId === action.payload.userId,
+        );
+        if (member) {
+          member.muted = action.payload.muted;
+        }
+      }
+    },
   },
 });
 
@@ -113,6 +134,7 @@ export const {
   updateMemberRole,
   removeMember,
   updateConversationInfo,
+  updateMuteStatus,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

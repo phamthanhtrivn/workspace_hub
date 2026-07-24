@@ -566,6 +566,39 @@ export class ConversationService {
     return updatedMember;
   }
 
+  async muteConversation(
+    conversationId: string,
+    userId: string,
+    muted: boolean,
+  ) {
+    const member = await this.prisma.conversationMember.findUnique({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+    });
+
+    if (!member) {
+      throw new BadRequestException('Bạn không phải là thành viên của nhóm này');
+    }
+
+    const updatedMember = await this.prisma.conversationMember.update({
+      where: {
+        conversationId_userId: { conversationId, userId },
+      },
+      data: { muted },
+    });
+
+    // Emit websocket event to user's private room to sync all sessions/tabs
+    if (this.chatGateway?.server) {
+      this.chatGateway.server.to(userId).emit(ChatEvent.CONVERSATION_MUTE_UPDATED, {
+        conversationId,
+        muted,
+      });
+    }
+
+    return updatedMember;
+  }
+
   async transferOwnership(
     conversationId: string,
     userId: string,
