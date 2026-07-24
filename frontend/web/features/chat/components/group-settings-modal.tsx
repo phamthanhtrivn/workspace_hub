@@ -135,8 +135,8 @@ export default function GroupSettingsModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100">
-        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100 flex flex-col max-h-[85vh]">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white shrink-0">
           <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
             Cài đặt nhóm
           </h2>
@@ -148,114 +148,117 @@ export default function GroupSettingsModal({
           </button>
         </div>
 
-        {/* Group Info Section */}
-        <div className="p-5 bg-gray-50/50 flex flex-col gap-4 border-b border-gray-100">
-          {isOwner ? (
-            <div className="flex flex-col items-center gap-4">
-              {/* Avatar Upload */}
-              <div className="relative group w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm shrink-0">
-                {isUploadingAvatar ? (
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
-                    <FiLoader className="animate-spin h-6 w-6" />
-                  </div>
-                ) : (
-                  <>
-                    {groupAvatar ? (
-                      <img
-                        src={groupAvatar}
-                        alt="Group Avatar"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Users size={32} className="text-gray-400" />
-                    )}
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer"
-                      disabled={isSaving}
-                    >
-                      <FiCamera className="h-6 w-6" />
-                    </button>
-                  </>
-                )}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                />
-              </div>
-
-              {/* Group Name input */}
-              <div className="w-full">
-                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
-                  Tên nhóm
-                </label>
-                <input
-                  type="text"
-                  value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
-                  placeholder="Nhập tên nhóm..."
-                  className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium text-gray-800"
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0">
-                {groupAvatar ? (
-                  <img
-                    src={groupAvatar}
-                    alt="Group Avatar"
-                    className="w-full h-full object-cover"
+        {/* Scrollable Modal Content */}
+        <div className="overflow-y-auto flex-1 custom-scrollbar">
+          {/* Group Info Section */}
+          <div className="p-5 bg-gray-50/50 flex flex-col gap-4 border-b border-gray-100">
+            {isOwner ? (
+              <div className="flex flex-col items-center gap-4">
+                {/* Avatar Upload */}
+                <div className="relative group w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm shrink-0">
+                  {isUploadingAvatar ? (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
+                      <FiLoader className="animate-spin h-6 w-6" />
+                    </div>
+                  ) : (
+                    <>
+                      {groupAvatar ? (
+                        <img
+                          src={groupAvatar}
+                          alt="Group Avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Users size={32} className="text-gray-400" />
+                      )}
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer"
+                        disabled={isSaving}
+                      >
+                        <FiCamera className="h-6 w-6" />
+                      </button>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
                   />
-                ) : (
-                  <Users size={20} className="text-gray-400" />
-                )}
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-800 text-base">{groupName}</h3>
-                <p className="text-xs text-gray-500">Chỉ Trưởng nhóm mới có quyền đổi thông tin nhóm</p>
-              </div>
-            </div>
-          )}
-        </div>
+                </div>
 
-        <div className="p-5 bg-gray-50/50">
-          <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
-            <SettingItem
-              title="Cho phép nhắn tin"
-              description="Thành viên có thể gửi tin nhắn vào nhóm"
-              checked={settings.allowSendMessage}
-              onChange={() => handleToggle("allowSendMessage")}
-              icon={<FiMessageSquare size={18} />}
-            />
-            <SettingItem
-              title="Cho phép ghim tin nhắn"
-              description="Thành viên có thể ghim/bỏ ghim tin nhắn"
-              checked={settings.allowPinMessage}
-              onChange={() => handleToggle("allowPinMessage")}
-              icon={<FiPaperclip size={18} />}
-            />
-            <SettingItem
-              title="Cho phép tạo bình chọn"
-              description="Thành viên có thể tạo bình chọn mới"
-              checked={settings.allowCreatePoll}
-              onChange={() => handleToggle("allowCreatePoll")}
-              icon={<FiBarChart2 size={18} />}
-            />
-            <SettingItem
-              title="Cho phép tạo ghi chú"
-              description="Thành viên có thể tạo ghi chú mới"
-              checked={settings.allowCreateNote}
-              onChange={() => handleToggle("allowCreateNote")}
-              icon={<FiEdit3 size={18} />}
-            />
+                {/* Group Name input */}
+                <div className="w-full">
+                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
+                    Tên nhóm
+                  </label>
+                  <input
+                    type="text"
+                    value={groupName}
+                    onChange={(e) => setGroupName(e.target.value)}
+                    placeholder="Nhập tên nhóm..."
+                    className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium text-gray-800"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                  {groupAvatar ? (
+                    <img
+                      src={groupAvatar}
+                      alt="Group Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Users size={20} className="text-gray-400" />
+                  )}
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-800 text-base">{groupName}</h3>
+                  <p className="text-xs text-gray-500">Chỉ Trưởng nhóm mới có quyền đổi thông tin nhóm</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-5 bg-gray-50/50">
+            <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
+              <SettingItem
+                title="Cho phép nhắn tin"
+                description="Thành viên có thể gửi tin nhắn vào nhóm"
+                checked={settings.allowSendMessage}
+                onChange={() => handleToggle("allowSendMessage")}
+                icon={<FiMessageSquare size={18} />}
+              />
+              <SettingItem
+                title="Cho phép ghim tin nhắn"
+                description="Thành viên có thể ghim/bỏ ghim tin nhắn"
+                checked={settings.allowPinMessage}
+                onChange={() => handleToggle("allowPinMessage")}
+                icon={<FiPaperclip size={18} />}
+              />
+              <SettingItem
+                title="Cho phép tạo bình chọn"
+                description="Thành viên có thể tạo bình chọn mới"
+                checked={settings.allowCreatePoll}
+                onChange={() => handleToggle("allowCreatePoll")}
+                icon={<FiBarChart2 size={18} />}
+              />
+              <SettingItem
+                title="Cho phép tạo ghi chú"
+                description="Thành viên có thể tạo ghi chú mới"
+                checked={settings.allowCreateNote}
+                onChange={() => handleToggle("allowCreateNote")}
+                icon={<FiEdit3 size={18} />}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="flex justify-end p-5 border-t border-gray-100 gap-3 bg-gray-50/80">
+        <div className="flex justify-end p-5 border-t border-gray-100 gap-3 bg-gray-50/80 shrink-0">
           <button
             onClick={onClose}
             className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer shadow-sm"
