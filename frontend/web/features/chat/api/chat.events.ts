@@ -31,4 +31,5 @@ export enum ChatEvent {
   MEMBER_KICKED = "member_kicked",
   MEMBER_LEFT = "member_left",
   CONVERSATION_DISBANDED = "conversation_disbanded",
+  CONVERSATION_UPDATED = "CONVERSATION_UPDATED",
 }

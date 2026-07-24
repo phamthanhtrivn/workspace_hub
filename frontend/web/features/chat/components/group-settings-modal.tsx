@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import {
   FiX,
@@ -7,10 +7,19 @@ import {
   FiPaperclip,
   FiBarChart2,
   FiEdit3,
+  FiCamera,
+  FiLoader,
 } from "react-icons/fi";
-import { updateConversationSettings } from "../api/chat.api";
+import {
+  updateConversationSettings,
+  getGroupAvatarPresignedUrl,
+  updateGroupInfo,
+} from "../api/chat.api";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAppSelector } from "@/store/store";
+import { Users } from "lucide-react";
+import axios from "axios";
 
 interface GroupSettingsModalProps {
   conversation: any;
@@ -27,9 +36,20 @@ export default function GroupSettingsModal({
     allowCreatePoll: conversation.setting?.allowCreatePoll ?? true,
     allowCreateNote: conversation.setting?.allowCreateNote ?? true,
   });
+  const [groupName, setGroupName] = useState(conversation.name || "");
+  const [groupAvatar, setGroupAvatar] = useState(conversation.avatarUrl || "");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
   const [mounted, setMounted] = useState(false);
+
+  const currentUserId = useAppSelector((state) => state.auth.userId);
+  const currentMember = conversation.members?.find(
+    (m: any) => m.userId === currentUserId,
+  );
+  const isOwner = currentMember?.role === "OWNER";
 
   useEffect(() => {
     setMounted(true);
@@ -39,10 +59,68 @@ export default function GroupSettingsModal({
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
+  const handleAvatarChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const response = await getGroupAvatarPresignedUrl(
+        conversation.id,
+        file.name,
+        file.type,
+      );
+      if (response && response.success) {
+        const { presignedUrl, fileUrl } = response.data;
+
+        await axios.put(presignedUrl, file, {
+          headers: {
+            "Content-Type": file.type,
+          },
+        });
+
+        setGroupAvatar(fileUrl);
+        toast.success(
+          "Tải ảnh đại diện tạm thời thành công. Nhấn Lưu để hoàn tất.",
+        );
+      } else {
+        toast.error("Không thể lấy link tải ảnh");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Lỗi khi tải ảnh lên");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
+      // 1. Save settings
       await updateConversationSettings(conversation.id, settings);
+
+      // 2. If owner, save name and avatarUrl if they changed
+      if (isOwner) {
+        const trimmedName = groupName.trim();
+        if (
+          trimmedName !== (conversation.name || "") ||
+          groupAvatar !== (conversation.avatarUrl || "")
+        ) {
+          if (!trimmedName) {
+            toast.error("Tên nhóm không được để trống");
+            setIsSaving(false);
+            return;
+          }
+          await updateGroupInfo(conversation.id, trimmedName, groupAvatar || undefined);
+        }
+      }
+
       toast.success("Cập nhật cài đặt thành công");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       onClose();
@@ -68,6 +146,80 @@ export default function GroupSettingsModal({
           >
             <FiX size={20} />
           </button>
+        </div>
+
+        {/* Group Info Section */}
+        <div className="p-5 bg-gray-50/50 flex flex-col gap-4 border-b border-gray-100">
+          {isOwner ? (
+            <div className="flex flex-col items-center gap-4">
+              {/* Avatar Upload */}
+              <div className="relative group w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm shrink-0">
+                {isUploadingAvatar ? (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
+                    <FiLoader className="animate-spin h-6 w-6" />
+                  </div>
+                ) : (
+                  <>
+                    {groupAvatar ? (
+                      <img
+                        src={groupAvatar}
+                        alt="Group Avatar"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Users size={32} className="text-gray-400" />
+                    )}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer"
+                      disabled={isSaving}
+                    >
+                      <FiCamera className="h-6 w-6" />
+                    </button>
+                  </>
+                )}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                />
+              </div>
+
+              {/* Group Name input */}
+              <div className="w-full">
+                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
+                  Tên nhóm
+                </label>
+                <input
+                  type="text"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  placeholder="Nhập tên nhóm..."
+                  className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium text-gray-800"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+                {groupAvatar ? (
+                  <img
+                    src={groupAvatar}
+                    alt="Group Avatar"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Users size={20} className="text-gray-400" />
+                )}
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-800 text-base">{groupName}</h3>
+                <p className="text-xs text-gray-500">Chỉ Trưởng nhóm mới có quyền đổi thông tin nhóm</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-5 bg-gray-50/50">

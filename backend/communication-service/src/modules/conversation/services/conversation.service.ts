@@ -13,8 +13,10 @@ import {
 import { ChatGateway } from '../../chat/chat.gateway';
 import { ConversationEventPublisher } from '../events/conversation.publisher';
 import { getSenderProfile } from '../../../common/utils/user.util';
-import { mapMediaWithUrl } from '../../../common/utils/file.util';
+import { mapMediaWithUrl, getMediaUrl } from '../../../common/utils/file.util';
 import { UpdateConversationSettingDto } from '../dto/update-conversation-setting.dto';
+import { S3Service } from '../../../infrastructure/s3/s3.service';
+import { ChatEvent } from '../../chat/chat.events';
 
 @Injectable()
 export class ConversationService {
@@ -22,6 +24,7 @@ export class ConversationService {
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
     private readonly conversationPublisher: ConversationEventPublisher,
+    private readonly s3Service: S3Service,
   ) {}
 
   async createDirectConversation(userId: string, participantId: string) {
@@ -828,7 +831,7 @@ export class ConversationService {
     memberIds.forEach((m) => {
       this.chatGateway.server
         .to(m.userId)
-        .emit('CONVERSATION_UPDATED', payload);
+        .emit(ChatEvent.CONVERSATION_UPDATED, payload);
     });
 
     return conversation;
@@ -914,5 +917,34 @@ export class ConversationService {
     this.chatGateway.server.in(conversationId).socketsLeave(conversationId);
 
     return { success: true };
+  }
+
+  async getAvatarUploadPresignedUrl(
+    conversationId: string,
+    userId: string,
+    fileName: string,
+    contentType: string,
+  ) {
+    const member = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    });
+
+    if (!member || member.role !== ConversationRole.OWNER) {
+      throw new ForbiddenException(
+        'Chỉ nhóm trưởng mới có quyền cập nhật thông tin nhóm',
+      );
+    }
+
+    const { presignedUrl, s3Key } =
+      await this.s3Service.generatePresignedUploadUrl(
+        conversationId,
+        fileName,
+        contentType,
+        'group-avatar',
+      );
+
+    const fileUrl = getMediaUrl(s3Key);
+
+    return { presignedUrl, s3Key, fileUrl };
   }
 }

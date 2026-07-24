@@ -255,6 +255,24 @@ export class ConversationController {
     };
   }
 
+  @Get(':id/avatar/presigned-url')
+  async getAvatarPresignedUrl(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Query('fileName') fileName: string,
+    @Query('contentType') contentType: string,
+  ) {
+    if (!userId || !conversationId || !fileName || !contentType) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    return this.conversationService.getAvatarUploadPresignedUrl(
+      conversationId,
+      userId,
+      fileName,
+      contentType,
+    );
+  }
+
   @Patch(':id/info')
   async updateGroupInfo(
     @Param('id') conversationId: string,

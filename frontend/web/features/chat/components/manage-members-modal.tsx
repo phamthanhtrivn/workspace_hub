@@ -169,7 +169,6 @@ export default function ManageMembersModal({
     setIsProcessing(true);
     try {
       await leaveConversation(conversation.id);
-      toast.success("Đã rời nhóm");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       onClose();
     } catch (error: any) {

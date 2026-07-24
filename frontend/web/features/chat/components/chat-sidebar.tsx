@@ -268,6 +268,33 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         }
       };
 
+      const handleConversationUpdated = (data: {
+        id: string;
+        name?: string;
+        avatarUrl?: string;
+      }) => {
+        queryClient.setQueryData(
+          ["conversations", currentUserId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              conversations: oldData.conversations.map((c: any) => {
+                if (c.id === data.id) {
+                  return {
+                    ...c,
+                    name: data.name !== undefined ? data.name : c.name,
+                    avatarUrl:
+                      data.avatarUrl !== undefined ? data.avatarUrl : c.avatarUrl,
+                  };
+                }
+                return c;
+              }),
+            };
+          },
+        );
+      };
+
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
@@ -275,6 +302,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
       socket.on(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
       socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
+      socket.on(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -284,6 +312,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
         socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
         socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
+        socket.off(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
       };
     }, 500); // Allow time for layout to connect socket
 

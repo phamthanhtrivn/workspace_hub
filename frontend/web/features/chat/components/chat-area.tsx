@@ -24,6 +24,7 @@ import {
   updateMemberRole,
   removeMember,
   setActiveConversation,
+  updateConversationInfo,
 } from "@/store/chat/chat-slice";
 import { NO_AVATAR_TYPES } from "../types/chat.types";
 import { toast } from "sonner";
@@ -364,7 +365,7 @@ export default function ChatArea({
           if (data.userId === auth?.userId) {
             dispatch(setActiveConversation(null));
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
-            toast.error("Bạn đã không còn ở trong nhóm này");
+            toast.success("Bạn đã không còn ở trong nhóm này");
           } else {
             dispatch(removeMember(data.userId));
           }
@@ -375,6 +376,12 @@ export default function ChatArea({
         if (data.conversationId === activeConversation.id) {
           dispatch(setActiveConversation(null));
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        }
+      };
+
+      const handleConversationUpdated = (data: any) => {
+        if (data.id === activeConversation.id) {
+          dispatch(updateConversationInfo(data));
         }
       };
 
@@ -392,6 +399,7 @@ export default function ChatArea({
       socket.on(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
       socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
       socket.on(ChatEvent.CONVERSATION_DISBANDED, handleConversationDisbanded);
+      socket.on(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -411,6 +419,7 @@ export default function ChatArea({
           ChatEvent.CONVERSATION_DISBANDED,
           handleConversationDisbanded,
         );
+        socket.off(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
       };
     }
   }, [

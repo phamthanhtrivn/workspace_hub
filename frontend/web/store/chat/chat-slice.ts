@@ -97,6 +97,22 @@ const chatSlice = createSlice({
           );
       }
     },
+    updateConversationInfo: (
+      state,
+      action: PayloadAction<{ id: string; name?: string; avatarUrl?: string }>,
+    ) => {
+      if (
+        state.activeConversation &&
+        state.activeConversation.id === action.payload.id
+      ) {
+        if (action.payload.name !== undefined) {
+          state.activeConversation.name = action.payload.name;
+        }
+        if (action.payload.avatarUrl !== undefined) {
+          state.activeConversation.avatarUrl = action.payload.avatarUrl;
+        }
+      }
+    },
   },
 });
 
@@ -112,6 +128,7 @@ export const {
   updateGroupSettings,
   updateMemberRole,
   removeMember,
+  updateConversationInfo,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

@@ -186,3 +186,17 @@ export const disbandConversation = async (
   const response = await api.delete(`/api/conversations/${conversationId}/disband`);
   return response.data;
 };
+
+export const getGroupAvatarPresignedUrl = async (
+  conversationId: string,
+  fileName: string,
+  contentType: string,
+): Promise<any> => {
+  const response = await api.get(
+    `/api/conversations/${conversationId}/avatar/presigned-url`,
+    {
+      params: { fileName, contentType },
+    },
+  );
+  return response.data;
+};
