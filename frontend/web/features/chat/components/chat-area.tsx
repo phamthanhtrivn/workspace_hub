@@ -376,6 +376,7 @@ export default function ChatArea({
         if (data.conversationId === activeConversation.id) {
           dispatch(setActiveConversation(null));
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          toast.info("Nhóm này đã bị giải tán bởi Trưởng nhóm");
         }
       };
 

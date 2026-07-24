@@ -145,7 +145,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
+            className="cursor-pointer p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
           >
             <X size={20} />
           </button>
@@ -179,7 +179,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
                     </span>
                     <button
                       onClick={() => handleRemoveUser(user.id)}
-                      className="p-0.5 hover:bg-blue-200 rounded-full transition-colors ml-1"
+                      className="cursor-pointer p-0.5 hover:bg-blue-200 rounded-full transition-colors ml-1"
                     >
                       <X size={14} />
                     </button>
@@ -273,14 +273,14 @@ const AddMembersModal = React.memo(function AddMembersModal({
         <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-xl transition-colors"
+            className="cursor-pointer px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-xl transition-colors"
           >
             Hủy
           </button>
           <button
             onClick={handleAddMembers}
             disabled={selectedUsers.length === 0 || isAdding}
-            className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm shadow-blue-200"
+            className="cursor-pointer px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm shadow-blue-200"
           >
             {isAdding && <Loader2 size={16} className="animate-spin" />}
             Thêm vào nhóm

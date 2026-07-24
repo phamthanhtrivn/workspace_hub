@@ -18,7 +18,7 @@ import {
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
-import { Users } from "lucide-react";
+import { Loader2, Users } from "lucide-react";
 import axios from "axios";
 
 interface GroupSettingsModalProps {
@@ -117,7 +117,11 @@ export default function GroupSettingsModal({
             setIsSaving(false);
             return;
           }
-          await updateGroupInfo(conversation.id, trimmedName, groupAvatar || undefined);
+          await updateGroupInfo(
+            conversation.id,
+            trimmedName,
+            groupAvatar || undefined,
+          );
         }
       }
 
@@ -158,7 +162,7 @@ export default function GroupSettingsModal({
                 <div className="relative group w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm shrink-0">
                   {isUploadingAvatar ? (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
-                      <FiLoader className="animate-spin h-6 w-6" />
+                      <Loader2 className="animate-spin h-6 w-6" />
                     </div>
                   ) : (
                     <>
@@ -217,8 +221,12 @@ export default function GroupSettingsModal({
                   )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-800 text-base">{groupName}</h3>
-                  <p className="text-xs text-gray-500">Chỉ Trưởng nhóm mới có quyền đổi thông tin nhóm</p>
+                  <h3 className="font-bold text-gray-800 text-base">
+                    {groupName}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Chỉ Trưởng nhóm mới có quyền đổi thông tin nhóm
+                  </p>
                 </div>
               </div>
             )}

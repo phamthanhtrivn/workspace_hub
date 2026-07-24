@@ -5,6 +5,7 @@ import { useAppDispatch } from "@/store/store";
 import { useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import AddMembersModal from "../add-members-modal";
+import { FaKey } from "react-icons/fa";
 
 interface MembersSectionProps {
   isExpanded: boolean;
@@ -81,15 +82,18 @@ export default function MembersSection({
                       )}
                     </div>
                     <div className="flex flex-col gap-1">
-                      <span className="text-sm text-gray-700">{displayName}</span>
+                      <span className="text-sm text-gray-700">
+                        {displayName}
+                      </span>
                       {member.role === "OWNER" && (
-                        <span className="text-xs bg-blue-100 text-blue-600 text-center w-fit px-2 py-0.5 rounded">
-                          Trưởng nhóm
+                        <span className="text-[10px] bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-yellow-100 w-fit">
+                          <FaKey size={10} className="text-yellow-500" /> Trưởng
+                          nhóm
                         </span>
                       )}
                       {member.role === "ADMIN" && (
-                        <span className="text-xs bg-gray-100 text-gray-500 text-center w-fit px-2 py-0.5 rounded">
-                          Phó nhóm
+                        <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-gray-200 w-fit">
+                          <FaKey size={10} className="text-gray-400" /> Phó nhóm
                         </span>
                       )}
                     </div>
@@ -98,11 +102,11 @@ export default function MembersSection({
               })}
             </div>
             {isOwner && (
-              <button 
+              <button
                 onClick={() => setShowAddMembersModal(true)}
                 className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1"
               >
-                <div className="w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
+                <div className="cursor-pointer w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
                   <Users size={14} />
                 </div>
                 <span className="text-sm font-medium">Thêm thành viên</span>

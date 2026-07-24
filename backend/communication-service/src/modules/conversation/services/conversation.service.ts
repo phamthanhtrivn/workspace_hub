@@ -906,11 +906,21 @@ export class ConversationService {
       );
     }
 
+    const members = await this.prisma.conversationMember.findMany({
+      where: { conversationId },
+      select: { userId: true },
+    });
+
     await this.prisma.conversation.delete({
       where: { id: conversationId },
     });
 
-    this.chatGateway.server.to(conversationId).emit('conversation_disbanded', {
+    const targetRooms = [
+      conversationId,
+      ...members.map((m) => m.userId),
+    ];
+
+    this.chatGateway.server.to(targetRooms).emit(ChatEvent.CONVERSATION_DISBANDED, {
       conversationId,
     });
 

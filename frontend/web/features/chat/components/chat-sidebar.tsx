@@ -295,6 +295,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         );
       };
 
+      const handleConversationDisbanded = (data: { conversationId: string }) => {
+        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      };
+
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
@@ -303,6 +307,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       socket.on(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
       socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
       socket.on(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
+      socket.on(ChatEvent.CONVERSATION_DISBANDED, handleConversationDisbanded);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -313,6 +318,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
         socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
         socket.off(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
+        socket.off(ChatEvent.CONVERSATION_DISBANDED, handleConversationDisbanded);
       };
     }, 500); // Allow time for layout to connect socket
 
