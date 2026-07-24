@@ -1,21 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { socketService } from "../api/chat-socket.service";
-import { ChatEvent } from "../api/chat.events";
-import { getConversationMedia } from "../api/chat.api";
-import MediaLightbox from "./media-lightbox";
-import MembersSection from "./right-panel/members-section";
-import ImagesVideosSection from "./right-panel/images-videos-section";
-import FilesSection from "./right-panel/files-section";
-import PollsSection from "./right-panel/polls-section";
-import NotesSection from "./right-panel/notes-section";
-import TasksSection from "./right-panel/tasks-section";
-import MediaDetailView from "./right-panel/media-detail-view";
-import PollDetailView from "./right-panel/poll-detail-view";
-import SearchMessagesSection from "./right-panel/search-messages-section";
-import GroupSettingsModal from "./group-settings-modal";
-import ManageMembersModal from "./manage-members-modal";
+import { socketService } from "../../api/chat-socket.service";
+import { ChatEvent } from "../../api/chat.events";
+import { getConversationMedia } from "../../api/chat.api";
+import MediaLightbox from "../message/media-lightbox";
+import MembersSection from "./members-section";
+import ImagesVideosSection from "./images-videos-section";
+import FilesSection from "./files-section";
+import PollsSection from "./polls-section";
+import NotesSection from "./notes-section";
+import TasksSection from "./tasks-section";
+import MediaDetailView from "./media-detail-view";
+import PollDetailView from "./poll-detail-view";
+import SearchMessagesSection from "./search-messages-section";
+import GroupSettingsModal from "../modals/group-settings-modal";
+import ManageMembersModal from "../modals/manage-members-modal";
 import {
   X,
   Bell,
@@ -30,9 +30,9 @@ import Image from "next/image";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   setActiveConversation,
-  addMemberProfiles,
   setSelectedProfileUserId,
 } from "@/store/chat/chat-slice";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface ChatRightPanelProps {
   onClose: () => void;
@@ -62,9 +62,10 @@ export default function ChatRightPanel({
     }
   }, [initialDetailView]);
 
-  const { activeConversation, memberProfiles } = useAppSelector(
+  const { activeConversation } = useAppSelector(
     (state) => state.chat,
   );
+  const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
 
@@ -159,7 +160,6 @@ export default function ChatRightPanel({
               members: [...(activeConversation.members || []), data.member],
             };
             dispatch(setActiveConversation(updatedConversation));
-            dispatch(addMemberProfiles({ [data.profile.id]: data.profile }));
           }
         }
       };

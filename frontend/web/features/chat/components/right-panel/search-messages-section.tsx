@@ -4,6 +4,7 @@ import { searchConversationMessages } from "../../api/chat.api";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setHighlightMessageId } from "@/store/chat/chat-slice";
 import SearchResultItem from "./search-result-item";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface SearchMessagesSectionProps {
   conversationId: string;
@@ -19,9 +20,10 @@ export default function SearchMessagesSection({
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { activeConversation, memberProfiles } = useAppSelector(
+  const { activeConversation } = useAppSelector(
     (state) => state.chat,
   );
+  const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
 

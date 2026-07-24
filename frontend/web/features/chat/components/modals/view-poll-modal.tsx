@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import PollMessage from "./poll-message";
-import { socketService } from "../api/chat-socket.service";
-import { ChatEvent } from "../api/chat.events";
+import PollMessage from "../message/poll-message";
+import { socketService } from "../../api/chat-socket.service";
+import { ChatEvent } from "../../api/chat.events";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 

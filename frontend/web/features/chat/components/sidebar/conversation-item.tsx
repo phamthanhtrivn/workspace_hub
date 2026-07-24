@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { User, Users } from "lucide-react";
 import Image from "next/image";
 import { formatConversationTime } from "@/lib/date";
-import MessageSnippet from "./message-snippet";
+import MessageSnippet from "../message/message-snippet";
 
 interface ConversationItemProps {
   conv: any;

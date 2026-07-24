@@ -5,8 +5,8 @@ import { createPortal } from "react-dom";
 import { X, User, Phone, Calendar, Info } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
-import { getPublicProfile, createDirectConversation } from "../api/chat.api";
-import { UserProfileResponse } from "../types/chat.types";
+import { getPublicProfile, createDirectConversation } from "../../api/chat.api";
+import { UserProfileResponse } from "../../types/chat.types";
 import { toast } from "react-toastify";
 
 const UserProfileModal = React.memo(function UserProfileModal() {

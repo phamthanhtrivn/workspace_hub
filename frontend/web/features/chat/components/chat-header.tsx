@@ -2,6 +2,8 @@ import { ArrowLeft, Info, User, Users, Search } from "lucide-react";
 import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
+import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
+
 interface ChatHeaderProps {
   onToggleRightPanel: () => void;
   onOpenSearch?: () => void;
@@ -13,9 +15,10 @@ export default function ChatHeader({
   onOpenSearch,
   onBack,
 }: ChatHeaderProps) {
-  const { activeConversation, memberProfiles } = useAppSelector(
+  const { activeConversation } = useAppSelector(
     (state) => state.chat,
   );
+  const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
 

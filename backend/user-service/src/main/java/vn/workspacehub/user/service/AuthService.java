@@ -204,18 +204,21 @@ public class AuthService {
         String rawRefreshToken = CookieUtils.extractCookie(request, REFRESH_TOKEN_COOKIE);
 
         if (rawRefreshToken == null || rawRefreshToken.isBlank()) {
-            throw new BusinessException("Refresh token không hợp lệ");
+            return null;
         }
 
         String tokenHash = HashUtils.hmacSha256(rawRefreshToken, jwtSecret);
 
-        RefreshToken storedToken = refreshTokenRepository
-                .findByTokenHashAndRevokedFalse(tokenHash)
-                .orElseThrow(() -> new BusinessException("Refresh token không hợp lệ hoặc đã bị thu hồi"));
+        java.util.Optional<RefreshToken> storedTokenOpt = refreshTokenRepository
+                .findByTokenHashAndRevokedFalse(tokenHash);
+        if (storedTokenOpt.isEmpty()) {
+            return null;
+        }
+        RefreshToken storedToken = storedTokenOpt.get();
 
         if (storedToken.getExpiresAt().isBefore(LocalDateTime.now())) {
             revokeToken(storedToken);
-            throw new BusinessException("Refresh token đã hết hạn");
+            return null;
         }
 
         // Anomaly Detection (Device Binding)

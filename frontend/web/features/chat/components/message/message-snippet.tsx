@@ -1,7 +1,7 @@
 import React from "react";
 import { Image as ImageIcon, FileText, Video, BarChart2 } from "lucide-react";
-import { UserProfileResponse } from "../types/chat.types";
-import { formatMessageContent } from "../utils/message-formatter";
+import { UserProfileResponse } from "../../types/chat.types";
+import { formatMessageContent } from "../../utils/message-formatter";
 
 interface MessageSnippetProps {
   latestMessage: any;

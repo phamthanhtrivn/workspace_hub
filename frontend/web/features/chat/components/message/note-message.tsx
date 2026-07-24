@@ -2,11 +2,11 @@
 
 import React, { useState } from "react";
 import { FileText, Edit2 } from "lucide-react";
-import EditNoteModal from "./edit-note-modal";
+import EditNoteModal from "../modals/edit-note-modal";
 import { useAppSelector } from "@/store/store";
 import { formatDividerTime } from "@/lib/date";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicProfile } from "../api/chat.api";
+import { getPublicProfile } from "../../api/chat.api";
 
 interface NoteMessageProps {
   note: {

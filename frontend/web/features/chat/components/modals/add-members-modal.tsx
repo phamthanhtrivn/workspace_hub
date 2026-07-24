@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Search, X, User, Users, Loader2 } from "lucide-react";
-import { searchUserByEmail, inviteMembers } from "../api/chat.api";
-import { UserSearchResponse } from "../types/chat.types";
+import { searchUserByEmail, inviteMembers } from "../../api/chat.api";
+import { UserSearchResponse } from "../../types/chat.types";
 import { toast } from "react-toastify";
 import { useAppSelector } from "@/store/store";
 

@@ -10,21 +10,18 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import SearchUserModal from "./search-user-modal";
-import CreateGroupModal from "./create-group-modal";
+import SearchUserModal from "../modals/search-user-modal";
+import CreateGroupModal from "../modals/create-group-modal";
 import ConversationItem from "./conversation-item";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-
-import { getUserConversations, getPublicProfile } from "../api/chat.api";
+import { getUserConversations, getPublicProfile } from "../../api/chat.api";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   setActiveConversation,
-  setMemberProfiles as setMemberProfilesAction,
-  addMemberProfiles as addMemberProfilesAction,
 } from "@/store/chat/chat-slice";
-import { UserProfileResponse } from "../types/chat.types";
-import { socketService } from "../api/chat-socket.service";
-import { ChatEvent } from "../api/chat.events";
+import { UserProfileResponse } from "../../types/chat.types";
+import { socketService } from "../../api/chat-socket.service";
+import { ChatEvent } from "../../api/chat.events";
 import { MdOutlineGroupAdd } from "react-icons/md";
 
 interface ChatSidebarProps {
@@ -208,18 +205,16 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       };
 
       const handleMemberJoin = (data: any) => {
-        if (data.profile) {
-          dispatch(
-            addMemberProfilesAction({ [data.profile.id]: data.profile }),
-          );
-        }
-
         queryClient.setQueryData(
           ["conversations", currentUserId],
           (oldData: any) => {
             if (!oldData) return oldData;
+            const updatedProfiles = data.profile
+              ? { ...oldData.profiles, [data.profile.id]: data.profile }
+              : oldData.profiles;
             return {
               ...oldData,
+              profiles: updatedProfiles,
               conversations: oldData.conversations.map((c: any) => {
                 if (c.id === data.conversationId) {
                   const updatedConv = { ...c };
@@ -328,7 +323,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const handleSelectConversation = useCallback(
     (conv: any) => {
       dispatch(setActiveConversation(conv));
-      dispatch(setMemberProfilesAction(memberProfiles));
 
       // Optimistically clear unread count
       queryClient.setQueryData(
@@ -348,7 +342,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       if (onSelectChat) onSelectChat();
     },
-    [dispatch, memberProfiles, onSelectChat, queryClient, currentUserId],
+    [dispatch, onSelectChat, queryClient, currentUserId],
   );
 
   const handleNewConversation = useCallback(
@@ -391,9 +385,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         },
       );
 
-      const mergedProfiles = { ...memberProfiles, ...newProfiles };
       dispatch(setActiveConversation(newConversation));
-      dispatch(setMemberProfilesAction(mergedProfiles));
 
       // 4. Navigate to the new conversation
       router.push(`/chat?id=${newConversation.id}`);
@@ -401,7 +393,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       if (onSelectChat) onSelectChat();
     },
     [
-      memberProfiles,
       dispatch,
       router,
       onSelectChat,

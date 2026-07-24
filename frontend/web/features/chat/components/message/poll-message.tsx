@@ -12,8 +12,9 @@ import {
 import { useAppSelector } from "@/store/store";
 import { formatDividerTime } from "@/lib/date";
 import { useQuery } from "@tanstack/react-query";
-import { getPublicProfile } from "../api/chat.api";
-import EditPollModal from "./edit-poll-modal";
+import { getPublicProfile } from "../../api/chat.api";
+import EditPollModal from "../modals/edit-poll-modal";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface PollOption {
   id: string;
@@ -54,7 +55,7 @@ const PollMessage = React.memo(function PollMessage({
   onEditPoll,
 }: PollMessageProps) {
   const currentUser = useAppSelector((state) => state.auth);
-  const memberProfiles = useAppSelector((state) => state.chat.memberProfiles);
+  const memberProfiles = useChatMemberProfiles();
 
   if (!poll || !poll.options) {
     return (

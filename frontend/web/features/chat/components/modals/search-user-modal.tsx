@@ -16,8 +16,8 @@ import {
   searchUserByEmail,
   getPublicProfile,
   createDirectConversation,
-} from "../api/chat.api";
-import { UserSearchResponse, UserProfileResponse } from "../types/chat.types";
+} from "../../api/chat.api";
+import { UserSearchResponse, UserProfileResponse } from "../../types/chat.types";
 import { toast } from "react-toastify";
 
 interface SearchUserModalProps {

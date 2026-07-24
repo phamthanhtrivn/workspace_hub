@@ -1,21 +1,21 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import ChatInput, { ChatInputRef } from "./chat-input";
+import ChatInput, { ChatInputRef } from "./input/chat-input";
 import ChatHeader from "./chat-header";
-import ChatMessage from "./chat-message";
+import ChatMessage from "./message/chat-message";
 import { PinnedMessagesBar } from "./pinned-messages-bar";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { getConversationMessages, getPinnedMessages } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
-import TimeDivider from "./time-divider";
+import TimeDivider from "./message/time-divider";
 import { ChevronDown, X } from "lucide-react";
-import CreatePollModal from "./create-poll-modal";
-import CreateNoteModal from "./create-note-modal";
-import TypingIndicator from "./typing-indicator";
+import CreatePollModal from "./modals/create-poll-modal";
+import CreateNoteModal from "./modals/create-note-modal";
+import TypingIndicator from "./message/typing-indicator";
 import {
   updateWatermark,
   setWatermarks,
@@ -28,6 +28,8 @@ import {
 } from "@/store/chat/chat-slice";
 import { NO_AVATAR_TYPES } from "../types/chat.types";
 import { toast } from "sonner";
+
+import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
 
 type PageParam = {
   cursor?: string;
@@ -45,9 +47,10 @@ export default function ChatArea({
   onOpenSearch,
   onBack,
 }: ChatAreaProps) {
-  const { activeConversation, memberProfiles, watermarks } = useAppSelector(
+  const { activeConversation, watermarks } = useAppSelector(
     (state) => state.chat,
   );
+  const memberProfiles = useChatMemberProfiles();
   const auth = useAppSelector((state) => state.auth);
   const highlightMessageId = useAppSelector(
     (state) => state.chat.highlightMessageId,
@@ -69,20 +72,17 @@ export default function ChatArea({
   const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const [jumpTargetId, setJumpTargetId] = useState<string | null>(null);
-  const [pinnedMessages, setPinnedMessages] = useState<any[]>([]);
 
   // Fetch pinned messages
-  useEffect(() => {
-    if (activeConversation?.id) {
-      getPinnedMessages(activeConversation.id)
-        .then((res) => {
-          if (res.data) setPinnedMessages(res.data);
-        })
-        .catch(console.error);
-    } else {
-      setPinnedMessages([]);
-    }
-  }, [activeConversation?.id]);
+  const { data: pinnedMessages = [] } = useQuery({
+    queryKey: ["pinnedMessages", activeConversation?.id],
+    queryFn: async () => {
+      const res = await getPinnedMessages(activeConversation!.id);
+      return res.data || [];
+    },
+    enabled: !!activeConversation?.id,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
 
   const {
     data,
@@ -280,11 +280,12 @@ export default function ChatArea({
 
       const handleMessagePinned = (msg: any) => {
         if (msg.conversationId === activeConversation.id) {
-          setPinnedMessages((prev) => {
-            const exists = prev.some((p) => p.id === msg.id);
-            if (exists) return prev;
+          queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
+            const currentList = prev || [];
+            const exists = currentList.some((p) => p.id === msg.id);
+            if (exists) return currentList;
             // Add to top
-            return [msg, ...prev].sort(
+            return [msg, ...currentList].sort(
               (a, b) =>
                 new Date(b.updatedAt).getTime() -
                 new Date(a.updatedAt).getTime(),
@@ -296,7 +297,10 @@ export default function ChatArea({
 
       const handleMessageUnpinned = (msg: any) => {
         if (msg.conversationId === activeConversation.id) {
-          setPinnedMessages((prev) => prev.filter((p) => p.id !== msg.id));
+          queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
+            const currentList = prev || [];
+            return currentList.filter((p) => p.id !== msg.id);
+          });
           updateMessageInState(msg.id, () => msg);
         }
       };

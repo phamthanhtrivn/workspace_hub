@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
-import NoteMessage from "./note-message";
+import NoteMessage from "../message/note-message";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
-import { socketService } from "../api/chat-socket.service";
-import { ChatEvent } from "../api/chat.events";
+import { socketService } from "../../api/chat-socket.service";
+import { ChatEvent } from "../../api/chat.events";
 interface ViewNoteModalProps {
   isOpen: boolean;
   onClose: () => void;

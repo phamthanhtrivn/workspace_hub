@@ -14,7 +14,7 @@ import {
   kickMember,
   leaveConversation,
   disbandConversation,
-} from "../api/chat.api";
+} from "../../api/chat.api";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";

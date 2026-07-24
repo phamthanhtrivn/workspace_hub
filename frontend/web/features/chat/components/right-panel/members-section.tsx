@@ -4,7 +4,7 @@ import { Users, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
-import AddMembersModal from "../add-members-modal";
+import AddMembersModal from "../modals/add-members-modal";
 import { FaKey } from "react-icons/fa";
 
 interface MembersSectionProps {

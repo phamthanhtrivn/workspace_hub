@@ -26,7 +26,8 @@ import {
   Type,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
-import { getPresignedUrls, uploadToS3 } from "../api/media.api";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import { toast } from "react-toastify";
 import MentionDropdown from "./mention-dropdown";
 import EmojiPickerPopover from "./emoji-picker-popover";
@@ -77,9 +78,7 @@ const ChatInput = React.memo(
     const activeConversation = useAppSelector(
       (state: any) => state.chat.activeConversation,
     );
-    const memberProfiles = useAppSelector(
-      (state: any) => state.chat.memberProfiles,
-    );
+    const memberProfiles = useChatMemberProfiles();
     const authUserId = useAppSelector((state: any) => state.auth.userId);
 
     const [mentionQuery, setMentionQuery] = useState<string | null>(null);

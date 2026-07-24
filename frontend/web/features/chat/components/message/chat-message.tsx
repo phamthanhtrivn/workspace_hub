@@ -11,17 +11,18 @@ import {
   Key,
 } from "lucide-react";
 import Image from "next/image";
-import { QUICK_EMOJIS, UserProfileResponse } from "../types/chat.types";
+import { QUICK_EMOJIS, UserProfileResponse } from "../../types/chat.types";
 import { formatFileSize } from "@/lib/file";
 import { saveAs } from "file-saver";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
-import { isAudioFile, renderAudioPlayer } from "../utils/media-utils";
+import { isAudioFile, renderAudioPlayer } from "../../utils/media-utils";
 import PollMessage from "./poll-message";
 import NoteMessage from "./note-message";
-import ReactionDetailModal from "./reaction-detail-modal";
+import ReactionDetailModal from "../modals/reaction-detail-modal";
 import MediaLightbox from "./media-lightbox";
-import { renderMessageContent } from "../utils/message-formatter";
+import { renderMessageContent } from "../../utils/message-formatter";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface ChatMessageProps {
   msg: any;
@@ -86,7 +87,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth);
-  const { memberProfiles } = useAppSelector((state) => state.chat);
+  const memberProfiles = useChatMemberProfiles();
 
   const time = useMemo(() => {
     return new Date(msg.createdAt).toLocaleTimeString([], {
