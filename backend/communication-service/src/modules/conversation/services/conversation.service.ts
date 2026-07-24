@@ -527,6 +527,16 @@ export class ConversationService {
       data: { role: newRole },
     });
 
+    const { senderName } = await getSenderProfile(userId);
+    const { senderName: targetName } = await getSenderProfile(targetUserId);
+    const roleName = newRole === ConversationRole.ADMIN ? 'Phó nhóm' : 'Thành viên';
+
+    await this.chatGateway.sendSystemMessage(
+      conversationId,
+      userId,
+      `${senderName} đã chỉ định ${targetName} làm ${roleName}`,
+    );
+
     this.chatGateway.server.to(conversationId).emit('member_role_updated', {
       conversationId,
       member: updatedMember,
@@ -580,6 +590,15 @@ export class ConversationService {
       member: { ...newOwner, role: ConversationRole.OWNER },
     });
 
+    const { senderName } = await getSenderProfile(userId);
+    const { senderName: targetName } = await getSenderProfile(newOwnerId);
+
+    await this.chatGateway.sendSystemMessage(
+      conversationId,
+      userId,
+      `${senderName} đã chuyển quyền Trưởng nhóm cho ${targetName}`,
+    );
+
     return { success: true };
   }
 
@@ -620,6 +639,16 @@ export class ConversationService {
       conversationId,
       userId: memberId,
     });
+
+    const { senderName } = await getSenderProfile(userId);
+    const { senderName: targetName } = await getSenderProfile(memberId);
+
+    await this.chatGateway.sendSystemMessage(
+      conversationId,
+      userId,
+      `${senderName} đã xóa ${targetName} khỏi nhóm`,
+    );
+
     return { success: true };
   }
 
@@ -658,6 +687,15 @@ export class ConversationService {
       conversationId,
       userId,
     });
+
+    const { senderName } = await getSenderProfile(userId);
+
+    await this.chatGateway.sendSystemMessage(
+      conversationId,
+      userId,
+      `${senderName} đã rời nhóm`,
+    );
+
     return { success: true };
   }
 

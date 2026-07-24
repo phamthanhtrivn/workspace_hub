@@ -8,6 +8,7 @@ import {
   SmilePlus,
   MoreHorizontal,
   Pin,
+  Key,
 } from "lucide-react";
 import Image from "next/image";
 import { QUICK_EMOJIS, UserProfileResponse } from "../types/chat.types";
@@ -27,6 +28,7 @@ interface ChatMessageProps {
   isMe: boolean;
   showAvatar: boolean;
   memberProfile: UserProfileResponse | null;
+  memberRole?: "OWNER" | "ADMIN" | "MEMBER";
   readBy?: string[];
   showTime?: boolean;
   showSenderName?: boolean;
@@ -59,6 +61,7 @@ const ChatMessage = React.memo(function ChatMessage({
   isMe,
   showAvatar,
   memberProfile,
+  memberRole,
   readBy = [],
   showTime = true,
   showSenderName = false,
@@ -404,24 +407,44 @@ const ChatMessage = React.memo(function ChatMessage({
               msg.senderId &&
               dispatch(setSelectedProfileUserId(msg.senderId))
             }
-            className={`w-8 h-8 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold overflow-hidden mt-2 mr-2 ${
+            className={`w-8 h-8 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold mt-2 mr-2 ${
               showAvatar
                 ? "bg-gradient-to-br from-gray-100 to-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all"
                 : ""
             }`}
           >
             {showAvatar ? (
-              memberProfile?.avatarUrl ? (
-                <Image
-                  src={memberProfile.avatarUrl}
-                  alt="Avatar"
-                  width={32}
-                  height={32}
-                  className="rounded-full"
-                />
-              ) : (
-                <User size={16} className="text-gray-400" />
-              )
+              <div className="relative inline-block">
+                {memberProfile?.avatarUrl ? (
+                  <Image
+                    src={memberProfile.avatarUrl}
+                    alt="Avatar"
+                    width={32}
+                    height={32}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
+                    <User size={16} className="text-gray-400" />
+                  </div>
+                )}
+                {memberRole === "OWNER" && (
+                  <div
+                    className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white"
+                    title="Trưởng nhóm"
+                  >
+                    <Key size={10} className="text-white" />
+                  </div>
+                )}
+                {memberRole === "ADMIN" && (
+                  <div
+                    className="absolute -bottom-1 -right-1 bg-gray-400 rounded-full p-0.5 border border-white"
+                    title="Phó nhóm"
+                  >
+                    <Key size={10} className="text-white" />
+                  </div>
+                )}
+              </div>
             ) : null}
           </div>
         )}

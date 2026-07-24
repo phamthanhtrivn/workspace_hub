@@ -212,7 +212,7 @@ export default function ChatRightPanel({
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Details</h2>
+        <h2 className="font-semibold text-gray-800">Chi tiết</h2>
         <button
           onClick={onClose}
           className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"

@@ -626,10 +626,16 @@ const ChatInput = React.memo(
               <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-10">
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
+                  disabled={isUploading}
+                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                 >
-                  <FileText size={16} />
-                  Tài liệu
+                  <Paperclip size={16} className="text-gray-500" /> Tài liệu
+                </button>
+                
+                <div className="h-px bg-gray-100 my-1"></div>
+                
+                <button disabled={isUploading} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50">
+                  <CheckSquare size={16} className="text-green-500" /> Công việc
                 </button>
 
                 {allowCreatePoll && (
@@ -639,12 +645,15 @@ const ChatInput = React.memo(
                       onCreatePoll?.();
                     }}
                     disabled={isUploading}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <BarChart2 size={16} />
-                    Bình chọn
+                    <BarChart2 size={16} className="text-purple-500" /> Bình chọn
                   </button>
                 )}
+
+                <button disabled={isUploading} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50">
+                  <Calendar size={16} className="text-orange-500" /> Sự kiện
+                </button>
 
                 {allowCreateNote && (
                   <button
@@ -653,10 +662,9 @@ const ChatInput = React.memo(
                       onCreateNote?.();
                     }}
                     disabled={isUploading}
-                    className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <CheckSquare size={16} />
-                    Ghi chú
+                    <FileText size={16} className="text-yellow-500" /> Ghi chú
                   </button>
                 )}
               </div>

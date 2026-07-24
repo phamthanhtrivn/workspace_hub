@@ -26,6 +26,7 @@ import {
   setActiveConversation,
 } from "@/store/chat/chat-slice";
 import { NO_AVATAR_TYPES } from "../types/chat.types";
+import { toast } from "sonner";
 
 type PageParam = {
   cursor?: string;
@@ -506,7 +507,7 @@ export default function ChatArea({
               messageId: msg.id,
             },
             (response: any) => {
-              if (response?.status === "error") alert(response.message);
+              if (response?.status === "error") toast.error(response.message);
             },
           );
         } else {
@@ -517,7 +518,7 @@ export default function ChatArea({
               messageId: msg.id,
             },
             (response: any) => {
-              if (response?.status === "error") alert(response.message);
+              if (response?.status === "error") toast.error(response.message);
             },
           );
         }
@@ -745,6 +746,11 @@ export default function ChatArea({
           isMe={isMe}
           showAvatar={showAvatar}
           memberProfile={!isMe ? memberProfiles?.[msg.senderId] || null : null}
+          memberRole={
+            activeConversation?.members?.find(
+              (m: any) => m.userId === msg.senderId,
+            )?.role
+          }
           readBy={Object.keys(watermarks || {}).filter(
             (uid) => watermarks[uid] === msg.id && uid !== auth.userId,
           )}
