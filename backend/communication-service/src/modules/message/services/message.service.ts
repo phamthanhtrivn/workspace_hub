@@ -33,6 +33,7 @@ export class MessageService {
       content: string;
     },
     replyToMessageId?: string,
+    threadParentId?: string,
   ): Promise<
     Prisma.MessageGetPayload<{
       include: {
@@ -68,6 +69,22 @@ export class MessageService {
         }
       }
 
+      if (threadParentId) {
+        const parentMsg = await tx.message.findUnique({
+          where: { id: threadParentId },
+        });
+        if (!parentMsg) {
+          throw new BadRequestException('Tin nhắn gốc của luồng không tồn tại');
+        }
+        await tx.message.update({
+          where: { id: threadParentId },
+          data: {
+            threadReplyCount: { increment: 1 },
+            threadLastReplyAt: new Date(),
+          },
+        });
+      }
+
       const message = await tx.message.create({
         data: {
           conversationId,
@@ -75,6 +92,7 @@ export class MessageService {
           content,
           type,
           replyToMessageId,
+          threadParentId,
           medias:
             medias && medias.length > 0
               ? {

@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   Pin,
   Key,
+  MessageSquare,
 } from "lucide-react";
 import Image from "next/image";
 import { QUICK_EMOJIS, UserProfileResponse } from "../../types/chat.types";
@@ -55,6 +56,7 @@ interface ChatMessageProps {
   onRecallMessage?: (msg: any) => void;
   onJumpToMessage?: (messageId: string) => void;
   onPinMessage?: (msg: any) => void;
+  onThreadReply?: (msg: any) => void;
 }
 
 const ChatMessage = React.memo(function ChatMessage({
@@ -76,6 +78,7 @@ const ChatMessage = React.memo(function ChatMessage({
   onRecallMessage,
   onJumpToMessage,
   onPinMessage,
+  onThreadReply,
 }: ChatMessageProps) {
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
@@ -394,7 +397,14 @@ const ChatMessage = React.memo(function ChatMessage({
   };
 
   return (
-    <div id={`msg-${msg.id}`} className="w-full flex flex-col mb-1 group">
+    <div
+      id={`msg-${msg.id}`}
+      className={`w-full flex flex-col mb-1 group transition-all duration-200 ${
+        msg.threadReplyCount > 0
+          ? "bg-indigo-50 border-x border-indigo-600/50 py-2.5 px-4 shadow-[inset_0_1px_2px_rgba(99,102,241,0.02)]"
+          : ""
+      }`}
+    >
       <div
         className={`flex w-full ${
           isMe ? "justify-end" : "justify-start"
@@ -527,8 +537,12 @@ const ChatMessage = React.memo(function ChatMessage({
                   <div
                     className={`p-3 shadow-sm text-sm flex flex-col relative ${
                       isMe
-                        ? "bg-[#DBEAFE] text-black rounded-2xl rounded-br-sm"
-                        : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
+                        ? msg.threadReplyCount > 0
+                          ? "bg-[#EEF2FF] border border-indigo-200 text-indigo-950 rounded-2xl rounded-br-sm shadow-[0_0_10px_rgba(99,102,241,0.08)]"
+                          : "bg-[#DBEAFE] text-black rounded-2xl rounded-br-sm"
+                        : msg.threadReplyCount > 0
+                          ? "bg-[#F5F3FF] border border-indigo-200 text-indigo-950 rounded-2xl rounded-bl-sm shadow-[0_0_10px_rgba(99,102,241,0.08)]"
+                          : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
                     }`}
                   >
                     {renderedMessageContent}
@@ -536,6 +550,32 @@ const ChatMessage = React.memo(function ChatMessage({
                 )}
 
                 {renderReactions()}
+                {(() => {
+                  if (!msg.threadReplyCount || msg.threadReplyCount === 0)
+                    return null;
+                  return (
+                    <div
+                      onClick={() => onThreadReply?.(msg)}
+                      className={`flex items-center gap-2 mt-1.5 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-lg w-fit border transition-colors ${
+                        isMe
+                          ? "text-indigo-600 bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 ml-auto"
+                          : "text-indigo-600 bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 mr-auto"
+                      }`}
+                    >
+                      <MessageSquare size={12} className="text-indigo-500" />
+                      <span>{msg.threadReplyCount} phản hồi</span>
+                      {msg.threadLastReplyAt && (
+                        <span className="text-[10px] text-indigo-400 font-normal">
+                          Lần cuối:{" "}
+                          {new Date(msg.threadLastReplyAt).toLocaleTimeString(
+                            [],
+                            { hour: "2-digit", minute: "2-digit" },
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </>
           )}
@@ -560,8 +600,16 @@ const ChatMessage = React.memo(function ChatMessage({
           {/* Reaction & Options Buttons */}
           {!msg.recalled && (
             <div
-              className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "right-full mr-2" : "left-full ml-2"} opacity-0 group-hover/bubble:opacity-100 transition-opacity z-10`}
+              className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "right-full mr-2" : "left-full ml-2"} opacity-0 group-hover:opacity-100 transition-opacity z-10`}
             >
+              <button
+                onClick={() => onThreadReply?.(msg)}
+                title="Phản hồi theo chủ đề"
+                className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
+              >
+                <MessageSquare size={16} />
+              </button>
+
               <div className="relative">
                 <button
                   onClick={() => setShowReactionPicker(!showReactionPicker)}

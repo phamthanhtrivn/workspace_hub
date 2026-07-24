@@ -25,6 +25,7 @@ import {
   removeMember,
   setActiveConversation,
   updateConversationInfo,
+  setActiveThreadRootMessage,
 } from "@/store/chat/chat-slice";
 import { NO_AVATAR_TYPES } from "../types/chat.types";
 import { toast } from "sonner";
@@ -799,6 +800,9 @@ export default function ChatArea({
           onRecallMessage={handleRecallMessage}
           onJumpToMessage={handleJumpToMessage}
           onPinMessage={handlePinMessage}
+          onThreadReply={(msgToThread) => {
+            dispatch(setActiveThreadRootMessage(msgToThread));
+          }}
         />,
       );
 

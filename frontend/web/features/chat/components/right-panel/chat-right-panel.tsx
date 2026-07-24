@@ -16,6 +16,7 @@ import PollDetailView from "./poll-detail-view";
 import SearchMessagesSection from "./search-messages-section";
 import GroupSettingsModal from "../modals/group-settings-modal";
 import ManageMembersModal from "../modals/manage-members-modal";
+import ThreadDetailView from "./thread-detail-view";
 import {
   X,
   Bell,
@@ -33,6 +34,7 @@ import {
   setActiveConversation,
   setSelectedProfileUserId,
   updateMuteStatus,
+  setActiveThreadRootMessage,
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
@@ -50,7 +52,7 @@ export default function ChatRightPanel({
     "members",
   );
   const [detailView, setDetailView] = useState<
-    "images" | "files" | "polls" | "search" | null
+    "images" | "files" | "polls" | "search" | "thread" | null
   >(initialDetailView || null);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
@@ -64,11 +66,21 @@ export default function ChatRightPanel({
     }
   }, [initialDetailView]);
 
-  const { activeConversation } = useAppSelector((state) => state.chat);
+  const { activeConversation, activeThreadRootMessage } = useAppSelector(
+    (state) => state.chat,
+  );
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (activeThreadRootMessage) {
+      setDetailView("thread");
+    } else if (detailView === "thread") {
+      setDetailView(null);
+    }
+  }, [activeThreadRootMessage]);
 
   const isDirect = activeConversation?.type === "DIRECT";
 
@@ -251,6 +263,20 @@ export default function ChatRightPanel({
         <SearchMessagesSection
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
+        />
+      </div>
+    );
+  }
+
+  if (detailView === "thread" && activeThreadRootMessage) {
+    return (
+      <div className="w-80 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+        <ThreadDetailView
+          rootMessage={activeThreadRootMessage}
+          onBack={() => {
+            dispatch(setActiveThreadRootMessage(null));
+            setDetailView(null);
+          }}
         />
       </div>
     );

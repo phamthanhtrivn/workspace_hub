@@ -10,6 +10,7 @@ interface ChatState {
   selectedProfileUserId: string | null;
   watermarks: Record<string, string>; // userId -> messageId
   highlightMessageId: string | null;
+  activeThreadRootMessage: any | null;
 }
 
 const initialState: ChatState = {
@@ -18,6 +19,7 @@ const initialState: ChatState = {
   selectedProfileUserId: null,
   watermarks: {},
   highlightMessageId: null,
+  activeThreadRootMessage: null,
 };
 
 const chatSlice = createSlice({
@@ -30,6 +32,7 @@ const chatSlice = createSlice({
     ) => {
       state.activeConversation = action.payload;
       state.highlightMessageId = null; // Reset highlight when changing conversation
+      state.activeThreadRootMessage = null; // Reset thread when changing conversation
     },
     toggleMobileSidebar: (state) => {
       state.isMobileSidebarOpen = !state.isMobileSidebarOpen;
@@ -120,6 +123,9 @@ const chatSlice = createSlice({
         }
       }
     },
+    setActiveThreadRootMessage: (state, action: PayloadAction<any | null>) => {
+      state.activeThreadRootMessage = action.payload;
+    },
   },
 });
 
@@ -135,6 +141,7 @@ export const {
   removeMember,
   updateConversationInfo,
   updateMuteStatus,
+  setActiveThreadRootMessage,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

@@ -212,3 +212,10 @@ export const muteConversation = async (
   return response.data;
 };
 
+export const getThreadMessages = async (
+  messageId: string,
+): Promise<any> => {
+  const response = await api.get(`/api/conversations/messages/${messageId}/thread`);
+  return response.data;
+};
+

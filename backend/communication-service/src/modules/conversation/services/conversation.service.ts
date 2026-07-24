@@ -187,7 +187,7 @@ export class ConversationService {
 
     if (direction === 'older') {
       const messages = await this.prisma.message.findMany({
-        where: { conversationId },
+        where: { conversationId, threadParentId: null },
         take: limit + 1,
         skip: cursor ? 1 : 0,
         cursor: cursor ? { id: cursor } : undefined,
@@ -210,7 +210,7 @@ export class ConversationService {
       };
     } else if (direction === 'newer') {
       const messages = await this.prisma.message.findMany({
-        where: { conversationId },
+        where: { conversationId, threadParentId: null },
         take: limit + 1,
         skip: cursor ? 1 : 0,
         cursor: cursor ? { id: cursor } : undefined,
@@ -240,7 +240,7 @@ export class ConversationService {
           include: includeQuery,
         }),
         this.prisma.message.findMany({
-          where: { conversationId },
+          where: { conversationId, threadParentId: null },
           take: halfLimit + 1,
           skip: 1,
           cursor: { id: cursor },
@@ -248,7 +248,7 @@ export class ConversationService {
           include: includeQuery,
         }),
         this.prisma.message.findMany({
-          where: { conversationId },
+          where: { conversationId, threadParentId: null },
           take: halfLimit + 1,
           skip: 1,
           cursor: { id: cursor },
@@ -989,5 +989,41 @@ export class ConversationService {
     const fileUrl = getMediaUrl(s3Key);
 
     return { presignedUrl, s3Key, fileUrl };
+  }
+
+  async getThreadMessages(messageId: string) {
+    const includeQuery = {
+      reactions: true,
+      medias: true,
+      poll: { include: { options: { include: { votes: true } } } },
+      note: true,
+      replyTo: true,
+    };
+
+    const rootMessage = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      include: includeQuery,
+    });
+
+    if (!rootMessage) {
+      throw new BadRequestException('Không tìm thấy tin nhắn gốc của luồng');
+    }
+
+    const replies = await this.prisma.message.findMany({
+      where: { threadParentId: messageId },
+      orderBy: { createdAt: 'asc' },
+      include: includeQuery,
+    });
+
+    return {
+      rootMessage: {
+        ...rootMessage,
+        medias: mapMediaWithUrl(rootMessage.medias),
+      },
+      replies: replies.map((reply) => ({
+        ...reply,
+        medias: mapMediaWithUrl(reply.medias),
+      })),
+    };
   }
 }

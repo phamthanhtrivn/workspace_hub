@@ -331,4 +331,18 @@ export class ConversationController {
       data: result,
     };
   }
+
+  @Get('messages/:id/thread')
+  async getThreadMessages(
+    @Param('id') messageId: string,
+  ) {
+    if (!messageId) {
+      throw new BadRequestException('Thiếu messageId');
+    }
+    const result = await this.conversationService.getThreadMessages(messageId);
+    return {
+      message: 'Lấy tin nhắn trong luồng thành công',
+      data: result,
+    };
+  }
 }

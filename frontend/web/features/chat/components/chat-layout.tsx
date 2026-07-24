@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import ChatSidebar from "./sidebar/chat-sidebar";
 import ChatArea from "./chat-area";
 import ChatRightPanel from "./right-panel/chat-right-panel";
-import { useAppSelector } from "@/store/store";
+import { useAppSelector, useAppDispatch } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import { socketService } from "../api/chat-socket.service";
 import UserProfileModal from "./modals/user-profile-modal";
+import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
 
 export default function ChatLayout() {
   const [showRightPanel, setShowRightPanel] = useState(false);
@@ -16,13 +17,23 @@ export default function ChatLayout() {
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversation?.id,
   );
+  const activeThreadRootMessage = useAppSelector(
+    (state) => state.chat.activeThreadRootMessage,
+  );
   const accessToken = useAppSelector((state) => state.auth.accessToken);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (activeConversationId) {
       setMobileView("chat");
     }
   }, [activeConversationId]);
+
+  useEffect(() => {
+    if (activeThreadRootMessage) {
+      setShowRightPanel(true);
+    }
+  }, [activeThreadRootMessage]);
 
   // Connect to communication service websocket when entering chat
   useEffect(() => {
@@ -89,7 +100,10 @@ export default function ChatLayout() {
       {showRightPanel && activeConversationId && (
         <div className="absolute inset-y-0 right-0 z-30 w-full md:w-80 md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
           <ChatRightPanel
-            onClose={() => setShowRightPanel(false)}
+            onClose={() => {
+              setShowRightPanel(false);
+              dispatch(setActiveThreadRootMessage(null));
+            }}
             initialDetailView={rightPanelTab}
           />
         </div>

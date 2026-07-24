@@ -113,33 +113,45 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             );
             if (index > -1) {
               const conv = { ...prev[index] };
-              conv.updatedAt = message.createdAt;
-              conv.messages = [message];
 
-              // Increment unread count if we are not currently viewing this conversation and didn't send it
-              if (
-                message.senderId !== currentUserId &&
-                message.conversationId !== activeConversationIdRef.current
-              ) {
-                conv.unreadCount = (conv.unreadCount || 0) + 1;
-                if (message.mentions?.includes(currentUserId)) {
-                  conv.hasMention = true;
+              if (message.threadParentId) {
+                // Thread reply: do not bump, do not change latest message preview
+                if (message.senderId !== currentUserId) {
+                  conv.hasUnreadThread = true;
                 }
-              }
+                const newConversations = [...prev];
+                newConversations[index] = conv;
+                return { ...oldData, conversations: newConversations };
+              } else {
+                // Normal message: bump to top and update preview
+                conv.updatedAt = message.createdAt;
+                conv.messages = [message];
 
-              // Update sender's lastReadMessageId
-              if (conv.members) {
-                conv.members = conv.members.map((m: any) =>
-                  m.userId === message.senderId
-                    ? { ...m, lastReadMessageId: message.id }
-                    : m,
-                );
-              }
+                // Increment unread count if we are not currently viewing this conversation and didn't send it
+                if (
+                  message.senderId !== currentUserId &&
+                  message.conversationId !== activeConversationIdRef.current
+                ) {
+                  conv.unreadCount = (conv.unreadCount || 0) + 1;
+                  if (message.mentions?.includes(currentUserId)) {
+                    conv.hasMention = true;
+                  }
+                }
 
-              const newConversations = [...prev];
-              newConversations.splice(index, 1);
-              newConversations.unshift(conv);
-              return { ...oldData, conversations: newConversations };
+                // Update sender's lastReadMessageId
+                if (conv.members) {
+                  conv.members = conv.members.map((m: any) =>
+                    m.userId === message.senderId
+                      ? { ...m, lastReadMessageId: message.id }
+                      : m,
+                  );
+                }
+
+                const newConversations = [...prev];
+                newConversations.splice(index, 1);
+                newConversations.unshift(conv);
+                return { ...oldData, conversations: newConversations };
+              }
             }
             return oldData;
           },
@@ -384,7 +396,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             ...oldData,
             conversations: oldData.conversations.map((c: any) =>
               c.id === conv.id
-                ? { ...c, unreadCount: 0, hasMention: false }
+                ? { ...c, unreadCount: 0, hasMention: false, hasUnreadThread: false }
                 : c,
             ),
           };

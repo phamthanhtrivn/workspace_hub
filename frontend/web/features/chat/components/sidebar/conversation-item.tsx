@@ -104,13 +104,18 @@ const ConversationItem = React.memo(function ConversationItem({
           {conv.hasMention && (
             <span className="text-blue-600 font-semibold">@</span>
           )}
-          {conv.unreadCount > 0 && (
+          {conv.unreadCount > 0 ? (
             <div
               className={`ml-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex items-center justify-center gap-0.5 ${isMuted ? "bg-slate-400" : "bg-red-500"}`}
             >
               <span>{conv.unreadCount > 99 ? "99+" : conv.unreadCount}</span>
             </div>
-          )}
+          ) : conv.hasUnreadThread ? (
+            <div
+              className="ml-1.5 w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0 animate-pulse"
+              title="Có phản hồi mới trong luồng"
+            />
+          ) : null}
         </div>
       </div>
     </div>

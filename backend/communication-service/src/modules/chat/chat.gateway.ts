@@ -90,6 +90,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         content: string;
       };
       replyToMessageId?: string;
+      threadParentId?: string;
       mentions?: string[];
     },
     @ConnectedSocket() client: Socket,
@@ -116,6 +117,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.pollData,
         data.noteData,
         data.replyToMessageId,
+        data.threadParentId,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(

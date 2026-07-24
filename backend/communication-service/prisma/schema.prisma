@@ -95,10 +95,17 @@ model Message {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")
+  
+  threadParentId   String?   @map("thread_parent_id") @db.Uuid
+  threadReplyCount Int       @default(0) @map("thread_reply_count")
+  threadLastReplyAt DateTime? @map("thread_last_reply_at")
 
   conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   replyTo          Message?  @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
   replies          Message[] @relation("MessageReplies")
+  
+  threadParent     Message?  @relation("ThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
+  threadReplies    Message[] @relation("ThreadReplies")
   
   reactions        Reaction[]
   medias           Media[]
