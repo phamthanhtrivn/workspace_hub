@@ -30,6 +30,30 @@ export const createGroupConversation = async (
   return response.data;
 };
 
+export const inviteMembers = async (
+  conversationId: string,
+  memberIds: string[],
+): Promise<any> => {
+  const response = await api.post(
+    `/api/conversations/${conversationId}/members/invite`,
+    { memberIds },
+  );
+  return response.data;
+};
+
+export const updateGroupInfo = async (
+  conversationId: string,
+  name?: string,
+  avatarUrl?: string,
+): Promise<any> => {
+  const response = await api.patch(`/api/conversations/${conversationId}/info`, {
+    name,
+    avatarUrl,
+  });
+  return response.data;
+};
+
+
 export const getPublicProfile = async (id: string): Promise<any> => {
   const response = await api.get(`/api/users/${id}/profile`);
   return response.data;

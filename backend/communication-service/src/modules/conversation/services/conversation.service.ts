@@ -1,6 +1,15 @@
-import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  Inject,
+} from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { ConversationType, ConversationRole } from '@prisma/client';
+import {
+  ConversationType,
+  ConversationRole,
+  InvitationStatus,
+} from '@prisma/client';
 import { ChatGateway } from '../../chat/chat.gateway';
 import { ConversationEventPublisher } from '../events/conversation.publisher';
 import { getSenderProfile } from '../../../common/utils/user.util';
@@ -70,8 +79,6 @@ export class ConversationService {
           },
           setting: {
             create: {
-              allowMemberInvite: false,
-              approvalRequired: false,
               allowSendMessage: true,
               allowCreateNote: true,
               allowCreatePoll: true,
@@ -315,11 +322,9 @@ export class ConversationService {
           },
           setting: {
             create: {
-              allowMemberInvite: true,
-              approvalRequired: false,
               allowSendMessage: true,
-              allowCreateNote: true,
               allowCreatePoll: true,
+              allowCreateNote: true,
               allowPinMessage: true,
             },
           },
@@ -479,7 +484,11 @@ export class ConversationService {
       },
     });
 
-    if (!member || (member.role !== ConversationRole.OWNER && member.role !== ConversationRole.ADMIN)) {
+    if (
+      !member ||
+      (member.role !== ConversationRole.OWNER &&
+        member.role !== ConversationRole.ADMIN)
+    ) {
       throw new BadRequestException('Bạn không có quyền thay đổi cài đặt nhóm');
     }
 
@@ -503,7 +512,9 @@ export class ConversationService {
     newRole: ConversationRole,
   ) {
     if (userId === targetUserId) {
-      throw new BadRequestException('Không thể tự thay đổi vai trò của chính mình');
+      throw new BadRequestException(
+        'Không thể tự thay đổi vai trò của chính mình',
+      );
     }
 
     const requester = await this.prisma.conversationMember.findUnique({
@@ -511,11 +522,15 @@ export class ConversationService {
     });
 
     if (!requester || requester.role !== ConversationRole.OWNER) {
-      throw new BadRequestException('Chỉ Trưởng nhóm mới có quyền thay đổi vai trò thành viên');
+      throw new BadRequestException(
+        'Chỉ Trưởng nhóm mới có quyền thay đổi vai trò thành viên',
+      );
     }
 
     const targetMember = await this.prisma.conversationMember.findUnique({
-      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+      where: {
+        conversationId_userId: { conversationId, userId: targetUserId },
+      },
     });
 
     if (!targetMember) {
@@ -523,13 +538,16 @@ export class ConversationService {
     }
 
     const updatedMember = await this.prisma.conversationMember.update({
-      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+      where: {
+        conversationId_userId: { conversationId, userId: targetUserId },
+      },
       data: { role: newRole },
     });
 
     const { senderName } = await getSenderProfile(userId);
     const { senderName: targetName } = await getSenderProfile(targetUserId);
-    const roleName = newRole === ConversationRole.ADMIN ? 'Phó nhóm' : 'Thành viên';
+    const roleName =
+      newRole === ConversationRole.ADMIN ? 'Phó nhóm' : 'Thành viên';
 
     await this.chatGateway.sendSystemMessage(
       conversationId,
@@ -559,7 +577,9 @@ export class ConversationService {
     });
 
     if (!requester || requester.role !== ConversationRole.OWNER) {
-      throw new BadRequestException('Chỉ Trưởng nhóm mới có quyền chuyển đổi trưởng nhóm');
+      throw new BadRequestException(
+        'Chỉ Trưởng nhóm mới có quyền chuyển đổi trưởng nhóm',
+      );
     }
 
     const newOwner = await this.prisma.conversationMember.findUnique({
@@ -576,7 +596,9 @@ export class ConversationService {
         data: { role: ConversationRole.MEMBER },
       }),
       this.prisma.conversationMember.update({
-        where: { conversationId_userId: { conversationId, userId: newOwnerId } },
+        where: {
+          conversationId_userId: { conversationId, userId: newOwnerId },
+        },
         data: { role: ConversationRole.OWNER },
       }),
     ]);
@@ -602,11 +624,7 @@ export class ConversationService {
     return { success: true };
   }
 
-  async kickMember(
-    conversationId: string,
-    userId: string,
-    memberId: string,
-  ) {
+  async kickMember(conversationId: string, userId: string, memberId: string) {
     if (userId === memberId) {
       throw new BadRequestException('Không thể tự kích bản thân');
     }
@@ -627,7 +645,10 @@ export class ConversationService {
       throw new BadRequestException('Bạn không có quyền kích thành viên');
     }
 
-    if (requester.role === ConversationRole.ADMIN && target.role !== ConversationRole.MEMBER) {
+    if (
+      requester.role === ConversationRole.ADMIN &&
+      target.role !== ConversationRole.MEMBER
+    ) {
       throw new BadRequestException('Phó nhóm chỉ có thể kích Thành viên');
     }
 
@@ -635,7 +656,17 @@ export class ConversationService {
       where: { conversationId_userId: { conversationId, userId: memberId } },
     });
 
-    this.chatGateway.server.to(conversationId).emit('member_kicked', {
+    const remainingMembers = await this.prisma.conversationMember.findMany({
+      where: { conversationId },
+      select: { userId: true },
+    });
+    const targetRooms = [
+      conversationId,
+      memberId,
+      ...remainingMembers.map((m) => m.userId),
+    ];
+
+    this.chatGateway.server.to(targetRooms).emit('member_kicked', {
       conversationId,
       userId: memberId,
     });
@@ -652,10 +683,158 @@ export class ConversationService {
     return { success: true };
   }
 
-  async leaveConversation(
+  async addMembers(
     conversationId: string,
     userId: string,
+    memberIds: string[],
   ) {
+    const requester = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+      include: { conversation: true },
+    });
+
+    if (!requester || requester.role !== ConversationRole.OWNER) {
+      throw new ForbiddenException(
+        'Chỉ nhóm trưởng mới có quyền thêm thành viên',
+      );
+    }
+
+    const existingMembers = await this.prisma.conversationMember.findMany({
+      where: { conversationId, userId: { in: memberIds } },
+    });
+    const existingInvitations = await this.prisma.groupInvitation.findMany({
+      where: {
+        conversationId,
+        invitedUserId: { in: memberIds },
+        status: InvitationStatus.PENDING,
+      },
+    });
+
+    const existingUserIds = new Set([
+      ...existingMembers.map((m) => m.userId),
+      ...existingInvitations.map((i) => i.invitedUserId),
+    ]);
+
+    const newMemberIds = memberIds.filter((id) => !existingUserIds.has(id));
+
+    if (newMemberIds.length === 0) {
+      throw new BadRequestException(
+        'Tất cả người dùng đã là thành viên hoặc đã được mời',
+      );
+    }
+
+    const { senderName, senderAvatar } = await getSenderProfile(userId);
+
+    const invitations = await this.prisma.$transaction(async (prisma) => {
+      const createdInvs: any[] = [];
+      for (const id of newMemberIds) {
+        // Use findFirst + update/create instead of upsert to avoid UniqueConstraint typing issues if Prisma client is stuck
+        const existingInv = await prisma.groupInvitation.findFirst({
+          where: { conversationId, invitedUserId: id },
+        });
+        if (existingInv) {
+          const inv = await prisma.groupInvitation.update({
+            where: { id: existingInv.id },
+            data: {
+              status: 'PENDING' as any,
+              invitedBy: userId,
+              createdAt: new Date(),
+            },
+          });
+          createdInvs.push(inv);
+        } else {
+          const inv = await prisma.groupInvitation.create({
+            data: {
+              conversationId,
+              invitedUserId: id,
+              invitedBy: userId,
+              status: 'PENDING' as any,
+            },
+          });
+          createdInvs.push(inv);
+        }
+      }
+      return createdInvs;
+    });
+
+    invitations.forEach((inv) => {
+      this.conversationPublisher.publishGroupInvitation(
+        inv.invitedUserId,
+        userId,
+        senderName,
+        senderAvatar,
+        inv.id,
+        conversationId,
+        requester.conversation.name,
+        requester.conversation.avatarUrl,
+      );
+    });
+
+    return { success: true, count: newMemberIds.length };
+  }
+
+  async updateGroupInfo(
+    conversationId: string,
+    userId: string,
+    data: { name?: string; avatarUrl?: string },
+  ) {
+    const requester = await this.prisma.conversationMember.findUnique({
+      where: { conversationId_userId: { conversationId, userId } },
+    });
+
+    if (!requester || requester.role !== ConversationRole.OWNER) {
+      throw new ForbiddenException(
+        'Chỉ nhóm trưởng mới có quyền cập nhật thông tin nhóm',
+      );
+    }
+
+    const conversation = await this.prisma.conversation.update({
+      where: { id: conversationId },
+      data: {
+        name: data.name !== undefined ? data.name : undefined,
+        avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : undefined,
+      },
+    });
+
+    const { senderName } = await getSenderProfile(userId);
+
+    if (data.name !== undefined) {
+      await this.chatGateway.sendSystemMessage(
+        conversationId,
+        userId,
+        `${senderName} đã đổi tên nhóm thành "${data.name}"`,
+      );
+    }
+    if (data.avatarUrl !== undefined) {
+      await this.chatGateway.sendSystemMessage(
+        conversationId,
+        userId,
+        `${senderName} đã đổi ảnh đại diện nhóm`,
+      );
+    }
+
+    // Broadcast the update so clients can refresh UI
+    const memberIds = await this.prisma.conversationMember.findMany({
+      where: { conversationId },
+      select: { userId: true },
+    });
+
+    const payload = {
+      id: conversationId,
+      name: conversation.name,
+      avatarUrl: conversation.avatarUrl,
+    };
+
+    memberIds.forEach((m) => {
+      this.chatGateway.server
+        .to(m.userId)
+        .emit('CONVERSATION_UPDATED', payload);
+    });
+
+    return conversation;
+  }
+
+  async leaveConversation(conversationId: string, userId: string) {
     const member = await this.prisma.conversationMember.findUnique({
       where: { conversationId_userId: { conversationId, userId } },
     });
@@ -683,7 +862,17 @@ export class ConversationService {
       where: { conversationId_userId: { conversationId, userId } },
     });
 
-    this.chatGateway.server.to(conversationId).emit('member_left', {
+    const remainingMembers = await this.prisma.conversationMember.findMany({
+      where: { conversationId },
+      select: { userId: true },
+    });
+    const targetRooms = [
+      conversationId,
+      userId,
+      ...remainingMembers.map((m) => m.userId),
+    ];
+
+    this.chatGateway.server.to(targetRooms).emit('member_left', {
       conversationId,
       userId,
     });
@@ -709,7 +898,9 @@ export class ConversationService {
     }
 
     if (member.role !== ConversationRole.OWNER) {
-      throw new BadRequestException('Chỉ Trưởng nhóm mới có quyền giải tán nhóm');
+      throw new BadRequestException(
+        'Chỉ Trưởng nhóm mới có quyền giải tán nhóm',
+      );
     }
 
     await this.prisma.conversation.delete({

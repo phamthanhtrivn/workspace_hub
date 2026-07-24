@@ -135,18 +135,20 @@ export class MessageService {
         data: { updatedAt: new Date() },
       });
 
-      await tx.conversationMember.update({
-        where: {
-          conversationId_userId: {
-            conversationId,
-            userId: senderId,
+      if (type !== MessageType.SYSTEM) {
+        await tx.conversationMember.update({
+          where: {
+            conversationId_userId: {
+              conversationId,
+              userId: senderId,
+            },
           },
-        },
-        data: {
-          lastReadMessageId: message.id,
-          lastReadAt: new Date(),
-        },
-      });
+          data: {
+            lastReadMessageId: message.id,
+            lastReadAt: new Date(),
+          },
+        });
+      }
 
       return message;
     });

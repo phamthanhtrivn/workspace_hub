@@ -37,8 +37,6 @@ enum MessageType {
 model ConversationSetting {
   id                String  @id @default(uuid()) @db.Uuid
   conversationId    String  @unique @map("conversation_id") @db.Uuid
-  allowMemberInvite Boolean @default(true) @map("allow_member_invite")
-  approvalRequired  Boolean @default(false) @map("approval_required")
   allowSendMessage  Boolean @default(true) @map("allow_send_message")
   allowCreatePoll   Boolean @default(true) @map("allow_create_poll")
   allowCreateNote   Boolean @default(true) @map("allow_create_note")

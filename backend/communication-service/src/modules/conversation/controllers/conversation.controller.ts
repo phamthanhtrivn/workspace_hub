@@ -240,6 +240,33 @@ export class ConversationController {
     };
   }
 
+  @Post(':id/members/invite')
+  async inviteMembers(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('memberIds') memberIds: string[],
+  ) {
+    if (!userId || !conversationId || !memberIds || !Array.isArray(memberIds)) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    const result = await this.conversationService.addMembers(conversationId, userId, memberIds);
+    return {
+      message: `Đã gửi lời mời đến ${result.count} người`,
+    };
+  }
+
+  @Patch(':id/info')
+  async updateGroupInfo(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() data: { name?: string; avatarUrl?: string },
+  ) {
+    if (!userId || !conversationId) {
+      throw new BadRequestException('Thiếu thông tin yêu cầu');
+    }
+    return this.conversationService.updateGroupInfo(conversationId, userId, data);
+  }
+
   @Delete(':id/leave')
   async leaveConversation(
     @Param('id') conversationId: string,

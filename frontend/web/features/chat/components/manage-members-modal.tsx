@@ -54,8 +54,11 @@ export default function ManageMembersModal({
     role: "ADMIN" | "MEMBER",
   ) => {
     if (isProcessing) return;
-    
-    const actionText = role === "ADMIN" ? "thăng cấp người này thành Phó nhóm" : "giáng cấp người này xuống Thành viên";
+
+    const actionText =
+      role === "ADMIN"
+        ? "thăng cấp người này thành Phó nhóm"
+        : "giáng cấp người này xuống Thành viên";
     const result = await Swal.fire({
       title: "Cập nhật vai trò?",
       text: `Bạn có chắc chắn muốn ${actionText}?`,

@@ -361,7 +361,13 @@ export default function ChatArea({
 
       const handleMemberKickedOrLeft = (data: any) => {
         if (data.conversationId === activeConversation.id) {
-          dispatch(removeMember(data.userId));
+          if (data.userId === auth?.userId) {
+            dispatch(setActiveConversation(null));
+            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            toast.error("Bạn đã không còn ở trong nhóm này");
+          } else {
+            dispatch(removeMember(data.userId));
+          }
         }
       };
 

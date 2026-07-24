@@ -209,9 +209,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       const handleMemberJoin = (data: any) => {
         if (data.profile) {
-          dispatch(addMemberProfilesAction({ [data.profile.id]: data.profile }));
+          dispatch(
+            addMemberProfilesAction({ [data.profile.id]: data.profile }),
+          );
         }
-        
+
         queryClient.setQueryData(
           ["conversations", currentUserId],
           (oldData: any) => {
@@ -236,11 +238,43 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         );
       };
 
+      const handleMemberKickedOrLeft = (data: any) => {
+        if (data.userId === currentUserId) {
+          // If the current user is kicked or left, invalidate query to refresh conversation list
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        } else {
+          // If someone else is kicked or left, just remove them from the members array
+          queryClient.setQueryData(
+            ["conversations", currentUserId],
+            (oldData: any) => {
+              if (!oldData) return oldData;
+              return {
+                ...oldData,
+                conversations: oldData.conversations.map((c: any) => {
+                  if (c.id === data.conversationId) {
+                    const updatedConv = { ...c };
+                    if (updatedConv.members) {
+                      updatedConv.members = updatedConv.members.filter(
+                        (m: any) => m.userId !== data.userId,
+                      );
+                    }
+                    return updatedConv;
+                  }
+                  return c;
+                }),
+              };
+            },
+          );
+        }
+      };
+
       socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
       socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
       socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
       socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
+      socket.on(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
+      socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
 
       return () => {
         socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -248,11 +282,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
         socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
         socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
+        socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
+        socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
       };
     }, 500); // Allow time for layout to connect socket
 
     return () => clearTimeout(timeout);
-  }, [currentUserId]);
+  }, [currentUserId, queryClient]);
 
   const handleSelectConversation = useCallback(
     (conv: any) => {
@@ -267,7 +303,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           return {
             ...oldData,
             conversations: oldData.conversations.map((c: any) =>
-              c.id === conv.id ? { ...c, unreadCount: 0, hasMention: false } : c,
+              c.id === conv.id
+                ? { ...c, unreadCount: 0, hasMention: false }
+                : c,
             ),
           };
         },
@@ -357,17 +395,21 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       let matchesTab = true;
       if (activeTab === "personal") matchesTab = conv.type === "DIRECT";
       if (activeTab === "groups") matchesTab = conv.type === "GROUP";
-      
+
       if (!matchesTab) return false;
 
       // Lọc theo từ khoá tìm kiếm
       if (searchQuery.trim().length > 0) {
         const lowerQuery = searchQuery.toLowerCase();
         let name = "";
-        
+
         if (conv.type === "DIRECT") {
-          const otherMember = conv.members?.find((m: any) => m.userId !== currentUserId);
-          const otherProfile = otherMember ? memberProfiles[otherMember.userId] : null;
+          const otherMember = conv.members?.find(
+            (m: any) => m.userId !== currentUserId,
+          );
+          const otherProfile = otherMember
+            ? memberProfiles[otherMember.userId]
+            : null;
           name = otherProfile?.fullName || "Người dùng";
         } else {
           name = conv.name || "Nhóm trò chuyện";

@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Users, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
+import { useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
+import AddMembersModal from "../add-members-modal";
 
 interface MembersSectionProps {
   isExpanded: boolean;
@@ -20,6 +22,13 @@ export default function MembersSection({
   currentUserId,
 }: MembersSectionProps) {
   const dispatch = useAppDispatch();
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false);
+
+  const currentMember = activeConversation?.members?.find(
+    (m: any) => m.userId === currentUserId,
+  );
+  const isOwner = currentMember?.role === "OWNER";
+  const conversationId = activeConversation?.id;
 
   return (
     <div>
@@ -86,15 +95,31 @@ export default function MembersSection({
                 </div>
               );
             })}
-            <button className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1">
-              <div className="w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
-                <Users size={14} />
-              </div>
-              <span className="text-sm font-medium">Thêm thành viên</span>
-            </button>
+            {isOwner && (
+              <button 
+                onClick={() => setShowAddMembersModal(true)}
+                className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1"
+              >
+                <div className="w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
+                  <Users size={14} />
+                </div>
+                <span className="text-sm font-medium">Thêm thành viên</span>
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {showAddMembersModal && (
+        <AddMembersModal
+          isOpen={showAddMembersModal}
+          onClose={() => setShowAddMembersModal(false)}
+          conversationId={conversationId}
+          onMembersAdded={() => {
+            // Optional: You could fetch the conversation again or rely on the socket events to refresh members
+          }}
+        />
+      )}
 
       <div className="h-px bg-gray-100 mx-4 my-1"></div>
     </div>
