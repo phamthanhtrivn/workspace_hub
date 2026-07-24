@@ -54,6 +54,21 @@ export default function ManageMembersModal({
     role: "ADMIN" | "MEMBER",
   ) => {
     if (isProcessing) return;
+    
+    const actionText = role === "ADMIN" ? "thăng cấp người này thành Phó nhóm" : "giáng cấp người này xuống Thành viên";
+    const result = await Swal.fire({
+      title: "Cập nhật vai trò?",
+      text: `Bạn có chắc chắn muốn ${actionText}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Đồng ý",
+      cancelButtonText: "Hủy",
+    });
+
+    if (!result.isConfirmed) return;
+
     setIsProcessing(true);
     try {
       await updateMemberRole(conversation.id, memberId, role);
@@ -198,36 +213,36 @@ export default function ManageMembersModal({
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-all duration-300">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[80vh] border border-gray-100">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-gray-800">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] border border-gray-100">
+        <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
+          <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
             Quản lý thành viên
           </h2>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+            className="p-2.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <FiX size={20} />
           </button>
         </div>
 
         <div className="p-4 border-b border-gray-100 bg-gray-50/50">
-          <div className="relative">
+          <div className="relative group">
             <FiSearch
               size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors"
             />
             <input
               type="text"
               placeholder="Tìm kiếm thành viên..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400"
             />
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2">
+        <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
           {filteredMembers?.map((member: any) => {
             const profile = memberProfiles?.[member.userId];
             const name = profile?.fullName || "User";

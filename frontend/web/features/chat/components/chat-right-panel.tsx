@@ -343,14 +343,6 @@ export default function ChatRightPanel({
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="p-4 border-t border-gray-100">
-        <button className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition font-medium text-sm">
-          <LogOut size={16} />
-          Rời nhóm
-        </button>
-      </div>
-
       {/* Lightbox */}
       {lightboxIndex >= 0 && (
         <MediaLightbox
