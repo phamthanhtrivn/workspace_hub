@@ -7,6 +7,8 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
+import { Inject, Logger } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
 import { Server, Socket } from 'socket.io';
 import { ChatEvent } from './chat.events';
 import { MessageService } from '../message/services/message.service';
@@ -14,6 +16,8 @@ import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { PollService } from '../message/services/poll.service';
 import { NoteService } from '../message/services/note.service';
+import { KAFKA_TOPICS, KAFKA_EVENTS } from '../../common/constants/kafka.constants';
+import { getSenderProfile } from '../../common/utils/user.util';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -26,11 +30,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(ChatGateway.name);
+
   constructor(
     private readonly messageService: MessageService,
     private readonly pollService: PollService,
     private readonly noteService: NoteService,
+    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
+
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token || client.handshake.query?.token;
@@ -132,6 +140,57 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const targetRooms = [data.conversationId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
+
+      // Publish new message notification event to Kafka for offline/background push delivery
+      this.messageService
+        .getConversationMembersInfo(data.conversationId)
+        .then(async (membersInfo) => {
+          const mentions = data.mentions || [];
+          const recipientIds = membersInfo
+            .filter((m) => m.userId !== userId) // exclude sender
+            .filter((m) => !m.muted || mentions.includes(m.userId)) // unmuted OR tagged
+            .map((m) => m.userId);
+
+          if (recipientIds.length > 0) {
+            const { senderName, senderAvatar } = await getSenderProfile(userId);
+            
+            let previewContent = data.content || '';
+            if (data.type === MessageType.POLL) {
+              previewContent = `Đã tạo một bình chọn: ${data.pollData?.title || ''}`;
+            } else if (data.type === MessageType.NOTE) {
+              previewContent = `Đã tạo một ghi chú: ${data.noteData?.title || ''}`;
+            } else if (data.medias && data.medias.length > 0) {
+              const type = data.medias[0].mimeType.startsWith('image/')
+                ? 'hình ảnh'
+                : data.medias[0].mimeType.startsWith('video/')
+                ? 'video'
+                : 'tệp đính kèm';
+              previewContent = `Đã gửi một ${type}`;
+            }
+
+            this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+              key: data.conversationId,
+              value: {
+                recipientIds,
+                senderId: userId,
+                senderName,
+                senderAvatar,
+                type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
+                title: senderName,
+                content: previewContent,
+                link: `/chat?id=${data.conversationId}`,
+                metadata: {
+                  conversationId: data.conversationId,
+                  messageId: message.id,
+                },
+              },
+            });
+          }
+        })
+        .catch((err) => {
+          this.logger.error(`Failed to handle Kafka notification for new message: ${err.message}`, err.stack);
+        });
+
 
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {

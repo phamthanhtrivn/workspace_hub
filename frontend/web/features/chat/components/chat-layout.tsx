@@ -20,7 +20,6 @@ export default function ChatLayout() {
   const activeThreadRootMessage = useAppSelector(
     (state) => state.chat.activeThreadRootMessage,
   );
-  const accessToken = useAppSelector((state) => state.auth.accessToken);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -34,16 +33,6 @@ export default function ChatLayout() {
       setShowRightPanel(true);
     }
   }, [activeThreadRootMessage]);
-
-  // Connect to communication service websocket when entering chat
-  useEffect(() => {
-    if (accessToken) {
-      socketService.connect(accessToken);
-    }
-    return () => {
-      socketService.disconnect();
-    };
-  }, [accessToken]);
 
   const toggleRightPanel = () => {
     setShowRightPanel((prev) => !prev);

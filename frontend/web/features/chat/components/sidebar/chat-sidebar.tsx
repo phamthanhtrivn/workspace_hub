@@ -396,7 +396,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             ...oldData,
             conversations: oldData.conversations.map((c: any) =>
               c.id === conv.id
-                ? { ...c, unreadCount: 0, hasMention: false, hasUnreadThread: false }
+                ? {
+                    ...c,
+                    unreadCount: 0,
+                    hasMention: false,
+                    hasUnreadThread: false,
+                  }
                 : c,
             ),
           };
@@ -553,7 +558,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       </div>
 
       {/* Tabs */}
-      <div className="flex px-4 py-2 gap-4 border-b border-gray-100 bg-white">
+      <div className="flex px-4 py-2 gap-4 justify-center border-b border-gray-100 bg-white">
         <button
           onClick={() => setActiveTab("all")}
           className={`cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "all" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}

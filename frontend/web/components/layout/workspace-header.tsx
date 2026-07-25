@@ -6,6 +6,7 @@ import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
+import { socketService } from "@/features/chat/api/chat-socket.service";
 import { addNotification } from "@/store/notification/notification.slice";
 
 interface WorkspaceHeaderProps {
@@ -21,13 +22,13 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   const { accessToken } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
-  const notificationConnectedRef = useRef(false);
 
   useEffect(() => {
-    if (!accessToken || notificationConnectedRef.current) return;
+    if (!accessToken) return;
 
+    // Connect both notification and chat sockets globally
     notificationSocketService.connect(accessToken);
-    notificationConnectedRef.current = true;
+    socketService.connect(accessToken);
 
     const socket = notificationSocketService.getSocket();
     if (socket) {
@@ -35,11 +36,17 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
         dispatch(addNotification(noti));
       });
     }
+
+    return () => {
+      notificationSocketService.disconnect();
+      socketService.disconnect();
+    };
   }, [accessToken, dispatch]);
 
+
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-gray-50 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+    <header className="sticky top-0 border-b border-slate-200/80 bg-gray-50 py-3 backdrop-blur-xl px-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between">
         {/* Left: Breadcrumbs & Mobile Menu */}
         <div className="flex min-w-0 items-center gap-3">
           <button

@@ -180,6 +180,20 @@ export class MessageService {
     return members.map((m) => m.userId);
   }
 
+  async getConversationMembersInfo(
+    conversationId: string,
+  ): Promise<{ userId: string; muted: boolean }[]> {
+    const members = await this.prisma.conversationMember.findMany({
+      where: { conversationId },
+      select: { userId: true, muted: true },
+    });
+    return members.map((m) => ({
+      userId: m.userId,
+      muted: m.muted,
+    }));
+  }
+
+
   async addReaction(messageId: string, userId: string, emoji: string) {
     const existing = await this.prisma.reaction.findFirst({
       where: { messageId, userId },

@@ -101,10 +101,13 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
     setIsMobileMenuOpen(true);
   }, []);
 
-  const handleOpenSettings = useCallback((tab: "profile" | "settings" | "sessions") => {
-    setActiveSettingsTab(tab);
-    setIsSettingsModalOpen(true);
-  }, []);
+  const handleOpenSettings = useCallback(
+    (tab: "profile" | "settings" | "sessions") => {
+      setActiveSettingsTab(tab);
+      setIsSettingsModalOpen(true);
+    },
+    [],
+  );
 
   const handleCloseSettings = useCallback(() => {
     setIsSettingsModalOpen(false);
@@ -132,7 +135,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
       >
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="absolute -right-3 top-8 z-50 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600 hover:shadow lg:flex cursor-pointer"
+          className="absolute -right-3 top-8 z-100 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600 hover:shadow lg:flex cursor-pointer"
         >
           {isSidebarCollapsed ? (
             <ChevronRight className="h-4 w-4" />
