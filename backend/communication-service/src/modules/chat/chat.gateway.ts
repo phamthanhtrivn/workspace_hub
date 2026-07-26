@@ -146,9 +146,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         .getConversationMembersInfo(data.conversationId)
         .then(async (membersInfo) => {
           const mentions = data.mentions || [];
+          const isMentionedAll = mentions.includes('all');
           const recipientIds = membersInfo
             .filter((m) => m.userId !== userId) // exclude sender
-            .filter((m) => !m.muted || mentions.includes(m.userId)) // unmuted OR tagged
+            .filter((m) => !m.muted || isMentionedAll || mentions.includes(m.userId)) // unmuted OR tagged OR @All
             .map((m) => m.userId);
 
           if (recipientIds.length > 0) {

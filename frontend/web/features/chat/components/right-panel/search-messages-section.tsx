@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { ArrowLeft, Search, ChevronDown, Check, User } from "lucide-react";
+import {
+  ArrowLeft,
+  Search,
+  ChevronDown,
+  Check,
+  User,
+  Users,
+} from "lucide-react";
 import { searchConversationMessages } from "../../api/chat.api";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setHighlightMessageId } from "@/store/chat/chat-slice";
@@ -20,9 +27,7 @@ export default function SearchMessagesSection({
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { activeConversation } = useAppSelector(
-    (state) => state.chat,
-  );
+  const { activeConversation } = useAppSelector((state) => state.chat);
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
@@ -158,7 +163,7 @@ export default function SearchMessagesSection({
                 >
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-                      <User size={12} className="text-gray-500" />
+                      <Users size={12} className="text-gray-500" />
                     </div>
                     <span>Tất cả người gửi</span>
                   </div>

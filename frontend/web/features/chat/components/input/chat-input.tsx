@@ -188,6 +188,25 @@ const ChatInput = React.memo(
           avatarUrl: memberProfiles[id]?.avatarUrl,
         }))
         .filter((m: any) => m.name.toLowerCase().includes(query));
+
+      if (
+        activeConversation?.type === "GROUP" &&
+        ("all".includes(query) ||
+          "cả nhóm".includes(query) ||
+          "ca nhom".includes(query) ||
+          query === "")
+      ) {
+        return [
+          {
+            id: "all",
+            name: "All",
+            avatarUrl: undefined,
+            isAll: true,
+          },
+          ...members.slice(0, 3),
+        ];
+      }
+
       return members.slice(0, 4);
     }, [mentionQuery, activeConversation, memberProfiles, authUserId]);
 

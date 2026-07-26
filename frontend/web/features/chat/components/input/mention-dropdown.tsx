@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { User, Users } from "lucide-react";
 import React from "react";
 
 interface MentionDropdownProps {
@@ -32,7 +32,9 @@ export default React.memo(function MentionDropdown({
           }`}
         >
           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium text-xs flex-shrink-0 overflow-hidden">
-            {user.avatarUrl ? (
+            {user.id === "all" ? (
+              <Users size={15} className="text-blue-600" />
+            ) : user.avatarUrl ? (
               <img
                 src={user.avatarUrl}
                 alt={user.name}

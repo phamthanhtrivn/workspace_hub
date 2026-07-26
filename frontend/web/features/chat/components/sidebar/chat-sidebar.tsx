@@ -133,7 +133,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   message.conversationId !== activeConversationIdRef.current
                 ) {
                   conv.unreadCount = (conv.unreadCount || 0) + 1;
-                  if (message.mentions?.includes(currentUserId)) {
+                  if (
+                    message.mentions?.includes(currentUserId) ||
+                    message.mentions?.includes("all")
+                  ) {
                     conv.hasMention = true;
                   }
                 }

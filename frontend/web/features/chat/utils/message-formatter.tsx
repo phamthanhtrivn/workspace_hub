@@ -9,6 +9,33 @@ export const formatMessageContent = (
 
   let parts: (string | React.ReactNode)[] = [content];
 
+  // Process @All mention
+  const searchAllStr = "@All";
+  if (content.includes(searchAllStr)) {
+    const newParts: (string | React.ReactNode)[] = [];
+    parts.forEach((part, partIdx) => {
+      if (typeof part === "string") {
+        const split = part.split(searchAllStr);
+        split.forEach((s, idx) => {
+          newParts.push(s);
+          if (idx < split.length - 1) {
+            newParts.push(
+              <span
+                key={`all-${partIdx}-${idx}`}
+                className="font-semibold text-blue-600 px-1 rounded transition-colors"
+              >
+                {searchAllStr}
+              </span>
+            );
+          }
+        });
+      } else {
+        newParts.push(part);
+      }
+    });
+    parts = newParts;
+  }
+
   const allProfiles = Object.values(memberProfiles || {})
     .map((profile: any) => ({
       userId: profile.userId,
