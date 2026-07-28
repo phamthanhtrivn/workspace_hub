@@ -24,6 +24,15 @@ import {
   Trash2,
   Voicemail,
   Type,
+  Bold,
+  Italic,
+  Strikethrough,
+  Heading,
+  Link,
+  Code,
+  Quote,
+  List,
+  ListOrdered,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -37,6 +46,7 @@ interface ChatInputProps {
   onCreatePoll?: () => void;
   onCreateNote?: () => void;
   onTypingChange?: (isTyping: boolean) => void;
+  isThread?: boolean;
 }
 
 interface UploadingMedia {
@@ -56,11 +66,18 @@ export interface ChatInputRef {
 
 const ChatInput = React.memo(
   forwardRef<ChatInputRef, ChatInputProps>(function ChatInput(
-    { onSendMessage, onCreatePoll, onCreateNote, onTypingChange },
+    {
+      onSendMessage,
+      onCreatePoll,
+      onCreateNote,
+      onTypingChange,
+      isThread = false,
+    },
     ref,
   ) {
     const [message, setMessage] = useState("");
     const [showOptions, setShowOptions] = useState(false);
+    const [showFormatting, setShowFormatting] = useState(!isThread);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [showMicOptions, setShowMicOptions] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
@@ -85,6 +102,232 @@ const ChatInput = React.memo(
     const [mentionStartIndex, setMentionStartIndex] = useState<number>(-1);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [mentions, setMentions] = useState<string[]>([]);
+
+    const applyFormatting = useCallback(
+      (
+        formatType:
+          | "bold"
+          | "italic"
+          | "strikethrough"
+          | "heading"
+          | "link"
+          | "code"
+          | "quote"
+          | "bullet"
+          | "number",
+      ) => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = message;
+        const selectedText = text.substring(start, end);
+
+        // 1. Line-level formatting (heading, quote, bullet, number)
+        if (
+          formatType === "heading" ||
+          formatType === "quote" ||
+          formatType === "bullet" ||
+          formatType === "number"
+        ) {
+          const beforeText = text.substring(0, start);
+          const lineStart = beforeText.lastIndexOf("\n") + 1;
+          const afterText = text.substring(end);
+          const nextNewline = afterText.indexOf("\n");
+          const lineEnd = nextNewline === -1 ? text.length : end + nextNewline;
+          const currentLine = text.substring(lineStart, lineEnd);
+
+          const headingRegex = /^###\s+/;
+          const quoteRegex = /^>\s+/;
+          const bulletRegex = /^[\-\*]\s+/;
+          const numberRegex = /^\d+\.\s+/;
+
+          let cleanLine = currentLine;
+          let existingFormat: "heading" | "quote" | "bullet" | "number" | null =
+            null;
+          let originalPrefixLength = 0;
+
+          const hMatch = currentLine.match(headingRegex);
+          const qMatch = currentLine.match(quoteRegex);
+          const bMatch = currentLine.match(bulletRegex);
+          const nMatch = currentLine.match(numberRegex);
+
+          if (hMatch) {
+            existingFormat = "heading";
+            cleanLine = currentLine.replace(headingRegex, "");
+            originalPrefixLength = hMatch[0].length;
+          } else if (qMatch) {
+            existingFormat = "quote";
+            cleanLine = currentLine.replace(quoteRegex, "");
+            originalPrefixLength = qMatch[0].length;
+          } else if (bMatch) {
+            existingFormat = "bullet";
+            cleanLine = currentLine.replace(bulletRegex, "");
+            originalPrefixLength = bMatch[0].length;
+          } else if (nMatch) {
+            existingFormat = "number";
+            cleanLine = currentLine.replace(numberRegex, "");
+            originalPrefixLength = nMatch[0].length;
+          }
+
+          let newLine = "";
+          let newPrefixLength = 0;
+
+          if (existingFormat === formatType) {
+            newLine = cleanLine;
+            newPrefixLength = 0;
+          } else {
+            switch (formatType) {
+              case "heading":
+                newLine = "### " + cleanLine;
+                newPrefixLength = 4;
+                break;
+              case "quote":
+                newLine = "> " + cleanLine;
+                newPrefixLength = 2;
+                break;
+              case "bullet":
+                newLine = "- " + cleanLine;
+                newPrefixLength = 2;
+                break;
+              case "number":
+                newLine = "1. " + cleanLine;
+                newPrefixLength = 3;
+                break;
+            }
+          }
+
+          const newMessage =
+            text.substring(0, lineStart) + newLine + text.substring(lineEnd);
+          setMessage(newMessage);
+
+          setTimeout(() => {
+            textarea.focus();
+            const delta = newPrefixLength - originalPrefixLength;
+            const newCursorPos = Math.max(lineStart, start + delta);
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+          }, 0);
+
+          return;
+        }
+
+        // 2. Inline/Block formatting (bold, italic, strikethrough, link, code)
+        let replacement = "";
+        let selectionStartOffset = 0;
+        let selectionEndOffset = 0;
+        let shouldSelectTextRange = false;
+
+        if (selectedText) {
+          switch (formatType) {
+            case "bold":
+              replacement = `**${selectedText}**`;
+              selectionStartOffset = replacement.length;
+              selectionEndOffset = replacement.length;
+              break;
+            case "italic":
+              replacement = `*${selectedText}*`;
+              selectionStartOffset = replacement.length;
+              selectionEndOffset = replacement.length;
+              break;
+            case "strikethrough":
+              replacement = `~~${selectedText}~~`;
+              selectionStartOffset = replacement.length;
+              selectionEndOffset = replacement.length;
+              break;
+            case "link":
+              replacement = `[${selectedText}]()`;
+              selectionStartOffset = selectedText.length + 3; // Position inside ()
+              selectionEndOffset = selectionStartOffset;
+              shouldSelectTextRange = false;
+              break;
+            case "code":
+              if (selectedText.includes("\n")) {
+                replacement = `\`\`\`\n${selectedText}\n\`\`\``;
+              } else {
+                replacement = `\`${selectedText}\``;
+              }
+              selectionStartOffset = replacement.length;
+              selectionEndOffset = replacement.length;
+              break;
+          }
+        } else {
+          switch (formatType) {
+            case "bold":
+              replacement = "****";
+              selectionStartOffset = 2;
+              selectionEndOffset = 2;
+              break;
+            case "italic":
+              replacement = "**";
+              selectionStartOffset = 1;
+              selectionEndOffset = 1;
+              break;
+            case "strikethrough":
+              replacement = "~~~~";
+              selectionStartOffset = 2;
+              selectionEndOffset = 2;
+              break;
+            case "link":
+              replacement = "[]()";
+              selectionStartOffset = 1; // inside []
+              selectionEndOffset = 1;
+              break;
+            case "code":
+              const beforeText = text.substring(0, start);
+              const lineStart = beforeText.lastIndexOf("\n") + 1;
+              const afterText = text.substring(end);
+              const nextNewline = afterText.indexOf("\n");
+              const lineEnd =
+                nextNewline === -1 ? text.length : end + nextNewline;
+              const currentLine = text.substring(lineStart, lineEnd);
+
+              if (currentLine.trim() === "") {
+                replacement = "```\n\n```";
+                selectionStartOffset = 4; // empty line inside ```
+                selectionEndOffset = 4;
+              } else {
+                replacement = "``";
+                selectionStartOffset = 1; // inside ``
+                selectionEndOffset = 1;
+              }
+              break;
+          }
+        }
+
+        const newMessage =
+          text.substring(0, start) + replacement + text.substring(end);
+        setMessage(newMessage);
+
+        setTimeout(() => {
+          textarea.focus();
+          if (shouldSelectTextRange) {
+            textarea.setSelectionRange(
+              start + selectionStartOffset,
+              start + selectionEndOffset,
+            );
+          } else {
+            textarea.setSelectionRange(
+              start + selectionStartOffset,
+              start + selectionStartOffset,
+            );
+          }
+        }, 0);
+      },
+      [message],
+    );
+
+    // Tự động co giãn chiều cao theo nội dung nhập (tối đa 4-5 dòng)
+    useEffect(() => {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+
+      textarea.style.height = "auto";
+      const borderHeight = textarea.offsetHeight - textarea.clientHeight;
+      const maxHeight = isThread ? 96 : 120; // Cực đại 4-5 dòng
+      const newHeight = Math.min(textarea.scrollHeight + borderHeight, maxHeight);
+      textarea.style.height = `${newHeight}px`;
+    }, [message, isThread]);
 
     useEffect(() => {
       return () => {
@@ -283,7 +526,9 @@ const ChatInput = React.memo(
 
         if (!isTypingRef.current && text.trim().length > 0) {
           isTypingRef.current = true;
-          onTypingChange?.(true);
+          if (!isThread) {
+            onTypingChange?.(true);
+          }
         }
 
         if (typingTimeoutRef.current) {
@@ -293,16 +538,20 @@ const ChatInput = React.memo(
         if (text.trim().length === 0) {
           if (isTypingRef.current) {
             isTypingRef.current = false;
-            onTypingChange?.(false);
+            if (!isThread) {
+              onTypingChange?.(false);
+            }
           }
         } else {
           typingTimeoutRef.current = setTimeout(() => {
             isTypingRef.current = false;
-            onTypingChange?.(false);
+            if (!isThread) {
+              onTypingChange?.(false);
+            }
           }, 3000);
         }
       },
-      [onTypingChange],
+      [onTypingChange, isThread],
     );
 
     useImperativeHandle(ref, () => ({
@@ -324,12 +573,14 @@ const ChatInput = React.memo(
       // Clear typing state when active conversation changes
       if (isTypingRef.current) {
         isTypingRef.current = false;
-        onTypingChange?.(false);
+        if (!isThread) {
+          onTypingChange?.(false);
+        }
       }
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
-    }, [activeConversationId, onTypingChange]);
+    }, [activeConversationId, onTypingChange, isThread]);
 
     const uploadFilesList = async (files: File[]) => {
       const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
@@ -562,7 +813,13 @@ const ChatInput = React.memo(
     }
 
     return (
-      <div className="p-4 bg-white border-t border-gray-200">
+      <div
+        className={
+          isThread
+            ? "p-2 bg-white border-t border-gray-200"
+            : "p-4 bg-white border-t border-gray-200"
+        }
+      >
         {/* File Previews */}
         {uploadingMedia.length > 0 && (
           <div className="flex gap-2 flex-wrap mb-2">
@@ -615,7 +872,9 @@ const ChatInput = React.memo(
           </div>
         )}
 
-        <div className="flex items-end gap-2 bg-gray-50 rounded-2xl p-2 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all relative">
+        <div
+          className={`flex bg-gray-50 border border-gray-200 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all relative ${isThread ? "rounded-xl p-1.5 gap-1 items-center" : "rounded-2xl p-2 gap-2 items-end"}`}
+        >
           {/* Hidden Inputs */}
           <input
             type="file"
@@ -627,65 +886,97 @@ const ChatInput = React.memo(
             disabled={isUploading}
           />
 
-          {/* Attachment Options Menu */}
+          {/* Attachment Options Menu / Direct File Upload for Thread */}
           <div className="relative">
-            <button
-              onClick={() => setShowOptions(!showOptions)}
-              disabled={isUploading}
-              className={`cursor-pointer p-2 rounded-full transition-colors ${showOptions ? "bg-blue-100 text-blue-600" : "text-gray-500 hover:bg-gray-200"}`}
-            >
-              <Plus
-                size={20}
-                className={`transition-transform ${showOptions ? "rotate-45" : ""}`}
-              />
-            </button>
-
-            {showOptions && (
-              <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-10">
+            {isThread ? (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+                className="cursor-pointer p-1.5 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors"
+                title="Đính kèm tài liệu"
+              >
+                <Paperclip size={18} />
+              </button>
+            ) : (
+              <>
                 <button
-                  onClick={() => fileInputRef.current?.click()}
+                  type="button"
+                  onClick={() => setShowOptions(!showOptions)}
                   disabled={isUploading}
-                  className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                  className={`cursor-pointer p-2 rounded-full transition-colors ${showOptions ? "bg-blue-100 text-blue-600" : "text-gray-500 hover:bg-gray-200"}`}
                 >
-                  <Paperclip size={16} className="text-gray-500" /> Tài liệu
-                </button>
-                
-                <div className="h-px bg-gray-100 my-1"></div>
-                
-                <button disabled={isUploading} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50">
-                  <CheckSquare size={16} className="text-green-500" /> Công việc
+                  <Plus
+                    size={20}
+                    className={`transition-transform ${showOptions ? "rotate-45" : ""}`}
+                  />
                 </button>
 
-                {allowCreatePoll && (
-                  <button
-                    onClick={() => {
-                      setShowOptions(false);
-                      onCreatePoll?.();
-                    }}
-                    disabled={isUploading}
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
-                  >
-                    <BarChart2 size={16} className="text-purple-500" /> Bình chọn
-                  </button>
+                {showOptions && (
+                  <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-10">
+                    <button
+                      onClick={() => {
+                        setShowOptions(false);
+                        fileInputRef.current?.click();
+                      }}
+                      disabled={isUploading}
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                    >
+                      <Paperclip size={16} className="text-gray-500" /> Tài liệu
+                    </button>
+
+                    {!isThread && (
+                      <>
+                        <div className="h-px bg-gray-100 my-1"></div>
+
+                        <button
+                          disabled={isUploading}
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
+                        >
+                          <CheckSquare size={16} className="text-green-500" />{" "}
+                          Công việc
+                        </button>
+
+                        {allowCreatePoll && (
+                          <button
+                            onClick={() => {
+                              setShowOptions(false);
+                              onCreatePoll?.();
+                            }}
+                            disabled={isUploading}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                          >
+                            <BarChart2 size={16} className="text-purple-500" />{" "}
+                            Bình chọn
+                          </button>
+                        )}
+
+                        <button
+                          disabled={isUploading}
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
+                        >
+                          <Calendar size={16} className="text-orange-500" /> Sự
+                          kiện
+                        </button>
+
+                        {allowCreateNote && (
+                          <button
+                            onClick={() => {
+                              setShowOptions(false);
+                              onCreateNote?.();
+                            }}
+                            disabled={isUploading}
+                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                          >
+                            <FileText size={16} className="text-yellow-500" />{" "}
+                            Ghi chú
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
                 )}
-
-                <button disabled={isUploading} className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50">
-                  <Calendar size={16} className="text-orange-500" /> Sự kiện
-                </button>
-
-                {allowCreateNote && (
-                  <button
-                    onClick={() => {
-                      setShowOptions(false);
-                      onCreateNote?.();
-                    }}
-                    disabled={isUploading}
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
-                  >
-                    <FileText size={16} className="text-yellow-500" /> Ghi chú
-                  </button>
-                )}
-              </div>
+              </>
             )}
           </div>
 
@@ -697,74 +988,243 @@ const ChatInput = React.memo(
             onSelect={insertMention}
           />
 
-          {/* Message Textarea */}
-          <textarea
-            id="chat-input-textarea"
-            ref={textareaRef}
-            value={
-              message +
-              (interimMessage ? (message ? " " : "") + interimMessage : "")
-            }
-            onChange={(e) => {
-              if (interimMessage) {
-                // Nếu người dùng gõ phím khi đang có interimMessage, ta chốt luôn interimMessage vào message
-                setMessage(e.target.value);
-                setInterimMessage("");
-              } else {
-                handleTyping(e.target.value, e.target.selectionStart);
-              }
-            }}
-            placeholder={
-              activeConversation?.type === "DIRECT"
-                ? `Nhập tin nhắn tới ${
-                    memberProfiles?.[
-                      activeConversation.members?.find(
-                        (m: any) => m.userId !== authUserId,
-                      )?.userId
-                    ]?.fullName || "người dùng"
-                  }...`
-                : "Nhập @, tin nhắn tới nhóm " + activeConversation?.name
-            }
-            disabled={isUploading}
-            className="flex-1 max-h-32 min-h-[40px] bg-transparent resize-none outline-none px-2 py-2 text-gray-800 placeholder-gray-400 disabled:opacity-50"
-            rows={1}
-            onKeyDown={(e) => {
-              if (mentionQuery !== null && filteredMembers.length > 0) {
-                if (e.key === "ArrowUp") {
-                  e.preventDefault();
-                  setSelectedIndex((prev) =>
-                    prev > 0 ? prev - 1 : filteredMembers.length - 1,
-                  );
-                  return;
-                }
-                if (e.key === "ArrowDown") {
-                  e.preventDefault();
-                  setSelectedIndex((prev) =>
-                    prev < filteredMembers.length - 1 ? prev + 1 : 0,
-                  );
-                  return;
-                }
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  insertMention(filteredMembers[selectedIndex]);
-                  return;
-                }
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  setMentionQuery(null);
-                  return;
-                }
-              }
+          {/* Message Textarea Wrapper with Formatting Toolbar */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Formatting Toolbar */}
+            {showFormatting && (
+              <div className="flex items-center gap-0.5 pb-1.5 mb-1 border-b border-gray-200/60 overflow-x-auto scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("bold")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Đậm (Bold)"
+                >
+                  <Bold size={isThread ? 13 : 15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("italic")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Nghiêng (Italic)"
+                >
+                  <Italic size={isThread ? 13 : 15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("strikethrough")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Gạch ngang (Strikethrough)"
+                >
+                  <Strikethrough size={isThread ? 13 : 15} />
+                </button>
 
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
+                <div
+                  className={`w-px bg-gray-200 mx-1 ${isThread ? "h-3" : "h-4"}`}
+                ></div>
+
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("heading")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Tiêu đề (Heading)"
+                >
+                  <Heading size={isThread ? 13 : 15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("link")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Liên kết (Link)"
+                >
+                  <Link size={isThread ? 13 : 15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("code")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Đoạn mã (Code block / Inline)"
+                >
+                  <Code size={isThread ? 13 : 15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("quote")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Trích dẫn (Quote)"
+                >
+                  <Quote size={isThread ? 13 : 15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("bullet")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Danh sách dấu chấm (Bulleted list)"
+                >
+                  <List size={isThread ? 13 : 15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => applyFormatting("number")}
+                  className={`hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer ${isThread ? "p-0.5" : "p-1"}`}
+                  title="Danh sách số (Numbered list)"
+                >
+                  <ListOrdered size={isThread ? 13 : 15} />
+                </button>
+              </div>
+            )}
+
+            {/* Message Textarea */}
+            <textarea
+              id="chat-input-textarea"
+              ref={textareaRef}
+              value={
+                message +
+                (interimMessage ? (message ? " " : "") + interimMessage : "")
               }
-            }}
-          />
+              onChange={(e) => {
+                if (interimMessage) {
+                  setMessage(e.target.value);
+                  setInterimMessage("");
+                } else {
+                  handleTyping(e.target.value, e.target.selectionStart);
+                }
+              }}
+              placeholder={
+                isThread
+                  ? "Phản hồi trong chủ đề..."
+                  : activeConversation?.type === "DIRECT"
+                    ? `Nhập tin nhắn tới ${
+                        memberProfiles?.[
+                          activeConversation.members?.find(
+                            (m: any) => m.userId !== authUserId,
+                          )?.userId
+                        ]?.fullName || "người dùng"
+                      }...`
+                    : "Nhập @, tin nhắn tới nhóm " + activeConversation?.name
+              }
+              disabled={isUploading}
+              className={`flex-1 bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto ${isThread ? "px-1 py-1 text-xs min-h-[32px]" : "px-2 py-2 text-sm min-h-[44px]"}`}
+              rows={1}
+              onKeyDown={(e) => {
+                if (mentionQuery !== null && filteredMembers.length > 0) {
+                  if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                      prev > 0 ? prev - 1 : filteredMembers.length - 1,
+                    );
+                    return;
+                  }
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    setSelectedIndex((prev) =>
+                      prev < filteredMembers.length - 1 ? prev + 1 : 0,
+                    );
+                    return;
+                  }
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    insertMention(filteredMembers[selectedIndex]);
+                    return;
+                  }
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    setMentionQuery(null);
+                    return;
+                  }
+                }
+
+                if (e.key === "Enter" && e.shiftKey) {
+                  const textarea = textareaRef.current;
+                  if (textarea) {
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+                    const text = message;
+
+                    const beforeText = text.substring(0, start);
+                    const lineStart = beforeText.lastIndexOf("\n") + 1;
+                    const afterText = text.substring(end);
+                    const nextNewline = afterText.indexOf("\n");
+                    const lineEnd =
+                      nextNewline === -1 ? text.length : end + nextNewline;
+                    const currentLine = text.substring(lineStart, lineEnd);
+
+                    const bulletMatch = currentLine.match(/^([\-\*])\s*(.*)$/);
+                    const numberMatch = currentLine.match(/^(\d+)\.\s*(.*)$/);
+
+                    if (bulletMatch) {
+                      e.preventDefault();
+                      const bulletSymbol = bulletMatch[1];
+                      const bulletText = bulletMatch[2];
+
+                      if (bulletText.trim() === "") {
+                        // Toggle list off: remove the prefix from current line
+                        const newMessage =
+                          text.substring(0, lineStart) +
+                          text.substring(lineEnd);
+                        setMessage(newMessage);
+                        setTimeout(() => {
+                          textarea.setSelectionRange(lineStart, lineStart);
+                        }, 0);
+                      } else {
+                        // Continue list
+                        const insertText = `\n${bulletSymbol} `;
+                        const newMessage =
+                          text.substring(0, start) +
+                          insertText +
+                          text.substring(end);
+                        setMessage(newMessage);
+                        setTimeout(() => {
+                          const newPos = start + insertText.length;
+                          textarea.setSelectionRange(newPos, newPos);
+                        }, 0);
+                      }
+                      return;
+                    }
+
+                    if (numberMatch) {
+                      e.preventDefault();
+                      const currentNum = parseInt(numberMatch[1], 10);
+                      const numberText = numberMatch[2];
+
+                      if (numberText.trim() === "") {
+                        // Toggle list off
+                        const newMessage =
+                          text.substring(0, lineStart) +
+                          text.substring(lineEnd);
+                        setMessage(newMessage);
+                        setTimeout(() => {
+                          textarea.setSelectionRange(lineStart, lineStart);
+                        }, 0);
+                      } else {
+                        // Continue list with next number
+                        const insertText = `\n${currentNum + 1}. `;
+                        const newMessage =
+                          text.substring(0, start) +
+                          insertText +
+                          text.substring(end);
+                        setMessage(newMessage);
+                        setTimeout(() => {
+                          const newPos = start + insertText.length;
+                          textarea.setSelectionRange(newPos, newPos);
+                        }, 0);
+                      }
+                      return;
+                    }
+                  }
+                }
+
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+          </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-1 pb-1 relative">
+          <div
+            className={`flex items-center gap-1 relative ${isThread ? "" : "pb-1"}`}
+          >
             {isRecording ? (
               <div className="flex items-center gap-3 px-2 flex-1 animate-in fade-in">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
@@ -788,15 +1248,38 @@ const ChatInput = React.memo(
               </div>
             ) : (
               <>
+                {/* Text Formatting Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowFormatting(!showFormatting)}
+                  className={`cursor-pointer ${
+                    isThread ? "p-1.5" : "p-2"
+                  } rounded-full transition-colors ${
+                    showFormatting
+                      ? "bg-blue-100 text-blue-600"
+                      : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                  }`}
+                  title="Định dạng văn bản"
+                  disabled={isUploading}
+                >
+                  <Type size={isThread ? 18 : 20} />
+                </button>
+
                 <div className="relative">
                   <button
                     ref={emojiButtonRef}
                     onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                    className={`cursor-pointer p-2 rounded-full transition-colors ${showEmojiPicker ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"}`}
+                    className={`cursor-pointer ${
+                      isThread ? "p-1.5" : "p-2"
+                    } rounded-full transition-colors ${
+                      showEmojiPicker
+                        ? "bg-blue-100 text-blue-600"
+                        : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                    }`}
                     disabled={isUploading}
                     title="Chèn biểu tượng cảm xúc"
                   >
-                    <Smile size={20} />
+                    <Smile size={isThread ? 18 : 20} />
                   </button>
                   <EmojiPickerPopover
                     isOpen={showEmojiPicker}
@@ -816,11 +1299,19 @@ const ChatInput = React.memo(
                         setShowMicOptions(!showMicOptions);
                       }
                     }}
-                    className={`cursor-pointer p-2 rounded-full transition-colors ${isDictating ? "bg-red-100 text-red-600 animate-pulse" : showMicOptions ? "bg-blue-100 text-blue-600" : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"}`}
+                    className={`cursor-pointer ${
+                      isThread ? "p-1.5" : "p-2"
+                    } rounded-full transition-colors ${
+                      isDictating
+                        ? "bg-red-100 text-red-600 animate-pulse"
+                        : showMicOptions
+                          ? "bg-blue-100 text-blue-600"
+                          : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
+                    }`}
                     title="Tuỳ chọn giọng nói"
                     disabled={isUploading}
                   >
-                    {isDictating ? <Mic size={20} /> : <Mic size={20} />}
+                    <Mic size={isThread ? 18 : 20} />
                   </button>
 
                   {showMicOptions && !isDictating && (
@@ -850,14 +1341,22 @@ const ChatInput = React.memo(
                 </div>
 
                 <button
-                  className={`p-2 rounded-full transition-colors flex items-center justify-center ${(message.trim() || uploadingMedia.some((m) => m.status === "success")) && !isUploading ? "bg-blue-600 text-white hover:bg-blue-700" : "bg-gray-200 text-gray-400"}`}
+                  className={`${
+                    isThread ? "p-1.5" : "p-2"
+                  } rounded-full transition-colors flex items-center justify-center ${
+                    (message.trim() ||
+                      uploadingMedia.some((m) => m.status === "success")) &&
+                    !isUploading
+                      ? "bg-blue-600 text-white hover:bg-blue-700"
+                      : "bg-gray-200 text-gray-400"
+                  }`}
                   disabled={
                     (!message.trim() && uploadingMedia.length === 0) ||
                     isUploading
                   }
                   onClick={handleSend}
                 >
-                  <Send size={18} className="mr-0.5" />
+                  <Send size={isThread ? 16 : 18} className="mr-0.5" />
                 </button>
               </>
             )}

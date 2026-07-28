@@ -238,7 +238,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                   {item.href === "/chat" &&
                     pathname !== "/chat" &&
                     totalUnreadChat > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-black h-4 min-w-3 px-1 rounded-full flex items-center justify-center border border-white">
+                      <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-black h-5 min-w-5 px-1 rounded-full flex items-center justify-center border border-white">
                         {totalUnreadChat > 99 ? "99+" : totalUnreadChat}
                       </span>
                     )}

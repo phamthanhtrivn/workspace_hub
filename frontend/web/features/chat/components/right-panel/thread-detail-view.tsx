@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { X, Send, User } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { X, User, FileText, Download } from "lucide-react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getThreadMessages } from "../../api/chat.api";
@@ -10,6 +10,8 @@ import { ChatEvent } from "../../api/chat.events";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { formatConversationTime } from "@/lib/date";
+import ChatInput from "../input/chat-input";
+import { renderMessageContent } from "../../utils/message-formatter";
 
 interface ThreadDetailViewProps {
   rootMessage: any;
@@ -20,12 +22,11 @@ export default function ThreadDetailView({
   rootMessage,
   onBack,
 }: ThreadDetailViewProps) {
-  const [inputText, setInputText] = useState("");
   const queryClient = useQueryClient();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const memberProfiles = useChatMemberProfiles();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const chatInputRef = useRef<any>(null);
 
   // Fetch thread messages (root message + replies)
   const { data: threadData, isLoading } = useQuery({
@@ -79,33 +80,138 @@ export default function ThreadDetailView({
 
   // Focus input when the thread details view opens or the active thread message changes
   useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
+    if (chatInputRef.current) {
+      chatInputRef.current.focus();
     }
     const timer = setTimeout(() => {
-      if (inputRef.current) {
-        inputRef.current.focus();
+      if (chatInputRef.current) {
+        chatInputRef.current.focus();
       }
     }, 100);
     return () => clearTimeout(timer);
   }, [rootMessage.id]);
 
-  const handleSend = () => {
-    if (!inputText.trim()) return;
+  const handleSendReply = (
+    content: string,
+    media?: any[],
+    mentions?: string[],
+  ) => {
     const socket = socketService.getSocket();
     if (!socket) return;
 
     socket.emit(ChatEvent.SEND_MESSAGE, {
       conversationId: rootMessage.conversationId,
-      content: inputText.trim(),
+      content,
+      medias: media,
       threadParentId: rootMessage.id,
+      mentions,
     });
-
-    setInputText("");
   };
 
   const getProfile = (userId: string) => {
     return memberProfiles[userId] || null;
+  };
+
+  const renderThreadMessageMedias = (messageItem: any) => {
+    if (!messageItem.medias || messageItem.medias.length === 0) return null;
+
+    const visualMedias = messageItem.medias.filter(
+      (m: any) => m.type === "IMAGE" || m.type === "VIDEO",
+    );
+    const fileMedias = messageItem.medias.filter(
+      (m: any) => m.type !== "IMAGE" && m.type !== "VIDEO",
+    );
+
+    return (
+      <div className="mt-2 space-y-2 max-w-full">
+        {/* Render images/videos */}
+        {visualMedias.length > 0 && (
+          <div className="grid gap-1 grid-cols-1 max-w-[240px]">
+            {visualMedias.map((media: any) => {
+              if (media.type === "IMAGE") {
+                return (
+                  <a
+                    key={media.id}
+                    href={media.fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="cursor-pointer overflow-hidden rounded-lg block border border-gray-100 shadow-sm"
+                  >
+                    <img
+                      src={media.fileUrl}
+                      alt={media.name}
+                      className="w-full max-h-[160px] object-cover hover:opacity-90 transition"
+                    />
+                  </a>
+                );
+              } else {
+                return (
+                  <div
+                    key={media.id}
+                    className="relative w-full rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-black/5"
+                  >
+                    <video
+                      src={media.fileUrl}
+                      controls
+                      className="w-full max-h-[160px] object-cover"
+                    />
+                  </div>
+                );
+              }
+            })}
+          </div>
+        )}
+
+        {/* Render file attachments */}
+        {fileMedias.length > 0 && (
+          <div className="flex flex-col gap-1.5 max-w-full">
+            {fileMedias.map((media: any) => {
+              const formatSize = (bytes: number) => {
+                if (bytes === 0) return "0 B";
+                const k = 1024;
+                const sizes = ["B", "KB", "MB"];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return (
+                  parseFloat((bytes / Math.pow(k, i)).toFixed(1)) +
+                  " " +
+                  sizes[i]
+                );
+              };
+
+              return (
+                <div
+                  key={media.id}
+                  className="flex items-center justify-between gap-3 py-1.5 px-2.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition max-w-[240px]"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="p-1.5 rounded-md bg-blue-50 text-blue-500 flex-shrink-0">
+                      <FileText size={16} />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-medium truncate text-gray-800">
+                        {media.name}
+                      </span>
+                      <span className="text-[9px] text-gray-400">
+                        {formatSize(media.sizeBytes)}
+                      </span>
+                    </div>
+                  </div>
+                  <a
+                    href={media.fileUrl}
+                    download={media.name}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-700 transition"
+                  >
+                    <Download size={14} />
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -151,8 +257,16 @@ export default function ThreadDetailView({
                   {formatConversationTime(rootMessage.createdAt)}
                 </span>
               </div>
-              <div className="text-xs text-gray-800 break-words whitespace-pre-line bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                {rootMessage.content || "[Đính kèm]"}
+              <div className="text-xs text-gray-800 break-words bg-gray-200 p-2.5 rounded-lg border border-gray-100">
+                {rootMessage.content ? (
+                  renderMessageContent(
+                    rootMessage.content,
+                    memberProfiles ?? undefined,
+                  )
+                ) : (
+                  <span className="text-gray-400 italic">[Đính kèm]</span>
+                )}
+                {renderThreadMessageMedias(rootMessage)}
               </div>
             </div>
           </div>
@@ -196,8 +310,12 @@ export default function ThreadDetailView({
                         {formatConversationTime(reply.createdAt)}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-800 break-words whitespace-pre-line bg-gray-100/50 p-2 rounded-lg">
-                      {reply.content}
+                    <div className="text-xs text-gray-800 break-words bg-gray-100/50 p-2 rounded-lg">
+                      {renderMessageContent(
+                        reply.content,
+                        memberProfiles ?? undefined,
+                      )}
+                      {renderThreadMessageMedias(reply)}
                     </div>
                   </div>
                 </div>
@@ -208,29 +326,11 @@ export default function ThreadDetailView({
       </div>
 
       {/* Input bar */}
-      <div className="p-3 border-t border-gray-200 flex gap-2 items-center bg-gray-50">
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
-          placeholder="Phản hồi trong chủ đề..."
-          className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400"
-        />
-        <button
-          onClick={handleSend}
-          disabled={!inputText.trim()}
-          className="cursor-pointer p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-        >
-          <Send size={14} />
-        </button>
-      </div>
+      <ChatInput
+        ref={chatInputRef}
+        isThread={true}
+        onSendMessage={handleSendReply}
+      />
     </div>
   );
 }
