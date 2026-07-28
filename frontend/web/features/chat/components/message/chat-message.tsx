@@ -187,7 +187,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
     return (
       <div
-        className={`grid gap-1 ${gridClass} w-full ${visualMedias.length === 1 ? "max-w-sm" : "max-w-xs sm:max-w-sm md:max-w-md"}`}
+        className={`grid gap-1 ${gridClass} w-full max-w-full ${visualMedias.length === 1 ? "sm:max-w-sm" : "sm:max-w-xs sm:max-w-sm md:max-w-md"}`}
       >
         {visualMedias.map((media: any) => {
           if (media.type === "IMAGE") {
@@ -491,10 +491,10 @@ const ChatMessage = React.memo(function ChatMessage({
               )}
               {renderVisualMedias()}
               {renderFileMedias()}
-              <div className="flex flex-col relative">
+              <div className="flex flex-col relative max-w-full">
                 {msg.replyTo && (
                   <div
-                    className={`mb-1 px-3 py-2 text-xs border-l-4 rounded-md cursor-pointer hover:opacity-80 transition flex flex-col min-w-[120px] max-w-[250px] truncate ${isMe ? "bg-[#BFDBFE] border-blue-400 text-blue-900" : "bg-gray-100 border-gray-400 text-gray-700"}`}
+                    className={`mb-1 px-3 py-2 text-xs border-l-4 rounded-md cursor-pointer hover:opacity-80 transition flex flex-col min-w-[120px] max-w-full truncate ${isMe ? "bg-[#BFDBFE] border-blue-400 text-blue-900" : "bg-gray-100 border-gray-400 text-gray-700"}`}
                     onClick={() => {
                       if (onJumpToMessage) {
                         onJumpToMessage(msg.replyTo.id);
@@ -535,7 +535,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 )}
                 {hasText && (
                   <div
-                    className={`p-3 shadow-sm text-sm flex flex-col relative ${
+                    className={`p-3 shadow-sm text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden ${
                       isMe
                         ? msg.threadReplyCount > 0
                           ? "bg-[#EEF2FF] border border-indigo-200 text-indigo-950 rounded-2xl rounded-br-sm shadow-[0_0_10px_rgba(99,102,241,0.08)]"

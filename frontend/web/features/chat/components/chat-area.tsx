@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import ChatInput, { ChatInputRef } from "./input/chat-input";
+import ConversationChatInput, { ConversationChatInputRef } from "./input/conversation-chat-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
 import { PinnedMessagesBar } from "./pinned-messages-bar";
@@ -66,7 +66,7 @@ export default function ChatArea({
   const typingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<ChatInputRef>(null);
+  const chatInputRef = useRef<ConversationChatInputRef>(null);
 
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
@@ -994,7 +994,7 @@ export default function ChatArea({
       {typingUsers.length > 0 && <TypingIndicator typingUsers={typingUsers} />}
 
       {/* Input Area */}
-      <ChatInput
+      <ConversationChatInput
         ref={chatInputRef}
         onSendMessage={handleSendMessage}
         onCreatePoll={() => setIsPollModalOpen(true)}

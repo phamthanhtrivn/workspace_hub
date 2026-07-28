@@ -236,7 +236,7 @@ export default function ChatRightPanel({
 
   if (detailView === "images" || detailView === "files") {
     return (
-      <div className="w-96 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeConversation!.id}
           type={detailView}
@@ -248,7 +248,7 @@ export default function ChatRightPanel({
 
   if (detailView === "polls") {
     return (
-      <div className="w-96 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PollDetailView
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
@@ -259,7 +259,7 @@ export default function ChatRightPanel({
 
   if (detailView === "search") {
     return (
-      <div className="w-96 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <SearchMessagesSection
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
@@ -270,7 +270,7 @@ export default function ChatRightPanel({
 
   if (detailView === "thread" && activeThreadRootMessage) {
     return (
-      <div className="w-96 border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadDetailView
           rootMessage={activeThreadRootMessage}
           onBack={() => {

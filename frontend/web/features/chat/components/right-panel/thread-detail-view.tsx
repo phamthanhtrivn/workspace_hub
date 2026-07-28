@@ -10,7 +10,7 @@ import { ChatEvent } from "../../api/chat.events";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { formatConversationTime } from "@/lib/date";
-import ChatInput from "../input/chat-input";
+import ThreadChatInput from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
 
 interface ThreadDetailViewProps {
@@ -326,11 +326,7 @@ export default function ThreadDetailView({
       </div>
 
       {/* Input bar */}
-      <ChatInput
-        ref={chatInputRef}
-        isThread={true}
-        onSendMessage={handleSendReply}
-      />
+      <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
     </div>
   );
 }

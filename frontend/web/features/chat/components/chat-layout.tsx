@@ -87,7 +87,7 @@ export default function ChatLayout() {
 
       {/* Right Panel - Togglable (Only show if active chat) */}
       {showRightPanel && activeConversationId && (
-        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-96 md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
+        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
           <ChatRightPanel
             onClose={() => {
               setShowRightPanel(false);

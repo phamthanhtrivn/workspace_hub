@@ -305,7 +305,7 @@ export const parseBlocks = (
           return (
             <pre
               key={`block-code-${partIdx}`}
-              className="bg-gray-950 text-gray-100 font-mono text-[11px] p-3 rounded-lg overflow-x-auto my-1.5 border border-gray-800 leading-normal select-text"
+              className="bg-gray-950 text-gray-100 font-mono text-[11px] p-3 rounded-lg overflow-x-auto max-w-full my-1.5 border border-gray-800 leading-normal select-text"
             >
               <code>{part.content.trim()}</code>
             </pre>
