@@ -162,7 +162,7 @@ const ConversationChatInput = React.memo(
 
         textarea.style.height = "auto";
         const borderHeight = textarea.offsetHeight - textarea.clientHeight;
-        const newHeight = Math.min(textarea.scrollHeight + borderHeight, 120); // Max 120px
+        const newHeight = Math.min(textarea.scrollHeight + borderHeight, 240); // Max 240px
         textarea.style.height = `${newHeight}px`;
       }, [message, interimMessage]);
 
@@ -780,7 +780,7 @@ const ConversationChatInput = React.memo(
                       : "Nhập @, tin nhắn tới nhóm " + activeConversation?.name
                   }
                   disabled={isUploading}
-                  className="flex-1 bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
+                  className="w-full bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"
                   rows={1}
                   onKeyDown={(e) => {
                     if (mentionQuery !== null && filteredMembers.length > 0) {

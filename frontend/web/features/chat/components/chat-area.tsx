@@ -917,7 +917,7 @@ export default function ChatArea({
       {/* Message List Area */}
       <div
         ref={chatContainerRef}
-        className="flex-1 overflow-y-auto p-4 bg-[#e8e8e8] space-y-1 relative flex flex-col-reverse"
+        className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#e8e8e8] space-y-1 relative flex flex-col-reverse"
       >
         <div
           ref={(el) => {

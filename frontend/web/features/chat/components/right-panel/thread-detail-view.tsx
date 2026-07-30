@@ -228,7 +228,7 @@ export default function ThreadDetailView({
       </div>
 
       {/* Message List area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {/* Root parent message */}
         <div className="border-b border-gray-100 pb-4">
           <div className="flex items-start gap-3">

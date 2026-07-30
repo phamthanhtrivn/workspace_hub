@@ -150,7 +150,7 @@ const ThreadChatInput = React.memo(
 
       textarea.style.height = "auto";
       const borderHeight = textarea.offsetHeight - textarea.clientHeight;
-      const newHeight = Math.min(textarea.scrollHeight + borderHeight, 96); // Max 96px inside thread
+      const newHeight = Math.min(textarea.scrollHeight + borderHeight, 180); // Max 180px inside thread
       textarea.style.height = `${newHeight}px`;
     }, [message, interimMessage]);
 
@@ -645,7 +645,7 @@ const ThreadChatInput = React.memo(
                 }}
                 placeholder="Phản hồi trong chủ đề..."
                 disabled={isUploading}
-                className="flex-1 bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
+                className="w-full bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
                 rows={1}
                 onKeyDown={(e) => {
                   if (mentionQuery !== null && filteredMembers.length > 0) {

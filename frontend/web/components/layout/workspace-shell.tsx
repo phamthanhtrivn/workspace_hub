@@ -314,7 +314,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           onOpenSettings={handleOpenSettings}
         />
 
-        <main className="flex-1 overflow-y-auto relative flex flex-col">
+        <main className={`flex-1 ${pathname.startsWith("/chat") ? "overflow-hidden" : "overflow-y-auto"} relative flex flex-col`}>
           <div className="flex-1 w-full h-full flex flex-col">{children}</div>
         </main>
       </div>
