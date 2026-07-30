@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BarChart2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
-import ViewPollModal from "./../view-poll-modal";
+import ViewPollModal from "../modals/view-poll-modal";
 import { formatDividerTime } from "@/lib/date";
 import { usePolls } from "../../hooks/usePolls";
 
@@ -27,7 +27,7 @@ export default function PollsSection({
   const displayPolls = polls.slice(0, 3);
   const hasMore = polls.length > 3;
 
-  const selectedPoll = polls.find((p) => p.id === selectedPollId);
+  const selectedPoll = polls.find((p: any) => p.id === selectedPollId);
 
   return (
     <div>
@@ -58,7 +58,7 @@ export default function PollsSection({
           ) : (
             <>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {displayPolls.map((poll) => (
+                {displayPolls.map((poll: any) => (
                   <div
                     key={poll.id}
                     onClick={() => setSelectedPollId(poll.id)}

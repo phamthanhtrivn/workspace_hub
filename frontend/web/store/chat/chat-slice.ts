@@ -6,18 +6,20 @@ import {
 
 interface ChatState {
   activeConversation: ConversationResponse | null;
-  memberProfiles: Record<string, UserProfileResponse> | null;
   isMobileSidebarOpen: boolean;
   selectedProfileUserId: string | null;
   watermarks: Record<string, string>; // userId -> messageId
+  highlightMessageId: string | null;
+  activeThreadRootMessage: any | null;
 }
 
 const initialState: ChatState = {
   activeConversation: null,
-  memberProfiles: {},
   isMobileSidebarOpen: false,
   selectedProfileUserId: null,
   watermarks: {},
+  highlightMessageId: null,
+  activeThreadRootMessage: null,
 };
 
 const chatSlice = createSlice({
@@ -29,18 +31,8 @@ const chatSlice = createSlice({
       action: PayloadAction<ConversationResponse | null>,
     ) => {
       state.activeConversation = action.payload;
-    },
-    setMemberProfiles: (
-      state,
-      action: PayloadAction<Record<string, UserProfileResponse> | null>,
-    ) => {
-      state.memberProfiles = action.payload;
-    },
-    addMemberProfiles: (
-      state,
-      action: PayloadAction<Record<string, UserProfileResponse>>,
-    ) => {
-      state.memberProfiles = { ...state.memberProfiles, ...action.payload };
+      state.highlightMessageId = null; // Reset highlight when changing conversation
+      state.activeThreadRootMessage = null; // Reset thread when changing conversation
     },
     toggleMobileSidebar: (state) => {
       state.isMobileSidebarOpen = !state.isMobileSidebarOpen;
@@ -57,17 +49,99 @@ const chatSlice = createSlice({
     setWatermarks: (state, action: PayloadAction<Record<string, string>>) => {
       state.watermarks = action.payload;
     },
+    setHighlightMessageId: (state, action: PayloadAction<string | null>) => {
+      state.highlightMessageId = action.payload;
+    },
+    updateGroupSettings: (
+      state,
+      action: PayloadAction<Partial<ConversationResponse["setting"]>>,
+    ) => {
+      if (state.activeConversation && state.activeConversation.setting) {
+        state.activeConversation.setting = {
+          ...state.activeConversation.setting,
+          ...action.payload,
+        };
+      } else if (state.activeConversation) {
+        state.activeConversation.setting = action.payload as any;
+      }
+    },
+    updateMemberRole: (
+      state,
+      action: PayloadAction<{ userId: string; role: any }>,
+    ) => {
+      if (state.activeConversation && state.activeConversation.members) {
+        const member = state.activeConversation.members.find(
+          (m) => m.userId === action.payload.userId,
+        );
+        if (member) {
+          member.role = action.payload.role;
+        }
+      }
+    },
+    removeMember: (state, action: PayloadAction<string>) => {
+      if (state.activeConversation && state.activeConversation.members) {
+        state.activeConversation.members =
+          state.activeConversation.members.filter(
+            (m) => m.userId !== action.payload,
+          );
+      }
+    },
+    updateConversationInfo: (
+      state,
+      action: PayloadAction<{ id: string; name?: string; avatarUrl?: string }>,
+    ) => {
+      if (
+        state.activeConversation &&
+        state.activeConversation.id === action.payload.id
+      ) {
+        if (action.payload.name !== undefined) {
+          state.activeConversation.name = action.payload.name;
+        }
+        if (action.payload.avatarUrl !== undefined) {
+          state.activeConversation.avatarUrl = action.payload.avatarUrl;
+        }
+      }
+    },
+    updateMuteStatus: (
+      state,
+      action: PayloadAction<{
+        conversationId: string;
+        userId: string;
+        muted: boolean;
+      }>,
+    ) => {
+      if (
+        state.activeConversation &&
+        state.activeConversation.id === action.payload.conversationId &&
+        state.activeConversation.members
+      ) {
+        const member = state.activeConversation.members.find(
+          (m) => m.userId === action.payload.userId,
+        );
+        if (member) {
+          member.muted = action.payload.muted;
+        }
+      }
+    },
+    setActiveThreadRootMessage: (state, action: PayloadAction<any | null>) => {
+      state.activeThreadRootMessage = action.payload;
+    },
   },
 });
 
 export const {
   setActiveConversation,
-  setMemberProfiles,
-  addMemberProfiles,
   toggleMobileSidebar,
   setSelectedProfileUserId,
   updateWatermark,
   setWatermarks,
+  setHighlightMessageId,
+  updateGroupSettings,
+  updateMemberRole,
+  removeMember,
+  updateConversationInfo,
+  updateMuteStatus,
+  setActiveThreadRootMessage,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

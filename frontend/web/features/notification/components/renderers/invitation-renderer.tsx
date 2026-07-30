@@ -16,6 +16,7 @@ import {
 } from "@/features/chat/api/chat.api";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const InvitationListItemRenderer: React.FC<{
   notification: Notification;
@@ -72,6 +73,7 @@ export const InvitationModalRenderer: React.FC<{
 }> = ({ notification, onClose, onMarkAsRead }) => {
   const metadata = notification.metadata as InvitationMetadata;
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isResponded, setIsResponded] = useState(false); // To handle already accepted/declined locally
 
@@ -127,7 +129,7 @@ export const InvitationModalRenderer: React.FC<{
         onMarkAsRead(notification.id);
 
         if (action === "accept") {
-          window.dispatchEvent(new Event("refresh-conversations"));
+          queryClient.invalidateQueries({ queryKey: ["conversations"] });
           router.push(`/chat?id=${metadata.conversationId}`);
         }
       } catch (error: any) {

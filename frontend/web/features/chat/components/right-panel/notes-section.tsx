@@ -2,7 +2,7 @@ import { FileText, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { formatDividerTime } from "@/lib/date";
 import { useNotes } from "../../hooks/useNotes";
-import ViewNoteModal from "../view-note-modal";
+import ViewNoteModal from "../modals/view-note-modal";
 import { useState } from "react";
 
 interface NotesSectionProps {
@@ -49,7 +49,7 @@ export default function NotesSection({
               No notes yet
             </div>
           ) : (
-            notes.map((note) => (
+            notes.map((note: any) => (
               <div
                 key={note.id}
                 onClick={() => setSelectedNote(note)}
@@ -71,7 +71,7 @@ export default function NotesSection({
       <ViewNoteModal
         isOpen={!!selectedNote}
         onClose={() => setSelectedNote(null)}
-        note={notes.find((n) => n.id === selectedNote?.id) || selectedNote}
+        note={notes.find((n: any) => n.id === selectedNote?.id) || selectedNote}
         conversationId={activeConversation?.id || ""}
       />
     </div>

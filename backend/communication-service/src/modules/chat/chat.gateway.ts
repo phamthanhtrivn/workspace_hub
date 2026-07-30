@@ -7,13 +7,17 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
+import { Inject, Logger } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
 import { Server, Socket } from 'socket.io';
 import { ChatEvent } from './chat.events';
-import { MessageService } from '../message/message.service';
-import { PollService } from '../poll/poll.service';
-import { NoteService } from '../note/note.service';
+import { MessageService } from '../message/services/message.service';
 import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
+import { PollService } from '../message/services/poll.service';
+import { NoteService } from '../message/services/note.service';
+import { KAFKA_TOPICS, KAFKA_EVENTS } from '../../common/constants/kafka.constants';
+import { getSenderProfile } from '../../common/utils/user.util';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -26,11 +30,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(ChatGateway.name);
+
   constructor(
     private readonly messageService: MessageService,
     private readonly pollService: PollService,
     private readonly noteService: NoteService,
+    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
+
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token || client.handshake.query?.token;
@@ -89,6 +97,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         title: string;
         content: string;
       };
+      replyToMessageId?: string;
+      threadParentId?: string;
+      mentions?: string[];
     },
     @ConnectedSocket() client: Socket,
   ) {
@@ -96,7 +107,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (
       !userId ||
       !data.conversationId ||
-      (data.content === undefined && (!data.medias || data.medias.length === 0) && !data.pollData && !data.noteData)
+      (data.content === undefined &&
+        (!data.medias || data.medias.length === 0) &&
+        !data.pollData &&
+        !data.noteData)
     ) {
       return { status: 'error', message: 'Invalid data' };
     }
@@ -110,6 +124,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.medias,
         data.pollData,
         data.noteData,
+        data.replyToMessageId,
+        data.threadParentId,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
@@ -119,10 +135,63 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const messageWithUrls = {
         ...message,
         medias: mapMediaWithUrl(message.medias),
+        mentions: data.mentions,
       };
 
       const targetRooms = [data.conversationId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
+
+      // Publish new message notification event to Kafka for offline/background push delivery
+      this.messageService
+        .getConversationMembersInfo(data.conversationId)
+        .then(async (membersInfo) => {
+          const mentions = data.mentions || [];
+          const isMentionedAll = mentions.includes('all');
+          const recipientIds = membersInfo
+            .filter((m) => m.userId !== userId) // exclude sender
+            .filter((m) => !m.muted || isMentionedAll || mentions.includes(m.userId)) // unmuted OR tagged OR @All
+            .map((m) => m.userId);
+
+          if (recipientIds.length > 0) {
+            const { senderName, senderAvatar } = await getSenderProfile(userId);
+            
+            let previewContent = data.content || '';
+            if (data.type === MessageType.POLL) {
+              previewContent = `Đã tạo một bình chọn: ${data.pollData?.title || ''}`;
+            } else if (data.type === MessageType.NOTE) {
+              previewContent = `Đã tạo một ghi chú: ${data.noteData?.title || ''}`;
+            } else if (data.medias && data.medias.length > 0) {
+              const type = data.medias[0].mimeType.startsWith('image/')
+                ? 'hình ảnh'
+                : data.medias[0].mimeType.startsWith('video/')
+                ? 'video'
+                : 'tệp đính kèm';
+              previewContent = `Đã gửi một ${type}`;
+            }
+
+            this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+              key: data.conversationId,
+              value: {
+                recipientIds,
+                senderId: userId,
+                senderName,
+                senderAvatar,
+                type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
+                title: senderName,
+                content: previewContent,
+                link: `/chat?id=${data.conversationId}`,
+                metadata: {
+                  conversationId: data.conversationId,
+                  messageId: message.id,
+                },
+              },
+            });
+          }
+        })
+        .catch((err) => {
+          this.logger.error(`Failed to handle Kafka notification for new message: ${err.message}`, err.stack);
+        });
+
 
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
@@ -187,27 +256,44 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.REACT_MESSAGE)
   async handleReactMessage(
-    @MessageBody() data: { conversationId: string; messageId: string; emoji: string; action: 'add' | 'remove' },
+    @MessageBody()
+    data: {
+      conversationId: string;
+      messageId: string;
+      emoji: string;
+      action: 'add' | 'remove';
+    },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.emoji) return;
+    if (!userId || !data.messageId || !data.conversationId || !data.emoji)
+      return;
 
     try {
       let finalAction = data.action;
       let finalEmoji = data.emoji;
 
       if (data.action === 'add') {
-        const result = await this.messageService.addReaction(data.messageId, userId, data.emoji);
+        const result = await this.messageService.addReaction(
+          data.messageId,
+          userId,
+          data.emoji,
+        );
         finalAction = result.action as any;
         finalEmoji = result.emoji;
       } else {
-        await this.messageService.removeReaction(data.messageId, userId, data.emoji);
+        await this.messageService.removeReaction(
+          data.messageId,
+          userId,
+          data.emoji,
+        );
       }
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
         conversationId: data.conversationId,
         messageId: data.messageId,
@@ -224,18 +310,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.VOTE_POLL)
   async handleVotePoll(
-    @MessageBody() data: { conversationId: string; messageId: string; pollOptionId: string },
+    @MessageBody()
+    data: { conversationId: string; messageId: string; pollOptionId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.pollOptionId) return;
+    if (
+      !userId ||
+      !data.messageId ||
+      !data.conversationId ||
+      !data.pollOptionId
+    )
+      return;
 
     try {
-      const updatedMessage = await this.pollService.votePoll(data.messageId, data.pollOptionId, userId);
+      const updatedMessage = await this.pollService.votePoll(
+        data.messageId,
+        data.pollOptionId,
+        userId,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
@@ -246,18 +345,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.ADD_POLL_OPTION)
   async handleAddPollOption(
-    @MessageBody() data: { conversationId: string; messageId: string; text: string },
+    @MessageBody()
+    data: { conversationId: string; messageId: string; text: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.text) return;
+    if (!userId || !data.messageId || !data.conversationId || !data.text)
+      return;
 
     try {
-      const updatedMessage = await this.pollService.addPollOption(data.messageId, data.text, userId);
+      const updatedMessage = await this.pollService.addPollOption(
+        data.messageId,
+        data.text,
+        userId,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
@@ -268,18 +375,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.EDIT_POLL)
   async handleEditPoll(
-    @MessageBody() data: { conversationId: string; messageId: string; title: string; multipleChoice: boolean; allowAddOptions: boolean; anonymous?: boolean; isLocked?: boolean },
+    @MessageBody()
+    data: {
+      conversationId: string;
+      messageId: string;
+      title: string;
+      multipleChoice: boolean;
+      allowAddOptions: boolean;
+      anonymous?: boolean;
+      isLocked?: boolean;
+    },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.title) return;
+    if (!userId || !data.messageId || !data.conversationId || !data.title)
+      return;
 
     try {
-      const updatedMessage = await this.pollService.updatePoll(data.messageId, data.title, data.multipleChoice, data.allowAddOptions, data.anonymous, data.isLocked);
+      const updatedMessage = await this.pollService.updatePoll(
+        data.messageId,
+        data.title,
+        data.multipleChoice,
+        data.allowAddOptions,
+        data.anonymous,
+        data.isLocked,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
@@ -290,23 +416,109 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.EDIT_NOTE)
   async handleEditNote(
-    @MessageBody() data: { conversationId: string; messageId: string; title: string; content: string },
+    @MessageBody()
+    data: {
+      conversationId: string;
+      messageId: string;
+      title: string;
+      content: string;
+    },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.title || !data.content) return;
+    if (
+      !userId ||
+      !data.messageId ||
+      !data.conversationId ||
+      !data.title ||
+      !data.content
+    )
+      return;
 
     try {
-      const updatedMessage = await this.noteService.updateNote(data.messageId, data.title, data.content, userId);
+      const updatedMessage = await this.noteService.updateNote(
+        data.messageId,
+        data.title,
+        data.content,
+        userId,
+      );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
     } catch (error) {
       console.error(error);
       return { status: 'error', message: 'Failed to edit note' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.EDIT_MESSAGE)
+  async handleEditMessage(
+    @MessageBody()
+    data: { conversationId: string; messageId: string; content: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (
+      !userId ||
+      !data.messageId ||
+      !data.conversationId ||
+      data.content === undefined
+    )
+      return;
+
+    try {
+      const updatedMessage = await this.messageService.editMessage(
+        data.messageId,
+        data.content,
+        userId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      this.server
+        .to(targetRooms)
+        .emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to edit message' };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.RECALL_MESSAGE)
+  async handleRecallMessage(
+    @MessageBody() data: { conversationId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId) return;
+
+    try {
+      const updatedMessage = await this.messageService.recallMessage(
+        data.messageId,
+        userId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      this.server
+        .to(targetRooms)
+        .emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return { status: 'error', message: 'Failed to recall message' };
     }
   }
 
@@ -319,11 +531,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId || !data.messageId || !data.conversationId) return;
 
     try {
-      const readReceipt = await this.messageService.markConversationAsRead(data.conversationId, userId, data.messageId);
-      
-      const memberUserIds = await this.messageService.getConversationMemberIds(data.conversationId);
+      const readReceipt = await this.messageService.markConversationAsRead(
+        data.conversationId,
+        userId,
+        data.messageId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
       const targetRooms = [data.conversationId, ...memberUserIds];
-      
+
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
         conversationId: data.conversationId,
         messageId: data.messageId,
@@ -337,7 +555,105 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage(ChatEvent.TYPING)
+  async handleTyping(
+    @MessageBody() data: { conversationId: string; isTyping: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.conversationId) return;
+
+    try {
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      this.server.to(targetRooms).emit(ChatEvent.TYPING, {
+        conversationId: data.conversationId,
+        userId,
+        isTyping: data.isTyping,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   emitMemberJoin(targetRooms: string[], payload: any) {
     this.server.to(targetRooms).emit(ChatEvent.JOIN_CONVERSATION, payload);
+  }
+
+  @SubscribeMessage(ChatEvent.PIN_MESSAGE)
+  async handlePinMessage(
+    @MessageBody() data: { conversationId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId) return;
+
+    try {
+      const updatedMessage = await this.messageService.pinMessage(
+        data.messageId,
+        userId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      const messageWithUrls = {
+        ...updatedMessage,
+        medias: mapMediaWithUrl(updatedMessage.medias),
+      };
+
+      this.server
+        .to(targetRooms)
+        .emit(ChatEvent.MESSAGE_PINNED, messageWithUrls);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return {
+        status: 'error',
+        message: error.message || 'Failed to pin message',
+      };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.UNPIN_MESSAGE)
+  async handleUnpinMessage(
+    @MessageBody() data: { conversationId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId) return;
+
+    try {
+      const updatedMessage = await this.messageService.unpinMessage(
+        data.messageId,
+        userId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.conversationId,
+      );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      const messageWithUrls = {
+        ...updatedMessage,
+        medias: mapMediaWithUrl(updatedMessage.medias),
+      };
+
+      this.server
+        .to(targetRooms)
+        .emit(ChatEvent.MESSAGE_UNPINNED, messageWithUrls);
+      return { status: 'success' };
+    } catch (error) {
+      console.error(error);
+      return {
+        status: 'error',
+        message: error.message || 'Failed to unpin message',
+      };
+    }
   }
 }

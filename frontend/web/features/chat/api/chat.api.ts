@@ -30,6 +30,30 @@ export const createGroupConversation = async (
   return response.data;
 };
 
+export const inviteMembers = async (
+  conversationId: string,
+  memberIds: string[],
+): Promise<any> => {
+  const response = await api.post(
+    `/api/conversations/${conversationId}/members/invite`,
+    { memberIds },
+  );
+  return response.data;
+};
+
+export const updateGroupInfo = async (
+  conversationId: string,
+  name?: string,
+  avatarUrl?: string,
+): Promise<any> => {
+  const response = await api.patch(`/api/conversations/${conversationId}/info`, {
+    name,
+    avatarUrl,
+  });
+  return response.data;
+};
+
+
 export const getPublicProfile = async (id: string): Promise<any> => {
   const response = await api.get(`/api/users/${id}/profile`);
   return response.data;
@@ -59,11 +83,12 @@ export const getConversationMessages = async (
   conversationId: string,
   cursor?: string,
   limit?: number,
+  direction?: "older" | "newer" | "around",
 ): Promise<any> => {
   const response = await api.get(
     `/api/conversations/${conversationId}/messages`,
     {
-      params: { cursor, limit },
+      params: { cursor, limit, direction },
     },
   );
   return response.data;
@@ -79,3 +104,118 @@ export const getConversationMedia = async (
   });
   return response.data;
 };
+
+export const getPinnedMessages = async (
+  conversationId: string,
+): Promise<any> => {
+  const response = await api.get(
+    `/api/conversations/${conversationId}/pinned-messages`,
+  );
+  return response.data;
+};
+
+export const searchConversationMessages = async (
+  conversationId: string,
+  q?: string,
+  senderId?: string,
+  type?: "TEXT",
+): Promise<any> => {
+  const response = await api.get(
+    `/api/conversations/${conversationId}/messages/search`,
+    {
+      params: { q, senderId, type },
+    },
+  );
+  return response.data;
+};
+
+export const updateConversationSettings = async (
+  conversationId: string,
+  settings: any,
+): Promise<any> => {
+  const response = await api.patch(
+    `/api/conversations/${conversationId}/settings`,
+    settings,
+  );
+  return response.data;
+};
+
+export const updateMemberRole = async (
+  conversationId: string,
+  memberId: string,
+  role: "ADMIN" | "MEMBER",
+): Promise<any> => {
+  const response = await api.put(
+    `/api/conversations/${conversationId}/members/${memberId}/role`,
+    { role },
+  );
+  return response.data;
+};
+
+export const transferOwnership = async (
+  conversationId: string,
+  newOwnerId: string,
+): Promise<any> => {
+  const response = await api.post(
+    `/api/conversations/${conversationId}/transfer-owner`,
+    { newOwnerId },
+  );
+  return response.data;
+};
+
+export const kickMember = async (
+  conversationId: string,
+  memberId: string,
+): Promise<any> => {
+  const response = await api.delete(
+    `/api/conversations/${conversationId}/members/${memberId}`,
+  );
+  return response.data;
+};
+
+export const leaveConversation = async (
+  conversationId: string,
+): Promise<any> => {
+  const response = await api.delete(`/api/conversations/${conversationId}/leave`);
+  return response.data;
+};
+
+export const disbandConversation = async (
+  conversationId: string,
+): Promise<any> => {
+  const response = await api.delete(`/api/conversations/${conversationId}/disband`);
+  return response.data;
+};
+
+export const getGroupAvatarPresignedUrl = async (
+  conversationId: string,
+  fileName: string,
+  contentType: string,
+): Promise<any> => {
+  const response = await api.get(
+    `/api/conversations/${conversationId}/avatar/presigned-url`,
+    {
+      params: { fileName, contentType },
+    },
+  );
+  return response.data;
+};
+
+export const muteConversation = async (
+  conversationId: string,
+  muted: boolean,
+): Promise<any> => {
+  const response = await api.patch(
+    `/api/conversations/${conversationId}/mute`,
+    { muted },
+  );
+  return response.data;
+};
+
+export const getThreadMessages = async (
+  messageId: string,
+): Promise<any> => {
+  const response = await api.get(`/api/conversations/messages/${messageId}/thread`);
+  return response.data;
+};
+

@@ -22,8 +22,6 @@ export type ConversationRole = "OWNER" | "ADMIN" | "MEMBER";
 
 export interface ConversationSetting {
   id: string;
-  allowMemberInvite: boolean;
-  approvalRequired: boolean;
   allowSendMessage: boolean;
   allowCreatePoll: boolean;
   allowCreateNote: boolean;

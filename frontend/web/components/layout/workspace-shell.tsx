@@ -22,6 +22,8 @@ import {
 import { useAppSelector } from "@/store/store";
 import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
 import WorkspaceHeader from "./workspace-header";
+import { useQuery } from "@tanstack/react-query";
+import { getUserConversations } from "@/features/chat/api/chat.api";
 
 const menuItems = [
   {
@@ -91,7 +93,27 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
     "profile" | "settings" | "sessions"
   >("profile");
 
-  const { email } = useAppSelector((state) => state.auth);
+  const { email, userId } = useAppSelector((state: any) => state.auth);
+
+  const { data } = useQuery({
+    queryKey: ["conversations", userId],
+    queryFn: async () => {
+      const response = await getUserConversations();
+      return response?.success
+        ? { conversations: response.data }
+        : { conversations: [] };
+    },
+    enabled: !!userId,
+    staleTime: 1000 * 60,
+  });
+
+  const totalUnreadChat = React.useMemo(() => {
+    const conversations = data?.conversations || [];
+    return conversations.reduce(
+      (sum: number, conv: any) => sum + (conv.unreadCount || 0),
+      0,
+    );
+  }, [data]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -101,10 +123,13 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
     setIsMobileMenuOpen(true);
   }, []);
 
-  const handleOpenSettings = useCallback((tab: "profile" | "settings" | "sessions") => {
-    setActiveSettingsTab(tab);
-    setIsSettingsModalOpen(true);
-  }, []);
+  const handleOpenSettings = useCallback(
+    (tab: "profile" | "settings" | "sessions") => {
+      setActiveSettingsTab(tab);
+      setIsSettingsModalOpen(true);
+    },
+    [],
+  );
 
   const handleCloseSettings = useCallback(() => {
     setIsSettingsModalOpen(false);
@@ -132,7 +157,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
       >
         <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          className="absolute -right-3 top-8 z-50 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600 hover:shadow lg:flex cursor-pointer"
+          className="absolute -right-3 top-8 z-100 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600 hover:shadow lg:flex cursor-pointer"
         >
           {isSidebarCollapsed ? (
             <ChevronRight className="h-4 w-4" />
@@ -193,7 +218,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                 href={item.href}
                 title={isSidebarCollapsed ? item.label : undefined}
                 className={[
-                  "group flex items-center rounded-2xl p-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20",
+                  "group flex items-center rounded-2xl p-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 relative",
                   isActive
                     ? "bg-[var(--color-primary-dark)] text-white"
                     : "text-slate-600 hover:bg-slate-100 hover:text-[var(--color-primary-dark)]",
@@ -203,13 +228,20 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
               >
                 <span
                   className={[
-                    "grid h-9 w-9 shrink-0 place-items-center rounded-xl transition",
+                    "grid h-9 w-9 shrink-0 place-items-center rounded-xl transition relative",
                     isActive
                       ? "bg-white/14 text-white"
                       : "bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 group-hover:text-[var(--color-primary)]",
                   ].join(" ")}
                 >
                   <Icon className="h-4 w-4" strokeWidth={2} />
+                  {item.href === "/chat" &&
+                    pathname !== "/chat" &&
+                    totalUnreadChat > 0 && (
+                      <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-black h-5 min-w-5 px-1 rounded-full flex items-center justify-center border border-white">
+                        {totalUnreadChat > 99 ? "99+" : totalUnreadChat}
+                      </span>
+                    )}
                 </span>
                 <div
                   className={[
@@ -282,7 +314,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           onOpenSettings={handleOpenSettings}
         />
 
-        <main className="flex-1 overflow-y-auto relative flex flex-col">
+        <main className={`flex-1 ${pathname.startsWith("/chat") ? "overflow-hidden" : "overflow-y-auto"} relative flex flex-col`}>
           <div className="flex-1 w-full h-full flex flex-col">{children}</div>
         </main>
       </div>

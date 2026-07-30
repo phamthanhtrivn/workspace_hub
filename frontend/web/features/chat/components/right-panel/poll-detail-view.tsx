@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, BarChart2, Loader2 } from "lucide-react";
 import { pollApi } from "../../api/poll.api";
-import ViewPollModal from "../view-poll-modal";
+import ViewPollModal from "../modals/view-poll-modal";
 import { usePolls } from "../../hooks/usePolls";
 
 interface PollDetailViewProps {
@@ -17,7 +17,7 @@ export default function PollDetailView({
 
   const { polls, loading } = usePolls(conversationId);
 
-  const selectedPoll = polls.find((p) => p.id === selectedPollId);
+  const selectedPoll = polls.find((p: any) => p.id === selectedPollId);
 
   return (
     <div className="w-full h-full flex flex-col bg-white">
@@ -42,7 +42,7 @@ export default function PollDetailView({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {polls.map((poll) => (
+            {polls.map((poll: any) => (
               <div
                 key={poll.id}
                 onClick={() => setSelectedPollId(poll.id)}

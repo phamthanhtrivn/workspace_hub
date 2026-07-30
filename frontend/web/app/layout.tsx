@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ToastContainer } from "react-toastify";
+import { Toaster } from "sonner";
 import StoreProvider from "@/store/store-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import QueryProvider from "@/store/query-provider";
+import PushNotificationManager from "@/features/notification/components/push-notification-manager";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -28,7 +30,10 @@ export default function RootLayout({
           clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}
         >
           <QueryProvider>
-            <StoreProvider>{children}</StoreProvider>
+            <StoreProvider>
+              {children}
+              <PushNotificationManager />
+            </StoreProvider>
           </QueryProvider>
         </GoogleOAuthProvider>
         <ToastContainer
@@ -40,7 +45,9 @@ export default function RootLayout({
           pauseOnHover
           draggable
         />
+        <Toaster richColors position="top-right" />
       </body>
     </html>
   );
 }
+
