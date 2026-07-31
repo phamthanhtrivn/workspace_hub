@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
 import {
   Injectable,
   NestInterceptor,
@@ -16,6 +17,30 @@ export interface Response<T> {
   timestamp: string;
 }
 
+function serializeBigInt(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'bigint') {
+    return Number(obj);
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(serializeBigInt);
+  }
+  if (typeof obj === 'object') {
+    // If it's a Date object, return it as is to preserve formatting
+    if (obj instanceof Date) {
+      return obj;
+    }
+    const serialized: any = {};
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        serialized[key] = serializeBigInt(obj[key]);
+      }
+    }
+    return serialized;
+  }
+  return obj;
+}
+
 @Injectable()
 export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(
@@ -30,7 +55,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
           'success' in res &&
           'timestamp' in res
         ) {
-          return res;
+          return serializeBigInt(res);
         }
 
         let message = 'Thành công';
@@ -53,13 +78,13 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
         const responseObj: any = {
           success: true,
           message: message,
-          data: data,
+          data: serializeBigInt(data),
           errors: null,
           timestamp: new Date().toISOString(),
         };
 
         if (pagination) {
-          responseObj.pagination = pagination;
+          responseObj.pagination = serializeBigInt(pagination);
         }
 
         return responseObj;

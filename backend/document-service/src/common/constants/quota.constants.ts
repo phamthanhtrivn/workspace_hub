@@ -1,0 +1,6 @@
+export enum QuotaConstants {
+  DEFAULT_MAX_GB = 5,
+  BYTES_PER_KB = 1024,
+  BYTES_PER_MB = 1048576, // 1024 * 1024
+  BYTES_PER_GB = 1073741824, // 1024 * 1024 * 1024
+}

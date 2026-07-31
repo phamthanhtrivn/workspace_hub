@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
 import {
   ExceptionFilter,
   Catch,
@@ -21,20 +22,27 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       status = exception.getStatus();
       const exceptionResponse: any = exception.getResponse();
 
-      if (status === HttpStatus.BAD_REQUEST && typeof exceptionResponse === 'object' && exceptionResponse.errors) {
+      if (
+        status === HttpStatus.BAD_REQUEST &&
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse.errors
+      ) {
         message = 'Validation failed';
         errors = exceptionResponse.errors;
-      }
-      else if (status === HttpStatus.BAD_REQUEST && typeof exceptionResponse === 'object' && Array.isArray(exceptionResponse.message)) {
+      } else if (
+        status === HttpStatus.BAD_REQUEST &&
+        typeof exceptionResponse === 'object' &&
+        Array.isArray(exceptionResponse.message)
+      ) {
         message = 'Validation failed';
         errors = {};
         exceptionResponse.message.forEach((msg: string) => {
-            const field = msg.split(' ')[0];
-            errors[field] = msg;
+          const field = msg.split(' ')[0];
+          errors[field] = msg;
         });
-      }
-      else {
-        message = typeof exceptionResponse === 'string'
+      } else {
+        message =
+          typeof exceptionResponse === 'string'
             ? exceptionResponse
             : exceptionResponse.message || exception.message;
       }

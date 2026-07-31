@@ -62,6 +62,14 @@ services:
           - /notification.io
         strip_path: false
 
+  - name: document-service
+    url: http://host.docker.internal:8085
+    routes:
+      - name: document-routes
+        paths:
+          - /api/documents
+        strip_path: false
+
 plugins:
   # ==========================================
   # GLOBAL PLUGINS (Applied to all routes)
@@ -163,6 +171,20 @@ plugins:
 
   - name: jwt-user-context
     route: notification-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+
+  # document-routes
+  - name: jwt
+    route: document-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt-user-context
+    route: document-routes
     config:
       header_user_id: X-User-Id
       header_user_email: X-User-Email

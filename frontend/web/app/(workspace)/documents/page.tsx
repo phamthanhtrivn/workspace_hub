@@ -1,15 +1,11 @@
+import DocumentsView from "@/features/documents/components/documents-sidebar";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Documents | WorkspaceHub",
+  description: "Quản lý lưu trữ tài liệu, tập tin và chia sẻ tài nguyên dự án trực tuyến.",
+};
+
 export default function DocumentsPage() {
-  return (
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-[var(--color-primary)]">
-          Workspace
-        </p>
-        <h1 className="mt-2 text-3xl font-black text-[var(--color-primary-dark)]">
-          Documents
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm text-slate-600">
-          Lưu trữ tài liệu, ghi chú, tài nguyên dự án và các file dùng chung.
-        </p>
-      </section>
-  );
+  return <DocumentsView />;
 }
