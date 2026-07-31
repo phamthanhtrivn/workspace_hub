@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ItemType {
+  FILE
+  FOLDER
+}
+
+enum SharePermission {
+  VIEWER
+  EDITOR
+}
+
+enum LinkAccess {
+  NONE
+  VIEWER
+  EDITOR
+}
+
+model UserStorageQuota {
+  userId      String    @id @map("user_id") @db.Uuid
+  maxBytes    BigInt    @default(5368709120) @map("max_bytes") // Default 5 GB
+  usedBytes   BigInt    @default(0) @map("used_bytes")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("user_storage_quotas")
+}
+
+model DocumentItem {
+  id             String          @id @default(uuid()) @db.Uuid
+  ownerUserId    String          @map("owner_user_id") @db.Uuid
+  ownerEmail     String          @map("owner_email")
+  parentFolderId String?         @map("parent_folder_id") @db.Uuid
+  projectId      String?         @map("project_id") @db.Uuid // Align with project-service
+  name           String
+  type           ItemType
+  s3Key          String?         @map("s3_key") // Point to the active version's S3 object
+  mimeType       String?         @map("mime_type")
+  sizeBytes      BigInt          @default(0) @map("size_bytes")
+  isStarred      Boolean         @default(false) @map("is_starred")
+  
+  // Trash details
+  isArchived     Boolean         @default(false) @map("is_archived") // Soft delete
+  archivedAt     DateTime?       @map("archived_at")
+  
+  // Link Sharing
+  linkAccess     LinkAccess      @default(NONE) @map("link_access")
+  shareToken     String?         @unique @map("share_token")
+  sharePassword  String?         @map("share_password") // Optional password (hashed)
+  shareExpiresAt DateTime?       @map("share_expires_at") // Optional link expiration date
+
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  // Self-relation for hierarchical folders
+  parentFolder   DocumentItem?   @relation("FolderHierarchy", fields: [parentFolderId], references: [id], onDelete: Cascade)
+  childItems     DocumentItem[]  @relation("FolderHierarchy")
+  shares         DocumentShare[]
+  versions       DocumentVersion[]
+
+  @@map("document_items")
+}
+
+model DocumentShare {
+  id              String          @id @default(uuid()) @db.Uuid
+  documentItemId  String          @map("document_item_id") @db.Uuid
+  shareWithUserId String?         @map("share_with_user_id") @db.Uuid
+  shareWithEmail  String          @map("share_with_email")
+  permission      SharePermission
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  documentItem    DocumentItem    @relation(fields: [documentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([documentItemId, shareWithEmail])
+  @@map("document_shares")
+}
+
+model DocumentVersion {
+  id             String          @id @default(uuid()) @db.Uuid
+  documentItemId String          @map("document_item_id") @db.Uuid
+  versionNumber  Int             @map("version_number")
+  s3Key          String          @map("s3_key")
+  sizeBytes      BigInt          @map("size_bytes")
+  uploadedBy     String          @map("uploaded_by") @db.Uuid
+  createdAt      DateTime        @default(now()) @map("created_at")
+
+  documentItem   DocumentItem    @relation(fields: [documentItemId], references: [id], onDelete: Cascade)
+
+  @@unique([documentItemId, versionNumber])
+  @@map("document_versions")
+}

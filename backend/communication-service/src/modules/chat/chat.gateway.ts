@@ -16,7 +16,10 @@ import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { PollService } from '../message/services/poll.service';
 import { NoteService } from '../message/services/note.service';
-import { KAFKA_TOPICS, KAFKA_EVENTS } from '../../common/constants/kafka.constants';
+import {
+  KAFKA_TOPICS,
+  KAFKA_EVENTS,
+} from '../../common/constants/kafka.constants';
 import { getSenderProfile } from '../../common/utils/user.util';
 
 @WebSocketGateway({
@@ -38,7 +41,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly noteService: NoteService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
-
 
   async handleConnection(client: Socket) {
     const token = client.handshake.auth?.token || client.handshake.query?.token;
@@ -149,12 +151,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           const isMentionedAll = mentions.includes('all');
           const recipientIds = membersInfo
             .filter((m) => m.userId !== userId) // exclude sender
-            .filter((m) => !m.muted || isMentionedAll || mentions.includes(m.userId)) // unmuted OR tagged OR @All
+            .filter(
+              (m) => !m.muted || isMentionedAll || mentions.includes(m.userId),
+            ) // unmuted OR tagged OR @All
             .map((m) => m.userId);
 
           if (recipientIds.length > 0) {
             const { senderName, senderAvatar } = await getSenderProfile(userId);
-            
+
             let previewContent = data.content || '';
             if (data.type === MessageType.POLL) {
               previewContent = `Đã tạo một bình chọn: ${data.pollData?.title || ''}`;
@@ -164,8 +168,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
               const type = data.medias[0].mimeType.startsWith('image/')
                 ? 'hình ảnh'
                 : data.medias[0].mimeType.startsWith('video/')
-                ? 'video'
-                : 'tệp đính kèm';
+                  ? 'video'
+                  : 'tệp đính kèm';
               previewContent = `Đã gửi một ${type}`;
             }
 
@@ -189,9 +193,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           }
         })
         .catch((err) => {
-          this.logger.error(`Failed to handle Kafka notification for new message: ${err.message}`, err.stack);
+          this.logger.error(
+            `Failed to handle Kafka notification for new message: ${err.message}`,
+            err.stack,
+          );
         });
-
 
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
