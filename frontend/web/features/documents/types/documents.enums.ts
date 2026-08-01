@@ -79,8 +79,8 @@ export enum DocumentTypeDescription {
 }
 
 export enum NavigationLabel {
-  ROOT = "Root",
+  ROOT = "Tài liệu của tui",
   CURRENT_FOLDER = "Thư mục hiện tại",
+  STARRED = "Đã đánh dấu sao",
+  SHARED = "Được chia sẻ",
 }
-
-

@@ -95,7 +95,7 @@ function DocumentExplorer({
   }, [searchQuery]);
 
   // Fetch items based on current context
-  const { data, isLoading } = useQuery({
+  const { data: documentsData, isLoading } = useQuery({
     queryKey: [
       "documents",
       currentFolderId,
@@ -112,29 +112,28 @@ function DocumentExplorer({
         search: debouncedSearchQuery,
       };
 
-      if (activeView === DocumentViewType.SHARED) {
+      if (activeView === DocumentViewType.SHARED && !currentFolderId) {
         return documentsApi.getSharedDocuments(fetchParams);
       }
       return documentsApi.getDocuments({
         ...fetchParams,
         folderId: currentFolderId || undefined,
-        starred: activeView === DocumentViewType.STARRED ? true : undefined,
+        starred:
+          activeView === DocumentViewType.STARRED && !currentFolderId
+            ? true
+            : undefined,
         archived: activeView === DocumentViewType.TRASH ? true : undefined,
       });
     },
   });
 
-  const items = data?.data || [];
-  const totalItems = data?.meta?.totalItems || 0;
-  const totalPages = data?.meta?.totalPages || 0;
+  const items = documentsData?.data || [];
+  const totalItems = documentsData?.meta?.totalItems || 0;
+  const totalPages = documentsData?.meta?.totalPages || 0;
   const safeCurrentPage = Math.min(
     Math.max(1, currentPage),
     Math.max(1, totalPages),
   );
-
-  const selectedItem = useMemo(() => {
-    return items.find((item) => item.id === selectedItemId) || null;
-  }, [items, selectedItemId]);
 
   const activeDetailsItem = useMemo(() => {
     return items.find((item) => item.id === activeDetailsItemId) || null;
@@ -405,7 +404,7 @@ function DocumentExplorer({
           setSearchQuery={handleSearchChange}
           viewLayout={viewLayout}
           setViewLayout={setViewLayout}
-          activeView={activeView}
+          activeView={currentFolderId ? DocumentViewType.MY_FILES : activeView}
           onCreateFolder={handleCreateFolder}
           onUploadFile={handleUploadFile}
           sortBy={sortBy}
@@ -414,7 +413,7 @@ function DocumentExplorer({
         />
 
         {/* Path Breadcrumbs */}
-        {activeView === DocumentViewType.MY_FILES && (
+        {activeView !== DocumentViewType.TRASH && (
           <ExplorerBreadcrumbs
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}

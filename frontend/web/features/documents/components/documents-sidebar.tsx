@@ -18,11 +18,23 @@ function DocumentsView() {
     { id: null, name: NavigationLabel.ROOT },
   ]);
 
-  const handleNavigate = (folderId: string | null, folderName?: string) => {
+  const handleNavigate = (
+    folderId: string | null,
+    folderName?: string,
+    viewContext?: DocumentViewType,
+  ) => {
     setCurrentFolderId(folderId);
 
+    const activeV = viewContext !== undefined ? viewContext : activeView;
+
     if (folderId === null) {
-      setPath([{ id: null, name: NavigationLabel.ROOT }]);
+      const rootLabel =
+        activeV === DocumentViewType.STARRED
+          ? NavigationLabel.STARRED
+          : activeV === DocumentViewType.SHARED
+            ? NavigationLabel.SHARED
+            : NavigationLabel.ROOT;
+      setPath([{ id: null, name: rootLabel }]);
     } else if (folderName) {
       // Navigate deeper
       const exists = path.some((p) => p.id === folderId);
@@ -35,7 +47,7 @@ function DocumentsView() {
   const handleViewChange = (view: DocumentViewType) => {
     setActiveView(view);
     // Reset to root directory when switching main tabs
-    handleNavigate(null);
+    handleNavigate(null, undefined, view);
   };
 
   return (
