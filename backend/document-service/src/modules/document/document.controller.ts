@@ -277,4 +277,17 @@ export class DocumentController {
       data: item,
     };
   }
+
+  @Delete(':id/permanent')
+  async deleteItemPermanently(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    await this.documentService.deleteItemPermanently(userId, userEmail, id);
+    return {
+      message: 'Xóa tài nguyên vĩnh viễn thành công',
+    };
+  }
 }

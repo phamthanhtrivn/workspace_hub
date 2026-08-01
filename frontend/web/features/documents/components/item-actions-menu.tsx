@@ -26,6 +26,7 @@ interface ItemActionsMenuProps {
   onToggleStar: () => void;
   onArchive: (archive: boolean) => void;
   onViewDetails?: () => void;
+  onDeletePermanently?: () => void;
 }
 
 function ItemActionsMenu({
@@ -38,6 +39,7 @@ function ItemActionsMenu({
   onToggleStar,
   onArchive,
   onViewDetails,
+  onDeletePermanently,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
 
@@ -151,9 +153,7 @@ function ItemActionsMenu({
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
-                    toast.info(
-                      "Xóa vĩnh viễn sẽ tự động chạy thông qua background cron-job.",
-                    );
+                    onDeletePermanently?.();
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
                 >

@@ -496,4 +496,111 @@ export class DocumentService {
       data: { isStarred },
     });
   }
+
+  /**
+   * Recursively fetches all descendant folder IDs and file items of a folder using BFS.
+   */
+  private async getFolderDescendants(
+    folderId: string,
+  ): Promise<{ files: DocumentItem[]; folderIds: string[] }> {
+    const files: DocumentItem[] = [];
+    const folderIds: string[] = [folderId];
+    const queue: string[] = [folderId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      const children = await this.prisma.documentItem.findMany({
+        where: { parentFolderId: currentId },
+      });
+
+      for (const child of children) {
+        if (child.type === ItemType.FOLDER) {
+          folderIds.push(child.id);
+          queue.push(child.id);
+        } else {
+          files.push(child);
+        }
+      }
+    }
+
+    return { files, folderIds };
+  }
+
+  /**
+   * Deletes files from S3 client in the background without blocking execution thread.
+   */
+  private async deleteS3ObjectsBackground(s3Keys: string[]): Promise<void> {
+    for (const key of s3Keys) {
+      try {
+        await this.s3Service.deleteFile(key);
+      } catch (error) {
+        console.error(`Background S3 deletion failed for key ${key}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Permanently deletes a file or folder. Reclaims storage quota immediately,
+   * deletes database records, and triggers S3 physical file deletes in the background.
+   */
+  async deleteItemPermanently(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<void> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+
+    let filesToDelete: DocumentItem[] = [];
+    let folderIdsToDelete: string[] = [];
+
+    if (item.type === ItemType.FOLDER) {
+      const descendants = await this.getFolderDescendants(id);
+      filesToDelete = descendants.files;
+      folderIdsToDelete = descendants.folderIds;
+    } else {
+      filesToDelete = [item];
+    }
+
+    // Sum storage size of files being permanently deleted
+    const totalSizeReclaimed = filesToDelete.reduce(
+      (sum, file) => sum + Number(file.sizeBytes),
+      0,
+    );
+
+    const allItemIdsToDelete = [
+      ...folderIdsToDelete,
+      ...filesToDelete.map((f) => f.id),
+    ];
+
+    // Database deletion transaction
+    await this.prisma.$transaction([
+      this.prisma.documentItem.deleteMany({
+        where: { id: { in: allItemIdsToDelete } },
+      }),
+      this.prisma.userStorageQuota.update({
+        where: { userId },
+        data: {
+          usedBytes: {
+            decrement: totalSizeReclaimed,
+          },
+        },
+      }),
+    ]);
+
+    // Background S3 deletions
+    const s3Keys = filesToDelete
+      .map((f) => f.s3Key)
+      .filter((key): key is string => !!key);
+
+    if (s3Keys.length > 0) {
+      this.deleteS3ObjectsBackground(s3Keys).catch((err) => {
+        console.error(`Failed to handle S3 deletions background execution:`, err);
+      });
+    }
+  }
 }

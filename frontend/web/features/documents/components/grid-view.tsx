@@ -20,6 +20,7 @@ interface GridViewProps {
   onToggleStar: (id: string, isStarred: boolean) => void;
   onArchive: (id: string, archive: boolean) => void;
   onViewDetails: (id: string) => void;
+  onDeletePermanently: (id: string) => void;
 }
 
 function GridView({
@@ -35,6 +36,7 @@ function GridView({
   onToggleStar,
   onArchive,
   onViewDetails,
+  onDeletePermanently,
 }: GridViewProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -97,6 +99,7 @@ function GridView({
                 onToggleStar={() => onToggleStar(item.id, item.isStarred)}
                 onArchive={(archive) => onArchive(item.id, archive)}
                 onViewDetails={() => onViewDetails(item.id)}
+                onDeletePermanently={() => onDeletePermanently(item.id)}
               />
             </div>
 

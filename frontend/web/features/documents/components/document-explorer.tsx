@@ -220,6 +220,19 @@ function DocumentExplorer({
     },
   });
 
+  const deletePermanentlyMutation = useMutation({
+    mutationFn: (id: string) => documentsApi.deleteItemPermanently(id),
+    onSuccess: () => {
+      toast.success("Đã xóa tài nguyên vĩnh viễn");
+      setSelectedItemId(null);
+      void queryClient.invalidateQueries({ queryKey: ["documents"] });
+      void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Lỗi xóa vĩnh viễn");
+    },
+  });
+
   // Handle uploading file to S3
   const handleUploadFile = useCallback(
     async (file: File) => {
@@ -397,6 +410,26 @@ function DocumentExplorer({
     setCurrentPage(1);
   }, []);
 
+  const handleDeletePermanently = useCallback(
+    (id: string) => {
+      Swal.fire({
+        title: "Xóa vĩnh viễn?",
+        text: "Tài nguyên sẽ bị xóa vĩnh viễn và không thể khôi phục!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Đồng ý xóa",
+        cancelButtonText: "Hủy",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          deletePermanentlyMutation.mutate(id);
+        }
+      });
+    },
+    [deletePermanentlyMutation],
+  );
+
   return (
     <div className="flex-1 flex min-w-0 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden h-[calc(100vh-140px)]">
       {/* Main Explorer Panel */}
@@ -457,6 +490,7 @@ function DocumentExplorer({
               onToggleStar={handleToggleStar}
               onArchive={handleArchive}
               onViewDetails={handleViewDetails}
+              onDeletePermanently={handleDeletePermanently}
             />
           ) : (
             <ListView
@@ -472,6 +506,7 @@ function DocumentExplorer({
               onToggleStar={handleToggleStar}
               onArchive={handleArchive}
               onViewDetails={handleViewDetails}
+              onDeletePermanently={handleDeletePermanently}
             />
           )}
 

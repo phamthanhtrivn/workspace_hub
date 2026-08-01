@@ -22,6 +22,7 @@ interface ListViewProps {
   onToggleStar: (id: string, isStarred: boolean) => void;
   onArchive: (id: string, archive: boolean) => void;
   onViewDetails: (id: string) => void;
+  onDeletePermanently: (id: string) => void;
 }
 
 function ListView({
@@ -37,6 +38,7 @@ function ListView({
   onToggleStar,
   onArchive,
   onViewDetails,
+  onDeletePermanently,
 }: ListViewProps) {
   return (
     <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
@@ -107,6 +109,7 @@ function ListView({
                     onToggleStar={() => onToggleStar(item.id, item.isStarred)}
                     onArchive={(archive) => onArchive(item.id, archive)}
                     onViewDetails={() => onViewDetails(item.id)}
+                    onDeletePermanently={() => onDeletePermanently(item.id)}
                   />
                 </td>
               </tr>

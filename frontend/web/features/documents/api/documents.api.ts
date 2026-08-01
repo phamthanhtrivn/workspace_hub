@@ -165,4 +165,9 @@ export const documentsApi = {
     const response = await api.put(`/api/documents/${id}/un-star`);
     return response.data.data;
   },
+
+  deleteItemPermanently: async (id: string): Promise<any> => {
+    const response = await api.delete(`/api/documents/${id}/permanent`);
+    return response.data;
+  },
 };
