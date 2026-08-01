@@ -1,3 +1,6 @@
+import { EXTENSION_TO_TYPE, MIME_TO_TYPE } from "../types/documents.constants";
+import { DocumentTypeDescription } from "../types/documents.enums";
+
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0 B";
   const k = 1024;
@@ -24,4 +27,38 @@ export const formatDateLong = (dateStr: string): string => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+export const getFileTypeDescription = (
+  mimeType: string | null,
+  name: string,
+): string => {
+  if (mimeType) {
+    const cleanMime = mimeType.toLowerCase().trim();
+    if (MIME_TO_TYPE[cleanMime]) {
+      return MIME_TO_TYPE[cleanMime];
+    }
+
+    if (cleanMime.startsWith("image/")) {
+      const type = cleanMime.split("/")[1].toUpperCase();
+      return `${DocumentTypeDescription.IMAGE_BASE} ${type}`;
+    }
+    if (cleanMime.startsWith("video/")) {
+      const type = cleanMime.split("/")[1].toUpperCase();
+      return `${DocumentTypeDescription.VIDEO_BASE} ${type}`;
+    }
+    if (cleanMime.startsWith("audio/")) {
+      const type = cleanMime.split("/")[1].toUpperCase();
+      return `${DocumentTypeDescription.AUDIO_BASE} ${type}`;
+    }
+  }
+
+  const ext = name.split(".").pop()?.toLowerCase();
+  if (ext && EXTENSION_TO_TYPE[ext]) {
+    return EXTENSION_TO_TYPE[ext];
+  }
+
+  return ext
+    ? `${DocumentTypeDescription.FILE_BASE} ${ext.toUpperCase()}`
+    : DocumentTypeDescription.UNKNOWN_FILE;
 };

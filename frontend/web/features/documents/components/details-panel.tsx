@@ -2,8 +2,13 @@
 
 import React from "react";
 import { DocumentItem } from "../types/documents.types";
-import { DocumentItemType } from "../types/documents.enums";
-import { formatBytes, formatDateLong } from "../utils/documents.utils";
+import {
+  DocumentItemType,
+  ResourceTypeLabel,
+  StarActionLabel,
+  ArchiveActionLabel,
+} from "../types/documents.enums";
+import { formatBytes, formatDateLong, getFileTypeDescription } from "../utils/documents.utils";
 import {
   X,
   Folder,
@@ -74,10 +79,10 @@ export default function DetailsPanel({
           <span className="font-bold text-sm text-slate-800 text-center break-all w-full line-clamp-2">
             {item.name}
           </span>
-          <span className="text-xs text-slate-400 font-semibold mt-1">
-            {isFolder
-              ? "Thư mục hệ thống"
-              : item.mimeType || "Tập tin tài liệu"}
+          <span className="text-xs text-slate-400 font-semibold mt-1 max-w-[200px]">
+            {item.type === DocumentItemType.FOLDER
+              ? ResourceTypeLabel.FOLDER
+              : getFileTypeDescription(item.mimeType, item.name)}
           </span>
         </div>
 
@@ -156,6 +161,20 @@ export default function DetailsPanel({
               </span>
             </div>
           </div>
+
+          {!isFolder && (
+            <div className="flex items-center gap-3">
+              <FileText size={16} className="text-slate-400" />
+              <div className="flex flex-col">
+                <span className="text-xs text-slate-400 font-medium">
+                  Định dạng file
+                </span>
+                <span className="text-sm font-semibold text-slate-700">
+                  {getFileTypeDescription(item.mimeType, item.name)}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -169,7 +188,9 @@ export default function DetailsPanel({
             size={14}
             className={item.isStarred ? "fill-amber-400 text-amber-400" : ""}
           />
-          <span>{item.isStarred ? "Bỏ sao" : "Sao"}</span>
+          <span>
+            {item.isStarred ? StarActionLabel.REMOVE : StarActionLabel.ADD}
+          </span>
         </button>
 
         <button
@@ -194,7 +215,7 @@ export default function DetailsPanel({
             className="flex items-center justify-center gap-2 w-full rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
           >
             <Trash2 size={14} />
-            <span>Xóa tài nguyên</span>
+            <span>{ArchiveActionLabel.DELETE}</span>
           </button>
         ) : (
           <button
@@ -202,7 +223,7 @@ export default function DetailsPanel({
             className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-50 hover:bg-green-100 text-green-700 border border-green-100 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
           >
             <CornerUpLeft size={14} />
-            <span>Khôi phục tài nguyên</span>
+            <span>{ArchiveActionLabel.RESTORE}</span>
           </button>
         )}
       </div>

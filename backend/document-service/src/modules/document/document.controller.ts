@@ -14,6 +14,8 @@ import { DocumentService } from './document.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
+import { InitiateUploadDto } from './dto/initiate-upload.dto';
+import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
 
@@ -42,6 +44,42 @@ export class DocumentController {
     return {
       message: 'Tạo thư mục thành công',
       data: folder,
+    };
+  }
+
+  @Post('upload/initiate')
+  async initiateUpload(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Body() dto: InitiateUploadDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const result = await this.documentService.initiateUpload(
+      userId,
+      userEmail,
+      dto,
+    );
+    return {
+      message: 'Khởi tạo tải lên thành công',
+      data: result,
+    };
+  }
+
+  @Post('upload/confirm')
+  async confirmUpload(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Body() dto: ConfirmUploadDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const item = await this.documentService.confirmUpload(
+      userId,
+      userEmail,
+      dto,
+    );
+    return {
+      message: 'Tải tài liệu lên thành công',
+      data: item,
     };
   }
 

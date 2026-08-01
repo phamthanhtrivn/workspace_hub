@@ -1,10 +1,24 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
-import { DocumentItem, ViewLayout, DocumentSortBy } from "../types/documents.types";
-import { DocumentItemType, DocumentViewType } from "../types/documents.enums";
+import {
+  DocumentItem,
+  ViewLayout,
+  DocumentSortBy,
+} from "../types/documents.types";
+import {
+  DocumentItemType,
+  DocumentViewType,
+  UploadState,
+} from "../types/documents.enums";
 import { Folder } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
@@ -12,6 +26,7 @@ import FolderPickerModal from "./folder-picker-modal";
 import ShimmerLoader from "./shimmer-loader";
 import DetailsPanel from "./details-panel";
 import ExplorerToolbar from "./explorer-toolbar";
+import UploadProgress from "./upload-progress";
 import ExplorerBreadcrumbs from "./explorer-breadcrumbs";
 import GridView from "./grid-view";
 import ListView from "./list-view";
@@ -38,12 +53,20 @@ export default function DocumentExplorer({
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [viewLayout, setViewLayout] = useState<ViewLayout>(ViewLayout.GRID);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [activeDetailsItemId, setActiveDetailsItemId] = useState<string | null>(
+    null,
+  );
   const [sortBy, setSortBy] = useState<DocumentSortBy>(DocumentSortBy.LATEST);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Modals state
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+
+  // Uploading state
+  const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFileName, setUploadingFileName] = useState("");
 
   // Focus Search Input with Ref
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -71,7 +94,14 @@ export default function DocumentExplorer({
 
   // Fetch items based on current context
   const { data, isLoading } = useQuery({
-    queryKey: ["documents", currentFolderId, activeView, currentPage, sortBy, debouncedSearchQuery],
+    queryKey: [
+      "documents",
+      currentFolderId,
+      activeView,
+      currentPage,
+      sortBy,
+      debouncedSearchQuery,
+    ],
     queryFn: () => {
       const fetchParams = {
         page: currentPage,
@@ -95,11 +125,18 @@ export default function DocumentExplorer({
   const items = data?.data || [];
   const totalItems = data?.meta?.totalItems || 0;
   const totalPages = data?.meta?.totalPages || 0;
-  const safeCurrentPage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
+  const safeCurrentPage = Math.min(
+    Math.max(1, currentPage),
+    Math.max(1, totalPages),
+  );
 
   const selectedItem = useMemo(() => {
     return items.find((item) => item.id === selectedItemId) || null;
   }, [items, selectedItemId]);
+
+  const activeDetailsItem = useMemo(() => {
+    return items.find((item) => item.id === activeDetailsItemId) || null;
+  }, [items, activeDetailsItemId]);
 
   // Mutations
   const createFolderMutation = useMutation({
@@ -160,6 +197,49 @@ export default function DocumentExplorer({
     },
   });
 
+  // Handle uploading file to S3
+  const handleUploadFile = useCallback(
+    async (file: File) => {
+      try {
+        setUploadingFileName(file.name);
+        setUploadState(UploadState.INITIATING);
+        setUploadProgress(0);
+
+        // Upload file directly using the unified API upload client method
+        await documentsApi.uploadFile(
+          file,
+          currentFolderId,
+          (percent, state) => {
+            setUploadState(state);
+            setUploadProgress(percent);
+          },
+        );
+
+        setUploadState(UploadState.SUCCESS);
+        toast.success(`Đã tải lên tệp ${file.name} thành công!`);
+
+        void queryClient.invalidateQueries({ queryKey: ["documents"] });
+        void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
+
+        setTimeout(() => {
+          setUploadState(UploadState.IDLE);
+          setUploadingFileName("");
+          setUploadProgress(0);
+        }, 2000);
+      } catch (err: any) {
+        console.error(err);
+        setUploadState(UploadState.ERROR);
+        const errMsg =
+          err.response?.data?.message || err.message || "Lỗi tải lên tệp";
+        toast.error(errMsg);
+        setTimeout(() => {
+          setUploadState(UploadState.IDLE);
+        }, 3000);
+      }
+    },
+    [currentFolderId, queryClient],
+  );
+
   // Folder creation trigger
   const handleCreateFolder = useCallback(() => {
     void Swal.fire({
@@ -187,27 +267,30 @@ export default function DocumentExplorer({
   }, [createFolderMutation, currentFolderId]);
 
   // Rename trigger
-  const handleRename = useCallback((id: string, currentName: string) => {
-    void Swal.fire({
-      title: "Đổi tên tài nguyên",
-      input: "text",
-      inputValue: currentName,
-      showCancelButton: true,
-      confirmButtonText: "Lưu lại",
-      cancelButtonText: "Hủy bỏ",
-      confirmButtonColor: "var(--color-primary, #3b82f6)",
-      inputValidator: (value) => {
-        if (!value) {
-          return "Tên không được để trống!";
+  const handleRename = useCallback(
+    (id: string, currentName: string) => {
+      void Swal.fire({
+        title: "Đổi tên tài nguyên",
+        input: "text",
+        inputValue: currentName,
+        showCancelButton: true,
+        confirmButtonText: "Lưu lại",
+        cancelButtonText: "Hủy bỏ",
+        confirmButtonColor: "var(--color-primary, #3b82f6)",
+        inputValidator: (value) => {
+          if (!value) {
+            return "Tên không được để trống!";
+          }
+          return null;
+        },
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          renameMutation.mutate({ id, name: result.value as string });
         }
-        return null;
-      },
-    }).then((result) => {
-      if (result.isConfirmed && result.value) {
-        renameMutation.mutate({ id, name: result.value as string });
-      }
-    });
-  }, [renameMutation]);
+      });
+    },
+    [renameMutation],
+  );
 
   // Move trigger
   const handleOpenMoveModal = useCallback((id: string) => {
@@ -216,45 +299,64 @@ export default function DocumentExplorer({
   }, []);
 
   // Star toggle
-  const handleToggleStar = useCallback((id: string, isStarred: boolean) => {
-    starMutation.mutate({ id, star: !isStarred });
-  }, [starMutation]);
+  const handleToggleStar = useCallback(
+    (id: string, isStarred: boolean) => {
+      starMutation.mutate({ id, star: !isStarred });
+    },
+    [starMutation],
+  );
 
   // Soft delete / Restore
-  const handleArchive = useCallback((id: string, archive: boolean) => {
-    if (archive) {
-      void Swal.fire({
-        title: "Xóa tạm tài nguyên?",
-        text: "Tập tin/Thư mục sẽ được chuyển vào thùng rác và lưu giữ trong 30 ngày.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Đồng ý",
-        cancelButtonText: "Hủy bỏ",
-        confirmButtonColor: "#ef4444",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          archiveMutation.mutate({ id, archive: true });
-        }
-      });
-    } else {
-      archiveMutation.mutate({ id, archive: false });
-    }
-  }, [archiveMutation]);
+  const handleArchive = useCallback(
+    (id: string, archive: boolean) => {
+      if (archive) {
+        void Swal.fire({
+          title: "Xóa tạm tài nguyên?",
+          text: "Tập tin/Thư mục sẽ được chuyển vào thùng rác và lưu giữ trong 30 ngày.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Đồng ý",
+          cancelButtonText: "Hủy bỏ",
+          confirmButtonColor: "#ef4444",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            archiveMutation.mutate({ id, archive: true });
+          }
+        });
+      } else {
+        archiveMutation.mutate({ id, archive: false });
+      }
+    },
+    [archiveMutation],
+  );
 
   // Navigation handlers
-  const handleFolderDoubleClick = useCallback((folder: DocumentItem) => {
-    onNavigate(folder.id, folder.name);
-    setSelectedItemId(null);
-    setCurrentPage(1);
-  }, [onNavigate]);
+  const handleFolderClick = useCallback(
+    (folder: DocumentItem) => {
+      onNavigate(folder.id, folder.name);
+      setSelectedItemId(null);
+      setActiveDetailsItemId(null);
+      setCurrentPage(1);
+    },
+    [onNavigate],
+  );
 
-  const handleBreadcrumbClick = useCallback((index: number) => {
-    const p = path[index];
-    setPath(path.slice(0, index + 1));
-    onNavigate(p.id);
-    setSelectedItemId(null);
-    setCurrentPage(1);
-  }, [path, setPath, onNavigate]);
+  const handleBreadcrumbClick = useCallback(
+    (index: number) => {
+      const p = path[index];
+      setPath(path.slice(0, index + 1));
+      onNavigate(p.id);
+      setSelectedItemId(null);
+      setActiveDetailsItemId(null);
+      setCurrentPage(1);
+    },
+    [path, setPath, onNavigate],
+  );
+
+  const handleViewDetails = useCallback((id: string) => {
+    setActiveDetailsItemId(id);
+    setSelectedItemId(id);
+  }, []);
 
   const handleBackToParent = useCallback(() => {
     if (path.length > 1) {
@@ -284,6 +386,7 @@ export default function DocumentExplorer({
           setViewLayout={setViewLayout}
           activeView={activeView}
           onCreateFolder={handleCreateFolder}
+          onUploadFile={handleUploadFile}
           sortBy={sortBy}
           setSortBy={handleSortChange}
           inputRef={searchInputRef}
@@ -320,7 +423,7 @@ export default function DocumentExplorer({
               items={items}
               selectedItemId={selectedItemId}
               onSelect={setSelectedItemId}
-              onDoubleClick={handleFolderDoubleClick}
+              onFolderClick={handleFolderClick}
               activeView={activeView}
               activeMenuId={activeMenuId}
               setActiveMenuId={setActiveMenuId}
@@ -328,13 +431,14 @@ export default function DocumentExplorer({
               onMove={handleOpenMoveModal}
               onToggleStar={handleToggleStar}
               onArchive={handleArchive}
+              onViewDetails={handleViewDetails}
             />
           ) : (
             <ListView
               items={items}
               selectedItemId={selectedItemId}
               onSelect={setSelectedItemId}
-              onDoubleClick={handleFolderDoubleClick}
+              onFolderClick={handleFolderClick}
               activeView={activeView}
               activeMenuId={activeMenuId}
               setActiveMenuId={setActiveMenuId}
@@ -342,6 +446,7 @@ export default function DocumentExplorer({
               onMove={handleOpenMoveModal}
               onToggleStar={handleToggleStar}
               onArchive={handleArchive}
+              onViewDetails={handleViewDetails}
             />
           )}
 
@@ -350,13 +455,15 @@ export default function DocumentExplorer({
             <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-6">
               <span className="text-xs font-semibold text-slate-400">
                 Hiển thị {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
-                {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)}{" "}
-                trên tổng số {totalItems} tài nguyên
+                {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)} trên
+                tổng số {totalItems} tài nguyên
               </span>
               <div className="flex items-center gap-2">
                 <button
                   disabled={safeCurrentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(1, prev - 1))
+                  }
                   className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Trang trước
@@ -392,16 +499,18 @@ export default function DocumentExplorer({
       </div>
 
       {/* Slide-in Details Panel */}
-      {selectedItem && (
+      {activeDetailsItem && (
         <DetailsPanel
-          item={selectedItem}
-          onClose={() => setSelectedItemId(null)}
-          onRename={() => handleRename(selectedItem.id, selectedItem.name)}
-          onMove={() => handleOpenMoveModal(selectedItem.id)}
-          onToggleStar={() =>
-            handleToggleStar(selectedItem.id, selectedItem.isStarred)
+          item={activeDetailsItem}
+          onClose={() => setActiveDetailsItemId(null)}
+          onRename={() =>
+            handleRename(activeDetailsItem.id, activeDetailsItem.name)
           }
-          onArchive={(archive) => handleArchive(selectedItem.id, archive)}
+          onMove={() => handleOpenMoveModal(activeDetailsItem.id)}
+          onToggleStar={() =>
+            handleToggleStar(activeDetailsItem.id, activeDetailsItem.isStarred)
+          }
+          onArchive={(archive) => handleArchive(activeDetailsItem.id, archive)}
         />
       )}
 
@@ -416,6 +525,13 @@ export default function DocumentExplorer({
           }
         />
       )}
+
+      {/* Floating Upload Progress Box */}
+      <UploadProgress
+        uploadState={uploadState}
+        uploadProgress={uploadProgress}
+        uploadingFileName={uploadingFileName}
+      />
     </div>
   );
 }

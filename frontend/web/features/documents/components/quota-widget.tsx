@@ -33,7 +33,9 @@ export default function QuotaWidget() {
     <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">
       <div className="flex items-center gap-2 text-slate-600 mb-2">
         <HardDrive size={18} className="text-slate-400" />
-        <span className="text-xs font-semibold uppercase tracking-wider">Bộ nhớ đã dùng</span>
+        <span className="text-xs font-semibold uppercase tracking-wider">
+          Bộ nhớ đã dùng
+        </span>
       </div>
 
       <div className="w-full bg-slate-200 rounded-full h-2 mb-2 overflow-hidden">
@@ -42,15 +44,17 @@ export default function QuotaWidget() {
             percentage > 90
               ? "bg-red-500"
               : percentage > 75
-              ? "bg-amber-500"
-              : "bg-[var(--color-primary)]"
+                ? "bg-amber-500"
+                : "bg-[var(--color-primary)]"
           }`}
           style={{ width: `${percentage}%` }}
         />
       </div>
 
       <div className="flex justify-between text-xs font-semibold text-slate-500">
-        <span>{usedMB} MB của {maxGB} GB</span>
+        <span>
+          {usedMB} MB của {maxGB} GB
+        </span>
         <span>{percentage.toFixed(1)}%</span>
       </div>
     </div>

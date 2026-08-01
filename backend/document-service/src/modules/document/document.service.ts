@@ -8,6 +8,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
+import { InitiateUploadDto } from './dto/initiate-upload.dto';
+import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import {
   ItemType,
   DocumentItem,
@@ -15,10 +17,102 @@ import {
   LinkAccess,
 } from '@prisma/client';
 import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
+import { QuotaService } from '../quota/quota.service';
+import { S3Service } from '../../infrastructure/s3/s3.service';
 
 @Injectable()
 export class DocumentService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly quotaService: QuotaService,
+    private readonly s3Service: S3Service,
+  ) {}
+
+  async initiateUpload(
+    userId: string,
+    userEmail: string,
+    dto: InitiateUploadDto,
+  ): Promise<{ presignedUrl: string; s3Key: string }> {
+    let parentFolder: DocumentItem | null = null;
+
+    if (dto.parentFolderId) {
+      parentFolder = await this.checkPermission(
+        dto.parentFolderId,
+        userId,
+        userEmail,
+        DocumentRole.EDITOR,
+      );
+      if (parentFolder.type !== ItemType.FOLDER) {
+        throw new BadRequestException('Mục cha phải là thư mục');
+      }
+      if (parentFolder.isArchived) {
+        throw new BadRequestException(
+          'Không thể tải lên tệp tin trong một thư mục đã lưu trữ/xóa tạm',
+        );
+      }
+    }
+
+    // Check storage quota
+    await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
+    const { presignedUrl, s3Key } = await this.s3Service.generatePresignedUploadUrl(
+      userId,
+      dto.name,
+      dto.mimeType,
+    );
+
+    return { presignedUrl, s3Key };
+  }
+
+  async confirmUpload(
+    userId: string,
+    userEmail: string,
+    dto: ConfirmUploadDto,
+  ): Promise<DocumentItem> {
+    let parentFolder: DocumentItem | null = null;
+
+    if (dto.parentFolderId) {
+      parentFolder = await this.checkPermission(
+        dto.parentFolderId,
+        userId,
+        userEmail,
+        DocumentRole.EDITOR,
+      );
+      if (parentFolder.type !== ItemType.FOLDER) {
+        throw new BadRequestException('Mục cha phải là thư mục');
+      }
+      if (parentFolder.isArchived) {
+        throw new BadRequestException(
+          'Không thể lưu tài liệu trong một thư mục đã lưu trữ/xóa tạm',
+        );
+      }
+    }
+
+    // Double check quota
+    await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
+    const projectId = dto.projectId || parentFolder?.projectId || null;
+
+    // Create DocumentItem in Database
+    const item = await this.prisma.documentItem.create({
+      data: {
+        name: dto.name,
+        type: ItemType.FILE,
+        ownerUserId: userId,
+        ownerEmail: userEmail,
+        parentFolderId: dto.parentFolderId || null,
+        projectId,
+        s3Key: dto.s3Key,
+        mimeType: dto.mimeType,
+        sizeBytes: BigInt(dto.sizeBytes),
+      },
+    });
+
+    // Update storage quota (add to usedBytes)
+    await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
+
+    return item;
+  }
 
   /**
    * Recursively checks if a user has permission to access an item.

@@ -11,7 +11,7 @@ interface ListViewProps {
   items: DocumentItem[];
   selectedItemId: string | null;
   onSelect: (id: string | null) => void;
-  onDoubleClick: (item: DocumentItem) => void;
+  onFolderClick: (item: DocumentItem) => void;
   activeView: DocumentViewType;
   activeMenuId: string | null;
   setActiveMenuId: (id: string | null) => void;
@@ -19,13 +19,14 @@ interface ListViewProps {
   onMove: (id: string) => void;
   onToggleStar: (id: string, isStarred: boolean) => void;
   onArchive: (id: string, archive: boolean) => void;
+  onViewDetails: (id: string) => void;
 }
 
 function ListView({
   items,
   selectedItemId,
   onSelect,
-  onDoubleClick,
+  onFolderClick,
   activeView,
   activeMenuId,
   setActiveMenuId,
@@ -33,6 +34,7 @@ function ListView({
   onMove,
   onToggleStar,
   onArchive,
+  onViewDetails,
 }: ListViewProps) {
   return (
     <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
@@ -54,9 +56,12 @@ function ListView({
                 key={item.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSelect(item.id);
+                  if (isFolder) {
+                    onFolderClick(item);
+                  } else {
+                    onSelect(item.id);
+                  }
                 }}
-                onDoubleClick={() => isFolder && onDoubleClick(item)}
                 className={`hover:bg-slate-50/50 cursor-pointer ${
                   isSelected ? "bg-blue-50/30" : ""
                 }`}
@@ -97,6 +102,7 @@ function ListView({
                     onMove={() => onMove(item.id)}
                     onToggleStar={() => onToggleStar(item.id, item.isStarred)}
                     onArchive={(archive) => onArchive(item.id, archive)}
+                    onViewDetails={() => onViewDetails(item.id)}
                   />
                 </td>
               </tr>

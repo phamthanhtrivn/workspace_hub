@@ -11,6 +11,7 @@ import {
   Trash2,
   CornerUpLeft,
   Trash,
+  Info,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ interface ItemActionsMenuProps {
   onMove: () => void;
   onToggleStar: () => void;
   onArchive: (archive: boolean) => void;
+  onViewDetails?: () => void;
 }
 
 function ItemActionsMenu({
@@ -34,6 +36,7 @@ function ItemActionsMenu({
   onMove,
   onToggleStar,
   onArchive,
+  onViewDetails,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
 
@@ -62,6 +65,18 @@ function ItemActionsMenu({
           <div className="absolute right-0 z-100 mt-1.5 w-48 rounded-2xl bg-white border border-slate-100 shadow-xl py-2 animate-in fade-in slide-in-from-top-1 duration-150 font-semibold text-slate-700">
             {activeView !== DocumentViewType.TRASH ? (
               <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onViewDetails?.();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                >
+                  <Info size={15} />
+                  <span>Chi tiết</span>
+                </button>
+
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -154,4 +169,3 @@ function ItemActionsMenu({
 }
 
 export default React.memo(ItemActionsMenu);
-

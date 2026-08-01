@@ -1,10 +1,7 @@
-"use client";
-
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Grid, List, ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
 import { DocumentViewType } from "../types/documents.enums";
 import { ViewLayout, DocumentSortBy } from "../types/documents.types";
-import { toast } from "sonner";
 
 interface ExplorerToolbarProps {
   searchQuery: string;
@@ -13,6 +10,7 @@ interface ExplorerToolbarProps {
   setViewLayout: (layout: ViewLayout) => void;
   activeView: DocumentViewType;
   onCreateFolder: () => void;
+  onUploadFile?: (file: File) => void;
   sortBy: DocumentSortBy;
   setSortBy: (sortBy: DocumentSortBy) => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
@@ -25,11 +23,13 @@ function ExplorerToolbar({
   setViewLayout,
   activeView,
   onCreateFolder,
+  onUploadFile,
   sortBy,
   setSortBy,
   inputRef,
 }: ExplorerToolbarProps) {
   const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-6 bg-white/50 backdrop-blur-md z-10">
@@ -111,9 +111,7 @@ function ExplorerToolbar({
                   <button
                     onClick={() => {
                       setIsNewMenuOpen(false);
-                      toast.info(
-                        "Tính năng tải lên tệp tin (S3) đang được chuẩn bị ở bước tiếp theo!",
-                      );
+                      fileInputRef.current?.click();
                     }}
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-50 cursor-pointer"
                   >
@@ -126,6 +124,18 @@ function ExplorerToolbar({
           </div>
         )}
       </div>
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={(e) => {
+          if (e.target.files && e.target.files[0]) {
+            onUploadFile?.(e.target.files[0]);
+            e.target.value = "";
+          }
+        }}
+        className="hidden"
+      />
     </div>
   );
 }

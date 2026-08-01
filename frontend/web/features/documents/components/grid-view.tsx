@@ -3,14 +3,14 @@
 import React from "react";
 import { Folder, FileText, Star } from "lucide-react";
 import { DocumentItem } from "../types/documents.types";
-import { DocumentItemType, DocumentViewType } from "../types/documents.enums";
+import { DocumentItemType, DocumentViewType, ResourceTypeName } from "../types/documents.enums";
 import ItemActionsMenu from "./item-actions-menu";
 
 interface GridViewProps {
   items: DocumentItem[];
   selectedItemId: string | null;
   onSelect: (id: string | null) => void;
-  onDoubleClick: (item: DocumentItem) => void;
+  onFolderClick: (item: DocumentItem) => void;
   activeView: DocumentViewType;
   activeMenuId: string | null;
   setActiveMenuId: (id: string | null) => void;
@@ -18,13 +18,14 @@ interface GridViewProps {
   onMove: (id: string) => void;
   onToggleStar: (id: string, isStarred: boolean) => void;
   onArchive: (id: string, archive: boolean) => void;
+  onViewDetails: (id: string) => void;
 }
 
 function GridView({
   items,
   selectedItemId,
   onSelect,
-  onDoubleClick,
+  onFolderClick,
   activeView,
   activeMenuId,
   setActiveMenuId,
@@ -32,6 +33,7 @@ function GridView({
   onMove,
   onToggleStar,
   onArchive,
+  onViewDetails,
 }: GridViewProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -51,9 +53,12 @@ function GridView({
             key={item.id}
             onClick={(e) => {
               e.stopPropagation();
-              onSelect(item.id);
+              if (isFolder) {
+                onFolderClick(item);
+              } else {
+                onSelect(item.id);
+              }
             }}
-            onDoubleClick={() => isFolder && onDoubleClick(item)}
             className={`group relative flex flex-col p-4 rounded-2xl border transition-all cursor-pointer select-none ${
               isSelected
                 ? "bg-blue-50/50 border-blue-200 ring-2 ring-blue-500/10 shadow-xs"
@@ -88,6 +93,7 @@ function GridView({
                 onMove={() => onMove(item.id)}
                 onToggleStar={() => onToggleStar(item.id, item.isStarred)}
                 onArchive={(archive) => onArchive(item.id, archive)}
+                onViewDetails={() => onViewDetails(item.id)}
               />
             </div>
 
@@ -97,7 +103,7 @@ function GridView({
                 {item.name}
               </span>
               <span className="block text-xs text-slate-400 font-semibold mt-1">
-                {isFolder ? "Thư mục" : formatBytes(item.sizeBytes)}
+                {isFolder ? ResourceTypeName.FOLDER : formatBytes(item.sizeBytes)}
               </span>
             </div>
 
