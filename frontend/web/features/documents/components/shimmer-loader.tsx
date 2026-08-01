@@ -2,7 +2,7 @@
 
 import React from "react";
 
-export default function ShimmerLoader() {
+function ShimmerLoader() {
   return (
     <div className="flex flex-col gap-8 animate-pulse">
       {/* Folder Section Shimmer */}
@@ -46,3 +46,5 @@ export default function ShimmerLoader() {
     </div>
   );
 }
+
+export default React.memo(ShimmerLoader);

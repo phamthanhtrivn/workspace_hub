@@ -3,6 +3,8 @@
 import React from "react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 interface ExplorerBreadcrumbsProps {
   path: { id: string | null; name: string }[];
   onBreadcrumbClick: (index: number) => void;
@@ -32,9 +34,10 @@ function ExplorerBreadcrumbs({
           )}
           <button
             onClick={() => onBreadcrumbClick(idx)}
-            className={`font-semibold hover:text-[var(--color-primary)] transition-colors cursor-pointer ${
+            className={cn(
+              "font-semibold hover:text-[var(--color-primary)] transition-colors cursor-pointer",
               idx === path.length - 1 ? "text-slate-800" : "text-slate-400"
-            }`}
+            )}
           >
             {p.name}
           </button>

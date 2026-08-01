@@ -3,6 +3,7 @@
 import React from "react";
 import { DocumentItem } from "../types/documents.types";
 import { DocumentViewType } from "../types/documents.enums";
+import { cn } from "@/lib/utils";
 import {
   MoreVertical,
   Edit3,
@@ -111,9 +112,9 @@ function ItemActionsMenu({
                 >
                   <Star
                     size={15}
-                    className={
-                      item.isStarred ? "fill-amber-400 text-amber-400" : ""
-                    }
+                    className={cn(
+                      item.isStarred && "fill-amber-400 text-amber-400",
+                    )}
                   />
                   <span>
                     {item.isStarred ? "Bỏ gắn dấu sao" : "Gắn dấu sao"}

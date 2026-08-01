@@ -7,6 +7,8 @@ import { DocumentItemType, DocumentViewType } from "../types/documents.enums";
 import ItemActionsMenu from "./item-actions-menu";
 import { formatBytes, formatDateShort } from "../utils/documents.utils";
 
+import { cn } from "@/lib/utils";
+
 interface ListViewProps {
   items: DocumentItem[];
   selectedItemId: string | null;
@@ -62,17 +64,19 @@ function ListView({
                     onSelect(item.id);
                   }
                 }}
-                className={`hover:bg-slate-50/50 cursor-pointer ${
-                  isSelected ? "bg-blue-50/30" : ""
-                }`}
+                className={cn(
+                  "hover:bg-slate-50/50 cursor-pointer",
+                  isSelected && "bg-blue-50/30",
+                )}
               >
                 <td className="p-4 flex items-center gap-3 min-w-0">
                   <div
-                    className={`p-2 rounded-lg ${
+                    className={cn(
+                      "p-2 rounded-lg",
                       isFolder
                         ? "bg-amber-50 text-amber-500"
-                        : "bg-blue-50 text-blue-500"
-                    }`}
+                        : "bg-blue-50 text-blue-500",
+                    )}
                   >
                     {isFolder ? <Folder size={18} /> : <FileText size={18} />}
                   </div>

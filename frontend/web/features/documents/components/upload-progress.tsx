@@ -1,6 +1,6 @@
-"use client";
-
+import React from "react";
 import { UploadState } from "../types/documents.enums";
+import { cn } from "@/lib/utils";
 
 interface UploadProgressProps {
   uploadState: UploadState;
@@ -8,7 +8,7 @@ interface UploadProgressProps {
   uploadingFileName: string;
 }
 
-export default function UploadProgress({
+function UploadProgress({
   uploadState,
   uploadProgress,
   uploadingFileName,
@@ -38,16 +38,19 @@ export default function UploadProgress({
 
       <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200/20">
         <div
-          className={`h-full rounded-full transition-all duration-300 ${
+          className={cn(
+            "h-full rounded-full transition-all duration-300",
             uploadState === UploadState.ERROR
               ? "bg-red-500"
               : uploadState === UploadState.SUCCESS
                 ? "bg-green-500"
-                : "bg-[var(--color-primary)]"
-          }`}
+                : "bg-[var(--color-primary)]",
+          )}
           style={{ width: `${uploadProgress}%` }}
         />
       </div>
     </div>
   );
 }
+
+export default React.memo(UploadProgress);

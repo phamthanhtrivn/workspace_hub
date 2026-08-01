@@ -5,6 +5,7 @@ import { Folder, FileText, Star } from "lucide-react";
 import { DocumentItem } from "../types/documents.types";
 import { DocumentItemType, DocumentViewType, ResourceTypeName } from "../types/documents.enums";
 import ItemActionsMenu from "./item-actions-menu";
+import { cn } from "@/lib/utils";
 
 interface GridViewProps {
   items: DocumentItem[];
@@ -59,26 +60,28 @@ function GridView({
                 onSelect(item.id);
               }
             }}
-            className={`group relative flex flex-col p-4 rounded-2xl border transition-all cursor-pointer select-none ${
+            className={cn(
+              "group relative flex flex-col p-4 rounded-2xl border transition-all cursor-pointer select-none duration-300",
               isSelected
                 ? "bg-blue-50/50 border-blue-200 ring-2 ring-blue-500/10 shadow-xs"
                 : isFolder
                   ? "border-slate-100 hover:border-amber-200 hover:bg-amber-50/5 hover:-translate-y-1"
-                  : "border-slate-100 hover:border-blue-100 hover:bg-blue-50/5 hover:-translate-y-1"
-            } duration-300`}
+                  : "border-slate-100 hover:border-blue-100 hover:bg-blue-50/5 hover:-translate-y-1",
+            )}
           >
             {/* Item Icon & Options */}
             <div className="flex items-start justify-between mb-3">
               <div
-                className={`p-3 rounded-xl transition-all duration-300 ${
+                className={cn(
+                  "p-3 rounded-xl transition-all duration-300",
                   isSelected
                     ? isFolder
                       ? "bg-amber-100 text-amber-600"
                       : "bg-blue-100 text-blue-600"
                     : isFolder
                       ? "bg-amber-50 text-amber-500 group-hover:scale-105"
-                      : "bg-blue-50 text-blue-500 group-hover:scale-105"
-                }`}
+                      : "bg-blue-50 text-blue-500 group-hover:scale-105",
+                )}
               >
                 {isFolder ? <Folder size={22} /> : <FileText size={22} />}
               </div>

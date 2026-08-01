@@ -8,6 +8,7 @@ import {
   StarActionLabel,
   ArchiveActionLabel,
 } from "../types/documents.enums";
+import { cn } from "@/lib/utils";
 import { formatBytes, formatDateLong, getFileTypeDescription } from "../utils/documents.utils";
 import {
   X,
@@ -36,7 +37,7 @@ interface DetailsPanelProps {
   onArchive: (archive: boolean) => void;
 }
 
-export default function DetailsPanel({
+function DetailsPanel({
   item,
   onClose,
   onRename,
@@ -68,11 +69,12 @@ export default function DetailsPanel({
         {/* Preview Frame */}
         <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-2xl border border-slate-100/50">
           <div
-            className={`p-5 rounded-2xl mb-3 shadow-xs ${
+            className={cn(
+              "p-5 rounded-2xl mb-3 shadow-xs",
               isFolder
                 ? "bg-amber-100/70 text-amber-500"
                 : "bg-blue-100/70 text-blue-500"
-            }`}
+            )}
           >
             {isFolder ? <Folder size={44} /> : <FileText size={44} />}
           </div>
@@ -186,7 +188,7 @@ export default function DetailsPanel({
         >
           <Star
             size={14}
-            className={item.isStarred ? "fill-amber-400 text-amber-400" : ""}
+            className={cn(item.isStarred && "fill-amber-400 text-amber-400")}
           />
           <span>
             {item.isStarred ? StarActionLabel.REMOVE : StarActionLabel.ADD}
@@ -230,3 +232,5 @@ export default function DetailsPanel({
     </div>
   );
 }
+
+export default React.memo(DetailsPanel);

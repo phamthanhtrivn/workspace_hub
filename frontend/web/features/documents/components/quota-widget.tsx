@@ -1,10 +1,10 @@
-"use client";
-
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
 import { HardDrive, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-export default function QuotaWidget() {
+function QuotaWidget() {
   const { data: quota, isLoading } = useQuery({
     queryKey: ["document-quota"],
     queryFn: documentsApi.getQuota,
@@ -40,13 +40,14 @@ export default function QuotaWidget() {
 
       <div className="w-full bg-slate-200 rounded-full h-2 mb-2 overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${
+          className={cn(
+            "h-full rounded-full transition-all duration-500",
             percentage > 90
               ? "bg-red-500"
               : percentage > 75
                 ? "bg-amber-500"
-                : "bg-[var(--color-primary)]"
-          }`}
+                : "bg-[var(--color-primary)]",
+          )}
           style={{ width: `${percentage}%` }}
         />
       </div>
@@ -60,3 +61,5 @@ export default function QuotaWidget() {
     </div>
   );
 }
+
+export default React.memo(QuotaWidget);

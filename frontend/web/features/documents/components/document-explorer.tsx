@@ -32,6 +32,7 @@ import ExplorerBreadcrumbs from "./explorer-breadcrumbs";
 import GridView from "./grid-view";
 import ListView from "./list-view";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
+import { cn } from "@/lib/utils";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -43,7 +44,7 @@ interface DocumentExplorerProps {
   >;
 }
 
-export default function DocumentExplorer({
+function DocumentExplorer({
   currentFolderId,
   onNavigate,
   activeView,
@@ -493,11 +494,12 @@ export default function DocumentExplorer({
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`rounded-xl px-3 py-1.5 text-xs font-black transition-all cursor-pointer ${
+                      className={cn(
+                        "rounded-xl px-3 py-1.5 text-xs font-black transition-all cursor-pointer",
                         page === safeCurrentPage
                           ? "bg-[var(--color-primary)] text-white shadow-md shadow-blue-500/10"
-                          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      }`}
+                          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                      )}
                     >
                       {page}
                     </button>
@@ -557,3 +559,5 @@ export default function DocumentExplorer({
     </div>
   );
 }
+
+export default React.memo(DocumentExplorer);

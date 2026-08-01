@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Grid, List, ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { DocumentViewType } from "../types/documents.enums";
 import { ViewLayout, DocumentSortBy } from "../types/documents.types";
 
@@ -59,21 +60,23 @@ function ExplorerToolbar({
         <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-200/50">
           <button
             onClick={() => setViewLayout(ViewLayout.GRID)}
-            className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+            className={cn(
+              "p-1.5 rounded-lg cursor-pointer transition-all",
               viewLayout === ViewLayout.GRID
                 ? "bg-white text-[var(--color-primary)] shadow-xs"
-                : "text-slate-400 hover:text-slate-700"
-            }`}
+                : "text-slate-400 hover:text-slate-700",
+            )}
           >
             <Grid size={16} />
           </button>
           <button
             onClick={() => setViewLayout(ViewLayout.LIST)}
-            className={`p-1.5 rounded-lg cursor-pointer transition-all ${
+            className={cn(
+              "p-1.5 rounded-lg cursor-pointer transition-all",
               viewLayout === ViewLayout.LIST
                 ? "bg-white text-[var(--color-primary)] shadow-xs"
-                : "text-slate-400 hover:text-slate-700"
-            }`}
+                : "text-slate-400 hover:text-slate-700",
+            )}
           >
             <List size={16} />
           </button>

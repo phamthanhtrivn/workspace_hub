@@ -6,6 +6,7 @@ import { documentsApi } from "../api/documents.api";
 import { Folder, ChevronRight, X, Loader2 } from "lucide-react";
 import { DocumentItemType, NavigationLabel } from "../types/documents.enums";
 import { DocumentItem } from "../types/documents.types";
+import { cn } from "@/lib/utils";
 
 interface FolderPickerModalProps {
   isOpen: boolean;
@@ -16,7 +17,7 @@ interface FolderPickerModalProps {
   initialPath?: { id: string | null; name: string }[];
 }
 
-export default function FolderPickerModal({
+function FolderPickerModal({
   isOpen,
   onClose,
   onSelect,
@@ -92,9 +93,10 @@ export default function FolderPickerModal({
               {idx > 0 && <ChevronRight size={14} className="text-slate-300" />}
               <button
                 onClick={() => handlePathClick(idx)}
-                className={`font-medium hover:text-[var(--color-primary)] transition-colors cursor-pointer ${
-                  idx === path.length - 1 ? "text-slate-800" : "text-slate-400"
-                }`}
+                className={cn(
+                  "font-medium hover:text-[var(--color-primary)] transition-colors cursor-pointer",
+                  idx === path.length - 1 ? "text-slate-800" : "text-slate-400",
+                )}
               >
                 {p.name}
               </button>
@@ -157,3 +159,5 @@ export default function FolderPickerModal({
     </div>
   );
 }
+
+export default React.memo(FolderPickerModal);
