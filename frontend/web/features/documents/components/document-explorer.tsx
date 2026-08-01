@@ -18,6 +18,7 @@ import {
   DocumentItemType,
   DocumentViewType,
   UploadState,
+  NavigationLabel,
 } from "../types/documents.enums";
 import { Folder } from "lucide-react";
 import { toast } from "sonner";
@@ -137,6 +138,25 @@ export default function DocumentExplorer({
   const activeDetailsItem = useMemo(() => {
     return items.find((item) => item.id === activeDetailsItemId) || null;
   }, [items, activeDetailsItemId]);
+
+  const movingItem = useMemo(() => {
+    return items.find((item) => item.id === movingItemId) || null;
+  }, [items, movingItemId]);
+
+  const initialFolderIdForMove = movingItem?.parentFolderId || null;
+  const initialPathForMove = useMemo(() => {
+    if (!movingItem) return undefined;
+    if (movingItem.parentFolderId === currentFolderId) {
+      return path;
+    }
+    if (movingItem.parentFolderId) {
+      return [
+        { id: null, name: NavigationLabel.ROOT },
+        { id: movingItem.parentFolderId, name: NavigationLabel.CURRENT_FOLDER },
+      ];
+    }
+    return [{ id: null, name: NavigationLabel.ROOT }];
+  }, [movingItem, currentFolderId, path]);
 
   // Mutations
   const createFolderMutation = useMutation({
@@ -520,6 +540,8 @@ export default function DocumentExplorer({
           isOpen={isMoveModalOpen}
           onClose={() => setIsMoveModalOpen(false)}
           currentItemId={movingItemId}
+          initialFolderId={initialFolderIdForMove}
+          initialPath={initialPathForMove}
           onSelect={(destId) =>
             moveMutation.mutate({ id: movingItemId, destId })
           }

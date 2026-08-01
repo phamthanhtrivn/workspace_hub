@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
 import { Folder, ChevronRight, X, Loader2 } from "lucide-react";
-import { DocumentItemType } from "../types/documents.enums";
+import { DocumentItemType, NavigationLabel } from "../types/documents.enums";
 import { DocumentItem } from "../types/documents.types";
 
 interface FolderPickerModalProps {
@@ -12,6 +12,8 @@ interface FolderPickerModalProps {
   onClose: () => void;
   onSelect: (folderId: string | null) => void;
   currentItemId: string;
+  initialFolderId?: string | null;
+  initialPath?: { id: string | null; name: string }[];
 }
 
 export default function FolderPickerModal({
@@ -19,11 +21,13 @@ export default function FolderPickerModal({
   onClose,
   onSelect,
   currentItemId,
+  initialFolderId = null,
+  initialPath,
 }: FolderPickerModalProps) {
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [path, setPath] = useState<{ id: string | null; name: string }[]>([
-    { id: null, name: "Root" },
-  ]);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
+  const [path, setPath] = useState<{ id: string | null; name: string }[]>(
+    initialPath || [{ id: null, name: NavigationLabel.ROOT }],
+  );
 
   const { data: response, isLoading } = useQuery({
     queryKey: ["folder-picker", currentFolderId],
@@ -49,7 +53,7 @@ export default function FolderPickerModal({
   const handleNavigate = (folderId: string | null, name: string) => {
     setCurrentFolderId(folderId);
     if (folderId === null) {
-      setPath([{ id: null, name: "Root" }]);
+      setPath([{ id: null, name: NavigationLabel.ROOT }]);
     } else {
       const index = path.findIndex((p) => p.id === folderId);
       if (index !== -1) {
@@ -88,7 +92,7 @@ export default function FolderPickerModal({
               {idx > 0 && <ChevronRight size={14} className="text-slate-300" />}
               <button
                 onClick={() => handlePathClick(idx)}
-                className={`font-medium hover:text-[var(--color-primary)] transition-colors ${
+                className={`font-medium hover:text-[var(--color-primary)] transition-colors cursor-pointer ${
                   idx === path.length - 1 ? "text-slate-800" : "text-slate-400"
                 }`}
               >
@@ -120,7 +124,7 @@ export default function FolderPickerModal({
               <button
                 key={folder.id}
                 onClick={() => handleNavigate(folder.id, folder.name)}
-                className="flex items-center gap-3 w-full rounded-xl p-3 hover:bg-slate-50 transition-colors text-left group"
+                className="flex items-center gap-3 w-full rounded-xl p-3 hover:bg-slate-50 transition-colors text-left group cursor-pointer"
               >
                 <Folder
                   className="text-amber-400 group-hover:scale-105 transition-transform"

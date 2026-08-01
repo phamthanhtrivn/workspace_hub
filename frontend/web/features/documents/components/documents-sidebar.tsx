@@ -4,7 +4,7 @@ import { useState } from "react";
 import DocumentExplorer from "./document-explorer";
 import QuotaWidget from "./quota-widget";
 import { Folder, Share2, Star, Trash2 } from "lucide-react";
-import { DocumentViewType } from "../types/documents.enums";
+import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
 
 export default function DocumentsView() {
   const [activeView, setActiveView] = useState<DocumentViewType>(
@@ -14,14 +14,14 @@ export default function DocumentsView() {
 
   // Breadcrumb path state
   const [path, setPath] = useState<{ id: string | null; name: string }[]>([
-    { id: null, name: "Root" },
+    { id: null, name: NavigationLabel.ROOT },
   ]);
 
   const handleNavigate = (folderId: string | null, folderName?: string) => {
     setCurrentFolderId(folderId);
 
     if (folderId === null) {
-      setPath([{ id: null, name: "Root" }]);
+      setPath([{ id: null, name: NavigationLabel.ROOT }]);
     } else if (folderName) {
       // Navigate deeper
       const exists = path.some((p) => p.id === folderId);

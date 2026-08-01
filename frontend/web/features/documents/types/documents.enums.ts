@@ -78,4 +78,9 @@ export enum DocumentTypeDescription {
   UNKNOWN_FILE = "Tập tin tài liệu",
 }
 
+export enum NavigationLabel {
+  ROOT = "Root",
+  CURRENT_FOLDER = "Thư mục hiện tại",
+}
+
 
