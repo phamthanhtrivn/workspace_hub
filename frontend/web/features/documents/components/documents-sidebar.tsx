@@ -33,7 +33,9 @@ function DocumentsView() {
           ? NavigationLabel.STARRED
           : activeV === DocumentViewType.SHARED
             ? NavigationLabel.SHARED
-            : NavigationLabel.ROOT;
+            : activeV === DocumentViewType.TRASH
+              ? NavigationLabel.TRASH
+              : NavigationLabel.ROOT;
       setPath([{ id: null, name: rootLabel }]);
     } else if (folderName) {
       // Navigate deeper

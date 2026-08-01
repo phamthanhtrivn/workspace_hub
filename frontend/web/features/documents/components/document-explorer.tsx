@@ -122,7 +122,10 @@ function DocumentExplorer({
           activeView === DocumentViewType.STARRED && !currentFolderId
             ? true
             : undefined,
-        archived: activeView === DocumentViewType.TRASH ? true : undefined,
+        archived:
+          activeView === DocumentViewType.TRASH && !currentFolderId
+            ? true
+            : undefined,
       });
     },
   });
@@ -404,7 +407,11 @@ function DocumentExplorer({
           setSearchQuery={handleSearchChange}
           viewLayout={viewLayout}
           setViewLayout={setViewLayout}
-          activeView={currentFolderId ? DocumentViewType.MY_FILES : activeView}
+          activeView={
+            currentFolderId && activeView !== DocumentViewType.TRASH
+              ? DocumentViewType.MY_FILES
+              : activeView
+          }
           onCreateFolder={handleCreateFolder}
           onUploadFile={handleUploadFile}
           sortBy={sortBy}
@@ -413,13 +420,11 @@ function DocumentExplorer({
         />
 
         {/* Path Breadcrumbs */}
-        {activeView !== DocumentViewType.TRASH && (
-          <ExplorerBreadcrumbs
-            path={path}
-            onBreadcrumbClick={handleBreadcrumbClick}
-            onBackToParent={handleBackToParent}
-          />
-        )}
+        <ExplorerBreadcrumbs
+          path={path}
+          onBreadcrumbClick={handleBreadcrumbClick}
+          onBackToParent={handleBackToParent}
+        />
 
         {/* Explorer Content */}
         <div

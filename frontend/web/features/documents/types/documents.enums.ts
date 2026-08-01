@@ -83,4 +83,5 @@ export enum NavigationLabel {
   CURRENT_FOLDER = "Thư mục hiện tại",
   STARRED = "Đã đánh dấu sao",
   SHARED = "Được chia sẻ",
+  TRASH = "Thùng rác",
 }
