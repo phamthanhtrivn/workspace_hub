@@ -65,6 +65,9 @@ model DocumentItem {
   shares         DocumentShare[]
   versions       DocumentVersion[]
 
+  @@index([ownerUserId, isArchived])
+  @@index([parentFolderId])
+  @@index([isArchived, archivedAt])
   @@map("document_items")
 }
 
