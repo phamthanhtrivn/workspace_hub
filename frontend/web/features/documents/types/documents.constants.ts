@@ -38,3 +38,39 @@ export const MIME_TO_TYPE: Record<string, DocumentTypeDescription> = {
   "audio/mp3": DocumentTypeDescription.AUDIO_MP3,
   "video/mp4": DocumentTypeDescription.VIDEO_MP4,
 };
+
+export const TEXT_EXTENSIONS = [
+  "txt",
+  "log",
+  "md",
+  "csv",
+  "json",
+  "js",
+  "ts",
+  "jsx",
+  "tsx",
+  "css",
+  "html",
+  "py",
+  "java",
+  "c",
+  "cpp",
+  "h",
+  "cs",
+  "go",
+  "rs",
+  "php",
+  "sh",
+  "yaml",
+  "yml",
+  "ini",
+  "xml",
+  "sql",
+];
+
+export const OFFICE_EXTENSIONS = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"];
+
+export const MAX_TEXT_PREVIEW_SIZE = 102400;
+
+export const OFFICE_VIEWER_BASE_URL =
+  "https://view.officeapps.live.com/op/embed.aspx";

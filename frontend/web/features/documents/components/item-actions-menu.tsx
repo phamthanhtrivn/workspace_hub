@@ -2,17 +2,19 @@
 
 import React from "react";
 import { DocumentItem } from "../types/documents.types";
-import { DocumentViewType } from "../types/documents.enums";
+import { DocumentItemType, DocumentViewType } from "../types/documents.enums";
 import { cn } from "@/lib/utils";
 import {
   MoreVertical,
   Edit3,
   Move,
   Star,
-  Trash2,
-  CornerUpLeft,
   Trash,
   Info,
+  Eye,
+  CornerUpLeft,
+  Trash2,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +29,8 @@ interface ItemActionsMenuProps {
   onArchive: (archive: boolean) => void;
   onViewDetails?: () => void;
   onDeletePermanently?: () => void;
+  onPreview?: () => void;
+  onDownload?: () => void;
 }
 
 function ItemActionsMenu({
@@ -40,6 +44,8 @@ function ItemActionsMenu({
   onArchive,
   onViewDetails,
   onDeletePermanently,
+  onPreview,
+  onDownload,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
 
@@ -68,6 +74,34 @@ function ItemActionsMenu({
           <div className="absolute right-0 z-100 mt-1.5 w-48 rounded-2xl bg-white border border-slate-100 shadow-xl py-2 animate-in fade-in slide-in-from-top-1 duration-150 font-semibold text-slate-700">
             {activeView !== DocumentViewType.TRASH ? (
               <>
+                {item.type !== DocumentItemType.FOLDER && onPreview && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onPreview();
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-[var(--color-primary)] font-bold"
+                  >
+                    <Eye size={15} />
+                    <span>Xem trước</span>
+                  </button>
+                )}
+
+                {item.type !== DocumentItemType.FOLDER && onDownload && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onDownload();
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <Download size={15} />
+                    <span>Tải xuống</span>
+                  </button>
+                )}
+
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

@@ -85,3 +85,13 @@ export enum NavigationLabel {
   SHARED = "Được chia sẻ",
   TRASH = "Thùng rác",
 }
+
+export enum PreviewFileType {
+  IMAGE = "IMAGE",
+  PDF = "PDF",
+  VIDEO = "VIDEO",
+  AUDIO = "AUDIO",
+  TEXT = "TEXT",
+  OFFICE = "OFFICE",
+  UNKNOWN = "UNKNOWN",
+}

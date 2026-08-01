@@ -170,4 +170,14 @@ export const documentsApi = {
     const response = await api.delete(`/api/documents/${id}/permanent`);
     return response.data;
   },
+
+  getPreviewUrl: async (id: string): Promise<string> => {
+    const response = await api.get(`/api/documents/${id}/preview`);
+    return response.data.data.url;
+  },
+
+  getDownloadUrl: async (id: string): Promise<string> => {
+    const response = await api.get(`/api/documents/${id}/download-url`);
+    return response.data.data.url;
+  },
 };

@@ -21,6 +21,8 @@ interface GridViewProps {
   onArchive: (id: string, archive: boolean) => void;
   onViewDetails: (id: string) => void;
   onDeletePermanently: (id: string) => void;
+  onPreview?: (item: DocumentItem) => void;
+  onDownload?: (item: DocumentItem) => void;
 }
 
 function GridView({
@@ -37,6 +39,8 @@ function GridView({
   onArchive,
   onViewDetails,
   onDeletePermanently,
+  onPreview,
+  onDownload,
 }: GridViewProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -56,10 +60,14 @@ function GridView({
             key={item.id}
             onClick={(e) => {
               e.stopPropagation();
+              onSelect(item.id);
+            }}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
               if (isFolder) {
                 onFolderClick(item);
               } else {
-                onSelect(item.id);
+                onPreview?.(item);
               }
             }}
             className={cn(
@@ -100,6 +108,8 @@ function GridView({
                 onArchive={(archive) => onArchive(item.id, archive)}
                 onViewDetails={() => onViewDetails(item.id)}
                 onDeletePermanently={() => onDeletePermanently(item.id)}
+                onPreview={() => onPreview?.(item)}
+                onDownload={() => onDownload?.(item)}
               />
             </div>
 

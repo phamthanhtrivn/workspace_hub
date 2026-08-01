@@ -1,5 +1,5 @@
-import { EXTENSION_TO_TYPE, MIME_TO_TYPE } from "../types/documents.constants";
-import { DocumentTypeDescription } from "../types/documents.enums";
+import { EXTENSION_TO_TYPE, MIME_TO_TYPE, TEXT_EXTENSIONS, OFFICE_EXTENSIONS } from "../types/documents.constants";
+import { DocumentTypeDescription, PreviewFileType } from "../types/documents.enums";
 
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0 B";
@@ -61,4 +61,49 @@ export const getFileTypeDescription = (
   return ext
     ? `${DocumentTypeDescription.FILE_BASE} ${ext.toUpperCase()}`
     : DocumentTypeDescription.UNKNOWN_FILE;
+};
+
+export const getPreviewFileType = (
+  mimeType: string | null,
+  name: string,
+): PreviewFileType => {
+  const fileExt = name.slice(((name.lastIndexOf(".") - 1) >>> 0) + 2).toLowerCase();
+
+  if (
+    (mimeType && mimeType.toLowerCase().startsWith("image/")) ||
+    ["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp"].includes(fileExt)
+  ) {
+    return PreviewFileType.IMAGE;
+  }
+
+  if ((mimeType && mimeType.toLowerCase() === "application/pdf") || fileExt === "pdf") {
+    return PreviewFileType.PDF;
+  }
+
+  if (
+    (mimeType && mimeType.toLowerCase().startsWith("video/")) ||
+    ["mp4", "webm", "ogg", "mov"].includes(fileExt)
+  ) {
+    return PreviewFileType.VIDEO;
+  }
+
+  if (
+    (mimeType && mimeType.toLowerCase().startsWith("audio/")) ||
+    ["mp3", "wav", "ogg", "m4a", "flac"].includes(fileExt)
+  ) {
+    return PreviewFileType.AUDIO;
+  }
+
+  if (
+    TEXT_EXTENSIONS.includes(fileExt) ||
+    (mimeType && mimeType.toLowerCase().startsWith("text/"))
+  ) {
+    return PreviewFileType.TEXT;
+  }
+
+  if (OFFICE_EXTENSIONS.includes(fileExt)) {
+    return PreviewFileType.OFFICE;
+  }
+
+  return PreviewFileType.UNKNOWN;
 };

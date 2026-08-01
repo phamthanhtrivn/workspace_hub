@@ -603,4 +603,56 @@ export class DocumentService {
       });
     }
   }
+
+  /**
+   * Generates a temporary S3 read presigned URL for previewing files.
+   */
+  async getPreviewUrl(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<string> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể xem trước thư mục');
+    }
+
+    if (!item.s3Key) {
+      throw new BadRequestException('Tài liệu không có tệp tin đính kèm');
+    }
+
+    return this.s3Service.generatePresignedDownloadUrl(item.s3Key);
+  }
+
+  /**
+   * Generates a temporary S3 download presigned URL with correct content disposition headers.
+   */
+  async getDownloadUrl(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<string> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể tải thư mục trực tiếp');
+    }
+
+    if (!item.s3Key) {
+      throw new BadRequestException('Tài liệu không có tệp tin đính kèm');
+    }
+
+    return this.s3Service.generatePresignedDownloadUrl(item.s3Key, item.name);
+  }
 }

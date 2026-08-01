@@ -31,6 +31,7 @@ import UploadProgress from "./upload-progress";
 import ExplorerBreadcrumbs from "./explorer-breadcrumbs";
 import GridView from "./grid-view";
 import ListView from "./list-view";
+import FilePreviewModal from "./file-preview-modal";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { cn } from "@/lib/utils";
 
@@ -64,6 +65,8 @@ function DocumentExplorer({
   // Modals state
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<DocumentItem | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   // Uploading state
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
@@ -410,6 +413,25 @@ function DocumentExplorer({
     setCurrentPage(1);
   }, []);
 
+  const handlePreview = useCallback((item: DocumentItem) => {
+    setPreviewItem(item);
+    setIsPreviewOpen(true);
+  }, []);
+
+  const handleDownload = useCallback(async (item: DocumentItem) => {
+    try {
+      const downloadUrl = await documentsApi.getDownloadUrl(item.id);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Failed to generate download URL", err);
+      toast.error("Lỗi tạo liên kết tải xuống");
+    }
+  }, []);
+
   const handleDeletePermanently = useCallback(
     (id: string) => {
       Swal.fire({
@@ -491,6 +513,8 @@ function DocumentExplorer({
               onArchive={handleArchive}
               onViewDetails={handleViewDetails}
               onDeletePermanently={handleDeletePermanently}
+              onPreview={handlePreview}
+              onDownload={handleDownload}
             />
           ) : (
             <ListView
@@ -507,6 +531,8 @@ function DocumentExplorer({
               onArchive={handleArchive}
               onViewDetails={handleViewDetails}
               onDeletePermanently={handleDeletePermanently}
+              onPreview={handlePreview}
+              onDownload={handleDownload}
             />
           )}
 
@@ -594,6 +620,16 @@ function DocumentExplorer({
         uploadState={uploadState}
         uploadProgress={uploadProgress}
         uploadingFileName={uploadingFileName}
+      />
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setPreviewItem(null);
+        }}
+        item={previewItem}
       />
     </div>
   );

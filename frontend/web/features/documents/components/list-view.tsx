@@ -23,6 +23,8 @@ interface ListViewProps {
   onArchive: (id: string, archive: boolean) => void;
   onViewDetails: (id: string) => void;
   onDeletePermanently: (id: string) => void;
+  onPreview?: (item: DocumentItem) => void;
+  onDownload?: (item: DocumentItem) => void;
 }
 
 function ListView({
@@ -39,6 +41,8 @@ function ListView({
   onArchive,
   onViewDetails,
   onDeletePermanently,
+  onPreview,
+  onDownload,
 }: ListViewProps) {
   return (
     <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
@@ -60,10 +64,14 @@ function ListView({
                 key={item.id}
                 onClick={(e) => {
                   e.stopPropagation();
+                  onSelect(item.id);
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
                   if (isFolder) {
                     onFolderClick(item);
                   } else {
-                    onSelect(item.id);
+                    onPreview?.(item);
                   }
                 }}
                 className={cn(
@@ -110,6 +118,8 @@ function ListView({
                     onArchive={(archive) => onArchive(item.id, archive)}
                     onViewDetails={() => onViewDetails(item.id)}
                     onDeletePermanently={() => onDeletePermanently(item.id)}
+                    onPreview={() => onPreview?.(item)}
+                    onDownload={() => onDownload?.(item)}
                   />
                 </td>
               </tr>

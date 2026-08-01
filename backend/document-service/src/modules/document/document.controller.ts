@@ -290,4 +290,32 @@ export class DocumentController {
       message: 'Xóa tài nguyên vĩnh viễn thành công',
     };
   }
+
+  @Get(':id/preview')
+  async getPreviewUrl(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const url = await this.documentService.getPreviewUrl(userId, userEmail, id);
+    return {
+      message: 'Khởi tạo link xem trước thành công',
+      data: { url },
+    };
+  }
+
+  @Get(':id/download-url')
+  async getDownloadUrl(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const url = await this.documentService.getDownloadUrl(userId, userEmail, id);
+    return {
+      message: 'Khởi tạo link tải xuống thành công',
+      data: { url },
+    };
+  }
 }
