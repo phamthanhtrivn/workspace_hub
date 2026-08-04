@@ -16,6 +16,7 @@ import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
+import { CreateVersionDto } from './dto/create-version.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
 
@@ -296,9 +297,10 @@ export class DocumentController {
     @Headers('x-user-id') userId: string,
     @Headers('x-user-email') userEmail: string,
     @Param('id') id: string,
+    @Query('versionId') versionId?: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
-    const url = await this.documentService.getPreviewUrl(userId, userEmail, id);
+    const url = await this.documentService.getPreviewUrl(userId, userEmail, id, versionId);
     return {
       message: 'Khởi tạo link xem trước thành công',
       data: { url },
@@ -310,12 +312,42 @@ export class DocumentController {
     @Headers('x-user-id') userId: string,
     @Headers('x-user-email') userEmail: string,
     @Param('id') id: string,
+    @Query('versionId') versionId?: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
-    const url = await this.documentService.getDownloadUrl(userId, userEmail, id);
+    const url = await this.documentService.getDownloadUrl(userId, userEmail, id, versionId);
     return {
       message: 'Khởi tạo link tải xuống thành công',
       data: { url },
+    };
+  }
+
+  @Get(':id/versions')
+  async getVersions(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const versions = await this.documentService.getVersions(userId, userEmail, id);
+    return {
+      message: 'Lấy danh sách phiên bản thành công',
+      data: versions,
+    };
+  }
+
+  @Post(':id/versions')
+  async createVersion(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+    @Body() dto: CreateVersionDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const version = await this.documentService.createVersion(userId, userEmail, id, dto);
+    return {
+      message: 'Tạo phiên bản mới thành công',
+      data: version,
     };
   }
 }

@@ -40,4 +40,15 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface DocumentVersion {
+  id: string;
+  documentItemId: string;
+  versionNumber: number;
+  s3Key: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  uploadedByEmail?: string;
+  createdAt: string;
+}
+
 export { ViewLayout, DocumentSortBy };

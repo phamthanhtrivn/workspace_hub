@@ -25,6 +25,7 @@ interface ListViewProps {
   onDeletePermanently: (id: string) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
+  onManageVersions?: (item: DocumentItem) => void;
 }
 
 function ListView({
@@ -43,6 +44,7 @@ function ListView({
   onDeletePermanently,
   onPreview,
   onDownload,
+  onManageVersions,
 }: ListViewProps) {
   return (
     <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
@@ -120,6 +122,7 @@ function ListView({
                     onDeletePermanently={() => onDeletePermanently(item.id)}
                     onPreview={() => onPreview?.(item)}
                     onDownload={() => onDownload?.(item)}
+                    onManageVersions={() => onManageVersions?.(item)}
                   />
                 </td>
               </tr>

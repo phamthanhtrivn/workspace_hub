@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../api/documents.api";
 import { Folder, ChevronRight, X, Loader2 } from "lucide-react";
@@ -51,24 +51,29 @@ function FolderPickerModal({
 
   if (!isOpen) return null;
 
-  const handleNavigate = (folderId: string | null, name: string) => {
+  const handleNavigate = useCallback((folderId: string | null, name: string) => {
     setCurrentFolderId(folderId);
     if (folderId === null) {
       setPath([{ id: null, name: NavigationLabel.ROOT }]);
     } else {
-      const index = path.findIndex((p) => p.id === folderId);
-      if (index !== -1) {
-        setPath(path.slice(0, index + 1));
-      } else {
-        setPath([...path, { id: folderId, name }]);
-      }
+      setPath((prevPath) => {
+        const index = prevPath.findIndex((p) => p.id === folderId);
+        if (index !== -1) {
+          return prevPath.slice(0, index + 1);
+        } else {
+          return [...prevPath, { id: folderId, name }];
+        }
+      });
     }
-  };
+  }, []);
 
-  const handlePathClick = (index: number) => {
-    const p = path[index];
-    handleNavigate(p.id, p.name);
-  };
+  const handlePathClick = useCallback((index: number) => {
+    setPath((prevPath) => {
+      const p = prevPath[index];
+      setCurrentFolderId(p.id);
+      return prevPath.slice(0, index + 1);
+    });
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">

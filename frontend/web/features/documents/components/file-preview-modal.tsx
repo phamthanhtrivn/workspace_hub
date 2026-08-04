@@ -14,15 +14,28 @@ interface FilePreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   item: DocumentItem | null;
+  versionId?: string;
 }
 
-function FilePreviewModal({ isOpen, onClose, item }: FilePreviewModalProps) {
+function FilePreviewModal({
+  isOpen,
+  onClose,
+  item,
+  versionId,
+}: FilePreviewModalProps) {
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
 
-  const { data: previewUrl, isLoading: isUrlLoading, error } = useQuery({
-    queryKey: ["document-preview", item?.id],
-    queryFn: () => (item ? documentsApi.getPreviewUrl(item.id) : Promise.reject("No item")),
+  const {
+    data: previewUrl,
+    isLoading: isUrlLoading,
+    error,
+  } = useQuery({
+    queryKey: ["document-preview", item?.id, versionId],
+    queryFn: () =>
+      item
+        ? documentsApi.getPreviewUrl(item.id, versionId)
+        : Promise.reject("No item"),
     enabled: isOpen && !!item && item.type !== "FOLDER",
     staleTime: 5 * 60 * 1000, // 5 mins cache
   });
@@ -46,7 +59,10 @@ function FilePreviewModal({ isOpen, onClose, item }: FilePreviewModalProps) {
         })
         .then((text) => {
           if (text.length > MAX_TEXT_PREVIEW_SIZE) {
-            setTextContent(text.slice(0, MAX_TEXT_PREVIEW_SIZE) + "\n\n... [Nội dung quá dài, vui lòng tải xuống để xem toàn bộ] ...");
+            setTextContent(
+              text.slice(0, MAX_TEXT_PREVIEW_SIZE) +
+                "\n\n... [Nội dung quá dài, vui lòng tải xuống để xem toàn bộ] ...",
+            );
           } else {
             setTextContent(text);
           }
@@ -66,7 +82,10 @@ function FilePreviewModal({ isOpen, onClose, item }: FilePreviewModalProps) {
   const handleDownload = useCallback(async () => {
     if (item) {
       try {
-        const downloadUrl = await documentsApi.getDownloadUrl(item.id);
+        const downloadUrl = await documentsApi.getDownloadUrl(
+          item.id,
+          versionId,
+        );
         const link = document.createElement("a");
         link.href = downloadUrl;
         document.body.appendChild(link);
@@ -76,14 +95,16 @@ function FilePreviewModal({ isOpen, onClose, item }: FilePreviewModalProps) {
         console.error("Failed to generate download URL", err);
       }
     }
-  }, [item]);
+  }, [item, versionId]);
 
   if (!isOpen || !item) return null;
 
-  const isImageOrVideo = previewType === PreviewFileType.IMAGE || previewType === PreviewFileType.VIDEO;
+  const isImageOrVideo =
+    previewType === PreviewFileType.IMAGE ||
+    previewType === PreviewFileType.VIDEO;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
         className={
           isImageOrVideo

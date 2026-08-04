@@ -17,6 +17,11 @@ export const EXTENSION_TO_TYPE: Record<string, DocumentTypeDescription> = {
   "7z": DocumentTypeDescription.SEVENZIP,
   mp3: DocumentTypeDescription.AUDIO_MP3,
   mp4: DocumentTypeDescription.VIDEO_MP4,
+  env: DocumentTypeDescription.TEXT,
+  gitignore: DocumentTypeDescription.TEXT,
+  dockerfile: DocumentTypeDescription.TEXT,
+  npmrc: DocumentTypeDescription.TEXT,
+  editorconfig: DocumentTypeDescription.TEXT,
 };
 
 export const MIME_TO_TYPE: Record<string, DocumentTypeDescription> = {
@@ -66,6 +71,11 @@ export const TEXT_EXTENSIONS = [
   "ini",
   "xml",
   "sql",
+  "env",
+  "gitignore",
+  "dockerfile",
+  "npmrc",
+  "editorconfig",
 ];
 
 export const OFFICE_EXTENSIONS = ["doc", "docx", "xls", "xlsx", "ppt", "pptx"];

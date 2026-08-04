@@ -36,7 +36,7 @@ function ExplorerBreadcrumbs({
             onClick={() => onBreadcrumbClick(idx)}
             className={cn(
               "font-semibold hover:text-[var(--color-primary)] transition-colors cursor-pointer",
-              idx === path.length - 1 ? "text-slate-800" : "text-slate-400"
+              idx === path.length - 1 ? "text-slate-800" : "text-slate-400",
             )}
           >
             {p.name}

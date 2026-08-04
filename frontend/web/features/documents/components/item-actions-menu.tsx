@@ -15,6 +15,7 @@ import {
   CornerUpLeft,
   Trash2,
   Download,
+  History,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +32,7 @@ interface ItemActionsMenuProps {
   onDeletePermanently?: () => void;
   onPreview?: () => void;
   onDownload?: () => void;
+  onManageVersions?: () => void;
 }
 
 function ItemActionsMenu({
@@ -46,6 +48,7 @@ function ItemActionsMenu({
   onDeletePermanently,
   onPreview,
   onDownload,
+  onManageVersions,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
 
@@ -99,6 +102,20 @@ function ItemActionsMenu({
                   >
                     <Download size={15} />
                     <span>Tải xuống</span>
+                  </button>
+                )}
+
+                {item.type !== DocumentItemType.FOLDER && onManageVersions && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onManageVersions();
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <History size={15} />
+                    <span>Quản lý phiên bản</span>
                   </button>
                 )}
 

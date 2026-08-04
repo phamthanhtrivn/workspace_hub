@@ -65,13 +65,29 @@ export class S3Service {
     }
   }
 
+  private getAsciiFilename(filename: string): string {
+    return filename
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics / accents
+      .replace(/[^\x20-\x7E]/g, '_') // Replace non-ASCII with '_'
+      .replace(/"/g, '\\"'); // Escape double quotes
+  }
+
   async generatePresignedDownloadUrl(s3Key: string, filename?: string): Promise<string> {
     try {
+      let contentDisposition: string | undefined;
+
+      if (filename) {
+        const asciiFilename = this.getAsciiFilename(filename);
+        const encodedFilename = encodeURIComponent(filename).replace(/'/g, '%27');
+        contentDisposition = `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`;
+      }
+
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: s3Key,
-        ...(filename && {
-          ResponseContentDisposition: `attachment; filename="${encodeURIComponent(filename)}"`,
+        ...(contentDisposition && {
+          ResponseContentDisposition: contentDisposition,
         }),
       });
 

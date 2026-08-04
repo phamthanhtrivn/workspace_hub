@@ -67,7 +67,13 @@ export const getPreviewFileType = (
   mimeType: string | null,
   name: string,
 ): PreviewFileType => {
-  const fileExt = name.slice(((name.lastIndexOf(".") - 1) >>> 0) + 2).toLowerCase();
+  let fileExt = "";
+  const dotIndex = name.lastIndexOf(".");
+  if (dotIndex > 0) {
+    fileExt = name.slice(dotIndex + 1).toLowerCase();
+  } else if (dotIndex === 0) {
+    fileExt = name.slice(1).toLowerCase();
+  }
 
   if (
     (mimeType && mimeType.toLowerCase().startsWith("image/")) ||

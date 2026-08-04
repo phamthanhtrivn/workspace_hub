@@ -1,5 +1,11 @@
 import { api } from "@/lib/axios";
-import { DocumentItem, UserStorageQuota, PaginatedResponse, DocumentSortBy } from "../types/documents.types";
+import {
+  DocumentItem,
+  UserStorageQuota,
+  PaginatedResponse,
+  DocumentSortBy,
+  DocumentVersion,
+} from "../types/documents.types";
 import { UploadState } from "../types/documents.enums";
 import axios from "axios";
 import { DEFAULT_MIME_TYPE } from "../types/documents.constants";
@@ -171,13 +177,68 @@ export const documentsApi = {
     return response.data;
   },
 
-  getPreviewUrl: async (id: string): Promise<string> => {
-    const response = await api.get(`/api/documents/${id}/preview`);
+  getPreviewUrl: async (id: string, versionId?: string): Promise<string> => {
+    const response = await api.get(`/api/documents/${id}/preview`, {
+      params: { versionId },
+    });
     return response.data.data.url;
   },
 
-  getDownloadUrl: async (id: string): Promise<string> => {
-    const response = await api.get(`/api/documents/${id}/download-url`);
+  getDownloadUrl: async (id: string, versionId?: string): Promise<string> => {
+    const response = await api.get(`/api/documents/${id}/download-url`, {
+      params: { versionId },
+    });
     return response.data.data.url;
+  },
+
+  getVersions: async (id: string): Promise<DocumentVersion[]> => {
+    const response = await api.get(`/api/documents/${id}/versions`);
+    return response.data.data;
+  },
+
+  createVersion: async (
+    id: string,
+    data: { s3Key: string; sizeBytes: number; mimeType: string },
+  ): Promise<DocumentVersion> => {
+    const response = await api.post(`/api/documents/${id}/versions`, data);
+    return response.data.data;
+  },
+
+  uploadNewVersion: async (
+    id: string,
+    file: File,
+    onProgress?: (percent: number, state: UploadState) => void,
+  ): Promise<DocumentVersion> => {
+    const mimeType = file.type || DEFAULT_MIME_TYPE;
+
+    onProgress?.(0, UploadState.INITIATING);
+    const { presignedUrl, s3Key } = await documentsApi.initiateUpload({
+      name: file.name,
+      mimeType,
+      sizeBytes: file.size,
+    });
+
+    onProgress?.(0, UploadState.UPLOADING);
+    await axios.put(presignedUrl, file, {
+      headers: {
+        "Content-Type": mimeType,
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress) {
+          const total = progressEvent.total || file.size;
+          const percent = Math.round((progressEvent.loaded * 100) / total);
+          onProgress(percent, UploadState.UPLOADING);
+        }
+      },
+    });
+
+    onProgress?.(100, UploadState.CONFIRMING);
+    const version = await documentsApi.createVersion(id, {
+      s3Key,
+      sizeBytes: file.size,
+      mimeType,
+    });
+
+    return version;
   },
 };

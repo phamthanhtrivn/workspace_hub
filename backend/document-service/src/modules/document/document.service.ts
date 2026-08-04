@@ -10,9 +10,11 @@ import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
+import { CreateVersionDto } from './dto/create-version.dto';
 import {
   ItemType,
   DocumentItem,
+  DocumentVersion,
   SharePermission,
   LinkAccess,
 } from '@prisma/client';
@@ -93,19 +95,33 @@ export class DocumentService {
 
     const projectId = dto.projectId || parentFolder?.projectId || null;
 
-    // Create DocumentItem in Database
-    const item = await this.prisma.documentItem.create({
-      data: {
-        name: dto.name,
-        type: ItemType.FILE,
-        ownerUserId: userId,
-        ownerEmail: userEmail,
-        parentFolderId: dto.parentFolderId || null,
-        projectId,
-        s3Key: dto.s3Key,
-        mimeType: dto.mimeType,
-        sizeBytes: BigInt(dto.sizeBytes),
-      },
+    // Create DocumentItem and first Version in Database
+    const item = await this.prisma.$transaction(async (tx) => {
+      const createdItem = await tx.documentItem.create({
+        data: {
+          name: dto.name,
+          type: ItemType.FILE,
+          ownerUserId: userId,
+          ownerEmail: userEmail,
+          parentFolderId: dto.parentFolderId || null,
+          projectId,
+          s3Key: dto.s3Key,
+          mimeType: dto.mimeType,
+          sizeBytes: BigInt(dto.sizeBytes),
+        },
+      });
+
+      await tx.documentVersion.create({
+        data: {
+          documentItemId: createdItem.id,
+          versionNumber: 1,
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          uploadedBy: userId,
+        },
+      });
+
+      return createdItem;
     });
 
     // Update storage quota (add to usedBytes)
@@ -611,6 +627,7 @@ export class DocumentService {
     userId: string,
     userEmail: string,
     id: string,
+    versionId?: string,
   ): Promise<string> {
     const item = await this.checkPermission(
       id,
@@ -623,11 +640,23 @@ export class DocumentService {
       throw new BadRequestException('Không thể xem trước thư mục');
     }
 
-    if (!item.s3Key) {
+    let s3Key = item.s3Key;
+
+    if (versionId) {
+      const version = await this.prisma.documentVersion.findUnique({
+        where: { id: versionId, documentItemId: id },
+      });
+      if (!version) {
+        throw new NotFoundException('Không tìm thấy phiên bản tài liệu');
+      }
+      s3Key = version.s3Key;
+    }
+
+    if (!s3Key) {
       throw new BadRequestException('Tài liệu không có tệp tin đính kèm');
     }
 
-    return this.s3Service.generatePresignedDownloadUrl(item.s3Key);
+    return this.s3Service.generatePresignedDownloadUrl(s3Key);
   }
 
   /**
@@ -637,6 +666,7 @@ export class DocumentService {
     userId: string,
     userEmail: string,
     id: string,
+    versionId?: string,
   ): Promise<string> {
     const item = await this.checkPermission(
       id,
@@ -649,10 +679,163 @@ export class DocumentService {
       throw new BadRequestException('Không thể tải thư mục trực tiếp');
     }
 
-    if (!item.s3Key) {
+    let s3Key = item.s3Key;
+    let fileName = item.name;
+
+    if (versionId) {
+      const version = await this.prisma.documentVersion.findUnique({
+        where: { id: versionId, documentItemId: id },
+      });
+      if (!version) {
+        throw new NotFoundException('Không tìm thấy phiên bản tài liệu');
+      }
+      s3Key = version.s3Key;
+      const dotIndex = fileName.lastIndexOf('.');
+      if (dotIndex !== -1) {
+        fileName = `${fileName.substring(0, dotIndex)}_v${version.versionNumber}${fileName.substring(dotIndex)}`;
+      } else {
+        fileName = `${fileName}_v${version.versionNumber}`;
+      }
+    }
+
+    if (!s3Key) {
       throw new BadRequestException('Tài liệu không có tệp tin đính kèm');
     }
 
-    return this.s3Service.generatePresignedDownloadUrl(item.s3Key, item.name);
+    return this.s3Service.generatePresignedDownloadUrl(s3Key, fileName);
+  }
+
+  /**
+   * Retrieves the version history of a document item.
+   */
+  async getVersions(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<any[]> {
+    const item = (await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    )) as any;
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Thư mục không có phiên bản');
+    }
+
+    const versions = await this.prisma.documentVersion.findMany({
+      where: { documentItemId: id },
+      orderBy: { versionNumber: 'desc' },
+    });
+
+    if (versions.length === 0) {
+      return [
+        {
+          id: 'original',
+          documentItemId: item.id,
+          versionNumber: 1,
+          s3Key: item.s3Key || '',
+          sizeBytes: item.sizeBytes,
+          uploadedBy: item.ownerUserId,
+          uploadedByEmail: item.ownerEmail,
+          createdAt: item.createdAt,
+        },
+      ];
+    }
+
+    return versions.map((v) => {
+      let email = 'Người dùng khác';
+      if (v.uploadedBy === item.ownerUserId) {
+        email = item.ownerEmail;
+      } else {
+        const share = item.shares?.find((s) => s.shareWithUserId === v.uploadedBy);
+        if (share) {
+          email = share.shareWithEmail;
+        }
+      }
+      return {
+        ...v,
+        uploadedByEmail: email,
+      };
+    });
+  }
+
+  /**
+   * Uploads a new version of an existing document.
+   */
+  async createVersion(
+    userId: string,
+    userEmail: string,
+    id: string,
+    dto: CreateVersionDto,
+  ): Promise<DocumentVersion> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể tạo phiên bản mới cho thư mục');
+    }
+
+    // Check storage quota
+    await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
+    const latestVersion = await this.prisma.documentVersion.findFirst({
+      where: { documentItemId: id },
+      orderBy: { versionNumber: 'desc' },
+    });
+
+    let nextVersionNumber = 1;
+
+    const newVersion = await this.prisma.$transaction(async (tx) => {
+      if (!latestVersion) {
+        // Retroactively create version 1 for original state
+        await tx.documentVersion.create({
+          data: {
+            documentItemId: id,
+            versionNumber: 1,
+            s3Key: item.s3Key || '',
+            sizeBytes: item.sizeBytes,
+            uploadedBy: item.ownerUserId,
+            createdAt: item.createdAt,
+          },
+        });
+        nextVersionNumber = 2;
+      } else {
+        nextVersionNumber = latestVersion.versionNumber + 1;
+      }
+
+      // Create new version record
+      const createdVersion = await tx.documentVersion.create({
+        data: {
+          documentItemId: id,
+          versionNumber: nextVersionNumber,
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          uploadedBy: userId,
+        },
+      });
+
+      // Update parent document item metadata to point to this latest version
+      await tx.documentItem.update({
+        where: { id },
+        data: {
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          mimeType: dto.mimeType,
+        },
+      });
+
+      return createdVersion;
+    });
+
+    // Update uploader storage quota
+    await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
+
+    return newVersion;
   }
 }

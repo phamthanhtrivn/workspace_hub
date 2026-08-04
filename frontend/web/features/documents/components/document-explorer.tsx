@@ -32,6 +32,7 @@ import ExplorerBreadcrumbs from "./explorer-breadcrumbs";
 import GridView from "./grid-view";
 import ListView from "./list-view";
 import FilePreviewModal from "./file-preview-modal";
+import VersionManagementModal from "./version-management-modal";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +68,9 @@ function DocumentExplorer({
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
   const [previewItem, setPreviewItem] = useState<DocumentItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [versioningItem, setVersioningItem] = useState<DocumentItem | null>(null);
+  const [previewVersionId, setPreviewVersionId] = useState<string>("");
 
   // Uploading state
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
@@ -415,7 +419,13 @@ function DocumentExplorer({
 
   const handlePreview = useCallback((item: DocumentItem) => {
     setPreviewItem(item);
+    setPreviewVersionId("");
     setIsPreviewOpen(true);
+  }, []);
+
+  const handleManageVersions = useCallback((item: DocumentItem) => {
+    setVersioningItem(item);
+    setIsVersionModalOpen(true);
   }, []);
 
   const handleDownload = useCallback(async (item: DocumentItem) => {
@@ -515,6 +525,7 @@ function DocumentExplorer({
               onDeletePermanently={handleDeletePermanently}
               onPreview={handlePreview}
               onDownload={handleDownload}
+              onManageVersions={handleManageVersions}
             />
           ) : (
             <ListView
@@ -533,6 +544,7 @@ function DocumentExplorer({
               onDeletePermanently={handleDeletePermanently}
               onPreview={handlePreview}
               onDownload={handleDownload}
+              onManageVersions={handleManageVersions}
             />
           )}
 
@@ -628,9 +640,28 @@ function DocumentExplorer({
         onClose={() => {
           setIsPreviewOpen(false);
           setPreviewItem(null);
+          setPreviewVersionId("");
         }}
         item={previewItem}
+        versionId={previewVersionId || undefined}
       />
+
+      {/* Version Management Modal */}
+      {isVersionModalOpen && versioningItem && (
+        <VersionManagementModal
+          isOpen={isVersionModalOpen}
+          onClose={() => {
+            setIsVersionModalOpen(false);
+            setVersioningItem(null);
+          }}
+          item={versioningItem}
+          onPreviewVersion={(item, versionId) => {
+            setPreviewItem(item);
+            setPreviewVersionId(versionId);
+            setIsPreviewOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 }

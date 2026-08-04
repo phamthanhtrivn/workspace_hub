@@ -23,6 +23,7 @@ interface GridViewProps {
   onDeletePermanently: (id: string) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
+  onManageVersions?: (item: DocumentItem) => void;
 }
 
 function GridView({
@@ -41,6 +42,7 @@ function GridView({
   onDeletePermanently,
   onPreview,
   onDownload,
+  onManageVersions,
 }: GridViewProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -110,6 +112,7 @@ function GridView({
                 onDeletePermanently={() => onDeletePermanently(item.id)}
                 onPreview={() => onPreview?.(item)}
                 onDownload={() => onDownload?.(item)}
+                onManageVersions={() => onManageVersions?.(item)}
               />
             </div>
 
