@@ -23,16 +23,17 @@ import {
 import { Folder } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
-import FolderPickerModal from "./folder-picker-modal";
-import ShimmerLoader from "./shimmer-loader";
-import DetailsPanel from "./details-panel";
-import ExplorerToolbar from "./explorer-toolbar";
-import UploadProgress from "./upload-progress";
-import ExplorerBreadcrumbs from "./explorer-breadcrumbs";
-import GridView from "./grid-view";
-import ListView from "./list-view";
-import FilePreviewModal from "./file-preview-modal";
-import VersionManagementModal from "./version-management-modal";
+import FolderPickerModal from "./common/folder-picker-modal";
+import ShimmerLoader from "./common/shimmer-loader";
+import DetailsPanel from "./explorer/details-panel";
+import ExplorerToolbar from "./explorer/explorer-toolbar";
+import UploadProgress from "./common/upload-progress";
+import ExplorerBreadcrumbs from "./explorer/explorer-breadcrumbs";
+import GridView from "./views/grid-view";
+import ListView from "./views/list-view";
+import FilePreviewModal from "./preview/file-preview-modal";
+import VersionManagementModal from "./versions/version-management-modal";
+import ShareModal from "./sharing/share-modal";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { cn } from "@/lib/utils";
 
@@ -69,8 +70,12 @@ function DocumentExplorer({
   const [previewItem, setPreviewItem] = useState<DocumentItem | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
-  const [versioningItem, setVersioningItem] = useState<DocumentItem | null>(null);
+  const [versioningItem, setVersioningItem] = useState<DocumentItem | null>(
+    null,
+  );
   const [previewVersionId, setPreviewVersionId] = useState<string>("");
+  const [sharingItem, setSharingItem] = useState<DocumentItem | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   // Uploading state
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
@@ -428,6 +433,11 @@ function DocumentExplorer({
     setIsVersionModalOpen(true);
   }, []);
 
+  const handleShare = useCallback((item: DocumentItem) => {
+    setSharingItem(item);
+    setIsShareModalOpen(true);
+  }, []);
+
   const handleDownload = useCallback(async (item: DocumentItem) => {
     try {
       const downloadUrl = await documentsApi.getDownloadUrl(item.id);
@@ -526,6 +536,7 @@ function DocumentExplorer({
               onPreview={handlePreview}
               onDownload={handleDownload}
               onManageVersions={handleManageVersions}
+              onShare={handleShare}
             />
           ) : (
             <ListView
@@ -545,6 +556,7 @@ function DocumentExplorer({
               onPreview={handlePreview}
               onDownload={handleDownload}
               onManageVersions={handleManageVersions}
+              onShare={handleShare}
             />
           )}
 
@@ -609,7 +621,10 @@ function DocumentExplorer({
           onToggleStar={() =>
             handleToggleStar(activeDetailsItem.id, activeDetailsItem.isStarred)
           }
-          onArchive={(archive) => handleArchive(activeDetailsItem.id, archive)}
+          onArchive={(archive: boolean) =>
+            handleArchive(activeDetailsItem.id, archive)
+          }
+          onShare={() => handleShare(activeDetailsItem)}
         />
       )}
 
@@ -621,7 +636,7 @@ function DocumentExplorer({
           currentItemId={movingItemId}
           initialFolderId={initialFolderIdForMove}
           initialPath={initialPathForMove}
-          onSelect={(destId) =>
+          onSelect={(destId: string | null) =>
             moveMutation.mutate({ id: movingItemId, destId })
           }
         />
@@ -655,11 +670,23 @@ function DocumentExplorer({
             setVersioningItem(null);
           }}
           item={versioningItem}
-          onPreviewVersion={(item, versionId) => {
+          onPreviewVersion={(item: DocumentItem, versionId: string) => {
             setPreviewItem(item);
             setPreviewVersionId(versionId);
             setIsPreviewOpen(true);
           }}
+        />
+      )}
+
+      {/* Share Modal */}
+      {isShareModalOpen && sharingItem && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => {
+            setIsShareModalOpen(false);
+            setSharingItem(null);
+          }}
+          item={sharingItem}
         />
       )}
     </div>

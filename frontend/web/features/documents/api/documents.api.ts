@@ -5,6 +5,8 @@ import {
   PaginatedResponse,
   DocumentSortBy,
   DocumentVersion,
+  DocumentShare,
+  SharingSettings,
 } from "../types/documents.types";
 import { UploadState } from "../types/documents.enums";
 import axios from "axios";
@@ -240,5 +242,57 @@ export const documentsApi = {
     });
 
     return version;
+  },
+
+  getSharing: async (
+    id: string,
+  ): Promise<SharingSettings> => {
+    const response = await api.get(`/api/documents/${id}/sharing`);
+    return response.data.data;
+  },
+
+  updateLinkAccess: async (
+    id: string,
+    linkAccess: string,
+  ): Promise<DocumentItem> => {
+    const response = await api.put(`/api/documents/${id}/sharing/link-access`, {
+      linkAccess,
+    });
+    return response.data.data;
+  },
+
+  addShare: async (
+    id: string,
+    email: string,
+    permission: string,
+  ): Promise<DocumentShare> => {
+    const response = await api.post(`/api/documents/${id}/sharing/shares`, {
+      email,
+      permission,
+    });
+    return response.data.data;
+  },
+
+  removeShare: async (id: string, shareId: string): Promise<void> => {
+    await api.delete(
+      `/api/documents/${id}/sharing/shares/${shareId}`,
+    );
+  },
+
+  getPublicDocument: async (
+    id: string,
+  ): Promise<{ item: DocumentItem; userRole: string }> => {
+    const response = await api.get(`/api/documents/public/${id}`);
+    return response.data.data;
+  },
+
+  getPublicDownloadUrl: async (id: string): Promise<string> => {
+    const response = await api.get(`/api/documents/public/${id}/download-url`);
+    return response.data.data.url;
+  },
+
+  getPublicPreviewUrl: async (id: string): Promise<string> => {
+    const response = await api.get(`/api/documents/public/${id}/preview-url`);
+    return response.data.data.url;
   },
 };

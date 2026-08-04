@@ -2,9 +2,9 @@
 
 import React from "react";
 import { Folder, FileText, Star } from "lucide-react";
-import { DocumentItem } from "../types/documents.types";
-import { DocumentItemType, DocumentViewType, ResourceTypeName } from "../types/documents.enums";
-import ItemActionsMenu from "./item-actions-menu";
+import { DocumentItem } from "../../types/documents.types";
+import { DocumentItemType, DocumentViewType, ResourceTypeName } from "../../types/documents.enums";
+import ItemActionsMenu from "../explorer/item-actions-menu";
 import { cn } from "@/lib/utils";
 
 interface GridViewProps {
@@ -24,6 +24,7 @@ interface GridViewProps {
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
+  onShare?: (item: DocumentItem) => void;
 }
 
 function GridView({
@@ -43,6 +44,7 @@ function GridView({
   onPreview,
   onDownload,
   onManageVersions,
+  onShare,
 }: GridViewProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -107,12 +109,13 @@ function GridView({
                 onRename={() => onRename(item.id, item.name)}
                 onMove={() => onMove(item.id)}
                 onToggleStar={() => onToggleStar(item.id, item.isStarred)}
-                onArchive={(archive) => onArchive(item.id, archive)}
+                onArchive={(archive: boolean) => onArchive(item.id, archive)}
                 onViewDetails={() => onViewDetails(item.id)}
                 onDeletePermanently={() => onDeletePermanently(item.id)}
                 onPreview={() => onPreview?.(item)}
                 onDownload={() => onDownload?.(item)}
                 onManageVersions={() => onManageVersions?.(item)}
+                onShare={() => onShare?.(item)}
               />
             </div>
 

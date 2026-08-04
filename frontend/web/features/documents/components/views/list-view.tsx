@@ -2,11 +2,10 @@
 
 import React from "react";
 import { Folder, FileText, Star } from "lucide-react";
-import { DocumentItem } from "../types/documents.types";
-import { DocumentItemType, DocumentViewType } from "../types/documents.enums";
-import ItemActionsMenu from "./item-actions-menu";
-import { formatBytes, formatDateShort } from "../utils/documents.utils";
-
+import { DocumentItem } from "../../types/documents.types";
+import { DocumentItemType, DocumentViewType } from "../../types/documents.enums";
+import ItemActionsMenu from "../explorer/item-actions-menu";
+import { formatBytes, formatDateShort } from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
 
 interface ListViewProps {
@@ -26,6 +25,7 @@ interface ListViewProps {
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
+  onShare?: (item: DocumentItem) => void;
 }
 
 function ListView({
@@ -45,6 +45,7 @@ function ListView({
   onPreview,
   onDownload,
   onManageVersions,
+  onShare,
 }: ListViewProps) {
   return (
     <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
@@ -117,12 +118,13 @@ function ListView({
                     onRename={() => onRename(item.id, item.name)}
                     onMove={() => onMove(item.id)}
                     onToggleStar={() => onToggleStar(item.id, item.isStarred)}
-                    onArchive={(archive) => onArchive(item.id, archive)}
+                    onArchive={(archive: boolean) => onArchive(item.id, archive)}
                     onViewDetails={() => onViewDetails(item.id)}
                     onDeletePermanently={() => onDeletePermanently(item.id)}
                     onPreview={() => onPreview?.(item)}
                     onDownload={() => onDownload?.(item)}
                     onManageVersions={() => onManageVersions?.(item)}
+                    onShare={() => onShare?.(item)}
                   />
                 </td>
               </tr>

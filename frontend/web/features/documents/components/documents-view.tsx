@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import DocumentExplorer from "./document-explorer";
-import QuotaWidget from "./quota-widget";
+import QuotaWidget from "./common/quota-widget";
 import { Folder, Share2, Star, Trash2 } from "lucide-react";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
 import { cn } from "@/lib/utils";

@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { documentsApi } from "../api/documents.api";
-import { DocumentItem } from "../types/documents.types";
-import { PreviewFileType } from "../types/documents.enums";
-import { getPreviewFileType, formatBytes } from "../utils/documents.utils";
-import { MAX_TEXT_PREVIEW_SIZE } from "../types/documents.constants";
+import { documentsApi } from "../../api/documents.api";
+import { DocumentItem } from "../../types/documents.types";
+import { PreviewFileType } from "../../types/documents.enums";
+import { getPreviewFileType, formatBytes } from "../../utils/documents.utils";
+import { MAX_TEXT_PREVIEW_SIZE } from "../../types/documents.constants";
 import { PreviewContent, PreviewIcon } from "./preview-content";
 import { X, Download } from "lucide-react";
 

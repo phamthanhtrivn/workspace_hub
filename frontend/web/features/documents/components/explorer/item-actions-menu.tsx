@@ -1,8 +1,11 @@
 "use client";
 
 import React from "react";
-import { DocumentItem } from "../types/documents.types";
-import { DocumentItemType, DocumentViewType } from "../types/documents.enums";
+import { DocumentItem } from "../../types/documents.types";
+import {
+  DocumentItemType,
+  DocumentViewType,
+} from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
 import {
   MoreVertical,
@@ -16,8 +19,8 @@ import {
   Trash2,
   Download,
   History,
+  Share2,
 } from "lucide-react";
-import { toast } from "sonner";
 
 interface ItemActionsMenuProps {
   item: DocumentItem;
@@ -33,6 +36,7 @@ interface ItemActionsMenuProps {
   onPreview?: () => void;
   onDownload?: () => void;
   onManageVersions?: () => void;
+  onShare?: () => void;
 }
 
 function ItemActionsMenu({
@@ -49,6 +53,7 @@ function ItemActionsMenu({
   onPreview,
   onDownload,
   onManageVersions,
+  onShare,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
 
@@ -116,6 +121,20 @@ function ItemActionsMenu({
                   >
                     <History size={15} />
                     <span>Quản lý phiên bản</span>
+                  </button>
+                )}
+
+                {onShare && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onShare();
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-blue-600 hover:text-blue-700"
+                  >
+                    <Share2 size={15} />
+                    <span>Chia sẻ</span>
                   </button>
                 )}
 

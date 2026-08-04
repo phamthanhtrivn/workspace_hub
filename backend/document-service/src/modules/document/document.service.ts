@@ -17,6 +17,7 @@ import {
   DocumentVersion,
   SharePermission,
   LinkAccess,
+  DocumentShare,
 } from '@prisma/client';
 import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
 import { QuotaService } from '../quota/quota.service';
@@ -57,11 +58,12 @@ export class DocumentService {
     // Check storage quota
     await this.quotaService.checkQuota(userId, dto.sizeBytes);
 
-    const { presignedUrl, s3Key } = await this.s3Service.generatePresignedUploadUrl(
-      userId,
-      dto.name,
-      dto.mimeType,
-    );
+    const { presignedUrl, s3Key } =
+      await this.s3Service.generatePresignedUploadUrl(
+        userId,
+        dto.name,
+        dto.mimeType,
+      );
 
     return { presignedUrl, s3Key };
   }
@@ -136,10 +138,10 @@ export class DocumentService {
    */
   async checkPermission(
     itemId: string,
-    userId: string,
-    userEmail: string,
-    requiredRole: DocumentRole,
-  ): Promise<DocumentItem> {
+    userId?: string,
+    userEmail?: string,
+    requiredRole: DocumentRole = DocumentRole.VIEWER,
+  ): Promise<DocumentItem & { shares: DocumentShare[] }> {
     const item = await this.prisma.documentItem.findUnique({
       where: { id: itemId },
       include: {
@@ -152,15 +154,16 @@ export class DocumentService {
     }
 
     // 1. Owner always has full access
-    if (item.ownerUserId === userId) {
+    if (userId && item.ownerUserId === userId) {
       return item;
     }
 
     // 2. Check if shared explicitly with this user/email
     const share = item.shares.find(
       (s) =>
-        s.shareWithUserId === userId ||
-        s.shareWithEmail.toLowerCase() === userEmail.toLowerCase(),
+        (userId && s.shareWithUserId === userId) ||
+        (userEmail &&
+          s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
     );
 
     if (share) {
@@ -212,7 +215,7 @@ export class DocumentService {
       );
     }
 
-    throw new ForbiddenException('Bạn không có quyền truy cập tài liệu này');
+    throw new ForbiddenException('Bạn không có quyền truy cập tài nguyên này');
   }
 
   /**
@@ -615,7 +618,10 @@ export class DocumentService {
 
     if (s3Keys.length > 0) {
       this.deleteS3ObjectsBackground(s3Keys).catch((err) => {
-        console.error(`Failed to handle S3 deletions background execution:`, err);
+        console.error(
+          `Failed to handle S3 deletions background execution:`,
+          err,
+        );
       });
     }
   }
@@ -624,8 +630,8 @@ export class DocumentService {
    * Generates a temporary S3 read presigned URL for previewing files.
    */
   async getPreviewUrl(
-    userId: string,
-    userEmail: string,
+    userId: string | undefined,
+    userEmail: string | undefined,
     id: string,
     versionId?: string,
   ): Promise<string> {
@@ -663,8 +669,8 @@ export class DocumentService {
    * Generates a temporary S3 download presigned URL with correct content disposition headers.
    */
   async getDownloadUrl(
-    userId: string,
-    userEmail: string,
+    userId: string | undefined,
+    userEmail: string | undefined,
     id: string,
     versionId?: string,
   ): Promise<string> {
@@ -749,7 +755,9 @@ export class DocumentService {
       if (v.uploadedBy === item.ownerUserId) {
         email = item.ownerEmail;
       } else {
-        const share = item.shares?.find((s) => s.shareWithUserId === v.uploadedBy);
+        const share = item.shares?.find(
+          (s) => s.shareWithUserId === v.uploadedBy,
+        );
         if (share) {
           email = share.shareWithEmail;
         }
@@ -837,5 +845,172 @@ export class DocumentService {
     await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
 
     return newVersion;
+  }
+
+  /**
+   * Get sharing settings of a document.
+   */
+  async getSharing(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<{ linkAccess: LinkAccess; shares: DocumentShare[] }> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+    const shares = await this.prisma.documentShare.findMany({
+      where: { documentItemId: id },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      linkAccess: item.linkAccess,
+      shares,
+    };
+  }
+
+  /**
+   * Update general link access configuration of a document.
+   */
+  async updateLinkAccess(
+    userId: string,
+    userEmail: string,
+    id: string,
+    linkAccess: LinkAccess,
+  ): Promise<DocumentItem> {
+    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+
+    return this.prisma.documentItem.update({
+      where: { id },
+      data: { linkAccess },
+    });
+  }
+
+  /**
+   * Add or update explicit share permission for an email.
+   */
+  async addShare(
+    userId: string,
+    userEmail: string,
+    id: string,
+    shareEmail: string,
+    permission: SharePermission,
+  ): Promise<DocumentShare> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+
+    if (shareEmail.toLowerCase() === item.ownerEmail.toLowerCase()) {
+      throw new BadRequestException(
+        'Không thể chia sẻ với chủ sở hữu tài nguyên',
+      );
+    }
+
+    const share = await this.prisma.documentShare.upsert({
+      where: {
+        documentItemId_shareWithEmail: {
+          documentItemId: id,
+          shareWithEmail: shareEmail.toLowerCase(),
+        },
+      },
+      update: { permission },
+      create: {
+        documentItemId: id,
+        shareWithEmail: shareEmail.toLowerCase(),
+        permission,
+      },
+    });
+
+    return share;
+  }
+
+  /**
+   * Remove explicit share permission by share ID.
+   */
+  async removeShare(
+    userId: string,
+    userEmail: string,
+    id: string,
+    shareId: string,
+  ): Promise<void> {
+    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+
+    const share = await this.prisma.documentShare.findUnique({
+      where: { id: shareId },
+    });
+
+    if (!share || share.documentItemId !== id) {
+      throw new NotFoundException('Không tìm thấy cấu hình chia sẻ');
+    }
+
+    await this.prisma.documentShare.delete({
+      where: { id: shareId },
+    });
+  }
+
+  /**
+   * Fetch public/shared metadata of a document.
+   */
+  async getPublicDocument(
+    id: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<{
+    item: {
+      id: string;
+      name: string;
+      type: ItemType;
+      sizeBytes: number;
+      mimeType: string | null;
+      ownerEmail: string;
+      createdAt: Date;
+      linkAccess: LinkAccess;
+    };
+    userRole: DocumentRole;
+  }> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    // Determine current user's role
+    let userRole: DocumentRole = DocumentRole.VIEWER;
+    if (userId && item.ownerUserId === userId) {
+      userRole = DocumentRole.OWNER;
+    } else {
+      const share = item.shares?.find(
+        (s: DocumentShare) =>
+          (userId && s.shareWithUserId === userId) ||
+          (userEmail &&
+            s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
+      );
+      if (share) {
+        userRole = share.permission as DocumentRole;
+      } else if (item.linkAccess !== LinkAccess.NONE) {
+        userRole = item.linkAccess as DocumentRole;
+      }
+    }
+
+    return {
+      item: {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        sizeBytes: Number(item.sizeBytes),
+        mimeType: item.mimeType,
+        ownerEmail: item.ownerEmail,
+        createdAt: item.createdAt,
+        linkAccess: item.linkAccess,
+      },
+      userRole,
+    };
   }
 }

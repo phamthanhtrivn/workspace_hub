@@ -2,10 +2,10 @@
 
 import React, { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { documentsApi } from "../api/documents.api";
+import { documentsApi } from "../../api/documents.api";
 import { Folder, ChevronRight, X, Loader2 } from "lucide-react";
-import { DocumentItemType, NavigationLabel } from "../types/documents.enums";
-import { DocumentItem } from "../types/documents.types";
+import { DocumentItemType, NavigationLabel } from "../../types/documents.enums";
+import { DocumentItem } from "../../types/documents.types";
 import { cn } from "@/lib/utils";
 
 interface FolderPickerModalProps {

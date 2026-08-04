@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { documentsApi } from "../api/documents.api";
+import { documentsApi } from "../../api/documents.api";
 import { HardDrive, Loader2 } from "lucide-react";
+import { calculateQuotaStats } from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
 
 function QuotaWidget() {
@@ -9,6 +10,13 @@ function QuotaWidget() {
     queryKey: ["document-quota"],
     queryFn: documentsApi.getQuota,
   });
+
+  const { usedMB, maxGB, percentage } = useMemo(() => {
+    if (!quota) {
+      return { usedMB: "0", maxGB: "0", percentage: 0 };
+    }
+    return calculateQuotaStats(quota.usedBytes, quota.maxBytes);
+  }, [quota]);
 
   if (isLoading) {
     return (
@@ -19,15 +27,6 @@ function QuotaWidget() {
   }
 
   if (!quota) return null;
-
-  const used = Number(quota.usedBytes);
-  const max = Number(quota.maxBytes);
-
-  // Compute values in MB and GB
-  const usedMB = (used / 1024 / 1024).toFixed(1);
-  const maxGB = (max / 1024 / 1024 / 1024).toFixed(0);
-
-  const percentage = Math.min(100, Math.max(0, (used / max) * 100));
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4">

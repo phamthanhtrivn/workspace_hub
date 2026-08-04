@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { DocumentItem, DocumentVersion } from "../types/documents.types";
-import { formatBytes, formatDateShort } from "../utils/documents.utils";
+import { DocumentItem, DocumentVersion } from "../../types/documents.types";
+import { formatBytes, formatDateShort } from "../../utils/documents.utils";
 import { Eye, Download, Loader2 } from "lucide-react";
 
 interface VersionHistoryTableProps {

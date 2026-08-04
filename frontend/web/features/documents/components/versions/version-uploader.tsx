@@ -2,7 +2,7 @@
 
 import React from "react";
 import { UploadCloud, Loader2, CheckCircle2 } from "lucide-react";
-import { UploadState } from "../types/documents.enums";
+import { UploadState } from "../../types/documents.enums";
 
 interface VersionUploaderProps {
   uploadState: UploadState;

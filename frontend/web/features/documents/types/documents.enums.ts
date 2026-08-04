@@ -95,3 +95,10 @@ export enum PreviewFileType {
   OFFICE = "OFFICE",
   UNKNOWN = "UNKNOWN",
 }
+
+export enum DocumentRole {
+  OWNER = "OWNER",
+  EDITOR = "EDITOR",
+  VIEWER = "VIEWER",
+  NONE = "NONE",
+}

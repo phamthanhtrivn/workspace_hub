@@ -1,8 +1,8 @@
 import React, { useState, useRef } from "react";
 import { Grid, List, ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DocumentViewType } from "../types/documents.enums";
-import { ViewLayout, DocumentSortBy } from "../types/documents.types";
+import { DocumentViewType } from "../../types/documents.enums";
+import { ViewLayout, DocumentSortBy } from "../../types/documents.types";
 
 interface ExplorerToolbarProps {
   searchQuery: string;

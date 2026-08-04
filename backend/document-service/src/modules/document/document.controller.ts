@@ -17,6 +17,8 @@ import { MoveItemDto } from './dto/move-item.dto';
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
+import { UpdateLinkAccessDto } from './dto/update-link-access.dto';
+import { AddShareDto } from './dto/add-share.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
 
@@ -348,6 +350,122 @@ export class DocumentController {
     return {
       message: 'Tạo phiên bản mới thành công',
       data: version,
+    };
+  }
+
+  @Get(':id/sharing')
+  async getSharing(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const result = await this.documentService.getSharing(userId, userEmail, id);
+    return {
+      message: 'Lấy thông tin chia sẻ thành công',
+      data: result,
+    };
+  }
+
+  @Put(':id/sharing/link-access')
+  async updateLinkAccess(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateLinkAccessDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const result = await this.documentService.updateLinkAccess(
+      userId,
+      userEmail,
+      id,
+      dto.linkAccess,
+    );
+    return {
+      message: 'Cập nhật quyền liên kết thành công',
+      data: result,
+    };
+  }
+
+  @Post(':id/sharing/shares')
+  async addShare(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+    @Body() dto: AddShareDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const result = await this.documentService.addShare(
+      userId,
+      userEmail,
+      id,
+      dto.email,
+      dto.permission,
+    );
+    return {
+      message: 'Thêm chia sẻ thành công',
+      data: result,
+    };
+  }
+
+  @Delete(':id/sharing/shares/:shareId')
+  async removeShare(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+    @Param('shareId') shareId: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    await this.documentService.removeShare(userId, userEmail, id, shareId);
+    return {
+      message: 'Thu hồi quyền truy cập thành công',
+    };
+  }
+
+  @Get('public/:id')
+  async getPublicDocument(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const result = await this.documentService.getPublicDocument(id, userId, userEmail);
+    return {
+      message: 'Lấy thông tin tài liệu công khai thành công',
+      data: result,
+    };
+  }
+
+  @Get('public/:id/download-url')
+  async getPublicDownloadUrl(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const item = await this.documentService.checkPermission(id, userId, userEmail);
+    if (item.type === 'FOLDER') {
+      throw new BadRequestException('Không thể tải xuống thư mục');
+    }
+    const url = await this.documentService.getDownloadUrl(userId, userEmail, id);
+    return {
+      message: 'Khởi tạo link tải xuống công khai thành công',
+      data: { url },
+    };
+  }
+
+  @Get('public/:id/preview-url')
+  async getPublicPreviewUrl(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const item = await this.documentService.checkPermission(id, userId, userEmail);
+    if (item.type === 'FOLDER') {
+      throw new BadRequestException('Không thể xem trước thư mục');
+    }
+    const url = await this.documentService.getPreviewUrl(userId, userEmail, id);
+    return {
+      message: 'Khởi tạo link xem trước công khai thành công',
+      data: { url },
     };
   }
 }

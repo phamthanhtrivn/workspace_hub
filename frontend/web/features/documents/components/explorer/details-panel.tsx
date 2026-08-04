@@ -1,15 +1,19 @@
 "use client";
 
 import React from "react";
-import { DocumentItem } from "../types/documents.types";
+import { DocumentItem } from "../../types/documents.types";
 import {
   DocumentItemType,
   ResourceTypeLabel,
   StarActionLabel,
   ArchiveActionLabel,
-} from "../types/documents.enums";
+} from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
-import { formatBytes, formatDateLong, getFileTypeDescription } from "../utils/documents.utils";
+import {
+  formatBytes,
+  formatDateLong,
+  getFileTypeDescription,
+} from "../../utils/documents.utils";
 import {
   X,
   Folder,
@@ -25,6 +29,7 @@ import {
   CornerUpLeft,
   Move,
   Edit3,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -35,6 +40,7 @@ interface DetailsPanelProps {
   onMove: () => void;
   onToggleStar: () => void;
   onArchive: (archive: boolean) => void;
+  onShare?: () => void;
 }
 
 function DetailsPanel({
@@ -44,6 +50,7 @@ function DetailsPanel({
   onMove,
   onToggleStar,
   onArchive,
+  onShare,
 }: DetailsPanelProps) {
   if (!item) return null;
 
@@ -73,7 +80,7 @@ function DetailsPanel({
               "p-5 rounded-2xl mb-3 shadow-xs",
               isFolder
                 ? "bg-amber-100/70 text-amber-500"
-                : "bg-blue-100/70 text-blue-500"
+                : "bg-blue-100/70 text-blue-500",
             )}
           >
             {isFolder ? <Folder size={44} /> : <FileText size={44} />}
@@ -212,13 +219,24 @@ function DetailsPanel({
         </button>
 
         {!item.isArchived ? (
-          <button
-            onClick={() => onArchive(true)}
-            className="flex items-center justify-center gap-2 w-full rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
-          >
-            <Trash2 size={14} />
-            <span>{ArchiveActionLabel.DELETE}</span>
-          </button>
+          <div className="flex gap-2 w-full">
+            {onShare && (
+              <button
+                onClick={onShare}
+                className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
+              >
+                <Share2 size={14} />
+                <span>Chia sẻ</span>
+              </button>
+            )}
+            <button
+              onClick={() => onArchive(true)}
+              className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
+            >
+              <Trash2 size={14} />
+              <span>{ArchiveActionLabel.DELETE}</span>
+            </button>
+          </div>
         ) : (
           <button
             onClick={() => onArchive(false)}

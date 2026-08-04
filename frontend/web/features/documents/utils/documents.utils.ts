@@ -1,5 +1,19 @@
-import { EXTENSION_TO_TYPE, MIME_TO_TYPE, TEXT_EXTENSIONS, OFFICE_EXTENSIONS } from "../types/documents.constants";
-import { DocumentTypeDescription, PreviewFileType } from "../types/documents.enums";
+import {
+  EXTENSION_TO_TYPE,
+  MIME_TO_TYPE,
+  TEXT_EXTENSIONS,
+  OFFICE_EXTENSIONS,
+} from "../types/documents.constants";
+import {
+  DocumentTypeDescription,
+  PreviewFileType,
+  DocumentRole,
+} from "../types/documents.enums";
+import {
+  DocumentRoleMetadata,
+  StorageQuotaStats,
+} from "../types/documents.types";
+import { Eye, Edit, ShieldCheck, LucideIcon } from "lucide-react";
 
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return "0 B";
@@ -82,7 +96,10 @@ export const getPreviewFileType = (
     return PreviewFileType.IMAGE;
   }
 
-  if ((mimeType && mimeType.toLowerCase() === "application/pdf") || fileExt === "pdf") {
+  if (
+    (mimeType && mimeType.toLowerCase() === "application/pdf") ||
+    fileExt === "pdf"
+  ) {
     return PreviewFileType.PDF;
   }
 
@@ -112,4 +129,45 @@ export const getPreviewFileType = (
   }
 
   return PreviewFileType.UNKNOWN;
+};
+
+export const calculateQuotaStats = (
+  usedBytes: number | string | bigint,
+  maxBytes: number | string | bigint,
+): StorageQuotaStats => {
+  const used = Number(usedBytes);
+  const max = Number(maxBytes);
+
+  const usedMB = (used / 1024 / 1024).toFixed(1);
+  const maxGB = (max / 1024 / 1024 / 1024).toFixed(0);
+
+  const percentage =
+    max > 0 ? Math.min(100, Math.max(0, (used / max) * 100)) : 0;
+
+  return { usedMB, maxGB, percentage };
+};
+
+export const getDocumentRoleMetadata = (
+  userRole: DocumentRole | "NONE",
+): DocumentRoleMetadata => {
+  let badgeText = "Người xem";
+  let badgeColor = "text-blue-600 bg-blue-50 border-blue-100/50";
+  let Icon = Eye;
+
+  if (userRole === DocumentRole.OWNER) {
+    badgeText = "Chủ sở hữu";
+    badgeColor = "text-purple-600 bg-purple-50 border-purple-100/50";
+    Icon = ShieldCheck;
+  } else if (userRole === DocumentRole.EDITOR) {
+    badgeText = "Quyền chỉnh sửa";
+    badgeColor = "text-green-600 bg-green-50 border-green-100/50";
+    Icon = Edit;
+  }
+
+  const showOpenInWorkspace =
+    userRole === DocumentRole.OWNER ||
+    userRole === DocumentRole.EDITOR ||
+    userRole === DocumentRole.VIEWER;
+
+  return { badgeText, badgeColor, Icon, showOpenInWorkspace };
 };

@@ -1,5 +1,5 @@
 import React from "react";
-import { UploadState } from "../types/documents.enums";
+import { UploadState } from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
 
 interface UploadProgressProps {

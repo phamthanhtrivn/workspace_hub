@@ -3,10 +3,10 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { documentsApi } from "../api/documents.api";
-import { DocumentItem } from "../types/documents.types";
+import { documentsApi } from "../../api/documents.api";
+import { DocumentItem } from "../../types/documents.types";
 import { X, History } from "lucide-react";
-import { DocumentItemType, UploadState } from "../types/documents.enums";
+import { DocumentItemType, UploadState } from "../../types/documents.enums";
 import { toast } from "sonner";
 import { VersionUploader } from "./version-uploader";
 import { VersionHistoryTable } from "./version-history-table";
@@ -75,10 +75,10 @@ function VersionManagementModal({
         setUploadState(UploadState.INITIATING);
         setUploadProgress(0);
 
-        await documentsApi.uploadNewVersion(item.id, file, (percent, state) => {
-          setUploadState(state);
-          setUploadProgress(percent);
-        });
+         await documentsApi.uploadNewVersion(item.id, file, (percent: number, state: UploadState) => {
+           setUploadState(state);
+           setUploadProgress(percent);
+         });
 
         setUploadState(UploadState.SUCCESS);
         toast.success(`Đã tải lên phiên bản mới thành công!`);
