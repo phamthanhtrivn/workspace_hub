@@ -330,8 +330,9 @@ export class DocumentService {
     } else if (options.isArchived) {
       where.ownerUserId = userId;
     } else if (options.isStarredOnly) {
-      where.ownerUserId = userId;
-      where.isStarred = true;
+      where.starredBy = {
+        some: { userId },
+      };
     } else if (options.projectId) {
       where.projectId = options.projectId;
       where.parentFolderId = null;
@@ -368,6 +369,12 @@ export class DocumentService {
     const [items, totalCount] = await Promise.all([
       this.prisma.documentItem.findMany({
         where,
+        include: {
+          shares: true,
+          starredBy: {
+            where: { userId },
+          },
+        },
         orderBy: orderDirections,
         skip,
         take: limit,
@@ -375,7 +382,32 @@ export class DocumentService {
       this.prisma.documentItem.count({ where }),
     ]);
 
-    return { items, totalCount };
+    const mappedItems = items.map((item: any) => {
+      let userRole: DocumentRole = DocumentRole.VIEWER;
+      if (item.ownerUserId === userId) {
+        userRole = DocumentRole.OWNER;
+      } else {
+        const share = item.shares?.find(
+          (s: any) =>
+            (userId && s.shareWithUserId === userId) ||
+            (userEmail &&
+              s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
+        );
+        if (share) {
+          userRole = share.permission as DocumentRole;
+        } else if (item.linkAccess !== LinkAccess.NONE) {
+          userRole = item.linkAccess as DocumentRole;
+        }
+      }
+      return {
+        ...item,
+        sizeBytes: Number(item.sizeBytes),
+        isStarred: item.starredBy.length > 0,
+        userRole,
+      };
+    });
+
+    return { items: mappedItems, totalCount };
   }
 
   /**
@@ -437,7 +469,7 @@ export class DocumentService {
       id,
       userId,
       userEmail,
-      DocumentRole.EDITOR,
+      DocumentRole.OWNER,
     );
 
     let destProjectId: string | null = null;
@@ -488,7 +520,7 @@ export class DocumentService {
     id: string,
     archive: boolean,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
 
     return this.prisma.documentItem.update({
       where: { id },
@@ -507,13 +539,37 @@ export class DocumentService {
     userEmail: string,
     id: string,
     isStarred: boolean,
-  ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.VIEWER);
+  ): Promise<any> {
+    const item = await this.checkPermission(id, userId, userEmail, DocumentRole.VIEWER);
 
-    return this.prisma.documentItem.update({
-      where: { id },
-      data: { isStarred },
-    });
+    if (isStarred) {
+      await this.prisma.userStarredDocument.upsert({
+        where: {
+          userId_documentItemId: {
+            userId,
+            documentItemId: id,
+          },
+        },
+        create: {
+          userId,
+          documentItemId: id,
+        },
+        update: {},
+      });
+    } else {
+      await this.prisma.userStarredDocument.deleteMany({
+        where: {
+          userId,
+          documentItemId: id,
+        },
+      });
+    }
+
+    return {
+      ...item,
+      sizeBytes: Number(item.sizeBytes),
+      isStarred,
+    };
   }
 
   /**
@@ -571,7 +627,7 @@ export class DocumentService {
       id,
       userId,
       userEmail,
-      DocumentRole.EDITOR,
+      DocumentRole.OWNER,
     );
 
     let filesToDelete: DocumentItem[] = [];
@@ -881,7 +937,7 @@ export class DocumentService {
     id: string,
     linkAccess: LinkAccess,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
 
     return this.prisma.documentItem.update({
       where: { id },
@@ -903,7 +959,7 @@ export class DocumentService {
       id,
       userId,
       userEmail,
-      DocumentRole.EDITOR,
+      DocumentRole.OWNER,
     );
 
     if (shareEmail.toLowerCase() === item.ownerEmail.toLowerCase()) {
@@ -939,7 +995,7 @@ export class DocumentService {
     id: string,
     shareId: string,
   ): Promise<void> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
 
     const share = await this.prisma.documentShare.findUnique({
       where: { id: shareId },
@@ -1012,5 +1068,180 @@ export class DocumentService {
       },
       userRole,
     };
+  }
+
+  async getPublicVersions(
+    id: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<any[]> {
+    const item = (await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    )) as any;
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Thư mục không có phiên bản');
+    }
+
+    const versions = await this.prisma.documentVersion.findMany({
+      where: { documentItemId: id },
+      orderBy: { versionNumber: 'desc' },
+    });
+
+    if (versions.length === 0) {
+      return [
+        {
+          id: 'original',
+          documentItemId: item.id,
+          versionNumber: 1,
+          s3Key: item.s3Key || '',
+          sizeBytes: Number(item.sizeBytes),
+          uploadedBy: item.ownerUserId,
+          uploadedByEmail: item.ownerEmail,
+          createdAt: item.createdAt,
+        },
+      ];
+    }
+
+    return versions.map((v) => {
+      let email = 'Khách truy cập';
+      if (v.uploadedBy === item.ownerUserId) {
+        email = item.ownerEmail;
+      } else {
+        const share = item.shares?.find(
+          (s: any) => s.shareWithUserId === v.uploadedBy,
+        );
+        if (share) {
+          email = share.shareWithEmail;
+        }
+      }
+      return {
+        ...v,
+        sizeBytes: Number(v.sizeBytes),
+        uploadedByEmail: email,
+      };
+    });
+  }
+
+  async createPublicVersion(
+    id: string,
+    dto: CreateVersionDto,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<DocumentVersion> {
+    const activeUserId = userId || '00000000-0000-0000-0000-000000000000';
+
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể tạo phiên bản mới cho thư mục');
+    }
+
+    // Check storage quota of the Owner
+    await this.quotaService.checkQuota(item.ownerUserId, dto.sizeBytes);
+
+    const latestVersion = await this.prisma.documentVersion.findFirst({
+      where: { documentItemId: id },
+      orderBy: { versionNumber: 'desc' },
+    });
+
+    let nextVersionNumber = 1;
+
+    const newVersion = await this.prisma.$transaction(async (tx) => {
+      if (!latestVersion) {
+        await tx.documentVersion.create({
+          data: {
+            documentItemId: id,
+            versionNumber: 1,
+            s3Key: item.s3Key || '',
+            sizeBytes: item.sizeBytes,
+            uploadedBy: item.ownerUserId,
+            createdAt: item.createdAt,
+          },
+        });
+        nextVersionNumber = 2;
+      } else {
+        nextVersionNumber = latestVersion.versionNumber + 1;
+      }
+
+      const createdVersion = await tx.documentVersion.create({
+        data: {
+          documentItemId: id,
+          versionNumber: nextVersionNumber,
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          uploadedBy: activeUserId,
+        },
+      });
+
+      await tx.documentItem.update({
+        where: { id },
+        data: {
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          mimeType: dto.mimeType,
+        },
+      });
+
+      return createdVersion;
+    });
+
+    await this.quotaService.updateUsedBytes(item.ownerUserId, dto.sizeBytes);
+
+    return {
+      ...newVersion,
+      sizeBytes: Number(newVersion.sizeBytes),
+    } as any;
+  }
+
+  async renamePublicItem(
+    id: string,
+    dto: RenameItemDto,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<DocumentItem> {
+    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+
+    return this.prisma.documentItem.update({
+      where: { id },
+      data: { name: dto.name },
+    });
+  }
+
+  async initiatePublicUpload(
+    id: string,
+    dto: InitiateUploadDto,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<{ presignedUrl: string; s3Key: string }> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể tải lên tệp tin cho thư mục');
+    }
+
+    await this.quotaService.checkQuota(item.ownerUserId, dto.sizeBytes);
+
+    const { presignedUrl, s3Key } =
+      await this.s3Service.generatePresignedUploadUrl(
+        item.ownerUserId,
+        dto.name,
+        dto.mimeType,
+      );
+
+    return { presignedUrl, s3Key };
   }
 }

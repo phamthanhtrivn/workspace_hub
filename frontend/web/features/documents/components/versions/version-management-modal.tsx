@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
 import { X, History } from "lucide-react";
-import { DocumentItemType, UploadState } from "../../types/documents.enums";
+import { DocumentItemType, UploadState, DocumentRole } from "../../types/documents.enums";
 import { toast } from "sonner";
 import { VersionUploader } from "./version-uploader";
 import { VersionHistoryTable } from "./version-history-table";
@@ -16,6 +16,8 @@ interface VersionManagementModalProps {
   onClose: () => void;
   item: DocumentItem | null;
   onPreviewVersion: (item: DocumentItem, versionId: string) => void;
+  isPublic?: boolean;
+  onVersionUploaded?: () => void;
 }
 
 function VersionManagementModal({
@@ -23,6 +25,8 @@ function VersionManagementModal({
   onClose,
   item,
   onPreviewVersion,
+  isPublic = false,
+  onVersionUploaded,
 }: VersionManagementModalProps) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,8 +42,12 @@ function VersionManagementModal({
 
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ["document-versions", item?.id],
-    queryFn: () =>
-      item ? documentsApi.getVersions(item.id) : Promise.resolve([]),
+    queryFn: () => {
+      if (!item) return Promise.resolve([]);
+      return isPublic
+        ? documentsApi.getPublicVersions(item.id)
+        : documentsApi.getVersions(item.id);
+    },
     enabled: isOpen && !!item && item.type !== DocumentItemType.FOLDER,
   });
 
@@ -47,10 +55,15 @@ function VersionManagementModal({
     async (versionId: string) => {
       if (!item) return;
       try {
-        const downloadUrl = await documentsApi.getDownloadUrl(
-          item.id,
-          versionId === "original" ? undefined : versionId,
-        );
+        const downloadUrl = isPublic
+          ? await documentsApi.getPublicDownloadUrl(
+              item.id,
+              versionId === "original" ? undefined : versionId,
+            )
+          : await documentsApi.getDownloadUrl(
+              item.id,
+              versionId === "original" ? undefined : versionId,
+            );
         const link = document.createElement("a");
         link.href = downloadUrl;
         document.body.appendChild(link);
@@ -62,7 +75,7 @@ function VersionManagementModal({
         toast.error("Lỗi tạo liên kết tải xuống phiên bản");
       }
     },
-    [item],
+    [item, isPublic],
   );
 
   const handleFileChange = useCallback(
@@ -75,10 +88,17 @@ function VersionManagementModal({
         setUploadState(UploadState.INITIATING);
         setUploadProgress(0);
 
-         await documentsApi.uploadNewVersion(item.id, file, (percent: number, state: UploadState) => {
-           setUploadState(state);
-           setUploadProgress(percent);
-         });
+        if (isPublic) {
+          await documentsApi.uploadNewPublicVersion(item.id, file, (percent: number, state: UploadState) => {
+            setUploadState(state);
+            setUploadProgress(percent);
+          });
+        } else {
+          await documentsApi.uploadNewVersion(item.id, file, (percent: number, state: UploadState) => {
+            setUploadState(state);
+            setUploadProgress(percent);
+          });
+        }
 
         setUploadState(UploadState.SUCCESS);
         toast.success(`Đã tải lên phiên bản mới thành công!`);
@@ -87,8 +107,12 @@ function VersionManagementModal({
         void queryClient.invalidateQueries({
           queryKey: ["document-versions", item.id],
         });
-        void queryClient.invalidateQueries({ queryKey: ["documents"] });
-        void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
+        if (!isPublic) {
+          void queryClient.invalidateQueries({ queryKey: ["documents"] });
+          void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
+        }
+        
+        onVersionUploaded?.();
 
         setTimeout(() => {
           setUploadState(UploadState.IDLE);
@@ -108,7 +132,7 @@ function VersionManagementModal({
         }, 3000);
       }
     },
-    [item, queryClient],
+    [item, queryClient, isPublic, onVersionUploaded],
   );
 
   const triggerFileSelect = useCallback(() => {
@@ -146,14 +170,16 @@ function VersionManagementModal({
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto max-h-[60vh] flex-1 bg-white">
           {/* Upload New Version Widget */}
-          <VersionUploader
-            uploadState={uploadState}
-            uploadProgress={uploadProgress}
-            uploadingFileName={uploadingFileName}
-            fileInputRef={fileInputRef}
-            onFileChange={handleFileChange}
-            onTriggerFileSelect={triggerFileSelect}
-          />
+          {item.userRole !== DocumentRole.VIEWER && (
+            <VersionUploader
+              uploadState={uploadState}
+              uploadProgress={uploadProgress}
+              uploadingFileName={uploadingFileName}
+              fileInputRef={fileInputRef}
+              onFileChange={handleFileChange}
+              onTriggerFileSelect={triggerFileSelect}
+            />
+          )}
 
           {/* Versions Table */}
           <VersionHistoryTable

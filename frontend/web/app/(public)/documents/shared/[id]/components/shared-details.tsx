@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { FileText, Globe, Download, ExternalLink } from "lucide-react";
+import { FileText, Globe, Download, ExternalLink, History, Edit3 } from "lucide-react";
 import { DocumentItem } from "@/features/documents/types/documents.types";
 import {
   LinkAccess,
@@ -11,18 +11,21 @@ import {
   formatBytes,
   getDocumentRoleMetadata,
 } from "@/features/documents/utils/documents.utils";
-import Link from "next/link";
 
 interface SharedDetailsProps {
   item: DocumentItem;
   userRole: DocumentRole | "NONE";
   onDownload: () => void;
+  onViewVersions?: () => void;
+  onRename?: () => void;
 }
 
 export function SharedDetails({
   item,
   userRole,
   onDownload,
+  onViewVersions,
+  onRename,
 }: SharedDetailsProps) {
   const {
     badgeText: roleBadgeText,
@@ -38,8 +41,17 @@ export function SharedDetails({
           <FileText size={28} />
         </div>
         <div className="min-w-0">
-          <h1 className="text-base font-black text-slate-800 truncate max-w-xs md:max-w-md leading-tight">
-            {item.name}
+          <h1 className="text-base font-black text-slate-800 truncate max-w-xs md:max-w-md leading-tight flex items-center gap-1.5">
+            <span>{item.name}</span>
+            {onRename && (
+              <button
+                onClick={onRename}
+                title="Đổi tên tài liệu"
+                className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-all cursor-pointer shrink-0"
+              >
+                <Edit3 size={14} />
+              </button>
+            )}
           </h1>
           <div className="flex items-center gap-3 text-xs text-slate-400 font-bold mt-1.5 flex-wrap">
             <span>Dung lượng: {formatBytes(item.sizeBytes)}</span>
@@ -69,14 +81,14 @@ export function SharedDetails({
       </div>
 
       <div className="flex items-center gap-2 w-full md:w-auto shrink-0 border-t md:border-t-0 border-slate-50 pt-4 md:pt-0">
-        {showOpenInWorkspace && (
-          <Link
-            href={`/documents?open=${item.id}`}
+        {onViewVersions && (
+          <button
+            onClick={onViewVersions}
             className="flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-3 text-xs font-black transition-all cursor-pointer w-full md:w-auto"
           >
-            <ExternalLink size={14} />
-            <span>Mở Workspace</span>
-          </Link>
+            <History size={14} />
+            <span>Lịch sử phiên bản</span>
+          </button>
         )}
         <button
           onClick={onDownload}

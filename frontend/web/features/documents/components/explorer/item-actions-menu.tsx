@@ -5,6 +5,7 @@ import { DocumentItem } from "../../types/documents.types";
 import {
   DocumentItemType,
   DocumentViewType,
+  DocumentRole,
 } from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
 import {
@@ -56,6 +57,9 @@ function ItemActionsMenu({
   onShare,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
+  const userRole = item.userRole ?? DocumentRole.OWNER;
+  const isOwner = userRole === DocumentRole.OWNER;
+  const isEditor = userRole === DocumentRole.EDITOR;
 
   return (
     <div className="relative">
@@ -124,7 +128,7 @@ function ItemActionsMenu({
                   </button>
                 )}
 
-                {onShare && (
+                {(isOwner || isEditor) && onShare && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -150,29 +154,33 @@ function ItemActionsMenu({
                   <span>Chi tiết</span>
                 </button>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuId(null);
-                    onRename();
-                  }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
-                >
-                  <Edit3 size={15} />
-                  <span>Đổi tên</span>
-                </button>
+                {(isOwner || isEditor) && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onRename();
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <Edit3 size={15} />
+                    <span>Đổi tên</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuId(null);
-                    onMove();
-                  }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
-                >
-                  <Move size={15} />
-                  <span>Di chuyển</span>
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onMove();
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <Move size={15} />
+                    <span>Di chuyển</span>
+                  </button>
+                )}
 
                 <button
                   onClick={(e) => {
@@ -193,43 +201,49 @@ function ItemActionsMenu({
                   </span>
                 </button>
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuId(null);
-                    onArchive(true);
-                  }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
-                >
-                  <Trash2 size={15} />
-                  <span>Xóa tạm thời</span>
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onArchive(true);
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
+                  >
+                    <Trash2 size={15} />
+                    <span>Xóa tạm thời</span>
+                  </button>
+                )}
               </>
             ) : (
               <>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuId(null);
-                    onArchive(false);
-                  }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-green-600 hover:bg-green-50/50 transition-colors text-left"
-                >
-                  <CornerUpLeft size={15} />
-                  <span>Khôi phục</span>
-                </button>
+                {isOwner && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onArchive(false);
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-green-600 hover:bg-green-50/50 transition-colors text-left"
+                  >
+                    <CornerUpLeft size={15} />
+                    <span>Khôi phục</span>
+                  </button>
+                )}
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuId(null);
-                    onDeletePermanently?.();
-                  }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
-                >
-                  <Trash size={15} />
-                  <span>Xóa vĩnh viễn</span>
-                </button>
+                {isOwner && onDeletePermanently && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onDeletePermanently();
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
+                  >
+                    <Trash size={15} />
+                    <span>Xóa vĩnh viễn</span>
+                  </button>
+                )}
               </>
             )}
           </div>

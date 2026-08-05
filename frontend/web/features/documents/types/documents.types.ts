@@ -5,6 +5,7 @@ import {
   DocumentSortBy,
   LinkAccess,
   SharePermission,
+  DocumentRole,
 } from "./documents.enums";
 
 export interface DocumentItem {
@@ -24,6 +25,7 @@ export interface DocumentItem {
   createdAt: string;
   updatedAt: string;
   linkAccess?: LinkAccess;
+  userRole?: DocumentRole;
 }
 
 export interface UserStorageQuota {

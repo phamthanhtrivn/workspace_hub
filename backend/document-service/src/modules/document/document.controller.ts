@@ -438,6 +438,7 @@ export class DocumentController {
   @Get('public/:id/download-url')
   async getPublicDownloadUrl(
     @Param('id') id: string,
+    @Query('versionId') versionId?: string,
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
   ) {
@@ -445,7 +446,7 @@ export class DocumentController {
     if (item.type === 'FOLDER') {
       throw new BadRequestException('Không thể tải xuống thư mục');
     }
-    const url = await this.documentService.getDownloadUrl(userId, userEmail, id);
+    const url = await this.documentService.getDownloadUrl(userId, userEmail, id, versionId);
     return {
       message: 'Khởi tạo link tải xuống công khai thành công',
       data: { url },
@@ -455,6 +456,7 @@ export class DocumentController {
   @Get('public/:id/preview-url')
   async getPublicPreviewUrl(
     @Param('id') id: string,
+    @Query('versionId') versionId?: string,
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
   ) {
@@ -462,10 +464,70 @@ export class DocumentController {
     if (item.type === 'FOLDER') {
       throw new BadRequestException('Không thể xem trước thư mục');
     }
-    const url = await this.documentService.getPreviewUrl(userId, userEmail, id);
+    const url = await this.documentService.getPreviewUrl(userId, userEmail, id, versionId);
     return {
       message: 'Khởi tạo link xem trước công khai thành công',
       data: { url },
+    };
+  }
+
+  @Get('public/:id/versions')
+  async getPublicVersions(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const versions = await this.documentService.getPublicVersions(id, userId, userEmail);
+    return {
+      message: 'Lấy danh sách phiên bản công khai thành công',
+      data: versions,
+    };
+  }
+
+  @Post('public/:id/versions')
+  async createPublicVersion(
+    @Param('id') id: string,
+    @Body() dto: CreateVersionDto,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const version = await this.documentService.createPublicVersion(id, dto, userId, userEmail);
+    return {
+      message: 'Tạo phiên bản mới công khai thành công',
+      data: version,
+    };
+  }
+
+  @Put('public/:id/rename')
+  async renamePublicItem(
+    @Param('id') id: string,
+    @Body() dto: RenameItemDto,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const result = await this.documentService.renamePublicItem(id, dto, userId, userEmail);
+    return {
+      message: 'Đổi tên tài liệu công khai thành công',
+      data: result,
+    };
+  }
+
+  @Post('public/:id/upload/initiate')
+  async initiatePublicUpload(
+    @Param('id') id: string,
+    @Body() dto: InitiateUploadDto,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const result = await this.documentService.initiatePublicUpload(
+      id,
+      dto,
+      userId,
+      userEmail,
+    );
+    return {
+      message: 'Khởi tạo tải lên công khai thành công',
+      data: result,
     };
   }
 }

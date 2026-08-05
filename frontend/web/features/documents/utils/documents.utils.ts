@@ -3,6 +3,7 @@ import {
   MIME_TO_TYPE,
   TEXT_EXTENSIONS,
   OFFICE_EXTENSIONS,
+  PERMISSION_ROLE_LABELS,
 } from "../types/documents.constants";
 import {
   DocumentTypeDescription,
@@ -155,7 +156,7 @@ export const getDocumentRoleMetadata = (
   let Icon = Eye;
 
   if (userRole === DocumentRole.OWNER) {
-    badgeText = "Chủ sở hữu";
+    badgeText = PERMISSION_ROLE_LABELS["OWNER"];
     badgeColor = "text-purple-600 bg-purple-50 border-purple-100/50";
     Icon = ShieldCheck;
   } else if (userRole === DocumentRole.EDITOR) {

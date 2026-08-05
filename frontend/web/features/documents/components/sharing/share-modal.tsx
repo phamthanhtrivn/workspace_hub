@@ -10,6 +10,7 @@ import { ShareModalList } from "./share-list";
 import { ShareModalLink } from "./share-link";
 import { X, Share2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAppSelector } from "@/store/store";
 
 interface ShareModalProps {
   isOpen: boolean;
@@ -22,6 +23,9 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
   const [shares, setShares] = useState<DocumentShare[]>([]);
   const [linkAccess, setLinkAccess] = useState<LinkAccess>(LinkAccess.NONE);
   const [isLoading, setIsLoading] = useState(false);
+
+  const currentUserId = useAppSelector((state) => state.auth.userId);
+  const isOwner = item ? item.ownerUserId === currentUserId : false;
 
   useEffect(() => {
     setMounted(true);
@@ -80,10 +84,12 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto max-h-[70vh] flex-1 bg-white space-y-6">
           {/* Add email access */}
-          <ShareModalForm
-            documentItemId={item.id}
-            onShareAdded={fetchSharingData}
-          />
+          {isOwner && (
+            <ShareModalForm
+              documentItemId={item.id}
+              onShareAdded={fetchSharingData}
+            />
+          )}
 
           {/* User shares list */}
           <ShareModalList
@@ -92,6 +98,7 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
             shares={shares}
             isLoading={isLoading}
             onShareUpdated={fetchSharingData}
+            isOwner={isOwner}
           />
 
           {/* General Link Access */}
@@ -99,6 +106,7 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
             documentItemId={item.id}
             initialLinkAccess={linkAccess}
             onLinkAccessChanged={setLinkAccess}
+            isOwner={isOwner}
           />
         </div>
       </div>

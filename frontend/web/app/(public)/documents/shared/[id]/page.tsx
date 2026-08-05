@@ -12,6 +12,8 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { MAX_TEXT_PREVIEW_SIZE } from "@/features/documents/types/documents.constants";
 import { useAppSelector } from "@/store/store";
+import Swal from "sweetalert2";
+import VersionManagementModal from "@/features/documents/components/versions/version-management-modal";
 
 import { SharedHeader } from "./components/shared-header";
 import { SharedDenied } from "./components/shared-denied";
@@ -34,6 +36,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
   const [isUrlLoading, setIsUrlLoading] = useState(false);
   const [loadingText, setLoadingText] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -124,6 +127,50 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
     }
   };
 
+  const handleRename = () => {
+    if (!item) return;
+    void Swal.fire({
+      title: "Đổi tên tài liệu công khai",
+      input: "text",
+      inputValue: item.name,
+      showCancelButton: true,
+      confirmButtonText: "Lưu lại",
+      cancelButtonText: "Hủy bỏ",
+      confirmButtonColor: "var(--color-primary, #3b82f6)",
+      inputValidator: (value) => {
+        if (!value) {
+          return "Tên không được để trống!";
+        }
+        return null;
+      },
+    }).then(async (result) => {
+      if (result.isConfirmed && result.value) {
+        try {
+          const updated = await documentsApi.renamePublicItem(item.id, result.value as string);
+          setItem(updated);
+          toast.success("Đã đổi tên tài liệu");
+        } catch (err: any) {
+          toast.error(err.response?.data?.message || "Lỗi đổi tên tài liệu");
+        }
+      }
+    });
+  };
+
+  const handleVersionUploaded = async () => {
+    if (!item) return;
+    try {
+      // Refresh public metadata
+      const data = await documentsApi.getPublicDocument(id);
+      setItem(data.item);
+      
+      // Refresh preview url
+      const url = await documentsApi.getPublicPreviewUrl(id);
+      setPreviewUrl(url);
+    } catch (err) {
+      console.error("Failed to refresh document after upload", err);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 gap-3 text-slate-500">
@@ -151,6 +198,8 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
           item={item}
           userRole={userRole}
           onDownload={handleDownload}
+          onViewVersions={() => setIsVersionModalOpen(true)}
+          onRename={userRole === DocumentRole.EDITOR ? handleRename : undefined}
         />
 
         {/* Preview Panel */}
@@ -164,6 +213,26 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
           onDownload={handleDownload}
         />
       </main>
+
+      <VersionManagementModal
+        isOpen={isVersionModalOpen}
+        onClose={() => setIsVersionModalOpen(false)}
+        item={item}
+        onPreviewVersion={async (itm, versionId) => {
+          try {
+            setIsUrlLoading(true);
+            const url = await documentsApi.getPublicPreviewUrl(itm.id, versionId);
+            setPreviewUrl(url);
+            setIsUrlLoading(false);
+          } catch (err) {
+            console.error("Failed to preview version", err);
+            toast.error("Không thể xem trước phiên bản này");
+            setIsUrlLoading(false);
+          }
+        }}
+        isPublic={true}
+        onVersionUploaded={handleVersionUploaded}
+      />
     </div>
   );
 }

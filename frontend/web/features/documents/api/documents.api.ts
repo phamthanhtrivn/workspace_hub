@@ -286,13 +286,81 @@ export const documentsApi = {
     return response.data.data;
   },
 
-  getPublicDownloadUrl: async (id: string): Promise<string> => {
-    const response = await api.get(`/api/documents/public/${id}/download-url`);
+  getPublicDownloadUrl: async (id: string, versionId?: string): Promise<string> => {
+    const response = await api.get(`/api/documents/public/${id}/download-url`, {
+      params: { versionId },
+    });
     return response.data.data.url;
   },
 
-  getPublicPreviewUrl: async (id: string): Promise<string> => {
-    const response = await api.get(`/api/documents/public/${id}/preview-url`);
+  getPublicPreviewUrl: async (id: string, versionId?: string): Promise<string> => {
+    const response = await api.get(`/api/documents/public/${id}/preview-url`, {
+      params: { versionId },
+    });
     return response.data.data.url;
+  },
+
+  getPublicVersions: async (id: string): Promise<DocumentVersion[]> => {
+    const response = await api.get(`/api/documents/public/${id}/versions`);
+    return response.data.data;
+  },
+
+  initiatePublicUpload: async (
+    id: string,
+    data: { name: string; mimeType: string; sizeBytes: number },
+  ): Promise<{ presignedUrl: string; s3Key: string }> => {
+    const response = await api.post(`/api/documents/public/${id}/upload/initiate`, data);
+    return response.data.data;
+  },
+
+  createPublicVersion: async (
+    id: string,
+    data: { s3Key: string; sizeBytes: number; mimeType: string },
+  ): Promise<DocumentVersion> => {
+    const response = await api.post(`/api/documents/public/${id}/versions`, data);
+    return response.data.data;
+  },
+
+  uploadNewPublicVersion: async (
+    id: string,
+    file: File,
+    onProgress?: (percent: number, state: UploadState) => void,
+  ): Promise<DocumentVersion> => {
+    const mimeType = file.type || DEFAULT_MIME_TYPE;
+
+    onProgress?.(0, UploadState.INITIATING);
+    const { presignedUrl, s3Key } = await documentsApi.initiatePublicUpload(id, {
+      name: file.name,
+      mimeType,
+      sizeBytes: file.size,
+    });
+
+    onProgress?.(0, UploadState.UPLOADING);
+    await axios.put(presignedUrl, file, {
+      headers: {
+        "Content-Type": mimeType,
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress) {
+          const total = progressEvent.total || file.size;
+          const percent = Math.round((progressEvent.loaded * 100) / total);
+          onProgress(percent, UploadState.UPLOADING);
+        }
+      },
+    });
+
+    onProgress?.(100, UploadState.CONFIRMING);
+    const version = await documentsApi.createPublicVersion(id, {
+      s3Key,
+      sizeBytes: file.size,
+      mimeType,
+    });
+
+    return version;
+  },
+
+  renamePublicItem: async (id: string, name: string): Promise<DocumentItem> => {
+    const response = await api.put(`/api/documents/public/${id}/rename`, { name });
+    return response.data.data;
   },
 };

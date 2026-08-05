@@ -11,12 +11,14 @@ interface ShareModalLinkProps {
   documentItemId: string;
   initialLinkAccess: LinkAccess;
   onLinkAccessChanged: (newAccess: LinkAccess) => void;
+  isOwner?: boolean;
 }
 
 export function ShareModalLink({
   documentItemId,
   initialLinkAccess,
   onLinkAccessChanged,
+  isOwner = false,
 }: ShareModalLinkProps) {
   const [linkAccess, setLinkAccess] = useState<LinkAccess>(initialLinkAccess);
   const [isCopied, setIsCopied] = useState(false);
@@ -64,15 +66,25 @@ export function ShareModalLink({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <select
-              value={linkAccess}
-              onChange={(e) => void handleLinkAccessChange(e.target.value as LinkAccess)}
-              className="bg-transparent border-0 rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-black text-slate-800 outline-hidden focus:ring-1 focus:ring-slate-100 transition-all cursor-pointer"
-            >
-              <option value={LinkAccess.NONE}>Hạn chế</option>
-              <option value={LinkAccess.VIEWER}>Bất kỳ ai có liên kết (Xem)</option>
-              <option value={LinkAccess.EDITOR}>Bất kỳ ai có liên kết (Sửa)</option>
-            </select>
+            {isOwner ? (
+              <select
+                value={linkAccess}
+                onChange={(e) => void handleLinkAccessChange(e.target.value as LinkAccess)}
+                className="bg-transparent border-0 rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-black text-slate-800 outline-hidden focus:ring-1 focus:ring-slate-100 transition-all cursor-pointer"
+              >
+                <option value={LinkAccess.NONE}>Hạn chế</option>
+                <option value={LinkAccess.VIEWER}>Bất kỳ ai có liên kết (Xem)</option>
+                <option value={LinkAccess.EDITOR}>Bất kỳ ai có liên kết (Sửa)</option>
+              </select>
+            ) : (
+              <span className="text-sm font-black text-slate-800 py-0.5 px-1.5 block -ml-1.5">
+                {linkAccess === LinkAccess.NONE
+                  ? "Hạn chế"
+                  : linkAccess === LinkAccess.VIEWER
+                  ? "Bất kỳ ai có liên kết (Xem)"
+                  : "Bất kỳ ai có liên kết (Sửa)"}
+              </span>
+            )}
           </div>
           <p className="text-xs text-slate-400 font-bold mt-1 leading-normal">
             {linkAccess === LinkAccess.NONE

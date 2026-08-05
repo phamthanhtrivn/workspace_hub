@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
+import {
+  PERMISSION_ROLE_LABELS,
+  PERMISSION_ROLE_SHARE,
+} from "../../types/documents.constants";
 
 interface ShareModalListProps {
   documentItemId: string;
@@ -13,6 +17,7 @@ interface ShareModalListProps {
   shares: DocumentShare[];
   isLoading: boolean;
   onShareUpdated: () => void;
+  isOwner?: boolean;
 }
 
 export function ShareModalList({
@@ -21,6 +26,7 @@ export function ShareModalList({
   shares,
   isLoading,
   onShareUpdated,
+  isOwner = false,
 }: ShareModalListProps) {
   const handleRemoveShare = useCallback(
     async (shareId: string, email: string) => {
@@ -33,7 +39,7 @@ export function ShareModalList({
         toast.error("Không thể thu hồi quyền truy cập");
       }
     },
-    [documentItemId, onShareUpdated]
+    [documentItemId, onShareUpdated],
   );
 
   const handleUpdateSharePermission = useCallback(
@@ -47,7 +53,7 @@ export function ShareModalList({
         toast.error("Không thể cập nhật quyền truy cập");
       }
     },
-    [documentItemId, onShareUpdated]
+    [documentItemId, onShareUpdated],
   );
 
   return (
@@ -66,11 +72,13 @@ export function ShareModalList({
               <p className="text-xs font-bold text-slate-700 truncate max-w-[220px]">
                 {ownerEmail}
               </p>
-              <p className="text-[10px] font-bold text-slate-400">Chủ sở hữu</p>
+              <p className="text-[10px] font-bold text-slate-400">
+                {PERMISSION_ROLE_LABELS["OWNER"]}
+              </p>
             </div>
           </div>
           <span className="text-[10px] font-black text-slate-400 bg-slate-100 rounded-lg px-2 py-1 uppercase tracking-wide">
-            Owner
+            {PERMISSION_ROLE_LABELS["OWNER"]}
           </span>
         </div>
 
@@ -80,7 +88,10 @@ export function ShareModalList({
           </div>
         ) : (
           shares.map((share) => (
-            <div key={share.id} className="flex items-center justify-between p-2">
+            <div
+              key={share.id}
+              className="flex items-center justify-between p-2"
+            >
               <div className="flex items-center gap-2 min-w-0">
                 <div className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center text-xs font-black uppercase tracking-wider shrink-0">
                   {share.shareWithEmail.slice(0, 2)}
@@ -90,27 +101,45 @@ export function ShareModalList({
                     {share.shareWithEmail}
                   </p>
                   <p className="text-[10px] font-bold text-slate-400">
-                    {share.permission === SharePermission.EDITOR ? "Người chỉnh sửa" : "Người xem"}
+                    {PERMISSION_ROLE_LABELS[share.permission]}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <select
-                  value={share.permission}
-                  onChange={(e) =>
-                    void handleUpdateSharePermission(share.shareWithEmail, e.target.value as SharePermission)
-                  }
-                  className="bg-transparent hover:bg-slate-50 border-0 rounded-lg py-1 px-1.5 text-xs font-black text-slate-500 hover:text-slate-700 outline-hidden transition-all cursor-pointer"
-                >
-                  <option value={SharePermission.VIEWER}>Xem</option>
-                  <option value={SharePermission.EDITOR}>Sửa</option>
-                </select>
-                <button
-                  onClick={() => handleRemoveShare(share.id, share.shareWithEmail)}
-                  className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {isOwner ? (
+                  <>
+                    <select
+                      value={share.permission}
+                      onChange={(e) =>
+                        void handleUpdateSharePermission(
+                          share.shareWithEmail,
+                          e.target.value as SharePermission,
+                        )
+                      }
+                      className="bg-transparent hover:bg-slate-50 border-0 rounded-lg py-1 px-1.5 text-xs font-black text-slate-500 hover:text-slate-700 outline-hidden transition-all cursor-pointer"
+                    >
+                      {Object.entries(PERMISSION_ROLE_SHARE).map(
+                        ([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                    <button
+                      onClick={() =>
+                        handleRemoveShare(share.id, share.shareWithEmail)
+                      }
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50/50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-[10px] font-black text-slate-400 bg-slate-100 rounded-lg px-2.5 py-1 uppercase tracking-wide">
+                    {PERMISSION_ROLE_LABELS[share.permission]}
+                  </span>
+                )}
               </div>
             </div>
           ))

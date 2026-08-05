@@ -84,3 +84,14 @@ export const MAX_TEXT_PREVIEW_SIZE = 102400;
 
 export const OFFICE_VIEWER_BASE_URL =
   "https://view.officeapps.live.com/op/embed.aspx";
+
+export const PERMISSION_ROLE_SHARE: Record<string, string> = {
+  VIEWER: "Người xem",
+  EDITOR: "Người chỉnh sửa",
+};
+
+export const PERMISSION_ROLE_LABELS: Record<string, string> = {
+  VIEWER: "Người xem",
+  EDITOR: "Người chỉnh sửa",
+  OWNER: "Chủ sở hữu",
+};
