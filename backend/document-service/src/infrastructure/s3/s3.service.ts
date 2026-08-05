@@ -1,8 +1,14 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
+import { Readable } from 'stream';
 import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
 
 @Injectable()
@@ -62,6 +68,27 @@ export class S3Service {
     } catch (error) {
       console.error(`Error deleting file from S3 (${s3Key}):`, error);
       throw new InternalServerErrorException('Failed to delete file from S3');
+    }
+  }
+
+  /**
+   * Streams a file directly from S3 as a Node.js Readable.
+   * Used for piping files into a ZIP archive without buffering to disk.
+   */
+  async getFileStream(s3Key: string): Promise<Readable> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: s3Key,
+      });
+      const response = await this.s3Client.send(command);
+      if (!response.Body) {
+        throw new InternalServerErrorException('Empty S3 response body');
+      }
+      return response.Body as Readable;
+    } catch (error) {
+      console.error(`Error streaming file from S3 (${s3Key}):`, error);
+      throw new InternalServerErrorException('Failed to stream file from S3');
     }
   }
 

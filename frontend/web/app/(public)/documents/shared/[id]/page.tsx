@@ -19,6 +19,8 @@ import { SharedHeader } from "./components/shared-header";
 import { SharedDenied } from "./components/shared-denied";
 import { SharedDetails } from "./components/shared-details";
 import { SharedPreview } from "./components/shared-preview";
+import { SharedFolderBrowser } from "./components/shared-folder-browser";
+import { DocumentItemType } from "@/features/documents/types/documents.enums";
 
 type Params = Promise<{ id: string }>;
 
@@ -51,6 +53,11 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
 
         setItem(data.item);
         setUserRole(data.userRole as DocumentRole);
+
+        // Folders don't have preview/download URLs — skip steps 2 & 3
+        if (data.item.type === "FOLDER") {
+          return;
+        }
 
         // 2. Fetch public preview url
         setIsUrlLoading(true);
@@ -186,6 +193,30 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
     return <SharedDenied />;
   }
 
+  // ── Folder: render folder browser ─────────────────────────────────────────
+  if (item.type === DocumentItemType.FOLDER) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col">
+        <SharedHeader isLoggedIn={isLoggedIn} />
+        <main className="flex-1 max-w-4xl w-full mx-auto p-6 md:p-8 flex flex-col gap-6">
+          <SharedDetails
+            item={item}
+            userRole={userRole}
+            onDownload={undefined}
+            onViewVersions={undefined}
+            onRename={undefined}
+          />
+          <SharedFolderBrowser
+            rootItem={item}
+            rootId={id}
+            userRole={userRole}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // ── File: existing behavior ────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}

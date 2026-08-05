@@ -25,6 +25,7 @@ interface GridViewProps {
   onDownload?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
+  onDownloadFolder?: (item: DocumentItem) => void;
 }
 
 function GridView({
@@ -45,6 +46,7 @@ function GridView({
   onDownload,
   onManageVersions,
   onShare,
+  onDownloadFolder,
 }: GridViewProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -114,6 +116,7 @@ function GridView({
                 onDeletePermanently={() => onDeletePermanently(item.id)}
                 onPreview={() => onPreview?.(item)}
                 onDownload={() => onDownload?.(item)}
+                onDownloadFolder={() => onDownloadFolder?.(item)}
                 onManageVersions={() => onManageVersions?.(item)}
                 onShare={() => onShare?.(item)}
               />

@@ -15,7 +15,7 @@ import {
 interface SharedDetailsProps {
   item: DocumentItem;
   userRole: DocumentRole | "NONE";
-  onDownload: () => void;
+  onDownload?: () => void;
   onViewVersions?: () => void;
   onRename?: () => void;
 }
@@ -90,13 +90,15 @@ export function SharedDetails({
             <span>Lịch sử phiên bản</span>
           </button>
         )}
-        <button
-          onClick={onDownload}
-          className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-xs font-black shadow-md shadow-blue-500/10 cursor-pointer transition-all active:scale-98 w-full md:w-auto"
-        >
-          <Download size={14} />
-          <span>Tải xuống tệp</span>
-        </button>
+        {onDownload && (
+          <button
+            onClick={onDownload}
+            className="flex items-center justify-center gap-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 text-xs font-black shadow-md shadow-blue-500/10 cursor-pointer transition-all active:scale-98 w-full md:w-auto"
+          >
+            <Download size={14} />
+            <span>Tải xuống tệp</span>
+          </button>
+        )}
       </div>
     </div>
   );

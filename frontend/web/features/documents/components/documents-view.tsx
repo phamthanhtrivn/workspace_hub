@@ -6,6 +6,7 @@ import QuotaWidget from "./common/quota-widget";
 import { Folder, Share2, Star, Trash2 } from "lucide-react";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
 import { cn } from "@/lib/utils";
+import { DownloadQueueProvider } from "./download/download-queue-provider";
 
 function DocumentsView() {
   const [activeView, setActiveView] = useState<DocumentViewType>(
@@ -53,6 +54,7 @@ function DocumentsView() {
   };
 
   return (
+    <DownloadQueueProvider>
     <div className="flex flex-col gap-6 p-6 h-[calc(100vh-100px)] min-h-0">
       {/* Main Grid: Sidebar + Explorer */}
       <div className="flex-1 flex gap-6 min-h-0">
@@ -158,6 +160,7 @@ function DocumentsView() {
         />
       </div>
     </div>
+    </DownloadQueueProvider>
   );
 }
 

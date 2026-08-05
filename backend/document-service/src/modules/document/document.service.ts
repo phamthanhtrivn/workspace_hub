@@ -4,6 +4,8 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { Response } from 'express';
+import * as archiver from 'archiver';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
@@ -1243,5 +1245,125 @@ export class DocumentService {
       );
 
     return { presignedUrl, s3Key };
+  }
+
+  /**
+   * Streams all files in a folder (recursively) as a ZIP archive to the HTTP response.
+   * Uses archiver library to pipe S3 streams directly into the ZIP — no disk writes.
+   */
+  async downloadFolderAsZip(
+    userId: string | undefined,
+    userEmail: string | undefined,
+    folderId: string,
+    res: Response,
+  ): Promise<void> {
+    const folder = await this.checkPermission(
+      folderId,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    if (folder.type !== ItemType.FOLDER) {
+      throw new BadRequestException('Mục này không phải thư mục');
+    }
+
+    const { files, pathMap } = await this.getFolderDescendantsWithPaths(
+      folderId,
+      folder.name,
+    );
+
+    const folderName = folder.name.replace(/[/\\?%*:|"<>]/g, '_');
+    const asciiName = folderName
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^\x20-\x7E]/g, '_');
+    const encodedName = encodeURIComponent(`${folder.name}.zip`).replace(/'/g, '%27');
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${asciiName}.zip"; filename*=UTF-8''${encodedName}`,
+    );
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const archive = archiver('zip', { zlib: { level: 6 } });
+    archive.pipe(res);
+
+    for (const file of files) {
+      if (!file.s3Key) continue;
+      try {
+        const stream = await this.s3Service.getFileStream(file.s3Key);
+        const filePath = pathMap.get(file.id) ?? file.name;
+        archive.append(stream, { name: filePath });
+      } catch (err) {
+        console.error(`Skipping file ${file.id} due to S3 error:`, err);
+      }
+    }
+
+    await archive.finalize();
+  }
+
+  /**
+   * BFS traversal that also tracks the relative path of each file inside the ZIP.
+   */
+  private async getFolderDescendantsWithPaths(
+    folderId: string,
+    rootName: string,
+  ): Promise<{ files: DocumentItem[]; pathMap: Map<string, string> }> {
+    const files: DocumentItem[] = [];
+    const pathMap = new Map<string, string>();
+    const queue: { id: string; relativePath: string }[] = [
+      { id: folderId, relativePath: rootName },
+    ];
+
+    while (queue.length > 0) {
+      const { id: currentId, relativePath } = queue.shift()!;
+      const children = await this.prisma.documentItem.findMany({
+        where: { parentFolderId: currentId },
+      });
+
+      for (const child of children) {
+        const childPath = `${relativePath}/${child.name}`;
+        if (child.type === ItemType.FOLDER) {
+          queue.push({ id: child.id, relativePath: childPath });
+        } else {
+          files.push(child);
+          pathMap.set(child.id, childPath);
+        }
+      }
+    }
+
+    return { files, pathMap };
+  }
+
+  /**
+   * Returns the direct children of a folder for the public shared folder browser.
+   */
+  async getPublicFolderChildren(
+    rootId: string,
+    folderId: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<DocumentItem[]> {
+    // Verify the user can access the root shared item
+    await this.checkPermission(rootId, userId, userEmail, DocumentRole.VIEWER);
+
+    // Verify the requested folder is a descendant of the root item
+    const isChild = await this.isDescendant(folderId, rootId);
+    const isSelf = folderId === rootId;
+    if (!isChild && !isSelf) {
+      throw new ForbiddenException('Thư mục không thuộc tài nguyên được chia sẻ');
+    }
+
+    const children = await this.prisma.documentItem.findMany({
+      where: { parentFolderId: folderId, isArchived: false },
+      orderBy: [{ type: 'asc' }, { name: 'asc' }],
+    });
+
+    return children.map((item) => ({
+      ...item,
+      sizeBytes: Number(item.sizeBytes),
+    })) as any[];
   }
 }

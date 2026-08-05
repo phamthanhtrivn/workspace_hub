@@ -363,4 +363,61 @@ export const documentsApi = {
     const response = await api.put(`/api/documents/public/${id}/rename`, { name });
     return response.data.data;
   },
+
+  downloadFolderAsZip: (
+    id: string,
+    folderName: string,
+    onProgress?: (percent: number) => void,
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", `/api/documents/${id}/download-folder`, true);
+      xhr.responseType = "blob";
+
+      // Forward auth headers from axios defaults
+      const axiosHeaders = api.defaults.headers.common as Record<string, string>;
+      Object.entries(axiosHeaders).forEach(([key, value]) => {
+        if (value) xhr.setRequestHeader(key, String(value));
+      });
+
+      xhr.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          onProgress(Math.round((event.loaded / event.total) * 100));
+        } else if (onProgress) {
+          // Indeterminate — pulse at received bytes
+          onProgress(-1);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const blob = new Blob([xhr.response], { type: "application/zip" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${folderName}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          resolve();
+        } else {
+          reject(new Error(`Download failed: ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error during folder download"));
+      xhr.send();
+    });
+  },
+
+  getPublicFolderChildren: async (
+    id: string,
+    folderId?: string,
+  ): Promise<DocumentItem[]> => {
+    const response = await api.get(`/api/documents/public/${id}/children`, {
+      params: { folderId },
+    });
+    return response.data.data;
+  },
 };

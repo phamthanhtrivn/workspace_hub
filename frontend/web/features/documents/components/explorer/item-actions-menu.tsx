@@ -38,6 +38,7 @@ interface ItemActionsMenuProps {
   onDownload?: () => void;
   onManageVersions?: () => void;
   onShare?: () => void;
+  onDownloadFolder?: () => void;
 }
 
 function ItemActionsMenu({
@@ -55,6 +56,7 @@ function ItemActionsMenu({
   onDownload,
   onManageVersions,
   onShare,
+  onDownloadFolder,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.OWNER;
@@ -111,6 +113,20 @@ function ItemActionsMenu({
                   >
                     <Download size={15} />
                     <span>Tải xuống</span>
+                  </button>
+                )}
+
+                {item.type === DocumentItemType.FOLDER && onDownloadFolder && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(null);
+                      onDownloadFolder();
+                    }}
+                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <Download size={15} />
+                    <span>Tải xuống (ZIP)</span>
                   </button>
                 )}
 

@@ -9,7 +9,9 @@ import {
   Query,
   Headers,
   BadRequestException,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { DocumentService } from './document.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
@@ -324,6 +326,17 @@ export class DocumentController {
     };
   }
 
+  @Get(':id/download-folder')
+  async downloadFolder(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+    @Res() res: Response,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    await this.documentService.downloadFolderAsZip(userId, userEmail, id, res);
+  }
+
   @Get(':id/versions')
   async getVersions(
     @Headers('x-user-id') userId: string,
@@ -528,6 +541,36 @@ export class DocumentController {
     return {
       message: 'Khởi tạo tải lên công khai thành công',
       data: result,
+    };
+  }
+
+  @Get('public/:id/download-folder')
+  async downloadPublicFolder(
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    await this.documentService.downloadFolderAsZip(userId, userEmail, id, res);
+  }
+
+  @Get('public/:id/children')
+  async getPublicFolderChildren(
+    @Param('id') id: string,
+    @Query('folderId') folderId?: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const targetFolderId = folderId || id;
+    const children = await this.documentService.getPublicFolderChildren(
+      id,
+      targetFolderId,
+      userId,
+      userEmail,
+    );
+    return {
+      message: 'Lấy danh sách con thành công',
+      data: children,
     };
   }
 }

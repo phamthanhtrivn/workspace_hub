@@ -36,6 +36,7 @@ import VersionManagementModal from "./versions/version-management-modal";
 import ShareModal from "./sharing/share-modal";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { cn } from "@/lib/utils";
+import { useDownloadQueue } from "./download/download-queue-provider";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -452,6 +453,12 @@ function DocumentExplorer({
     }
   }, []);
 
+  const { enqueueDownload } = useDownloadQueue();
+
+  const handleDownloadFolder = useCallback((item: DocumentItem) => {
+    enqueueDownload(item.id, item.name);
+  }, [enqueueDownload]);
+
   const handleDeletePermanently = useCallback(
     (id: string) => {
       Swal.fire({
@@ -535,6 +542,7 @@ function DocumentExplorer({
               onDeletePermanently={handleDeletePermanently}
               onPreview={handlePreview}
               onDownload={handleDownload}
+              onDownloadFolder={handleDownloadFolder}
               onManageVersions={handleManageVersions}
               onShare={handleShare}
             />
@@ -555,6 +563,7 @@ function DocumentExplorer({
               onDeletePermanently={handleDeletePermanently}
               onPreview={handlePreview}
               onDownload={handleDownload}
+              onDownloadFolder={handleDownloadFolder}
               onManageVersions={handleManageVersions}
               onShare={handleShare}
             />
