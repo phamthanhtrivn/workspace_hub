@@ -7,6 +7,7 @@ import {
   ResourceTypeLabel,
   StarActionLabel,
   ArchiveActionLabel,
+  DocumentRole,
 } from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
 import {
@@ -185,67 +186,6 @@ function DetailsPanel({
             </div>
           )}
         </div>
-      </div>
-
-      {/* Action shortcuts footer */}
-      <div className="border-t border-slate-100 p-5 bg-slate-50/50 flex flex-wrap gap-2">
-        <button
-          onClick={onToggleStar}
-          className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
-        >
-          <Star
-            size={14}
-            className={cn(item.isStarred && "fill-amber-400 text-amber-400")}
-          />
-          <span>
-            {item.isStarred ? StarActionLabel.REMOVE : StarActionLabel.ADD}
-          </span>
-        </button>
-
-        <button
-          onClick={onRename}
-          className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
-        >
-          <Edit3 size={14} />
-          <span>Sửa</span>
-        </button>
-
-        <button
-          onClick={onMove}
-          className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
-        >
-          <Move size={14} />
-          <span>Chuyển</span>
-        </button>
-
-        {!item.isArchived ? (
-          <div className="flex gap-2 w-full">
-            {onShare && (
-              <button
-                onClick={onShare}
-                className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-100 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
-              >
-                <Share2 size={14} />
-                <span>Chia sẻ</span>
-              </button>
-            )}
-            <button
-              onClick={() => onArchive(true)}
-              className="flex items-center justify-center gap-2 flex-1 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
-            >
-              <Trash2 size={14} />
-              <span>{ArchiveActionLabel.DELETE}</span>
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={() => onArchive(false)}
-            className="flex items-center justify-center gap-2 w-full rounded-xl bg-green-50 hover:bg-green-100 text-green-700 border border-green-100 px-3 py-2 text-xs font-bold shadow-xs transition-colors cursor-pointer"
-          >
-            <CornerUpLeft size={14} />
-            <span>{ArchiveActionLabel.RESTORE}</span>
-          </button>
-        )}
       </div>
     </div>
   );
