@@ -3,6 +3,7 @@
 import React from "react";
 import { DocumentItem, DocumentVersion } from "../../types/documents.types";
 import { formatBytes, formatDateShort } from "../../utils/documents.utils";
+import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { Eye, Download, Loader2 } from "lucide-react";
 
 interface VersionHistoryTableProps {
@@ -84,7 +85,7 @@ export function VersionHistoryTable({
                       onClick={() =>
                         onPreviewVersion(
                           item,
-                          version.id === "original" ? "" : version.id,
+                          version.id === ORIGINAL_VERSION_ID ? "" : version.id,
                         )
                       }
                       title="Xem trước phiên bản"

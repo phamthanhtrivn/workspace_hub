@@ -24,6 +24,7 @@ import {
 import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
 import { QuotaService } from '../quota/quota.service';
 import { S3Service } from '../../infrastructure/s3/s3.service';
+import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
 
 @Injectable()
 export class DocumentService {
@@ -542,7 +543,12 @@ export class DocumentService {
     id: string,
     isStarred: boolean,
   ): Promise<any> {
-    const item = await this.checkPermission(id, userId, userEmail, DocumentRole.VIEWER);
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
 
     if (isStarred) {
       await this.prisma.userStarredDocument.upsert({
@@ -796,10 +802,10 @@ export class DocumentService {
     if (versions.length === 0) {
       return [
         {
-          id: 'original',
+          id: DOCUMENT_CONSTANTS.ORIGINAL_VERSION_ID,
           documentItemId: item.id,
-          versionNumber: 1,
-          s3Key: item.s3Key || '',
+          versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+          s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
           sizeBytes: item.sizeBytes,
           uploadedBy: item.ownerUserId,
           uploadedByEmail: item.ownerEmail,
@@ -809,7 +815,7 @@ export class DocumentService {
     }
 
     return versions.map((v) => {
-      let email = 'Người dùng khác';
+      let email = DOCUMENT_CONSTANTS.FALLBACK_UPLOADER_EMAIL_PRIVATE;
       if (v.uploadedBy === item.ownerUserId) {
         email = item.ownerEmail;
       } else {
@@ -863,8 +869,8 @@ export class DocumentService {
         await tx.documentVersion.create({
           data: {
             documentItemId: id,
-            versionNumber: 1,
-            s3Key: item.s3Key || '',
+            versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+            s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
             sizeBytes: item.sizeBytes,
             uploadedBy: item.ownerUserId,
             createdAt: item.createdAt,
@@ -1096,10 +1102,10 @@ export class DocumentService {
     if (versions.length === 0) {
       return [
         {
-          id: 'original',
+          id: DOCUMENT_CONSTANTS.ORIGINAL_VERSION_ID,
           documentItemId: item.id,
-          versionNumber: 1,
-          s3Key: item.s3Key || '',
+          versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+          s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
           sizeBytes: Number(item.sizeBytes),
           uploadedBy: item.ownerUserId,
           uploadedByEmail: item.ownerEmail,
@@ -1109,7 +1115,7 @@ export class DocumentService {
     }
 
     return versions.map((v) => {
-      let email = 'Khách truy cập';
+      let email = DOCUMENT_CONSTANTS.FALLBACK_UPLOADER_EMAIL_PUBLIC;
       if (v.uploadedBy === item.ownerUserId) {
         email = item.ownerEmail;
       } else {
@@ -1134,7 +1140,7 @@ export class DocumentService {
     userId?: string,
     userEmail?: string,
   ): Promise<DocumentVersion> {
-    const activeUserId = userId || '00000000-0000-0000-0000-000000000000';
+    const activeUserId = userId || DOCUMENT_CONSTANTS.ANONYMOUS_USER_ID;
 
     const item = await this.checkPermission(
       id,
@@ -1155,15 +1161,15 @@ export class DocumentService {
       orderBy: { versionNumber: 'desc' },
     });
 
-    let nextVersionNumber = 1;
+    let nextVersionNumber = DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER;
 
     const newVersion = await this.prisma.$transaction(async (tx) => {
       if (!latestVersion) {
         await tx.documentVersion.create({
           data: {
             documentItemId: id,
-            versionNumber: 1,
-            s3Key: item.s3Key || '',
+            versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+            s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
             sizeBytes: item.sizeBytes,
             uploadedBy: item.ownerUserId,
             createdAt: item.createdAt,
@@ -1273,21 +1279,29 @@ export class DocumentService {
       folder.name,
     );
 
-    const folderName = folder.name.replace(/[/\\?%*:|"<>]/g, '_');
+    const folderName = folder.name.replace(
+      DOCUMENT_CONSTANTS.REGEX_INVALID_FILENAME_CHARS,
+      '_',
+    );
     const asciiName = folderName
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^\x20-\x7E]/g, '_');
-    const encodedName = encodeURIComponent(`${folder.name}.zip`).replace(/'/g, '%27');
+      .replace(DOCUMENT_CONSTANTS.REGEX_DIACRITICS, '')
+      .replace(DOCUMENT_CONSTANTS.REGEX_NON_ASCII, '_');
+    const encodedName = encodeURIComponent(`${folder.name}.zip`).replace(
+      DOCUMENT_CONSTANTS.REGEX_SINGLE_QUOTE,
+      DOCUMENT_CONSTANTS.PERCENT_ENCODED_SINGLE_QUOTE,
+    );
 
-    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Type', DOCUMENT_CONSTANTS.ZIP_CONTENT_TYPE);
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${asciiName}.zip"; filename*=UTF-8''${encodedName}`,
+      `${DOCUMENT_CONSTANTS.ZIP_CONTENT_DISPOSITION_PREFIX}; filename="${asciiName}.zip"; filename*=UTF-8''${encodedName}`,
     );
     res.setHeader('Transfer-Encoding', 'chunked');
 
-    const archive = archiver('zip', { zlib: { level: 6 } });
+    const archive = new archiver.ZipArchive({
+      zlib: { level: DOCUMENT_CONSTANTS.ZIP_COMPRESSION_LEVEL },
+    });
     archive.pipe(res);
 
     for (const file of files) {
@@ -1353,7 +1367,9 @@ export class DocumentService {
     const isChild = await this.isDescendant(folderId, rootId);
     const isSelf = folderId === rootId;
     if (!isChild && !isSelf) {
-      throw new ForbiddenException('Thư mục không thuộc tài nguyên được chia sẻ');
+      throw new ForbiddenException(
+        'Thư mục không thuộc tài nguyên được chia sẻ',
+      );
     }
 
     const children = await this.prisma.documentItem.findMany({

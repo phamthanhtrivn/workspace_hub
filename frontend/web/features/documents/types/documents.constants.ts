@@ -95,3 +95,5 @@ export const PERMISSION_ROLE_LABELS: Record<string, string> = {
   EDITOR: "Người chỉnh sửa",
   OWNER: "Chủ sở hữu",
 };
+
+export const ORIGINAL_VERSION_ID = "original";

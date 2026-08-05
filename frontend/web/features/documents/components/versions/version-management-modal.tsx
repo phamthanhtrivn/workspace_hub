@@ -7,6 +7,7 @@ import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
 import { X, History } from "lucide-react";
 import { DocumentItemType, UploadState, DocumentRole } from "../../types/documents.enums";
+import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { toast } from "sonner";
 import { VersionUploader } from "./version-uploader";
 import { VersionHistoryTable } from "./version-history-table";
@@ -58,11 +59,11 @@ function VersionManagementModal({
         const downloadUrl = isPublic
           ? await documentsApi.getPublicDownloadUrl(
               item.id,
-              versionId === "original" ? undefined : versionId,
+              versionId === ORIGINAL_VERSION_ID ? undefined : versionId,
             )
           : await documentsApi.getDownloadUrl(
               item.id,
-              versionId === "original" ? undefined : versionId,
+              versionId === ORIGINAL_VERSION_ID ? undefined : versionId,
             );
         const link = document.createElement("a");
         link.href = downloadUrl;

@@ -55,7 +55,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
         setUserRole(data.userRole as DocumentRole);
 
         // Folders don't have preview/download URLs — skip steps 2 & 3
-        if (data.item.type === "FOLDER") {
+        if (data.item.type === DocumentItemType.FOLDER) {
           return;
         }
 
@@ -153,7 +153,10 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
     }).then(async (result) => {
       if (result.isConfirmed && result.value) {
         try {
-          const updated = await documentsApi.renamePublicItem(item.id, result.value as string);
+          const updated = await documentsApi.renamePublicItem(
+            item.id,
+            result.value as string,
+          );
           setItem(updated);
           toast.success("Đã đổi tên tài liệu");
         } catch (err: any) {
@@ -169,7 +172,7 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
       // Refresh public metadata
       const data = await documentsApi.getPublicDocument(id);
       setItem(data.item);
-      
+
       // Refresh preview url
       const url = await documentsApi.getPublicPreviewUrl(id);
       setPreviewUrl(url);
@@ -252,7 +255,10 @@ export default function SharedDocumentPage({ params }: { params: Params }) {
         onPreviewVersion={async (itm, versionId) => {
           try {
             setIsUrlLoading(true);
-            const url = await documentsApi.getPublicPreviewUrl(itm.id, versionId);
+            const url = await documentsApi.getPublicPreviewUrl(
+              itm.id,
+              versionId,
+            );
             setPreviewUrl(url);
             setIsUrlLoading(false);
           } catch (err) {

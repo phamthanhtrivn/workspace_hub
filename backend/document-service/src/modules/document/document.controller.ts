@@ -11,7 +11,7 @@ import {
   BadRequestException,
   Res,
 } from '@nestjs/common';
-import { Response } from 'express';
+import type { Response } from 'express';
 import { DocumentService } from './document.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
@@ -304,7 +304,12 @@ export class DocumentController {
     @Query('versionId') versionId?: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
-    const url = await this.documentService.getPreviewUrl(userId, userEmail, id, versionId);
+    const url = await this.documentService.getPreviewUrl(
+      userId,
+      userEmail,
+      id,
+      versionId,
+    );
     return {
       message: 'Khởi tạo link xem trước thành công',
       data: { url },
@@ -319,7 +324,12 @@ export class DocumentController {
     @Query('versionId') versionId?: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
-    const url = await this.documentService.getDownloadUrl(userId, userEmail, id, versionId);
+    const url = await this.documentService.getDownloadUrl(
+      userId,
+      userEmail,
+      id,
+      versionId,
+    );
     return {
       message: 'Khởi tạo link tải xuống thành công',
       data: { url },
@@ -344,7 +354,11 @@ export class DocumentController {
     @Param('id') id: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
-    const versions = await this.documentService.getVersions(userId, userEmail, id);
+    const versions = await this.documentService.getVersions(
+      userId,
+      userEmail,
+      id,
+    );
     return {
       message: 'Lấy danh sách phiên bản thành công',
       data: versions,
@@ -359,7 +373,12 @@ export class DocumentController {
     @Body() dto: CreateVersionDto,
   ) {
     this.validateUserHeaders(userId, userEmail);
-    const version = await this.documentService.createVersion(userId, userEmail, id, dto);
+    const version = await this.documentService.createVersion(
+      userId,
+      userEmail,
+      id,
+      dto,
+    );
     return {
       message: 'Tạo phiên bản mới thành công',
       data: version,
@@ -441,7 +460,11 @@ export class DocumentController {
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
   ) {
-    const result = await this.documentService.getPublicDocument(id, userId, userEmail);
+    const result = await this.documentService.getPublicDocument(
+      id,
+      userId,
+      userEmail,
+    );
     return {
       message: 'Lấy thông tin tài liệu công khai thành công',
       data: result,
@@ -455,11 +478,20 @@ export class DocumentController {
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
   ) {
-    const item = await this.documentService.checkPermission(id, userId, userEmail);
+    const item = await this.documentService.checkPermission(
+      id,
+      userId,
+      userEmail,
+    );
     if (item.type === 'FOLDER') {
       throw new BadRequestException('Không thể tải xuống thư mục');
     }
-    const url = await this.documentService.getDownloadUrl(userId, userEmail, id, versionId);
+    const url = await this.documentService.getDownloadUrl(
+      userId,
+      userEmail,
+      id,
+      versionId,
+    );
     return {
       message: 'Khởi tạo link tải xuống công khai thành công',
       data: { url },
@@ -473,11 +505,20 @@ export class DocumentController {
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
   ) {
-    const item = await this.documentService.checkPermission(id, userId, userEmail);
+    const item = await this.documentService.checkPermission(
+      id,
+      userId,
+      userEmail,
+    );
     if (item.type === 'FOLDER') {
       throw new BadRequestException('Không thể xem trước thư mục');
     }
-    const url = await this.documentService.getPreviewUrl(userId, userEmail, id, versionId);
+    const url = await this.documentService.getPreviewUrl(
+      userId,
+      userEmail,
+      id,
+      versionId,
+    );
     return {
       message: 'Khởi tạo link xem trước công khai thành công',
       data: { url },
@@ -490,7 +531,11 @@ export class DocumentController {
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
   ) {
-    const versions = await this.documentService.getPublicVersions(id, userId, userEmail);
+    const versions = await this.documentService.getPublicVersions(
+      id,
+      userId,
+      userEmail,
+    );
     return {
       message: 'Lấy danh sách phiên bản công khai thành công',
       data: versions,
@@ -504,7 +549,12 @@ export class DocumentController {
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
   ) {
-    const version = await this.documentService.createPublicVersion(id, dto, userId, userEmail);
+    const version = await this.documentService.createPublicVersion(
+      id,
+      dto,
+      userId,
+      userEmail,
+    );
     return {
       message: 'Tạo phiên bản mới công khai thành công',
       data: version,
@@ -518,7 +568,12 @@ export class DocumentController {
     @Headers('x-user-id') userId?: string,
     @Headers('x-user-email') userEmail?: string,
   ) {
-    const result = await this.documentService.renamePublicItem(id, dto, userId, userEmail);
+    const result = await this.documentService.renamePublicItem(
+      id,
+      dto,
+      userId,
+      userEmail,
+    );
     return {
       message: 'Đổi tên tài liệu công khai thành công',
       data: result,
