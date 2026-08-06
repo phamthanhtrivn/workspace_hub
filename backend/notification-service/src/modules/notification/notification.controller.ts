@@ -5,9 +5,10 @@ import {
   Patch,
   Put,
   Delete,
+  Body,
+  UnauthorizedException,
   Param,
   Query,
-  Body,
   Headers,
   HttpCode,
   HttpStatus,
@@ -16,6 +17,9 @@ import {
 } from "@nestjs/common";
 import { EventPattern, Payload } from "@nestjs/microservices";
 import { NotificationService } from "./notification.service";
+import { EmailService } from "./email.service";
+import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-email.dto";
+import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { KAFKA_TOPICS, KAFKA_EVENTS } from "../../common/constants/kafka.constants";
@@ -24,9 +28,41 @@ import { KAFKA_TOPICS, KAFKA_EVENTS } from "../../common/constants/kafka.constan
 export class NotificationController {
   constructor(
     private readonly notificationService: NotificationService,
+    private readonly emailService: EmailService,
     private readonly pushService: PushService,
   ) {}
 
+  @Post("project-invitations/email")
+  async sendProjectInvitationEmail(
+    @Headers("x-internal-service-key") serviceKey: string,
+    @Body() dto: SendProjectInvitationEmailDto,
+  ) {
+    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
+
+    if (!expectedKey || serviceKey !== expectedKey) {
+      throw new UnauthorizedException("Invalid internal service key");
+    }
+
+    await this.emailService.sendProjectInvitationEmail(dto);
+
+    return {
+      message: "Project invitation email sent successfully",
+      data: { sent: true, invitationId: dto.invitationId },
+    };
+  }
+
+  @Post("internal")
+  async createInternalNotification(
+    @Headers("x-internal-service-key") serviceKey: string,
+    @Body() dto: CreateNotificationDto,
+  ) {
+    const expectedKey = process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
+    if (serviceKey !== expectedKey) {
+      throw new UnauthorizedException("Invalid internal service key");
+    }
+    const notification = await this.notificationService.createNotification(dto);
+    return { message: "Notification created successfully", data: notification };
+  }
   @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)
   async handleIncomingNotification(@Payload() data: any) {
     try {
@@ -228,4 +264,3 @@ export class NotificationController {
     };
   }
 }
-

@@ -1,0 +1,42 @@
+
+> web@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.108:3000
+- Environments: .env
+✓ Ready in 18.0s
+Creating turbopack project { dir: 'E:\\KLTN\\workspace_hub\\frontend\\web', testMode: true }
+
+ GET / 200 in 1959ms (next.js: 1278ms, application-code: 681ms)
+ GET / 200 in 159ms (next.js: 21ms, application-code: 138ms)
+ GET / 200 in 4.0s (next.js: 2.0s, application-code: 1976ms)
+ GET / 200 in 448ms (next.js: 86ms, application-code: 362ms)
+ GET / 200 in 287ms (next.js: 17ms, application-code: 271ms)
+ GET / 200 in 286ms (next.js: 145ms, application-code: 141ms)
+ GET / 200 in 291ms (next.js: 84ms, application-code: 207ms)
+ GET / 200 in 304ms (next.js: 205ms, application-code: 100ms)
+✓ Compiled in 897ms
+ GET / 200 in 486ms (next.js: 77ms, application-code: 408ms)
+ GET / 200 in 340ms (next.js: 10ms, application-code: 330ms)
+ GET / 200 in 278ms (next.js: 14ms, application-code: 264ms)
+ GET / 200 in 279ms (next.js: 79ms, application-code: 200ms)
+ GET / 200 in 280ms (next.js: 131ms, application-code: 149ms)
+ GET / 200 in 100ms (next.js: 15ms, application-code: 85ms)
+ GET / 200 in 420ms (next.js: 93ms, application-code: 326ms)
+ GET / 200 in 238ms (next.js: 11ms, application-code: 227ms)
+ GET / 200 in 151ms (next.js: 74ms, application-code: 77ms)
+ GET / 200 in 155ms (next.js: 9ms, application-code: 145ms)
+ GET / 200 in 317ms (next.js: 85ms, application-code: 232ms)
+ GET / 200 in 175ms (next.js: 14ms, application-code: 161ms)
+ GET / 200 in 84ms (next.js: 11ms, application-code: 73ms)
+ GET / 200 in 224ms (next.js: 116ms, application-code: 108ms)
+✓ Compiled in 494ms
+ GET / 200 in 183ms (next.js: 83ms, application-code: 100ms)
+ GET / 200 in 171ms (next.js: 90ms, application-code: 80ms)
+ GET / 200 in 162ms (next.js: 95ms, application-code: 67ms)
+ GET / 200 in 136ms (next.js: 66ms, application-code: 71ms)
+ GET / 200 in 127ms (next.js: 70ms, application-code: 57ms)
+ GET / 200 in 163ms (next.js: 91ms, application-code: 72ms)
+[?25h
