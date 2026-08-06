@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { Users, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
+import { useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
+import AddMembersModal from "../modals/add-members-modal";
+import { FaKey } from "react-icons/fa";
 
 interface MembersSectionProps {
   isExpanded: boolean;
@@ -20,6 +23,13 @@ export default function MembersSection({
   currentUserId,
 }: MembersSectionProps) {
   const dispatch = useAppDispatch();
+  const [showAddMembersModal, setShowAddMembersModal] = useState(false);
+
+  const currentMember = activeConversation?.members?.find(
+    (m: any) => m.userId === currentUserId,
+  );
+  const isOwner = currentMember?.role === "OWNER";
+  const conversationId = activeConversation?.id;
 
   return (
     <div>
@@ -41,60 +51,81 @@ export default function MembersSection({
 
         {isExpanded && (
           <div className="px-4 pb-2 space-y-2">
-            {activeConversation?.members?.map((member: any) => {
-              const profile = memberProfiles?.[member.userId];
-              const name = profile?.fullName || "User";
-              const isMe = member.userId === currentUserId;
-              const displayName = isMe ? "Bạn" : name;
+            <div className="max-h-[170px] overflow-y-auto pr-1 space-y-2">
+              {activeConversation?.members?.map((member: any) => {
+                const profile = memberProfiles?.[member.userId];
+                const name = profile?.fullName || "User";
+                const isMe = member.userId === currentUserId;
+                const displayName = isMe ? "Bạn" : name;
 
-              return (
-                <div
-                  key={member.userId}
-                  onClick={() =>
-                    !isMe && dispatch(setSelectedProfileUserId(member.userId))
-                  }
-                  className={`flex items-center gap-3 p-2  hover:bg-gray-100 rounded-lg transition ${
-                    !isMe ? "cursor-pointer" : ""
-                  }`}
-                >
-                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xs overflow-hidden">
-                    {profile?.avatarUrl ? (
-                      <Image
-                        src={profile.avatarUrl}
-                        alt="Avatar"
-                        width={32}
-                        height={32}
-                        className="rounded-full border-gray-200 border-1"
-                      />
-                    ) : (
-                      <User size={22} className="text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-sm text-gray-700">{displayName}</span>
-                    {member.role === "OWNER" && (
-                      <span className="text-xs bg-blue-100 text-blue-600 text-center w-fit px-2 py-0.5 rounded">
-                        Trưởng nhóm
+                return (
+                  <div
+                    key={member.userId}
+                    onClick={() =>
+                      !isMe && dispatch(setSelectedProfileUserId(member.userId))
+                    }
+                    className={`flex items-center gap-3 p-2  hover:bg-gray-100 rounded-lg transition ${
+                      !isMe ? "cursor-pointer" : ""
+                    }`}
+                  >
+                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 font-bold text-xs overflow-hidden">
+                      {profile?.avatarUrl ? (
+                        <Image
+                          src={profile.avatarUrl}
+                          alt="Avatar"
+                          width={32}
+                          height={32}
+                          className="rounded-full border-gray-200 border-1"
+                        />
+                      ) : (
+                        <User size={18} className="text-gray-400" />
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm text-gray-700">
+                        {displayName}
                       </span>
-                    )}
-                    {member.role === "ADMIN" && (
-                      <span className="text-xs bg-gray-100 text-gray-500 text-center w-fit px-2 py-0.5 rounded">
-                        Phó nhóm
-                      </span>
-                    )}
+                      {member.role === "OWNER" && (
+                        <span className="text-[10px] bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-yellow-100 w-fit">
+                          <FaKey size={10} className="text-yellow-500" /> Trưởng
+                          nhóm
+                        </span>
+                      )}
+                      {member.role === "ADMIN" && (
+                        <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-gray-200 w-fit">
+                          <FaKey size={10} className="text-gray-400" /> Phó nhóm
+                        </span>
+                      )}
+                    </div>
                   </div>
+                );
+              })}
+            </div>
+            {isOwner && (
+              <button
+                onClick={() => setShowAddMembersModal(true)}
+                className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1"
+              >
+                <div className="cursor-pointer w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
+                  <Users size={14} />
                 </div>
-              );
-            })}
-            <button className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1">
-              <div className="w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
-                <Users size={14} />
-              </div>
-              <span className="text-sm font-medium">Thêm thành viên</span>
-            </button>
+                <span className="text-sm font-medium">Thêm thành viên</span>
+              </button>
+            )}
           </div>
         )}
       </div>
+
+      {showAddMembersModal && (
+        <AddMembersModal
+          isOpen={showAddMembersModal}
+          onClose={() => setShowAddMembersModal(false)}
+          conversationId={conversationId}
+          onMembersAdded={() => {
+            // Optional: You could fetch the conversation again or rely on the socket events to refresh members
+          }}
+        />
+      )}
 
       <div className="h-px bg-gray-100 mx-4 my-1"></div>
     </div>

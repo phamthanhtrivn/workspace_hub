@@ -1,30 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { noteApi } from '../api/note.api';
 import { ChatEvent } from '../api/chat.events';
 import { socketService } from '../api/chat-socket.service';
 
 export function useNotes(conversationId: string | undefined) {
-  const [notes, setNotes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!conversationId) return;
-
-    const fetchNotes = async () => {
-      try {
-        setLoading(true);
-        const res = await noteApi.getNotesInConversation(conversationId);
-        if (res.success) {
-          setNotes(res.data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch notes', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchNotes();
-  }, [conversationId]);
+  const { data: notes = [], isLoading: loading } = useQuery({
+    queryKey: ["notes", conversationId],
+    queryFn: async () => {
+      const res = await noteApi.getNotesInConversation(conversationId!);
+      return res.success ? res.data : [];
+    },
+    enabled: !!conversationId,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+  });
 
   useEffect(() => {
     const socket = socketService.getSocket();
@@ -45,7 +36,8 @@ export function useNotes(conversationId: string | undefined) {
       }
 
       if (convId === conversationId && noteData) {
-        setNotes((prev) => {
+        queryClient.setQueryData<any[]>(["notes", conversationId], (prev) => {
+          if (!prev) return [noteData];
           const exists = prev.findIndex((n) => n.id === noteData.id);
           if (exists !== -1) {
             const newNotes = [...prev];
@@ -63,7 +55,7 @@ export function useNotes(conversationId: string | undefined) {
       socket.off(ChatEvent.NOTE_UPDATED, handleNoteUpdated);
       socket.off(ChatEvent.MESSAGE_MOVED, handleNoteUpdated);
     };
-  }, [conversationId]);
+  }, [conversationId, queryClient]);
 
   return { notes, loading };
 }

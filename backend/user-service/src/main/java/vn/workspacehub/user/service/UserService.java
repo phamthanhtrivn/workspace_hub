@@ -12,6 +12,8 @@ import vn.workspacehub.user.entity.AccountSetting;
 import vn.workspacehub.user.entity.User;
 import vn.workspacehub.user.entity.UserProfile;
 import vn.workspacehub.user.dto.request.UpdatePrivacyRequest;
+import vn.workspacehub.user.mapper.AccountSettingMapper;
+import vn.workspacehub.user.mapper.UserMapper;
 
 import java.util.UUID;
 import java.util.List;
@@ -23,17 +25,14 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AccountSettingRepository accountSettingRepository;
+    private final AccountSettingMapper accountSettingMapper;
+    private final UserMapper userMapper;
 
     public AccountSettingResponse getAccountSettings(UUID userId) {
         AccountSetting setting = accountSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy cài đặt cho người dùng này"));
 
-        return AccountSettingResponse.builder()
-                .theme(setting.getTheme())
-                .language(setting.getLanguage())
-                .timezone(setting.getTimezone())
-                .allowSearchByEmail(setting.isAllowSearchByEmail())
-                .build();
+        return accountSettingMapper.toResponse(setting);
     }
 
     public List<UserSearchResponse> searchUserByEmail(UUID userId, String email) {
@@ -45,15 +44,7 @@ public class UserService {
                     AccountSetting setting = user.getAccountSetting();
                     return setting == null || setting.isAllowSearchByEmail();
                 })
-                .map(user -> {
-                    UserProfile profile = user.getProfile();
-                    return UserSearchResponse.builder()
-                            .id(user.getId())
-                            .email(user.getEmail())
-                            .fullName(profile != null ? profile.getFullName() : null)
-                            .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
-                            .build();
-                })
+                .map(userMapper::toSearchResponse)
                 .collect(Collectors.toList());
     }
 

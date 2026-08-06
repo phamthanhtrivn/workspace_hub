@@ -1,21 +1,26 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ChatSidebar from "./chat-sidebar";
+import ChatSidebar from "./sidebar/chat-sidebar";
 import ChatArea from "./chat-area";
-import ChatRightPanel from "./chat-right-panel";
-import { useAppSelector } from "@/store/store";
+import ChatRightPanel from "./right-panel/chat-right-panel";
+import { useAppSelector, useAppDispatch } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import { socketService } from "../api/chat-socket.service";
-import UserProfileModal from "./user-profile-modal";
+import UserProfileModal from "./modals/user-profile-modal";
+import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
 
 export default function ChatLayout() {
   const [showRightPanel, setShowRightPanel] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversation?.id,
   );
-  const accessToken = useAppSelector((state) => state.auth.accessToken);
+  const activeThreadRootMessage = useAppSelector(
+    (state) => state.chat.activeThreadRootMessage,
+  );
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (activeConversationId) {
@@ -23,18 +28,22 @@ export default function ChatLayout() {
     }
   }, [activeConversationId]);
 
-  // Connect to communication service websocket when entering chat
   useEffect(() => {
-    if (accessToken) {
-      socketService.connect(accessToken);
+    if (activeThreadRootMessage) {
+      setShowRightPanel(true);
     }
-    return () => {
-      socketService.disconnect();
-    };
-  }, [accessToken]);
+  }, [activeThreadRootMessage]);
 
   const toggleRightPanel = () => {
     setShowRightPanel((prev) => !prev);
+    if (!showRightPanel) {
+      setRightPanelTab(null);
+    }
+  };
+
+  const handleOpenSearch = () => {
+    setRightPanelTab("search");
+    setShowRightPanel(true);
   };
 
   const handleSelectChat = () => {
@@ -52,11 +61,12 @@ export default function ChatLayout() {
 
       {/* Main Chat Area or Empty State */}
       <div
-        className={`flex-1 h-full min-h-0 z-10 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)] relative ${mobileView === "chat" ? "flex" : "hidden md:flex"} flex-col bg-gray-50`}
+        className={`flex-1 min-w-0 h-full min-h-0 z-10 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)] relative ${mobileView === "chat" ? "flex" : "hidden md:flex"} flex-col bg-gray-50`}
       >
         {activeConversationId ? (
           <ChatArea
             onToggleRightPanel={toggleRightPanel}
+            onOpenSearch={handleOpenSearch}
             onBack={() => setMobileView("sidebar")}
           />
         ) : (
@@ -77,8 +87,14 @@ export default function ChatLayout() {
 
       {/* Right Panel - Togglable (Only show if active chat) */}
       {showRightPanel && activeConversationId && (
-        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-80 md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
-          <ChatRightPanel onClose={() => setShowRightPanel(false)} />
+        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
+          <ChatRightPanel
+            onClose={() => {
+              setShowRightPanel(false);
+              dispatch(setActiveThreadRootMessage(null));
+            }}
+            initialDetailView={rightPanelTab}
+          />
         </div>
       )}
       <UserProfileModal />

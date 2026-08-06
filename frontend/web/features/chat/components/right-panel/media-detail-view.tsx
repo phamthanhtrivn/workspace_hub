@@ -9,7 +9,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import { getConversationMedia } from "../../api/chat.api";
 import { saveAs } from "file-saver";
-import MediaLightbox from "../media-lightbox";
+import MediaLightbox from "../message/media-lightbox";
 
 interface MediaDetailViewProps {
   conversationId: string;

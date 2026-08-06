@@ -8,7 +8,6 @@ import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.dto.request.UpdateUserProfileRequest;
 import vn.workspacehub.user.dto.response.PresignedUrlResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
-import vn.workspacehub.user.service.S3Service;
 import vn.workspacehub.user.service.UserProfileService;
 
 import java.util.UUID;
@@ -19,7 +18,6 @@ import java.util.UUID;
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
-    private final S3Service s3Service;
 
     @GetMapping
     public ResponseEntity<ApiResponse<UserProfileResponse>> getMyProfile(
@@ -52,16 +50,9 @@ public class UserProfileController {
             @RequestParam("fileName") String fileName,
             @RequestParam("contentType") String contentType) {
         
-        String extension = "";
-        int i = fileName.lastIndexOf('.');
-        if (i > 0) {
-            extension = fileName.substring(i);
-        }
+        PresignedUrlResponse response = userProfileService.generateAvatarPresignedUrl(userId, fileName, contentType);
         
-        String objectKey = "avatars/" + userId.toString() + "/" + UUID.randomUUID() + extension;
-        PresignedUrlResponse response = s3Service.generatePresignedUrl(objectKey, contentType);
-        
-        return ResponseEntity.ok(ApiResponse.<vn.workspacehub.user.dto.response.PresignedUrlResponse>builder()
+        return ResponseEntity.ok(ApiResponse.<PresignedUrlResponse>builder()
                 .success(true)
                 .message("Tạo presigned URL thành công")
                 .data(response)

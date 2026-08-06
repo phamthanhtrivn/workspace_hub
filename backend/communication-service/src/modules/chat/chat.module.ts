@@ -2,11 +2,10 @@ import { Module } from '@nestjs/common';
 import { ChatGateway } from './chat.gateway';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { MessageModule } from '../message/message.module';
-import { PollModule } from '../poll/poll.module';
-import { NoteModule } from '../note/note.module';
+import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.module';
 
 @Module({
-  imports: [PrismaModule, MessageModule, PollModule, NoteModule],
+  imports: [PrismaModule, MessageModule, KafkaProducerModule],
   controllers: [],
   providers: [ChatGateway],
   exports: [ChatGateway],

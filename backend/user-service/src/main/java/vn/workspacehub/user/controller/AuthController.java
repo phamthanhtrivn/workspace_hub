@@ -51,15 +51,11 @@ public class AuthController {
 
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<?>> refresh(HttpServletRequest request, HttpServletResponse response) {
-        try {
-            var refreshResponse = authService.refresh(request, response);
-            return ResponseEntity.ok(ApiResponse.success(refreshResponse, "Làm mới token thành công"));
-        } catch (vn.workspacehub.user.exception.BusinessException e) {
-            if (e.getMessage() != null && e.getMessage().contains("Refresh token")) {
-                return ResponseEntity.ok(ApiResponse.success(null, "Chưa đăng nhập"));
-            }
-            throw e;
+        var refreshResponse = authService.refresh(request, response);
+        if (refreshResponse == null) {
+            return ResponseEntity.ok(ApiResponse.success(null, "Chưa đăng nhập"));
         }
+        return ResponseEntity.ok(ApiResponse.success(refreshResponse, "Làm mới token thành công"));
     }
 
     @PostMapping("/logout")

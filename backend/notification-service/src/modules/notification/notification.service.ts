@@ -1,7 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../prisma/prisma.service";
 import { CreateNotificationDto } from "./dtos/create-notification.dto";
+import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { NotificationGateway } from "./notification.gateway";
+import { PushService } from "./push.service";
 import { Notification } from "@prisma/client";
 
 @Injectable()
@@ -9,6 +11,7 @@ export class NotificationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationGateway: NotificationGateway,
+    private readonly pushService: PushService,
   ) {}
 
   async createNotification(
@@ -33,8 +36,18 @@ export class NotificationService {
       .to(saved.recipientId)
       .emit("new_notification", saved);
 
+    // Send push notification in the background
+    this.sendPushToUser(saved.recipientId, {
+      title: saved.title,
+      content: saved.content,
+      link: saved.link || undefined,
+      senderName: saved.senderName || undefined,
+      senderAvatar: saved.senderAvatar || undefined,
+    }).catch(err => console.error("Failed to send push notification:", err));
+
     return saved;
   }
+
 
   async getNotifications(
     recipientId: string,
@@ -109,4 +122,71 @@ export class NotificationService {
     });
     return true;
   }
+
+  async saveSubscription(
+    userId: string,
+    dto: SaveSubscriptionDto,
+  ): Promise<any> {
+    const existing = await this.prisma.pushSubscription.findUnique({
+      where: { endpoint: dto.endpoint },
+    });
+
+    if (existing) {
+      if (existing.userId === userId) {
+        return existing;
+      }
+      return this.prisma.pushSubscription.update({
+        where: { endpoint: dto.endpoint },
+        data: {
+          userId,
+          p256dh: dto.keys.p256dh,
+          auth: dto.keys.auth,
+        },
+      });
+    }
+
+    return this.prisma.pushSubscription.create({
+      data: {
+        userId,
+        endpoint: dto.endpoint,
+        p256dh: dto.keys.p256dh,
+        auth: dto.keys.auth,
+      },
+    });
+  }
+
+  async unsubscribe(userId: string, endpoint: string): Promise<boolean> {
+    const existing = await this.prisma.pushSubscription.findFirst({
+      where: { userId, endpoint },
+    });
+
+    if (!existing) return false;
+
+    await this.prisma.pushSubscription.delete({
+      where: { id: existing.id },
+    });
+    return true;
+  }
+
+  async sendPushToUser(userId: string, payload: any): Promise<void> {
+    const subscriptions = await this.prisma.pushSubscription.findMany({
+      where: { userId },
+    });
+
+    if (!subscriptions || subscriptions.length === 0) return;
+
+    await Promise.all(
+      subscriptions.map(async (sub) => {
+        const success = await this.pushService.sendPushNotification(sub, payload);
+        if (!success) {
+          await this.prisma.pushSubscription
+            .delete({ where: { id: sub.id } })
+            .catch((err) =>
+              console.error(`Failed to delete expired subscription ${sub.id}:`, err),
+            );
+        }
+      }),
+    );
+  }
 }
+

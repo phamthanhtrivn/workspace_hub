@@ -37,14 +37,12 @@ enum MessageType {
 model ConversationSetting {
   id                String  @id @default(uuid()) @db.Uuid
   conversationId    String  @unique @map("conversation_id") @db.Uuid
-  allowMemberInvite Boolean @default(true) @map("allow_member_invite")
-  approvalRequired  Boolean @default(false) @map("approval_required")
   allowSendMessage  Boolean @default(true) @map("allow_send_message")
   allowCreatePoll   Boolean @default(true) @map("allow_create_poll")
   allowCreateNote   Boolean @default(true) @map("allow_create_note")
   allowPinMessage   Boolean @default(true) @map("allow_pin_message")
 
-  conversation      Conversation @relation(fields: [conversationId], references: [id])
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@map("conversation_settings")
 }
@@ -78,7 +76,7 @@ model ConversationMember {
   nickname          String?
   role              ConversationRole
 
-  conversation      Conversation @relation(fields: [conversationId], references: [id])
+  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   
   @@unique([conversationId, userId])
   @@map("conversation_members")
@@ -97,10 +95,17 @@ model Message {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
   deletedAt        DateTime? @map("deleted_at")
+  
+  threadParentId   String?   @map("thread_parent_id") @db.Uuid
+  threadReplyCount Int       @default(0) @map("thread_reply_count")
+  threadLastReplyAt DateTime? @map("thread_last_reply_at")
 
-  conversation     Conversation @relation(fields: [conversationId], references: [id])
-  replyTo          Message?  @relation("MessageReplies", fields: [replyToMessageId], references: [id])
+  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  replyTo          Message?  @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
   replies          Message[] @relation("MessageReplies")
+  
+  threadParent     Message?  @relation("ThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
+  threadReplies    Message[] @relation("ThreadReplies")
   
   reactions        Reaction[]
   medias           Media[]
@@ -119,7 +124,7 @@ model Media {
   sizeBytes Int @map("size_bytes")
   type      MediaType
 
-  message   Message @relation(fields: [messageId], references: [id])
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("medias")
 }
@@ -130,7 +135,7 @@ model Reaction {
   userId    String @map("user_id") @db.Uuid
   emoji     String
 
-  message   Message @relation(fields: [messageId], references: [id])
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("reactions")
 }
@@ -144,7 +149,7 @@ model Note {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  message   Message @relation(fields: [messageId], references: [id])
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("notes")
 }
@@ -162,7 +167,7 @@ model Poll {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  message         Message @relation(fields: [messageId], references: [id])
+  message         Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
   options         PollOption[]
 
   @@map("polls")
@@ -174,7 +179,7 @@ model PollOption {
   text      String
   createdBy String? @map("created_by") @db.Uuid
 
-  poll   Poll @relation(fields: [pollId], references: [id])
+  poll   Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
   votes  PollVote[]
 
   @@map("poll_options")
@@ -187,7 +192,7 @@ model PollVote {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  option       PollOption @relation(fields: [pollOptionId], references: [id])
+  option       PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
 
   @@map("poll_votes")
 }
@@ -207,7 +212,7 @@ model GroupInvitation {
   createdAt        DateTime         @default(now()) @map("created_at")
   respondedAt      DateTime?        @map("responded_at")
 
-  conversation     Conversation     @relation(fields: [conversationId], references: [id])
+  conversation     Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, invitedUserId])
   @@map("group_invitations")

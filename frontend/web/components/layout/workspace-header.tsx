@@ -6,6 +6,7 @@ import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
+import { socketService } from "@/features/chat/api/chat-socket.service";
 import { addNotification } from "@/store/notification/notification.slice";
 
 interface WorkspaceHeaderProps {
@@ -21,13 +22,13 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
 }: WorkspaceHeaderProps) {
   const { accessToken } = useAppSelector((state) => state.auth);
   const dispatch = useAppDispatch();
-  const notificationConnectedRef = useRef(false);
 
   useEffect(() => {
-    if (!accessToken || notificationConnectedRef.current) return;
+    if (!accessToken) return;
 
+    // Connect both notification and chat sockets globally
     notificationSocketService.connect(accessToken);
-    notificationConnectedRef.current = true;
+    socketService.connect(accessToken);
 
     const socket = notificationSocketService.getSocket();
     if (socket) {
@@ -35,11 +36,16 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
         dispatch(addNotification(noti));
       });
     }
+
+    return () => {
+      notificationSocketService.disconnect();
+      socketService.disconnect();
+    };
   }, [accessToken, dispatch]);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-gray-50 px-4 py-3 backdrop-blur-xl sm:px-6 lg:px-8">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 py-3.5 backdrop-blur-xl px-4 sm:px-6 lg:px-8">
+      <div className="flex w-full items-center justify-between gap-4">
         {/* Left: Breadcrumbs & Mobile Menu */}
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -49,19 +55,19 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
             <Menu className="h-6 w-6" />
           </button>
           <div className="min-w-0">
-            <div className="flex items-center text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
+            <div className="hidden sm:flex items-center text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
               <span>Workspace</span>
               <span className="mx-2 text-slate-300">/</span>
               <span className="truncate">{currentTitle}</span>
             </div>
-            <h2 className="truncate text-xl font-black text-[var(--color-primary-dark)]">
+            <h2 className="truncate text-lg sm:text-xl font-black text-[var(--color-primary-dark)]">
               {currentTitle}
             </h2>
           </div>
         </div>
 
-        {/* Middle: Search Bar */}
-        <div className="hidden flex-1 max-w-md items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-400 shadow-sm transition hover:border-slate-300 md:flex cursor-text">
+        {/* Middle: Search Bar (Desktop) & Search Button (Tablet) */}
+        <div className="hidden lg:flex flex-1 max-w-md items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-400 shadow-sm transition hover:border-slate-300 cursor-text">
           <Search className="h-4 w-4" strokeWidth={2} />
           <span className="flex-1 text-left">Search workspace...</span>
           <div className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-400">
@@ -70,8 +76,12 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
           </div>
         </div>
 
+        <button className="hidden sm:flex lg:hidden h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:text-slate-700 hover:border-slate-300 cursor-pointer">
+          <Search className="h-5 w-5" strokeWidth={2} />
+        </button>
+
         {/* Right: Actions & User Profile */}
-        <div className="flex items-center gap-2 lg:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <NotificationDropdown />
           <UserProfileDropdown onOpenSettings={onOpenSettings} />
         </div>
