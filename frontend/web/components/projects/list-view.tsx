@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type KeyboardEvent } from "react";
-import { type Task, TaskStatus } from "@/types/project";
+import { type Task, ProjectType, TaskStatus } from "@/types/project";
 import { TaskStatusBadge, LabelBadge } from "./status-badge";
 import { Avatar } from "./avatar-stack";
 import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "./task-card";
@@ -9,7 +9,6 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
-  ListPlus,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -45,6 +44,16 @@ function isOverdue(dueDate?: string, status?: string): boolean {
   return new Date(dueDate) < new Date();
 }
 
+function StatusCircles({ counts }: { counts: { todo: number; progress: number; done: number } }) {
+  return (
+    <div className="flex items-center gap-1 text-[10px] font-bold ml-3">
+      <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-[#DFE1E6] text-[#42526E] px-1.5" title="To Do">{counts.todo}</span>
+      <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-[#DEEBFF] text-[#0747A6] px-1.5" title="In Progress">{counts.progress}</span>
+      <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-[#E3FCEF] text-[#006644] px-1.5" title="Done">{counts.done}</span>
+    </div>
+  );
+}
+
 /**
  * Jira-style Backlog ListView.
  *
@@ -60,15 +69,15 @@ function isOverdue(dueDate?: string, status?: string): boolean {
  */
 export default function ListView({
   tasks,
+  projectType = ProjectType.SOFTWARE_DEVELOPMENT,
   onTaskClick,
-  onAddTask,
   onAddTaskInline,
-  onAddSubtask,
   onEditGroup,
   onDeleteGroup,
   onReorderTasks,
 }: {
   tasks: Task[];
+  projectType?: ProjectType;
   onTaskClick?: (task: Task) => void;
   onAddTask?: () => void;
   onAddTaskInline?: (
@@ -81,6 +90,7 @@ export default function ListView({
   onDeleteGroup?: (task: Task) => void;
   onReorderTasks?: (group: Task, tasks: Task[]) => Promise<void>;
 }) {
+  const isGeneralProject = projectType === ProjectType.GENERAL;
   const [collapsedPanels, setCollapsedPanels] = useState<Set<string>>(new Set());
   const [openMenuGroupId, setOpenMenuGroupId] = useState<string | null>(null);
   const [reorderingGroupId, setReorderingGroupId] = useState<string | null>(null);
@@ -134,7 +144,8 @@ export default function ListView({
   const togglePanel = (id: string) => {
     setCollapsedPanels((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -146,11 +157,15 @@ export default function ListView({
     if (!inlineTitle.trim()) return;
     try {
       if (onAddTaskInline) {
-        await onAddTaskInline(inlineTitle.trim(), parentTaskId, isParentTask);
+        await onAddTaskInline(
+          inlineTitle.trim(),
+          parentTaskId,
+          isGeneralProject && !parentTaskId ? true : isParentTask,
+        );
       }
       setInlineTitle("");
       // Keep creator open for rapid successive additions
-    } catch (_) {}
+    } catch {}
   };
 
   // Status breakdown for a list of tasks
@@ -168,9 +183,10 @@ export default function ListView({
   const renderTaskRow = (
     task: Task,
     reorder?: {
-      group: Task;
-      enabled: boolean;
-      onDrop: (targetTaskId: string) => void;
+      group?: Task;
+      enabled?: boolean;
+      onDrop?: (targetTaskId: string) => void;
+      onAddSubtask?: () => void;
     },
   ) => {
     const overdue = isOverdue(task.dueDate, task.status);
@@ -194,7 +210,7 @@ export default function ListView({
         onDrop={(e) => {
           if (reorder?.enabled) {
             e.preventDefault();
-            reorder.onDrop(task.id);
+            reorder.onDrop?.(task.id);
           }
         }}
         onClick={() => onTaskClick?.(task)}
@@ -260,6 +276,21 @@ export default function ListView({
             <span className="h-5 w-5 rounded-full border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] text-slate-400 font-bold">?</span>
           )}
         </div>
+
+        {reorder?.onAddSubtask && (
+          <button
+            type="button"
+            title="Tạo subtask"
+            onClick={(event) => {
+              event.stopPropagation();
+              reorder.onAddSubtask?.();
+            }}
+            className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[11px] font-bold text-slate-400 opacity-0 transition hover:bg-[#DEEBFF] hover:text-[#0052CC] group-hover:opacity-100 focus:opacity-100"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden xl:inline">Subtask</span>
+          </button>
+        )}
       </div>
     );
   };
@@ -282,7 +313,13 @@ export default function ListView({
             type="text"
             value={inlineTitle}
             onChange={(e) => setInlineTitle(e.target.value)}
-            placeholder="Bạn cần làm gì?"
+            placeholder={
+              isGeneralProject
+                ? parentTaskId
+                  ? "Nhập tên subtask..."
+                  : "Nhập tên công việc..."
+                : "Bạn cần làm gì?"
+            }
             autoFocus
             onKeyDown={(e) => {
               if (e.key === "Enter") {
@@ -318,19 +355,16 @@ export default function ListView({
         className="flex w-full items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-slate-500 hover:bg-[#F4F5F7] hover:text-[#0052CC] transition text-left border-t border-slate-150 bg-white"
       >
         <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-        <span>Create</span>
+        <span>
+          {isGeneralProject
+            ? parentTaskId
+              ? "Tạo subtask"
+              : "Tạo công việc"
+            : "Create"}
+        </span>
       </button>
     );
   };
-
-  // ── Status Badge Circles (grey/blue/green) ──
-  const StatusCircles = ({ counts }: { counts: { todo: number; progress: number; done: number } }) => (
-    <div className="flex items-center gap-1 text-[10px] font-bold ml-3">
-      <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-[#DFE1E6] text-[#42526E] px-1.5" title="To Do">{counts.todo}</span>
-      <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-[#DEEBFF] text-[#0747A6] px-1.5" title="In Progress">{counts.progress}</span>
-      <span className="inline-flex items-center justify-center min-w-5 h-5 rounded-full bg-[#E3FCEF] text-[#006644] px-1.5" title="Done">{counts.done}</span>
-    </div>
-  );
 
   return (
     <div className="space-y-5 select-none pb-8">
@@ -338,7 +372,7 @@ export default function ListView({
       {/* ════════════════════════════════════════════════════════
           1. GROUP PANELS (Root tasks that have children)
          ════════════════════════════════════════════════════════ */}
-      {groupTasks.map((group) => {
+      {!isGeneralProject && groupTasks.map((group) => {
         const isCollapsed = collapsedPanels.has(group.id);
         const children = orderedChildren(group.id, childrenByParent.get(group.id) || []);
         const counts = statusCounts(children);
@@ -361,7 +395,7 @@ export default function ListView({
           setDraggedTaskId(null);
           try {
             await onReorderTasks?.(group, nextChildren);
-          } catch (_) {
+          } catch {
             // The parent handles the error notification. Keep the local order usable.
           }
         };
@@ -384,12 +418,13 @@ export default function ListView({
                 </span>
               )}
               <span className="text-xs text-slate-500 font-medium">
-                ({children.length} work items)
+                ({children.length} {isGeneralProject ? "subtasks" : "work items"})
               </span>
 
               <StatusCircles counts={counts} />
 
-              <div className="relative ml-auto flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              {!isGeneralProject && (
+                <div className="relative ml-auto flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                 <button
                   type="button"
                   onClick={() => onTaskClick?.(group)}
@@ -443,7 +478,8 @@ export default function ListView({
                     </button>
                   </div>
                 )}
-              </div>
+                </div>
+              )}
             </div>
 
             {isReordering && (
@@ -465,7 +501,7 @@ export default function ListView({
                     )
                   : (
                     <div className="m-3 border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] rounded-md py-8 text-center text-xs font-semibold text-slate-400">
-                      Your backlog is empty.
+                      {isGeneralProject ? "Chưa có subtask." : "Your backlog is empty."}
                     </div>
                   )
                 }
@@ -481,7 +517,41 @@ export default function ListView({
       {/* ════════════════════════════════════════════════════════
           2. DEFAULT BACKLOG (Standalone root tasks without children)
          ════════════════════════════════════════════════════════ */}
-      <div className="rounded border border-slate-200 bg-[#FAFBFC] shadow-sm overflow-hidden">
+      {isGeneralProject && (
+        <div className="space-y-3">
+          {rootTasks.length > 0 ? rootTasks.map((task) => {
+            const children = childrenByParent.get(task.id) || [];
+
+            return (
+              <div key={task.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+                {renderTaskRow(task, {
+                  onAddSubtask: () => {
+                    setActiveInlineCreatorId(task.id);
+                    setInlineTitle("");
+                  },
+                })}
+                {children.length > 0 && (
+                  <div className="ml-8 border-l-2 border-slate-200 bg-slate-50/40">
+                    {children.map((child) => (
+                      <div key={child.id} className="border-b border-slate-100 pl-4 last:border-b-0">
+                        {renderTaskRow(child)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {activeInlineCreatorId === task.id && renderInlineCreator(task.id)}
+              </div>
+            );
+          }) : (
+            <div className="border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] rounded-md py-8 text-center text-xs font-semibold text-slate-400">
+              Chưa có công việc.
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isGeneralProject && (
+        <div className="rounded border border-slate-200 bg-[#FAFBFC] shadow-sm overflow-hidden">
         {/* ── Backlog Header ── */}
         <div
           onClick={() => togglePanel("__backlog__")}
@@ -491,23 +561,27 @@ export default function ListView({
             {collapsedPanels.has("__backlog__") ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </button>
 
-          <span className="text-sm font-bold text-[#172B4D]">Backlog</span>
+          <span className="text-sm font-bold text-[#172B4D]">
+            {isGeneralProject ? "Tasks" : "Backlog"}
+          </span>
           <span className="text-xs text-slate-500 font-medium">({backlogTasks.length} công việc)</span>
 
           <StatusCircles counts={statusCounts(backlogTasks)} />
 
-          <div className="ml-auto flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveInlineCreatorId("__new_parent_task__");
-                setInlineTitle("");
-              }}
-              className="rounded px-2.5 py-1 text-xs font-bold bg-[#DFE1E6] hover:bg-[#C1C7D0] text-[#42526E] transition shadow-sm border border-slate-300"
-            >
-              Create sprint
-            </button>
-          </div>
+          {!isGeneralProject && (
+            <div className="ml-auto flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveInlineCreatorId("__new_parent_task__");
+                  setInlineTitle("");
+                }}
+                className="rounded px-2.5 py-1 text-xs font-bold bg-[#DFE1E6] hover:bg-[#C1C7D0] text-[#42526E] transition shadow-sm border border-slate-300"
+              >
+                Create sprint
+              </button>
+            </div>
+          )}
         </div>
 
         {activeInlineCreatorId === "__new_parent_task__" &&
@@ -520,7 +594,7 @@ export default function ListView({
               ? backlogTasks.map((task) => renderTaskRow(task))
               : (
                 <div className="m-3 border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] rounded-md py-8 text-center text-xs font-semibold text-slate-400">
-                  Your backlog is empty.
+                  {isGeneralProject ? "Chưa có công việc." : "Your backlog is empty."}
                 </div>
               )
             }
@@ -529,22 +603,27 @@ export default function ListView({
 
         {/* ── Inline Creator for default backlog ── */}
         {!collapsedPanels.has("__backlog__") && renderInlineCreator()}
-      </div>
+        </div>
+      )}
+
+      {isGeneralProject && activeInlineCreatorId === "__backlog__" && renderInlineCreator()}
 
       {/* ════════════════════════════════════════════════════════
           3. BOTTOM "+ Create" — creates a new root group task
          ════════════════════════════════════════════════════════ */}
-      <button
-        type="button"
-        onClick={() => {
-          setActiveInlineCreatorId("__backlog__");
-          setInlineTitle("");
-        }}
-        className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#0052CC] transition px-1 py-1"
-      >
-        <Plus className="h-4 w-4" strokeWidth={2.5} />
-        <span>Create</span>
-      </button>
+      {isGeneralProject && activeInlineCreatorId !== "__backlog__" && (
+        <button
+          type="button"
+          onClick={() => {
+            setActiveInlineCreatorId("__backlog__");
+            setInlineTitle("");
+          }}
+          className="flex items-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-[#0052CC] transition px-1 py-1"
+        >
+          <Plus className="h-4 w-4" strokeWidth={2.5} />
+          <span>{isGeneralProject ? "Tạo công việc" : "Create"}</span>
+        </button>
+      )}
 
     </div>
   );

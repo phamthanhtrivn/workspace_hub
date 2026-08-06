@@ -50,6 +50,7 @@ export interface TaskFormValues {
   allDay: boolean;
   estimatedMinutes: number;
   parentTaskId?: string;
+  isParentTask?: boolean;
 }
 
 function FieldLabel({
@@ -73,6 +74,7 @@ export default function TaskFormDialog({
   projectName,
   parentTasks = [],
   initialParentTaskId,
+  initialIsParentTask = false,
   initialStatus = TaskStatus.TODO,
   initialStartDate,
   initialAllDay = false,
@@ -85,6 +87,7 @@ export default function TaskFormDialog({
   projectName?: string;
   parentTasks?: Task[];
   initialParentTaskId?: string;
+  initialIsParentTask?: boolean;
   initialStatus?: TaskStatus;
   initialStartDate?: string;
   initialAllDay?: boolean;
@@ -115,6 +118,7 @@ export default function TaskFormDialog({
   const [parentTaskId, setParentTaskId] = useState(
     task?.parentTaskId || initialParentTaskId || "",
   );
+  const [isParentTask] = useState(task?.isParentTask ?? initialIsParentTask);
 
   useEffect(() => {
     if (!open) return;
@@ -143,6 +147,7 @@ export default function TaskFormDialog({
       allDay,
       estimatedMinutes: Number(estimatedMinutes) || 0,
       parentTaskId: parentTaskId || undefined,
+      isParentTask: isParentTask && !parentTaskId,
     });
   };
 
@@ -276,6 +281,7 @@ export default function TaskFormDialog({
                 <div className="relative">
                   <select
                     value={parentTaskId}
+                    disabled={isParentTask}
                     onChange={(event) => setParentTaskId(event.target.value)}
                     className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
                   >

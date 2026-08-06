@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
-import { type Task, TaskStatus, TaskPriority, type ProjectMember } from "@/types/project";
+import { type Task, TaskStatus, TaskPriority, type ProjectMember, type TaskChecklist, type TaskLabel, type TaskActivity } from "@/types/project";
 import { useAppSelector } from "@/store/store";
 import {
   useCreateTaskComment,
@@ -10,6 +10,7 @@ import {
   useTaskComments,
   useUpdateTaskComment,
 } from "@/features/project/hooks/use-comments";
+import { useTaskActivities } from "@/features/project/hooks/use-tasks";
 import { TaskStatusBadge, LabelBadge } from "./status-badge";
 import { Avatar } from "./avatar-stack";
 import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "./task-card";
@@ -78,6 +79,11 @@ export default function TaskDetailDrawer({
   onTaskClick,
   onUpdateTask,
   onCreateSubtask,
+  onCreateChecklist,
+  onUpdateChecklist,
+  onDeleteChecklist,
+  labels = [],
+  onToggleLabel,
   isInline = false, // If true, renders as inline split screen panel. If false, renders as fixed overlay drawer.
 }: {
   task: Task | null;
@@ -89,6 +95,11 @@ export default function TaskDetailDrawer({
   onTaskClick?: (task: Task) => void;
   onUpdateTask?: (taskId: string, payload: any) => Promise<void>;
   onCreateSubtask?: (task: Task) => void;
+  onCreateChecklist?: (taskId: string, title: string) => Promise<TaskChecklist>;
+  onUpdateChecklist?: (checklistId: string, completed: boolean) => Promise<TaskChecklist>;
+  onDeleteChecklist?: (checklistId: string) => Promise<void>;
+  labels?: TaskLabel[];
+  onToggleLabel?: (taskId: string, labelId: string, attached: boolean) => Promise<void>;
   isInline?: boolean;
 }) {
   const [newComment, setNewComment] = useState("");
@@ -105,6 +116,7 @@ export default function TaskDetailDrawer({
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
+  const [showLabelDropdown, setShowLabelDropdown] = useState(false);
 
   // References
   const assigneeDropdownRef = useRef<HTMLDivElement>(null);
@@ -113,9 +125,12 @@ export default function TaskDetailDrawer({
 
   const { userId: currentUserId } = useAppSelector((state) => state.auth);
   const { data: loadedComments } = useTaskComments(task?.id || "");
+  const { data: activities = [] } = useTaskActivities(task?.id || "");
   const createCommentMutation = useCreateTaskComment(task?.id || "");
   const updateCommentMutation = useUpdateTaskComment(task?.id || "");
   const deleteCommentMutation = useDeleteTaskComment(task?.id || "");
+  const [showChecklistInput, setShowChecklistInput] = useState(false);
+  const [checklistTitle, setChecklistTitle] = useState("");
 
   // Detect clicks outside dropdowns
   useEffect(() => {
@@ -231,11 +246,30 @@ export default function TaskDetailDrawer({
     } catch (e) {}
   };
 
+  const handleToggleLabel = async (label: TaskLabel) => {
+    if (!onToggleLabel) return;
+    const attached = task.labels.some((item) => item.id === label.id);
+    try {
+      await onToggleLabel(task.id, label.id, attached);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật nhãn");
+    }
+  };
+
   const handleDueDateChange = async (val: string) => {
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { dueDate: val ? `${val}T17:00:00` : null });
         toast.success("Đã cập nhật hạn hoàn thành");
+      }
+    } catch (e) {}
+  };
+
+  const handleStartDateChange = async (val: string) => {
+    try {
+      if (onUpdateTask) {
+        await onUpdateTask(task.id, { startDate: val ? `${val}T09:00:00` : undefined });
+        toast.success("Đã cập nhật ngày bắt đầu");
       }
     } catch (e) {}
   };
@@ -290,6 +324,42 @@ export default function TaskDetailDrawer({
   const checklistTotal = task.checklists.length;
   const checklistDone = task.checklists.filter((c) => c.completed).length;
   const checklistProgress = checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
+  const handleCreateChecklist = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const title = checklistTitle.trim();
+    if (!title || !onCreateChecklist) return;
+    try {
+      await onCreateChecklist(task.id, title);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể thêm checklist");
+      return;
+    }
+    setChecklistTitle("");
+    setShowChecklistInput(false);
+  };
+
+  const handleToggleChecklist = async (item: TaskChecklist) => {
+    if (!onUpdateChecklist) return;
+    try {
+      await onUpdateChecklist(item.id, !item.completed);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật checklist");
+    }
+  };
+
+  const handleDeleteChecklist = async (checklistId: string) => {
+    if (!onDeleteChecklist) return;
+    try {
+      await onDeleteChecklist(checklistId);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể xóa checklist");
+    }
+  };
+
+  const activityLabel = (activity: TaskActivity) => {
+    const member = members.find((item) => item.userId === activity.actorId);
+    return member?.displayName || "Thành viên";
+  };
 
   const currentStatusOpt = STATUS_OPTS.find((opt) => opt.value === task.status) || STATUS_OPTS[0];
   const assignedUser = task.assignees[0];
@@ -404,6 +474,52 @@ export default function TaskDetailDrawer({
               </div>
             )}
           </div>
+
+          {/* Labels */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowLabelDropdown((value) => !value)}
+              className="inline-flex items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700"
+              title="Gắn nhãn"
+            >
+              <Tag className="h-3.5 w-3.5" />
+              {task.labels.length > 0 ? `${task.labels.length} nhãn` : "Gắn nhãn"}
+              <ChevronDown className="h-3 w-3" />
+            </button>
+            {showLabelDropdown && (
+              <div className="absolute left-0 top-full z-30 mt-1 w-56 rounded border border-slate-200 bg-white p-1.5 shadow-lg">
+                {labels.length === 0 ? (
+                  <p className="px-2 py-2 text-[11px] text-slate-400">Project chưa có nhãn.</p>
+                ) : (
+                  labels.map((label) => {
+                    const attached = task.labels.some((item) => item.id === label.id);
+                    return (
+                      <button
+                        key={label.id}
+                        type="button"
+                        onClick={() => void handleToggleLabel(label)}
+                        className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50"
+                      >
+                        <span className={`grid h-3.5 w-3.5 place-items-center rounded border ${attached ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"}`}>
+                          {attached && <Check className="h-2.5 w-2.5" />}
+                        </span>
+                        <LabelBadge name={label.name} color={label.color} />
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+
+          {task.labels.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1">
+              {task.labels.map((label) => (
+                <LabelBadge key={label.id} name={label.name} color={label.color} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Description Section */}
@@ -512,12 +628,30 @@ export default function TaskDetailDrawer({
               <CheckSquare className="h-3.5 w-3.5" />
               <span>Checklist</span>
             </h3>
-            {checklistTotal > 0 && (
-              <span className="text-[10px] font-bold text-slate-500">
-                {checklistDone}/{checklistTotal} ({checklistProgress}%)
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {checklistTotal > 0 && (
+                <span className="text-[10px] font-bold text-slate-500">
+                  {checklistDone}/{checklistTotal} ({checklistProgress}%)
+                </span>
+              )}
+              <button type="button" onClick={() => setShowChecklistInput((value) => !value)} className="rounded p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600" title="Thêm checklist">
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
           </div>
+
+          {showChecklistInput && (
+            <form onSubmit={(event) => void handleCreateChecklist(event)} className="mt-2 flex items-center gap-2">
+              <input
+                autoFocus
+                value={checklistTitle}
+                onChange={(event) => setChecklistTitle(event.target.value)}
+                placeholder="Nhập nội dung checklist..."
+                className="min-w-0 flex-1 rounded border border-blue-300 px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-100"
+              />
+              <button type="submit" disabled={!checklistTitle.trim()} className="rounded bg-blue-600 px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-50">Thêm</button>
+            </form>
+          )}
 
           {checklistTotal > 0 ? (
             <div className="space-y-1">
@@ -536,7 +670,7 @@ export default function TaskDetailDrawer({
                     <input
                       type="checkbox"
                       checked={item.completed}
-                      readOnly
+                      onChange={() => void handleToggleChecklist(item)}
                       className="h-3.5 w-3.5 rounded border-slate-300 text-[#36B37E] accent-[#36B37E]"
                     />
                     <span className={[
@@ -545,6 +679,11 @@ export default function TaskDetailDrawer({
                     ].join(" ")}>
                       {item.title}
                     </span>
+                    {onDeleteChecklist && (
+                      <button type="button" onClick={() => void handleDeleteChecklist(item.id)} className="ml-auto rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-500" title="Xóa checklist">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    )}
                   </label>
                 ))}
               </div>
@@ -552,6 +691,29 @@ export default function TaskDetailDrawer({
           ) : (
             <div className="text-[11px] text-slate-400 font-semibold bg-slate-50/30 rounded border border-dashed border-slate-200 py-4 text-center">
               Không có checklist.
+            </div>
+          )}
+        </div>
+
+        {/* Activity history */}
+        <div className="space-y-1.5 border-t border-slate-100 pt-4">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Lịch sử thay đổi</h3>
+          {activities.length === 0 ? (
+            <p className="rounded border border-dashed border-slate-200 bg-slate-50/30 py-4 text-center text-[11px] font-semibold text-slate-400">Chưa có lịch sử thay đổi.</p>
+          ) : (
+            <div className="space-y-2">
+              {activities.slice(0, 20).map((activity) => (
+                <div key={activity.id} className="rounded border border-slate-100 bg-slate-50/60 px-2.5 py-2 text-[11px]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-slate-600">{activityLabel(activity)}</span>
+                    <time className="shrink-0 text-[10px] text-slate-400">{formatRelative(activity.createdAt)}</time>
+                  </div>
+                  <p className="mt-1 text-slate-500">Đã thay đổi <strong className="text-slate-700">{activity.field}</strong></p>
+                  {(activity.oldValue || activity.newValue) && (
+                    <p className="mt-0.5 truncate text-slate-400">{activity.oldValue || "trống"} → {activity.newValue || "trống"}</p>
+                  )}
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -653,6 +815,17 @@ export default function TaskDetailDrawer({
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Start Date */}
+            <div className="px-3 py-2.5 flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Ngày bắt đầu</span>
+              <input
+                type="date"
+                value={task.startDate ? task.startDate.slice(0, 10) : ""}
+                onChange={(e) => void handleStartDateChange(e.target.value)}
+                className="w-full text-xs font-semibold text-slate-700 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0"
+              />
             </div>
 
             {/* Due Date */}

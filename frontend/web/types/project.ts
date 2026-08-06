@@ -7,6 +7,17 @@ export enum ProjectStatus {
   ARCHIVED = "ARCHIVED",
 }
 
+export enum ProjectType {
+  GENERAL = "GENERAL",
+  SOFTWARE_DEVELOPMENT = "SOFTWARE_DEVELOPMENT",
+}
+
+export enum SprintStatus {
+  PLANNED = "PLANNED",
+  ACTIVE = "ACTIVE",
+  COMPLETED = "COMPLETED",
+}
+
 export enum ProjectRole {
   OWNER = "OWNER",
   ADMIN = "ADMIN",
@@ -134,6 +145,7 @@ export interface Task {
   childCount?: number;
   isParentTask?: boolean;
   autoCompleteSprint?: boolean;
+  sprintId?: string;
   title: string;
   description: string;
   priority: TaskPriority;
@@ -165,8 +177,10 @@ export interface Project {
   name: string;
   color: string;
   icon: string;
+  description?: string;
   ownerId: string;
   status: ProjectStatus;
+  projectType: ProjectType;
   archived: boolean;
   createdAt: string;
   updatedAt: string;
@@ -176,4 +190,20 @@ export interface Project {
   members: ProjectMember[];
   tasks: Task[];
   labels: TaskLabel[];
+}
+
+export interface Sprint {
+  id: string;
+  projectId: string;
+  name: string;
+  goal?: string;
+  status: SprintStatus;
+  startDate?: string;
+  endDate?: string;
+  startedAt?: string;
+  completedAt?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  tasks: Task[];
 }

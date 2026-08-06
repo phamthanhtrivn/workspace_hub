@@ -3,6 +3,10 @@ import {
   createTask,
   getProjectTasks,
   updateTask,
+  createChecklist,
+  updateChecklist,
+  deleteChecklist,
+  getTaskActivities,
   type CreateTaskPayload,
   type UpdateTaskPayload,
 } from "../api/task.api";
@@ -41,5 +45,37 @@ export function useUpdateTask(projectId: string) {
       queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) });
       queryClient.invalidateQueries({ queryKey: taskKeys.detail(variables.taskId) });
     },
+  });
+}
+
+export function useCreateChecklist(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ taskId, title }: { taskId: string; title: string }) => createChecklist(taskId, title),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
+  });
+}
+
+export function useUpdateChecklist(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ checklistId, completed }: { checklistId: string; completed: boolean }) => updateChecklist(checklistId, completed),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
+  });
+}
+
+export function useDeleteChecklist(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (checklistId: string) => deleteChecklist(checklistId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) }),
+  });
+}
+
+export function useTaskActivities(taskId: string) {
+  return useQuery({
+    queryKey: ["tasks", taskId, "activities"],
+    queryFn: () => getTaskActivities(taskId),
+    enabled: Boolean(taskId),
   });
 }

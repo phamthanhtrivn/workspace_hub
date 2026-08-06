@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { Code2, ListTodo, X } from "lucide-react";
+import { ProjectType } from "@/types/project";
 
 const COLOR_OPTIONS = [
   "#6366f1", "#f59e0b", "#22c55e", "#ef4444", "#ec4899",
@@ -20,6 +21,7 @@ interface CreateProjectDialogProps {
     name: string;
     color: string;
     icon: string;
+    projectType: ProjectType;
   }) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -33,6 +35,7 @@ export default function CreateProjectDialog({
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
+  const [projectType, setProjectType] = useState(ProjectType.GENERAL);
 
   if (!open) return null;
 
@@ -43,6 +46,7 @@ export default function CreateProjectDialog({
       name: name.trim(),
       color: selectedColor,
       icon: selectedIcon,
+      projectType,
     });
 
     setName("");
@@ -90,6 +94,64 @@ export default function CreateProjectDialog({
               placeholder="Ví dụ: WorkspaceHub Platform"
               className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-semibold text-[var(--color-primary-dark)] outline-none transition placeholder:text-slate-400 focus:border-[var(--color-secondary)] focus:bg-white focus:ring-4 focus:ring-[var(--color-secondary)]/10"
             />
+          </div>
+
+          {/* Project Type */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+              Loại project
+            </label>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              {[
+                {
+                  type: ProjectType.GENERAL,
+                  title: "Project thường",
+                  description: "Task và subtask, không có backlog hay sprint",
+                  Icon: ListTodo,
+                },
+                {
+                  type: ProjectType.SOFTWARE_DEVELOPMENT,
+                  title: "Phát triển phần mềm",
+                  description: "Backlog, sprint, review và release",
+                  Icon: Code2,
+                },
+              ].map(({ type, title, description, Icon }) => {
+                const selected = projectType === type;
+
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setProjectType(type)}
+                    className={[
+                      "flex items-start gap-3 rounded-xl border p-3 text-left transition",
+                      selected
+                        ? "border-[var(--color-primary-dark)] bg-indigo-50 ring-2 ring-[var(--color-primary-dark)]/10"
+                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
+                    ].join(" ")}
+                  >
+                    <span
+                      className={[
+                        "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
+                        selected
+                          ? "bg-[var(--color-primary-dark)] text-white"
+                          : "bg-slate-100 text-slate-500",
+                      ].join(" ")}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <span>
+                      <span className="block text-sm font-bold text-slate-800">
+                        {title}
+                      </span>
+                      <span className="mt-0.5 block text-xs leading-5 text-slate-500">
+                        {description}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Icon Picker */}

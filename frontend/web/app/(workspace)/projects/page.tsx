@@ -6,6 +6,7 @@ import { Plus, Search, ChevronRight, MoreHorizontal, Settings } from "lucide-rea
 import { ProjectStatus } from "@/types/project";
 import CreateProjectDialog from "@/components/projects/create-project-dialog";
 import { ProjectStatusBadge } from "@/components/projects/status-badge";
+import { ProjectTypeBadge } from "@/components/projects/project-type-badge";
 import { Avatar } from "@/components/projects/avatar-stack";
 import {
   useCreateProject,
@@ -182,7 +183,9 @@ export default function ProjectsPage() {
                       </Link>
                     </td>
                     <td className="px-6 py-3.5 font-medium text-slate-700">{projectKey}</td>
-                    <td className="px-6 py-3.5 text-slate-500 font-medium">Software project</td>
+                    <td className="px-6 py-3.5">
+                      <ProjectTypeBadge type={project.projectType} compact />
+                    </td>
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-2">
                         {owner ? (

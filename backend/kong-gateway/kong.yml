@@ -28,8 +28,11 @@ services:
       - name: project-routes
         paths:
           - /api/projects
+          - /api/sprints
           - /api/project-invitations
           - /api/tasks
+          - /api/checklists
+          - /api/labels
           - /api/task-comments
           - /api/pomodoros
         strip_path: false

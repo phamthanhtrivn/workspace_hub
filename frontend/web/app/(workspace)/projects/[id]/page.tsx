@@ -4,25 +4,59 @@ import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { toast } from "react-toastify";
-import { type Task, TaskStatus } from "@/types/project";
+import {
+  type Task,
+  type TaskAssignee,
+  ProjectType,
+  ProjectStatus,
+  TaskStatus,
+} from "@/types/project";
 import { useAppSelector } from "@/store/store";
 import {
   useProject,
   useProjectMembers,
+  useUpdateProject,
+  useArchiveProject,
 } from "@/features/project/hooks/use-projects";
+import {
+  useAddTasksToSprint,
+  useCompleteSprint,
+  useCreateSprint,
+  useProjectSprints,
+  useStartSprint,
+  useUpdateSprint,
+  useReopenSprint,
+  useRemoveTaskFromSprint,
+} from "@/features/project/hooks/use-sprints";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useCreateTask,
   useProjectTasks,
   useUpdateTask,
+  useCreateChecklist,
+  useUpdateChecklist,
+  useDeleteChecklist,
   taskKeys,
 } from "@/features/project/hooks/use-tasks";
-import { ProjectStatusBadge } from "@/components/projects/status-badge";
+import {
+  useProjectLabels,
+  useCreateLabel,
+  useDeleteLabel,
+  useAttachLabel,
+  useDetachLabel,
+} from "@/features/project/hooks/use-labels";
+import type { UpdateTaskPayload } from "@/features/project/api/task.api";
+import { ProjectTypeBadge } from "@/components/projects/project-type-badge";
 import { AvatarStack } from "@/components/projects/avatar-stack";
 import BoardView from "@/components/projects/board-view";
 import ListView from "@/components/projects/list-view";
 import CalendarView from "@/components/projects/calendar-view";
+import GanttView from "@/components/projects/gantt-view";
+import SoftwareBacklogView, {
+  type SprintCreateValues,
+} from "@/components/projects/software-backlog-view";
 import SummaryView from "@/components/projects/summary-view";
+import GeneralSummaryView from "@/components/projects/general-summary-view";
 import TaskDetailDrawer from "@/components/projects/task-detail-drawer";
 import TaskFormDialog, {
   type TaskFormValues,
@@ -31,6 +65,7 @@ import SprintEditDialog, {
   type SprintFormValues,
 } from "@/components/projects/sprint-edit-dialog";
 import ProjectMembersPanel from "@/components/projects/project-members-panel";
+import ProjectSettingsDialog from "@/components/projects/project-settings-dialog";
 import {
   ArrowLeft,
   LayoutGrid,
@@ -38,17 +73,21 @@ import {
   Calendar,
   Plus,
   Settings,
-  Filter,
   Search,
   Users,
   ChevronLeft,
   ChevronRight,
-  Folder,
   LayoutDashboard,
+  ChartGantt,
 } from "lucide-react";
 import { getProjectKey } from "../page";
 
-type ViewMode = "summary" | "board" | "list" | "calendar" | "members";
+type TaskDrawerUpdatePayload = UpdateTaskPayload & {
+  assignees?: TaskAssignee[];
+  assigneeUserId?: string | null;
+};
+
+type ViewMode = "summary" | "board" | "list" | "calendar" | "gantt" | "members";
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -56,6 +95,10 @@ export default function ProjectDetailPage() {
   const queryClient = useQueryClient();
   const { data: project, isLoading, isError } = useProject(projectId);
   const { data: members = [] } = useProjectMembers(projectId);
+  const { data: sprints = [] } = useProjectSprints(
+    projectId,
+    project?.projectType === ProjectType.SOFTWARE_DEVELOPMENT,
+  );
   const {
     data: serverTasks = [],
     isLoading: tasksLoading,
@@ -63,6 +106,23 @@ export default function ProjectDetailPage() {
   } = useProjectTasks(projectId);
   const createTaskMutation = useCreateTask(projectId);
   const updateTaskMutation = useUpdateTask(projectId);
+  const updateProjectMutation = useUpdateProject(projectId);
+  const archiveProjectMutation = useArchiveProject(projectId);
+  const createChecklistMutation = useCreateChecklist(projectId);
+  const updateChecklistMutation = useUpdateChecklist(projectId);
+  const deleteChecklistMutation = useDeleteChecklist(projectId);
+  const { data: labels = [] } = useProjectLabels(projectId);
+  const createLabelMutation = useCreateLabel(projectId);
+  const deleteLabelMutation = useDeleteLabel(projectId);
+  const attachLabelMutation = useAttachLabel(projectId);
+  const detachLabelMutation = useDetachLabel(projectId);
+  const createSprintMutation = useCreateSprint(projectId);
+  const addTasksToSprintMutation = useAddTasksToSprint(projectId);
+  const startSprintMutation = useStartSprint(projectId);
+  const completeSprintMutation = useCompleteSprint(projectId);
+  const updateSprintMutation = useUpdateSprint(projectId);
+  const reopenSprintMutation = useReopenSprint(projectId);
+  const removeTaskFromSprintMutation = useRemoveTaskFromSprint(projectId);
 
   const { userId: currentUserId } = useAppSelector((state) => state.auth);
 
@@ -70,6 +130,7 @@ export default function ProjectDetailPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
+  const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -78,9 +139,48 @@ export default function ProjectDetailPage() {
   const [newTaskStartDate, setNewTaskStartDate] = useState<string | undefined>();
   const [newTaskAllDay, setNewTaskAllDay] = useState(false);
   const [newTaskParentId, setNewTaskParentId] = useState<string | undefined>();
+  const [newTaskSprintId, setNewTaskSprintId] = useState<string | undefined>();
+  const [newTaskIsParentTask, setNewTaskIsParentTask] = useState(false);
 
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const handleToggleLabel = async (taskId: string, labelId: string, attached: boolean) => {
+    if (attached) {
+      await detachLabelMutation.mutateAsync({ taskId, labelId });
+    } else {
+      await attachLabelMutation.mutateAsync({ taskId, labelId });
+    }
+    const label = labels.find((item) => item.id === labelId);
+    setSelectedTask((current) => {
+      if (!current || current.id !== taskId || !label) return current;
+      return {
+        ...current,
+        labels: attached
+          ? current.labels.filter((item) => item.id !== labelId)
+          : [...current.labels, label],
+      };
+    });
+  };
+
+  const handleCreateLabel = async (payload: { name: string; color: string }) => {
+    try {
+      await createLabelMutation.mutateAsync(payload);
+      toast.success("Đã tạo label");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tạo label");
+    }
+  };
+
+  const handleDeleteLabel = async (labelId: string) => {
+    if (!window.confirm("Xóa label này khỏi Project? Các task đang dùng label sẽ bị bỏ nhãn.")) return;
+    try {
+      await deleteLabelMutation.mutateAsync(labelId);
+      toast.success("Đã xóa label");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể xóa label");
+    }
+  };
 
   // Filters state
   const [activeAssigneeFilters, setActiveAssigneeFilters] = useState<string[]>([]);
@@ -95,8 +195,13 @@ export default function ProjectDetailPage() {
       serverTasks.map((task) => ({
         ...task,
         status: taskStatusOverrides[task.id] || task.status,
+        assignees: task.assignees.map((assignee) => ({
+          ...assignee,
+          displayName: members.find((member) => member.userId === assignee.userId)?.displayName || assignee.displayName,
+          avatarUrl: members.find((member) => member.userId === assignee.userId)?.avatarUrl || assignee.avatarUrl,
+        })),
       })),
-    [serverTasks, taskStatusOverrides],
+    [serverTasks, taskStatusOverrides, members],
   );
 
   // Process filters
@@ -149,11 +254,13 @@ export default function ProjectDetailPage() {
 
   const projectKey = getProjectKey(project.name);
   const projectWithMembers = { ...project, members };
+  const isSoftwareProject = project.projectType === ProjectType.SOFTWARE_DEVELOPMENT;
   const viewTitle: Record<ViewMode, string> = {
     summary: "Summary",
     board: "Kanban Board",
-    list: "Backlog",
+    list: isSoftwareProject ? "Backlog" : "Công việc",
     calendar: "Calendar",
+    gantt: "Gantt chart",
     members: "Thành viên dự án",
   };
 
@@ -184,21 +291,47 @@ export default function ProjectDetailPage() {
     );
   };
 
+  const handleSaveProjectSettings = async (payload: { name: string; description: string; status: ProjectStatus }) => {
+    try {
+      await updateProjectMutation.mutateAsync(payload);
+      setShowProjectSettings(false);
+      toast.success("Đã cập nhật Project");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật Project");
+    }
+  };
+
+  const handleArchiveProject = async () => {
+    if (!window.confirm("Bạn có chắc muốn archive Project này không?")) return;
+    try {
+      await archiveProjectMutation.mutateAsync();
+      window.location.assign("/projects");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể archive Project");
+    }
+  };
+
   const handleTaskSubmit = async (values: TaskFormValues) => {
     try {
       if (editingTask) {
         const payload = editingTask.parentTaskId && !values.parentTaskId
           ? { ...values, clearParent: true }
           : values;
-        const result = await updateTaskMutation.mutateAsync({
+        await updateTaskMutation.mutateAsync({
           taskId: editingTask.id,
           payload,
         });
         toast.success("Cập nhật task thành công");
       } else {
-        await createTaskMutation.mutateAsync({
+        const createdTask = await createTaskMutation.mutateAsync({
           ...values,
         });
+        if (newTaskSprintId) {
+          await addTasksToSprintMutation.mutateAsync({
+            sprintId: newTaskSprintId,
+            taskIds: [createdTask.id],
+          });
+        }
         toast.success("Tạo task thành công");
       }
 
@@ -209,18 +342,17 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const handleUpdateTaskDirect = async (taskId: string, payload: any) => {
+  const handleUpdateTaskDirect = async (
+    taskId: string,
+    payload: TaskDrawerUpdatePayload,
+  ) => {
     try {
       // 1. Separate backend allowed keys from payload
-      const backendKeys = ["title", "description", "status", "priority", "startDate", "dueDate", "allDay", "estimatedMinutes"];
-      const backendPayload: any = {};
-      let hasBackendChange = false;
-      for (const key of backendKeys) {
-        if (key in payload) {
-          backendPayload[key] = payload[key];
-          hasBackendChange = true;
-        }
-      }
+      const backendKeys = ["title", "description", "status", "priority", "startDate", "dueDate", "allDay", "estimatedMinutes", "assigneeUserId"];
+      const backendPayload = Object.fromEntries(
+        Object.entries(payload).filter(([key]) => backendKeys.includes(key)),
+      ) as UpdateTaskPayload;
+      const hasBackendChange = Object.keys(backendPayload).length > 0;
 
       // If backend change exists, execute PATCH mutation
       if (hasBackendChange) {
@@ -302,11 +434,30 @@ export default function ProjectDetailPage() {
         return prev;
       });
 
+    // Axios errors expose response data at runtime; keep this boundary permissive.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       const msg = error?.response?.data?.message || "Không thể cập nhật công việc";
       toast.error(msg);
       console.error("Update task error:", error?.response?.data || error);
     }
+  };
+
+  const handleCreateChecklist = async (taskId: string, title: string) => {
+    const item = await createChecklistMutation.mutateAsync({ taskId, title });
+    setSelectedTask((current) => current?.id === taskId ? { ...current, checklists: [...current.checklists, item] } : current);
+    return item;
+  };
+
+  const handleUpdateChecklist = async (checklistId: string, completed: boolean) => {
+    const item = await updateChecklistMutation.mutateAsync({ checklistId, completed });
+    setSelectedTask((current) => current ? { ...current, checklists: current.checklists.map((checklist) => checklist.id === checklistId ? item : checklist) } : current);
+    return item;
+  };
+
+  const handleDeleteChecklist = async (checklistId: string) => {
+    await deleteChecklistMutation.mutateAsync(checklistId);
+    setSelectedTask((current) => current ? { ...current, checklists: current.checklists.filter((checklist) => checklist.id !== checklistId) } : current);
   };
 
   const handleEditGroup = (group: Task) => {
@@ -399,6 +550,8 @@ export default function ProjectDetailPage() {
         ...payload,
       });
       toast.success("Tạo công việc thành công");
+    // Axios errors expose response data at runtime; keep this boundary permissive.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Extract backend error message from Axios response
       const backendMessage =
@@ -409,18 +562,105 @@ export default function ProjectDetailPage() {
     }
   };
 
+  const handleCreateSprintTask = async (sprintId: string, title: string) => {
+    try {
+      const createdTask = await createTaskMutation.mutateAsync({
+        title,
+        status: TaskStatus.TODO,
+      });
+      await addTasksToSprintMutation.mutateAsync({
+        sprintId,
+        taskIds: [createdTask.id],
+      });
+      toast.success("Tạo task trong Sprint thành công");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tạo task trong Sprint");
+      throw error;
+    }
+  };
+
   const openCreateTask = (
     status: TaskStatus = TaskStatus.TODO,
     startDate?: string,
     allDay = false,
     parentTaskId?: string,
+    sprintId?: string,
   ) => {
     setEditingTask(null);
     setNewTaskStatus(status);
     setNewTaskStartDate(startDate);
     setNewTaskAllDay(allDay);
     setNewTaskParentId(parentTaskId);
+    setNewTaskSprintId(sprintId);
+    setNewTaskIsParentTask(!isSoftwareProject && !parentTaskId);
     setShowTaskForm(true);
+  };
+
+  const handleCreateSprint = async (values: SprintCreateValues) => {
+    try {
+      await createSprintMutation.mutateAsync(values);
+      toast.success("Tạo Sprint thành công");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tạo Sprint");
+      throw error;
+    }
+  };
+
+  const handleAddTasksToSprint = async (sprintId: string, taskIds: string[]) => {
+    try {
+      await addTasksToSprintMutation.mutateAsync({ sprintId, taskIds });
+      toast.success("Đã đưa task vào Sprint");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể đưa task vào Sprint");
+      throw error;
+    }
+  };
+
+  const handleUpdateSprint = async (sprintId: string, values: SprintCreateValues) => {
+    try {
+      await updateSprintMutation.mutateAsync({ sprintId, payload: values });
+      toast.success("Đã cập nhật Sprint");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật Sprint");
+      throw error;
+    }
+  };
+
+  const handleStartSprint = async (sprintId: string) => {
+    try {
+      await startSprintMutation.mutateAsync(sprintId);
+      toast.success("Đã Start Sprint");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể Start Sprint");
+    }
+  };
+
+  const handleCompleteSprint = async (sprintId: string) => {
+    try {
+      await completeSprintMutation.mutateAsync(sprintId);
+      toast.success("Đã Complete Sprint; task chưa xong quay lại Backlog");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể Complete Sprint");
+    }
+  };
+
+  const handleReopenSprint = async (sprintId: string) => {
+    try {
+      await reopenSprintMutation.mutateAsync(sprintId);
+      toast.success("Đã mở lại Sprint ở trạng thái Planned");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể mở lại Sprint");
+    }
+  };
+
+  const handleRemoveTaskFromSprint = async (sprintId: string, taskId: string) => {
+    try {
+      await removeTaskFromSprintMutation.mutateAsync({ sprintId, taskId });
+      toast.success("Đã đưa task về Backlog");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể đưa task về Backlog");
+      throw error;
+    }
   };
 
   const toggleAssigneeFilter = (userId: string) => {
@@ -458,7 +698,9 @@ export default function ProjectDetailPage() {
             <h2 className="truncate text-sm font-semibold text-[#172B4D]">
               {project.name}
             </h2>
-            <span className="text-[11px] text-slate-500 font-medium">Team-managed software</span>
+            <div className="mt-1">
+              <ProjectTypeBadge type={project.projectType} compact />
+            </div>
           </div>
         </div>
 
@@ -500,7 +742,7 @@ export default function ProjectDetailPage() {
             ].join(" ")}
           >
             <List className="h-4 w-4 shrink-0" />
-            <span>Backlog</span>
+            <span>{isSoftwareProject ? "Backlog" : "Công việc"}</span>
           </button>
 
           <button
@@ -514,6 +756,19 @@ export default function ProjectDetailPage() {
           >
             <Calendar className="h-4 w-4 shrink-0" />
             <span>Lịch trình (Calendar)</span>
+          </button>
+
+          <button
+            onClick={() => setViewMode("gantt")}
+            className={[
+              "w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded transition",
+              viewMode === "gantt"
+                ? "bg-[#DEEBFF] text-[#0747A6]"
+                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
+            ].join(" ")}
+          >
+            <ChartGantt className="h-4 w-4 shrink-0" />
+            <span>Gantt chart</span>
           </button>
 
           <div className="h-px bg-slate-200 my-4" />
@@ -536,7 +791,7 @@ export default function ProjectDetailPage() {
         <div className="p-4 border-t border-slate-200 bg-slate-100/50">
           <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
             <span>Mã dự án: <strong>{projectKey}</strong></span>
-            <button className="text-slate-400 hover:text-slate-600">
+            <button onClick={() => setShowProjectSettings(true)} className="text-slate-400 hover:text-slate-600" title="Cài đặt Project">
               <Settings className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -576,6 +831,7 @@ export default function ProjectDetailPage() {
           <div>
             <h1 className="text-2xl font-semibold text-[#172B4D] flex items-center gap-2">
               {viewTitle[viewMode]}
+              <ProjectTypeBadge type={project.projectType} compact />
             </h1>
           </div>
 
@@ -600,6 +856,16 @@ export default function ProjectDetailPage() {
         </div>
 
         {/* ── Jira Filters Toolbar ── */}
+        {project.projectType === ProjectType.SOFTWARE_DEVELOPMENT && (
+          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-xs font-semibold text-indigo-800">
+            <span className="font-bold">Software workflow</span>
+            <span>Backlog</span>
+            <span>Sprint</span>
+            <span>Code review</span>
+            <span>Release</span>
+          </div>
+        )}
+
         <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
           {/* Search bar */}
           <div className="relative">
@@ -697,10 +963,17 @@ export default function ProjectDetailPage() {
               </div>
             )}
             {!tasksLoading && !tasksError && viewMode === "summary" && (
-              <SummaryView
-                tasks={filteredTasks}
-                members={projectWithMembers.members}
-              />
+              isSoftwareProject ? (
+                <SummaryView
+                  tasks={filteredTasks}
+                  members={projectWithMembers.members}
+                />
+              ) : (
+                <GeneralSummaryView
+                  tasks={filteredTasks}
+                  members={projectWithMembers.members}
+                />
+              )
             )}
             {!tasksLoading && !tasksError && viewMode === "board" && (
               <BoardView
@@ -711,24 +984,57 @@ export default function ProjectDetailPage() {
               />
             )}
             {!tasksLoading && !tasksError && viewMode === "list" && (
-              <ListView
-                tasks={filteredTasks}
-                onTaskClick={(task) => setSelectedTask(task)}
-                onAddTask={() => openCreateTask()}
-                onAddTaskInline={handleCreateTaskInline}
-                onAddSubtask={(task) =>
-                  openCreateTask(TaskStatus.TODO, undefined, false, task.id)
-                }
-                onEditGroup={handleEditGroup}
-                onDeleteGroup={handleDeleteGroup}
-                onReorderTasks={handleReorderTasks}
-              />
+              isSoftwareProject ? (
+                <SoftwareBacklogView
+                  tasks={filteredTasks}
+                  sprints={sprints}
+                  onTaskClick={(task) => setSelectedTask(task)}
+                  onCreateTask={(sprintId) => openCreateTask(TaskStatus.TODO, undefined, false, undefined, sprintId)}
+                  onCreateSprintTask={handleCreateSprintTask}
+                  onCreateSprint={handleCreateSprint}
+                  onUpdateSprint={handleUpdateSprint}
+                  onAddTasksToSprint={handleAddTasksToSprint}
+                  onStartSprint={handleStartSprint}
+                  onCompleteSprint={handleCompleteSprint}
+                  onReopenSprint={handleReopenSprint}
+                  onRemoveTaskFromSprint={handleRemoveTaskFromSprint}
+                  isBusy={
+                    createSprintMutation.isPending
+                    || addTasksToSprintMutation.isPending
+                    || startSprintMutation.isPending
+                    || completeSprintMutation.isPending
+                    || updateSprintMutation.isPending
+                    || reopenSprintMutation.isPending
+                    || removeTaskFromSprintMutation.isPending
+                  }
+                />
+              ) : (
+                <ListView
+                  tasks={filteredTasks}
+                  projectType={project.projectType}
+                  onTaskClick={(task) => setSelectedTask(task)}
+                  onAddTask={() => openCreateTask()}
+                  onAddTaskInline={handleCreateTaskInline}
+                  onAddSubtask={(task) =>
+                    openCreateTask(TaskStatus.TODO, undefined, false, task.id)
+                  }
+                  onEditGroup={handleEditGroup}
+                  onDeleteGroup={handleDeleteGroup}
+                  onReorderTasks={handleReorderTasks}
+                />
+              )
             )}
             {!tasksLoading && !tasksError && viewMode === "calendar" && (
               <CalendarView
                 tasks={filteredTasks}
                 onTaskClick={(task) => setSelectedTask(task)}
                 onCreateDate={(date) => openCreateTask(TaskStatus.TODO, date, true)}
+              />
+            )}
+            {!tasksLoading && !tasksError && viewMode === "gantt" && (
+              <GanttView
+                tasks={filteredTasks}
+                onTaskClick={(task) => setSelectedTask(task)}
               />
             )}
             {!tasksLoading && !tasksError && viewMode === "members" && (
@@ -762,6 +1068,11 @@ export default function ProjectDetailPage() {
                 onClose={() => setSelectedTask(null)}
                 onTaskClick={(task) => setSelectedTask(task)}
                 onUpdateTask={handleUpdateTaskDirect}
+                onCreateChecklist={handleCreateChecklist}
+                onUpdateChecklist={handleUpdateChecklist}
+                onDeleteChecklist={handleDeleteChecklist}
+                labels={labels}
+                onToggleLabel={handleToggleLabel}
                 onCreateSubtask={(task) => {
                   setSelectedTask(null);
                   openCreateTask(TaskStatus.TODO, undefined, false, task.id);
@@ -792,6 +1103,11 @@ export default function ProjectDetailPage() {
             onClose={() => setSelectedTask(null)}
             onTaskClick={(task) => setSelectedTask(task)}
             onUpdateTask={handleUpdateTaskDirect}
+            onCreateChecklist={handleCreateChecklist}
+            onUpdateChecklist={handleUpdateChecklist}
+            onDeleteChecklist={handleDeleteChecklist}
+            labels={labels}
+            onToggleLabel={handleToggleLabel}
             onCreateSubtask={(task) => {
               setSelectedTask(null);
               openCreateTask(TaskStatus.TODO, undefined, false, task.id);
@@ -809,13 +1125,26 @@ export default function ProjectDetailPage() {
         </div>
       )}
 
+      <ProjectSettingsDialog
+        project={project}
+        open={showProjectSettings}
+        isBusy={updateProjectMutation.isPending || archiveProjectMutation.isPending}
+        onClose={() => setShowProjectSettings(false)}
+        onSave={handleSaveProjectSettings}
+        onArchive={handleArchiveProject}
+        labels={labels}
+        onCreateLabel={handleCreateLabel}
+        onDeleteLabel={handleDeleteLabel}
+      />
+
       <TaskFormDialog
-        key={`${editingTask?.id ?? "new"}-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}`}
+        key={`${editingTask?.id ?? "new"}-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}-${newTaskIsParentTask}`}
         open={showTaskForm}
         task={editingTask}
         projectName={project.name}
         parentTasks={tasks}
         initialParentTaskId={newTaskParentId}
+        initialIsParentTask={newTaskIsParentTask}
         initialStatus={newTaskStatus}
         initialStartDate={newTaskStartDate}
         initialAllDay={newTaskAllDay}
@@ -826,6 +1155,8 @@ export default function ProjectDetailPage() {
           setNewTaskStartDate(undefined);
           setNewTaskAllDay(false);
           setNewTaskParentId(undefined);
+          setNewTaskSprintId(undefined);
+          setNewTaskIsParentTask(false);
         }}
         onSubmit={handleTaskSubmit}
         isSubmitting={

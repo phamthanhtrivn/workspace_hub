@@ -2,6 +2,7 @@ import { api } from "@/lib/axios";
 import {
   ProjectRole,
   ProjectStatus,
+  ProjectType,
   type Project,
   type ProjectMember,
 } from "@/types/project";
@@ -19,8 +20,10 @@ interface ProjectApiModel {
   name: string;
   color?: string | null;
   icon?: string | null;
+  description?: string | null;
   ownerId: string;
   status: ProjectStatus;
+  projectType?: ProjectType | null;
   archived: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -37,6 +40,7 @@ export interface CreateProjectPayload {
   name: string;
   color: string;
   icon: string;
+  projectType: ProjectType;
 }
 
 export interface UpdateProjectPayload {
@@ -44,6 +48,8 @@ export interface UpdateProjectPayload {
   color?: string;
   icon?: string;
   status?: ProjectStatus;
+  projectType?: ProjectType;
+  description?: string;
 }
 
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
@@ -62,8 +68,10 @@ function normalizeProject(project: ProjectApiModel): Project {
     name: project.name,
     color: project.color || "#6366f1",
     icon: project.icon || "📁",
+    description: project.description || "",
     ownerId: project.ownerId,
     status: project.status,
+    projectType: project.projectType || ProjectType.GENERAL,
     archived: project.archived,
     createdAt: project.createdAt || now,
     updatedAt: project.updatedAt || now,

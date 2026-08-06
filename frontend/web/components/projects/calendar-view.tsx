@@ -2,8 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
-import { type Task } from "@/types/project";
-import { TaskPriorityBadge } from "./status-badge";
+import { TaskStatus, type Task } from "@/types/project";
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
@@ -38,6 +37,29 @@ function getInitialMonth(tasks: Task[]): Date {
   const value = firstDatedTask?.startDate || firstDatedTask?.dueDate;
   return value ? new Date(`${value.slice(0, 10)}T00:00:00`) : new Date();
 }
+
+const statusColors: Record<TaskStatus, { label: string; card: string; dot: string }> = {
+  [TaskStatus.TODO]: {
+    label: "To Do",
+    card: "border-slate-200 bg-white",
+    dot: "bg-slate-400",
+  },
+  [TaskStatus.IN_PROGRESS]: {
+    label: "In Progress",
+    card: "border-blue-200 bg-blue-50/60",
+    dot: "bg-blue-500",
+  },
+  [TaskStatus.IN_REVIEW]: {
+    label: "In Review",
+    card: "border-amber-200 bg-amber-50/70",
+    dot: "bg-amber-500",
+  },
+  [TaskStatus.DONE]: {
+    label: "Done",
+    card: "border-emerald-200 bg-emerald-50/70",
+    dot: "bg-emerald-500",
+  },
+};
 
 export default function CalendarView({
   tasks,
@@ -78,6 +100,10 @@ export default function CalendarView({
     year: "numeric",
   });
 
+  const unscheduledTasks = tasks.filter(
+    (task) => !task.archived && !task.startDate && !task.dueDate,
+  );
+
   const moveMonth = (amount: number) => {
     setCurrentMonth(
       (current) => new Date(current.getFullYear(), current.getMonth() + amount, 1),
@@ -94,6 +120,14 @@ export default function CalendarView({
           <p className="mt-0.5 text-xs font-semibold text-slate-400">
             Bấm vào task để xem chi tiết hoặc bấm dấu + để tạo task.
           </p>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {Object.values(statusColors).map((status) => (
+            <span key={status.label} className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500">
+              <span className={`h-2 w-2 rounded-full ${status.dot}`} />
+              {status.label}
+            </span>
+          ))}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -176,13 +210,13 @@ export default function CalendarView({
                     key={`${key}-${task.id}`}
                     type="button"
                     onClick={() => onTaskClick?.(task)}
-                    className="w-full rounded-lg border border-slate-200/80 bg-white px-2 py-1.5 text-left shadow-sm transition hover:border-[var(--color-secondary)] hover:shadow-md"
+                    className={`w-full rounded-lg border px-2 py-1.5 text-left shadow-sm transition hover:border-[var(--color-secondary)] hover:shadow-md ${statusColors[task.status].card}`}
                   >
-                    <p className="truncate text-[11px] font-bold text-[var(--color-primary-dark)]">
-                      {task.title}
-                    </p>
-                    <div className="mt-1 flex items-center justify-between gap-1">
-                      <TaskPriorityBadge priority={task.priority} />
+                    <div className="flex items-center gap-1.5">
+                      <span className={`h-2 w-2 shrink-0 rounded-full ${statusColors[task.status].dot}`} />
+                      <p className="truncate text-[11px] font-bold text-[var(--color-primary-dark)]">{task.title}</p>
+                    </div>
+                    <div className="mt-1 flex justify-end">
                       <span className="inline-flex items-center gap-0.5 text-[9px] font-semibold text-slate-400">
                         <Clock className="h-2.5 w-2.5" />
                         {task.allDay ? "Cả ngày" : formatTime(task.startDate || task.dueDate)}
@@ -200,6 +234,36 @@ export default function CalendarView({
           );
         })}
       </div>
+
+      {unscheduledTasks.length > 0 && (
+        <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+          <div>
+            <h3 className="text-sm font-black text-[var(--color-primary-dark)]">
+              Chưa lên lịch ({unscheduledTasks.length})
+            </h3>
+            <p className="mt-1 text-xs font-semibold text-slate-400">
+              Task chưa có ngày bắt đầu hoặc hạn hoàn thành. Bấm vào task để đặt lịch.
+            </p>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {unscheduledTasks.map((task) => (
+              <button
+                key={task.id}
+                type="button"
+                onClick={() => onTaskClick?.(task)}
+                className="inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[var(--color-secondary)] hover:shadow-md"
+              >
+                <span className="max-w-56 truncate text-xs font-bold text-[var(--color-primary-dark)]">
+                  {task.title}
+                </span>
+                <span className="shrink-0 text-[10px] font-semibold text-slate-400">
+                  {task.parentTaskId ? "Subtask" : "Task"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

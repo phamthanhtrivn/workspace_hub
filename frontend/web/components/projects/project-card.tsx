@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { type Project, TaskStatus } from "@/types/project";
 import { ProjectStatusBadge } from "./status-badge";
+import { ProjectTypeBadge } from "./project-type-badge";
 import { AvatarStack } from "./avatar-stack";
 import { CheckCircle2, Users, ListTodo } from "lucide-react";
 
@@ -38,6 +39,9 @@ export default function ProjectCard({ project }: { project: Project }) {
               {project.name}
             </h3>
             <ProjectStatusBadge status={project.status} />
+            <div className="mt-1">
+              <ProjectTypeBadge type={project.projectType} compact />
+            </div>
           </div>
         </div>
       </div>

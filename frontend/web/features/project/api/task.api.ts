@@ -3,6 +3,10 @@ import {
   TaskPriority,
   TaskStatus,
   type Task,
+  type TaskChecklist,
+  type TaskAssignee,
+  type TaskLabel,
+  type TaskActivity,
 } from "@/types/project";
 
 interface ApiResponse<T> {
@@ -11,13 +15,14 @@ interface ApiResponse<T> {
   data: T;
 }
 
-interface TaskApiModel {
+export interface TaskApiModel {
   id: string;
   projectId: string;
   parentTaskId?: string | null;
   childCount?: number;
   isParentTask?: boolean;
   autoCompleteSprint?: boolean;
+  sprintId?: string | null;
   title: string;
   description?: string | null;
   priority: TaskPriority;
@@ -33,6 +38,9 @@ interface TaskApiModel {
   archived: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
+  checklists?: TaskChecklist[];
+  assignees?: Array<Pick<TaskAssignee, "id" | "taskId" | "userId" | "assignedAt">>;
+  labels?: TaskLabel[];
 }
 
 export interface CreateTaskPayload {
@@ -48,6 +56,7 @@ export interface CreateTaskPayload {
   parentTaskId?: string;
   isParentTask?: boolean;
   autoCompleteSprint?: boolean;
+  assigneeUserId?: string | null;
 }
 
 export interface UpdateTaskPayload {
@@ -75,7 +84,7 @@ function unwrap<T>(response: { data: ApiResponse<T> }): T {
   return response.data.data;
 }
 
-function normalizeTask(task: TaskApiModel): Task {
+export function normalizeTask(task: TaskApiModel): Task {
   const now = new Date().toISOString();
 
   return {
@@ -85,6 +94,7 @@ function normalizeTask(task: TaskApiModel): Task {
     childCount: task.childCount || 0,
     isParentTask: task.isParentTask || false,
     autoCompleteSprint: task.autoCompleteSprint || false,
+    sprintId: task.sprintId || undefined,
     title: task.title,
     description: task.description || "",
     priority: task.priority || TaskPriority.MEDIUM,
@@ -100,12 +110,15 @@ function normalizeTask(task: TaskApiModel): Task {
     archived: task.archived,
     createdAt: task.createdAt || now,
     updatedAt: task.updatedAt || now,
-    checklists: [],
-    assignees: [],
+    checklists: task.checklists || [],
+    assignees: (task.assignees || []).map((assignee) => ({
+      ...assignee,
+      displayName: "",
+    })),
     comments: [],
     activities: [],
     timeTrackings: [],
-    labels: [],
+    labels: task.labels || [],
     pomodoroSessions: [],
   };
 }
@@ -148,4 +161,25 @@ export async function updateTask(
     payload,
   );
   return normalizeTask(unwrap(response));
+}
+
+type ChecklistApiModel = TaskChecklist;
+
+export async function createChecklist(taskId: string, title: string): Promise<TaskChecklist> {
+  const response = await api.post<ApiResponse<ChecklistApiModel>>(`/api/tasks/${taskId}/checklists`, { title });
+  return unwrap(response);
+}
+
+export async function updateChecklist(checklistId: string, completed: boolean): Promise<TaskChecklist> {
+  const response = await api.patch<ApiResponse<ChecklistApiModel>>(`/api/checklists/${checklistId}`, { completed });
+  return unwrap(response);
+}
+
+export async function deleteChecklist(checklistId: string): Promise<void> {
+  await api.delete(`/api/checklists/${checklistId}`);
+}
+
+export async function getTaskActivities(taskId: string): Promise<TaskActivity[]> {
+  const response = await api.get<ApiResponse<TaskActivity[]>>(`/api/tasks/${taskId}/activities`);
+  return unwrap(response);
 }
