@@ -10,6 +10,13 @@ export enum ProjectType {
   SOFTWARE_DEVELOPMENT = 'SOFTWARE_DEVELOPMENT',
 }
 
+export enum ProjectTemplate {
+  EMPTY = 'EMPTY',
+  SOFTWARE_SCRUM = 'SOFTWARE_SCRUM',
+  MARKETING_CAMPAIGN = 'MARKETING_CAMPAIGN',
+  EVENT_PLAN = 'EVENT_PLAN',
+}
+
 export enum ProjectVisibility {
   PRIVATE = 'PRIVATE',
   MEMBERS_ONLY = 'MEMBERS_ONLY',

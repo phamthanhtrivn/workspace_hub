@@ -19,6 +19,9 @@ import { LabelController } from './label.controller';
 import { LabelService } from './label.service';
 import { ActivityController } from './activity.controller';
 import { ActivityService } from './activity.service';
+import { NotificationEventService } from './notification-event.service';
+import { DependencyController } from './dependency.controller';
+import { DependencyService } from './dependency.service';
 
 @Module({
   controllers: [
@@ -31,6 +34,7 @@ import { ActivityService } from './activity.service';
     ChecklistController,
     LabelController,
     ActivityController,
+    DependencyController,
   ],
   providers: [
     ProjectAccessService,
@@ -44,6 +48,8 @@ import { ActivityService } from './activity.service';
     ChecklistService,
     LabelService,
     ActivityService,
+    NotificationEventService,
+    DependencyService,
   ],
 })
 export class ProjectModule {}

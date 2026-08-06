@@ -19,7 +19,7 @@ export default function ProjectSettingsDialog({
   open: boolean;
   isBusy?: boolean;
   onClose: () => void;
-  onSave: (payload: { name: string; description: string; status: ProjectStatus }) => Promise<void>;
+  onSave: (payload: { name: string; description: string; status: ProjectStatus; startDate: string | null; dueDate: string | null }) => Promise<void>;
   onArchive: () => Promise<void>;
   labels?: TaskLabel[];
   onCreateLabel?: (payload: { name: string; color: string }) => Promise<void>;
@@ -28,6 +28,8 @@ export default function ProjectSettingsDialog({
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
   const [status, setStatus] = useState(project.status);
+  const [startDate, setStartDate] = useState(project.startDate?.slice(0, 10) || "");
+  const [dueDate, setDueDate] = useState(project.dueDate?.slice(0, 10) || "");
   const [labelName, setLabelName] = useState("");
   const [labelColor, setLabelColor] = useState("#0052CC");
 
@@ -36,7 +38,8 @@ export default function ProjectSettingsDialog({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim() || isBusy) return;
-    await onSave({ name: name.trim(), description: description.trim(), status });
+    if (startDate && dueDate && startDate > dueDate) return;
+    await onSave({ name: name.trim(), description: description.trim(), status, startDate: startDate || null, dueDate: dueDate || null });
   };
 
   const handleCreateLabel = async () => {
@@ -56,6 +59,11 @@ export default function ProjectSettingsDialog({
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-700"><X className="h-5 w-5" /></button>
         </div>
         <div className="mt-5 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-bold text-slate-500">Ngày bắt đầu<input type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} max={dueDate || undefined} className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600" /></label>
+            <label className="block text-xs font-bold text-slate-500">Ngày kết thúc dự kiến<input type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} min={startDate || undefined} className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600" /></label>
+          </div>
+          {startDate && dueDate && startDate > dueDate && <p className="text-xs font-semibold text-red-600">Ngày bắt đầu không được sau ngày kết thúc.</p>}
           <label className="block text-xs font-bold text-slate-500">Tên Project<input value={name} onChange={(event) => setName(event.target.value)} required className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600" /></label>
           <label className="block text-xs font-bold text-slate-500">Mô tả<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} className="mt-1 w-full resize-none rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600" /></label>
           <label className="block text-xs font-bold text-slate-500">Trạng thái<select value={status} onChange={(event) => setStatus(event.target.value as ProjectStatus)} className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600">

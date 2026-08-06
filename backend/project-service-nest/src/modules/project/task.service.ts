@@ -7,6 +7,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toTaskResponse } from './project.mapper';
 import { ActivityService } from './activity.service';
+import { NotificationEventService } from './notification-event.service';
 
 const taskWithCount = {
   _count: { select: { children: true } },
@@ -21,6 +22,7 @@ export class TaskService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly activities: ActivityService,
+    private readonly notifications: NotificationEventService,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
@@ -150,8 +152,31 @@ export class TaskService {
         await this.prisma.taskAssignee.create({
           data: { id: crypto.randomUUID(), taskId, projectId: current.projectId, userId: dto.assigneeUserId, assignedAt: new Date() },
         });
+        void this.notifications.send({
+          recipientId: dto.assigneeUserId,
+          senderId: userId,
+          type: 'PROJECT_TASK_ASSIGNED',
+          title: 'Bạn được giao một task',
+          content: `Task “${current.title}” đã được giao cho bạn.`,
+          link: `/projects/${current.projectId}`,
+          metadata: { taskId: current.id, projectId: current.projectId },
+        });
       }
       return toTaskResponse(await this.findTask(task.id));
+    }
+    if (dto.status !== undefined || dto.title !== undefined || dto.dueDate !== undefined) {
+      for (const assignee of current.assignees) {
+        if (assignee.userId === userId) continue;
+        void this.notifications.send({
+          recipientId: assignee.userId,
+          senderId: userId,
+          type: 'PROJECT_TASK_UPDATED',
+          title: 'Task đã được cập nhật',
+          content: `Task “${task.title}” vừa được cập nhật.`,
+          link: `/projects/${current.projectId}`,
+          metadata: { taskId: current.id, projectId: current.projectId },
+        });
+      }
     }
     return toTaskResponse(task);
   }

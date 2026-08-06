@@ -12,6 +12,13 @@ export enum ProjectType {
   SOFTWARE_DEVELOPMENT = "SOFTWARE_DEVELOPMENT",
 }
 
+export enum ProjectTemplate {
+  EMPTY = "EMPTY",
+  SOFTWARE_SCRUM = "SOFTWARE_SCRUM",
+  MARKETING_CAMPAIGN = "MARKETING_CAMPAIGN",
+  EVENT_PLAN = "EVENT_PLAN",
+}
+
 export enum SprintStatus {
   PLANNED = "PLANNED",
   ACTIVE = "ACTIVE",
@@ -76,6 +83,16 @@ export interface TaskLabel {
   projectId: string;
   name: string;
   color: string;
+}
+
+export interface TaskDependency {
+  id: string;
+  projectId: string;
+  predecessorTaskId: string;
+  successorTaskId: string;
+  dependencyType: string;
+  createdBy: string;
+  createdAt: string;
 }
 
 export interface TaskChecklist {
@@ -181,6 +198,8 @@ export interface Project {
   ownerId: string;
   status: ProjectStatus;
   projectType: ProjectType;
+  startDate?: string;
+  dueDate?: string;
   archived: boolean;
   createdAt: string;
   updatedAt: string;

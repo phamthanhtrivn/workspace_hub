@@ -3,6 +3,7 @@
 import { type Task, TaskPriority } from "@/types/project";
 import { LabelBadge } from "./status-badge";
 import { AvatarStack } from "./avatar-stack";
+import TaskChatButton from "./task-chat-button";
 import {
   Calendar,
   CheckSquare,
@@ -44,19 +45,19 @@ export function getIssueTypeDetails(task: Task): { icon: React.ReactNode; label:
 
   if (titleLower.includes("bug") || hasBugLabel) {
     return {
-      icon: <Bug className="h-3.5 w-3.5 text-[#DE350B]" />,
+      icon: <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />,
       label: "Bug",
     };
   }
   if (titleLower.includes("thiết kế") || titleLower.includes("ui") || hasDesignOrStoryLabel) {
     return {
-      icon: <Bookmark className="h-3.5 w-3.5 text-[#36B37E] fill-[#36B37E]" />,
+      icon: <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />,
       label: "Story",
     };
   }
   if (task.parentTaskId) {
     return {
-      icon: <FileText className="h-3.5 w-3.5 text-[#6554C0]" />,
+      icon: <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />,
       label: "Subtask",
     };
   }
@@ -101,9 +102,11 @@ export function getPriorityIcon(priority: TaskPriority): React.ReactNode {
 export default function TaskCard({
   task,
   onClick,
+  onOpenChat,
 }: {
   task: Task;
   onClick?: () => void;
+  onOpenChat?: (task: Task) => void;
 }) {
   const checklistTotal = task.checklists.length;
   const checklistDone = task.checklists.filter((c) => c.completed).length;
@@ -118,11 +121,18 @@ export default function TaskCard({
   };
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       draggable
       onDragStart={handleDragStart}
       onClick={onClick}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick?.();
+        }
+      }}
       className="group w-full rounded border border-slate-200 bg-white p-3 text-left shadow-[0_1px_1px_rgba(9,30,66,0.25)] hover:bg-[#F4F5F7] cursor-grab active:cursor-grabbing transition duration-150 focus-visible:outline-none"
     >
       {/* Title */}
@@ -196,6 +206,7 @@ export default function TaskCard({
         </div>
 
         <div className="flex items-center gap-2">
+          <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
           {/* Priority Icon */}
           <div className="grid place-items-center h-5 w-5 rounded hover:bg-slate-200 transition">
             {priorityIcon}
@@ -215,6 +226,6 @@ export default function TaskCard({
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }

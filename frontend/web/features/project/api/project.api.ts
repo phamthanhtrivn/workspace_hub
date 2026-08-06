@@ -3,6 +3,7 @@ import {
   ProjectRole,
   ProjectStatus,
   ProjectType,
+  ProjectTemplate,
   type Project,
   type ProjectMember,
 } from "@/types/project";
@@ -24,6 +25,8 @@ interface ProjectApiModel {
   ownerId: string;
   status: ProjectStatus;
   projectType?: ProjectType | null;
+  startDate?: string | null;
+  dueDate?: string | null;
   archived: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
@@ -41,6 +44,7 @@ export interface CreateProjectPayload {
   color: string;
   icon: string;
   projectType: ProjectType;
+  template?: ProjectTemplate;
 }
 
 export interface UpdateProjectPayload {
@@ -50,6 +54,8 @@ export interface UpdateProjectPayload {
   status?: ProjectStatus;
   projectType?: ProjectType;
   description?: string;
+  startDate?: string | null;
+  dueDate?: string | null;
 }
 
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
@@ -72,6 +78,8 @@ function normalizeProject(project: ProjectApiModel): Project {
     ownerId: project.ownerId,
     status: project.status,
     projectType: project.projectType || ProjectType.GENERAL,
+    startDate: project.startDate || undefined,
+    dueDate: project.dueDate || undefined,
     archived: project.archived,
     createdAt: project.createdAt || now,
     updatedAt: project.updatedAt || now,

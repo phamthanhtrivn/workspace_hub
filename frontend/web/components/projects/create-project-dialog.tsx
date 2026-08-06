@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Code2, ListTodo, X } from "lucide-react";
-import { ProjectType } from "@/types/project";
+import { ProjectTemplate, ProjectType } from "@/types/project";
 
 const COLOR_OPTIONS = [
   "#6366f1", "#f59e0b", "#22c55e", "#ef4444", "#ec4899",
@@ -22,6 +22,7 @@ interface CreateProjectDialogProps {
     color: string;
     icon: string;
     projectType: ProjectType;
+    template?: ProjectTemplate;
   }) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -36,6 +37,7 @@ export default function CreateProjectDialog({
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
   const [projectType, setProjectType] = useState(ProjectType.GENERAL);
+  const [template, setTemplate] = useState(ProjectTemplate.EMPTY);
 
   if (!open) return null;
 
@@ -47,6 +49,7 @@ export default function CreateProjectDialog({
       color: selectedColor,
       icon: selectedIcon,
       projectType,
+      template,
     });
 
     setName("");
@@ -152,6 +155,18 @@ export default function CreateProjectDialog({
                 );
               })}
             </div>
+          </div>
+
+          {/* Icon Picker */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">Template khởi tạo</label>
+            <select value={template} onChange={(event) => setTemplate(event.target.value as ProjectTemplate)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600">
+              <option value={ProjectTemplate.EMPTY}>Project trống</option>
+              {projectType === ProjectType.SOFTWARE_DEVELOPMENT && <option value={ProjectTemplate.SOFTWARE_SCRUM}>Software Scrum</option>}
+              <option value={ProjectTemplate.MARKETING_CAMPAIGN}>Marketing Campaign</option>
+              <option value={ProjectTemplate.EVENT_PLAN}>Event Plan</option>
+            </select>
+            <p className="mt-1 text-[11px] text-slate-400">Template sẽ tạo sẵn task, subtask và checklist.</p>
           </div>
 
           {/* Icon Picker */}

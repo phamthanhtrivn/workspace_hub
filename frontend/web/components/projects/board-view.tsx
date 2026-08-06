@@ -47,11 +47,13 @@ export default function BoardView({
   onTaskClick,
   onTaskMove,
   onAddTask,
+  onOpenChat,
 }: {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void;
   onAddTask?: (status: TaskStatus) => void;
+  onOpenChat?: (task: Task) => void;
 }) {
   return (
     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4 items-start h-full">
@@ -98,6 +100,7 @@ export default function BoardView({
                   key={task.id}
                   task={task}
                   onClick={() => onTaskClick?.(task)}
+                  onOpenChat={onOpenChat}
                 />
               ))}
 
@@ -135,4 +138,3 @@ export default function BoardView({
     </div>
   );
 }
-

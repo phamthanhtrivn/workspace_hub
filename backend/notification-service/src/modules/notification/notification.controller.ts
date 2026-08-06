@@ -18,6 +18,7 @@ import { NotificationService } from "./notification.service";
 import { EmailService } from "./email.service";
 import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-email.dto";
 import { KAFKA_TOPICS } from "../../common/constants/kafka.constants";
+import { CreateNotificationDto } from "./dtos/create-notification.dto";
 
 @Controller("api/notifications")
 export class NotificationController {
@@ -43,6 +44,19 @@ export class NotificationController {
       message: "Project invitation email sent successfully",
       data: { sent: true, invitationId: dto.invitationId },
     };
+  }
+
+  @Post("internal")
+  async createInternalNotification(
+    @Headers("x-internal-service-key") serviceKey: string,
+    @Body() dto: CreateNotificationDto,
+  ) {
+    const expectedKey = process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
+    if (serviceKey !== expectedKey) {
+      throw new UnauthorizedException("Invalid internal service key");
+    }
+    const notification = await this.notificationService.createNotification(dto);
+    return { message: "Notification created successfully", data: notification };
   }
 
   @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)

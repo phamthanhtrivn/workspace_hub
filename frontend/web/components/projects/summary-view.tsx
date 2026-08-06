@@ -15,7 +15,9 @@ import {
   TaskStatus,
   type ProjectMember,
   type Task,
+  type Sprint,
 } from "@/types/project";
+import SprintMetricsView from "./sprint-metrics-view";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -93,9 +95,11 @@ function Panel({
 export default function SummaryView({
   tasks,
   members,
+  sprints = [],
 }: {
   tasks: Task[];
   members: ProjectMember[];
+  sprints?: Sprint[];
 }) {
   const activeTasks = tasks.filter((task) => !task.archived);
   const workItems = activeTasks.filter((task) => !task.isParentTask);
@@ -254,6 +258,7 @@ export default function SummaryView({
           </div>
         </Panel>
       </div>
+      <SprintMetricsView sprints={sprints} tasks={activeTasks} />
     </div>
   );
 }

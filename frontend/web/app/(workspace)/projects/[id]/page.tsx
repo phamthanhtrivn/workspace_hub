@@ -46,6 +46,7 @@ import {
   useDetachLabel,
 } from "@/features/project/hooks/use-labels";
 import type { UpdateTaskPayload } from "@/features/project/api/task.api";
+import { useCreateTaskDependency, useDeleteTaskDependency, useProjectDependencies } from "@/features/project/hooks/use-dependencies";
 import { ProjectTypeBadge } from "@/components/projects/project-type-badge";
 import { AvatarStack } from "@/components/projects/avatar-stack";
 import BoardView from "@/components/projects/board-view";
@@ -58,6 +59,7 @@ import SoftwareBacklogView, {
 import SummaryView from "@/components/projects/summary-view";
 import GeneralSummaryView from "@/components/projects/general-summary-view";
 import TaskDetailDrawer from "@/components/projects/task-detail-drawer";
+import TaskChatDialog from "@/components/projects/task-chat-dialog";
 import TaskFormDialog, {
   type TaskFormValues,
 } from "@/components/projects/task-form-dialog";
@@ -112,6 +114,9 @@ export default function ProjectDetailPage() {
   const updateChecklistMutation = useUpdateChecklist(projectId);
   const deleteChecklistMutation = useDeleteChecklist(projectId);
   const { data: labels = [] } = useProjectLabels(projectId);
+  const { data: dependencies = [] } = useProjectDependencies(projectId);
+  const createDependencyMutation = useCreateTaskDependency(projectId);
+  const deleteDependencyMutation = useDeleteTaskDependency(projectId);
   const createLabelMutation = useCreateLabel(projectId);
   const deleteLabelMutation = useDeleteLabel(projectId);
   const attachLabelMutation = useAttachLabel(projectId);
@@ -129,6 +134,7 @@ export default function ProjectDetailPage() {
   // States
   const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -161,6 +167,15 @@ export default function ProjectDetailPage() {
           : [...current.labels, label],
       };
     });
+  };
+
+  const handleCreateDependency = async (successorTaskId: string, predecessorTaskId: string) => {
+    await createDependencyMutation.mutateAsync({ successorTaskId, predecessorTaskId });
+    toast.success("Đã tạo dependency");
+  };
+
+  const handleDeleteDependency = async (successorTaskId: string, predecessorTaskId: string) => {
+    await deleteDependencyMutation.mutateAsync({ successorTaskId, predecessorTaskId });
   };
 
   const handleCreateLabel = async (payload: { name: string; color: string }) => {
@@ -291,7 +306,7 @@ export default function ProjectDetailPage() {
     );
   };
 
-  const handleSaveProjectSettings = async (payload: { name: string; description: string; status: ProjectStatus }) => {
+  const handleSaveProjectSettings = async (payload: { name: string; description: string; status: ProjectStatus; startDate: string | null; dueDate: string | null }) => {
     try {
       await updateProjectMutation.mutateAsync(payload);
       setShowProjectSettings(false);
@@ -612,6 +627,16 @@ export default function ProjectDetailPage() {
       toast.success("Đã đưa task vào Sprint");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể đưa task vào Sprint");
+      throw error;
+    }
+  };
+
+  const handleBulkUpdateTasks = async (taskIds: string[], status: TaskStatus) => {
+    try {
+      await Promise.all(taskIds.map((taskId) => updateTaskMutation.mutateAsync({ taskId, payload: { status } })));
+      toast.success(`Đã cập nhật ${taskIds.length} task`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật hàng loạt task");
       throw error;
     }
   };
@@ -967,6 +992,7 @@ export default function ProjectDetailPage() {
                 <SummaryView
                   tasks={filteredTasks}
                   members={projectWithMembers.members}
+                  sprints={sprints}
                 />
               ) : (
                 <GeneralSummaryView
@@ -979,6 +1005,7 @@ export default function ProjectDetailPage() {
               <BoardView
                 tasks={filteredTasks}
                 onTaskClick={(task) => setSelectedTask(task)}
+                onOpenChat={(task) => setChatTask(task)}
                 onTaskMove={handleTaskMove}
                 onAddTask={openCreateTask}
               />
@@ -989,11 +1016,13 @@ export default function ProjectDetailPage() {
                   tasks={filteredTasks}
                   sprints={sprints}
                   onTaskClick={(task) => setSelectedTask(task)}
+                  onOpenChat={(task) => setChatTask(task)}
                   onCreateTask={(sprintId) => openCreateTask(TaskStatus.TODO, undefined, false, undefined, sprintId)}
                   onCreateSprintTask={handleCreateSprintTask}
                   onCreateSprint={handleCreateSprint}
                   onUpdateSprint={handleUpdateSprint}
                   onAddTasksToSprint={handleAddTasksToSprint}
+                  onBulkUpdateTasks={handleBulkUpdateTasks}
                   onStartSprint={handleStartSprint}
                   onCompleteSprint={handleCompleteSprint}
                   onReopenSprint={handleReopenSprint}
@@ -1013,6 +1042,7 @@ export default function ProjectDetailPage() {
                   tasks={filteredTasks}
                   projectType={project.projectType}
                   onTaskClick={(task) => setSelectedTask(task)}
+                  onOpenChat={(task) => setChatTask(task)}
                   onAddTask={() => openCreateTask()}
                   onAddTaskInline={handleCreateTaskInline}
                   onAddSubtask={(task) =>
@@ -1034,6 +1064,7 @@ export default function ProjectDetailPage() {
             {!tasksLoading && !tasksError && viewMode === "gantt" && (
               <GanttView
                 tasks={filteredTasks}
+                dependencies={dependencies}
                 onTaskClick={(task) => setSelectedTask(task)}
               />
             )}
@@ -1066,6 +1097,7 @@ export default function ProjectDetailPage() {
                 members={projectWithMembers.members}
                 project={project}
                 onClose={() => setSelectedTask(null)}
+                onOpenChat={(task) => setChatTask(task)}
                 onTaskClick={(task) => setSelectedTask(task)}
                 onUpdateTask={handleUpdateTaskDirect}
                 onCreateChecklist={handleCreateChecklist}
@@ -1073,6 +1105,9 @@ export default function ProjectDetailPage() {
                 onDeleteChecklist={handleDeleteChecklist}
                 labels={labels}
                 onToggleLabel={handleToggleLabel}
+                dependencies={dependencies}
+                onCreateDependency={handleCreateDependency}
+                onDeleteDependency={handleDeleteDependency}
                 onCreateSubtask={(task) => {
                   setSelectedTask(null);
                   openCreateTask(TaskStatus.TODO, undefined, false, task.id);
@@ -1101,6 +1136,7 @@ export default function ProjectDetailPage() {
             members={projectWithMembers.members}
             project={project}
             onClose={() => setSelectedTask(null)}
+            onOpenChat={(task) => setChatTask(task)}
             onTaskClick={(task) => setSelectedTask(task)}
             onUpdateTask={handleUpdateTaskDirect}
             onCreateChecklist={handleCreateChecklist}
@@ -1108,6 +1144,9 @@ export default function ProjectDetailPage() {
             onDeleteChecklist={handleDeleteChecklist}
             labels={labels}
             onToggleLabel={handleToggleLabel}
+            dependencies={dependencies}
+            onCreateDependency={handleCreateDependency}
+            onDeleteDependency={handleDeleteDependency}
             onCreateSubtask={(task) => {
               setSelectedTask(null);
               openCreateTask(TaskStatus.TODO, undefined, false, task.id);
@@ -1124,6 +1163,8 @@ export default function ProjectDetailPage() {
           />
         </div>
       )}
+
+      <TaskChatDialog task={chatTask} onClose={() => setChatTask(null)} />
 
       <ProjectSettingsDialog
         project={project}

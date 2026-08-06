@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, ChartGantt } from "lucide-react";
-import { type Task, TaskStatus } from "@/types/project";
+import { type Task, TaskStatus, type TaskDependency } from "@/types/project";
 
 const DAY_WIDTH = 44;
 const LABEL_WIDTH = 250;
@@ -62,13 +62,24 @@ function barColor(status: TaskStatus): string {
 export default function GanttView({
   tasks,
   onTaskClick,
+  dependencies = [],
 }: {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
+  dependencies?: TaskDependency[];
 }) {
   const activeTasks = tasks.filter((task) => !task.archived);
   const datedTasks = activeTasks.filter((task) => taskStart(task) && taskEnd(task));
   const unscheduledTasks = activeTasks.filter((task) => !taskStart(task) || !taskEnd(task));
+  const taskById = new Map(activeTasks.map((task) => [task.id, task]));
+  const predecessorsBySuccessor = new Map<string, Task[]>();
+  dependencies.forEach((dependency) => {
+    const predecessor = taskById.get(dependency.predecessorTaskId);
+    if (!predecessor) return;
+    const list = predecessorsBySuccessor.get(dependency.successorTaskId) || [];
+    list.push(predecessor);
+    predecessorsBySuccessor.set(dependency.successorTaskId, list);
+  });
 
   const range = (() => {
     if (datedTasks.length === 0) {
@@ -150,7 +161,8 @@ export default function GanttView({
               >
                 <span className={`flex min-w-0 items-center gap-2 border-r border-slate-200 px-4 py-3 ${isSubtask ? "pl-9" : ""}`}>
                   <span className={`h-2 w-2 shrink-0 rounded-full ${task.status === TaskStatus.DONE ? "bg-emerald-500" : "bg-slate-300"}`} />
-                  <span className="truncate text-xs font-bold text-[#172B4D]">{task.title}</span>
+                  <span className="min-w-0 truncate text-xs font-bold text-[#172B4D]">{task.title}</span>
+                  {(predecessorsBySuccessor.get(task.id) || []).length > 0 && <span className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-700" title="Task này có dependency">← {predecessorsBySuccessor.get(task.id)?.map((item) => item.title).join(", ")}</span>}
                 </span>
                 <span
                   className="relative block min-h-12"

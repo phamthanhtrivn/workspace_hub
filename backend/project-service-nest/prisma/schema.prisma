@@ -30,6 +30,7 @@ model Project {
   sprints     Sprint[]
   invitations ProjectInvitation[]
   labels      TaskLabel[]
+  dependencies TaskDependency[]
 
   @@index([ownerId, archived], map: "idx_projects_owner_archived")
   @@index([status, archived], map: "idx_projects_status_archived")
@@ -102,6 +103,8 @@ model Task {
   checklists TaskChecklist[]
   assignees TaskAssignee[]
   labelMappings TaskLabelMapping[]
+  dependenciesFrom TaskDependency[] @relation("DependencyPredecessor")
+  dependenciesTo TaskDependency[] @relation("DependencySuccessor")
 
   @@index([projectId, archived, rank, createdAt], map: "idx_tasks_project_active_rank")
   @@index([projectId, dueDate], map: "idx_tasks_project_due")
@@ -187,6 +190,24 @@ model TaskLabelMapping {
   @@index([labelId], map: "idx_task_label_mappings_label")
   @@index([projectId], map: "idx_task_label_mappings_project")
   @@map("task_label_mappings")
+}
+
+model TaskDependency {
+  id                String   @id @default(uuid()) @db.Uuid
+  projectId         String   @map("project_id") @db.Uuid
+  predecessorTaskId String   @map("predecessor_task_id") @db.Uuid
+  successorTaskId   String   @map("successor_task_id") @db.Uuid
+  dependencyType    String   @default("FINISH_TO_START") @map("dependency_type") @db.VarChar(30)
+  createdBy         String   @map("created_by") @db.Uuid
+  createdAt         DateTime @map("created_at")
+
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  predecessor Task    @relation("DependencyPredecessor", fields: [predecessorTaskId, projectId], references: [id, projectId], onDelete: Cascade)
+  successor   Task    @relation("DependencySuccessor", fields: [successorTaskId, projectId], references: [id, projectId], onDelete: Cascade)
+
+  @@unique([projectId, predecessorTaskId, successorTaskId], map: "uk_task_dependency_project_predecessor_successor")
+  @@index([projectId, successorTaskId], map: "idx_task_dependencies_successor")
+  @@map("task_dependencies")
 }
 
 model TaskComment {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
-import { type Task, TaskStatus, TaskPriority, type ProjectMember, type TaskChecklist, type TaskLabel, type TaskActivity } from "@/types/project";
+import { type Task, TaskStatus, TaskPriority, type ProjectMember, type TaskChecklist, type TaskLabel, type TaskActivity, type TaskDependency } from "@/types/project";
 import { useAppSelector } from "@/store/store";
 import {
   useCreateTaskComment,
@@ -14,6 +14,7 @@ import { useTaskActivities } from "@/features/project/hooks/use-tasks";
 import { TaskStatusBadge, LabelBadge } from "./status-badge";
 import { Avatar } from "./avatar-stack";
 import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "./task-card";
+import TaskChatButton from "./task-chat-button";
 import {
   X,
   Pencil,
@@ -32,6 +33,7 @@ import {
   Plus,
   ChevronDown,
   Check,
+  Link2,
 } from "lucide-react";
 
 const STATUS_OPTS = [
@@ -75,6 +77,7 @@ export default function TaskDetailDrawer({
   members = [],
   project,
   onClose,
+  onOpenChat,
   onEdit,
   onTaskClick,
   onUpdateTask,
@@ -84,6 +87,9 @@ export default function TaskDetailDrawer({
   onDeleteChecklist,
   labels = [],
   onToggleLabel,
+  dependencies = [],
+  onCreateDependency,
+  onDeleteDependency,
   isInline = false, // If true, renders as inline split screen panel. If false, renders as fixed overlay drawer.
 }: {
   task: Task | null;
@@ -91,6 +97,7 @@ export default function TaskDetailDrawer({
   members?: ProjectMember[];
   project?: any;
   onClose: () => void;
+  onOpenChat?: (task: Task) => void;
   onEdit?: (task: Task) => void;
   onTaskClick?: (task: Task) => void;
   onUpdateTask?: (taskId: string, payload: any) => Promise<void>;
@@ -100,6 +107,9 @@ export default function TaskDetailDrawer({
   onDeleteChecklist?: (checklistId: string) => Promise<void>;
   labels?: TaskLabel[];
   onToggleLabel?: (taskId: string, labelId: string, attached: boolean) => Promise<void>;
+  dependencies?: TaskDependency[];
+  onCreateDependency?: (successorTaskId: string, predecessorTaskId: string) => Promise<void>;
+  onDeleteDependency?: (successorTaskId: string, predecessorTaskId: string) => Promise<void>;
   isInline?: boolean;
 }) {
   const [newComment, setNewComment] = useState("");
@@ -117,6 +127,7 @@ export default function TaskDetailDrawer({
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
   const [showLabelDropdown, setShowLabelDropdown] = useState(false);
+  const [showDependencyDropdown, setShowDependencyDropdown] = useState(false);
 
   // References
   const assigneeDropdownRef = useRef<HTMLDivElement>(null);
@@ -256,6 +267,19 @@ export default function TaskDetailDrawer({
     }
   };
 
+  const taskDependencies = dependencies.filter((dependency) => dependency.successorTaskId === task.id);
+  const dependencyCandidates = tasks.filter((candidate) => candidate.id !== task.id && !candidate.archived && !taskDependencies.some((dependency) => dependency.predecessorTaskId === candidate.id));
+
+  const handleAddDependency = async (predecessorTaskId: string) => {
+    if (!onCreateDependency) return;
+    try {
+      await onCreateDependency(task.id, predecessorTaskId);
+      setShowDependencyDropdown(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tạo dependency");
+    }
+  };
+
   const handleDueDateChange = async (val: string) => {
     try {
       if (onUpdateTask) {
@@ -375,6 +399,7 @@ export default function TaskDetailDrawer({
           <span className="hover:underline font-semibold uppercase tracking-wide text-slate-700">{issueKey}</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <TaskChatButton task={task} onOpenChat={onOpenChat} />
           {onEdit && (
             <button
               type="button"
@@ -520,6 +545,24 @@ export default function TaskDetailDrawer({
               ))}
             </div>
           )}
+
+          {onCreateDependency && (
+            <div className="relative">
+              <button type="button" onClick={() => setShowDependencyDropdown((value) => !value)} className="inline-flex items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700">
+                <Link2 className="h-3.5 w-3.5" /> Dependency ({taskDependencies.length})
+              </button>
+              {showDependencyDropdown && <div className="absolute left-0 top-full z-30 mt-1 w-64 rounded border border-slate-200 bg-white p-1.5 shadow-lg">
+                {dependencyCandidates.length === 0 ? <p className="px-2 py-2 text-[11px] text-slate-400">Không còn task để liên kết.</p> : dependencyCandidates.slice(0, 20).map((candidate) => <button key={candidate.id} type="button" onClick={() => void handleAddDependency(candidate.id)} className="block w-full truncate rounded px-2 py-1.5 text-left text-xs text-slate-700 hover:bg-slate-50">← {candidate.title}</button>)}
+              </div>}
+            </div>
+          )}
+
+          {taskDependencies.length > 0 && <div className="flex basis-full flex-wrap gap-1">
+            {taskDependencies.map((dependency) => {
+              const predecessor = tasks.find((candidate) => candidate.id === dependency.predecessorTaskId);
+              return <span key={dependency.id} className="inline-flex max-w-full items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-700">← {predecessor?.title || "Task trước"}{onDeleteDependency && <button type="button" onClick={() => void onDeleteDependency(task.id, dependency.predecessorTaskId)} className="ml-1 font-black hover:text-red-600" aria-label="Xóa dependency">×</button>}</span>;
+            })}
+          </div>}
         </div>
 
         {/* Description Section */}

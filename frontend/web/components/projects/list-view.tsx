@@ -5,6 +5,7 @@ import { type Task, ProjectType, TaskStatus } from "@/types/project";
 import { TaskStatusBadge, LabelBadge } from "./status-badge";
 import { Avatar } from "./avatar-stack";
 import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "./task-card";
+import TaskChatButton from "./task-chat-button";
 import {
   Calendar,
   ChevronDown,
@@ -75,6 +76,7 @@ export default function ListView({
   onEditGroup,
   onDeleteGroup,
   onReorderTasks,
+  onOpenChat,
 }: {
   tasks: Task[];
   projectType?: ProjectType;
@@ -89,6 +91,7 @@ export default function ListView({
   onEditGroup?: (task: Task) => void;
   onDeleteGroup?: (task: Task) => void;
   onReorderTasks?: (group: Task, tasks: Task[]) => Promise<void>;
+  onOpenChat?: (task: Task) => void;
 }) {
   const isGeneralProject = projectType === ProjectType.GENERAL;
   const [collapsedPanels, setCollapsedPanels] = useState<Set<string>>(new Set());
@@ -277,6 +280,8 @@ export default function ListView({
           )}
         </div>
 
+        <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
+
         {reorder?.onAddSubtask && (
           <button
             type="button"
@@ -285,7 +290,7 @@ export default function ListView({
               event.stopPropagation();
               reorder.onAddSubtask?.();
             }}
-            className="inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-1 text-[11px] font-bold text-slate-400 opacity-0 transition hover:bg-[#DEEBFF] hover:text-[#0052CC] group-hover:opacity-100 focus:opacity-100"
+            className="inline-flex shrink-0 items-center gap-1 rounded bg-blue-50 px-1.5 py-1 text-[11px] font-bold text-[#0052CC] transition hover:bg-[#DEEBFF]"
           >
             <Plus className="h-3.5 w-3.5" />
             <span className="hidden xl:inline">Subtask</span>
@@ -524,12 +529,7 @@ export default function ListView({
 
             return (
               <div key={task.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-                {renderTaskRow(task, {
-                  onAddSubtask: () => {
-                    setActiveInlineCreatorId(task.id);
-                    setInlineTitle("");
-                  },
-                })}
+                {renderTaskRow(task)}
                 {children.length > 0 && (
                   <div className="ml-8 border-l-2 border-slate-200 bg-slate-50/40">
                     {children.map((child) => (
@@ -538,6 +538,19 @@ export default function ListView({
                       </div>
                     ))}
                   </div>
+                )}
+                {activeInlineCreatorId !== task.id && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveInlineCreatorId(task.id);
+                      setInlineTitle("");
+                    }}
+                    className="flex w-full items-center gap-1.5 border-t border-slate-200 bg-white px-4 py-2 text-left text-xs font-semibold text-slate-500 transition hover:bg-blue-50 hover:text-[#0052CC]"
+                  >
+                    <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    Tạo subtask
+                  </button>
                 )}
                 {activeInlineCreatorId === task.id && renderInlineCreator(task.id)}
               </div>
