@@ -12,11 +12,20 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { DocumentItem } from "@/features/documents/types/documents.types";
-import { DocumentItemType, DocumentRole } from "@/features/documents/types/documents.enums";
+import {
+  DocumentItemType,
+  DocumentRole,
+} from "@/features/documents/types/documents.enums";
 import { documentsApi } from "@/features/documents/api/documents.api";
-import { formatBytes, formatDateShort } from "@/features/documents/utils/documents.utils";
+import {
+  formatBytes,
+  formatDateShort,
+} from "@/features/documents/utils/documents.utils";
 import { toast } from "sonner";
-import { DownloadQueueProvider, useDownloadQueue } from "@/features/documents/components/download/download-queue-provider";
+import {
+  DownloadQueueProvider,
+  useDownloadQueue,
+} from "@/features/documents/components/download/download-queue-provider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,7 +60,10 @@ function SharedFolderBrowserInner({
     async (folderId: string) => {
       setIsLoading(true);
       try {
-        const items = await documentsApi.getPublicFolderChildren(rootId, folderId);
+        const items = await documentsApi.getPublicFolderChildren(
+          rootId,
+          folderId,
+        );
         setChildren(items);
       } catch (err) {
         console.error("Failed to load folder children", err);
@@ -92,7 +104,8 @@ function SharedFolderBrowserInner({
     }
   };
 
-  const isViewer = userRole === DocumentRole.VIEWER || userRole === DocumentRole.NONE;
+  const isViewer =
+    userRole === DocumentRole.VIEWER || userRole === DocumentRole.NONE;
 
   return (
     <div className="bg-white rounded-3xl border border-slate-100 shadow-lg overflow-hidden">
@@ -102,7 +115,9 @@ function SharedFolderBrowserInner({
         <div className="flex items-center gap-1 text-xs font-bold text-slate-500 overflow-x-auto min-w-0 flex-1">
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={crumb.id}>
-              {index > 0 && <ChevronRight size={12} className="text-slate-300 shrink-0" />}
+              {index > 0 && (
+                <ChevronRight size={12} className="text-slate-300 shrink-0" />
+              )}
               <button
                 onClick={() => handleBreadcrumbClick(index)}
                 className={
@@ -126,7 +141,7 @@ function SharedFolderBrowserInner({
 
         {/* Download Entire Folder */}
         <button
-          onClick={() => enqueueDownload(rootId, rootItem.name)}
+          onClick={() => enqueueDownload(rootId, rootItem.name, true)}
           className="flex items-center gap-1.5 ml-4 shrink-0 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 text-xs font-black shadow-md shadow-blue-500/20 cursor-pointer transition-all active:scale-98"
         >
           <FolderArchive size={13} />
@@ -194,7 +209,7 @@ function SharedFolderBrowserInner({
                 <div className="flex items-center gap-1 ml-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                   {isFolder ? (
                     <button
-                      onClick={() => enqueueDownload(item.id, item.name)}
+                      onClick={() => enqueueDownload(item.id, item.name, true)}
                       title="Tải xuống thư mục (ZIP)"
                       className="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-colors cursor-pointer"
                     >

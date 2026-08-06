@@ -102,3 +102,10 @@ export enum DocumentRole {
   VIEWER = "VIEWER",
   NONE = "NONE",
 }
+
+export enum DownloadStatus {
+  QUEUED = "queued",
+  DOWNLOADING = "downloading",
+  DONE = "done",
+  ERROR = "error",
+}

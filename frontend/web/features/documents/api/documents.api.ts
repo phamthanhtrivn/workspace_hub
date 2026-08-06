@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { store } from "@/store/store";
 import {
   DocumentItem,
   UserStorageQuota,
@@ -371,14 +372,71 @@ export const documentsApi = {
   ): Promise<void> => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
-      xhr.open("GET", `/api/documents/${id}/download-folder`, true);
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+      const normalizedApiBase = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
+      const url = `${normalizedApiBase}/api/documents/${id}/download-folder`;
+
+      xhr.open("GET", url, true);
       xhr.responseType = "blob";
+      xhr.withCredentials = true;
+
+      // Add Bearer token from Redux store if present
+      const token = store.getState().auth.accessToken;
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
 
       // Forward auth headers from axios defaults
       const axiosHeaders = api.defaults.headers.common as Record<string, string>;
       Object.entries(axiosHeaders).forEach(([key, value]) => {
         if (value) xhr.setRequestHeader(key, String(value));
       });
+
+      xhr.onprogress = (event) => {
+        if (event.lengthComputable && onProgress) {
+          onProgress(Math.round((event.loaded / event.total) * 100));
+        } else if (onProgress) {
+          // Indeterminate — pulse at received bytes
+          onProgress(-1);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          const blob = new Blob([xhr.response], { type: "application/zip" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${folderName}.zip`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          resolve();
+        } else {
+          reject(new Error(`Download failed: ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error during folder download"));
+      xhr.send();
+    });
+  },
+
+  downloadPublicFolderAsZip: (
+    id: string,
+    folderName: string,
+    onProgress?: (percent: number) => void,
+  ): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
+      const normalizedApiBase = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
+      const url = `${normalizedApiBase}/api/documents/public/${id}/download-folder`;
+
+      xhr.open("GET", url, true);
+      xhr.responseType = "blob";
+      xhr.withCredentials = true;
 
       xhr.onprogress = (event) => {
         if (event.lengthComputable && onProgress) {
