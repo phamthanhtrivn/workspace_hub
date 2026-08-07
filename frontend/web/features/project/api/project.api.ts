@@ -1,4 +1,6 @@
 import { api } from "@/lib/axios";
+import { type ApiResponse, unwrapApiResponse as unwrap } from "@/lib/api-response";
+import { DEFAULT_PROJECT_ICON } from "@/features/project/constants/project.constants";
 import {
   ProjectRole,
   ProjectStatus,
@@ -7,14 +9,6 @@ import {
   type Project,
   type ProjectMember,
 } from "@/features/project/types/project";
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  errors?: unknown;
-  timestamp?: string;
-}
 
 interface ProjectApiModel {
   id: string;
@@ -58,14 +52,6 @@ export interface UpdateProjectPayload {
   dueDate?: string | null;
 }
 
-function unwrap<T>(response: { data: ApiResponse<T> }): T {
-  if (!response.data.success) {
-    throw new Error(response.data.message || "API request failed");
-  }
-
-  return response.data.data;
-}
-
 function normalizeProject(project: ProjectApiModel): Project {
   const now = new Date().toISOString();
 
@@ -73,7 +59,7 @@ function normalizeProject(project: ProjectApiModel): Project {
     id: project.id,
     name: project.name,
     color: project.color || "#6366f1",
-    icon: project.icon || "📁",
+    icon: project.icon || DEFAULT_PROJECT_ICON,
     description: project.description || "",
     ownerId: project.ownerId,
     status: project.status,

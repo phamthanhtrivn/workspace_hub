@@ -1,16 +1,11 @@
 import { api } from "@/lib/axios";
+import type { ApiResponse } from "@/lib/api-response";
 
 export interface UserSearchResult {
   id: string;
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
 }
 
 export async function searchUsersByEmail(

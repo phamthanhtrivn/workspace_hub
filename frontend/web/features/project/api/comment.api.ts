@@ -1,11 +1,6 @@
 import { api } from "@/lib/axios";
 import { type TaskComment } from "@/features/project/types/project";
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
+import { type ApiResponse, unwrapApiResponse as unwrap } from "@/lib/api-response";
 
 interface TaskCommentApiModel {
   id: string;
@@ -23,13 +18,6 @@ export interface CreateTaskCommentPayload {
 
 export interface UpdateTaskCommentPayload {
   content: string;
-}
-
-function unwrap<T>(response: { data: ApiResponse<T> }): T {
-  if (!response.data.success) {
-    throw new Error(response.data.message || "Comment API request failed");
-  }
-  return response.data.data;
 }
 
 function normalizeComment(comment: TaskCommentApiModel): TaskComment {

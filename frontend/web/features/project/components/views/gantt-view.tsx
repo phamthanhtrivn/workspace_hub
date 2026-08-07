@@ -6,17 +6,11 @@ import {
   TaskStatus,
   type TaskDependency,
 } from "@/features/project/types/project";
+import { dateKey, toLocalDate } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 const DAY_WIDTH = 44;
 const LABEL_WIDTH = 250;
-
-function toLocalDate(value: string): Date {
-  return new Date(`${value.slice(0, 10)}T00:00:00`);
-}
-
-function dateKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
 
 function addDays(date: Date, amount: number): Date {
   const next = new Date(date);
@@ -212,10 +206,18 @@ export default function GanttView({
                   }}
                 >
                   <span
-                    className={`flex min-w-0 items-center gap-2 border-r border-slate-200 px-4 py-3 ${isSubtask ? "pl-9" : ""}`}
+                    className={cn(
+                      "flex min-w-0 items-center gap-2 border-r border-slate-200 px-4 py-3",
+                      isSubtask && "pl-9",
+                    )}
                   >
                     <span
-                      className={`h-2 w-2 shrink-0 rounded-full ${task.status === TaskStatus.DONE ? "bg-emerald-500" : "bg-slate-300"}`}
+                      className={cn(
+                        "h-2 w-2 shrink-0 rounded-full",
+                        task.status === TaskStatus.DONE
+                          ? "bg-emerald-500"
+                          : "bg-slate-300",
+                      )}
                     />
                     <span className="min-w-0 truncate text-xs font-bold text-[#172B4D]">
                       {task.title}
@@ -251,7 +253,10 @@ export default function GanttView({
                       />
                     )}
                     <span
-                      className={`absolute top-1/2 h-6 -translate-y-1/2 rounded-md px-2 text-[10px] font-bold leading-6 text-white shadow-sm ${barColor(task.status)}`}
+                      className={cn(
+                        "absolute top-1/2 h-6 -translate-y-1/2 rounded-md px-2 text-[10px] font-bold leading-6 text-white shadow-sm",
+                        barColor(task.status),
+                      )}
                       style={{ left: `${left}px`, width: `${width}px` }}
                       title={`${task.title}: ${formatRange(start, end)}`}
                     >

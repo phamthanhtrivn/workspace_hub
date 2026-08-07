@@ -1,5 +1,6 @@
 import { Code2, ListTodo } from "lucide-react";
 import { ProjectType } from "@/features/project/types/project";
+import { cn } from "@/lib/utils";
 
 const typeConfig = {
   [ProjectType.GENERAL]: {
@@ -29,7 +30,11 @@ export function ProjectTypeBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 ${compact ? "text-[10px]" : "text-xs"} font-bold ${config.className}`}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-bold",
+        compact ? "text-[10px]" : "text-xs",
+        config.className,
+      )}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
       {config.label}

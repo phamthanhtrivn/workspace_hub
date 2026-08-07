@@ -1,12 +1,7 @@
 import { api } from "@/lib/axios";
+import { type ApiResponse, unwrapApiResponse as unwrap } from "@/lib/api-response";
 import { SprintStatus, type Sprint } from "@/features/project/types/project";
 import { normalizeTask, type TaskApiModel } from "./task.api";
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
 
 interface SprintApiModel {
   id: string;
@@ -32,12 +27,6 @@ export interface CreateSprintPayload {
 }
 
 export type UpdateSprintPayload = CreateSprintPayload;
-
-function unwrap<T>(response: { data: ApiResponse<T> }): T {
-  if (!response.data.success)
-    throw new Error(response.data.message || "Sprint API request failed");
-  return response.data.data;
-}
 
 function normalizeSprint(sprint: SprintApiModel): Sprint {
   return {

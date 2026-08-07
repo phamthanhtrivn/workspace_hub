@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { Download, FilePlus2, FileText, Trash2, UploadCloud, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface ProjectFileItem {
   id: string;
@@ -33,9 +34,12 @@ export function FilePickerButton({ label = "Thêm file", onFiles, compact = fals
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
-        className={`inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white font-bold text-blue-700 shadow-sm transition hover:bg-blue-50 ${compact ? "px-2 py-1 text-[11px]" : "px-3 py-2 text-xs"}`}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white font-bold text-blue-700 shadow-sm transition hover:bg-blue-50",
+          compact ? "px-2 py-1 text-[11px]" : "px-3 py-2 text-xs",
+        )}
       >
-        <FilePlus2 className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+        <FilePlus2 className={cn(compact ? "h-3.5 w-3.5" : "h-4 w-4")} />
         {label}
       </button>
       <input

@@ -48,25 +48,25 @@ import {
   useDeleteTaskDependency,
   useProjectDependencies,
 } from "@/features/project/hooks/use-dependencies";
-import { ProjectTypeBadge } from "@/features/project/components/project-type-badge";
-import type { SprintCreateValues } from "@/features/project/components/software-backlog-view";
-import type { SprintFormValues } from "@/features/project/components/sprint-edit-dialog";
-import ProjectMembersPanel from "@/features/project/components/project-members-panel";
-import ProjectSidebar from "@/features/project/components/project-sidebar";
-import ProjectFiltersToolbar from "@/features/project/components/project-filters-toolbar";
-import ProjectViewContent from "@/features/project/components/project-view-content";
+import { ProjectTypeBadge } from "@/features/project/components/shared/project-type-badge";
+import ProjectMembersPanel from "@/features/project/components/project/project-members-panel";
+import ProjectSidebar from "@/features/project/components/project/project-sidebar";
+import ProjectFiltersToolbar from "@/features/project/components/project/project-filters-toolbar";
+import ProjectViewContent from "@/features/project/components/project/project-view-content";
 import ProjectTaskOverlays, {
   TaskDetailPanel,
-} from "@/features/project/components/project-task-overlays";
+} from "@/features/project/components/task/project-task-overlays";
 import {
   ArrowLeft,
   Plus,
   Users,
   ChevronRight,
+  Inbox,
 } from "lucide-react";
-import { getProjectKey } from "../page";
+import { getProjectKey } from "@/features/project/utils/project.utils";
 import { useProjectRealtime } from "@/features/project/hooks/use-project-realtime";
 import { useProjectTaskActions } from "@/features/project/hooks/use-project-task-actions";
+import { useProjectSprintActions } from "@/features/project/hooks/use-project-sprint-actions";
 
 type ViewMode = "summary" | "board" | "list" | "calendar" | "gantt" | "members";
 
@@ -286,6 +286,48 @@ export default function ProjectDetailPage() {
     });
   }, [tasks, searchQuery, activeAssigneeFilters, onlyMyIssues, currentUserId]);
 
+  const {
+    handleEditGroup,
+    handleSprintSubmit,
+    handleDeleteGroup,
+    handleReorderTasks,
+    handleCreateTaskInline,
+    handleCreateSprintTask,
+    openCreateTask,
+    handleCreateSprint,
+    handleAddTasksToSprint,
+    handleBulkUpdateTasks,
+    handleUpdateSprint,
+    handleStartSprint,
+    handleCompleteSprint,
+    handleReopenSprint,
+    handleRemoveTaskFromSprint,
+  } = useProjectSprintActions({
+    tasks,
+    isSoftwareProject: project?.projectType === ProjectType.SOFTWARE_DEVELOPMENT,
+    editingSprint,
+    createTaskMutation,
+    updateTaskMutation,
+    addTasksToSprintMutation,
+    createSprintMutation,
+    updateSprintMutation,
+    startSprintMutation,
+    completeSprintMutation,
+    reopenSprintMutation,
+    removeTaskFromSprintMutation,
+    setSelectedTask,
+    setEditingSprint,
+    setEditingTask,
+    setShowTaskForm,
+    setNewTaskStatus,
+    setNewTaskStartDate,
+    setNewTaskAllDay,
+    setNewTaskParentId,
+    setNewTaskSprintId,
+    setNewTaskIsParentTask,
+  });
+
+
   if (isLoading) {
     return (
       <div className="py-24 text-center text-sm font-semibold text-slate-400">
@@ -298,7 +340,7 @@ export default function ProjectDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="grid h-16 w-16 place-items-center rounded-2xl bg-slate-100 text-2xl">
-          📭
+          <Inbox className="h-8 w-8 text-slate-400" strokeWidth={1.7} />
         </div>
         <p className="mt-4 text-sm font-bold text-slate-600">
           Không tìm thấy dự án
@@ -384,267 +426,6 @@ export default function ProjectDetailPage() {
     }
   };
 
-
-  const handleEditGroup = (group: Task) => {
-    setSelectedTask(null);
-    setEditingSprint(group);
-  };
-
-  const handleSprintSubmit = async (values: SprintFormValues) => {
-    if (!editingSprint) return;
-
-    try {
-      await updateTaskMutation.mutateAsync({
-        taskId: editingSprint.id,
-        payload: {
-          title: values.name,
-          startDate: values.startDate,
-          dueDate: values.endDate,
-          description: values.goal,
-          allDay: false,
-          autoCompleteSprint: values.autoCompleteSprint,
-        },
-      });
-      setEditingSprint(null);
-      toast.success("Cập nhật sprint thành công");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể cập nhật sprint",
-      );
-    }
-  };
-
-  const handleDeleteGroup = async (group: Task) => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        `Xóa nhóm "${group.title}"? Các task bên trong sẽ được chuyển về Backlog.`,
-      )
-    ) {
-      return;
-    }
-
-    try {
-      const children = tasks.filter((task) => task.parentTaskId === group.id);
-      await Promise.all(
-        children.map((task) =>
-          updateTaskMutation.mutateAsync({
-            taskId: task.id,
-            payload: { clearParent: true },
-          }),
-        ),
-      );
-      await updateTaskMutation.mutateAsync({
-        taskId: group.id,
-        payload: { archived: true, isParentTask: false },
-      });
-      setSelectedTask(null);
-      toast.success("Đã xóa sprint và chuyển task về Backlog");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể xóa sprint",
-      );
-    }
-  };
-
-  const handleReorderTasks = async (group: Task, orderedTasks: Task[]) => {
-    try {
-      await Promise.all(
-        orderedTasks.map((task, index) =>
-          updateTaskMutation.mutateAsync({
-            taskId: task.id,
-            payload: { rank: String((index + 1) * 1000) },
-          }),
-        ),
-      );
-      toast.success(`Đã sắp xếp lại work items trong "${group.title}"`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể sắp xếp work items",
-      );
-    }
-  };
-
-  const handleCreateTaskInline = async (
-    title: string,
-    parentTaskId?: string,
-    isParentTask = false,
-  ) => {
-    try {
-      const payload = {
-        title: title.trim(),
-        ...(parentTaskId ? { parentTaskId } : {}),
-        ...(isParentTask ? { isParentTask: true } : {}),
-      };
-
-      await createTaskMutation.mutateAsync({
-        ...payload,
-      });
-      toast.success("Tạo công việc thành công");
-      // Axios errors expose response data at runtime; keep this boundary permissive.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      // Extract backend error message from Axios response
-      const backendMessage =
-        error?.response?.data?.message ||
-        (error instanceof Error ? error.message : "Không thể tạo công việc");
-      toast.error(backendMessage);
-      console.error("Create task error:", error?.response?.data || error);
-    }
-  };
-
-  const handleCreateSprintTask = async (sprintId: string, title: string) => {
-    try {
-      const createdTask = await createTaskMutation.mutateAsync({
-        title,
-        status: TaskStatus.TODO,
-      });
-      await addTasksToSprintMutation.mutateAsync({
-        sprintId,
-        taskIds: [createdTask.id],
-      });
-      toast.success("Tạo task trong Sprint thành công");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Không thể tạo task trong Sprint",
-      );
-      throw error;
-    }
-  };
-
-  const openCreateTask = (
-    status: TaskStatus = TaskStatus.TODO,
-    startDate?: string,
-    allDay = false,
-    parentTaskId?: string,
-    sprintId?: string,
-  ) => {
-    setEditingTask(null);
-    setNewTaskStatus(status);
-    setNewTaskStartDate(startDate);
-    setNewTaskAllDay(allDay);
-    setNewTaskParentId(parentTaskId);
-    setNewTaskSprintId(sprintId);
-    setNewTaskIsParentTask(!isSoftwareProject && !parentTaskId);
-    setShowTaskForm(true);
-  };
-
-  const handleCreateSprint = async (values: SprintCreateValues) => {
-    try {
-      await createSprintMutation.mutateAsync(values);
-      toast.success("Tạo Sprint thành công");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể tạo Sprint",
-      );
-      throw error;
-    }
-  };
-
-  const handleAddTasksToSprint = async (
-    sprintId: string,
-    taskIds: string[],
-  ) => {
-    try {
-      await addTasksToSprintMutation.mutateAsync({ sprintId, taskIds });
-      toast.success("Đã đưa task vào Sprint");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Không thể đưa task vào Sprint",
-      );
-      throw error;
-    }
-  };
-
-  const handleBulkUpdateTasks = async (
-    taskIds: string[],
-    status: TaskStatus,
-  ) => {
-    try {
-      await Promise.all(
-        taskIds.map((taskId) =>
-          updateTaskMutation.mutateAsync({ taskId, payload: { status } }),
-        ),
-      );
-      toast.success(`Đã cập nhật ${taskIds.length} task`);
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Không thể cập nhật hàng loạt task",
-      );
-      throw error;
-    }
-  };
-
-  const handleUpdateSprint = async (
-    sprintId: string,
-    values: SprintCreateValues,
-  ) => {
-    try {
-      await updateSprintMutation.mutateAsync({ sprintId, payload: values });
-      toast.success("Đã cập nhật Sprint");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể cập nhật Sprint",
-      );
-      throw error;
-    }
-  };
-
-  const handleStartSprint = async (sprintId: string) => {
-    try {
-      await startSprintMutation.mutateAsync(sprintId);
-      toast.success("Đã Start Sprint");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể Start Sprint",
-      );
-    }
-  };
-
-  const handleCompleteSprint = async (sprintId: string) => {
-    try {
-      await completeSprintMutation.mutateAsync(sprintId);
-      toast.success("Đã Complete Sprint; task chưa xong quay lại Backlog");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể Complete Sprint",
-      );
-    }
-  };
-
-  const handleReopenSprint = async (sprintId: string) => {
-    try {
-      await reopenSprintMutation.mutateAsync(sprintId);
-      toast.success("Đã mở lại Sprint ở trạng thái Planned");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể mở lại Sprint",
-      );
-    }
-  };
-
-  const handleRemoveTaskFromSprint = async (
-    sprintId: string,
-    taskId: string,
-  ) => {
-    try {
-      await removeTaskFromSprintMutation.mutateAsync({ sprintId, taskId });
-      toast.success("Đã đưa task về Backlog");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Không thể đưa task về Backlog",
-      );
-      throw error;
-    }
-  };
 
   const toggleAssigneeFilter = (userId: string) => {
     setActiveAssigneeFilters((prev) =>

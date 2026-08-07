@@ -17,7 +17,8 @@ import {
   type Task,
   type Sprint,
 } from "@/features/project/types/project";
-import SprintMetricsView from "./sprint-metrics-view";
+import SprintMetricsView from "../sprint/sprint-metrics-view";
+import { cn } from "@/lib/utils";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -67,7 +68,7 @@ function MetricCard({
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className={`grid h-9 w-9 place-items-center rounded-md ${color}`}>
+      <div className={cn("grid h-9 w-9 place-items-center rounded-md", color)}>
         <Icon className="h-5 w-5" />
       </div>
       <p className="mt-3 text-2xl font-bold text-[#172B4D]">{value}</p>
@@ -348,7 +349,7 @@ export default function SummaryView({
                 <span className="text-slate-600">{item.label}</span>
                 <div className="h-5 rounded-sm bg-slate-100">
                   <div
-                    className={`h-5 rounded-sm ${item.color}`}
+                    className={cn("h-5 rounded-sm", item.color)}
                     style={{ width: `${(item.value / maxPriority) * 100}%` }}
                   />
                 </div>

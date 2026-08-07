@@ -1,17 +1,6 @@
 import { api } from "@/lib/axios";
 import type { TaskLabel } from "@/features/project/types/project";
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
-
-function unwrap<T>(response: { data: ApiResponse<T> }): T {
-  if (!response.data.success)
-    throw new Error(response.data.message || "Label API request failed");
-  return response.data.data;
-}
+import { type ApiResponse, unwrapApiResponse as unwrap } from "@/lib/api-response";
 
 export interface LabelPayload {
   name: string;

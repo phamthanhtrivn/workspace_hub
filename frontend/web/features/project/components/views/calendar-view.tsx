@@ -3,15 +3,10 @@
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
 import { TaskStatus, type Task } from "@/features/project/types/project";
+import { dateKey } from "@/lib/date";
+import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
-
-function dateKey(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function valueDateKey(value?: string): string | undefined {
   return value?.slice(0, 10);
@@ -133,7 +128,7 @@ export default function CalendarView({
               key={status.label}
               className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-500"
             >
-              <span className={`h-2 w-2 rounded-full ${status.dot}`} />
+              <span className={cn("h-2 w-2 rounded-full", status.dot)} />
               {status.label}
             </span>
           ))}
@@ -185,19 +180,21 @@ export default function CalendarView({
           return (
             <div
               key={key}
-              className={`group min-h-32 border-b border-r border-slate-100 p-2 last:border-r-0 sm:min-h-36 ${
-                isCurrentMonth ? "bg-white" : "bg-slate-50/60"
-              }`}
+              className={cn(
+                "group min-h-32 border-b border-r border-slate-100 p-2 last:border-r-0 sm:min-h-36",
+                isCurrentMonth ? "bg-white" : "bg-slate-50/60",
+              )}
             >
               <div className="flex items-center justify-between">
                 <span
-                  className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${
+                  className={cn(
+                    "grid h-7 w-7 place-items-center rounded-full text-xs font-bold",
                     isToday
                       ? "bg-[var(--color-primary-dark)] text-white"
                       : isCurrentMonth
                         ? "text-slate-600"
-                        : "text-slate-300"
-                  }`}
+                        : "text-slate-300",
+                  )}
                 >
                   {date.getDate()}
                 </span>
@@ -219,11 +216,17 @@ export default function CalendarView({
                     key={`${key}-${task.id}`}
                     type="button"
                     onClick={() => onTaskClick?.(task)}
-                    className={`w-full rounded-lg border px-2 py-1.5 text-left shadow-sm transition hover:border-[var(--color-secondary)] hover:shadow-md ${statusColors[task.status].card}`}
+                    className={cn(
+                      "w-full rounded-lg border px-2 py-1.5 text-left shadow-sm transition hover:border-[var(--color-secondary)] hover:shadow-md",
+                      statusColors[task.status].card,
+                    )}
                   >
                     <div className="flex items-center gap-1.5">
                       <span
-                        className={`h-2 w-2 shrink-0 rounded-full ${statusColors[task.status].dot}`}
+                        className={cn(
+                          "h-2 w-2 shrink-0 rounded-full",
+                          statusColors[task.status].dot,
+                        )}
                       />
                       <p className="truncate text-[11px] font-bold text-[var(--color-primary-dark)]">
                         {task.title}

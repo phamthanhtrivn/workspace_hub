@@ -6,10 +6,11 @@ import {
   type ProjectMember,
   ProjectRole,
 } from "@/features/project/types/project";
-import { Avatar } from "./avatar-stack";
+import { Avatar } from "../shared/avatar-stack";
 import InviteMemberDialog from "./invite-member-dialog";
 import { useRemoveProjectMember } from "@/features/project/hooks/use-project-members";
 import { Crown, Shield, Trash2, User, UserPlus } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const ROLE_CONFIG: Record<
   ProjectRole,
@@ -88,7 +89,7 @@ export default function ProjectMembersPanel({
                   {member.displayName}
                 </p>
                 <span
-                  className={`inline-flex items-center gap-1 text-[10px] font-bold ${roleCfg.color}`}
+                  className={cn("inline-flex items-center gap-1 text-[10px] font-bold", roleCfg.color)}
                 >
                   <RoleIcon className="h-2.5 w-2.5" strokeWidth={2.5} />
                   {roleCfg.label}

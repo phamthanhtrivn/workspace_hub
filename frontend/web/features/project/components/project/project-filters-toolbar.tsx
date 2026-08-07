@@ -2,7 +2,7 @@
 
 import { Search } from "lucide-react";
 import { ProjectType, TaskStatus, type ProjectMember, type Task } from "@/features/project/types/project";
-import { AvatarStack } from "./avatar-stack";
+import { AvatarStack } from "../shared/avatar-stack";
 
 interface ProjectFiltersToolbarProps {
   projectType: ProjectType;

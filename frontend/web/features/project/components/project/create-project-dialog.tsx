@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { Code2, ListTodo, X } from "lucide-react";
 import { ProjectTemplate, ProjectType } from "@/features/project/types/project";
+import {
+  PROJECT_ICONS,
+  type ProjectIcon,
+} from "@/features/project/constants/project.constants";
 
 const COLOR_OPTIONS = [
   "#6366f1",
@@ -15,25 +19,6 @@ const COLOR_OPTIONS = [
   "#14b8a6",
   "#f97316",
   "#64748b",
-];
-
-const ICON_OPTIONS = [
-  "🚀",
-  "📚",
-  "📊",
-  "💡",
-  "🎯",
-  "🔧",
-  "📝",
-  "🎨",
-  "⚡",
-  "🏆",
-  "💼",
-  "🎓",
-  "🧪",
-  "📱",
-  "🌐",
-  "🔒",
 ];
 
 interface CreateProjectDialogProps {
@@ -57,7 +42,7 @@ export default function CreateProjectDialog({
 }: CreateProjectDialogProps) {
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
-  const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
+  const [selectedIcon, setSelectedIcon] = useState<ProjectIcon>(PROJECT_ICONS[0]);
   const [projectType, setProjectType] = useState(ProjectType.GENERAL);
   const [template, setTemplate] = useState(ProjectTemplate.EMPTY);
 
@@ -213,7 +198,7 @@ export default function CreateProjectDialog({
               Icon
             </label>
             <div className="mt-2 flex flex-wrap gap-2">
-              {ICON_OPTIONS.map((icon) => (
+              {PROJECT_ICONS.map((icon) => (
                 <button
                   key={icon}
                   type="button"

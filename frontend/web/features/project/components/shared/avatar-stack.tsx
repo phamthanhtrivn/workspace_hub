@@ -1,10 +1,20 @@
 "use client";
 
+import { cn } from "@/lib/utils";
+
 interface AvatarItem {
   userId: string;
   displayName: string;
   avatarUrl?: string;
 }
+
+type AvatarSize = "xs" | "sm" | "md";
+
+const AVATAR_SIZE_CLASSES: Record<AvatarSize, string> = {
+  xs: "h-6 w-6 text-[9px]",
+  sm: "h-8 w-8 text-[10px]",
+  md: "h-10 w-10 text-xs",
+};
 
 const PALETTE = [
   "bg-indigo-500",
@@ -39,21 +49,15 @@ export function Avatar({
   size = "sm",
 }: {
   user: AvatarItem;
-  size?: "xs" | "sm" | "md";
+  size?: AvatarSize;
 }) {
-  const sizeClasses = {
-    xs: "h-6 w-6 text-[9px]",
-    sm: "h-8 w-8 text-[10px]",
-    md: "h-10 w-10 text-xs",
-  };
-
   if (user.avatarUrl) {
     return (
       <img
         src={user.avatarUrl}
         alt={user.displayName}
         title={user.displayName}
-        className={`${sizeClasses[size]} shrink-0 rounded-full object-cover ring-2 ring-white`}
+        className={cn(AVATAR_SIZE_CLASSES[size], "shrink-0 rounded-full object-cover ring-2 ring-white")}
       />
     );
   }
@@ -61,7 +65,7 @@ export function Avatar({
   return (
     <span
       title={user.displayName}
-      className={`${sizeClasses[size]} ${colorForUser(user.userId)} inline-grid shrink-0 place-items-center rounded-full font-bold text-white ring-2 ring-white`}
+      className={cn(AVATAR_SIZE_CLASSES[size], colorForUser(user.userId), "inline-grid shrink-0 place-items-center rounded-full font-bold text-white ring-2 ring-white")}
     >
       {getInitials(user.displayName)}
     </span>
@@ -75,16 +79,10 @@ export function AvatarStack({
 }: {
   users: AvatarItem[];
   max?: number;
-  size?: "xs" | "sm" | "md";
+  size?: AvatarSize;
 }) {
   const visible = users.slice(0, max);
   const remaining = users.length - max;
-
-  const sizeClasses = {
-    xs: "h-6 w-6 text-[9px]",
-    sm: "h-8 w-8 text-[10px]",
-    md: "h-10 w-10 text-xs",
-  };
 
   return (
     <div className="flex items-center -space-x-2">
@@ -93,7 +91,7 @@ export function AvatarStack({
       ))}
       {remaining > 0 && (
         <span
-          className={`${sizeClasses[size]} inline-grid shrink-0 place-items-center rounded-full bg-slate-200 font-bold text-slate-600 ring-2 ring-white`}
+          className={cn(AVATAR_SIZE_CLASSES[size], "inline-grid shrink-0 place-items-center rounded-full bg-slate-200 font-bold text-slate-600 ring-2 ring-white")}
         >
           +{remaining}
         </span>

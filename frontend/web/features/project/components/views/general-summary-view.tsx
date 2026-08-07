@@ -15,7 +15,8 @@ import {
   type ProjectMember,
   type Task,
 } from "@/features/project/types/project";
-import { TaskStatusBadge } from "./status-badge";
+import { TaskStatusBadge } from "../shared/status-badge";
+import { cn } from "@/lib/utils";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -68,7 +69,7 @@ function Metric({
 }) {
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className={`grid h-9 w-9 place-items-center rounded-md ${color}`}>
+      <div className={cn("grid h-9 w-9 place-items-center rounded-md", color)}>
         <Icon className="h-5 w-5" />
       </div>
       <p className="mt-3 text-2xl font-bold text-[#172B4D]">{value}</p>
@@ -297,7 +298,7 @@ export default function GeneralSummaryView({
                 <span className="text-slate-600">{item.label}</span>
                 <div className="h-5 rounded-sm bg-slate-100">
                   <div
-                    className={`h-5 rounded-sm ${item.color}`}
+                    className={cn("h-5 rounded-sm", item.color)}
                     style={{
                       width: `${(item.value.length / maxPriority) * 100}%`,
                     }}

@@ -6,10 +6,11 @@ import {
   ProjectType,
   TaskStatus,
 } from "@/features/project/types/project";
-import { TaskStatusBadge, LabelBadge } from "./status-badge";
-import { Avatar } from "./avatar-stack";
-import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "./task-card";
-import TaskChatButton from "./task-chat-button";
+import { TaskStatusBadge, LabelBadge } from "../shared/status-badge";
+import { Avatar } from "../shared/avatar-stack";
+import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "../task/task-card";
+import TaskChatButton from "../task/task-chat-button";
+import { cn } from "@/lib/utils";
 import {
   Calendar,
   ChevronDown,
@@ -284,7 +285,10 @@ export default function ListView({
         <div className="shrink-0 w-20 text-right">
           {task.dueDate ? (
             <span
-              className={`inline-flex items-center gap-1 text-[11px] font-semibold px-1 rounded ${overdue ? "text-[#DE350B] bg-red-50" : "text-slate-500 bg-slate-100"}`}
+              className={cn(
+                "inline-flex items-center gap-1 text-[11px] font-semibold px-1 rounded",
+                overdue ? "text-[#DE350B] bg-red-50" : "text-slate-500 bg-slate-100",
+              )}
             >
               <Calendar className="h-3 w-3" />
               {formatDate(task.dueDate)}
@@ -377,7 +381,12 @@ export default function ListView({
             type="button"
             onClick={() => void handleInlineSubmit(parentTaskId, isParentTask)}
             disabled={!inlineTitle.trim()}
-            className={`rounded px-3 py-1.5 text-xs font-bold transition ${inlineTitle.trim() ? "bg-[#0052CC] text-white hover:bg-[#0747A6]" : "bg-slate-100 text-slate-400 cursor-not-allowed"}`}
+            className={cn(
+              "rounded px-3 py-1.5 text-xs font-bold transition",
+              inlineTitle.trim()
+                ? "bg-[#0052CC] text-white hover:bg-[#0747A6]"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed",
+            )}
           >
             Tạo
           </button>

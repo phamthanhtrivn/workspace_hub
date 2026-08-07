@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
+import { cn } from "@/lib/utils";
 import {
   type Task,
   TaskStatus,
@@ -20,8 +21,8 @@ import {
   useUpdateTaskComment,
 } from "@/features/project/hooks/use-comments";
 import { useTaskActivities } from "@/features/project/hooks/use-tasks";
-import { TaskStatusBadge, LabelBadge } from "./status-badge";
-import { Avatar } from "./avatar-stack";
+import { TaskStatusBadge, LabelBadge } from "../shared/status-badge";
+import { Avatar } from "../shared/avatar-stack";
 import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "./task-card";
 import TaskChatButton from "./task-chat-button";
 import {
@@ -617,7 +618,12 @@ export default function TaskDetailDrawer({
                         className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50"
                       >
                         <span
-                          className={`grid h-3.5 w-3.5 place-items-center rounded border ${attached ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300"}`}
+                          className={cn(
+                            "grid h-3.5 w-3.5 place-items-center rounded border",
+                            attached
+                              ? "border-blue-600 bg-blue-600 text-white"
+                              : "border-slate-300",
+                          )}
                         >
                           {attached && <Check className="h-2.5 w-2.5" />}
                         </span>

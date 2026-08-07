@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { type ApiResponse, unwrapApiResponse as unwrap } from "@/lib/api-response";
 import {
   TaskPriority,
   TaskStatus,
@@ -8,12 +9,6 @@ import {
   type TaskLabel,
   type TaskActivity,
 } from "@/features/project/types/project";
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
 
 export interface TaskApiModel {
   id: string;
@@ -76,14 +71,6 @@ export interface UpdateTaskPayload {
   clearParent?: boolean;
   isParentTask?: boolean;
   autoCompleteSprint?: boolean;
-}
-
-function unwrap<T>(response: { data: ApiResponse<T> }): T {
-  if (!response.data.success) {
-    throw new Error(response.data.message || "Task API request failed");
-  }
-
-  return response.data.data;
 }
 
 export function normalizeTask(task: TaskApiModel): Task {

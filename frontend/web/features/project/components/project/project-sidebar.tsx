@@ -12,7 +12,8 @@ import {
   Users,
 } from "lucide-react";
 import { ProjectType, type Project, type ProjectMember } from "@/features/project/types/project";
-import { ProjectTypeBadge } from "./project-type-badge";
+import { ProjectTypeBadge } from "../shared/project-type-badge";
+import { DEFAULT_PROJECT_ICON } from "@/features/project/constants/project.constants";
 
 export type ProjectViewMode = "summary" | "board" | "list" | "calendar" | "gantt" | "members";
 
@@ -60,7 +61,7 @@ export default function ProjectSidebar({
             className="grid h-9 w-9 shrink-0 place-items-center rounded bg-white text-lg border border-slate-200 font-bold"
             style={{ color: project.color }}
           >
-            {project.icon || "📁"}
+          {project.icon || DEFAULT_PROJECT_ICON}
           </span>
           <div className="min-w-0">
             <h2 className="truncate text-sm font-semibold text-[#172B4D]">{project.name}</h2>

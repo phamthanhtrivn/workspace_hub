@@ -8,14 +8,14 @@ import {
   type Task,
   type TaskDependency,
 } from "@/features/project/types/project";
-import BoardView from "./board-view";
-import CalendarView from "./calendar-view";
-import GanttView from "./gantt-view";
-import GeneralSummaryView from "./general-summary-view";
-import ListView from "./list-view";
+import BoardView from "../views/board-view";
+import CalendarView from "../views/calendar-view";
+import GanttView from "../views/gantt-view";
+import GeneralSummaryView from "../views/general-summary-view";
+import ListView from "../views/list-view";
 import ProjectMembersPanel from "./project-members-panel";
-import SoftwareBacklogView, { type SprintCreateValues } from "./software-backlog-view";
-import SummaryView from "./summary-view";
+import SoftwareBacklogView, { type SprintCreateValues } from "../sprint/software-backlog-view";
+import SummaryView from "../views/summary-view";
 import { type ProjectViewMode } from "./project-sidebar";
 
 interface ProjectViewContentProps {

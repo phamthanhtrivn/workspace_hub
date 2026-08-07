@@ -2,8 +2,9 @@
 
 import { type Task, TaskStatus } from "@/features/project/types/project";
 import { getTasksByStatus } from "@/lib/mock-data";
-import TaskCard from "./task-card";
+import TaskCard from "../task/task-card";
 import { Plus, Circle, Loader2, Eye, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const COLUMNS: {
   status: TaskStatus;
@@ -77,12 +78,16 @@ export default function BoardView({
             <div className="flex items-center justify-between px-2 pb-2.5 pt-1">
               <div className="flex items-center gap-2">
                 <h3
-                  className={`text-xs font-bold tracking-wider ${col.headerColor}`}
+                  className={cn("text-xs font-bold tracking-wider", col.headerColor)}
                 >
                   {col.label}
                 </h3>
                 <span
-                  className={`inline-flex items-center justify-center h-5 px-1.5 rounded-full text-[10px] font-bold ${col.badgeBg} ${col.badgeText}`}
+                  className={cn(
+                    "inline-flex items-center justify-center h-5 px-1.5 rounded-full text-[10px] font-bold",
+                    col.badgeBg,
+                    col.badgeText,
+                  )}
                 >
                   {columnTasks.length}
                 </span>

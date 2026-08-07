@@ -8,41 +8,45 @@ import {
   ChevronRight,
   MoreHorizontal,
   Settings,
+  FolderOpen,
 } from "lucide-react";
-import { ProjectStatus } from "@/features/project/types/project";
-import CreateProjectDialog from "@/features/project/components/create-project-dialog";
-import { ProjectStatusBadge } from "@/features/project/components/status-badge";
-import { ProjectTypeBadge } from "@/features/project/components/project-type-badge";
-import { Avatar } from "@/features/project/components/avatar-stack";
+import {
+  ProjectRole,
+  ProjectStatus,
+  TaskStatus,
+} from "@/features/project/types/project";
+import { ProjectFilter } from "@/features/project/types/project.enums";
+import CreateProjectDialog from "@/features/project/components/project/create-project-dialog";
+import { ProjectStatusBadge } from "@/features/project/components/shared/status-badge";
+import { ProjectTypeBadge } from "@/features/project/components/shared/project-type-badge";
+import { Avatar } from "@/features/project/components/shared/avatar-stack";
 import {
   useCreateProject,
   useProjects,
 } from "@/features/project/hooks/use-projects";
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "react-toastify";
+import { getProjectKey } from "@/features/project/utils/project.utils";
+import { DEFAULT_PROJECT_ICON } from "@/features/project/constants/project.constants";
 
 const FILTER_TABS = [
-  { key: "ALL", label: "Tất cả dự án" },
-  { key: ProjectStatus.ACTIVE, label: "Đang hoạt động" },
-  { key: ProjectStatus.ON_HOLD, label: "Tạm dừng" },
-  { key: ProjectStatus.COMPLETED, label: "Hoàn thành" },
+  { key: ProjectFilter.ALL, label: "Tất cả dự án" },
+  { key: ProjectFilter.ACTIVE, label: "Đang hoạt động" },
+  { key: ProjectFilter.ON_HOLD, label: "Tạm dừng" },
+  { key: ProjectFilter.COMPLETED, label: "Hoàn thành" },
 ] as const;
 
-// Helper to get Project Key (first letter of each word, up to 4 chars)
-export function getProjectKey(name: string): string {
-  return (
-    name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .replace(/[^A-Za-z0-9]/g, "")
-      .toUpperCase()
-      .slice(0, 4) || "PRJ"
-  );
-}
+const PROJECT_STATUS_BY_FILTER: Record<ProjectFilter, ProjectStatus | undefined> = {
+  [ProjectFilter.ALL]: undefined,
+  [ProjectFilter.ACTIVE]: ProjectStatus.ACTIVE,
+  [ProjectFilter.ON_HOLD]: ProjectStatus.ON_HOLD,
+  [ProjectFilter.COMPLETED]: ProjectStatus.COMPLETED,
+};
 
 export default function ProjectsPage() {
-  const [activeFilter, setActiveFilter] = useState<string>("ALL");
+  const [activeFilter, setActiveFilter] = useState<ProjectFilter>(
+    ProjectFilter.ALL,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const { data: projects = [], isLoading, isError } = useProjects();
@@ -50,10 +54,11 @@ export default function ProjectsPage() {
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
+      const statusFilter = PROJECT_STATUS_BY_FILTER[activeFilter];
       const matchesFilter =
-        activeFilter === "ALL"
+        statusFilter === undefined
           ? !p.archived
-          : p.status === activeFilter && !p.archived;
+          : p.status === statusFilter && !p.archived;
       const matchesSearch =
         !searchQuery ||
         p.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -179,13 +184,13 @@ export default function ProjectsPage() {
               {filteredProjects.map((project) => {
                 const projectKey = getProjectKey(project.name);
                 const owner =
-                  project.members.find((m) => m.role === "OWNER") ||
+                  project.members.find((m) => m.role === ProjectRole.OWNER) ||
                   project.members[0];
                 const totalTasks =
                   project.tasks?.filter((t) => !t.archived).length || 0;
                 const doneTasks =
                   project.tasks?.filter(
-                    (t) => t.status === "DONE" && !t.archived,
+                    (t) => t.status === TaskStatus.DONE && !t.archived,
                   ).length || 0;
                 const progress =
                   totalTasks > 0
@@ -209,7 +214,7 @@ export default function ProjectsPage() {
                             color: project.color,
                           }}
                         >
-                          {project.icon || "📁"}
+                          {project.icon || DEFAULT_PROJECT_ICON}
                         </span>
                         <div>
                           <span className="font-semibold text-[#0052CC] hover:underline block text-[14px]">
@@ -295,7 +300,7 @@ export default function ProjectsPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-slate-50 text-3xl border border-slate-100">
-              📂
+              <FolderOpen className="h-8 w-8 text-slate-400" strokeWidth={1.7} />
             </div>
             <p className="mt-4 text-sm font-bold text-slate-700">
               Không tìm thấy dự án nào

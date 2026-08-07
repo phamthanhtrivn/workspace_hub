@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { type ApiResponse, unwrapApiResponse as unwrap } from "@/lib/api-response";
 
 export type ProjectInvitationStatus =
   | "PENDING"
@@ -17,19 +18,6 @@ export interface ProjectInvitation {
   createdAt: string;
   respondedAt?: string;
   expiresAt?: string;
-}
-
-interface ApiResponse<T> {
-  success: boolean;
-  message: string;
-  data: T;
-}
-
-function unwrap<T>(response: { data: ApiResponse<T> }): T {
-  if (!response.data.success) {
-    throw new Error(response.data.message || "Invitation API request failed");
-  }
-  return response.data.data;
 }
 
 export async function createProjectInvitation(

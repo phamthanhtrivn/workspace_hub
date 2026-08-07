@@ -2,6 +2,7 @@
 
 import { MessageCircle } from "lucide-react";
 import type { Task } from "@/features/project/types/project";
+import { cn } from "@/lib/utils";
 
 export default function TaskChatButton({
   task,
@@ -20,7 +21,10 @@ export default function TaskChatButton({
         event.stopPropagation();
         onOpenChat(task);
       }}
-      className={`inline-flex shrink-0 items-center gap-1 rounded text-slate-400 transition hover:bg-blue-50 hover:text-blue-600 ${compact ? "p-1" : "px-1.5 py-1"}`}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-1 rounded text-slate-400 transition hover:bg-blue-50 hover:text-blue-600",
+        compact ? "p-1" : "px-1.5 py-1",
+      )}
       title="Mở chat task"
       aria-label={`Mở chat cho ${task.title}`}
     >

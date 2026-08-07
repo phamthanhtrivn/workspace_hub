@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { type Project, TaskStatus } from "@/features/project/types/project";
-import { ProjectStatusBadge } from "./status-badge";
-import { ProjectTypeBadge } from "./project-type-badge";
-import { AvatarStack } from "./avatar-stack";
+import { ProjectStatusBadge } from "../shared/status-badge";
+import { ProjectTypeBadge } from "../shared/project-type-badge";
+import { AvatarStack } from "../shared/avatar-stack";
 import { CheckCircle2, Users, ListTodo } from "lucide-react";
 
 export default function ProjectCard({ project }: { project: Project }) {

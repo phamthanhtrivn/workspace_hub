@@ -17,6 +17,7 @@ import {
   Pause,
   Archive,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 // ─── Task Status ──────────────────────────────────────────────────────────────
 
@@ -127,7 +128,14 @@ export function TaskStatusBadge({
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 ${compact ? "rounded-[3px] px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-1 text-xs"} font-bold ${cfg.bg} ${cfg.color}`}
+      className={cn(
+        "inline-flex items-center gap-1.5 font-bold",
+        compact
+          ? "rounded-[3px] px-1.5 py-0.5 text-[10px]"
+          : "rounded-full px-2.5 py-1 text-xs",
+        cfg.bg,
+        cfg.color,
+      )}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
       {cfg.label}
@@ -146,7 +154,14 @@ export function TaskPriorityBadge({
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 ${compact ? "rounded-[3px] px-1 py-0.5 text-[10px]" : "rounded-full px-2.5 py-1 text-xs"} font-bold ${cfg.bg} ${cfg.color}`}
+      className={cn(
+        "inline-flex items-center gap-1.5 font-bold",
+        compact
+          ? "rounded-[3px] px-1 py-0.5 text-[10px]"
+          : "rounded-full px-2.5 py-1 text-xs",
+        cfg.bg,
+        cfg.color,
+      )}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
       {cfg.label}
@@ -159,7 +174,11 @@ export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
   const Icon = cfg.icon;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.color}`}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold",
+        cfg.bg,
+        cfg.color,
+      )}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
       {cfg.label}

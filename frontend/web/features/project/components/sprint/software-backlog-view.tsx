@@ -16,13 +16,14 @@ import {
   type Sprint,
   type Task,
 } from "@/features/project/types/project";
-import { TaskStatusBadge } from "./status-badge";
-import TaskChatButton from "./task-chat-button";
+import { cn } from "@/lib/utils";
+import { TaskStatusBadge } from "../shared/status-badge";
+import TaskChatButton from "../task/task-chat-button";
 import ProjectFilePanel, {
   createProjectFileItems,
   FilePickerButton,
   type ProjectFileItem,
-} from "./project-file-panel";
+} from "../project/project-file-panel";
 
 export interface SprintCreateValues {
   name: string;
@@ -230,7 +231,12 @@ export default function SoftwareBacklogView({
         onRemoveFile={removeFile}
       />
       <section
-        className={`overflow-hidden rounded border bg-white shadow-sm transition ${dragOverTarget === "backlog" ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200"}`}
+        className={cn(
+          "overflow-hidden rounded border bg-white shadow-sm transition",
+          dragOverTarget === "backlog"
+            ? "border-blue-400 ring-2 ring-blue-100"
+            : "border-slate-200",
+        )}
         onDragOver={(event) => {
           event.preventDefault();
           setDragOverTarget("backlog");
@@ -405,7 +411,12 @@ export default function SoftwareBacklogView({
               onDragStart={(event) =>
                 handleDragStart(event, task.id, sprint.id)
               }
-              className={`flex w-full cursor-grab items-center gap-3 py-2.5 pr-4 text-left hover:bg-slate-50 active:cursor-grabbing ${nested ? "border-t border-slate-100 bg-slate-50/50 pl-12" : "px-4"}`}
+              className={cn(
+                "flex w-full cursor-grab items-center gap-3 py-2.5 pr-4 text-left hover:bg-slate-50 active:cursor-grabbing",
+                nested
+                  ? "border-t border-slate-100 bg-slate-50/50 pl-12"
+                  : "px-4",
+              )}
             >
               {nested && <span className="text-xs text-slate-400">↳</span>}
               <button
@@ -423,7 +434,12 @@ export default function SoftwareBacklogView({
           return (
             <section
               key={sprint.id}
-              className={`overflow-hidden rounded border bg-white shadow-sm transition ${dragOverTarget === sprint.id ? "border-blue-400 ring-2 ring-blue-100" : "border-slate-200"}`}
+              className={cn(
+                "overflow-hidden rounded border bg-white shadow-sm transition",
+                dragOverTarget === sprint.id
+                  ? "border-blue-400 ring-2 ring-blue-100"
+                  : "border-slate-200",
+              )}
               onDragOver={(event) => {
                 if (sprint.status === SprintStatus.PLANNED) {
                   event.preventDefault();

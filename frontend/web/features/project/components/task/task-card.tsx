@@ -1,9 +1,10 @@
 "use client";
 
 import { type Task, TaskPriority } from "@/features/project/types/project";
-import { LabelBadge } from "./status-badge";
-import { AvatarStack } from "./avatar-stack";
+import { LabelBadge } from "../shared/status-badge";
+import { AvatarStack } from "../shared/avatar-stack";
 import TaskChatButton from "./task-chat-button";
+import { cn } from "@/lib/utils";
 import {
   Calendar,
   CheckSquare,
@@ -174,9 +175,10 @@ export default function TaskCard({
           {/* Due date */}
           {task.dueDate && (
             <span
-              className={`inline-flex items-center gap-1 px-1 py-0.5 rounded ${
-                overdue ? "bg-red-50 text-red-600" : "bg-slate-100"
-              }`}
+              className={cn(
+                "inline-flex items-center gap-1 px-1 py-0.5 rounded",
+                overdue ? "bg-red-50 text-red-600" : "bg-slate-100",
+              )}
             >
               <Calendar className="h-3 w-3" />
               {formatDate(task.dueDate)}
@@ -186,11 +188,12 @@ export default function TaskCard({
           {/* Checklist */}
           {checklistTotal > 0 && (
             <span
-              className={`inline-flex items-center gap-1 px-1 py-0.5 rounded ${
+              className={cn(
+                "inline-flex items-center gap-1 px-1 py-0.5 rounded",
                 checklistDone === checklistTotal
                   ? "bg-emerald-50 text-emerald-600"
-                  : "bg-slate-100"
-              }`}
+                  : "bg-slate-100",
+              )}
             >
               <CheckSquare className="h-3 w-3" />
               {checklistDone}/{checklistTotal}

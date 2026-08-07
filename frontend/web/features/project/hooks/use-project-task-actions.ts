@@ -6,8 +6,8 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { UpdateTaskPayload } from "@/features/project/api/task.api";
 import { taskKeys } from "@/features/project/hooks/use-tasks";
 import type { Task, TaskAssignee, TaskChecklist, ProjectMember } from "@/features/project/types/project";
-import type { TaskFormValues } from "@/features/project/components/task-form-dialog";
-import type { TaskDrawerUpdatePayload } from "@/features/project/components/project-task-overlays";
+import type { TaskFormValues } from "@/features/project/components/task/task-form-dialog";
+import type { TaskDrawerUpdatePayload } from "@/features/project/components/task/project-task-overlays";
 
 type MutationLike = {
   mutateAsync: (payload: never) => Promise<unknown>;

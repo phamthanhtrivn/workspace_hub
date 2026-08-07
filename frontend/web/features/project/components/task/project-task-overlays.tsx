@@ -13,8 +13,8 @@ import { TaskStatus } from "@/features/project/types/project";
 import TaskChatDialog from "./task-chat-dialog";
 import TaskDetailDrawer from "./task-detail-drawer";
 import TaskFormDialog, { type TaskFormValues } from "./task-form-dialog";
-import ProjectSettingsDialog from "./project-settings-dialog";
-import SprintEditDialog, { type SprintFormValues } from "./sprint-edit-dialog";
+import ProjectSettingsDialog from "../project/project-settings-dialog";
+import SprintEditDialog, { type SprintFormValues } from "../sprint/sprint-edit-dialog";
 
 export type TaskDrawerUpdatePayload = UpdateTaskPayload & {
   assignees?: Task["assignees"];
