@@ -2,8 +2,7 @@
 
 import React from "react";
 import { ArrowLeft, ChevronRight } from "lucide-react";
-
-import { cn } from "@/lib/utils";
+import { BreadcrumbLink } from "./breadcrumb-link";
 
 interface ExplorerBreadcrumbsProps {
   path: { id: string | null; name: string }[];
@@ -32,15 +31,12 @@ function ExplorerBreadcrumbs({
           {idx > 0 && (
             <ChevronRight size={14} className="text-slate-300 mx-1" />
           )}
-          <button
+          <BreadcrumbLink
+            name={p.name}
+            folderId={p.id}
+            isActive={idx === path.length - 1}
             onClick={() => onBreadcrumbClick(idx)}
-            className={cn(
-              "font-semibold hover:text-[var(--color-primary)] transition-colors cursor-pointer",
-              idx === path.length - 1 ? "text-slate-800" : "text-slate-400",
-            )}
-          >
-            {p.name}
-          </button>
+          />
         </React.Fragment>
       ))}
     </div>

@@ -8,6 +8,13 @@ import React, {
   useRef,
 } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
 import {
   DocumentItem,
@@ -20,7 +27,8 @@ import {
   UploadState,
   NavigationLabel,
 } from "../types/documents.enums";
-import { Folder } from "lucide-react";
+import { DND_ROOT_ID } from "../types/documents.constants";
+import { Folder, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import FolderPickerModal from "./common/folder-picker-modal";
@@ -82,6 +90,8 @@ function DocumentExplorer({
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFileName, setUploadingFileName] = useState("");
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const dragCounter = useRef(0);
 
   // Focus Search Input with Ref
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -289,6 +299,71 @@ function DocumentExplorer({
     [currentFolderId, queryClient],
   );
 
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDraggingOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDraggingOver(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingOver(false);
+      dragCounter.current = 0;
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const files = Array.from(e.dataTransfer.files);
+        for (const file of files) {
+          await handleUploadFile(file);
+        }
+        e.dataTransfer.clearData();
+      }
+    },
+    [handleUploadFile],
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over) return;
+
+      const draggedId = active.id as string;
+      const targetFolderId =
+        over.id === DND_ROOT_ID ? null : (over.id as string);
+
+      if (draggedId !== targetFolderId) {
+        moveMutation.mutate({ id: draggedId, destId: targetFolderId });
+      }
+    },
+    [moveMutation],
+  );
+
   // Folder creation trigger
   const handleCreateFolder = useCallback(() => {
     void Swal.fire({
@@ -455,9 +530,12 @@ function DocumentExplorer({
 
   const { enqueueDownload } = useDownloadQueue();
 
-  const handleDownloadFolder = useCallback((item: DocumentItem) => {
-    enqueueDownload(item.id, item.name);
-  }, [enqueueDownload]);
+  const handleDownloadFolder = useCallback(
+    (item: DocumentItem) => {
+      enqueueDownload(item.id, item.name);
+    },
+    [enqueueDownload],
+  );
 
   const handleDeletePermanently = useCallback(
     (id: string) => {
@@ -502,120 +580,137 @@ function DocumentExplorer({
         />
 
         {/* Path Breadcrumbs */}
-        <ExplorerBreadcrumbs
-          path={path}
-          onBreadcrumbClick={handleBreadcrumbClick}
-          onBackToParent={handleBackToParent}
-        />
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+          <ExplorerBreadcrumbs
+            path={path}
+            onBreadcrumbClick={handleBreadcrumbClick}
+            onBackToParent={handleBackToParent}
+          />
 
-        {/* Explorer Content */}
-        <div
-          className="flex-1 overflow-y-auto p-6"
-          onClick={() => setSelectedItemId(null)}
-        >
-          {isLoading ? (
-            <ShimmerLoader />
-          ) : items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-slate-400 py-20 animate-in fade-in duration-300">
-              <Folder size={64} className="text-slate-200 mb-4" />
-              <span className="text-base font-semibold text-slate-700">
-                Thư mục trống
-              </span>
-              <span className="text-xs text-slate-400 font-semibold mt-1">
-                Chưa có tập tin hay thư mục nào ở đây.
-              </span>
-            </div>
-          ) : viewLayout === ViewLayout.GRID ? (
-            <GridView
-              items={items}
-              selectedItemId={selectedItemId}
-              onSelect={setSelectedItemId}
-              onFolderClick={handleFolderClick}
-              activeView={activeView}
-              activeMenuId={activeMenuId}
-              setActiveMenuId={setActiveMenuId}
-              onRename={handleRename}
-              onMove={handleOpenMoveModal}
-              onToggleStar={handleToggleStar}
-              onArchive={handleArchive}
-              onViewDetails={handleViewDetails}
-              onDeletePermanently={handleDeletePermanently}
-              onPreview={handlePreview}
-              onDownload={handleDownload}
-              onDownloadFolder={handleDownloadFolder}
-              onManageVersions={handleManageVersions}
-              onShare={handleShare}
-            />
-          ) : (
-            <ListView
-              items={items}
-              selectedItemId={selectedItemId}
-              onSelect={setSelectedItemId}
-              onFolderClick={handleFolderClick}
-              activeView={activeView}
-              activeMenuId={activeMenuId}
-              setActiveMenuId={setActiveMenuId}
-              onRename={handleRename}
-              onMove={handleOpenMoveModal}
-              onToggleStar={handleToggleStar}
-              onArchive={handleArchive}
-              onViewDetails={handleViewDetails}
-              onDeletePermanently={handleDeletePermanently}
-              onPreview={handlePreview}
-              onDownload={handleDownload}
-              onDownloadFolder={handleDownloadFolder}
-              onManageVersions={handleManageVersions}
-              onShare={handleShare}
-            />
-          )}
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-6">
-              <span className="text-xs font-semibold text-slate-400">
-                Hiển thị {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
-                {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)} trên
-                tổng số {totalItems} tài nguyên
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={safeCurrentPage === 1}
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(1, prev - 1))
-                  }
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trang trước
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={cn(
-                        "rounded-xl px-3 py-1.5 text-xs font-black transition-all cursor-pointer",
-                        page === safeCurrentPage
-                          ? "bg-[var(--color-primary)] text-white shadow-md shadow-blue-500/10"
-                          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-                      )}
-                    >
-                      {page}
-                    </button>
-                  ),
-                )}
-                <button
-                  disabled={safeCurrentPage === totalPages}
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trang sau
-                </button>
+          {/* Explorer Content */}
+          <div
+            className="flex-1 overflow-y-auto p-6 relative"
+            onClick={() => setSelectedItemId(null)}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {isDraggingOver && (
+              <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-3xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+                <UploadCloud
+                  className="text-blue-500 animate-bounce mb-2"
+                  size={48}
+                />
+                <p className="text-sm font-black text-blue-600">
+                  Thả tệp vào đây để tải lên
+                </p>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+            {isLoading ? (
+              <ShimmerLoader />
+            ) : items.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center text-slate-400 py-20 animate-in fade-in duration-300">
+                <Folder size={64} className="text-slate-200 mb-4" />
+                <span className="text-base font-semibold text-slate-700">
+                  Thư mục trống
+                </span>
+                <span className="text-xs text-slate-400 font-semibold mt-1">
+                  Chưa có tập tin hay thư mục nào ở đây.
+                </span>
+              </div>
+            ) : viewLayout === ViewLayout.GRID ? (
+              <GridView
+                items={items}
+                selectedItemId={selectedItemId}
+                onSelect={setSelectedItemId}
+                onFolderClick={handleFolderClick}
+                activeView={activeView}
+                activeMenuId={activeMenuId}
+                setActiveMenuId={setActiveMenuId}
+                onRename={handleRename}
+                onMove={handleOpenMoveModal}
+                onToggleStar={handleToggleStar}
+                onArchive={handleArchive}
+                onViewDetails={handleViewDetails}
+                onDeletePermanently={handleDeletePermanently}
+                onPreview={handlePreview}
+                onDownload={handleDownload}
+                onDownloadFolder={handleDownloadFolder}
+                onManageVersions={handleManageVersions}
+                onShare={handleShare}
+              />
+            ) : (
+              <ListView
+                items={items}
+                selectedItemId={selectedItemId}
+                onSelect={setSelectedItemId}
+                onFolderClick={handleFolderClick}
+                activeView={activeView}
+                activeMenuId={activeMenuId}
+                setActiveMenuId={setActiveMenuId}
+                onRename={handleRename}
+                onMove={handleOpenMoveModal}
+                onToggleStar={handleToggleStar}
+                onArchive={handleArchive}
+                onViewDetails={handleViewDetails}
+                onDeletePermanently={handleDeletePermanently}
+                onPreview={handlePreview}
+                onDownload={handleDownload}
+                onDownloadFolder={handleDownloadFolder}
+                onManageVersions={handleManageVersions}
+                onShare={handleShare}
+              />
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-6">
+                <span className="text-xs font-semibold text-slate-400">
+                  Hiển thị {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
+                  {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)} trên
+                  tổng số {totalItems} tài nguyên
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={safeCurrentPage === 1}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Trang trước
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={cn(
+                          "rounded-xl px-3 py-1.5 text-xs font-black transition-all cursor-pointer",
+                          page === safeCurrentPage
+                            ? "bg-[var(--color-primary)] text-white shadow-md shadow-blue-500/10"
+                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                        )}
+                      >
+                        {page}
+                      </button>
+                    ),
+                  )}
+                  <button
+                    disabled={safeCurrentPage === totalPages}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Trang sau
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DndContext>
       </div>
 
       {/* Slide-in Details Panel */}

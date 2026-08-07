@@ -385,30 +385,38 @@ export class DocumentService {
       this.prisma.documentItem.count({ where }),
     ]);
 
-    const mappedItems = items.map((item: any) => {
-      let userRole: DocumentRole = DocumentRole.VIEWER;
-      if (item.ownerUserId === userId) {
-        userRole = DocumentRole.OWNER;
-      } else {
-        const share = item.shares?.find(
-          (s: any) =>
-            (userId && s.shareWithUserId === userId) ||
-            (userEmail &&
-              s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
-        );
-        if (share) {
-          userRole = share.permission as DocumentRole;
-        } else if (item.linkAccess !== LinkAccess.NONE) {
-          userRole = item.linkAccess as DocumentRole;
+    const mappedItems = await Promise.all(
+      items.map(async (item: any) => {
+        let userRole: DocumentRole = DocumentRole.VIEWER;
+        if (item.ownerUserId === userId) {
+          userRole = DocumentRole.OWNER;
+        } else {
+          const share = item.shares?.find(
+            (s: any) =>
+              (userId && s.shareWithUserId === userId) ||
+              (userEmail &&
+                s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
+          );
+          if (share) {
+            userRole = share.permission as DocumentRole;
+          } else if (item.linkAccess !== LinkAccess.NONE) {
+            userRole = item.linkAccess as DocumentRole;
+          }
         }
-      }
-      return {
-        ...item,
-        sizeBytes: Number(item.sizeBytes),
-        isStarred: item.starredBy.length > 0,
-        userRole,
-      };
-    });
+
+        let sizeBytes = Number(item.sizeBytes);
+        if (item.type === ItemType.FOLDER) {
+          sizeBytes = await this.getFolderSize(item.id);
+        }
+
+        return {
+          ...item,
+          sizeBytes,
+          isStarred: item.starredBy.length > 0,
+          userRole,
+        };
+      }),
+    );
 
     return { items: mappedItems, totalCount };
   }
@@ -607,6 +615,14 @@ export class DocumentService {
     }
 
     return { files, folderIds };
+  }
+
+  /**
+   * Helper to recursively sum the sizes of all files inside a folder.
+   */
+  private async getFolderSize(folderId: string): Promise<number> {
+    const descendants = await this.getFolderDescendants(folderId);
+    return descendants.files.reduce((sum, file) => sum + Number(file.sizeBytes), 0);
   }
 
   /**
@@ -1377,9 +1393,17 @@ export class DocumentService {
       orderBy: [{ type: 'asc' }, { name: 'asc' }],
     });
 
-    return children.map((item) => ({
-      ...item,
-      sizeBytes: Number(item.sizeBytes),
-    })) as any[];
+    return Promise.all(
+      children.map(async (item) => {
+        let sizeBytes = Number(item.sizeBytes);
+        if (item.type === ItemType.FOLDER) {
+          sizeBytes = await this.getFolderSize(item.id);
+        }
+        return {
+          ...item,
+          sizeBytes,
+        };
+      }),
+    ) as any;
   }
 }
