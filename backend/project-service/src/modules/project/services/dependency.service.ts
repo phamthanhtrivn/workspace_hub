@@ -1,8 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { ProjectAccessService } from './project-access.service';
-import { CreateDependencyDto } from './dto/create-dependency.dto';
-import { ProjectGateway } from './project.gateway';
+import { CreateDependencyDto } from '../dto/create-dependency.dto';
+import { ProjectGateway } from '../events/project.gateway';
 
 @Injectable()
 export class DependencyService {

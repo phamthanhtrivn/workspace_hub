@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
-import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
-import { CreateTaskDto } from './dto/create-task.dto';
-import { UpdateTaskDto } from './dto/update-task.dto';
-import { TaskService } from './task.service';
+import { ApiResponse } from '../../../common/api-response';
+import { CurrentUserId } from '../../../common/decorators/current-user-id.decorator';
+import { CreateTaskDto } from '../dto/create-task.dto';
+import { UpdateTaskDto } from '../dto/update-task.dto';
+import { TaskService } from '../services/task.service';
 
 @Controller('api')
 export class TaskController {

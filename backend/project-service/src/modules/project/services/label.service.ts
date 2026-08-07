@@ -1,9 +1,9 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { ProjectAccessService } from './project-access.service';
-import { CreateLabelDto } from './dto/create-label.dto';
-import { UpdateLabelDto } from './dto/update-label.dto';
-import { ProjectGateway } from './project.gateway';
+import { CreateLabelDto } from '../dto/create-label.dto';
+import { UpdateLabelDto } from '../dto/update-label.dto';
+import { ProjectGateway } from '../events/project.gateway';
 
 @Injectable()
 export class LabelService {

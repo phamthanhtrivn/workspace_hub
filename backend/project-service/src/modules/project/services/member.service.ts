@@ -1,11 +1,11 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { ProjectMemberStatus, ProjectRole } from './project.enums';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { AddMemberDto } from './dto/add-member.dto';
-import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
+import { ProjectMemberStatus, ProjectRole } from '../project.enums';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { AddMemberDto } from '../dto/add-member.dto';
+import { UpdateMemberRoleDto } from '../dto/update-member-role.dto';
 import { ProjectAccessService } from './project-access.service';
-import { toMemberResponse } from './project.mapper';
-import { ProjectGateway } from './project.gateway';
+import { toMemberResponse } from '../mappers/project.mapper';
+import { ProjectGateway } from '../events/project.gateway';
 
 @Injectable()
 export class MemberService {

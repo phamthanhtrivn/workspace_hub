@@ -1,11 +1,11 @@
 import { ConflictException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { InvitationStatus, ProjectMemberStatus, ProjectRole } from './project.enums';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateInvitationDto } from './dto/create-invitation.dto';
+import { InvitationStatus, ProjectMemberStatus, ProjectRole } from '../project.enums';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { CreateInvitationDto } from '../dto/create-invitation.dto';
 import { ProjectAccessService } from './project-access.service';
-import { toInvitationResponse } from './project.mapper';
+import { toInvitationResponse } from '../mappers/project.mapper';
 import { InvitationEmailService } from './invitation-email.service';
-import { ProjectGateway } from './project.gateway';
+import { ProjectGateway } from '../events/project.gateway';
 
 const EXPIRY_DAYS = 7;
 

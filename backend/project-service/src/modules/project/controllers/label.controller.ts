@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
-import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
-import { CreateLabelDto } from './dto/create-label.dto';
-import { UpdateLabelDto } from './dto/update-label.dto';
-import { LabelService } from './label.service';
+import { ApiResponse } from '../../../common/api-response';
+import { CurrentUserId } from '../../../common/decorators/current-user-id.decorator';
+import { CreateLabelDto } from '../dto/create-label.dto';
+import { UpdateLabelDto } from '../dto/update-label.dto';
+import { LabelService } from '../services/label.service';
 
 @Controller('api')
 export class LabelController {

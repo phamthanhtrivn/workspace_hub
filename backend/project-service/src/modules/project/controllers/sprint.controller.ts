@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
-import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
-import { AddSprintTasksDto } from './dto/add-sprint-tasks.dto';
-import { CreateSprintDto } from './dto/create-sprint.dto';
-import { UpdateSprintDto } from './dto/update-sprint.dto';
-import { SprintService } from './sprint.service';
+import { ApiResponse } from '../../../common/api-response';
+import { CurrentUserId } from '../../../common/decorators/current-user-id.decorator';
+import { AddSprintTasksDto } from '../dto/add-sprint-tasks.dto';
+import { CreateSprintDto } from '../dto/create-sprint.dto';
+import { UpdateSprintDto } from '../dto/update-sprint.dto';
+import { SprintService } from '../services/sprint.service';
 
 @Controller('api')
 export class SprintController {

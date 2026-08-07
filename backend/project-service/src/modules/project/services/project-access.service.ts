@@ -1,7 +1,7 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ProjectMemberStatus, ProjectRole, ProjectVisibility } from './project.enums';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { ProjectMemberStatus, ProjectRole, ProjectVisibility } from '../project.enums';
+import { PrismaService } from '../../../prisma/prisma.service';
 
 export type ProjectWithSetting = Prisma.ProjectGetPayload<{
   include: { setting: true };

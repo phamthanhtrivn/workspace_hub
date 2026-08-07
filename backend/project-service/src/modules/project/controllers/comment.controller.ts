@@ -1,9 +1,9 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
-import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentDto } from './dto/update-comment.dto';
-import { CommentService } from './comment.service';
+import { ApiResponse } from '../../../common/api-response';
+import { CurrentUserId } from '../../../common/decorators/current-user-id.decorator';
+import { CreateCommentDto } from '../dto/create-comment.dto';
+import { UpdateCommentDto } from '../dto/update-comment.dto';
+import { CommentService } from '../services/comment.service';
 
 @Controller('api')
 export class CommentController {

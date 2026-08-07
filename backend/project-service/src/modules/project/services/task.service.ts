@@ -1,15 +1,15 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { TaskStatus } from './project.enums';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateTaskDto } from './dto/create-task.dto';
-import { UpdateTaskDto } from './dto/update-task.dto';
+import { TaskStatus } from '../project.enums';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { CreateTaskDto } from '../dto/create-task.dto';
+import { UpdateTaskDto } from '../dto/update-task.dto';
 import { ProjectAccessService } from './project-access.service';
-import { toTaskResponse } from './project.mapper';
+import { toTaskResponse } from '../mappers/project.mapper';
 import { ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
-import { ProjectGateway } from './project.gateway';
-import { ProjectRealtimeEvent } from './project.events';
+import { ProjectGateway } from '../events/project.gateway';
+import { ProjectRealtimeEvent } from '../events/project.events';
 
 const taskWithCount = {
   _count: { select: { children: true } },

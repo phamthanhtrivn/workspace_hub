@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
+import { PrismaService } from '../../../prisma/prisma.service';
 import { ProjectAccessService } from './project-access.service';
-import { CreateChecklistDto } from './dto/create-checklist.dto';
-import { UpdateChecklistDto } from './dto/update-checklist.dto';
-import { ProjectGateway } from './project.gateway';
+import { CreateChecklistDto } from '../dto/create-checklist.dto';
+import { UpdateChecklistDto } from '../dto/update-checklist.dto';
+import { ProjectGateway } from '../events/project.gateway';
 
 @Injectable()
 export class ChecklistService {

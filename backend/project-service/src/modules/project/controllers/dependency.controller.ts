@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
-import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
-import { CreateDependencyDto } from './dto/create-dependency.dto';
-import { DependencyService } from './dependency.service';
+import { ApiResponse } from '../../../common/api-response';
+import { CurrentUserId } from '../../../common/decorators/current-user-id.decorator';
+import { CreateDependencyDto } from '../dto/create-dependency.dto';
+import { DependencyService } from '../services/dependency.service';
 
 @Controller('api')
 export class DependencyController {

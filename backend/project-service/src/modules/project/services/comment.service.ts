@@ -1,11 +1,11 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { ProjectRole } from './project.enums';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { CreateCommentDto } from './dto/create-comment.dto';
-import { UpdateCommentDto } from './dto/update-comment.dto';
+import { ProjectRole } from '../project.enums';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { CreateCommentDto } from '../dto/create-comment.dto';
+import { UpdateCommentDto } from '../dto/update-comment.dto';
 import { ProjectAccessService } from './project-access.service';
-import { toCommentResponse } from './project.mapper';
-import { ProjectGateway } from './project.gateway';
+import { toCommentResponse } from '../mappers/project.mapper';
+import { ProjectGateway } from '../events/project.gateway';
 
 @Injectable()
 export class CommentService {

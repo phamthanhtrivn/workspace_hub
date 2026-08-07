@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
-import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
-import { AddMemberDto } from './dto/add-member.dto';
-import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
-import { MemberService } from './member.service';
-import { ProjectService } from './project.service';
+import { ApiResponse } from '../../../common/api-response';
+import { CurrentUserId } from '../../../common/decorators/current-user-id.decorator';
+import { AddMemberDto } from '../dto/add-member.dto';
+import { UpdateMemberRoleDto } from '../dto/update-member-role.dto';
+import { MemberService } from '../services/member.service';
+import { ProjectService } from '../services/project.service';
 
 @Controller('api/projects/:projectId/members')
 export class MemberController {
