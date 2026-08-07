@@ -2,11 +2,15 @@
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
 import { X, History } from "lucide-react";
-import { DocumentItemType, UploadState, DocumentRole } from "../../types/documents.enums";
+import {
+  DocumentItemType,
+  UploadState,
+  DocumentRole,
+} from "../../types/documents.enums";
 import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { toast } from "sonner";
 import { VersionUploader } from "./version-uploader";
@@ -79,61 +83,69 @@ function VersionManagementModal({
     [item, isPublic],
   );
 
-  const handleFileChange = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file || !item) return;
+  const uploadVersionMutation = useMutation({
+    mutationFn: async ({ file }: { file: File }) => {
+      setUploadingFileName(file.name);
+      setUploadState(UploadState.INITIATING);
+      setUploadProgress(0);
 
-      try {
-        setUploadingFileName(file.name);
-        setUploadState(UploadState.INITIATING);
-        setUploadProgress(0);
+      const progressCallback = (percent: number, state: UploadState) => {
+        setUploadState(state);
+        setUploadProgress(percent);
+      };
 
-        if (isPublic) {
-          await documentsApi.uploadNewPublicVersion(item.id, file, (percent: number, state: UploadState) => {
-            setUploadState(state);
-            setUploadProgress(percent);
-          });
-        } else {
-          await documentsApi.uploadNewVersion(item.id, file, (percent: number, state: UploadState) => {
-            setUploadState(state);
-            setUploadProgress(percent);
-          });
-        }
-
-        setUploadState(UploadState.SUCCESS);
-        toast.success(`Đã tải lên phiên bản mới thành công!`);
-
-        // Invalidate queries to refresh lists and quota
-        void queryClient.invalidateQueries({
-          queryKey: ["document-versions", item.id],
-        });
-        if (!isPublic) {
-          void queryClient.invalidateQueries({ queryKey: ["documents"] });
-          void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
-        }
-        
-        onVersionUploaded?.();
-
-        setTimeout(() => {
-          setUploadState(UploadState.IDLE);
-          setUploadingFileName("");
-          setUploadProgress(0);
-        }, 2000);
-      } catch (err: any) {
-        console.error("Failed to upload version", err);
-        setUploadState(UploadState.ERROR);
-        const errMsg =
-          err.response?.data?.message ||
-          err.message ||
-          "Lỗi tải lên phiên bản mới";
-        toast.error(errMsg);
-        setTimeout(() => {
-          setUploadState(UploadState.IDLE);
-        }, 3000);
+      if (isPublic) {
+        return documentsApi.uploadNewPublicVersion(
+          item!.id,
+          file,
+          progressCallback,
+        );
+      } else {
+        return documentsApi.uploadNewVersion(item!.id, file, progressCallback);
       }
     },
-    [item, queryClient, isPublic, onVersionUploaded],
+    onSuccess: () => {
+      setUploadState(UploadState.SUCCESS);
+      toast.success(`Đã tải lên phiên bản mới thành công!`);
+
+      // Invalidate queries to refresh lists and quota
+      void queryClient.invalidateQueries({
+        queryKey: ["document-versions", item!.id],
+      });
+      if (!isPublic) {
+        void queryClient.invalidateQueries({ queryKey: ["documents"] });
+        void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
+      }
+
+      onVersionUploaded?.();
+
+      setTimeout(() => {
+        setUploadState(UploadState.IDLE);
+        setUploadingFileName("");
+        setUploadProgress(0);
+      }, 2000);
+    },
+    onError: (err: any) => {
+      console.error("Failed to upload version", err);
+      setUploadState(UploadState.ERROR);
+      const errMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Lỗi tải lên phiên bản mới";
+      toast.error(errMsg);
+      setTimeout(() => {
+        setUploadState(UploadState.IDLE);
+      }, 3000);
+    },
+  });
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file || !item) return;
+      uploadVersionMutation.mutate({ file });
+    },
+    [item, uploadVersionMutation],
   );
 
   const triggerFileSelect = useCallback(() => {
@@ -193,7 +205,7 @@ function VersionManagementModal({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
 

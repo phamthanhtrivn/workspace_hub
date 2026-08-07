@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Lock, Globe, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { LinkAccess } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
@@ -14,7 +15,7 @@ import {
 interface ShareModalLinkProps {
   documentItemId: string;
   initialLinkAccess: LinkAccess;
-  onLinkAccessChanged: (newAccess: LinkAccess) => void;
+  onLinkAccessChanged?: (newAccess: LinkAccess) => void;
   isOwner?: boolean;
 }
 
@@ -31,19 +32,34 @@ export function ShareModalLink({
     setLinkAccess(initialLinkAccess);
   }, [initialLinkAccess]);
 
-  const handleLinkAccessChange = useCallback(
-    async (newAccess: LinkAccess) => {
-      try {
-        await documentsApi.updateLinkAccess(documentItemId, newAccess);
-        setLinkAccess(newAccess);
-        onLinkAccessChanged(newAccess);
-        toast.success("Đã cập nhật quyền truy cập chung");
-      } catch (err) {
-        console.error("Failed to update link access", err);
-        toast.error("Không thể cập nhật cấu hình liên kết");
-      }
+  const queryClient = useQueryClient();
+
+  const updateLinkAccessMutation = useMutation({
+    mutationFn: (newAccess: LinkAccess) =>
+      documentsApi.updateLinkAccess(documentItemId, newAccess),
+    onSuccess: (updatedItem) => {
+      const newAccess = updatedItem.linkAccess as LinkAccess;
+      setLinkAccess(newAccess);
+      onLinkAccessChanged?.(newAccess);
+      toast.success("Đã cập nhật quyền truy cập chung");
+      queryClient.invalidateQueries({
+        queryKey: ["document-sharing", documentItemId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["documents"],
+      });
     },
-    [documentItemId, onLinkAccessChanged],
+    onError: (err) => {
+      console.error("Failed to update link access", err);
+      toast.error("Không thể cập nhật cấu hình liên kết");
+    },
+  });
+
+  const handleLinkAccessChange = useCallback(
+    (newAccess: LinkAccess) => {
+      updateLinkAccessMutation.mutate(newAccess);
+    },
+    [updateLinkAccessMutation],
   );
 
   const handleCopyLink = useCallback(() => {

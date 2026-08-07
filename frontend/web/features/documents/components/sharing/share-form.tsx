@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Plus, Mail, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import { searchUserByEmail } from "@/features/chat/api/chat.api";
@@ -11,7 +12,7 @@ import { ShareSuggestionsDropdown } from "./share-suggestions-dropdown";
 
 interface ShareModalFormProps {
   documentItemId: string;
-  onShareAdded: () => void;
+  onShareAdded?: () => void;
 }
 
 export function ShareModalForm({
@@ -22,7 +23,7 @@ export function ShareModalForm({
   const [permissionInput, setPermissionInput] = useState<SharePermission>(
     SharePermission.VIEWER,
   );
-  const [isAdding, setIsAdding] = useState(false);
+  const queryClient = useQueryClient();
 
   // Autocomplete states
   const [searchResults, setSearchResults] = useState<UserSearchResponse[]>([]);
@@ -89,68 +90,74 @@ export function ShareModalForm({
     setShowSuggestions(false);
   };
 
+  const addShareMutation = useMutation({
+    mutationFn: async ({
+      email,
+      permission,
+    }: {
+      email: string;
+      permission: SharePermission;
+    }) => {
+      // Validate if the email exists in the system
+      let userExists = false;
+
+      // 1. Check local search results first
+      const matchedLocal = searchResults.find(
+        (u) => u.email.toLowerCase() === email.toLowerCase(),
+      );
+
+      if (matchedLocal) {
+        userExists = true;
+      } else {
+        // 2. Perform a single check calling searchUserByEmail to see if exact match exists
+        const searchRes = await searchUserByEmail(email);
+        if (searchRes?.success && Array.isArray(searchRes.data)) {
+          const hasExactMatch = searchRes.data.some(
+            (u: UserSearchResponse) =>
+              u.email.toLowerCase() === email.toLowerCase(),
+          );
+          if (hasExactMatch) {
+            userExists = true;
+          }
+        }
+      }
+
+      if (!userExists) {
+        throw new Error(
+          "Email này không tồn tại trong hệ thống. Vui lòng chọn người dùng trong hệ thống.",
+        );
+      }
+
+      return documentsApi.addShare(documentItemId, email, permission);
+    },
+    onSuccess: (_, variables) => {
+      toast.success(`Đã chia sẻ quyền truy cập với ${variables.email}`);
+      setEmailInput("");
+      setSearchResults([]);
+      queryClient.invalidateQueries({
+        queryKey: ["document-sharing", documentItemId],
+      });
+      onShareAdded?.();
+    },
+    onError: (err: any) => {
+      console.error("Failed to add share", err);
+      const errMsg = err.message || "Không thể thực hiện chia sẻ";
+      toast.error(errMsg);
+    },
+  });
+
   const handleAddShare = useCallback(
-    async (e: React.FormEvent) => {
+    (e: React.FormEvent) => {
       e.preventDefault();
       const targetEmail = emailInput.trim();
       if (!targetEmail) return;
 
-      setIsAdding(true);
-      try {
-        // Validate if the email exists in the system
-        let userExists = false;
-
-        // 1. Check local search results first
-        const matchedLocal = searchResults.find(
-          (u) => u.email.toLowerCase() === targetEmail.toLowerCase(),
-        );
-
-        if (matchedLocal) {
-          userExists = true;
-        } else {
-          // 2. Perform a single check calling searchUserByEmail to see if exact match exists
-          const searchRes = await searchUserByEmail(targetEmail);
-          if (searchRes?.success && Array.isArray(searchRes.data)) {
-            const hasExactMatch = searchRes.data.some(
-              (u: UserSearchResponse) =>
-                u.email.toLowerCase() === targetEmail.toLowerCase(),
-            );
-            if (hasExactMatch) {
-              userExists = true;
-            }
-          }
-        }
-
-        if (!userExists) {
-          toast.error(
-            "Email này không tồn tại trong hệ thống. Vui lòng chọn người dùng trong hệ thống.",
-          );
-          setIsAdding(false);
-          return;
-        }
-
-        await documentsApi.addShare(
-          documentItemId,
-          targetEmail,
-          permissionInput,
-        );
-        toast.success(`Đã chia sẻ quyền truy cập với ${targetEmail}`);
-        setEmailInput("");
-        setSearchResults([]);
-        onShareAdded();
-      } catch (err: unknown) {
-        console.error("Failed to add share", err);
-        const axiosError = err as {
-          response?: { data?: { message?: string } };
-        };
-        const errMsg =
-          axiosError.response?.data?.message || "Không thể thực hiện chia sẻ";
-        toast.error(errMsg);
-      } finally {
-        setIsAdding(false);
-      }
+      addShareMutation.mutate({
+        email: targetEmail,
+        permission: permissionInput,
+      });
     },
-    [documentItemId, emailInput, permissionInput, onShareAdded, searchResults],
+    [emailInput, permissionInput, addShareMutation],
   );
 
   return (
@@ -204,10 +211,10 @@ export function ShareModalForm({
         </select>
         <button
           type="submit"
-          disabled={isAdding}
+          disabled={addShareMutation.isPending}
           className="flex items-center justify-center p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl transition-all shadow-xs disabled:opacity-50 cursor-pointer"
         >
-          {isAdding ? (
+          {addShareMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />
           ) : (
             <Plus size={16} />

@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { DocumentItem, DocumentShare } from "../../types/documents.types";
+import { useQuery } from "@tanstack/react-query";
+import { DocumentItem } from "../../types/documents.types";
 import { LinkAccess } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import { ShareModalForm } from "./share-form";
 import { ShareModalList } from "./share-list";
 import { ShareModalLink } from "./share-link";
 import { X, Share2 } from "lucide-react";
-import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 
 interface ShareModalProps {
@@ -20,9 +20,6 @@ interface ShareModalProps {
 
 function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
   const [mounted, setMounted] = useState(false);
-  const [shares, setShares] = useState<DocumentShare[]>([]);
-  const [linkAccess, setLinkAccess] = useState<LinkAccess>(LinkAccess.NONE);
-  const [isLoading, setIsLoading] = useState(false);
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const isOwner = item ? item.ownerUserId === currentUserId : false;
@@ -32,26 +29,17 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
     return () => setMounted(false);
   }, []);
 
-  const fetchSharingData = useCallback(async () => {
-    if (!item) return;
-    setIsLoading(true);
-    try {
-      const data = await documentsApi.getSharing(item.id);
-      setShares(data.shares);
-      setLinkAccess(data.linkAccess as LinkAccess);
-    } catch (err) {
-      console.error("Failed to fetch sharing settings", err);
-      toast.error("Không thể tải thông tin chia sẻ");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [item]);
+  const { data: sharingData, isLoading } = useQuery({
+    queryKey: ["document-sharing", item?.id],
+    queryFn: () => {
+      if (!item) return Promise.resolve({ shares: [], linkAccess: LinkAccess.NONE });
+      return documentsApi.getSharing(item.id);
+    },
+    enabled: isOpen && !!item && mounted,
+  });
 
-  useEffect(() => {
-    if (isOpen && item) {
-      void fetchSharingData();
-    }
-  }, [isOpen, item, fetchSharingData]);
+  const shares = sharingData?.shares || [];
+  const linkAccess = (sharingData?.linkAccess as LinkAccess) || LinkAccess.NONE;
 
   if (!isOpen || !item || !mounted) return null;
 
@@ -87,7 +75,6 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
           {isOwner && (
             <ShareModalForm
               documentItemId={item.id}
-              onShareAdded={fetchSharingData}
             />
           )}
 
@@ -97,7 +84,6 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
             ownerEmail={item.ownerEmail}
             shares={shares}
             isLoading={isLoading}
-            onShareUpdated={fetchSharingData}
             isOwner={isOwner}
           />
 
@@ -105,7 +91,6 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
           <ShareModalLink
             documentItemId={item.id}
             initialLinkAccess={linkAccess}
-            onLinkAccessChanged={setLinkAccess}
             isOwner={isOwner}
           />
         </div>

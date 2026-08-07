@@ -4,7 +4,7 @@ import React, { useCallback, useMemo } from "react";
 import { Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
@@ -20,7 +20,7 @@ interface ShareModalListProps {
   ownerEmail: string;
   shares: DocumentShare[];
   isLoading: boolean;
-  onShareUpdated: () => void;
+  onShareUpdated?: () => void;
   isOwner?: boolean;
 }
 
@@ -70,32 +70,57 @@ export function ShareModalList({
     return map;
   }, [profilesResponse]);
 
-  const handleRemoveShare = useCallback(
-    async (shareId: string, email: string) => {
-      try {
-        await documentsApi.removeShare(documentItemId, shareId);
-        toast.success(`Đã thu hồi quyền truy cập của ${email}`);
-        onShareUpdated();
-      } catch (err) {
-        console.error("Failed to remove share", err);
-        toast.error("Không thể thu hồi quyền truy cập");
-      }
+  const queryClient = useQueryClient();
+
+  const removeShareMutation = useMutation({
+    mutationFn: ({ shareId }: { shareId: string; email: string }) =>
+      documentsApi.removeShare(documentItemId, shareId),
+    onSuccess: (_, variables) => {
+      toast.success(`Đã thu hồi quyền truy cập của ${variables.email}`);
+      queryClient.invalidateQueries({
+        queryKey: ["document-sharing", documentItemId],
+      });
+      onShareUpdated?.();
     },
-    [documentItemId, onShareUpdated],
+    onError: (err) => {
+      console.error("Failed to remove share", err);
+      toast.error("Không thể thu hồi quyền truy cập");
+    },
+  });
+
+  const updatePermissionMutation = useMutation({
+    mutationFn: ({
+      email,
+      permission,
+    }: {
+      email: string;
+      permission: SharePermission;
+    }) => documentsApi.addShare(documentItemId, email, permission),
+    onSuccess: (_, variables) => {
+      toast.success(`Đã cập nhật quyền cho ${variables.email}`);
+      queryClient.invalidateQueries({
+        queryKey: ["document-sharing", documentItemId],
+      });
+      onShareUpdated?.();
+    },
+    onError: (err) => {
+      console.error("Failed to update permission", err);
+      toast.error("Không thể cập nhật quyền truy cập");
+    },
+  });
+
+  const handleRemoveShare = useCallback(
+    (shareId: string, email: string) => {
+      removeShareMutation.mutate({ shareId, email });
+    },
+    [removeShareMutation],
   );
 
   const handleUpdateSharePermission = useCallback(
-    async (email: string, permission: SharePermission) => {
-      try {
-        await documentsApi.addShare(documentItemId, email, permission);
-        toast.success(`Đã cập nhật quyền cho ${email}`);
-        onShareUpdated();
-      } catch (err) {
-        console.error("Failed to update permission", err);
-        toast.error("Không thể cập nhật quyền truy cập");
-      }
+    (email: string, permission: SharePermission) => {
+      updatePermissionMutation.mutate({ email, permission });
     },
-    [documentItemId, onShareUpdated],
+    [updatePermissionMutation],
   );
 
   const ownerProfile = profilesMap.get(ownerEmail.toLowerCase());
