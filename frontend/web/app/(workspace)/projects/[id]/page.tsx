@@ -52,16 +52,7 @@ import {
   useProjectDependencies,
 } from "@/features/project/hooks/use-dependencies";
 import { ProjectTypeBadge } from "@/features/project/components/project-type-badge";
-import { AvatarStack } from "@/features/project/components/avatar-stack";
-import BoardView from "@/features/project/components/board-view";
-import ListView from "@/features/project/components/list-view";
-import CalendarView from "@/features/project/components/calendar-view";
-import GanttView from "@/features/project/components/gantt-view";
-import SoftwareBacklogView, {
-  type SprintCreateValues,
-} from "@/features/project/components/software-backlog-view";
-import SummaryView from "@/features/project/components/summary-view";
-import GeneralSummaryView from "@/features/project/components/general-summary-view";
+import type { SprintCreateValues } from "@/features/project/components/software-backlog-view";
 import TaskDetailDrawer from "@/features/project/components/task-detail-drawer";
 import TaskChatDialog from "@/features/project/components/task-chat-dialog";
 import TaskFormDialog, {
@@ -72,19 +63,14 @@ import SprintEditDialog, {
 } from "@/features/project/components/sprint-edit-dialog";
 import ProjectMembersPanel from "@/features/project/components/project-members-panel";
 import ProjectSettingsDialog from "@/features/project/components/project-settings-dialog";
+import ProjectSidebar from "@/features/project/components/project-sidebar";
+import ProjectFiltersToolbar from "@/features/project/components/project-filters-toolbar";
+import ProjectViewContent from "@/features/project/components/project-view-content";
 import {
   ArrowLeft,
-  LayoutGrid,
-  List,
-  Calendar,
   Plus,
-  Settings,
-  Search,
   Users,
-  ChevronLeft,
   ChevronRight,
-  LayoutDashboard,
-  ChartGantt,
 } from "lucide-react";
 import { getProjectKey } from "../page";
 import { useProjectRealtime } from "@/features/project/hooks/use-project-realtime";
@@ -859,150 +845,20 @@ export default function ProjectDetailPage() {
     setSearchQuery("");
   };
 
-  const isFiltersActive =
-    activeAssigneeFilters.length > 0 || onlyMyIssues || searchQuery.length > 0;
-
   return (
     <div className="flex flex-1 overflow-hidden h-full">
       {/* ── Collapsible Project Sidebar (Jira style) ── */}
-      <aside
-        className={[
-          "flex flex-col border-r border-slate-200 bg-[#F4F5F7] transition-all duration-300 relative select-none",
-          isSidebarCollapsed ? "w-0 overflow-hidden" : "w-60 shrink-0",
-        ].join(" ")}
-      >
-        {/* Project Header in Sidebar */}
-        <div className="p-4 flex items-center gap-2.5 border-b border-slate-200">
-          <span
-            className="grid h-9 w-9 shrink-0 place-items-center rounded bg-white text-lg border border-slate-200 font-bold"
-            style={{ color: project.color }}
-          >
-            {project.icon || "📁"}
-          </span>
-          <div className="min-w-0">
-            <h2 className="truncate text-sm font-semibold text-[#172B4D]">
-              {project.name}
-            </h2>
-            <div className="mt-1">
-              <ProjectTypeBadge type={project.projectType} compact />
-            </div>
-          </div>
-        </div>
+      <ProjectSidebar
+        project={project}
+        members={projectWithMembers.members}
+        projectKey={projectKey}
+        viewMode={viewMode}
+        isCollapsed={isSidebarCollapsed}
+        onViewModeChange={setViewMode}
+        onToggleCollapsed={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
+        onOpenSettings={() => setShowProjectSettings(true)}
+      />
 
-        {/* Sidebar Navigation Menu */}
-        <nav className="flex-1 px-2 py-3 space-y-0.5">
-          <button
-            onClick={() => setViewMode("summary")}
-            className={[
-              "w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded transition",
-              viewMode === "summary"
-                ? "bg-[#DEEBFF] text-[#0747A6]"
-                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
-            ].join(" ")}
-          >
-            <LayoutDashboard className="h-4 w-4 shrink-0" />
-            <span>Summary</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode("board")}
-            className={[
-              "w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded transition",
-              viewMode === "board"
-                ? "bg-[#DEEBFF] text-[#0747A6]"
-                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
-            ].join(" ")}
-          >
-            <LayoutGrid className="h-4 w-4 shrink-0" />
-            <span>Kanban Board</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode("list")}
-            className={[
-              "w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded transition",
-              viewMode === "list"
-                ? "bg-[#DEEBFF] text-[#0747A6]"
-                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
-            ].join(" ")}
-          >
-            <List className="h-4 w-4 shrink-0" />
-            <span>{isSoftwareProject ? "Backlog" : "Công việc"}</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode("calendar")}
-            className={[
-              "w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded transition",
-              viewMode === "calendar"
-                ? "bg-[#DEEBFF] text-[#0747A6]"
-                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
-            ].join(" ")}
-          >
-            <Calendar className="h-4 w-4 shrink-0" />
-            <span>Lịch trình (Calendar)</span>
-          </button>
-
-          <button
-            onClick={() => setViewMode("gantt")}
-            className={[
-              "w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded transition",
-              viewMode === "gantt"
-                ? "bg-[#DEEBFF] text-[#0747A6]"
-                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
-            ].join(" ")}
-          >
-            <ChartGantt className="h-4 w-4 shrink-0" />
-            <span>Gantt chart</span>
-          </button>
-
-          <div className="h-px bg-slate-200 my-4" />
-
-          <button
-            onClick={() => setViewMode("members")}
-            className={[
-              "w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded transition",
-              viewMode === "members"
-                ? "bg-[#DEEBFF] text-[#0747A6]"
-                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
-            ].join(" ")}
-          >
-            <Users className="h-4 w-4 shrink-0" />
-            <span>Thành viên ({projectWithMembers.members.length})</span>
-          </button>
-        </nav>
-
-        {/* Bottom branding or configuration */}
-        <div className="p-4 border-t border-slate-200 bg-slate-100/50">
-          <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
-            <span>
-              Mã dự án: <strong>{projectKey}</strong>
-            </span>
-            <button
-              onClick={() => setShowProjectSettings(true)}
-              className="text-slate-400 hover:text-slate-600"
-              title="Cài đặt Project"
-            >
-              <Settings className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Sidebar Toggle Handle */}
-      <button
-        onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-        className="relative z-30 w-3 -ml-1 flex items-center justify-center hover:bg-slate-200 group border-r border-slate-200 transition-colors"
-        title={isSidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
-      >
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-white rounded-full border border-slate-200 shadow-sm p-0.5 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-          {isSidebarCollapsed ? (
-            <ChevronRight className="h-3 w-3 text-slate-500" />
-          ) : (
-            <ChevronLeft className="h-3 w-3 text-slate-500" />
-          )}
-        </div>
-      </button>
 
       {/* ── Main Content Area ── */}
       <main className="flex-1 flex flex-col min-w-0 bg-white overflow-y-auto px-8 py-6">
@@ -1048,241 +904,62 @@ export default function ProjectDetailPage() {
           </div>
         </div>
 
-        {/* ── Jira Filters Toolbar ── */}
-        {project.projectType === ProjectType.SOFTWARE_DEVELOPMENT && (
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-xs font-semibold text-indigo-800">
-            <span className="font-bold">Software workflow</span>
-            <span>Backlog</span>
-            <span>Sprint</span>
-            <span>Code review</span>
-            <span>Release</span>
-          </div>
-        )}
+        <ProjectFiltersToolbar
+          projectType={project.projectType}
+          members={projectWithMembers.members}
+          tasks={tasks}
+          searchQuery={searchQuery}
+          activeAssigneeFilters={activeAssigneeFilters}
+          onlyMyIssues={onlyMyIssues}
+          onSearchChange={setSearchQuery}
+          onToggleAssignee={toggleAssigneeFilter}
+          onToggleOnlyMyIssues={() => setOnlyMyIssues((value) => !value)}
+          onClearFilters={clearAllFilters}
+        />
 
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
-          {/* Search bar */}
-          <div className="relative">
-            <Search
-              className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
-              strokeWidth={2}
-            />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm công việc..."
-              className="w-48 sm:w-56 rounded border border-slate-300 bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#172B4D] outline-none transition placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC]"
-            />
-          </div>
-
-          {/* Member filters (Avatars) */}
-          <div className="flex items-center gap-1">
-            <span className="text-xs text-slate-500 font-semibold mr-1">
-              Giao cho:
-            </span>
-            <div className="flex -space-x-1.5">
-              {projectWithMembers.members.map((member) => {
-                const isSelected = activeAssigneeFilters.includes(
-                  member.userId,
-                );
-                return (
-                  <button
-                    key={member.id}
-                    onClick={() => toggleAssigneeFilter(member.userId)}
-                    title={member.displayName}
-                    className={[
-                      "relative rounded-full transition-transform ring-2",
-                      isSelected
-                        ? "ring-[#0052CC] scale-110 z-10"
-                        : "ring-white hover:scale-105 hover:z-10",
-                    ].join(" ")}
-                  >
-                    <AvatarStack
-                      users={[
-                        {
-                          userId: member.userId,
-                          displayName: member.displayName,
-                          avatarUrl: member.avatarUrl,
-                        },
-                      ]}
-                      size="xs"
-                      max={1}
-                    />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Quick Buttons */}
-          <button
-            onClick={() => setOnlyMyIssues(!onlyMyIssues)}
-            className={[
-              "rounded px-2.5 py-1.5 text-xs font-semibold transition border",
-              onlyMyIssues
-                ? "bg-[#EAE6FF] text-[#403294] border-[#C0B6F2]"
-                : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50",
-            ].join(" ")}
-          >
-            Chỉ của tôi
-          </button>
-
-          {/* Clear Filters */}
-          {isFiltersActive && (
-            <button
-              onClick={clearAllFilters}
-              className="text-xs font-bold text-[#0052CC] hover:underline"
-            >
-              Xóa bộ lọc
-            </button>
-          )}
-
-          {/* Task status indicator counts */}
-          <div className="ml-auto flex items-center gap-3 text-[11px] font-bold text-slate-500 bg-slate-100 rounded px-2.5 py-1">
-            <span>
-              To Do:{" "}
-              {
-                tasks.filter((t) => t.status === TaskStatus.TODO && !t.archived)
-                  .length
-              }
-            </span>
-            <span className="w-px h-3 bg-slate-200" />
-            <span className="text-blue-600">
-              In Progress:{" "}
-              {
-                tasks.filter(
-                  (t) => t.status === TaskStatus.IN_PROGRESS && !t.archived,
-                ).length
-              }
-            </span>
-            <span className="w-px h-3 bg-slate-200" />
-            <span className="text-emerald-600">
-              Done:{" "}
-              {
-                tasks.filter((t) => t.status === TaskStatus.DONE && !t.archived)
-                  .length
-              }
-            </span>
-          </div>
-        </div>
 
         {/* ── Content View ── */}
         <div className="mt-5 flex gap-5 flex-1 min-h-0 overflow-hidden relative">
-          {/* Main content */}
-          <div className="min-w-0 flex-1 overflow-y-auto pr-1">
-            {tasksLoading && (
-              <div className="rounded border border-slate-200 bg-white py-24 text-center text-sm font-semibold text-slate-400">
-                Đang tải công việc...
-              </div>
-            )}
-            {tasksError && (
-              <div className="rounded border border-red-100 bg-red-50 py-24 text-center text-sm font-semibold text-red-500">
-                Không thể tải danh sách công việc. Vui lòng kiểm tra lại dịch vụ
-                backend.
-              </div>
-            )}
-            {!tasksLoading &&
-              !tasksError &&
-              viewMode === "summary" &&
-              (isSoftwareProject ? (
-                <SummaryView
-                  tasks={filteredTasks}
-                  members={projectWithMembers.members}
-                  sprints={sprints}
-                />
-              ) : (
-                <GeneralSummaryView
-                  tasks={filteredTasks}
-                  members={projectWithMembers.members}
-                />
-              ))}
-            {!tasksLoading && !tasksError && viewMode === "board" && (
-              <BoardView
-                tasks={filteredTasks}
-                onTaskClick={(task) => setSelectedTask(task)}
-                onOpenChat={(task) => setChatTask(task)}
-                onTaskMove={handleTaskMove}
-                onAddTask={openCreateTask}
-              />
-            )}
-            {!tasksLoading &&
-              !tasksError &&
-              viewMode === "list" &&
-              (isSoftwareProject ? (
-                <SoftwareBacklogView
-                  tasks={filteredTasks}
-                  sprints={sprints}
-                  onTaskClick={(task) => setSelectedTask(task)}
-                  onOpenChat={(task) => setChatTask(task)}
-                  onCreateTask={(sprintId) =>
-                    openCreateTask(
-                      TaskStatus.TODO,
-                      undefined,
-                      false,
-                      undefined,
-                      sprintId,
-                    )
-                  }
-                  onCreateSprintTask={handleCreateSprintTask}
-                  onCreateSprint={handleCreateSprint}
-                  onUpdateSprint={handleUpdateSprint}
-                  onAddTasksToSprint={handleAddTasksToSprint}
-                  onBulkUpdateTasks={handleBulkUpdateTasks}
-                  onStartSprint={handleStartSprint}
-                  onCompleteSprint={handleCompleteSprint}
-                  onReopenSprint={handleReopenSprint}
-                  onRemoveTaskFromSprint={handleRemoveTaskFromSprint}
-                  isBusy={
-                    createSprintMutation.isPending ||
-                    addTasksToSprintMutation.isPending ||
-                    startSprintMutation.isPending ||
-                    completeSprintMutation.isPending ||
-                    updateSprintMutation.isPending ||
-                    reopenSprintMutation.isPending ||
-                    removeTaskFromSprintMutation.isPending
-                  }
-                />
-              ) : (
-                <ListView
-                  tasks={filteredTasks}
-                  projectType={project.projectType}
-                  onTaskClick={(task) => setSelectedTask(task)}
-                  onOpenChat={(task) => setChatTask(task)}
-                  onAddTask={() => openCreateTask()}
-                  onAddTaskInline={handleCreateTaskInline}
-                  onAddSubtask={(task) =>
-                    openCreateTask(TaskStatus.TODO, undefined, false, task.id)
-                  }
-                  onEditGroup={handleEditGroup}
-                  onDeleteGroup={handleDeleteGroup}
-                  onReorderTasks={handleReorderTasks}
-                />
-              ))}
-            {!tasksLoading && !tasksError && viewMode === "calendar" && (
-              <CalendarView
-                tasks={filteredTasks}
-                onTaskClick={(task) => setSelectedTask(task)}
-                onCreateDate={(date) =>
-                  openCreateTask(TaskStatus.TODO, date, true)
-                }
-              />
-            )}
-            {!tasksLoading && !tasksError && viewMode === "gantt" && (
-              <GanttView
-                tasks={filteredTasks}
-                dependencies={dependencies}
-                onTaskClick={(task) => setSelectedTask(task)}
-              />
-            )}
-            {!tasksLoading && !tasksError && viewMode === "members" && (
-              <div className="max-w-3xl">
-                <ProjectMembersPanel
-                  projectId={projectId}
-                  members={projectWithMembers.members}
-                />
-              </div>
-            )}
-          </div>
+          <ProjectViewContent
+            projectId={projectId}
+            projectType={project.projectType}
+            viewMode={viewMode}
+            tasks={filteredTasks}
+            sprints={sprints}
+            dependencies={dependencies}
+            members={projectWithMembers.members}
+            tasksLoading={tasksLoading}
+            tasksError={tasksError}
+            onTaskClick={setSelectedTask}
+            onOpenChat={setChatTask}
+            onTaskMove={handleTaskMove}
+            onOpenCreateTask={openCreateTask}
+            onCreateTaskInline={handleCreateTaskInline}
+            onAddSubtask={(task) => openCreateTask(TaskStatus.TODO, undefined, false, task.id)}
+            onEditGroup={handleEditGroup}
+            onDeleteGroup={handleDeleteGroup}
+            onReorderTasks={handleReorderTasks}
+            onCreateDate={(date) => openCreateTask(TaskStatus.TODO, date, true)}
+            onCreateSprintTask={handleCreateSprintTask}
+            onCreateSprint={handleCreateSprint}
+            onUpdateSprint={handleUpdateSprint}
+            onAddTasksToSprint={handleAddTasksToSprint}
+            onBulkUpdateTasks={handleBulkUpdateTasks}
+            onStartSprint={handleStartSprint}
+            onCompleteSprint={handleCompleteSprint}
+            onReopenSprint={handleReopenSprint}
+            onRemoveTaskFromSprint={handleRemoveTaskFromSprint}
+            isSprintBusy={
+              createSprintMutation.isPending ||
+              addTasksToSprintMutation.isPending ||
+              startSprintMutation.isPending ||
+              completeSprintMutation.isPending ||
+              updateSprintMutation.isPending ||
+              reopenSprintMutation.isPending ||
+              removeTaskFromSprintMutation.isPending
+            }
+          />
+
 
           {/* Members sidebar (collapsible right panel) */}
           {showMembers && viewMode !== "members" && (
