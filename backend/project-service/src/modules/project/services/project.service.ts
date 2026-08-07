@@ -7,7 +7,11 @@ import { UpdateProjectDto } from '../dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse, toProjectResponse } from '../mappers/project.mapper';
 import { ProjectGateway } from '../events/project.gateway';
-import { ProjectRealtimeEvent } from '../events/project.events';
+import {
+  ProjectRealtimeAction,
+  ProjectRealtimeEvent,
+  ProjectRealtimeResource,
+} from '../events/project.events';
 
 @Injectable()
 export class ProjectService {
@@ -93,7 +97,7 @@ export class ProjectService {
       project: response,
       actorId: userId,
     });
-    this.realtime.emitDataChanged(projectId, 'project', 'updated', userId, response);
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.PROJECT, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -143,7 +147,7 @@ export class ProjectService {
       projectId,
       actorId: userId,
     });
-    this.realtime.emitDataChanged(projectId, 'project', 'deleted', userId, { projectId });
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.PROJECT, ProjectRealtimeAction.DELETED, userId, { projectId });
   }
 
   async listMembers(userId: string, projectId: string) {

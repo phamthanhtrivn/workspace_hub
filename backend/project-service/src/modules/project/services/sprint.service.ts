@@ -8,6 +8,7 @@ import { AddSprintTasksDto } from '../dto/add-sprint-tasks.dto';
 import { UpdateSprintDto } from '../dto/update-sprint.dto';
 import { toTaskResponse } from '../mappers/project.mapper';
 import { ProjectGateway } from '../events/project.gateway';
+import { ProjectRealtimeAction, ProjectRealtimeResource } from '../events/project.events';
 
 const sprintInclude = {
   tasks: {
@@ -57,7 +58,7 @@ export class SprintService {
       include: sprintInclude,
     });
     const response = this.toResponse(sprint);
-    this.realtime.emitDataChanged(projectId, 'sprint', 'created', userId, response);
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.SPRINT, ProjectRealtimeAction.CREATED, userId, response);
     return response;
   }
 
@@ -91,7 +92,7 @@ export class SprintService {
       data: { sprintId: sprint.id, updatedAt: new Date() },
     });
     const response = await this.getById(sprint.id);
-    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    this.realtime.emitDataChanged(sprint.projectId, ProjectRealtimeResource.SPRINT, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -116,7 +117,7 @@ export class SprintService {
       data: { sprintId: null, updatedAt: new Date() },
     });
     const response = await this.getById(sprint.id);
-    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    this.realtime.emitDataChanged(sprint.projectId, ProjectRealtimeResource.SPRINT, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -138,7 +139,7 @@ export class SprintService {
       include: sprintInclude,
     });
     const response = this.toResponse(updated);
-    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    this.realtime.emitDataChanged(sprint.projectId, ProjectRealtimeResource.SPRINT, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -161,7 +162,7 @@ export class SprintService {
       include: sprintInclude,
     });
     const response = this.toResponse(updated);
-    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    this.realtime.emitDataChanged(sprint.projectId, ProjectRealtimeResource.SPRINT, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -188,7 +189,7 @@ export class SprintService {
       });
     });
     const response = this.toResponse(result);
-    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    this.realtime.emitDataChanged(sprint.projectId, ProjectRealtimeResource.SPRINT, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -209,7 +210,7 @@ export class SprintService {
       include: sprintInclude,
     });
     const response = this.toResponse(updated);
-    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    this.realtime.emitDataChanged(sprint.projectId, ProjectRealtimeResource.SPRINT, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 

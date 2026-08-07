@@ -6,6 +6,7 @@ import { UpdateMemberRoleDto } from '../dto/update-member-role.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse } from '../mappers/project.mapper';
 import { ProjectGateway } from '../events/project.gateway';
+import { ProjectRealtimeAction, ProjectRealtimeResource } from '../events/project.events';
 
 @Injectable()
 export class MemberService {
@@ -50,7 +51,7 @@ export class MemberService {
       });
 
     const response = toMemberResponse(member);
-    this.realtime.emitDataChanged(projectId, 'member', 'created', userId, response);
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.MEMBER, ProjectRealtimeAction.CREATED, userId, response);
     return response;
   }
 
@@ -73,7 +74,7 @@ export class MemberService {
     });
 
     const response = toMemberResponse(updated);
-    this.realtime.emitDataChanged(projectId, 'member', 'updated', userId, response);
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.MEMBER, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -98,6 +99,6 @@ export class MemberService {
         updatedAt: new Date(),
       },
     });
-    this.realtime.emitDataChanged(projectId, 'member', 'deleted', userId, { userId: memberUserId });
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.MEMBER, ProjectRealtimeAction.DELETED, userId, { userId: memberUserId });
   }
 }

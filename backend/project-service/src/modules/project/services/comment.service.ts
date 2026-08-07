@@ -6,6 +6,7 @@ import { UpdateCommentDto } from '../dto/update-comment.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toCommentResponse } from '../mappers/project.mapper';
 import { ProjectGateway } from '../events/project.gateway';
+import { ProjectRealtimeAction, ProjectRealtimeResource } from '../events/project.events';
 
 @Injectable()
 export class CommentService {
@@ -41,7 +42,7 @@ export class CommentService {
       },
     });
     const response = toCommentResponse(comment);
-    this.realtime.emitDataChanged(task.projectId, 'comment', 'created', userId, response);
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.COMMENT, ProjectRealtimeAction.CREATED, userId, response);
     return response;
   }
 
@@ -54,7 +55,7 @@ export class CommentService {
       data: { content: dto.content.trim(), edited: true, updatedAt: new Date() },
     });
     const response = toCommentResponse(updated);
-    this.realtime.emitDataChanged(task.projectId, 'comment', 'updated', userId, response);
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.COMMENT, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -63,7 +64,7 @@ export class CommentService {
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
     await this.prisma.taskComment.delete({ where: { id: commentId } });
-    this.realtime.emitDataChanged(task.projectId, 'comment', 'deleted', userId, { id: commentId });
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.COMMENT, ProjectRealtimeAction.DELETED, userId, { id: commentId });
   }
 
   private async requireWriteAccess(userId: string, projectId: string): Promise<void> {

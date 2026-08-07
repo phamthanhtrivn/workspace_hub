@@ -4,6 +4,7 @@ import { ProjectAccessService } from './project-access.service';
 import { CreateChecklistDto } from '../dto/create-checklist.dto';
 import { UpdateChecklistDto } from '../dto/update-checklist.dto';
 import { ProjectGateway } from '../events/project.gateway';
+import { ProjectRealtimeAction, ProjectRealtimeResource } from '../events/project.events';
 
 @Injectable()
 export class ChecklistService {
@@ -25,7 +26,7 @@ export class ChecklistService {
         rank: String(Date.now()),
       },
     });
-    this.realtime.emitDataChanged(task.projectId, 'checklist', 'created', userId, item);
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.CHECKLIST, ProjectRealtimeAction.CREATED, userId, item);
     return item;
   }
 
@@ -37,7 +38,7 @@ export class ChecklistService {
       where: { id: checklistId },
       data: { completed: dto.completed, completedBy: dto.completed ? userId : null },
     });
-    this.realtime.emitDataChanged(task.projectId, 'checklist', 'updated', userId, updated);
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.CHECKLIST, ProjectRealtimeAction.UPDATED, userId, updated);
     return updated;
   }
 
@@ -46,7 +47,7 @@ export class ChecklistService {
     const task = await this.getTask(item.taskId);
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
     await this.prisma.taskChecklist.delete({ where: { id: checklistId } });
-    this.realtime.emitDataChanged(task.projectId, 'checklist', 'deleted', userId, { id: checklistId });
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.CHECKLIST, ProjectRealtimeAction.DELETED, userId, { id: checklistId });
     return { id: checklistId };
   }
 

@@ -9,7 +9,11 @@ import { toTaskResponse } from '../mappers/project.mapper';
 import { ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
 import { ProjectGateway } from '../events/project.gateway';
-import { ProjectRealtimeEvent } from '../events/project.events';
+import {
+  ProjectRealtimeAction,
+  ProjectRealtimeEvent,
+  ProjectRealtimeResource,
+} from '../events/project.events';
 
 const taskWithCount = {
   _count: { select: { children: true } },
@@ -72,7 +76,7 @@ export class TaskService {
       task: response,
       actorId: userId,
     });
-    this.realtime.emitDataChanged(projectId, 'task', 'created', userId, response);
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.TASK, ProjectRealtimeAction.CREATED, userId, response);
     return response;
   }
 
@@ -176,7 +180,7 @@ export class TaskService {
         task: response,
         actorId: userId,
       });
-      this.realtime.emitDataChanged(current.projectId, 'task', 'updated', userId, response);
+      this.realtime.emitDataChanged(current.projectId, ProjectRealtimeResource.TASK, ProjectRealtimeAction.UPDATED, userId, response);
       return response;
     }
     if (dto.status !== undefined || dto.title !== undefined || dto.dueDate !== undefined) {
@@ -198,7 +202,7 @@ export class TaskService {
       task: response,
       actorId: userId,
     });
-    this.realtime.emitDataChanged(current.projectId, 'task', 'updated', userId, response);
+    this.realtime.emitDataChanged(current.projectId, ProjectRealtimeResource.TASK, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -213,7 +217,7 @@ export class TaskService {
       taskId,
       actorId: userId,
     });
-    this.realtime.emitDataChanged(task.projectId, 'task', 'deleted', userId, { taskId });
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.TASK, ProjectRealtimeAction.DELETED, userId, { taskId });
   }
 
   private async findTask(taskId: string) {

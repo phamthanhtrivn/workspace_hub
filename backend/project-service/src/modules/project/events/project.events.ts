@@ -8,5 +8,24 @@ export enum ProjectRealtimeEvent {
   TASK_DELETED = 'task:deleted',
 }
 
+export enum ProjectRealtimeResource {
+  PROJECT = 'project',
+  TASK = 'task',
+  SPRINT = 'sprint',
+  MEMBER = 'member',
+  INVITATION = 'invitation',
+  LABEL = 'label',
+  LABEL_MAPPING = 'label_mapping',
+  CHECKLIST = 'checklist',
+  DEPENDENCY = 'dependency',
+  COMMENT = 'comment',
+}
+
+export enum ProjectRealtimeAction {
+  CREATED = 'created',
+  UPDATED = 'updated',
+  DELETED = 'deleted',
+}
+
 export const projectRoom = (projectId: string): string => `project:${projectId}`;
 export const userRoom = (userId: string): string => `user:${userId}`;

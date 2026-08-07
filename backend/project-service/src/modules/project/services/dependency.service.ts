@@ -3,6 +3,7 @@ import { PrismaService } from '../../../prisma/prisma.service';
 import { ProjectAccessService } from './project-access.service';
 import { CreateDependencyDto } from '../dto/create-dependency.dto';
 import { ProjectGateway } from '../events/project.gateway';
+import { ProjectRealtimeAction, ProjectRealtimeResource } from '../events/project.events';
 
 @Injectable()
 export class DependencyService {
@@ -29,7 +30,7 @@ export class DependencyService {
       create: { id: crypto.randomUUID(), projectId: successor.projectId, predecessorTaskId: predecessor.id, successorTaskId: successor.id, dependencyType: dto.dependencyType, createdBy: userId, createdAt: new Date() },
       update: { dependencyType: dto.dependencyType },
     });
-    this.realtime.emitDataChanged(successor.projectId, 'dependency', 'created', userId, dependency);
+    this.realtime.emitDataChanged(successor.projectId, ProjectRealtimeResource.DEPENDENCY, ProjectRealtimeAction.CREATED, userId, dependency);
     return dependency;
   }
 
@@ -38,7 +39,7 @@ export class DependencyService {
     if (!successor) throw new NotFoundException('Successor task not found');
     await this.access.requireCanEditTask(userId, successor.projectId, successor.createdBy);
     await this.prisma.taskDependency.deleteMany({ where: { projectId: successor.projectId, successorTaskId, predecessorTaskId } });
-    this.realtime.emitDataChanged(successor.projectId, 'dependency', 'deleted', userId, { successorTaskId, predecessorTaskId });
+    this.realtime.emitDataChanged(successor.projectId, ProjectRealtimeResource.DEPENDENCY, ProjectRealtimeAction.DELETED, userId, { successorTaskId, predecessorTaskId });
     return { successorTaskId, predecessorTaskId };
   }
 }

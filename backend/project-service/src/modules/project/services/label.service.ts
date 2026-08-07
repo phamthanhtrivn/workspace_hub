@@ -4,6 +4,7 @@ import { ProjectAccessService } from './project-access.service';
 import { CreateLabelDto } from '../dto/create-label.dto';
 import { UpdateLabelDto } from '../dto/update-label.dto';
 import { ProjectGateway } from '../events/project.gateway';
+import { ProjectRealtimeAction, ProjectRealtimeResource } from '../events/project.events';
 
 @Injectable()
 export class LabelService {
@@ -24,7 +25,7 @@ export class LabelService {
       const label = await this.prisma.taskLabel.create({
         data: { id: crypto.randomUUID(), projectId, name: dto.name.trim(), color: dto.color || '#0052CC' },
       });
-      this.realtime.emitDataChanged(projectId, 'label', 'created', userId, label);
+      this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.LABEL, ProjectRealtimeAction.CREATED, userId, label);
       return label;
     } catch (error) {
       if (error instanceof Error && error.message.includes('uk_task_label_project_name')) {
@@ -41,7 +42,7 @@ export class LabelService {
       ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
       ...(dto.color !== undefined ? { color: dto.color } : {}),
     } });
-    this.realtime.emitDataChanged(label.projectId, 'label', 'updated', userId, updated);
+    this.realtime.emitDataChanged(label.projectId, ProjectRealtimeResource.LABEL, ProjectRealtimeAction.UPDATED, userId, updated);
     return updated;
   }
 
@@ -49,7 +50,7 @@ export class LabelService {
     const label = await this.getLabel(labelId);
     await this.access.requireManager(userId, label.projectId);
     await this.prisma.taskLabel.delete({ where: { id: labelId } });
-    this.realtime.emitDataChanged(label.projectId, 'label', 'deleted', userId, { id: labelId });
+    this.realtime.emitDataChanged(label.projectId, ProjectRealtimeResource.LABEL, ProjectRealtimeAction.DELETED, userId, { id: labelId });
     return { id: labelId };
   }
 
@@ -65,7 +66,7 @@ export class LabelService {
         data: { id: crypto.randomUUID(), taskId, labelId, projectId: task.projectId },
       });
     }
-    this.realtime.emitDataChanged(task.projectId, 'label_mapping', 'created', userId, { taskId, labelId });
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.LABEL_MAPPING, ProjectRealtimeAction.CREATED, userId, { taskId, labelId });
     return label;
   }
 
@@ -74,7 +75,7 @@ export class LabelService {
     if (!task) throw new NotFoundException('Task not found');
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
     await this.prisma.taskLabelMapping.deleteMany({ where: { taskId, labelId } });
-    this.realtime.emitDataChanged(task.projectId, 'label_mapping', 'deleted', userId, { taskId, labelId });
+    this.realtime.emitDataChanged(task.projectId, ProjectRealtimeResource.LABEL_MAPPING, ProjectRealtimeAction.DELETED, userId, { taskId, labelId });
     return { taskId, labelId };
   }
 

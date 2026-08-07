@@ -6,6 +6,7 @@ import { ProjectAccessService } from './project-access.service';
 import { toInvitationResponse } from '../mappers/project.mapper';
 import { InvitationEmailService } from './invitation-email.service';
 import { ProjectGateway } from '../events/project.gateway';
+import { ProjectRealtimeAction, ProjectRealtimeResource } from '../events/project.events';
 
 const EXPIRY_DAYS = 7;
 
@@ -57,7 +58,7 @@ export class InvitationService {
     });
 
     const response = toInvitationResponse(invitation);
-    this.realtime.emitDataChanged(projectId, 'invitation', 'created', userId, response);
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.INVITATION, ProjectRealtimeAction.CREATED, userId, response);
     return response;
   }
 
@@ -130,7 +131,7 @@ export class InvitationService {
     });
 
     const response = toInvitationResponse(updated);
-    this.realtime.emitDataChanged(invitation.projectId, 'invitation', 'updated', userId, response);
+    this.realtime.emitDataChanged(invitation.projectId, ProjectRealtimeResource.INVITATION, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -145,7 +146,7 @@ export class InvitationService {
       include: { project: { select: { name: true } } },
     });
     const response = toInvitationResponse(updated);
-    this.realtime.emitDataChanged(invitation.projectId, 'invitation', 'updated', userId, response);
+    this.realtime.emitDataChanged(invitation.projectId, ProjectRealtimeResource.INVITATION, ProjectRealtimeAction.UPDATED, userId, response);
     return response;
   }
 
@@ -158,7 +159,7 @@ export class InvitationService {
       where: { id: invitationId },
       data: { status: InvitationStatus.CANCELLED, respondedAt: new Date() },
     });
-    this.realtime.emitDataChanged(projectId, 'invitation', 'deleted', userId, { id: invitationId });
+    this.realtime.emitDataChanged(projectId, ProjectRealtimeResource.INVITATION, ProjectRealtimeAction.DELETED, userId, { id: invitationId });
   }
 
   private async findInvitation(id: string) {
