@@ -1,0 +1,71 @@
+
+> project-service@1.0.0 start:dev
+> nest start --watch
+
+[2J[3J[H[[90m2:04:03 PM[0m] Starting compilation in watch mode...
+
+[[90m2:04:12 PM[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +38ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProjectModule dependencies initialized[39m[38;5;3m +44ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mProjectGateway subscribed to the "project:join" message[39m[38;5;3m +168ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mProjectGateway subscribed to the "project:leave" message[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProjectController {/api/projects}:[39m[38;5;3m +2ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects, POST} route[39m[38;5;3m +5ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMemberController {/api/projects/:projectId/members}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/members, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/members, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/members/:memberUserId, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/members/:memberUserId, DELETE} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInvitationController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/invitations, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/project-invitations/pending, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/project-invitations/:invitationId/accept, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/project-invitations/:invitationId/decline, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/invitations/:invitationId, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTaskController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/tasks, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/tasks, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCommentController {/api}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId/comments, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId/comments, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/task-comments/:commentId, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/task-comments/:commentId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSprintController {/api}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/sprints, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/sprints, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/sprints/:sprintId/tasks, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/sprints/:sprintId, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/sprints/:sprintId/tasks/:taskId, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/sprints/:sprintId/start, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/sprints/:sprintId/complete, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/sprints/:sprintId/reopen, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mChecklistController {/api}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId/checklists, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/checklists/:checklistId, PATCH} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/checklists/:checklistId, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mLabelController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/labels, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/labels, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/labels/:labelId, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/labels/:labelId, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId/labels/:labelId, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId/labels/:labelId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mActivityController {/api/tasks}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:taskId/activities, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDependencyController {/api}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/projects/:projectId/dependencies, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:successorTaskId/dependencies, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:17 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/tasks/:successorTaskId/dependencies/:predecessorTaskId, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 20272  - [39m08/07/2026, 2:04:18 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +82ms[39m
+[91merror[0m[90m TS5083: [0mCannot read file 'E:/KLTN/workspace_hub/backend/project-service/tsconfig.build.json'.
+
