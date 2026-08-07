@@ -1,21 +1,50 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
-import { DocumentItem, ViewLayout, DocumentSortBy } from "../types/documents.types";
-import { DocumentItemType, DocumentViewType } from "../types/documents.enums";
-import { Folder } from "lucide-react";
+import {
+  DocumentItem,
+  ViewLayout,
+  DocumentSortBy,
+} from "../types/documents.types";
+import {
+  DocumentItemType,
+  DocumentViewType,
+  UploadState,
+  NavigationLabel,
+} from "../types/documents.enums";
+import { DND_ROOT_ID } from "../types/documents.constants";
+import { Folder, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
-import FolderPickerModal from "./folder-picker-modal";
-import ShimmerLoader from "./shimmer-loader";
-import DetailsPanel from "./details-panel";
-import ExplorerToolbar from "./explorer-toolbar";
-import ExplorerBreadcrumbs from "./explorer-breadcrumbs";
-import GridView from "./grid-view";
-import ListView from "./list-view";
+import FolderPickerModal from "./common/folder-picker-modal";
+import ShimmerLoader from "./common/shimmer-loader";
+import DetailsPanel from "./explorer/details-panel";
+import ExplorerToolbar from "./explorer/explorer-toolbar";
+import UploadProgress from "./common/upload-progress";
+import ExplorerBreadcrumbs from "./explorer/explorer-breadcrumbs";
+import GridView from "./views/grid-view";
+import ListView from "./views/list-view";
+import FilePreviewModal from "./preview/file-preview-modal";
+import VersionManagementModal from "./versions/version-management-modal";
+import ShareModal from "./sharing/share-modal";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
+import { cn } from "@/lib/utils";
+import { useDownloadQueue } from "./download/download-queue-provider";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -27,7 +56,7 @@ interface DocumentExplorerProps {
   >;
 }
 
-export default function DocumentExplorer({
+function DocumentExplorer({
   currentFolderId,
   onNavigate,
   activeView,
@@ -38,12 +67,31 @@ export default function DocumentExplorer({
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [viewLayout, setViewLayout] = useState<ViewLayout>(ViewLayout.GRID);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [activeDetailsItemId, setActiveDetailsItemId] = useState<string | null>(
+    null,
+  );
   const [sortBy, setSortBy] = useState<DocumentSortBy>(DocumentSortBy.LATEST);
   const [currentPage, setCurrentPage] = useState(1);
 
   // Modals state
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [movingItemId, setMovingItemId] = useState<string | null>(null);
+  const [previewItem, setPreviewItem] = useState<DocumentItem | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
+  const [versioningItem, setVersioningItem] = useState<DocumentItem | null>(
+    null,
+  );
+  const [previewVersionId, setPreviewVersionId] = useState<string>("");
+  const [sharingItem, setSharingItem] = useState<DocumentItem | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Uploading state
+  const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFileName, setUploadingFileName] = useState("");
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const dragCounter = useRef(0);
 
   // Focus Search Input with Ref
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -70,8 +118,15 @@ export default function DocumentExplorer({
   }, [searchQuery]);
 
   // Fetch items based on current context
-  const { data, isLoading } = useQuery({
-    queryKey: ["documents", currentFolderId, activeView, currentPage, sortBy, debouncedSearchQuery],
+  const { data: documentsData, isLoading } = useQuery({
+    queryKey: [
+      "documents",
+      currentFolderId,
+      activeView,
+      currentPage,
+      sortBy,
+      debouncedSearchQuery,
+    ],
     queryFn: () => {
       const fetchParams = {
         page: currentPage,
@@ -80,26 +135,54 @@ export default function DocumentExplorer({
         search: debouncedSearchQuery,
       };
 
-      if (activeView === DocumentViewType.SHARED) {
+      if (activeView === DocumentViewType.SHARED && !currentFolderId) {
         return documentsApi.getSharedDocuments(fetchParams);
       }
       return documentsApi.getDocuments({
         ...fetchParams,
         folderId: currentFolderId || undefined,
-        starred: activeView === DocumentViewType.STARRED ? true : undefined,
-        archived: activeView === DocumentViewType.TRASH ? true : undefined,
+        starred:
+          activeView === DocumentViewType.STARRED && !currentFolderId
+            ? true
+            : undefined,
+        archived:
+          activeView === DocumentViewType.TRASH && !currentFolderId
+            ? true
+            : undefined,
       });
     },
   });
 
-  const items = data?.data || [];
-  const totalItems = data?.meta?.totalItems || 0;
-  const totalPages = data?.meta?.totalPages || 0;
-  const safeCurrentPage = Math.min(Math.max(1, currentPage), Math.max(1, totalPages));
+  const items = documentsData?.data || [];
+  const totalItems = documentsData?.meta?.totalItems || 0;
+  const totalPages = documentsData?.meta?.totalPages || 0;
+  const safeCurrentPage = Math.min(
+    Math.max(1, currentPage),
+    Math.max(1, totalPages),
+  );
 
-  const selectedItem = useMemo(() => {
-    return items.find((item) => item.id === selectedItemId) || null;
-  }, [items, selectedItemId]);
+  const activeDetailsItem = useMemo(() => {
+    return items.find((item) => item.id === activeDetailsItemId) || null;
+  }, [items, activeDetailsItemId]);
+
+  const movingItem = useMemo(() => {
+    return items.find((item) => item.id === movingItemId) || null;
+  }, [items, movingItemId]);
+
+  const initialFolderIdForMove = movingItem?.parentFolderId || null;
+  const initialPathForMove = useMemo(() => {
+    if (!movingItem) return undefined;
+    if (movingItem.parentFolderId === currentFolderId) {
+      return path;
+    }
+    if (movingItem.parentFolderId) {
+      return [
+        { id: null, name: NavigationLabel.ROOT },
+        { id: movingItem.parentFolderId, name: NavigationLabel.CURRENT_FOLDER },
+      ];
+    }
+    return [{ id: null, name: NavigationLabel.ROOT }];
+  }, [movingItem, currentFolderId, path]);
 
   // Mutations
   const createFolderMutation = useMutation({
@@ -160,6 +243,127 @@ export default function DocumentExplorer({
     },
   });
 
+  const deletePermanentlyMutation = useMutation({
+    mutationFn: (id: string) => documentsApi.deleteItemPermanently(id),
+    onSuccess: () => {
+      toast.success("Đã xóa tài nguyên vĩnh viễn");
+      setSelectedItemId(null);
+      void queryClient.invalidateQueries({ queryKey: ["documents"] });
+      void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Lỗi xóa vĩnh viễn");
+    },
+  });
+
+  // Handle uploading file to S3
+  const handleUploadFile = useCallback(
+    async (file: File) => {
+      try {
+        setUploadingFileName(file.name);
+        setUploadState(UploadState.INITIATING);
+        setUploadProgress(0);
+
+        // Upload file directly using the unified API upload client method
+        await documentsApi.uploadFile(
+          file,
+          currentFolderId,
+          (percent, state) => {
+            setUploadState(state);
+            setUploadProgress(percent);
+          },
+        );
+
+        setUploadState(UploadState.SUCCESS);
+        toast.success(`Đã tải lên tệp ${file.name} thành công!`);
+
+        void queryClient.invalidateQueries({ queryKey: ["documents"] });
+        void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
+
+        setTimeout(() => {
+          setUploadState(UploadState.IDLE);
+          setUploadingFileName("");
+          setUploadProgress(0);
+        }, 2000);
+      } catch (err: any) {
+        console.error(err);
+        setUploadState(UploadState.ERROR);
+        const errMsg =
+          err.response?.data?.message || err.message || "Lỗi tải lên tệp";
+        toast.error(errMsg);
+        setTimeout(() => {
+          setUploadState(UploadState.IDLE);
+        }, 3000);
+      }
+    },
+    [currentFolderId, queryClient],
+  );
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDraggingOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDraggingOver(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDraggingOver(false);
+      dragCounter.current = 0;
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const files = Array.from(e.dataTransfer.files);
+        for (const file of files) {
+          await handleUploadFile(file);
+        }
+        e.dataTransfer.clearData();
+      }
+    },
+    [handleUploadFile],
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over) return;
+
+      const draggedId = active.id as string;
+      const targetFolderId =
+        over.id === DND_ROOT_ID ? null : (over.id as string);
+
+      if (draggedId !== targetFolderId) {
+        moveMutation.mutate({ id: draggedId, destId: targetFolderId });
+      }
+    },
+    [moveMutation],
+  );
+
   // Folder creation trigger
   const handleCreateFolder = useCallback(() => {
     void Swal.fire({
@@ -187,27 +391,30 @@ export default function DocumentExplorer({
   }, [createFolderMutation, currentFolderId]);
 
   // Rename trigger
-  const handleRename = useCallback((id: string, currentName: string) => {
-    void Swal.fire({
-      title: "Đổi tên tài nguyên",
-      input: "text",
-      inputValue: currentName,
-      showCancelButton: true,
-      confirmButtonText: "Lưu lại",
-      cancelButtonText: "Hủy bỏ",
-      confirmButtonColor: "var(--color-primary, #3b82f6)",
-      inputValidator: (value) => {
-        if (!value) {
-          return "Tên không được để trống!";
+  const handleRename = useCallback(
+    (id: string, currentName: string) => {
+      void Swal.fire({
+        title: "Đổi tên tài nguyên",
+        input: "text",
+        inputValue: currentName,
+        showCancelButton: true,
+        confirmButtonText: "Lưu lại",
+        cancelButtonText: "Hủy bỏ",
+        confirmButtonColor: "var(--color-primary, #3b82f6)",
+        inputValidator: (value) => {
+          if (!value) {
+            return "Tên không được để trống!";
+          }
+          return null;
+        },
+      }).then((result) => {
+        if (result.isConfirmed && result.value) {
+          renameMutation.mutate({ id, name: result.value as string });
         }
-        return null;
-      },
-    }).then((result) => {
-      if (result.isConfirmed && result.value) {
-        renameMutation.mutate({ id, name: result.value as string });
-      }
-    });
-  }, [renameMutation]);
+      });
+    },
+    [renameMutation],
+  );
 
   // Move trigger
   const handleOpenMoveModal = useCallback((id: string) => {
@@ -216,45 +423,64 @@ export default function DocumentExplorer({
   }, []);
 
   // Star toggle
-  const handleToggleStar = useCallback((id: string, isStarred: boolean) => {
-    starMutation.mutate({ id, star: !isStarred });
-  }, [starMutation]);
+  const handleToggleStar = useCallback(
+    (id: string, isStarred: boolean) => {
+      starMutation.mutate({ id, star: !isStarred });
+    },
+    [starMutation],
+  );
 
   // Soft delete / Restore
-  const handleArchive = useCallback((id: string, archive: boolean) => {
-    if (archive) {
-      void Swal.fire({
-        title: "Xóa tạm tài nguyên?",
-        text: "Tập tin/Thư mục sẽ được chuyển vào thùng rác và lưu giữ trong 30 ngày.",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Đồng ý",
-        cancelButtonText: "Hủy bỏ",
-        confirmButtonColor: "#ef4444",
-      }).then((result) => {
-        if (result.isConfirmed) {
-          archiveMutation.mutate({ id, archive: true });
-        }
-      });
-    } else {
-      archiveMutation.mutate({ id, archive: false });
-    }
-  }, [archiveMutation]);
+  const handleArchive = useCallback(
+    (id: string, archive: boolean) => {
+      if (archive) {
+        void Swal.fire({
+          title: "Xóa tạm tài nguyên?",
+          text: "Tập tin/Thư mục sẽ được chuyển vào thùng rác và lưu giữ trong 30 ngày.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Đồng ý",
+          cancelButtonText: "Hủy bỏ",
+          confirmButtonColor: "#ef4444",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            archiveMutation.mutate({ id, archive: true });
+          }
+        });
+      } else {
+        archiveMutation.mutate({ id, archive: false });
+      }
+    },
+    [archiveMutation],
+  );
 
   // Navigation handlers
-  const handleFolderDoubleClick = useCallback((folder: DocumentItem) => {
-    onNavigate(folder.id, folder.name);
-    setSelectedItemId(null);
-    setCurrentPage(1);
-  }, [onNavigate]);
+  const handleFolderClick = useCallback(
+    (folder: DocumentItem) => {
+      onNavigate(folder.id, folder.name);
+      setSelectedItemId(null);
+      setActiveDetailsItemId(null);
+      setCurrentPage(1);
+    },
+    [onNavigate],
+  );
 
-  const handleBreadcrumbClick = useCallback((index: number) => {
-    const p = path[index];
-    setPath(path.slice(0, index + 1));
-    onNavigate(p.id);
-    setSelectedItemId(null);
-    setCurrentPage(1);
-  }, [path, setPath, onNavigate]);
+  const handleBreadcrumbClick = useCallback(
+    (index: number) => {
+      const p = path[index];
+      setPath(path.slice(0, index + 1));
+      onNavigate(p.id);
+      setSelectedItemId(null);
+      setActiveDetailsItemId(null);
+      setCurrentPage(1);
+    },
+    [path, setPath, onNavigate],
+  );
+
+  const handleViewDetails = useCallback((id: string) => {
+    setActiveDetailsItemId(id);
+    setSelectedItemId(id);
+  }, []);
 
   const handleBackToParent = useCallback(() => {
     if (path.length > 1) {
@@ -272,6 +498,65 @@ export default function DocumentExplorer({
     setCurrentPage(1);
   }, []);
 
+  const handlePreview = useCallback((item: DocumentItem) => {
+    setPreviewItem(item);
+    setPreviewVersionId("");
+    setIsPreviewOpen(true);
+  }, []);
+
+  const handleManageVersions = useCallback((item: DocumentItem) => {
+    setVersioningItem(item);
+    setIsVersionModalOpen(true);
+  }, []);
+
+  const handleShare = useCallback((item: DocumentItem) => {
+    setSharingItem(item);
+    setIsShareModalOpen(true);
+  }, []);
+
+  const handleDownload = useCallback(async (item: DocumentItem) => {
+    try {
+      const downloadUrl = await documentsApi.getDownloadUrl(item.id);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error("Failed to generate download URL", err);
+      toast.error("Lỗi tạo liên kết tải xuống");
+    }
+  }, []);
+
+  const { enqueueDownload } = useDownloadQueue();
+
+  const handleDownloadFolder = useCallback(
+    (item: DocumentItem) => {
+      enqueueDownload(item.id, item.name);
+    },
+    [enqueueDownload],
+  );
+
+  const handleDeletePermanently = useCallback(
+    (id: string) => {
+      Swal.fire({
+        title: "Xóa vĩnh viễn?",
+        text: "Tài nguyên sẽ bị xóa vĩnh viễn và không thể khôi phục!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Đồng ý xóa",
+        cancelButtonText: "Hủy",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          deletePermanentlyMutation.mutate(id);
+        }
+      });
+    },
+    [deletePermanentlyMutation],
+  );
+
   return (
     <div className="flex-1 flex min-w-0 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden h-[calc(100vh-140px)]">
       {/* Main Explorer Panel */}
@@ -282,126 +567,168 @@ export default function DocumentExplorer({
           setSearchQuery={handleSearchChange}
           viewLayout={viewLayout}
           setViewLayout={setViewLayout}
-          activeView={activeView}
+          activeView={
+            currentFolderId && activeView !== DocumentViewType.TRASH
+              ? DocumentViewType.MY_FILES
+              : activeView
+          }
           onCreateFolder={handleCreateFolder}
+          onUploadFile={handleUploadFile}
           sortBy={sortBy}
           setSortBy={handleSortChange}
           inputRef={searchInputRef}
         />
 
         {/* Path Breadcrumbs */}
-        {activeView === DocumentViewType.MY_FILES && (
+        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
           <ExplorerBreadcrumbs
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
             onBackToParent={handleBackToParent}
           />
-        )}
 
-        {/* Explorer Content */}
-        <div
-          className="flex-1 overflow-y-auto p-6"
-          onClick={() => setSelectedItemId(null)}
-        >
-          {isLoading ? (
-            <ShimmerLoader />
-          ) : items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center text-slate-400 py-20 animate-in fade-in duration-300">
-              <Folder size={64} className="text-slate-200 mb-4" />
-              <span className="text-base font-semibold text-slate-700">
-                Thư mục trống
-              </span>
-              <span className="text-xs text-slate-400 font-semibold mt-1">
-                Chưa có tập tin hay thư mục nào ở đây.
-              </span>
-            </div>
-          ) : viewLayout === ViewLayout.GRID ? (
-            <GridView
-              items={items}
-              selectedItemId={selectedItemId}
-              onSelect={setSelectedItemId}
-              onDoubleClick={handleFolderDoubleClick}
-              activeView={activeView}
-              activeMenuId={activeMenuId}
-              setActiveMenuId={setActiveMenuId}
-              onRename={handleRename}
-              onMove={handleOpenMoveModal}
-              onToggleStar={handleToggleStar}
-              onArchive={handleArchive}
-            />
-          ) : (
-            <ListView
-              items={items}
-              selectedItemId={selectedItemId}
-              onSelect={setSelectedItemId}
-              onDoubleClick={handleFolderDoubleClick}
-              activeView={activeView}
-              activeMenuId={activeMenuId}
-              setActiveMenuId={setActiveMenuId}
-              onRename={handleRename}
-              onMove={handleOpenMoveModal}
-              onToggleStar={handleToggleStar}
-              onArchive={handleArchive}
-            />
-          )}
-
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-6">
-              <span className="text-xs font-semibold text-slate-400">
-                Hiển thị {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
-                {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)}{" "}
-                trên tổng số {totalItems} tài nguyên
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={safeCurrentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trang trước
-                </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`rounded-xl px-3 py-1.5 text-xs font-black transition-all cursor-pointer ${
-                        page === safeCurrentPage
-                          ? "bg-[var(--color-primary)] text-white shadow-md shadow-blue-500/10"
-                          : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ),
-                )}
-                <button
-                  disabled={safeCurrentPage === totalPages}
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }
-                  className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  Trang sau
-                </button>
+          {/* Explorer Content */}
+          <div
+            className="flex-1 overflow-y-auto p-6 relative"
+            onClick={() => setSelectedItemId(null)}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {isDraggingOver && (
+              <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-3xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+                <UploadCloud
+                  className="text-blue-500 animate-bounce mb-2"
+                  size={48}
+                />
+                <p className="text-sm font-black text-blue-600">
+                  Thả tệp vào đây để tải lên
+                </p>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+            {isLoading ? (
+              <ShimmerLoader />
+            ) : items.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center text-slate-400 py-20 animate-in fade-in duration-300">
+                <Folder size={64} className="text-slate-200 mb-4" />
+                <span className="text-base font-semibold text-slate-700">
+                  Thư mục trống
+                </span>
+                <span className="text-xs text-slate-400 font-semibold mt-1">
+                  Chưa có tập tin hay thư mục nào ở đây.
+                </span>
+              </div>
+            ) : viewLayout === ViewLayout.GRID ? (
+              <GridView
+                items={items}
+                selectedItemId={selectedItemId}
+                onSelect={setSelectedItemId}
+                onFolderClick={handleFolderClick}
+                activeView={activeView}
+                activeMenuId={activeMenuId}
+                setActiveMenuId={setActiveMenuId}
+                onRename={handleRename}
+                onMove={handleOpenMoveModal}
+                onToggleStar={handleToggleStar}
+                onArchive={handleArchive}
+                onViewDetails={handleViewDetails}
+                onDeletePermanently={handleDeletePermanently}
+                onPreview={handlePreview}
+                onDownload={handleDownload}
+                onDownloadFolder={handleDownloadFolder}
+                onManageVersions={handleManageVersions}
+                onShare={handleShare}
+              />
+            ) : (
+              <ListView
+                items={items}
+                selectedItemId={selectedItemId}
+                onSelect={setSelectedItemId}
+                onFolderClick={handleFolderClick}
+                activeView={activeView}
+                activeMenuId={activeMenuId}
+                setActiveMenuId={setActiveMenuId}
+                onRename={handleRename}
+                onMove={handleOpenMoveModal}
+                onToggleStar={handleToggleStar}
+                onArchive={handleArchive}
+                onViewDetails={handleViewDetails}
+                onDeletePermanently={handleDeletePermanently}
+                onPreview={handlePreview}
+                onDownload={handleDownload}
+                onDownloadFolder={handleDownloadFolder}
+                onManageVersions={handleManageVersions}
+                onShare={handleShare}
+              />
+            )}
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-6">
+                <span className="text-xs font-semibold text-slate-400">
+                  Hiển thị {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
+                  {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)} trên
+                  tổng số {totalItems} tài nguyên
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={safeCurrentPage === 1}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Trang trước
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={cn(
+                          "rounded-xl px-3 py-1.5 text-xs font-black transition-all cursor-pointer",
+                          page === safeCurrentPage
+                            ? "bg-[var(--color-primary)] text-white shadow-md shadow-blue-500/10"
+                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+                        )}
+                      >
+                        {page}
+                      </button>
+                    ),
+                  )}
+                  <button
+                    disabled={safeCurrentPage === totalPages}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Trang sau
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </DndContext>
       </div>
 
       {/* Slide-in Details Panel */}
-      {selectedItem && (
+      {activeDetailsItem && (
         <DetailsPanel
-          item={selectedItem}
-          onClose={() => setSelectedItemId(null)}
-          onRename={() => handleRename(selectedItem.id, selectedItem.name)}
-          onMove={() => handleOpenMoveModal(selectedItem.id)}
-          onToggleStar={() =>
-            handleToggleStar(selectedItem.id, selectedItem.isStarred)
+          item={activeDetailsItem}
+          onClose={() => setActiveDetailsItemId(null)}
+          onRename={() =>
+            handleRename(activeDetailsItem.id, activeDetailsItem.name)
           }
-          onArchive={(archive) => handleArchive(selectedItem.id, archive)}
+          onMove={() => handleOpenMoveModal(activeDetailsItem.id)}
+          onToggleStar={() =>
+            handleToggleStar(activeDetailsItem.id, activeDetailsItem.isStarred)
+          }
+          onArchive={(archive: boolean) =>
+            handleArchive(activeDetailsItem.id, archive)
+          }
+          onShare={() => handleShare(activeDetailsItem)}
         />
       )}
 
@@ -411,11 +738,63 @@ export default function DocumentExplorer({
           isOpen={isMoveModalOpen}
           onClose={() => setIsMoveModalOpen(false)}
           currentItemId={movingItemId}
-          onSelect={(destId) =>
+          initialFolderId={initialFolderIdForMove}
+          initialPath={initialPathForMove}
+          onSelect={(destId: string | null) =>
             moveMutation.mutate({ id: movingItemId, destId })
           }
+        />
+      )}
+
+      {/* Floating Upload Progress Box */}
+      <UploadProgress
+        uploadState={uploadState}
+        uploadProgress={uploadProgress}
+        uploadingFileName={uploadingFileName}
+      />
+
+      {/* File Preview Modal */}
+      <FilePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          setPreviewItem(null);
+          setPreviewVersionId("");
+        }}
+        item={previewItem}
+        versionId={previewVersionId || undefined}
+      />
+
+      {/* Version Management Modal */}
+      {isVersionModalOpen && versioningItem && (
+        <VersionManagementModal
+          isOpen={isVersionModalOpen}
+          onClose={() => {
+            setIsVersionModalOpen(false);
+            setVersioningItem(null);
+          }}
+          item={versioningItem}
+          onPreviewVersion={(item: DocumentItem, versionId: string) => {
+            setPreviewItem(item);
+            setPreviewVersionId(versionId);
+            setIsPreviewOpen(true);
+          }}
+        />
+      )}
+
+      {/* Share Modal */}
+      {isShareModalOpen && sharingItem && (
+        <ShareModal
+          isOpen={isShareModalOpen}
+          onClose={() => {
+            setIsShareModalOpen(false);
+            setSharingItem(null);
+          }}
+          item={sharingItem}
         />
       )}
     </div>
   );
 }
+
+export default React.memo(DocumentExplorer);

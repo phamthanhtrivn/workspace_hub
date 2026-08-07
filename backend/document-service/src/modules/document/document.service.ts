@@ -4,10 +4,141 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+<<<<<<< HEAD
+import { Response } from 'express';
+import * as archiver from 'archiver';
+=======
+>>>>>>> dev
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
+<<<<<<< HEAD
+import { InitiateUploadDto } from './dto/initiate-upload.dto';
+import { ConfirmUploadDto } from './dto/confirm-upload.dto';
+import { CreateVersionDto } from './dto/create-version.dto';
+import {
+  ItemType,
+  DocumentItem,
+  DocumentVersion,
+  SharePermission,
+  LinkAccess,
+  DocumentShare,
+} from '@prisma/client';
+import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
+import { QuotaService } from '../quota/quota.service';
+import { S3Service } from '../../infrastructure/s3/s3.service';
+import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
+
+@Injectable()
+export class DocumentService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly quotaService: QuotaService,
+    private readonly s3Service: S3Service,
+  ) {}
+
+  async initiateUpload(
+    userId: string,
+    userEmail: string,
+    dto: InitiateUploadDto,
+  ): Promise<{ presignedUrl: string; s3Key: string }> {
+    let parentFolder: DocumentItem | null = null;
+
+    if (dto.parentFolderId) {
+      parentFolder = await this.checkPermission(
+        dto.parentFolderId,
+        userId,
+        userEmail,
+        DocumentRole.EDITOR,
+      );
+      if (parentFolder.type !== ItemType.FOLDER) {
+        throw new BadRequestException('Mục cha phải là thư mục');
+      }
+      if (parentFolder.isArchived) {
+        throw new BadRequestException(
+          'Không thể tải lên tệp tin trong một thư mục đã lưu trữ/xóa tạm',
+        );
+      }
+    }
+
+    // Check storage quota
+    await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
+    const { presignedUrl, s3Key } =
+      await this.s3Service.generatePresignedUploadUrl(
+        userId,
+        dto.name,
+        dto.mimeType,
+      );
+
+    return { presignedUrl, s3Key };
+  }
+
+  async confirmUpload(
+    userId: string,
+    userEmail: string,
+    dto: ConfirmUploadDto,
+  ): Promise<DocumentItem> {
+    let parentFolder: DocumentItem | null = null;
+
+    if (dto.parentFolderId) {
+      parentFolder = await this.checkPermission(
+        dto.parentFolderId,
+        userId,
+        userEmail,
+        DocumentRole.EDITOR,
+      );
+      if (parentFolder.type !== ItemType.FOLDER) {
+        throw new BadRequestException('Mục cha phải là thư mục');
+      }
+      if (parentFolder.isArchived) {
+        throw new BadRequestException(
+          'Không thể lưu tài liệu trong một thư mục đã lưu trữ/xóa tạm',
+        );
+      }
+    }
+
+    // Double check quota
+    await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
+    const projectId = dto.projectId || parentFolder?.projectId || null;
+
+    // Create DocumentItem and first Version in Database
+    const item = await this.prisma.$transaction(async (tx) => {
+      const createdItem = await tx.documentItem.create({
+        data: {
+          name: dto.name,
+          type: ItemType.FILE,
+          ownerUserId: userId,
+          ownerEmail: userEmail,
+          parentFolderId: dto.parentFolderId || null,
+          projectId,
+          s3Key: dto.s3Key,
+          mimeType: dto.mimeType,
+          sizeBytes: BigInt(dto.sizeBytes),
+        },
+      });
+
+      await tx.documentVersion.create({
+        data: {
+          documentItemId: createdItem.id,
+          versionNumber: 1,
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          uploadedBy: userId,
+        },
+      });
+
+      return createdItem;
+    });
+
+    // Update storage quota (add to usedBytes)
+    await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
+
+    return item;
+  }
+=======
 import {
   ItemType,
   DocumentItem,
@@ -19,6 +150,7 @@ import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
 @Injectable()
 export class DocumentService {
   constructor(private readonly prisma: PrismaService) {}
+>>>>>>> dev
 
   /**
    * Recursively checks if a user has permission to access an item.
@@ -26,10 +158,17 @@ export class DocumentService {
    */
   async checkPermission(
     itemId: string,
+<<<<<<< HEAD
+    userId?: string,
+    userEmail?: string,
+    requiredRole: DocumentRole = DocumentRole.VIEWER,
+  ): Promise<DocumentItem & { shares: DocumentShare[] }> {
+=======
     userId: string,
     userEmail: string,
     requiredRole: DocumentRole,
   ): Promise<DocumentItem> {
+>>>>>>> dev
     const item = await this.prisma.documentItem.findUnique({
       where: { id: itemId },
       include: {
@@ -42,15 +181,25 @@ export class DocumentService {
     }
 
     // 1. Owner always has full access
+<<<<<<< HEAD
+    if (userId && item.ownerUserId === userId) {
+=======
     if (item.ownerUserId === userId) {
+>>>>>>> dev
       return item;
     }
 
     // 2. Check if shared explicitly with this user/email
     const share = item.shares.find(
       (s) =>
+<<<<<<< HEAD
+        (userId && s.shareWithUserId === userId) ||
+        (userEmail &&
+          s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
+=======
         s.shareWithUserId === userId ||
         s.shareWithEmail.toLowerCase() === userEmail.toLowerCase(),
+>>>>>>> dev
     );
 
     if (share) {
@@ -102,7 +251,11 @@ export class DocumentService {
       );
     }
 
+<<<<<<< HEAD
+    throw new ForbiddenException('Bạn không có quyền truy cập tài nguyên này');
+=======
     throw new ForbiddenException('Bạn không có quyền truy cập tài liệu này');
+>>>>>>> dev
   }
 
   /**
@@ -217,8 +370,9 @@ export class DocumentService {
     } else if (options.isArchived) {
       where.ownerUserId = userId;
     } else if (options.isStarredOnly) {
-      where.ownerUserId = userId;
-      where.isStarred = true;
+      where.starredBy = {
+        some: { userId },
+      };
     } else if (options.projectId) {
       where.projectId = options.projectId;
       where.parentFolderId = null;
@@ -255,6 +409,12 @@ export class DocumentService {
     const [items, totalCount] = await Promise.all([
       this.prisma.documentItem.findMany({
         where,
+        include: {
+          shares: true,
+          starredBy: {
+            where: { userId },
+          },
+        },
         orderBy: orderDirections,
         skip,
         take: limit,
@@ -262,7 +422,40 @@ export class DocumentService {
       this.prisma.documentItem.count({ where }),
     ]);
 
-    return { items, totalCount };
+    const mappedItems = await Promise.all(
+      items.map(async (item: any) => {
+        let userRole: DocumentRole = DocumentRole.VIEWER;
+        if (item.ownerUserId === userId) {
+          userRole = DocumentRole.OWNER;
+        } else {
+          const share = item.shares?.find(
+            (s: any) =>
+              (userId && s.shareWithUserId === userId) ||
+              (userEmail &&
+                s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
+          );
+          if (share) {
+            userRole = share.permission as DocumentRole;
+          } else if (item.linkAccess !== LinkAccess.NONE) {
+            userRole = item.linkAccess as DocumentRole;
+          }
+        }
+
+        let sizeBytes = Number(item.sizeBytes);
+        if (item.type === ItemType.FOLDER) {
+          sizeBytes = await this.getFolderSize(item.id);
+        }
+
+        return {
+          ...item,
+          sizeBytes,
+          isStarred: item.starredBy.length > 0,
+          userRole,
+        };
+      }),
+    );
+
+    return { items: mappedItems, totalCount };
   }
 
   /**
@@ -324,7 +517,7 @@ export class DocumentService {
       id,
       userId,
       userEmail,
-      DocumentRole.EDITOR,
+      DocumentRole.OWNER,
     );
 
     let destProjectId: string | null = null;
@@ -375,7 +568,7 @@ export class DocumentService {
     id: string,
     archive: boolean,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
 
     return this.prisma.documentItem.update({
       where: { id },
@@ -394,12 +587,860 @@ export class DocumentService {
     userEmail: string,
     id: string,
     isStarred: boolean,
+  ): Promise<any> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    if (isStarred) {
+      await this.prisma.userStarredDocument.upsert({
+        where: {
+          userId_documentItemId: {
+            userId,
+            documentItemId: id,
+          },
+        },
+        create: {
+          userId,
+          documentItemId: id,
+        },
+        update: {},
+      });
+    } else {
+      await this.prisma.userStarredDocument.deleteMany({
+        where: {
+          userId,
+          documentItemId: id,
+        },
+      });
+    }
+
+    return {
+      ...item,
+      sizeBytes: Number(item.sizeBytes),
+      isStarred,
+    };
+  }
+
+  /**
+   * Recursively fetches all descendant folder IDs and file items of a folder using BFS.
+   */
+  private async getFolderDescendants(
+    folderId: string,
+  ): Promise<{ files: DocumentItem[]; folderIds: string[] }> {
+    const files: DocumentItem[] = [];
+    const folderIds: string[] = [folderId];
+    const queue: string[] = [folderId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift()!;
+      const children = await this.prisma.documentItem.findMany({
+        where: { parentFolderId: currentId },
+      });
+
+      for (const child of children) {
+        if (child.type === ItemType.FOLDER) {
+          folderIds.push(child.id);
+          queue.push(child.id);
+        } else {
+          files.push(child);
+        }
+      }
+    }
+
+    return { files, folderIds };
+  }
+
+  /**
+   * Helper to recursively sum the sizes of all files inside a folder.
+   */
+  private async getFolderSize(folderId: string): Promise<number> {
+    const descendants = await this.getFolderDescendants(folderId);
+    return descendants.files.reduce((sum, file) => sum + Number(file.sizeBytes), 0);
+  }
+
+  /**
+   * Deletes files from S3 client in the background without blocking execution thread.
+   */
+  private async deleteS3ObjectsBackground(s3Keys: string[]): Promise<void> {
+    for (const key of s3Keys) {
+      try {
+        await this.s3Service.deleteFile(key);
+      } catch (error) {
+        console.error(`Background S3 deletion failed for key ${key}:`, error);
+      }
+    }
+  }
+
+  /**
+   * Permanently deletes a file or folder. Reclaims storage quota immediately,
+   * deletes database records, and triggers S3 physical file deletes in the background.
+   */
+  async deleteItemPermanently(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<void> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.OWNER,
+    );
+
+    let filesToDelete: DocumentItem[] = [];
+    let folderIdsToDelete: string[] = [];
+
+    if (item.type === ItemType.FOLDER) {
+      const descendants = await this.getFolderDescendants(id);
+      filesToDelete = descendants.files;
+      folderIdsToDelete = descendants.folderIds;
+    } else {
+      filesToDelete = [item];
+    }
+
+    // Sum storage size of files being permanently deleted
+    const totalSizeReclaimed = filesToDelete.reduce(
+      (sum, file) => sum + Number(file.sizeBytes),
+      0,
+    );
+
+    const allItemIdsToDelete = [
+      ...folderIdsToDelete,
+      ...filesToDelete.map((f) => f.id),
+    ];
+
+    // Database deletion transaction
+    await this.prisma.$transaction([
+      this.prisma.documentItem.deleteMany({
+        where: { id: { in: allItemIdsToDelete } },
+      }),
+      this.prisma.userStorageQuota.update({
+        where: { userId },
+        data: {
+          usedBytes: {
+            decrement: totalSizeReclaimed,
+          },
+        },
+      }),
+    ]);
+
+    // Background S3 deletions
+    const s3Keys = filesToDelete
+      .map((f) => f.s3Key)
+      .filter((key): key is string => !!key);
+
+    if (s3Keys.length > 0) {
+      this.deleteS3ObjectsBackground(s3Keys).catch((err) => {
+        console.error(
+          `Failed to handle S3 deletions background execution:`,
+          err,
+        );
+      });
+    }
+  }
+
+  /**
+   * Generates a temporary S3 read presigned URL for previewing files.
+   */
+  async getPreviewUrl(
+    userId: string | undefined,
+    userEmail: string | undefined,
+    id: string,
+    versionId?: string,
+  ): Promise<string> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể xem trước thư mục');
+    }
+
+    let s3Key = item.s3Key;
+
+    if (versionId) {
+      const version = await this.prisma.documentVersion.findUnique({
+        where: { id: versionId, documentItemId: id },
+      });
+      if (!version) {
+        throw new NotFoundException('Không tìm thấy phiên bản tài liệu');
+      }
+      s3Key = version.s3Key;
+    }
+
+    if (!s3Key) {
+      throw new BadRequestException('Tài liệu không có tệp tin đính kèm');
+    }
+
+    return this.s3Service.generatePresignedDownloadUrl(s3Key);
+  }
+
+  /**
+   * Generates a temporary S3 download presigned URL with correct content disposition headers.
+   */
+  async getDownloadUrl(
+    userId: string | undefined,
+    userEmail: string | undefined,
+    id: string,
+    versionId?: string,
+  ): Promise<string> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể tải thư mục trực tiếp');
+    }
+
+    let s3Key = item.s3Key;
+    let fileName = item.name;
+
+    if (versionId) {
+      const version = await this.prisma.documentVersion.findUnique({
+        where: { id: versionId, documentItemId: id },
+      });
+      if (!version) {
+        throw new NotFoundException('Không tìm thấy phiên bản tài liệu');
+      }
+      s3Key = version.s3Key;
+      const dotIndex = fileName.lastIndexOf('.');
+      if (dotIndex !== -1) {
+        fileName = `${fileName.substring(0, dotIndex)}_v${version.versionNumber}${fileName.substring(dotIndex)}`;
+      } else {
+        fileName = `${fileName}_v${version.versionNumber}`;
+      }
+    }
+
+    if (!s3Key) {
+      throw new BadRequestException('Tài liệu không có tệp tin đính kèm');
+    }
+
+    return this.s3Service.generatePresignedDownloadUrl(s3Key, fileName);
+  }
+
+  /**
+   * Retrieves the version history of a document item.
+   */
+  async getVersions(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<any[]> {
+    const item = (await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    )) as any;
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Thư mục không có phiên bản');
+    }
+
+    const versions = await this.prisma.documentVersion.findMany({
+      where: { documentItemId: id },
+      orderBy: { versionNumber: 'desc' },
+    });
+
+    if (versions.length === 0) {
+      return [
+        {
+          id: DOCUMENT_CONSTANTS.ORIGINAL_VERSION_ID,
+          documentItemId: item.id,
+          versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+          s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
+          sizeBytes: item.sizeBytes,
+          uploadedBy: item.ownerUserId,
+          uploadedByEmail: item.ownerEmail,
+          createdAt: item.createdAt,
+        },
+      ];
+    }
+
+    return versions.map((v) => {
+      let email = DOCUMENT_CONSTANTS.FALLBACK_UPLOADER_EMAIL_PRIVATE;
+      if (v.uploadedBy === item.ownerUserId) {
+        email = item.ownerEmail;
+      } else {
+        const share = item.shares?.find(
+          (s) => s.shareWithUserId === v.uploadedBy,
+        );
+        if (share) {
+          email = share.shareWithEmail;
+        }
+      }
+      return {
+        ...v,
+        uploadedByEmail: email,
+      };
+    });
+  }
+
+  /**
+   * Uploads a new version of an existing document.
+   */
+  async createVersion(
+    userId: string,
+    userEmail: string,
+    id: string,
+    dto: CreateVersionDto,
+  ): Promise<DocumentVersion> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể tạo phiên bản mới cho thư mục');
+    }
+
+    // Check storage quota
+    await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
+    const latestVersion = await this.prisma.documentVersion.findFirst({
+      where: { documentItemId: id },
+      orderBy: { versionNumber: 'desc' },
+    });
+
+    let nextVersionNumber = 1;
+
+    const newVersion = await this.prisma.$transaction(async (tx) => {
+      if (!latestVersion) {
+        // Retroactively create version 1 for original state
+        await tx.documentVersion.create({
+          data: {
+            documentItemId: id,
+            versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+            s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
+            sizeBytes: item.sizeBytes,
+            uploadedBy: item.ownerUserId,
+            createdAt: item.createdAt,
+          },
+        });
+        nextVersionNumber = 2;
+      } else {
+        nextVersionNumber = latestVersion.versionNumber + 1;
+      }
+
+      // Create new version record
+      const createdVersion = await tx.documentVersion.create({
+        data: {
+          documentItemId: id,
+          versionNumber: nextVersionNumber,
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          uploadedBy: userId,
+        },
+      });
+
+      // Update parent document item metadata to point to this latest version
+      await tx.documentItem.update({
+        where: { id },
+        data: {
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          mimeType: dto.mimeType,
+        },
+      });
+
+      return createdVersion;
+    });
+
+    // Update uploader storage quota
+    await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
+
+    return newVersion;
+  }
+
+  /**
+   * Get sharing settings of a document.
+   */
+  async getSharing(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<{ linkAccess: LinkAccess; shares: DocumentShare[] }> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+    const shares = await this.prisma.documentShare.findMany({
+      where: { documentItemId: id },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      linkAccess: item.linkAccess,
+      shares,
+    };
+  }
+
+  /**
+   * Update general link access configuration of a document.
+   */
+  async updateLinkAccess(
+    userId: string,
+    userEmail: string,
+    id: string,
+    linkAccess: LinkAccess,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.VIEWER);
+    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
 
     return this.prisma.documentItem.update({
       where: { id },
-      data: { isStarred },
+      data: { linkAccess },
     });
+  }
+
+  /**
+   * Add or update explicit share permission for an email.
+   */
+  async addShare(
+    userId: string,
+    userEmail: string,
+    id: string,
+    shareEmail: string,
+    permission: SharePermission,
+  ): Promise<DocumentShare> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.OWNER,
+    );
+
+    if (shareEmail.toLowerCase() === item.ownerEmail.toLowerCase()) {
+      throw new BadRequestException(
+        'Không thể chia sẻ với chủ sở hữu tài nguyên',
+      );
+    }
+
+    const share = await this.prisma.documentShare.upsert({
+      where: {
+        documentItemId_shareWithEmail: {
+          documentItemId: id,
+          shareWithEmail: shareEmail.toLowerCase(),
+        },
+      },
+      update: { permission },
+      create: {
+        documentItemId: id,
+        shareWithEmail: shareEmail.toLowerCase(),
+        permission,
+      },
+    });
+
+    return share;
+  }
+
+  /**
+   * Remove explicit share permission by share ID.
+   */
+  async removeShare(
+    userId: string,
+    userEmail: string,
+    id: string,
+    shareId: string,
+  ): Promise<void> {
+    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
+
+    const share = await this.prisma.documentShare.findUnique({
+      where: { id: shareId },
+    });
+
+    if (!share || share.documentItemId !== id) {
+      throw new NotFoundException('Không tìm thấy cấu hình chia sẻ');
+    }
+
+    await this.prisma.documentShare.delete({
+      where: { id: shareId },
+    });
+  }
+
+  /**
+   * Fetch public/shared metadata of a document.
+   */
+  async getPublicDocument(
+    id: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<{
+    item: {
+      id: string;
+      name: string;
+      type: ItemType;
+      sizeBytes: number;
+      mimeType: string | null;
+      ownerEmail: string;
+      createdAt: Date;
+      linkAccess: LinkAccess;
+    };
+    userRole: DocumentRole;
+  }> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    // Determine current user's role
+    let userRole: DocumentRole = DocumentRole.VIEWER;
+    if (userId && item.ownerUserId === userId) {
+      userRole = DocumentRole.OWNER;
+    } else {
+      const share = item.shares?.find(
+        (s: DocumentShare) =>
+          (userId && s.shareWithUserId === userId) ||
+          (userEmail &&
+            s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
+      );
+      if (share) {
+        userRole = share.permission as DocumentRole;
+      } else if (item.linkAccess !== LinkAccess.NONE) {
+        userRole = item.linkAccess as DocumentRole;
+      }
+    }
+
+    return {
+      item: {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        sizeBytes: Number(item.sizeBytes),
+        mimeType: item.mimeType,
+        ownerEmail: item.ownerEmail,
+        createdAt: item.createdAt,
+        linkAccess: item.linkAccess,
+      },
+      userRole,
+    };
+  }
+
+  async getPublicVersions(
+    id: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<any[]> {
+    const item = (await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    )) as any;
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Thư mục không có phiên bản');
+    }
+
+    const versions = await this.prisma.documentVersion.findMany({
+      where: { documentItemId: id },
+      orderBy: { versionNumber: 'desc' },
+    });
+
+    if (versions.length === 0) {
+      return [
+        {
+          id: DOCUMENT_CONSTANTS.ORIGINAL_VERSION_ID,
+          documentItemId: item.id,
+          versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+          s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
+          sizeBytes: Number(item.sizeBytes),
+          uploadedBy: item.ownerUserId,
+          uploadedByEmail: item.ownerEmail,
+          createdAt: item.createdAt,
+        },
+      ];
+    }
+
+    return versions.map((v) => {
+      let email = DOCUMENT_CONSTANTS.FALLBACK_UPLOADER_EMAIL_PUBLIC;
+      if (v.uploadedBy === item.ownerUserId) {
+        email = item.ownerEmail;
+      } else {
+        const share = item.shares?.find(
+          (s: any) => s.shareWithUserId === v.uploadedBy,
+        );
+        if (share) {
+          email = share.shareWithEmail;
+        }
+      }
+      return {
+        ...v,
+        sizeBytes: Number(v.sizeBytes),
+        uploadedByEmail: email,
+      };
+    });
+  }
+
+  async createPublicVersion(
+    id: string,
+    dto: CreateVersionDto,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<DocumentVersion> {
+    const activeUserId = userId || DOCUMENT_CONSTANTS.ANONYMOUS_USER_ID;
+
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể tạo phiên bản mới cho thư mục');
+    }
+
+    // Check storage quota of the Owner
+    await this.quotaService.checkQuota(item.ownerUserId, dto.sizeBytes);
+
+    const latestVersion = await this.prisma.documentVersion.findFirst({
+      where: { documentItemId: id },
+      orderBy: { versionNumber: 'desc' },
+    });
+
+    let nextVersionNumber = DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER;
+
+    const newVersion = await this.prisma.$transaction(async (tx) => {
+      if (!latestVersion) {
+        await tx.documentVersion.create({
+          data: {
+            documentItemId: id,
+            versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+            s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
+            sizeBytes: item.sizeBytes,
+            uploadedBy: item.ownerUserId,
+            createdAt: item.createdAt,
+          },
+        });
+        nextVersionNumber = 2;
+      } else {
+        nextVersionNumber = latestVersion.versionNumber + 1;
+      }
+
+      const createdVersion = await tx.documentVersion.create({
+        data: {
+          documentItemId: id,
+          versionNumber: nextVersionNumber,
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          uploadedBy: activeUserId,
+        },
+      });
+
+      await tx.documentItem.update({
+        where: { id },
+        data: {
+          s3Key: dto.s3Key,
+          sizeBytes: BigInt(dto.sizeBytes),
+          mimeType: dto.mimeType,
+        },
+      });
+
+      return createdVersion;
+    });
+
+    await this.quotaService.updateUsedBytes(item.ownerUserId, dto.sizeBytes);
+
+    return {
+      ...newVersion,
+      sizeBytes: Number(newVersion.sizeBytes),
+    } as any;
+  }
+
+  async renamePublicItem(
+    id: string,
+    dto: RenameItemDto,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<DocumentItem> {
+    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+
+    return this.prisma.documentItem.update({
+      where: { id },
+      data: { name: dto.name },
+    });
+  }
+
+  async initiatePublicUpload(
+    id: string,
+    dto: InitiateUploadDto,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<{ presignedUrl: string; s3Key: string }> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+
+    if (item.type === ItemType.FOLDER) {
+      throw new BadRequestException('Không thể tải lên tệp tin cho thư mục');
+    }
+
+    await this.quotaService.checkQuota(item.ownerUserId, dto.sizeBytes);
+
+    const { presignedUrl, s3Key } =
+      await this.s3Service.generatePresignedUploadUrl(
+        item.ownerUserId,
+        dto.name,
+        dto.mimeType,
+      );
+
+    return { presignedUrl, s3Key };
+  }
+
+  /**
+   * Streams all files in a folder (recursively) as a ZIP archive to the HTTP response.
+   * Uses archiver library to pipe S3 streams directly into the ZIP — no disk writes.
+   */
+  async downloadFolderAsZip(
+    userId: string | undefined,
+    userEmail: string | undefined,
+    folderId: string,
+    res: Response,
+  ): Promise<void> {
+    const folder = await this.checkPermission(
+      folderId,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+
+    if (folder.type !== ItemType.FOLDER) {
+      throw new BadRequestException('Mục này không phải thư mục');
+    }
+
+    const { files, pathMap } = await this.getFolderDescendantsWithPaths(
+      folderId,
+      folder.name,
+    );
+
+    const folderName = folder.name.replace(
+      DOCUMENT_CONSTANTS.REGEX_INVALID_FILENAME_CHARS,
+      '_',
+    );
+    const asciiName = folderName
+      .normalize('NFD')
+      .replace(DOCUMENT_CONSTANTS.REGEX_DIACRITICS, '')
+      .replace(DOCUMENT_CONSTANTS.REGEX_NON_ASCII, '_');
+    const encodedName = encodeURIComponent(`${folder.name}.zip`).replace(
+      DOCUMENT_CONSTANTS.REGEX_SINGLE_QUOTE,
+      DOCUMENT_CONSTANTS.PERCENT_ENCODED_SINGLE_QUOTE,
+    );
+
+    res.setHeader('Content-Type', DOCUMENT_CONSTANTS.ZIP_CONTENT_TYPE);
+    res.setHeader(
+      'Content-Disposition',
+      `${DOCUMENT_CONSTANTS.ZIP_CONTENT_DISPOSITION_PREFIX}; filename="${asciiName}.zip"; filename*=UTF-8''${encodedName}`,
+    );
+    res.setHeader('Transfer-Encoding', 'chunked');
+
+    const archive = new archiver.ZipArchive({
+      zlib: { level: DOCUMENT_CONSTANTS.ZIP_COMPRESSION_LEVEL },
+    });
+    archive.pipe(res);
+
+    for (const file of files) {
+      if (!file.s3Key) continue;
+      try {
+        const stream = await this.s3Service.getFileStream(file.s3Key);
+        const filePath = pathMap.get(file.id) ?? file.name;
+        archive.append(stream, { name: filePath });
+      } catch (err) {
+        console.error(`Skipping file ${file.id} due to S3 error:`, err);
+      }
+    }
+
+    await archive.finalize();
+  }
+
+  /**
+   * BFS traversal that also tracks the relative path of each file inside the ZIP.
+   */
+  private async getFolderDescendantsWithPaths(
+    folderId: string,
+    rootName: string,
+  ): Promise<{ files: DocumentItem[]; pathMap: Map<string, string> }> {
+    const files: DocumentItem[] = [];
+    const pathMap = new Map<string, string>();
+    const queue: { id: string; relativePath: string }[] = [
+      { id: folderId, relativePath: rootName },
+    ];
+
+    while (queue.length > 0) {
+      const { id: currentId, relativePath } = queue.shift()!;
+      const children = await this.prisma.documentItem.findMany({
+        where: { parentFolderId: currentId },
+      });
+
+      for (const child of children) {
+        const childPath = `${relativePath}/${child.name}`;
+        if (child.type === ItemType.FOLDER) {
+          queue.push({ id: child.id, relativePath: childPath });
+        } else {
+          files.push(child);
+          pathMap.set(child.id, childPath);
+        }
+      }
+    }
+
+    return { files, pathMap };
+  }
+
+  /**
+   * Returns the direct children of a folder for the public shared folder browser.
+   */
+  async getPublicFolderChildren(
+    rootId: string,
+    folderId: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<DocumentItem[]> {
+    // Verify the user can access the root shared item
+    await this.checkPermission(rootId, userId, userEmail, DocumentRole.VIEWER);
+
+    // Verify the requested folder is a descendant of the root item
+    const isChild = await this.isDescendant(folderId, rootId);
+    const isSelf = folderId === rootId;
+    if (!isChild && !isSelf) {
+      throw new ForbiddenException(
+        'Thư mục không thuộc tài nguyên được chia sẻ',
+      );
+    }
+
+    const children = await this.prisma.documentItem.findMany({
+      where: { parentFolderId: folderId, isArchived: false },
+      orderBy: [{ type: 'asc' }, { name: 'asc' }],
+    });
+
+    return Promise.all(
+      children.map(async (item) => {
+        let sizeBytes = Number(item.sizeBytes);
+        if (item.type === ItemType.FOLDER) {
+          sizeBytes = await this.getFolderSize(item.id);
+        }
+        return {
+          ...item,
+          sizeBytes,
+        };
+      }),
+    ) as any;
   }
 }

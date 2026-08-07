@@ -47,3 +47,10 @@ export const revokeUserSession = async (
   });
   return response.data;
 };
+
+export const getBulkProfilesByEmails = async (emails: string[]): Promise<any> => {
+  const response = await api.get("/api/users/profiles/bulk", {
+    params: { emails: emails.join(",") },
+  });
+  return response.data;
+};

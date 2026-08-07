@@ -30,6 +30,9 @@ function JwtUserContextHandler:access(config)
   -- 2. Extract JWT from Authorization header
   local auth_header = kong.request.get_header("Authorization")
   if not auth_header then
+    if config.optional then
+      return
+    end
     -- The official JWT plugin should have blocked this if route is protected,
     -- but if it's somehow missing, we block it here.
     return kong.response.exit(401, { message = "Unauthorized: Missing Authorization header" })
@@ -37,12 +40,18 @@ function JwtUserContextHandler:access(config)
 
   local token = auth_header:match("Bearer%s+(.+)")
   if not token then
+    if config.optional then
+      return
+    end
     return kong.response.exit(401, { message = "Unauthorized: Invalid Authorization header format" })
   end
 
   -- 3. Extract the payload (second part of the JWT)
   local header_b64, payload_b64, signature_b64 = token:match("^([^%.]+)%.([^%.]+)%.([^%.]+)$")
   if not payload_b64 then
+    if config.optional then
+      return
+    end
     return kong.response.exit(401, { message = "Unauthorized: Invalid JWT format" })
   end
 

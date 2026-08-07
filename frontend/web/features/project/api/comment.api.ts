@@ -1,5 +1,5 @@
 import { api } from "@/lib/axios";
-import { type TaskComment } from "@/types/project";
+import { type TaskComment } from "@/features/project/types/project";
 
 interface ApiResponse<T> {
   success: boolean;

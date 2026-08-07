@@ -10,7 +10,7 @@ import {
   ProjectType,
   ProjectStatus,
   TaskStatus,
-} from "@/types/project";
+} from "@/features/project/types/project";
 import { useAppSelector } from "@/store/store";
 import {
   useProject,
@@ -46,28 +46,32 @@ import {
   useDetachLabel,
 } from "@/features/project/hooks/use-labels";
 import type { UpdateTaskPayload } from "@/features/project/api/task.api";
-import { useCreateTaskDependency, useDeleteTaskDependency, useProjectDependencies } from "@/features/project/hooks/use-dependencies";
-import { ProjectTypeBadge } from "@/components/projects/project-type-badge";
-import { AvatarStack } from "@/components/projects/avatar-stack";
-import BoardView from "@/components/projects/board-view";
-import ListView from "@/components/projects/list-view";
-import CalendarView from "@/components/projects/calendar-view";
-import GanttView from "@/components/projects/gantt-view";
+import {
+  useCreateTaskDependency,
+  useDeleteTaskDependency,
+  useProjectDependencies,
+} from "@/features/project/hooks/use-dependencies";
+import { ProjectTypeBadge } from "@/features/project/components/project-type-badge";
+import { AvatarStack } from "@/features/project/components/avatar-stack";
+import BoardView from "@/features/project/components/board-view";
+import ListView from "@/features/project/components/list-view";
+import CalendarView from "@/features/project/components/calendar-view";
+import GanttView from "@/features/project/components/gantt-view";
 import SoftwareBacklogView, {
   type SprintCreateValues,
-} from "@/components/projects/software-backlog-view";
-import SummaryView from "@/components/projects/summary-view";
-import GeneralSummaryView from "@/components/projects/general-summary-view";
-import TaskDetailDrawer from "@/components/projects/task-detail-drawer";
-import TaskChatDialog from "@/components/projects/task-chat-dialog";
+} from "@/features/project/components/software-backlog-view";
+import SummaryView from "@/features/project/components/summary-view";
+import GeneralSummaryView from "@/features/project/components/general-summary-view";
+import TaskDetailDrawer from "@/features/project/components/task-detail-drawer";
+import TaskChatDialog from "@/features/project/components/task-chat-dialog";
 import TaskFormDialog, {
   type TaskFormValues,
-} from "@/components/projects/task-form-dialog";
+} from "@/features/project/components/task-form-dialog";
 import SprintEditDialog, {
   type SprintFormValues,
-} from "@/components/projects/sprint-edit-dialog";
-import ProjectMembersPanel from "@/components/projects/project-members-panel";
-import ProjectSettingsDialog from "@/components/projects/project-settings-dialog";
+} from "@/features/project/components/sprint-edit-dialog";
+import ProjectMembersPanel from "@/features/project/components/project-members-panel";
+import ProjectSettingsDialog from "@/features/project/components/project-settings-dialog";
 import {
   ArrowLeft,
   LayoutGrid,
@@ -143,8 +147,12 @@ export default function ProjectDetailPage() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [editingSprint, setEditingSprint] = useState<Task | null>(null);
-  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>(TaskStatus.TODO);
-  const [newTaskStartDate, setNewTaskStartDate] = useState<string | undefined>();
+  const [newTaskStatus, setNewTaskStatus] = useState<TaskStatus>(
+    TaskStatus.TODO,
+  );
+  const [newTaskStartDate, setNewTaskStartDate] = useState<
+    string | undefined
+  >();
   const [newTaskAllDay, setNewTaskAllDay] = useState(false);
   const [newTaskParentId, setNewTaskParentId] = useState<string | undefined>();
   const [newTaskSprintId, setNewTaskSprintId] = useState<string | undefined>();
@@ -153,7 +161,11 @@ export default function ProjectDetailPage() {
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const handleToggleLabel = async (taskId: string, labelId: string, attached: boolean) => {
+  const handleToggleLabel = async (
+    taskId: string,
+    labelId: string,
+    attached: boolean,
+  ) => {
     if (attached) {
       await detachLabelMutation.mutateAsync({ taskId, labelId });
     } else {
@@ -171,36 +183,62 @@ export default function ProjectDetailPage() {
     });
   };
 
-  const handleCreateDependency = async (successorTaskId: string, predecessorTaskId: string) => {
-    await createDependencyMutation.mutateAsync({ successorTaskId, predecessorTaskId });
+  const handleCreateDependency = async (
+    successorTaskId: string,
+    predecessorTaskId: string,
+  ) => {
+    await createDependencyMutation.mutateAsync({
+      successorTaskId,
+      predecessorTaskId,
+    });
     toast.success("Đã tạo dependency");
   };
 
-  const handleDeleteDependency = async (successorTaskId: string, predecessorTaskId: string) => {
-    await deleteDependencyMutation.mutateAsync({ successorTaskId, predecessorTaskId });
+  const handleDeleteDependency = async (
+    successorTaskId: string,
+    predecessorTaskId: string,
+  ) => {
+    await deleteDependencyMutation.mutateAsync({
+      successorTaskId,
+      predecessorTaskId,
+    });
   };
 
-  const handleCreateLabel = async (payload: { name: string; color: string }) => {
+  const handleCreateLabel = async (payload: {
+    name: string;
+    color: string;
+  }) => {
     try {
       await createLabelMutation.mutateAsync(payload);
       toast.success("Đã tạo label");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể tạo label");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể tạo label",
+      );
     }
   };
 
   const handleDeleteLabel = async (labelId: string) => {
-    if (!window.confirm("Xóa label này khỏi Project? Các task đang dùng label sẽ bị bỏ nhãn.")) return;
+    if (
+      !window.confirm(
+        "Xóa label này khỏi Project? Các task đang dùng label sẽ bị bỏ nhãn.",
+      )
+    )
+      return;
     try {
       await deleteLabelMutation.mutateAsync(labelId);
       toast.success("Đã xóa label");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể xóa label");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể xóa label",
+      );
     }
   };
 
   // Filters state
-  const [activeAssigneeFilters, setActiveAssigneeFilters] = useState<string[]>([]);
+  const [activeAssigneeFilters, setActiveAssigneeFilters] = useState<string[]>(
+    [],
+  );
   const [onlyMyIssues, setOnlyMyIssues] = useState(false);
 
   const [taskStatusOverrides, setTaskStatusOverrides] = useState<
@@ -214,8 +252,12 @@ export default function ProjectDetailPage() {
         status: taskStatusOverrides[task.id] || task.status,
         assignees: task.assignees.map((assignee) => ({
           ...assignee,
-          displayName: members.find((member) => member.userId === assignee.userId)?.displayName || assignee.displayName,
-          avatarUrl: members.find((member) => member.userId === assignee.userId)?.avatarUrl || assignee.avatarUrl,
+          displayName:
+            members.find((member) => member.userId === assignee.userId)
+              ?.displayName || assignee.displayName,
+          avatarUrl:
+            members.find((member) => member.userId === assignee.userId)
+              ?.avatarUrl || assignee.avatarUrl,
         })),
       })),
     [serverTasks, taskStatusOverrides, members],
@@ -225,12 +267,16 @@ export default function ProjectDetailPage() {
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
       // Search filter
-      const matchesSearch = !searchQuery || t.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch =
+        !searchQuery ||
+        t.title.toLowerCase().includes(searchQuery.toLowerCase());
 
       // Assignee filter
       let matchesAssignee = true;
       if (activeAssigneeFilters.length > 0) {
-        matchesAssignee = t.assignees.some((a) => activeAssigneeFilters.includes(a.userId));
+        matchesAssignee = t.assignees.some((a) =>
+          activeAssigneeFilters.includes(a.userId),
+        );
       }
 
       // "Only my issues" filter
@@ -257,7 +303,9 @@ export default function ProjectDetailPage() {
         <div className="grid h-16 w-16 place-items-center rounded-2xl bg-slate-100 text-2xl">
           📭
         </div>
-        <p className="mt-4 text-sm font-bold text-slate-600">Không tìm thấy dự án</p>
+        <p className="mt-4 text-sm font-bold text-slate-600">
+          Không tìm thấy dự án
+        </p>
         <Link
           href="/projects"
           className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-[#0052CC] hover:underline"
@@ -271,7 +319,8 @@ export default function ProjectDetailPage() {
 
   const projectKey = getProjectKey(project.name);
   const projectWithMembers = { ...project, members };
-  const isSoftwareProject = project.projectType === ProjectType.SOFTWARE_DEVELOPMENT;
+  const isSoftwareProject =
+    project.projectType === ProjectType.SOFTWARE_DEVELOPMENT;
   const viewTitle: Record<ViewMode, string> = {
     summary: "Summary",
     board: "Kanban Board",
@@ -308,13 +357,21 @@ export default function ProjectDetailPage() {
     );
   };
 
-  const handleSaveProjectSettings = async (payload: { name: string; description: string; status: ProjectStatus; startDate: string | null; dueDate: string | null }) => {
+  const handleSaveProjectSettings = async (payload: {
+    name: string;
+    description: string;
+    status: ProjectStatus;
+    startDate: string | null;
+    dueDate: string | null;
+  }) => {
     try {
       await updateProjectMutation.mutateAsync(payload);
       setShowProjectSettings(false);
       toast.success("Đã cập nhật Project");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật Project");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật Project",
+      );
     }
   };
 
@@ -324,16 +381,19 @@ export default function ProjectDetailPage() {
       await archiveProjectMutation.mutateAsync();
       window.location.assign("/projects");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể archive Project");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể archive Project",
+      );
     }
   };
 
   const handleTaskSubmit = async (values: TaskFormValues) => {
     try {
       if (editingTask) {
-        const payload = editingTask.parentTaskId && !values.parentTaskId
-          ? { ...values, clearParent: true }
-          : values;
+        const payload =
+          editingTask.parentTaskId && !values.parentTaskId
+            ? { ...values, clearParent: true }
+            : values;
         await updateTaskMutation.mutateAsync({
           taskId: editingTask.id,
           payload,
@@ -355,7 +415,9 @@ export default function ProjectDetailPage() {
       setShowTaskForm(false);
       setEditingTask(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể lưu task");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể lưu task",
+      );
     }
   };
 
@@ -365,7 +427,17 @@ export default function ProjectDetailPage() {
   ) => {
     try {
       // 1. Separate backend allowed keys from payload
-      const backendKeys = ["title", "description", "status", "priority", "startDate", "dueDate", "allDay", "estimatedMinutes", "assigneeUserId"];
+      const backendKeys = [
+        "title",
+        "description",
+        "status",
+        "priority",
+        "startDate",
+        "dueDate",
+        "allDay",
+        "estimatedMinutes",
+        "assigneeUserId",
+      ];
       const backendPayload = Object.fromEntries(
         Object.entries(payload).filter(([key]) => backendKeys.includes(key)),
       ) as UpdateTaskPayload;
@@ -373,47 +445,53 @@ export default function ProjectDetailPage() {
 
       // If backend change exists, execute PATCH mutation
       if (hasBackendChange) {
-        await updateTaskMutation.mutateAsync({ taskId, payload: backendPayload });
+        await updateTaskMutation.mutateAsync({
+          taskId,
+          payload: backendPayload,
+        });
       }
 
       // 2. Perform local cache update in React Query for instant UI updates (both backend & client-side fields like assignees/labels)
-      queryClient.setQueryData(taskKeys.project(projectId), (oldTasks: Task[] | undefined) => {
-        if (!oldTasks) return oldTasks;
-        return oldTasks.map((t) => {
-          if (t.id !== taskId) return t;
+      queryClient.setQueryData(
+        taskKeys.project(projectId),
+        (oldTasks: Task[] | undefined) => {
+          if (!oldTasks) return oldTasks;
+          return oldTasks.map((t) => {
+            if (t.id !== taskId) return t;
 
-          // Map assignee change from assigneeUserId
-          let updatedAssignees = t.assignees;
-          if (payload.assignees) {
-            updatedAssignees = payload.assignees;
-          } else if ("assigneeUserId" in payload) {
-            const userId = payload.assigneeUserId;
-            if (!userId) {
-              updatedAssignees = [];
-            } else {
-              const member = members.find((m) => m.userId === userId);
-              updatedAssignees = member
-                ? [
-                    {
-                      id: `ta-${Date.now()}`,
-                      taskId,
-                      userId: member.userId,
-                      displayName: member.displayName,
-                      avatarUrl: member.avatarUrl,
-                      assignedAt: new Date().toISOString(),
-                    },
-                  ]
-                : [];
+            // Map assignee change from assigneeUserId
+            let updatedAssignees = t.assignees;
+            if (payload.assignees) {
+              updatedAssignees = payload.assignees;
+            } else if ("assigneeUserId" in payload) {
+              const userId = payload.assigneeUserId;
+              if (!userId) {
+                updatedAssignees = [];
+              } else {
+                const member = members.find((m) => m.userId === userId);
+                updatedAssignees = member
+                  ? [
+                      {
+                        id: `ta-${Date.now()}`,
+                        taskId,
+                        userId: member.userId,
+                        displayName: member.displayName,
+                        avatarUrl: member.avatarUrl,
+                        assignedAt: new Date().toISOString(),
+                      },
+                    ]
+                  : [];
+              }
             }
-          }
 
-          return {
-            ...t,
-            ...payload,
-            assignees: updatedAssignees,
-          };
-        });
-      });
+            return {
+              ...t,
+              ...payload,
+              assignees: updatedAssignees,
+            };
+          });
+        },
+      );
 
       // 3. Update the currently selected task reference so the drawer updates instantly
       setSelectedTask((prev) => {
@@ -451,10 +529,11 @@ export default function ProjectDetailPage() {
         return prev;
       });
 
-    // Axios errors expose response data at runtime; keep this boundary permissive.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Axios errors expose response data at runtime; keep this boundary permissive.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      const msg = error?.response?.data?.message || "Không thể cập nhật công việc";
+      const msg =
+        error?.response?.data?.message || "Không thể cập nhật công việc";
       toast.error(msg);
       console.error("Update task error:", error?.response?.data || error);
     }
@@ -462,19 +541,47 @@ export default function ProjectDetailPage() {
 
   const handleCreateChecklist = async (taskId: string, title: string) => {
     const item = await createChecklistMutation.mutateAsync({ taskId, title });
-    setSelectedTask((current) => current?.id === taskId ? { ...current, checklists: [...current.checklists, item] } : current);
+    setSelectedTask((current) =>
+      current?.id === taskId
+        ? { ...current, checklists: [...current.checklists, item] }
+        : current,
+    );
     return item;
   };
 
-  const handleUpdateChecklist = async (checklistId: string, completed: boolean) => {
-    const item = await updateChecklistMutation.mutateAsync({ checklistId, completed });
-    setSelectedTask((current) => current ? { ...current, checklists: current.checklists.map((checklist) => checklist.id === checklistId ? item : checklist) } : current);
+  const handleUpdateChecklist = async (
+    checklistId: string,
+    completed: boolean,
+  ) => {
+    const item = await updateChecklistMutation.mutateAsync({
+      checklistId,
+      completed,
+    });
+    setSelectedTask((current) =>
+      current
+        ? {
+            ...current,
+            checklists: current.checklists.map((checklist) =>
+              checklist.id === checklistId ? item : checklist,
+            ),
+          }
+        : current,
+    );
     return item;
   };
 
   const handleDeleteChecklist = async (checklistId: string) => {
     await deleteChecklistMutation.mutateAsync(checklistId);
-    setSelectedTask((current) => current ? { ...current, checklists: current.checklists.filter((checklist) => checklist.id !== checklistId) } : current);
+    setSelectedTask((current) =>
+      current
+        ? {
+            ...current,
+            checklists: current.checklists.filter(
+              (checklist) => checklist.id !== checklistId,
+            ),
+          }
+        : current,
+    );
   };
 
   const handleEditGroup = (group: Task) => {
@@ -500,7 +607,9 @@ export default function ProjectDetailPage() {
       setEditingSprint(null);
       toast.success("Cập nhật sprint thành công");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật sprint");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật sprint",
+      );
     }
   };
 
@@ -531,7 +640,9 @@ export default function ProjectDetailPage() {
       setSelectedTask(null);
       toast.success("Đã xóa sprint và chuyển task về Backlog");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể xóa sprint");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể xóa sprint",
+      );
     }
   };
 
@@ -547,7 +658,9 @@ export default function ProjectDetailPage() {
       );
       toast.success(`Đã sắp xếp lại work items trong "${group.title}"`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể sắp xếp work items");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể sắp xếp work items",
+      );
     }
   };
 
@@ -567,8 +680,8 @@ export default function ProjectDetailPage() {
         ...payload,
       });
       toast.success("Tạo công việc thành công");
-    // Axios errors expose response data at runtime; keep this boundary permissive.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // Axios errors expose response data at runtime; keep this boundary permissive.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       // Extract backend error message from Axios response
       const backendMessage =
@@ -591,7 +704,11 @@ export default function ProjectDetailPage() {
       });
       toast.success("Tạo task trong Sprint thành công");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể tạo task trong Sprint");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể tạo task trong Sprint",
+      );
       throw error;
     }
   };
@@ -618,37 +735,62 @@ export default function ProjectDetailPage() {
       await createSprintMutation.mutateAsync(values);
       toast.success("Tạo Sprint thành công");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể tạo Sprint");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể tạo Sprint",
+      );
       throw error;
     }
   };
 
-  const handleAddTasksToSprint = async (sprintId: string, taskIds: string[]) => {
+  const handleAddTasksToSprint = async (
+    sprintId: string,
+    taskIds: string[],
+  ) => {
     try {
       await addTasksToSprintMutation.mutateAsync({ sprintId, taskIds });
       toast.success("Đã đưa task vào Sprint");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể đưa task vào Sprint");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể đưa task vào Sprint",
+      );
       throw error;
     }
   };
 
-  const handleBulkUpdateTasks = async (taskIds: string[], status: TaskStatus) => {
+  const handleBulkUpdateTasks = async (
+    taskIds: string[],
+    status: TaskStatus,
+  ) => {
     try {
-      await Promise.all(taskIds.map((taskId) => updateTaskMutation.mutateAsync({ taskId, payload: { status } })));
+      await Promise.all(
+        taskIds.map((taskId) =>
+          updateTaskMutation.mutateAsync({ taskId, payload: { status } }),
+        ),
+      );
       toast.success(`Đã cập nhật ${taskIds.length} task`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật hàng loạt task");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể cập nhật hàng loạt task",
+      );
       throw error;
     }
   };
 
-  const handleUpdateSprint = async (sprintId: string, values: SprintCreateValues) => {
+  const handleUpdateSprint = async (
+    sprintId: string,
+    values: SprintCreateValues,
+  ) => {
     try {
       await updateSprintMutation.mutateAsync({ sprintId, payload: values });
       toast.success("Đã cập nhật Sprint");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật Sprint");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật Sprint",
+      );
       throw error;
     }
   };
@@ -658,7 +800,9 @@ export default function ProjectDetailPage() {
       await startSprintMutation.mutateAsync(sprintId);
       toast.success("Đã Start Sprint");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể Start Sprint");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể Start Sprint",
+      );
     }
   };
 
@@ -667,7 +811,9 @@ export default function ProjectDetailPage() {
       await completeSprintMutation.mutateAsync(sprintId);
       toast.success("Đã Complete Sprint; task chưa xong quay lại Backlog");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể Complete Sprint");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể Complete Sprint",
+      );
     }
   };
 
@@ -676,23 +822,34 @@ export default function ProjectDetailPage() {
       await reopenSprintMutation.mutateAsync(sprintId);
       toast.success("Đã mở lại Sprint ở trạng thái Planned");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể mở lại Sprint");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể mở lại Sprint",
+      );
     }
   };
 
-  const handleRemoveTaskFromSprint = async (sprintId: string, taskId: string) => {
+  const handleRemoveTaskFromSprint = async (
+    sprintId: string,
+    taskId: string,
+  ) => {
     try {
       await removeTaskFromSprintMutation.mutateAsync({ sprintId, taskId });
       toast.success("Đã đưa task về Backlog");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể đưa task về Backlog");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Không thể đưa task về Backlog",
+      );
       throw error;
     }
   };
 
   const toggleAssigneeFilter = (userId: string) => {
     setActiveAssigneeFilters((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
     );
   };
 
@@ -702,7 +859,8 @@ export default function ProjectDetailPage() {
     setSearchQuery("");
   };
 
-  const isFiltersActive = activeAssigneeFilters.length > 0 || onlyMyIssues || searchQuery.length > 0;
+  const isFiltersActive =
+    activeAssigneeFilters.length > 0 || onlyMyIssues || searchQuery.length > 0;
 
   return (
     <div className="flex flex-1 overflow-hidden h-full">
@@ -817,8 +975,14 @@ export default function ProjectDetailPage() {
         {/* Bottom branding or configuration */}
         <div className="p-4 border-t border-slate-200 bg-slate-100/50">
           <div className="flex items-center justify-between text-xs text-slate-500 font-semibold">
-            <span>Mã dự án: <strong>{projectKey}</strong></span>
-            <button onClick={() => setShowProjectSettings(true)} className="text-slate-400 hover:text-slate-600" title="Cài đặt Project">
+            <span>
+              Mã dự án: <strong>{projectKey}</strong>
+            </span>
+            <button
+              onClick={() => setShowProjectSettings(true)}
+              className="text-slate-400 hover:text-slate-600"
+              title="Cài đặt Project"
+            >
               <Settings className="h-3.5 w-3.5" />
             </button>
           </div>
@@ -844,7 +1008,9 @@ export default function ProjectDetailPage() {
       <main className="flex-1 flex flex-col min-w-0 bg-white overflow-y-auto px-8 py-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-          <Link href="/projects" className="hover:text-blue-600 transition">Dự án</Link>
+          <Link href="/projects" className="hover:text-blue-600 transition">
+            Dự án
+          </Link>
           <ChevronRight className="h-3 w-3 text-slate-400" />
           <span>{project.name}</span>
           <ChevronRight className="h-3 w-3 text-slate-400" />
@@ -896,7 +1062,10 @@ export default function ProjectDetailPage() {
         <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
           {/* Search bar */}
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" strokeWidth={2} />
+            <Search
+              className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400"
+              strokeWidth={2}
+            />
             <input
               type="text"
               value={searchQuery}
@@ -908,10 +1077,14 @@ export default function ProjectDetailPage() {
 
           {/* Member filters (Avatars) */}
           <div className="flex items-center gap-1">
-            <span className="text-xs text-slate-500 font-semibold mr-1">Giao cho:</span>
+            <span className="text-xs text-slate-500 font-semibold mr-1">
+              Giao cho:
+            </span>
             <div className="flex -space-x-1.5">
               {projectWithMembers.members.map((member) => {
-                const isSelected = activeAssigneeFilters.includes(member.userId);
+                const isSelected = activeAssigneeFilters.includes(
+                  member.userId,
+                );
                 return (
                   <button
                     key={member.id}
@@ -964,14 +1137,32 @@ export default function ProjectDetailPage() {
             </button>
           )}
 
-
           {/* Task status indicator counts */}
           <div className="ml-auto flex items-center gap-3 text-[11px] font-bold text-slate-500 bg-slate-100 rounded px-2.5 py-1">
-            <span>To Do: {tasks.filter(t => t.status === TaskStatus.TODO && !t.archived).length}</span>
+            <span>
+              To Do:{" "}
+              {
+                tasks.filter((t) => t.status === TaskStatus.TODO && !t.archived)
+                  .length
+              }
+            </span>
             <span className="w-px h-3 bg-slate-200" />
-            <span className="text-blue-600">In Progress: {tasks.filter(t => t.status === TaskStatus.IN_PROGRESS && !t.archived).length}</span>
+            <span className="text-blue-600">
+              In Progress:{" "}
+              {
+                tasks.filter(
+                  (t) => t.status === TaskStatus.IN_PROGRESS && !t.archived,
+                ).length
+              }
+            </span>
             <span className="w-px h-3 bg-slate-200" />
-            <span className="text-emerald-600">Done: {tasks.filter(t => t.status === TaskStatus.DONE && !t.archived).length}</span>
+            <span className="text-emerald-600">
+              Done:{" "}
+              {
+                tasks.filter((t) => t.status === TaskStatus.DONE && !t.archived)
+                  .length
+              }
+            </span>
           </div>
         </div>
 
@@ -986,11 +1177,14 @@ export default function ProjectDetailPage() {
             )}
             {tasksError && (
               <div className="rounded border border-red-100 bg-red-50 py-24 text-center text-sm font-semibold text-red-500">
-                Không thể tải danh sách công việc. Vui lòng kiểm tra lại dịch vụ backend.
+                Không thể tải danh sách công việc. Vui lòng kiểm tra lại dịch vụ
+                backend.
               </div>
             )}
-            {!tasksLoading && !tasksError && viewMode === "summary" && (
-              isSoftwareProject ? (
+            {!tasksLoading &&
+              !tasksError &&
+              viewMode === "summary" &&
+              (isSoftwareProject ? (
                 <SummaryView
                   tasks={filteredTasks}
                   members={projectWithMembers.members}
@@ -1001,8 +1195,7 @@ export default function ProjectDetailPage() {
                   tasks={filteredTasks}
                   members={projectWithMembers.members}
                 />
-              )
-            )}
+              ))}
             {!tasksLoading && !tasksError && viewMode === "board" && (
               <BoardView
                 tasks={filteredTasks}
@@ -1012,14 +1205,24 @@ export default function ProjectDetailPage() {
                 onAddTask={openCreateTask}
               />
             )}
-            {!tasksLoading && !tasksError && viewMode === "list" && (
-              isSoftwareProject ? (
+            {!tasksLoading &&
+              !tasksError &&
+              viewMode === "list" &&
+              (isSoftwareProject ? (
                 <SoftwareBacklogView
                   tasks={filteredTasks}
                   sprints={sprints}
                   onTaskClick={(task) => setSelectedTask(task)}
                   onOpenChat={(task) => setChatTask(task)}
-                  onCreateTask={(sprintId) => openCreateTask(TaskStatus.TODO, undefined, false, undefined, sprintId)}
+                  onCreateTask={(sprintId) =>
+                    openCreateTask(
+                      TaskStatus.TODO,
+                      undefined,
+                      false,
+                      undefined,
+                      sprintId,
+                    )
+                  }
                   onCreateSprintTask={handleCreateSprintTask}
                   onCreateSprint={handleCreateSprint}
                   onUpdateSprint={handleUpdateSprint}
@@ -1030,13 +1233,13 @@ export default function ProjectDetailPage() {
                   onReopenSprint={handleReopenSprint}
                   onRemoveTaskFromSprint={handleRemoveTaskFromSprint}
                   isBusy={
-                    createSprintMutation.isPending
-                    || addTasksToSprintMutation.isPending
-                    || startSprintMutation.isPending
-                    || completeSprintMutation.isPending
-                    || updateSprintMutation.isPending
-                    || reopenSprintMutation.isPending
-                    || removeTaskFromSprintMutation.isPending
+                    createSprintMutation.isPending ||
+                    addTasksToSprintMutation.isPending ||
+                    startSprintMutation.isPending ||
+                    completeSprintMutation.isPending ||
+                    updateSprintMutation.isPending ||
+                    reopenSprintMutation.isPending ||
+                    removeTaskFromSprintMutation.isPending
                   }
                 />
               ) : (
@@ -1054,13 +1257,14 @@ export default function ProjectDetailPage() {
                   onDeleteGroup={handleDeleteGroup}
                   onReorderTasks={handleReorderTasks}
                 />
-              )
-            )}
+              ))}
             {!tasksLoading && !tasksError && viewMode === "calendar" && (
               <CalendarView
                 tasks={filteredTasks}
                 onTaskClick={(task) => setSelectedTask(task)}
-                onCreateDate={(date) => openCreateTask(TaskStatus.TODO, date, true)}
+                onCreateDate={(date) =>
+                  openCreateTask(TaskStatus.TODO, date, true)
+                }
               />
             )}
             {!tasksLoading && !tasksError && viewMode === "gantt" && (
@@ -1171,7 +1375,9 @@ export default function ProjectDetailPage() {
       <ProjectSettingsDialog
         project={project}
         open={showProjectSettings}
-        isBusy={updateProjectMutation.isPending || archiveProjectMutation.isPending}
+        isBusy={
+          updateProjectMutation.isPending || archiveProjectMutation.isPending
+        }
         onClose={() => setShowProjectSettings(false)}
         onSave={handleSaveProjectSettings}
         onArchive={handleArchiveProject}

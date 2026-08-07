@@ -99,4 +99,15 @@ public class UserController {
                 .data(profile)
                 .build());
     }
+
+    @GetMapping("/profiles/bulk")
+    public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getBulkProfiles(
+            @RequestParam List<String> emails) {
+        List<UserProfileResponse> profiles = userService.getBulkProfilesByEmails(emails);
+        return ResponseEntity.ok(ApiResponse.<List<UserProfileResponse>>builder()
+                .success(true)
+                .message("Lấy danh sách thông tin người dùng thành công")
+                .data(profiles)
+                .build());
+    }
 }

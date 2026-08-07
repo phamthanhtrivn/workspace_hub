@@ -82,7 +82,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
       <button
         type="button"
         onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-        className="grid h-11 w-11 shrink-0 place-items-center bg-gray-200 rounded-full text-sm font-black text-[var(--color-primary-dark)] shadow-sm ring-1 ring-slate-200 transition hover:bg-gray-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer"
+        className="relative grid h-11 w-11 shrink-0 place-items-center bg-gray-200 rounded-full text-sm font-black text-[var(--color-primary-dark)] shadow-sm ring-1 ring-slate-200 transition hover:bg-gray-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer"
         aria-label="Open user menu"
       >
         {userProfile.avatarUrl ? (
@@ -91,6 +91,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             alt="Avatar"
             fill
             className="rounded-full"
+            sizes="100px"
           />
         ) : (
           <User size={22} className=" text-gray-700 rounded-full" />

@@ -75,6 +75,11 @@ services:
   - name: document-service
     url: http://host.docker.internal:8085
     routes:
+      - name: document-public-routes
+        paths:
+          - /api/documents/public
+        strip_path: false
+
       - name: document-routes
         paths:
           - /api/documents
@@ -199,3 +204,12 @@ plugins:
       header_user_id: X-User-Id
       header_user_email: X-User-Email
       header_user_role: X-User-Role
+
+  # document-public-routes
+  - name: jwt-user-context
+    route: document-public-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+      optional: true

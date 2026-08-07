@@ -12,6 +12,7 @@ return {
           { header_user_id = { type = "string", default = "X-User-Id" } },
           { header_user_email = { type = "string", default = "X-User-Email" } },
           { header_user_role = { type = "string", default = "X-User-Role" } },
+          { optional = { type = "boolean", default = false } },
         },
       },
     },
