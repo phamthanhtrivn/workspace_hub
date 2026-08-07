@@ -91,6 +91,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             alt="Avatar"
             fill
             className="rounded-full"
+            sizes="100px"
           />
         ) : (
           <User size={22} className=" text-gray-700 rounded-full" />

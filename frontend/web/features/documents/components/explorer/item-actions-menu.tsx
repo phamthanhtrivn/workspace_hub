@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { DocumentItem } from "../../types/documents.types";
 import {
   DocumentItemType,
@@ -63,8 +63,25 @@ function ItemActionsMenu({
   const isOwner = userRole === DocumentRole.OWNER;
   const isEditor = userRole === DocumentRole.EDITOR;
 
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, setActiveMenuId]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={menuRef}>
       <button
         onClick={(e) => {
           e.stopPropagation();
@@ -77,193 +94,182 @@ function ItemActionsMenu({
 
       {/* Floating Actions Menu */}
       {isOpen && (
-        <>
-          <div
-            className="fixed inset-0 z-20"
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveMenuId(null);
-            }}
-          />
-          <div className="absolute right-0 z-100 mt-1.5 w-48 rounded-2xl bg-white border border-slate-100 shadow-xl py-2 animate-in fade-in slide-in-from-top-1 duration-150 font-semibold text-slate-700">
-            {activeView !== DocumentViewType.TRASH ? (
-              <>
-                {item.type !== DocumentItemType.FOLDER && onPreview && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onPreview();
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-[var(--color-primary)] font-bold"
-                  >
-                    <Eye size={15} />
-                    <span>Xem trước</span>
-                  </button>
-                )}
-
-                {item.type !== DocumentItemType.FOLDER && onDownload && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onDownload();
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <Download size={15} />
-                    <span>Tải xuống</span>
-                  </button>
-                )}
-
-                {item.type === DocumentItemType.FOLDER && onDownloadFolder && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onDownloadFolder();
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <Download size={15} />
-                    <span>Tải xuống (ZIP)</span>
-                  </button>
-                )}
-
-                {item.type !== DocumentItemType.FOLDER && onManageVersions && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onManageVersions();
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <History size={15} />
-                    <span>Quản lý phiên bản</span>
-                  </button>
-                )}
-
-                {(isOwner || isEditor) && onShare && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onShare();
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-blue-600 hover:text-blue-700"
-                  >
-                    <Share2 size={15} />
-                    <span>Chia sẻ</span>
-                  </button>
-                )}
-
+        <div className="absolute right-0 z-100 mt-1.5 w-48 rounded-2xl bg-white border border-slate-100 shadow-xl py-2 animate-in fade-in slide-in-from-top-1 duration-150 font-semibold text-slate-700">
+          {activeView !== DocumentViewType.TRASH ? (
+            <>
+              {item.type !== DocumentItemType.FOLDER && onPreview && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
-                    onViewDetails?.();
+                    onPreview();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-[var(--color-primary)] font-bold"
                 >
-                  <Info size={15} />
-                  <span>Chi tiết</span>
+                  <Eye size={15} />
+                  <span>Xem trước</span>
                 </button>
+              )}
 
-                {(isOwner || isEditor) && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onRename();
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <Edit3 size={15} />
-                    <span>Đổi tên</span>
-                  </button>
-                )}
-
-                {isOwner && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onMove();
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <Move size={15} />
-                    <span>Di chuyển</span>
-                  </button>
-                )}
-
+              {item.type !== DocumentItemType.FOLDER && onDownload && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
-                    onToggleStar();
+                    onDownload();
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
-                  <Star
-                    size={15}
-                    className={cn(
-                      item.isStarred && "fill-amber-400 text-amber-400",
-                    )}
-                  />
-                  <span>
-                    {item.isStarred ? "Bỏ gắn dấu sao" : "Gắn dấu sao"}
-                  </span>
+                  <Download size={15} />
+                  <span>Tải xuống</span>
                 </button>
+              )}
 
-                {isOwner && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onArchive(true);
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
-                  >
-                    <Trash2 size={15} />
-                    <span>Xóa tạm thời</span>
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                {isOwner && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onArchive(false);
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-green-600 hover:bg-green-50/50 transition-colors text-left"
-                  >
-                    <CornerUpLeft size={15} />
-                    <span>Khôi phục</span>
-                  </button>
-                )}
+              {item.type === DocumentItemType.FOLDER && onDownloadFolder && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onDownloadFolder();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                >
+                  <Download size={15} />
+                  <span>Tải xuống (ZIP)</span>
+                </button>
+              )}
 
-                {isOwner && onDeletePermanently && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(null);
-                      onDeletePermanently();
-                    }}
-                    className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
-                  >
-                    <Trash size={15} />
-                    <span>Xóa vĩnh viễn</span>
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </>
+              {item.type !== DocumentItemType.FOLDER && onManageVersions && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onManageVersions();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                >
+                  <History size={15} />
+                  <span>Quản lý phiên bản</span>
+                </button>
+              )}
+
+              {(isOwner || isEditor) && onShare && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onShare();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-blue-600 hover:text-blue-700"
+                >
+                  <Share2 size={15} />
+                  <span>Chia sẻ</span>
+                </button>
+              )}
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveMenuId(null);
+                  onViewDetails?.();
+                }}
+                className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+              >
+                <Info size={15} />
+                <span>Chi tiết</span>
+              </button>
+
+              {(isOwner || isEditor) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onRename();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                >
+                  <Edit3 size={15} />
+                  <span>Đổi tên</span>
+                </button>
+              )}
+
+              {isOwner && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onMove();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                >
+                  <Move size={15} />
+                  <span>Di chuyển</span>
+                </button>
+              )}
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveMenuId(null);
+                  onToggleStar();
+                }}
+                className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+              >
+                <Star
+                  size={15}
+                  className={cn(
+                    item.isStarred && "fill-amber-400 text-amber-400",
+                  )}
+                />
+                <span>{item.isStarred ? "Bỏ gắn dấu sao" : "Gắn dấu sao"}</span>
+              </button>
+
+              {isOwner && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onArchive(true);
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
+                >
+                  <Trash2 size={15} />
+                  <span>Xóa tạm thời</span>
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              {isOwner && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onArchive(false);
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-green-600 hover:bg-green-50/50 transition-colors text-left"
+                >
+                  <CornerUpLeft size={15} />
+                  <span>Khôi phục</span>
+                </button>
+              )}
+
+              {isOwner && onDeletePermanently && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onDeletePermanently();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
+                >
+                  <Trash size={15} />
+                  <span>Xóa vĩnh viễn</span>
+                </button>
+              )}
+            </>
+          )}
+        </div>
       )}
     </div>
   );
