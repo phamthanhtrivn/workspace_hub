@@ -8,20 +8,21 @@ import {
   DocumentRole,
 } from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
+import { MoreVertical } from "lucide-react";
 import {
-  MoreVertical,
-  Edit3,
-  Move,
-  Star,
-  Trash,
-  Info,
-  Eye,
-  CornerUpLeft,
-  Trash2,
-  Download,
-  History,
-  Share2,
-} from "lucide-react";
+  FaEye,
+  FaDownload,
+  FaHistory,
+  FaShareAlt,
+  FaInfoCircle,
+  FaEdit,
+  FaFolderOpen,
+  FaStar,
+  FaRegStar,
+  FaTrashAlt,
+  FaUndo,
+  FaTrash,
+} from "react-icons/fa";
 
 interface ItemActionsMenuProps {
   item: DocumentItem;
@@ -94,7 +95,7 @@ function ItemActionsMenu({
 
       {/* Floating Actions Menu */}
       {isOpen && (
-        <div className="absolute right-0 z-100 mt-1.5 w-48 rounded-2xl bg-white border border-slate-100 shadow-xl py-2 animate-in fade-in slide-in-from-top-1 duration-150 font-semibold text-slate-700">
+        <div className="absolute right-0 z-120 mt-1.5 w-48 rounded-2xl bg-white border border-slate-100 shadow-xl py-2 animate-in fade-in slide-in-from-top-1 duration-150 font-semibold text-slate-700">
           {activeView !== DocumentViewType.TRASH ? (
             <>
               {item.type !== DocumentItemType.FOLDER && onPreview && (
@@ -106,7 +107,10 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-[var(--color-primary)] font-bold"
                 >
-                  <Eye size={15} />
+                  <FaEye
+                    className="text-[var(--color-primary)] shrink-0"
+                    size={14}
+                  />
                   <span>Xem trước</span>
                 </button>
               )}
@@ -120,7 +124,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
-                  <Download size={15} />
+                  <FaDownload className="text-emerald-500 shrink-0" size={14} />
                   <span>Tải xuống</span>
                 </button>
               )}
@@ -134,7 +138,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
-                  <Download size={15} />
+                  <FaDownload className="text-emerald-500 shrink-0" size={14} />
                   <span>Tải xuống (ZIP)</span>
                 </button>
               )}
@@ -148,7 +152,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
-                  <History size={15} />
+                  <FaHistory className="text-indigo-500 shrink-0" size={14} />
                   <span>Quản lý phiên bản</span>
                 </button>
               )}
@@ -162,7 +166,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-blue-600 hover:text-blue-700"
                 >
-                  <Share2 size={15} />
+                  <FaShareAlt className="text-blue-500 shrink-0" size={14} />
                   <span>Chia sẻ</span>
                 </button>
               )}
@@ -175,7 +179,7 @@ function ItemActionsMenu({
                 }}
                 className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
               >
-                <Info size={15} />
+                <FaInfoCircle className="text-slate-500 shrink-0" size={14} />
                 <span>Chi tiết</span>
               </button>
 
@@ -188,7 +192,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
-                  <Edit3 size={15} />
+                  <FaEdit className="text-amber-500 shrink-0" size={14} />
                   <span>Đổi tên</span>
                 </button>
               )}
@@ -202,7 +206,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
-                  <Move size={15} />
+                  <FaFolderOpen className="text-teal-500 shrink-0" size={14} />
                   <span>Di chuyển</span>
                 </button>
               )}
@@ -215,12 +219,14 @@ function ItemActionsMenu({
                 }}
                 className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
               >
-                <Star
-                  size={15}
-                  className={cn(
-                    item.isStarred && "fill-amber-400 text-amber-400",
-                  )}
-                />
+                {item.isStarred ? (
+                  <FaStar
+                    className="text-amber-400 fill-amber-400 shrink-0"
+                    size={14}
+                  />
+                ) : (
+                  <FaRegStar className="text-amber-400 shrink-0" size={14} />
+                )}
                 <span>{item.isStarred ? "Bỏ gắn dấu sao" : "Gắn dấu sao"}</span>
               </button>
 
@@ -233,7 +239,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
                 >
-                  <Trash2 size={15} />
+                  <FaTrashAlt className="text-red-500 shrink-0" size={14} />
                   <span>Xóa tạm thời</span>
                 </button>
               )}
@@ -249,7 +255,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-green-600 hover:bg-green-50/50 transition-colors text-left"
                 >
-                  <CornerUpLeft size={15} />
+                  <FaUndo className="text-green-600 shrink-0" size={13} />
                   <span>Khôi phục</span>
                 </button>
               )}
@@ -263,7 +269,7 @@ function ItemActionsMenu({
                   }}
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
                 >
-                  <Trash size={15} />
+                  <FaTrash className="text-rose-600 shrink-0" size={14} />
                   <span>Xóa vĩnh viễn</span>
                 </button>
               )}

@@ -17,7 +17,6 @@ import {
 } from "../../utils/documents.utils";
 import {
   X,
-  Folder,
   FileText,
   User,
   Calendar,
@@ -32,6 +31,7 @@ import {
   Edit3,
   Share2,
 } from "lucide-react";
+import { DocumentIcon } from "../common/document-icon";
 import { toast } from "sonner";
 
 interface DetailsPanelProps {
@@ -76,16 +76,11 @@ function DetailsPanel({
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         {/* Preview Frame */}
         <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-2xl border border-slate-100/50">
-          <div
-            className={cn(
-              "p-5 rounded-2xl mb-3 shadow-xs",
-              isFolder
-                ? "bg-amber-100/70 text-amber-500"
-                : "bg-blue-100/70 text-blue-500",
-            )}
-          >
-            {isFolder ? <Folder size={44} /> : <FileText size={44} />}
-          </div>
+          <DocumentIcon
+            item={item}
+            iconSize={44}
+            className="p-5 rounded-2xl mb-3 shadow-xs"
+          />
           <span className="font-bold text-sm text-slate-800 text-center break-all w-full line-clamp-2">
             {item.name}
           </span>

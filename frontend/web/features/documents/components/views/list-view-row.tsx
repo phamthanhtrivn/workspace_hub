@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Folder, FileText, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DocumentItem } from "../../types/documents.types";
 import {
@@ -11,6 +11,7 @@ import {
 import ItemActionsMenu from "../explorer/item-actions-menu";
 import { formatBytes, formatDateShort } from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
+import { DocumentIcon } from "../common/document-icon";
 
 export interface ListViewRowProps {
   item: DocumentItem;
@@ -109,16 +110,7 @@ export function ListViewRow({
       )}
     >
       <td className="p-4 flex items-center gap-3 min-w-0">
-        <div
-          className={cn(
-            "p-2 rounded-lg",
-            isFolder
-              ? "bg-amber-50 text-amber-500"
-              : "bg-blue-50 text-blue-500",
-          )}
-        >
-          {isFolder ? <Folder size={18} /> : <FileText size={18} />}
-        </div>
+        <DocumentIcon item={item} iconSize={18} className="p-2 rounded-lg" />
         <span className="font-bold text-slate-700 truncate max-w-[250px]">
           {item.name}
         </span>

@@ -1,8 +1,8 @@
 import {
   EXTENSION_TO_TYPE,
+  FILE_EXTENSIONS,
+  MIME_TYPES,
   MIME_TO_TYPE,
-  TEXT_EXTENSIONS,
-  OFFICE_EXTENSIONS,
   PERMISSION_ROLE_LABELS,
 } from "../types/documents.constants";
 import {
@@ -91,41 +91,41 @@ export const getPreviewFileType = (
   }
 
   if (
-    (mimeType && mimeType.toLowerCase().startsWith("image/")) ||
-    ["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp"].includes(fileExt)
+    (mimeType && mimeType.toLowerCase().startsWith(MIME_TYPES.IMAGE_PREFIX)) ||
+    (FILE_EXTENSIONS.IMAGE as readonly string[]).includes(fileExt)
   ) {
     return PreviewFileType.IMAGE;
   }
 
   if (
-    (mimeType && mimeType.toLowerCase() === "application/pdf") ||
-    fileExt === "pdf"
+    (mimeType && mimeType.toLowerCase() === MIME_TYPES.PDF) ||
+    (FILE_EXTENSIONS.PDF as readonly string[]).includes(fileExt)
   ) {
     return PreviewFileType.PDF;
   }
 
   if (
-    (mimeType && mimeType.toLowerCase().startsWith("video/")) ||
-    ["mp4", "webm", "ogg", "mov"].includes(fileExt)
+    (mimeType && mimeType.toLowerCase().startsWith(MIME_TYPES.VIDEO_PREFIX)) ||
+    (FILE_EXTENSIONS.VIDEO as readonly string[]).includes(fileExt)
   ) {
     return PreviewFileType.VIDEO;
   }
 
   if (
-    (mimeType && mimeType.toLowerCase().startsWith("audio/")) ||
-    ["mp3", "wav", "ogg", "m4a", "flac"].includes(fileExt)
+    (mimeType && mimeType.toLowerCase().startsWith(MIME_TYPES.AUDIO_PREFIX)) ||
+    (FILE_EXTENSIONS.AUDIO as readonly string[]).includes(fileExt)
   ) {
     return PreviewFileType.AUDIO;
   }
 
   if (
-    TEXT_EXTENSIONS.includes(fileExt) ||
-    (mimeType && mimeType.toLowerCase().startsWith("text/"))
+    (FILE_EXTENSIONS.TEXT_PREVIEW as readonly string[]).includes(fileExt) ||
+    (mimeType && mimeType.toLowerCase().startsWith(MIME_TYPES.TEXT_PREFIX))
   ) {
     return PreviewFileType.TEXT;
   }
 
-  if (OFFICE_EXTENSIONS.includes(fileExt)) {
+  if ((FILE_EXTENSIONS.OFFICE as readonly string[]).includes(fileExt)) {
     return PreviewFileType.OFFICE;
   }
 

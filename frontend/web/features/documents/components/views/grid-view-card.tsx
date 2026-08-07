@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { Folder, FileText, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DocumentItem } from "../../types/documents.types";
 import { DocumentItemType, DocumentViewType, ResourceTypeName } from "../../types/documents.enums";
 import ItemActionsMenu from "../explorer/item-actions-menu";
 import { cn } from "@/lib/utils";
+import { DocumentIcon } from "../common/document-icon";
 
 export interface GridViewCardProps {
   item: DocumentItem;
@@ -105,27 +106,19 @@ export function GridViewCard({
         isSelected
           ? "bg-blue-50/50 border-blue-200 ring-2 ring-blue-500/10 shadow-xs"
           : isFolder
-            ? "border-slate-100 hover:border-amber-200 hover:bg-amber-50/5 hover:-translate-y-1"
-            : "border-slate-100 hover:border-blue-100 hover:bg-blue-50/5 hover:-translate-y-1",
+            ? "border-slate-100 hover:border-amber-200 hover:bg-amber-50/5"
+            : "border-slate-100 hover:border-blue-100 hover:bg-blue-50/5",
         isOver && "border-2 border-dashed border-blue-400 bg-blue-50/20 scale-102",
       )}
     >
       {/* Item Icon & Options */}
       <div className="flex items-start justify-between mb-3">
-        <div
-          className={cn(
-            "p-3 rounded-xl transition-all duration-300",
-            isSelected
-              ? isFolder
-                ? "bg-amber-100 text-amber-600"
-                : "bg-blue-100 text-blue-600"
-              : isFolder
-                ? "bg-amber-50 text-amber-500 group-hover:scale-105"
-                : "bg-blue-50 text-blue-500 group-hover:scale-105",
-          )}
-        >
-          {isFolder ? <Folder size={22} /> : <FileText size={22} />}
-        </div>
+        <DocumentIcon
+          item={item}
+          iconSize={22}
+          isSelected={isSelected}
+          className="p-3 rounded-xl transition-all duration-300"
+        />
 
         {/* Item Actions Dropdown */}
         <ItemActionsMenu

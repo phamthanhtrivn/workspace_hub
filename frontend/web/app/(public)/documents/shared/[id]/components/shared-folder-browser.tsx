@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
   Folder,
-  FileText,
   Download,
   FolderArchive,
   ChevronRight,
@@ -11,6 +10,7 @@ import {
   Loader2,
   ArrowLeft,
 } from "lucide-react";
+import { DocumentIcon } from "@/features/documents/components/common/document-icon";
 import { DocumentItem } from "@/features/documents/types/documents.types";
 import {
   DocumentItemType,
@@ -184,15 +184,11 @@ function SharedFolderBrowserInner({
                   onClick={() => isFolder && handleNavigateInto(item)}
                   className={`flex items-center gap-3 min-w-0 flex-1 text-left ${isFolder ? "cursor-pointer" : "cursor-default"}`}
                 >
-                  <div
-                    className={`p-2 rounded-xl shrink-0 ${
-                      isFolder
-                        ? "bg-amber-50 text-amber-500"
-                        : "bg-blue-50 text-blue-500"
-                    }`}
-                  >
-                    {isFolder ? <Folder size={16} /> : <FileText size={16} />}
-                  </div>
+                  <DocumentIcon
+                    item={item}
+                    iconSize={16}
+                    className="p-2 rounded-xl"
+                  />
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-slate-700 truncate group-hover:text-slate-900">
                       {item.name}
