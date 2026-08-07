@@ -23,6 +23,10 @@ const taskWithCount = {
   labelMappings: { include: { label: true }, orderBy: { labelId: 'asc' } },
 } satisfies Prisma.TaskInclude;
 
+type CurrentTask = Prisma.TaskGetPayload<{
+  include: typeof taskWithCount;
+}>;
+
 @Injectable()
 export class TaskService {
   constructor(
@@ -248,7 +252,7 @@ export class TaskService {
     return parent.sprintId;
   }
 
-  private async recordChanges(current: Prisma.TaskGetPayload<{}>, dto: UpdateTaskDto, actorId: string, taskId: string) {
+  private async recordChanges(current: CurrentTask, dto: UpdateTaskDto, actorId: string, taskId: string) {
     const changes: Array<[string, unknown, unknown]> = [];
     if (dto.title !== undefined) changes.push(['title', current.title, dto.title.trim()]);
     if (dto.description !== undefined) changes.push(['description', current.description, dto.description]);

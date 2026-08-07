@@ -46,7 +46,7 @@ export class ProjectGateway implements OnGatewayConnection, OnGatewayDisconnect 
     client.join(userRoom(userId));
   }
 
-  handleDisconnect(_: Socket): void {}
+  handleDisconnect(): void {}
 
   @SubscribeMessage('project:join')
   async joinProject(
