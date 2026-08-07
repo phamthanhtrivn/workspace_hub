@@ -72,10 +72,10 @@ graph TD
 - **\[User Service\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/backend/user-service) (Java 21, Spring Boot 4.1):**
   - Handles authentication, user profile management, OAuth integrations, account settings, and file uploads.
   - _Tech stack:_ Spring Boot Starter Web/Security, Spring Data JPA, PostgreSQL, Redis, Lombok, MapStruct, AWS S3 SDK.
-- **\[Project Service\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/backend/project-service-nest) (TypeScript, NestJS 11):**
+- **\[Project Service\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/backend/project-service) (TypeScript, NestJS 11):**
   - Manages projects/workspaces, tasks (checklists, comments, label mappings), Pomodoro configurations, and Pomodoro sessions tracking.
   - _Tech stack:_ NestJS, Prisma ORM, PostgreSQL, class-validator.
-  - Database migrations are preserved under `backend/project-service-nest/database/migrations`.
+  - Database migrations are preserved under `backend/project-service/database/migrations`.
 - **\[Communication Service\](file:///d:/HK1(2026-2027)/GraduationThesis/workspace_hub/backend/communication-service) (TypeScript, NestJS 11):**
   - Manages real-time 1-on-1 and group chats, messaging lifecycle (editing, pinning, recalling), file attachments, message reactions, group polls, and shared conversation notes.
   - _Tech stack:_ NestJS WebSockets & Platform Socket.io, Prisma ORM (PostgreSQL), Redis (Socket.io Adapter), KafkaJS.
@@ -138,7 +138,7 @@ workspace_hub/
 │   ├── kong-gateway/              # Kong API Gateway Config
 │   ├── docker/                    # Shared Infrastructure Docker Compose (PostgreSQL, Redis, Kafka)
 │   ├── user-service/              # Spring Boot User Management Service
-│   ├── project-service-nest/      # NestJS Project & Productivity Service
+│   ├── project-service/           # NestJS Project & Productivity Service
 │   ├── communication-service/     # NestJS Real-time Chat Service
 │   ├── notification-service/      # NestJS Kafka Notification Service
 │   ├── document-service/          # [Planned] Shared Document Service
@@ -177,7 +177,7 @@ This starts:
 
 ### Step 2: Configure Environment Variables
 
-Copy the `.env.example` file to `.env` in the services (`user-service`, `project-service-nest`, `communication-service`, `notification-service`, `kong-gateway`) and fill in the necessary secrets (such as JWT keys and Database connections).
+Copy the `.env.example` file to `.env` in the services (`user-service`, `project-service`, `communication-service`, `notification-service`, `kong-gateway`) and fill in the necessary secrets (such as JWT keys and Database connections).
 
 ### Step 3: Run Microservices
 
@@ -193,7 +193,7 @@ Each service can be run locally in development mode:
 - **Project Service:**
 
   ```bash
-  cd backend/project-service-nest
+  cd backend/project-service
   copy .env.example .env
   npm install
   npm run prisma:generate

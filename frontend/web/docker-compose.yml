@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  frontend-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workspace_hub_frontend_web
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.docker
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      user-service:
+        condition: service_healthy
+      project-service:
+        condition: service_healthy
+      communication-service:
+        condition: service_healthy
+      document-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    restart: on-failure

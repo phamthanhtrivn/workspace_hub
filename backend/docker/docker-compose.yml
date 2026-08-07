@@ -1,5 +1,13 @@
 version: '3.8'
 
+include:
+  - path: ../user-service/docker-compose.yml
+  - path: ../project-service/docker-compose.yml
+  - path: ../communication-service/docker-compose.yml
+  - path: ../document-service/docker-compose.yml
+  - path: ../notification-service/docker-compose.yml
+  - path: ../../frontend/web/docker-compose.yml
+
 services:
   kong:
     build: 
@@ -42,6 +50,11 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
   redis:
@@ -51,6 +64,11 @@ services:
       - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
 
   kafka:
@@ -84,6 +102,7 @@ services:
       /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic notification-topic --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
       echo 'Kafka topic notification-topic created successfully.'
       "
+
 
 volumes:
   postgres_data:

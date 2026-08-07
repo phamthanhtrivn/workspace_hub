@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  project-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workspace_hub_project_service
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env.docker
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    command: sh -c "npx prisma generate && npx prisma db push && npm run start:dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8082"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: on-failure
