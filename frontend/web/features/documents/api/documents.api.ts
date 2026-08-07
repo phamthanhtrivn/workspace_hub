@@ -245,9 +245,7 @@ export const documentsApi = {
     return version;
   },
 
-  getSharing: async (
-    id: string,
-  ): Promise<SharingSettings> => {
+  getSharing: async (id: string): Promise<SharingSettings> => {
     const response = await api.get(`/api/documents/${id}/sharing`);
     return response.data.data;
   },
@@ -275,9 +273,7 @@ export const documentsApi = {
   },
 
   removeShare: async (id: string, shareId: string): Promise<void> => {
-    await api.delete(
-      `/api/documents/${id}/sharing/shares/${shareId}`,
-    );
+    await api.delete(`/api/documents/${id}/sharing/shares/${shareId}`);
   },
 
   getPublicDocument: async (
@@ -287,14 +283,20 @@ export const documentsApi = {
     return response.data.data;
   },
 
-  getPublicDownloadUrl: async (id: string, versionId?: string): Promise<string> => {
+  getPublicDownloadUrl: async (
+    id: string,
+    versionId?: string,
+  ): Promise<string> => {
     const response = await api.get(`/api/documents/public/${id}/download-url`, {
       params: { versionId },
     });
     return response.data.data.url;
   },
 
-  getPublicPreviewUrl: async (id: string, versionId?: string): Promise<string> => {
+  getPublicPreviewUrl: async (
+    id: string,
+    versionId?: string,
+  ): Promise<string> => {
     const response = await api.get(`/api/documents/public/${id}/preview-url`, {
       params: { versionId },
     });
@@ -310,7 +312,10 @@ export const documentsApi = {
     id: string,
     data: { name: string; mimeType: string; sizeBytes: number },
   ): Promise<{ presignedUrl: string; s3Key: string }> => {
-    const response = await api.post(`/api/documents/public/${id}/upload/initiate`, data);
+    const response = await api.post(
+      `/api/documents/public/${id}/upload/initiate`,
+      data,
+    );
     return response.data.data;
   },
 
@@ -318,7 +323,10 @@ export const documentsApi = {
     id: string,
     data: { s3Key: string; sizeBytes: number; mimeType: string },
   ): Promise<DocumentVersion> => {
-    const response = await api.post(`/api/documents/public/${id}/versions`, data);
+    const response = await api.post(
+      `/api/documents/public/${id}/versions`,
+      data,
+    );
     return response.data.data;
   },
 
@@ -330,11 +338,14 @@ export const documentsApi = {
     const mimeType = file.type || DEFAULT_MIME_TYPE;
 
     onProgress?.(0, UploadState.INITIATING);
-    const { presignedUrl, s3Key } = await documentsApi.initiatePublicUpload(id, {
-      name: file.name,
-      mimeType,
-      sizeBytes: file.size,
-    });
+    const { presignedUrl, s3Key } = await documentsApi.initiatePublicUpload(
+      id,
+      {
+        name: file.name,
+        mimeType,
+        sizeBytes: file.size,
+      },
+    );
 
     onProgress?.(0, UploadState.UPLOADING);
     await axios.put(presignedUrl, file, {
@@ -361,7 +372,9 @@ export const documentsApi = {
   },
 
   renamePublicItem: async (id: string, name: string): Promise<DocumentItem> => {
-    const response = await api.put(`/api/documents/public/${id}/rename`, { name });
+    const response = await api.put(`/api/documents/public/${id}/rename`, {
+      name,
+    });
     return response.data.data;
   },
 
@@ -373,21 +386,20 @@ export const documentsApi = {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-      const normalizedApiBase = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
+      const normalizedApiBase = apiBase.endsWith("/")
+        ? apiBase.slice(0, -1)
+        : apiBase;
       const url = `${normalizedApiBase}/api/documents/${id}/download-folder`;
 
       xhr.open("GET", url, true);
       xhr.responseType = "blob";
       xhr.withCredentials = true;
 
-      // Add Bearer token from Redux store if present
-      const token = store.getState().auth.accessToken;
-      if (token) {
-        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-      }
-
       // Forward auth headers from axios defaults
-      const axiosHeaders = api.defaults.headers.common as Record<string, string>;
+      const axiosHeaders = api.defaults.headers.common as Record<
+        string,
+        string
+      >;
       Object.entries(axiosHeaders).forEach(([key, value]) => {
         if (value) xhr.setRequestHeader(key, String(value));
       });
@@ -418,7 +430,8 @@ export const documentsApi = {
         }
       };
 
-      xhr.onerror = () => reject(new Error("Network error during folder download"));
+      xhr.onerror = () =>
+        reject(new Error("Network error during folder download"));
       xhr.send();
     });
   },
@@ -431,7 +444,9 @@ export const documentsApi = {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       const apiBase = process.env.NEXT_PUBLIC_API_URL || "";
-      const normalizedApiBase = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
+      const normalizedApiBase = apiBase.endsWith("/")
+        ? apiBase.slice(0, -1)
+        : apiBase;
       const url = `${normalizedApiBase}/api/documents/public/${id}/download-folder`;
 
       xhr.open("GET", url, true);
@@ -464,7 +479,8 @@ export const documentsApi = {
         }
       };
 
-      xhr.onerror = () => reject(new Error("Network error during folder download"));
+      xhr.onerror = () =>
+        reject(new Error("Network error during folder download"));
       xhr.send();
     });
   },

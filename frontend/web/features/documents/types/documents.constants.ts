@@ -97,3 +97,19 @@ export const PERMISSION_ROLE_LABELS: Record<string, string> = {
 };
 
 export const ORIGINAL_VERSION_ID = "original";
+
+export const USER_FALLBACK_NAME = "Người dùng ẩn danh";
+
+export const LINK_ACCESS_LABELS: Record<string, string> = {
+  NONE: "Hạn chế",
+  VIEWER: "Bất kỳ ai có liên kết (Xem)",
+  EDITOR: "Bất kỳ ai có liên kết (Sửa)",
+};
+
+export const LINK_ACCESS_DESCRIPTIONS: Record<string, string> = {
+  NONE: "Chỉ những người được thêm ở trên mới có thể truy cập bằng liên kết này.",
+  VIEWER: "Bất kỳ ai có liên kết này đều có thể xem và tải xuống tài nguyên.",
+  EDITOR: "Bất kỳ ai có liên kết này đều có quyền chỉnh sửa, di chuyển và xóa tài nguyên.",
+};
+
+

@@ -6,6 +6,10 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { LinkAccess } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
+import {
+  LINK_ACCESS_LABELS,
+  LINK_ACCESS_DESCRIPTIONS,
+} from "../../types/documents.constants";
 
 interface ShareModalLinkProps {
   documentItemId: string;
@@ -39,7 +43,7 @@ export function ShareModalLink({
         toast.error("Không thể cập nhật cấu hình liên kết");
       }
     },
-    [documentItemId, onLinkAccessChanged]
+    [documentItemId, onLinkAccessChanged],
   );
 
   const handleCopyLink = useCallback(() => {
@@ -59,39 +63,41 @@ export function ShareModalLink({
         <div
           className={cn(
             "p-2.5 rounded-xl shrink-0 mt-0.5",
-            linkAccess === LinkAccess.NONE ? "bg-amber-50 text-amber-500" : "bg-green-50 text-green-600"
+            linkAccess === LinkAccess.NONE
+              ? "bg-amber-50 text-amber-500"
+              : "bg-green-50 text-green-600",
           )}
         >
-          {linkAccess === LinkAccess.NONE ? <Lock size={18} /> : <Globe size={18} />}
+          {linkAccess === LinkAccess.NONE ? (
+            <Lock size={18} />
+          ) : (
+            <Globe size={18} />
+          )}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             {isOwner ? (
               <select
                 value={linkAccess}
-                onChange={(e) => void handleLinkAccessChange(e.target.value as LinkAccess)}
-                className="bg-transparent border-0 rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-black text-slate-800 outline-hidden focus:ring-1 focus:ring-slate-100 transition-all cursor-pointer"
+                onChange={(e) =>
+                  void handleLinkAccessChange(e.target.value as LinkAccess)
+                }
+                className="bg-transparent border border-gray-300 rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-black text-slate-800 outline-hidden focus:ring-1 focus:ring-slate-100 transition-all cursor-pointer"
               >
-                <option value={LinkAccess.NONE}>Hạn chế</option>
-                <option value={LinkAccess.VIEWER}>Bất kỳ ai có liên kết (Xem)</option>
-                <option value={LinkAccess.EDITOR}>Bất kỳ ai có liên kết (Sửa)</option>
+                {Object.entries(LINK_ACCESS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
               </select>
             ) : (
               <span className="text-sm font-black text-slate-800 py-0.5 px-1.5 block -ml-1.5">
-                {linkAccess === LinkAccess.NONE
-                  ? "Hạn chế"
-                  : linkAccess === LinkAccess.VIEWER
-                  ? "Bất kỳ ai có liên kết (Xem)"
-                  : "Bất kỳ ai có liên kết (Sửa)"}
+                {LINK_ACCESS_LABELS[linkAccess]}
               </span>
             )}
           </div>
           <p className="text-xs text-slate-400 font-bold mt-1 leading-normal">
-            {linkAccess === LinkAccess.NONE
-              ? "Chỉ những người được thêm ở trên mới có thể truy cập bằng liên kết này."
-              : linkAccess === LinkAccess.VIEWER
-              ? "Bất kỳ ai có liên kết này đều có thể xem và tải xuống tài nguyên."
-              : "Bất kỳ ai có liên kết này đều có quyền chỉnh sửa, di chuyển và xóa tài nguyên."}
+            {LINK_ACCESS_DESCRIPTIONS[linkAccess]}
           </p>
         </div>
       </div>
