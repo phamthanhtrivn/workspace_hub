@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import ConversationChatInput, { ConversationChatInputRef } from "./input/conversation-chat-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
-import { PinnedMessagesBar } from "./pinned-messages-bar";
+import { PinnedMessagesBar } from "./message/pinned-messages-bar";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { getConversationMessages, getPinnedMessages } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";

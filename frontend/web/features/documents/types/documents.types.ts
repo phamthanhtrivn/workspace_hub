@@ -1,7 +1,11 @@
+import { LucideIcon } from "lucide-react";
 import {
   DocumentItemType,
   ViewLayout,
   DocumentSortBy,
+  LinkAccess,
+  SharePermission,
+  DocumentRole,
 } from "./documents.enums";
 
 export interface DocumentItem {
@@ -20,6 +24,8 @@ export interface DocumentItem {
   archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  linkAccess?: LinkAccess;
+  userRole?: DocumentRole;
 }
 
 export interface UserStorageQuota {
@@ -38,6 +44,45 @@ export interface PaginatedResponse<T> {
     limit: number;
     totalPages: number;
   };
+}
+
+export interface DocumentVersion {
+  id: string;
+  documentItemId: string;
+  versionNumber: number;
+  s3Key: string;
+  sizeBytes: number;
+  uploadedBy: string;
+  uploadedByEmail?: string;
+  createdAt: string;
+}
+
+export interface DocumentShare {
+  id: string;
+  documentItemId: string;
+  shareWithUserId: string | null;
+  shareWithEmail: string;
+  permission: SharePermission;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SharingSettings {
+  linkAccess: LinkAccess;
+  shares: DocumentShare[];
+}
+
+export interface StorageQuotaStats {
+  usedMB: string;
+  maxGB: string;
+  percentage: number;
+}
+
+export interface DocumentRoleMetadata {
+  badgeText: string;
+  badgeColor: string;
+  Icon: LucideIcon;
+  showOpenInWorkspace: boolean;
 }
 
 export { ViewLayout, DocumentSortBy };

@@ -44,7 +44,6 @@ model DocumentItem {
   s3Key          String?         @map("s3_key") // Point to the active version's S3 object
   mimeType       String?         @map("mime_type")
   sizeBytes      BigInt          @default(0) @map("size_bytes")
-  isStarred      Boolean         @default(false) @map("is_starred")
   
   // Trash details
   isArchived     Boolean         @default(false) @map("is_archived") // Soft delete
@@ -64,7 +63,11 @@ model DocumentItem {
   childItems     DocumentItem[]  @relation("FolderHierarchy")
   shares         DocumentShare[]
   versions       DocumentVersion[]
+  starredBy      UserStarredDocument[]
 
+  @@index([ownerUserId, isArchived])
+  @@index([parentFolderId])
+  @@index([isArchived, archivedAt])
   @@map("document_items")
 }
 
@@ -96,4 +99,15 @@ model DocumentVersion {
 
   @@unique([documentItemId, versionNumber])
   @@map("document_versions")
+}
+
+model UserStarredDocument {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @map("user_id") @db.Uuid
+  documentItemId String       @map("document_item_id") @db.Uuid
+  documentItem   DocumentItem @relation(fields: [documentItemId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  @@unique([userId, documentItemId])
+  @@map("user_starred_documents")
 }

@@ -94,7 +94,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   const currentTitle = pageTitles.get(pathname) ?? "Workspace";
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState<
     "profile" | "settings" | "sessions"

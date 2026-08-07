@@ -2,12 +2,18 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Plus, Search, ChevronRight, MoreHorizontal, Settings } from "lucide-react";
-import { ProjectStatus } from "@/types/project";
-import CreateProjectDialog from "@/components/projects/create-project-dialog";
-import { ProjectStatusBadge } from "@/components/projects/status-badge";
-import { ProjectTypeBadge } from "@/components/projects/project-type-badge";
-import { Avatar } from "@/components/projects/avatar-stack";
+import {
+  Plus,
+  Search,
+  ChevronRight,
+  MoreHorizontal,
+  Settings,
+} from "lucide-react";
+import { ProjectStatus } from "@/features/project/types/project";
+import CreateProjectDialog from "@/features/project/components/create-project-dialog";
+import { ProjectStatusBadge } from "@/features/project/components/status-badge";
+import { ProjectTypeBadge } from "@/features/project/components/project-type-badge";
+import { Avatar } from "@/features/project/components/avatar-stack";
 import {
   useCreateProject,
   useProjects,
@@ -24,13 +30,15 @@ const FILTER_TABS = [
 
 // Helper to get Project Key (first letter of each word, up to 4 chars)
 export function getProjectKey(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .replace(/[^A-Za-z0-9]/g, "")
-    .toUpperCase()
-    .slice(0, 4) || "PRJ";
+  return (
+    name
+      .split(" ")
+      .map((w) => w[0])
+      .join("")
+      .replace(/[^A-Za-z0-9]/g, "")
+      .toUpperCase()
+      .slice(0, 4) || "PRJ"
+  );
 }
 
 export default function ProjectsPage() {
@@ -59,7 +67,9 @@ export default function ProjectsPage() {
       toast.success("Tạo dự án thành công");
       setShowCreate(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể tạo dự án");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể tạo dự án",
+      );
       throw error;
     }
   };
@@ -68,7 +78,9 @@ export default function ProjectsPage() {
     <div className="flex-1 px-8 py-6 max-w-7xl mx-auto w-full">
       {/* Breadcrumb & Title */}
       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-        <Link href="/dashboard" className="hover:text-blue-600 transition">Workspace</Link>
+        <Link href="/dashboard" className="hover:text-blue-600 transition">
+          Workspace
+        </Link>
         <ChevronRight className="h-3 w-3 text-slate-400" />
         <span className="text-slate-700">Dự án</span>
       </div>
@@ -77,7 +89,8 @@ export default function ProjectsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-[#172B4D]">Dự án</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Quản lý tất cả dự án phần mềm của nhóm, theo dõi tiến độ và cấu hình các cài đặt liên quan.
+            Quản lý tất cả dự án phần mềm của nhóm, theo dõi tiến độ và cấu hình
+            các cài đặt liên quan.
           </p>
         </div>
         <button
@@ -114,7 +127,10 @@ export default function ProjectsPage() {
 
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" strokeWidth={2} />
+          <Search
+            className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            strokeWidth={2}
+          />
           <input
             type="text"
             value={searchQuery}
@@ -130,7 +146,10 @@ export default function ProjectsPage() {
         {isLoading ? (
           <div className="divide-y divide-slate-100">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-4 px-6 py-4.5 animate-pulse bg-white">
+              <div
+                key={i}
+                className="flex items-center gap-4 px-6 py-4.5 animate-pulse bg-white"
+              >
                 <div className="h-10 w-10 rounded bg-slate-100" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 w-1/3 rounded bg-slate-100" />
@@ -159,18 +178,36 @@ export default function ProjectsPage() {
             <tbody className="divide-y divide-slate-200">
               {filteredProjects.map((project) => {
                 const projectKey = getProjectKey(project.name);
-                const owner = project.members.find((m) => m.role === "OWNER") || project.members[0];
-                const totalTasks = project.tasks?.filter((t) => !t.archived).length || 0;
-                const doneTasks = project.tasks?.filter((t) => t.status === "DONE" && !t.archived).length || 0;
-                const progress = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+                const owner =
+                  project.members.find((m) => m.role === "OWNER") ||
+                  project.members[0];
+                const totalTasks =
+                  project.tasks?.filter((t) => !t.archived).length || 0;
+                const doneTasks =
+                  project.tasks?.filter(
+                    (t) => t.status === "DONE" && !t.archived,
+                  ).length || 0;
+                const progress =
+                  totalTasks > 0
+                    ? Math.round((doneTasks / totalTasks) * 100)
+                    : 0;
 
                 return (
-                  <tr key={project.id} className="group hover:bg-[#F4F5F7] transition duration-150">
+                  <tr
+                    key={project.id}
+                    className="group hover:bg-[#F4F5F7] transition duration-150"
+                  >
                     <td className="px-6 py-3.5">
-                      <Link href={`/projects/${project.id}`} className="flex items-center gap-3">
+                      <Link
+                        href={`/projects/${project.id}`}
+                        className="flex items-center gap-3"
+                      >
                         <span
                           className="grid h-10 w-10 shrink-0 place-items-center rounded text-xl shadow-sm border border-slate-200 font-semibold"
-                          style={{ backgroundColor: `${project.color}14`, color: project.color }}
+                          style={{
+                            backgroundColor: `${project.color}14`,
+                            color: project.color,
+                          }}
                         >
                           {project.icon || "📁"}
                         </span>
@@ -178,11 +215,15 @@ export default function ProjectsPage() {
                           <span className="font-semibold text-[#0052CC] hover:underline block text-[14px]">
                             {project.name}
                           </span>
-                          <span className="text-xs text-slate-500 font-medium">Team-managed software</span>
+                          <span className="text-xs text-slate-500 font-medium">
+                            Team-managed software
+                          </span>
                         </div>
                       </Link>
                     </td>
-                    <td className="px-6 py-3.5 font-medium text-slate-700">{projectKey}</td>
+                    <td className="px-6 py-3.5 font-medium text-slate-700">
+                      {projectKey}
+                    </td>
                     <td className="px-6 py-3.5">
                       <ProjectTypeBadge type={project.projectType} compact />
                     </td>
@@ -198,7 +239,9 @@ export default function ProjectsPage() {
                               }}
                               size="xs"
                             />
-                            <span className="text-slate-700 font-medium">{owner.displayName}</span>
+                            <span className="text-slate-700 font-medium">
+                              {owner.displayName}
+                            </span>
                           </>
                         ) : (
                           <span className="text-slate-400 font-medium">—</span>
@@ -212,7 +255,9 @@ export default function ProjectsPage() {
                       <div className="flex flex-col gap-1">
                         <div className="flex justify-between text-[11px] font-bold text-slate-500">
                           <span>{progress}%</span>
-                          <span>{doneTasks}/{totalTasks}</span>
+                          <span>
+                            {doneTasks}/{totalTasks}
+                          </span>
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                           <div
@@ -252,8 +297,12 @@ export default function ProjectsPage() {
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-slate-50 text-3xl border border-slate-100">
               📂
             </div>
-            <p className="mt-4 text-sm font-bold text-slate-700">Không tìm thấy dự án nào</p>
-            <p className="mt-1 text-xs text-slate-400">Hãy thay đổi bộ lọc hoặc tạo một dự án mới để bắt đầu.</p>
+            <p className="mt-4 text-sm font-bold text-slate-700">
+              Không tìm thấy dự án nào
+            </p>
+            <p className="mt-1 text-xs text-slate-400">
+              Hãy thay đổi bộ lọc hoặc tạo một dự án mới để bắt đầu.
+            </p>
             <button
               onClick={() => setShowCreate(true)}
               className="mt-4 inline-flex items-center gap-1.5 rounded bg-[#0052CC] hover:bg-[#0747A6] px-3.5 py-2 text-xs font-semibold text-white transition"

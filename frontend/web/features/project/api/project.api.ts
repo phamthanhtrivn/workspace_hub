@@ -6,7 +6,7 @@ import {
   ProjectTemplate,
   type Project,
   type ProjectMember,
-} from "@/types/project";
+} from "@/features/project/types/project";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -112,7 +112,8 @@ function normalizeMember(
 }
 
 export async function getProjects(): Promise<Project[]> {
-  const response = await api.get<ApiResponse<ProjectApiModel[]>>("/api/projects");
+  const response =
+    await api.get<ApiResponse<ProjectApiModel[]>>("/api/projects");
   return (unwrap(response) || []).map(normalizeProject);
 }
 

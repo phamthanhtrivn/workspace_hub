@@ -7,7 +7,7 @@ import {
   type TaskAssignee,
   type TaskLabel,
   type TaskActivity,
-} from "@/types/project";
+} from "@/features/project/types/project";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -39,7 +39,9 @@ export interface TaskApiModel {
   createdAt?: string | null;
   updatedAt?: string | null;
   checklists?: TaskChecklist[];
-  assignees?: Array<Pick<TaskAssignee, "id" | "taskId" | "userId" | "assignedAt">>;
+  assignees?: Array<
+    Pick<TaskAssignee, "id" | "taskId" | "userId" | "assignedAt">
+  >;
   labels?: TaskLabel[];
 }
 
@@ -131,7 +133,9 @@ export async function getProjectTasks(projectId: string): Promise<Task[]> {
 }
 
 export async function getTask(taskId: string): Promise<Task> {
-  const response = await api.get<ApiResponse<TaskApiModel>>(`/api/tasks/${taskId}`);
+  const response = await api.get<ApiResponse<TaskApiModel>>(
+    `/api/tasks/${taskId}`,
+  );
   return normalizeTask(unwrap(response));
 }
 
@@ -165,13 +169,25 @@ export async function updateTask(
 
 type ChecklistApiModel = TaskChecklist;
 
-export async function createChecklist(taskId: string, title: string): Promise<TaskChecklist> {
-  const response = await api.post<ApiResponse<ChecklistApiModel>>(`/api/tasks/${taskId}/checklists`, { title });
+export async function createChecklist(
+  taskId: string,
+  title: string,
+): Promise<TaskChecklist> {
+  const response = await api.post<ApiResponse<ChecklistApiModel>>(
+    `/api/tasks/${taskId}/checklists`,
+    { title },
+  );
   return unwrap(response);
 }
 
-export async function updateChecklist(checklistId: string, completed: boolean): Promise<TaskChecklist> {
-  const response = await api.patch<ApiResponse<ChecklistApiModel>>(`/api/checklists/${checklistId}`, { completed });
+export async function updateChecklist(
+  checklistId: string,
+  completed: boolean,
+): Promise<TaskChecklist> {
+  const response = await api.patch<ApiResponse<ChecklistApiModel>>(
+    `/api/checklists/${checklistId}`,
+    { completed },
+  );
   return unwrap(response);
 }
 
@@ -179,7 +195,11 @@ export async function deleteChecklist(checklistId: string): Promise<void> {
   await api.delete(`/api/checklists/${checklistId}`);
 }
 
-export async function getTaskActivities(taskId: string): Promise<TaskActivity[]> {
-  const response = await api.get<ApiResponse<TaskActivity[]>>(`/api/tasks/${taskId}/activities`);
+export async function getTaskActivities(
+  taskId: string,
+): Promise<TaskActivity[]> {
+  const response = await api.get<ApiResponse<TaskActivity[]>>(
+    `/api/tasks/${taskId}/activities`,
+  );
   return unwrap(response);
 }
