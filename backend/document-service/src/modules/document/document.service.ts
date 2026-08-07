@@ -4,16 +4,12 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-<<<<<<< HEAD
 import { Response } from 'express';
 import * as archiver from 'archiver';
-=======
->>>>>>> dev
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
-<<<<<<< HEAD
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
@@ -138,19 +134,6 @@ export class DocumentService {
 
     return item;
   }
-=======
-import {
-  ItemType,
-  DocumentItem,
-  SharePermission,
-  LinkAccess,
-} from '@prisma/client';
-import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
-
-@Injectable()
-export class DocumentService {
-  constructor(private readonly prisma: PrismaService) {}
->>>>>>> dev
 
   /**
    * Recursively checks if a user has permission to access an item.
@@ -158,17 +141,10 @@ export class DocumentService {
    */
   async checkPermission(
     itemId: string,
-<<<<<<< HEAD
     userId?: string,
     userEmail?: string,
     requiredRole: DocumentRole = DocumentRole.VIEWER,
   ): Promise<DocumentItem & { shares: DocumentShare[] }> {
-=======
-    userId: string,
-    userEmail: string,
-    requiredRole: DocumentRole,
-  ): Promise<DocumentItem> {
->>>>>>> dev
     const item = await this.prisma.documentItem.findUnique({
       where: { id: itemId },
       include: {
@@ -181,25 +157,16 @@ export class DocumentService {
     }
 
     // 1. Owner always has full access
-<<<<<<< HEAD
     if (userId && item.ownerUserId === userId) {
-=======
-    if (item.ownerUserId === userId) {
->>>>>>> dev
       return item;
     }
 
     // 2. Check if shared explicitly with this user/email
     const share = item.shares.find(
       (s) =>
-<<<<<<< HEAD
         (userId && s.shareWithUserId === userId) ||
         (userEmail &&
           s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
-=======
-        s.shareWithUserId === userId ||
-        s.shareWithEmail.toLowerCase() === userEmail.toLowerCase(),
->>>>>>> dev
     );
 
     if (share) {
@@ -251,11 +218,7 @@ export class DocumentService {
       );
     }
 
-<<<<<<< HEAD
     throw new ForbiddenException('Bạn không có quyền truy cập tài nguyên này');
-=======
-    throw new ForbiddenException('Bạn không có quyền truy cập tài liệu này');
->>>>>>> dev
   }
 
   /**
@@ -659,7 +622,10 @@ export class DocumentService {
    */
   private async getFolderSize(folderId: string): Promise<number> {
     const descendants = await this.getFolderDescendants(folderId);
-    return descendants.files.reduce((sum, file) => sum + Number(file.sizeBytes), 0);
+    return descendants.files.reduce(
+      (sum, file) => sum + Number(file.sizeBytes),
+      0,
+    );
   }
 
   /**
