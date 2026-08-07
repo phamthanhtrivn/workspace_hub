@@ -6,7 +6,6 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import {
   type Task,
-  type TaskAssignee,
   ProjectType,
   ProjectStatus,
   TaskStatus,
@@ -36,7 +35,6 @@ import {
   useCreateChecklist,
   useUpdateChecklist,
   useDeleteChecklist,
-  taskKeys,
 } from "@/features/project/hooks/use-tasks";
 import {
   useProjectLabels,
@@ -45,7 +43,6 @@ import {
   useAttachLabel,
   useDetachLabel,
 } from "@/features/project/hooks/use-labels";
-import type { UpdateTaskPayload } from "@/features/project/api/task.api";
 import {
   useCreateTaskDependency,
   useDeleteTaskDependency,
@@ -53,19 +50,14 @@ import {
 } from "@/features/project/hooks/use-dependencies";
 import { ProjectTypeBadge } from "@/features/project/components/project-type-badge";
 import type { SprintCreateValues } from "@/features/project/components/software-backlog-view";
-import TaskDetailDrawer from "@/features/project/components/task-detail-drawer";
-import TaskChatDialog from "@/features/project/components/task-chat-dialog";
-import TaskFormDialog, {
-  type TaskFormValues,
-} from "@/features/project/components/task-form-dialog";
-import SprintEditDialog, {
-  type SprintFormValues,
-} from "@/features/project/components/sprint-edit-dialog";
+import type { SprintFormValues } from "@/features/project/components/sprint-edit-dialog";
 import ProjectMembersPanel from "@/features/project/components/project-members-panel";
-import ProjectSettingsDialog from "@/features/project/components/project-settings-dialog";
 import ProjectSidebar from "@/features/project/components/project-sidebar";
 import ProjectFiltersToolbar from "@/features/project/components/project-filters-toolbar";
 import ProjectViewContent from "@/features/project/components/project-view-content";
+import ProjectTaskOverlays, {
+  TaskDetailPanel,
+} from "@/features/project/components/project-task-overlays";
 import {
   ArrowLeft,
   Plus,
@@ -74,11 +66,7 @@ import {
 } from "lucide-react";
 import { getProjectKey } from "../page";
 import { useProjectRealtime } from "@/features/project/hooks/use-project-realtime";
-
-type TaskDrawerUpdatePayload = UpdateTaskPayload & {
-  assignees?: TaskAssignee[];
-  assigneeUserId?: string | null;
-};
+import { useProjectTaskActions } from "@/features/project/hooks/use-project-task-actions";
 
 type ViewMode = "summary" | "board" | "list" | "calendar" | "gantt" | "members";
 
@@ -146,6 +134,29 @@ export default function ProjectDetailPage() {
 
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  const {
+    handleTaskSubmit,
+    handleUpdateTaskDirect,
+    handleCreateChecklist,
+    handleUpdateChecklist,
+    handleDeleteChecklist,
+  } = useProjectTaskActions({
+    projectId,
+    members,
+    editingTask,
+    newTaskSprintId,
+    queryClient,
+    createTaskMutation,
+    updateTaskMutation,
+    addTasksToSprintMutation,
+    createChecklistMutation,
+    updateChecklistMutation,
+    deleteChecklistMutation,
+    setSelectedTask,
+    setShowTaskForm,
+    setEditingTask,
+  });
 
   const handleToggleLabel = async (
     taskId: string,
@@ -373,202 +384,6 @@ export default function ProjectDetailPage() {
     }
   };
 
-  const handleTaskSubmit = async (values: TaskFormValues) => {
-    try {
-      if (editingTask) {
-        const payload =
-          editingTask.parentTaskId && !values.parentTaskId
-            ? { ...values, clearParent: true }
-            : values;
-        await updateTaskMutation.mutateAsync({
-          taskId: editingTask.id,
-          payload,
-        });
-        toast.success("Cập nhật task thành công");
-      } else {
-        const createdTask = await createTaskMutation.mutateAsync({
-          ...values,
-        });
-        if (newTaskSprintId) {
-          await addTasksToSprintMutation.mutateAsync({
-            sprintId: newTaskSprintId,
-            taskIds: [createdTask.id],
-          });
-        }
-        toast.success("Tạo task thành công");
-      }
-
-      setShowTaskForm(false);
-      setEditingTask(null);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể lưu task",
-      );
-    }
-  };
-
-  const handleUpdateTaskDirect = async (
-    taskId: string,
-    payload: TaskDrawerUpdatePayload,
-  ) => {
-    try {
-      // 1. Separate backend allowed keys from payload
-      const backendKeys = [
-        "title",
-        "description",
-        "status",
-        "priority",
-        "startDate",
-        "dueDate",
-        "allDay",
-        "estimatedMinutes",
-        "assigneeUserId",
-      ];
-      const backendPayload = Object.fromEntries(
-        Object.entries(payload).filter(([key]) => backendKeys.includes(key)),
-      ) as UpdateTaskPayload;
-      const hasBackendChange = Object.keys(backendPayload).length > 0;
-
-      // If backend change exists, execute PATCH mutation
-      if (hasBackendChange) {
-        await updateTaskMutation.mutateAsync({
-          taskId,
-          payload: backendPayload,
-        });
-      }
-
-      // 2. Perform local cache update in React Query for instant UI updates (both backend & client-side fields like assignees/labels)
-      queryClient.setQueryData(
-        taskKeys.project(projectId),
-        (oldTasks: Task[] | undefined) => {
-          if (!oldTasks) return oldTasks;
-          return oldTasks.map((t) => {
-            if (t.id !== taskId) return t;
-
-            // Map assignee change from assigneeUserId
-            let updatedAssignees = t.assignees;
-            if (payload.assignees) {
-              updatedAssignees = payload.assignees;
-            } else if ("assigneeUserId" in payload) {
-              const userId = payload.assigneeUserId;
-              if (!userId) {
-                updatedAssignees = [];
-              } else {
-                const member = members.find((m) => m.userId === userId);
-                updatedAssignees = member
-                  ? [
-                      {
-                        id: `ta-${Date.now()}`,
-                        taskId,
-                        userId: member.userId,
-                        displayName: member.displayName,
-                        avatarUrl: member.avatarUrl,
-                        assignedAt: new Date().toISOString(),
-                      },
-                    ]
-                  : [];
-              }
-            }
-
-            return {
-              ...t,
-              ...payload,
-              assignees: updatedAssignees,
-            };
-          });
-        },
-      );
-
-      // 3. Update the currently selected task reference so the drawer updates instantly
-      setSelectedTask((prev) => {
-        if (prev && prev.id === taskId) {
-          let updatedAssignees = prev.assignees;
-          if (payload.assignees) {
-            updatedAssignees = payload.assignees;
-          } else if ("assigneeUserId" in payload) {
-            const userId = payload.assigneeUserId;
-            if (!userId) {
-              updatedAssignees = [];
-            } else {
-              const member = members.find((m) => m.userId === userId);
-              updatedAssignees = member
-                ? [
-                    {
-                      id: `ta-${Date.now()}`,
-                      taskId,
-                      userId: member.userId,
-                      displayName: member.displayName,
-                      avatarUrl: member.avatarUrl,
-                      assignedAt: new Date().toISOString(),
-                    },
-                  ]
-                : [];
-            }
-          }
-
-          return {
-            ...prev,
-            ...payload,
-            assignees: updatedAssignees,
-          } as Task;
-        }
-        return prev;
-      });
-
-      // Axios errors expose response data at runtime; keep this boundary permissive.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      const msg =
-        error?.response?.data?.message || "Không thể cập nhật công việc";
-      toast.error(msg);
-      console.error("Update task error:", error?.response?.data || error);
-    }
-  };
-
-  const handleCreateChecklist = async (taskId: string, title: string) => {
-    const item = await createChecklistMutation.mutateAsync({ taskId, title });
-    setSelectedTask((current) =>
-      current?.id === taskId
-        ? { ...current, checklists: [...current.checklists, item] }
-        : current,
-    );
-    return item;
-  };
-
-  const handleUpdateChecklist = async (
-    checklistId: string,
-    completed: boolean,
-  ) => {
-    const item = await updateChecklistMutation.mutateAsync({
-      checklistId,
-      completed,
-    });
-    setSelectedTask((current) =>
-      current
-        ? {
-            ...current,
-            checklists: current.checklists.map((checklist) =>
-              checklist.id === checklistId ? item : checklist,
-            ),
-          }
-        : current,
-    );
-    return item;
-  };
-
-  const handleDeleteChecklist = async (checklistId: string) => {
-    await deleteChecklistMutation.mutateAsync(checklistId);
-    setSelectedTask((current) =>
-      current
-        ? {
-            ...current,
-            checklists: current.checklists.filter(
-              (checklist) => checklist.id !== checklistId,
-            ),
-          }
-        : current,
-    );
-  };
 
   const handleEditGroup = (group: Task) => {
     setSelectedTask(null);
@@ -971,63 +786,21 @@ export default function ProjectDetailPage() {
             </div>
           )}
 
-          {/* Jira-style Split Screen Task Detail Panel (Desktop inline) */}
-          {selectedTask && (
-            <div className="hidden lg:flex w-[400px] xl:w-[450px] shrink-0 border border-slate-200 rounded bg-white flex-col h-full overflow-hidden shadow-sm animate-in slide-in-from-right duration-200">
-              <TaskDetailDrawer
-                task={selectedTask}
-                tasks={tasks}
-                members={projectWithMembers.members}
-                project={project}
-                onClose={() => setSelectedTask(null)}
-                onOpenChat={(task) => setChatTask(task)}
-                onTaskClick={(task) => setSelectedTask(task)}
-                onUpdateTask={handleUpdateTaskDirect}
-                onCreateChecklist={handleCreateChecklist}
-                onUpdateChecklist={handleUpdateChecklist}
-                onDeleteChecklist={handleDeleteChecklist}
-                labels={labels}
-                onToggleLabel={handleToggleLabel}
-                dependencies={dependencies}
-                onCreateDependency={handleCreateDependency}
-                onDeleteDependency={handleDeleteDependency}
-                onCreateSubtask={(task) => {
-                  setSelectedTask(null);
-                  openCreateTask(TaskStatus.TODO, undefined, false, task.id);
-                }}
-                onEdit={(task) => {
-                  setSelectedTask(null);
-                  setNewTaskStatus(task.status);
-                  setNewTaskStartDate(undefined);
-                  setNewTaskAllDay(false);
-                  setEditingTask(task);
-                  setShowTaskForm(true);
-                }}
-                isInline={true}
-              />
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* ── Task detail drawer (Jira style right panel - Overlay version for mobile) ── */}
-      {selectedTask && (
-        <div className="lg:hidden">
-          <TaskDetailDrawer
+          <TaskDetailPanel
             task={selectedTask}
             tasks={tasks}
             members={projectWithMembers.members}
             project={project}
+            labels={labels}
+            dependencies={dependencies}
             onClose={() => setSelectedTask(null)}
-            onOpenChat={(task) => setChatTask(task)}
-            onTaskClick={(task) => setSelectedTask(task)}
+            onOpenChat={setChatTask}
+            onTaskClick={setSelectedTask}
             onUpdateTask={handleUpdateTaskDirect}
             onCreateChecklist={handleCreateChecklist}
             onUpdateChecklist={handleUpdateChecklist}
             onDeleteChecklist={handleDeleteChecklist}
-            labels={labels}
             onToggleLabel={handleToggleLabel}
-            dependencies={dependencies}
             onCreateDependency={handleCreateDependency}
             onDeleteDependency={handleDeleteDependency}
             onCreateSubtask={(task) => {
@@ -1042,39 +815,59 @@ export default function ProjectDetailPage() {
               setEditingTask(task);
               setShowTaskForm(true);
             }}
-            isInline={false}
+            isInline
           />
+
         </div>
-      )}
+      </main>
 
-      <TaskChatDialog task={chatTask} onClose={() => setChatTask(null)} />
-
-      <ProjectSettingsDialog
+      <ProjectTaskOverlays
+        task={selectedTask}
+        tasks={tasks}
+        members={projectWithMembers.members}
         project={project}
-        open={showProjectSettings}
-        isBusy={
-          updateProjectMutation.isPending || archiveProjectMutation.isPending
-        }
-        onClose={() => setShowProjectSettings(false)}
-        onSave={handleSaveProjectSettings}
-        onArchive={handleArchiveProject}
         labels={labels}
+        dependencies={dependencies}
+        onClose={() => setSelectedTask(null)}
+        onOpenChat={setChatTask}
+        onTaskClick={setSelectedTask}
+        onUpdateTask={handleUpdateTaskDirect}
+        onCreateChecklist={handleCreateChecklist}
+        onUpdateChecklist={handleUpdateChecklist}
+        onDeleteChecklist={handleDeleteChecklist}
+        onToggleLabel={handleToggleLabel}
+        onCreateDependency={handleCreateDependency}
+        onDeleteDependency={handleDeleteDependency}
+        onCreateSubtask={(task) => {
+          setSelectedTask(null);
+          openCreateTask(TaskStatus.TODO, undefined, false, task.id);
+        }}
+        onEdit={(task) => {
+          setSelectedTask(null);
+          setNewTaskStatus(task.status);
+          setNewTaskStartDate(undefined);
+          setNewTaskAllDay(false);
+          setEditingTask(task);
+          setShowTaskForm(true);
+        }}
+        chatTask={chatTask}
+        showProjectSettings={showProjectSettings}
+        onCloseChat={() => setChatTask(null)}
+        onCloseProjectSettings={() => setShowProjectSettings(false)}
+        isProjectSettingsBusy={updateProjectMutation.isPending || archiveProjectMutation.isPending}
+        onSaveProjectSettings={handleSaveProjectSettings}
+        onArchiveProject={handleArchiveProject}
         onCreateLabel={handleCreateLabel}
         onDeleteLabel={handleDeleteLabel}
-      />
-
-      <TaskFormDialog
-        key={`${editingTask?.id ?? "new"}-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}-${newTaskIsParentTask}`}
-        open={showTaskForm}
-        task={editingTask}
+        showTaskForm={showTaskForm}
+        editingTask={editingTask}
+        newTaskStatus={newTaskStatus}
+        newTaskStartDate={newTaskStartDate}
+        newTaskAllDay={newTaskAllDay}
+        newTaskParentId={newTaskParentId}
+        newTaskIsParentTask={newTaskIsParentTask}
         projectName={project.name}
-        parentTasks={tasks}
-        initialParentTaskId={newTaskParentId}
-        initialIsParentTask={newTaskIsParentTask}
-        initialStatus={newTaskStatus}
-        initialStartDate={newTaskStartDate}
-        initialAllDay={newTaskAllDay}
-        onClose={() => {
+        onCloseTaskForm={() => {
           setShowTaskForm(false);
           setEditingTask(null);
           setNewTaskStatus(TaskStatus.TODO);
@@ -1084,18 +877,12 @@ export default function ProjectDetailPage() {
           setNewTaskSprintId(undefined);
           setNewTaskIsParentTask(false);
         }}
-        onSubmit={handleTaskSubmit}
-        isSubmitting={
-          createTaskMutation.isPending || updateTaskMutation.isPending
-        }
-      />
-
-      <SprintEditDialog
-        open={Boolean(editingSprint)}
-        sprint={editingSprint}
-        onClose={() => setEditingSprint(null)}
-        onSubmit={handleSprintSubmit}
-        isSubmitting={updateTaskMutation.isPending}
+        onSubmitTask={handleTaskSubmit}
+        isTaskFormSubmitting={createTaskMutation.isPending || updateTaskMutation.isPending}
+        editingSprint={editingSprint}
+        onCloseSprint={() => setEditingSprint(null)}
+        onSubmitSprint={handleSprintSubmit}
+        isSprintSubmitting={updateTaskMutation.isPending}
       />
     </div>
   );
