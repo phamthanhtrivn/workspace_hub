@@ -9,25 +9,18 @@ import {
   Query,
   Headers,
   BadRequestException,
-<<<<<<< HEAD
   Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
-=======
-} from '@nestjs/common';
->>>>>>> dev
 import { DocumentService } from './document.service';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { RenameItemDto } from './dto/rename-item.dto';
 import { MoveItemDto } from './dto/move-item.dto';
-<<<<<<< HEAD
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
 import { UpdateLinkAccessDto } from './dto/update-link-access.dto';
 import { AddShareDto } from './dto/add-share.dto';
-=======
->>>>>>> dev
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
 
@@ -59,7 +52,6 @@ export class DocumentController {
     };
   }
 
-<<<<<<< HEAD
   @Post('upload/initiate')
   async initiateUpload(
     @Headers('x-user-id') userId: string,
@@ -96,8 +88,6 @@ export class DocumentController {
     };
   }
 
-=======
->>>>>>> dev
   @Get()
   async getItems(
     @Headers('x-user-id') userId: string,

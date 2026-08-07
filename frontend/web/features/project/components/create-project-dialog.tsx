@@ -149,7 +149,7 @@ export default function CreateProjectDialog({
                     type="button"
                     onClick={() => setProjectType(type)}
                     className={[
-                      "flex items-start gap-3 rounded-xl border p-3 text-left transition",
+                      "flex items-start gap-3 rounded-xl border p-3 text-left transition bg-indigo-500 ring-2",
                       selected
                         ? "border-[var(--color-primary-dark)] bg-indigo-50 ring-2 ring-[var(--color-primary-dark)]/10"
                         : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
