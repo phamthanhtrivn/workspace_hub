@@ -395,6 +395,12 @@ export const documentsApi = {
       xhr.responseType = "blob";
       xhr.withCredentials = true;
 
+      // Attach accessToken from Redux if available
+      const token = store.getState().auth.accessToken;
+      if (token) {
+        xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      }
+
       // Forward auth headers from axios defaults
       const axiosHeaders = api.defaults.headers.common as Record<
         string,
