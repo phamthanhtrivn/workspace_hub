@@ -8,6 +8,8 @@ import { ProjectAccessService } from './project-access.service';
 import { toTaskResponse } from './project.mapper';
 import { ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
+import { ProjectGateway } from './project.gateway';
+import { ProjectRealtimeEvent } from './project.events';
 
 const taskWithCount = {
   _count: { select: { children: true } },
@@ -23,6 +25,7 @@ export class TaskService {
     private readonly access: ProjectAccessService,
     private readonly activities: ActivityService,
     private readonly notifications: NotificationEventService,
+    private readonly realtime: ProjectGateway,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
@@ -64,7 +67,12 @@ export class TaskService {
 
     await this.activities.record(task.id, userId, 'created', null, task.title);
 
-    return toTaskResponse(task);
+    const response = toTaskResponse(task);
+    this.realtime.emitToProject(projectId, ProjectRealtimeEvent.TASK_CREATED, {
+      task: response,
+      actorId: userId,
+    });
+    return response;
   }
 
   async findAll(userId: string, projectId: string) {
@@ -162,7 +170,12 @@ export class TaskService {
           metadata: { taskId: current.id, projectId: current.projectId },
         });
       }
-      return toTaskResponse(await this.findTask(task.id));
+      const response = toTaskResponse(await this.findTask(task.id));
+      this.realtime.emitToProject(current.projectId, ProjectRealtimeEvent.TASK_UPDATED, {
+        task: response,
+        actorId: userId,
+      });
+      return response;
     }
     if (dto.status !== undefined || dto.title !== undefined || dto.dueDate !== undefined) {
       for (const assignee of current.assignees) {
@@ -178,7 +191,12 @@ export class TaskService {
         });
       }
     }
-    return toTaskResponse(task);
+    const response = toTaskResponse(task);
+    this.realtime.emitToProject(current.projectId, ProjectRealtimeEvent.TASK_UPDATED, {
+      task: response,
+      actorId: userId,
+    });
+    return response;
   }
 
   async delete(userId: string, taskId: string): Promise<void> {
@@ -187,6 +205,10 @@ export class TaskService {
     await this.prisma.task.update({
       where: { id: taskId },
       data: { archived: true, deletedAt: new Date() },
+    });
+    this.realtime.emitToProject(task.projectId, ProjectRealtimeEvent.TASK_DELETED, {
+      taskId,
+      actorId: userId,
     });
   }
 

@@ -83,6 +83,7 @@ import {
   ChartGantt,
 } from "lucide-react";
 import { getProjectKey } from "../page";
+import { useProjectRealtime } from "@/features/project/hooks/use-project-realtime";
 
 type TaskDrawerUpdatePayload = UpdateTaskPayload & {
   assignees?: TaskAssignee[];
@@ -95,6 +96,7 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const projectId = params.id as string;
   const queryClient = useQueryClient();
+  useProjectRealtime(projectId);
   const { data: project, isLoading, isError } = useProject(projectId);
   const { data: members = [] } = useProjectMembers(projectId);
   const { data: sprints = [] } = useProjectSprints(

@@ -6,12 +6,15 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse, toProjectResponse } from './project.mapper';
+import { ProjectGateway } from './project.gateway';
+import { ProjectRealtimeEvent } from './project.events';
 
 @Injectable()
 export class ProjectService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly realtime: ProjectGateway,
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
@@ -62,7 +65,9 @@ export class ProjectService {
       await this.createTemplateTasks(project.id, userId, dto.template);
     }
 
-    return toProjectResponse(project);
+    const response = toProjectResponse(project);
+    this.realtime.emitToUser(userId, ProjectRealtimeEvent.PROJECT_CREATED, response);
+    return response;
   }
 
   async findAll(userId: string) {
@@ -83,7 +88,12 @@ export class ProjectService {
 
   async findOne(userId: string, projectId: string) {
     const project = await this.access.requireReadAccess(userId, projectId);
-    return toProjectResponse(project);
+    const response = toProjectResponse(project);
+    this.realtime.emitToProject(projectId, ProjectRealtimeEvent.PROJECT_UPDATED, {
+      project: response,
+      actorId: userId,
+    });
+    return response;
   }
 
   async update(userId: string, projectId: string, dto: UpdateProjectDto) {
@@ -127,6 +137,10 @@ export class ProjectService {
     await this.prisma.project.update({
       where: { id: projectId },
       data: { status: ProjectStatus.ARCHIVED, archived: true },
+    });
+    this.realtime.emitToProject(projectId, ProjectRealtimeEvent.PROJECT_ARCHIVED, {
+      projectId,
+      actorId: userId,
     });
   }
 

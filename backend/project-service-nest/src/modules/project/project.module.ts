@@ -22,6 +22,7 @@ import { ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
 import { DependencyController } from './dependency.controller';
 import { DependencyService } from './dependency.service';
+import { ProjectGateway } from './project.gateway';
 
 @Module({
   controllers: [
@@ -50,6 +51,8 @@ import { DependencyService } from './dependency.service';
     ActivityService,
     NotificationEventService,
     DependencyService,
+    ProjectGateway,
   ],
+  exports: [ProjectGateway],
 })
 export class ProjectModule {}

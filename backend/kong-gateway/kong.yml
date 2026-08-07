@@ -37,6 +37,11 @@ services:
           - /api/pomodoros
         strip_path: false
 
+      - name: project-socket-route
+        paths:
+          - /project.io
+        strip_path: false
+
   - name: communication-service
     url: http://host.docker.internal:8083
     routes:
