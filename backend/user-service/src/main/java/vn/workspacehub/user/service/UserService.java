@@ -14,6 +14,7 @@ import vn.workspacehub.user.entity.UserProfile;
 import vn.workspacehub.user.dto.request.UpdatePrivacyRequest;
 import vn.workspacehub.user.mapper.AccountSettingMapper;
 import vn.workspacehub.user.mapper.UserMapper;
+import vn.workspacehub.user.mapper.UserProfileMapper;
 
 import java.util.UUID;
 import java.util.List;
@@ -27,6 +28,7 @@ public class UserService {
     private final AccountSettingRepository accountSettingRepository;
     private final AccountSettingMapper accountSettingMapper;
     private final UserMapper userMapper;
+    private final UserProfileMapper userProfileMapper;
 
     public AccountSettingResponse getAccountSettings(UUID userId) {
         AccountSetting setting = accountSettingRepository.findByUserId(userId)
@@ -60,14 +62,13 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("Không tìm thấy người dùng"));
 
-        UserProfile profile = user.getProfile();
-        return UserProfileResponse.builder()
-                .email(user.getEmail())
-                .fullName(profile != null ? profile.getFullName() : null)
-                .avatarUrl(profile != null ? profile.getAvatarUrl() : null)
-                .phoneNumber(profile != null ? profile.getPhoneNumber() : null)
-                .dob(profile != null ? profile.getDob() : null)
-                .bio(profile != null ? profile.getBio() : null)
-                .build();
+        return userProfileMapper.toResponse(user);
+    }
+
+    public List<UserProfileResponse> getBulkProfilesByEmails(List<String> emails) {
+        List<User> users = userRepository.findByEmailIn(emails);
+        return users.stream()
+                .map(userProfileMapper::toResponse)
+                .collect(Collectors.toList());
     }
 }
