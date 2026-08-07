@@ -4,11 +4,7 @@ import { useAppSelector } from '@/store/store';
 import { projectSocketService } from '../api/project-socket.service';
 
 const PROJECT_EVENTS = [
-  'project:updated',
-  'project:archived',
-  'task:created',
-  'task:updated',
-  'task:deleted',
+  'project:data_changed',
 ] as const;
 
 export function useProjectRealtime(projectId: string): void {

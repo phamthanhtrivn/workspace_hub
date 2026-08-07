@@ -5,12 +5,14 @@ import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse } from './project.mapper';
+import { ProjectGateway } from './project.gateway';
 
 @Injectable()
 export class MemberService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly realtime: ProjectGateway,
   ) {}
 
   async add(userId: string, projectId: string, dto: AddMemberDto) {
@@ -47,7 +49,9 @@ export class MemberService {
         },
       });
 
-    return toMemberResponse(member);
+    const response = toMemberResponse(member);
+    this.realtime.emitDataChanged(projectId, 'member', 'created', userId, response);
+    return response;
   }
 
   async updateRole(userId: string, projectId: string, memberUserId: string, dto: UpdateMemberRoleDto) {
@@ -68,7 +72,9 @@ export class MemberService {
       data: { role: dto.role, updatedAt: new Date() },
     });
 
-    return toMemberResponse(updated);
+    const response = toMemberResponse(updated);
+    this.realtime.emitDataChanged(projectId, 'member', 'updated', userId, response);
+    return response;
   }
 
   async remove(userId: string, projectId: string, memberUserId: string): Promise<void> {
@@ -92,5 +98,6 @@ export class MemberService {
         updatedAt: new Date(),
       },
     });
+    this.realtime.emitDataChanged(projectId, 'member', 'deleted', userId, { userId: memberUserId });
   }
 }

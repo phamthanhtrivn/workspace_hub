@@ -72,6 +72,7 @@ export class TaskService {
       task: response,
       actorId: userId,
     });
+    this.realtime.emitDataChanged(projectId, 'task', 'created', userId, response);
     return response;
   }
 
@@ -175,6 +176,7 @@ export class TaskService {
         task: response,
         actorId: userId,
       });
+      this.realtime.emitDataChanged(current.projectId, 'task', 'updated', userId, response);
       return response;
     }
     if (dto.status !== undefined || dto.title !== undefined || dto.dueDate !== undefined) {
@@ -196,6 +198,7 @@ export class TaskService {
       task: response,
       actorId: userId,
     });
+    this.realtime.emitDataChanged(current.projectId, 'task', 'updated', userId, response);
     return response;
   }
 
@@ -210,6 +213,7 @@ export class TaskService {
       taskId,
       actorId: userId,
     });
+    this.realtime.emitDataChanged(task.projectId, 'task', 'deleted', userId, { taskId });
   }
 
   private async findTask(taskId: string) {

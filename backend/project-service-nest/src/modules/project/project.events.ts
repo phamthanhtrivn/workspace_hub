@@ -1,4 +1,5 @@
 export enum ProjectRealtimeEvent {
+  DATA_CHANGED = 'project:data_changed',
   PROJECT_CREATED = 'project:created',
   PROJECT_UPDATED = 'project:updated',
   PROJECT_ARCHIVED = 'project:archived',

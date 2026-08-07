@@ -93,6 +93,7 @@ export class ProjectService {
       project: response,
       actorId: userId,
     });
+    this.realtime.emitDataChanged(projectId, 'project', 'updated', userId, response);
     return response;
   }
 
@@ -142,6 +143,7 @@ export class ProjectService {
       projectId,
       actorId: userId,
     });
+    this.realtime.emitDataChanged(projectId, 'project', 'deleted', userId, { projectId });
   }
 
   async listMembers(userId: string, projectId: string) {

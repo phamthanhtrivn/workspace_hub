@@ -10,7 +10,7 @@ import {
 import { isUUID } from 'class-validator';
 import { Server, Socket } from 'socket.io';
 import { ProjectAccessService } from './project-access.service';
-import { projectRoom, userRoom } from './project.events';
+import { ProjectRealtimeEvent, projectRoom, userRoom } from './project.events';
 
 type ProjectRoomPayload = { projectId?: string };
 
@@ -76,6 +76,23 @@ export class ProjectGateway implements OnGatewayConnection, OnGatewayDisconnect 
 
   emitToProject(projectId: string, event: string, payload: unknown): void {
     this.server?.to(projectRoom(projectId)).emit(event, payload);
+  }
+
+  emitDataChanged(
+    projectId: string,
+    resource: string,
+    action: 'created' | 'updated' | 'deleted',
+    actorId: string,
+    data?: unknown,
+  ): void {
+    this.emitToProject(projectId, ProjectRealtimeEvent.DATA_CHANGED, {
+      projectId,
+      resource,
+      action,
+      actorId,
+      data,
+      occurredAt: new Date().toISOString(),
+    });
   }
 
   emitToUser(userId: string, event: string, payload: unknown): void {

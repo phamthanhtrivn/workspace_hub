@@ -5,6 +5,7 @@ import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toInvitationResponse } from './project.mapper';
 import { InvitationEmailService } from './invitation-email.service';
+import { ProjectGateway } from './project.gateway';
 
 const EXPIRY_DAYS = 7;
 
@@ -14,6 +15,7 @@ export class InvitationService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly email: InvitationEmailService,
+    private readonly realtime: ProjectGateway,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateInvitationDto) {
@@ -54,7 +56,9 @@ export class InvitationService {
       expiresAt: invitation.expiresAt,
     });
 
-    return toInvitationResponse(invitation);
+    const response = toInvitationResponse(invitation);
+    this.realtime.emitDataChanged(projectId, 'invitation', 'created', userId, response);
+    return response;
   }
 
   async findPending(userId: string) {
@@ -125,7 +129,9 @@ export class InvitationService {
       });
     });
 
-    return toInvitationResponse(updated);
+    const response = toInvitationResponse(updated);
+    this.realtime.emitDataChanged(invitation.projectId, 'invitation', 'updated', userId, response);
+    return response;
   }
 
   async decline(userId: string, invitationId: string) {
@@ -138,7 +144,9 @@ export class InvitationService {
       data: { status: InvitationStatus.DECLINED, respondedAt: new Date() },
       include: { project: { select: { name: true } } },
     });
-    return toInvitationResponse(updated);
+    const response = toInvitationResponse(updated);
+    this.realtime.emitDataChanged(invitation.projectId, 'invitation', 'updated', userId, response);
+    return response;
   }
 
   async cancel(userId: string, projectId: string, invitationId: string): Promise<void> {
@@ -150,6 +158,7 @@ export class InvitationService {
       where: { id: invitationId },
       data: { status: InvitationStatus.CANCELLED, respondedAt: new Date() },
     });
+    this.realtime.emitDataChanged(projectId, 'invitation', 'deleted', userId, { id: invitationId });
   }
 
   private async findInvitation(id: string) {

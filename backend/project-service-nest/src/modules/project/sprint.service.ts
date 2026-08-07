@@ -7,6 +7,7 @@ import { CreateSprintDto } from './dto/create-sprint.dto';
 import { AddSprintTasksDto } from './dto/add-sprint-tasks.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
 import { toTaskResponse } from './project.mapper';
+import { ProjectGateway } from './project.gateway';
 
 const sprintInclude = {
   tasks: {
@@ -21,6 +22,7 @@ export class SprintService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly realtime: ProjectGateway,
   ) {}
 
   async list(userId: string, projectId: string) {
@@ -54,7 +56,9 @@ export class SprintService {
       },
       include: sprintInclude,
     });
-    return this.toResponse(sprint);
+    const response = this.toResponse(sprint);
+    this.realtime.emitDataChanged(projectId, 'sprint', 'created', userId, response);
+    return response;
   }
 
   async addTasks(userId: string, sprintId: string, dto: AddSprintTasksDto) {
@@ -86,7 +90,9 @@ export class SprintService {
       where: { id: { in: allTaskIds } },
       data: { sprintId: sprint.id, updatedAt: new Date() },
     });
-    return this.getById(sprint.id);
+    const response = await this.getById(sprint.id);
+    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    return response;
   }
 
   async removeTask(userId: string, sprintId: string, taskId: string) {
@@ -109,7 +115,9 @@ export class SprintService {
       where: { id: { in: [task.id, ...childTasks.map((child) => child.id)] } },
       data: { sprintId: null, updatedAt: new Date() },
     });
-    return this.getById(sprint.id);
+    const response = await this.getById(sprint.id);
+    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    return response;
   }
 
   async start(userId: string, sprintId: string) {
@@ -129,7 +137,9 @@ export class SprintService {
       data: { status: SprintStatus.ACTIVE, startedAt: now, updatedAt: now },
       include: sprintInclude,
     });
-    return this.toResponse(updated);
+    const response = this.toResponse(updated);
+    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    return response;
   }
 
   async update(userId: string, sprintId: string, dto: UpdateSprintDto) {
@@ -150,7 +160,9 @@ export class SprintService {
       },
       include: sprintInclude,
     });
-    return this.toResponse(updated);
+    const response = this.toResponse(updated);
+    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    return response;
   }
 
   async complete(userId: string, sprintId: string) {
@@ -175,7 +187,9 @@ export class SprintService {
         include: sprintInclude,
       });
     });
-    return this.toResponse(result);
+    const response = this.toResponse(result);
+    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    return response;
   }
 
   async reopen(userId: string, sprintId: string) {
@@ -194,7 +208,9 @@ export class SprintService {
       },
       include: sprintInclude,
     });
-    return this.toResponse(updated);
+    const response = this.toResponse(updated);
+    this.realtime.emitDataChanged(sprint.projectId, 'sprint', 'updated', userId, response);
+    return response;
   }
 
   private async getById(sprintId: string) {
