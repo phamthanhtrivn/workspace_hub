@@ -4,7 +4,7 @@ import { CurrentUserId } from '../../../common/decorators/current-user-id.decora
 import { AddMemberDto } from '../dto/add-member.dto';
 import { UpdateMemberRoleDto } from '../dto/update-member-role.dto';
 import { MemberService } from '../services/member.service';
-import { ProjectService } from '../services/project.service';
+import { ProjectService } from '../../project/services/project.service';
 
 @Controller('api/projects/:projectId/members')
 export class MemberController {

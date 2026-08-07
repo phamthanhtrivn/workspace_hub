@@ -1,5 +1,5 @@
 import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ProjectTemplate, ProjectType, ProjectVisibility } from '../project.enums';
+import { ProjectTemplate, ProjectType, ProjectVisibility } from '../../shared/project.enums';
 
 export class CreateProjectDto {
   @IsString()

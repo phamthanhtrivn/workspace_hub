@@ -9,7 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { isUUID } from 'class-validator';
 import { Server, Socket } from 'socket.io';
-import { ProjectAccessService } from '../services/project-access.service';
+import { ProjectAccessService } from '../shared/project-access.service';
 import {
   ProjectRealtimeAction,
   ProjectRealtimeEvent,

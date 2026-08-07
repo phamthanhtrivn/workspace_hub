@@ -1,4 +1,4 @@
-import { ProjectStatus, ProjectType, ProjectVisibility } from '../project.enums';
+import { ProjectStatus, ProjectType, ProjectVisibility } from './project.enums';
 import { toProjectResponse } from './project.mapper';
 
 describe('project mapper', () => {

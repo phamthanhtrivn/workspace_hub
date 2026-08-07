@@ -1,11 +1,15 @@
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
-import { TaskPriority, TaskStatus } from '../project.enums';
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { TaskPriority, TaskStatus } from '../../shared/project.enums';
 
-export class CreateTaskDto {
+export class UpdateTaskDto {
+  @IsOptional()
+  @IsUUID()
+  assigneeUserId?: string | null;
+
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(200)
-  title!: string;
+  title?: string;
 
   @IsOptional()
   @IsString()
@@ -42,8 +46,16 @@ export class CreateTaskDto {
   rank?: string;
 
   @IsOptional()
+  @IsBoolean()
+  archived?: boolean;
+
+  @IsOptional()
   @IsUUID()
   parentTaskId?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  clearParent?: boolean;
 
   @IsOptional()
   @IsBoolean()

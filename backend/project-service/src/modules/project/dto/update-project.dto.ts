@@ -1,5 +1,5 @@
 import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ProjectStatus, ProjectType, ProjectVisibility } from '../project.enums';
+import { ProjectStatus, ProjectType, ProjectVisibility } from '../../shared/project.enums';
 
 export class UpdateProjectDto {
   @IsOptional()

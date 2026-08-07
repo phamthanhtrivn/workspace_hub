@@ -1,14 +1,14 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
-import { ProjectAccessService } from './project-access.service';
-import { ProjectType, SprintStatus, TaskStatus } from '../project.enums';
+import { ProjectAccessService } from '../../shared/project-access.service';
+import { ProjectType, SprintStatus, TaskStatus } from '../../shared/project.enums';
 import { CreateSprintDto } from '../dto/create-sprint.dto';
 import { AddSprintTasksDto } from '../dto/add-sprint-tasks.dto';
 import { UpdateSprintDto } from '../dto/update-sprint.dto';
-import { toTaskResponse } from '../mappers/project.mapper';
-import { ProjectGateway } from '../events/project.gateway';
-import { ProjectRealtimeAction, ProjectRealtimeResource } from '../events/project.events';
+import { toTaskResponse } from '../../shared/project.mapper';
+import { ProjectGateway } from '../../realtime/project.gateway';
+import { ProjectRealtimeAction, ProjectRealtimeResource } from '../../realtime/project.events';
 
 const sprintInclude = {
   tasks: {

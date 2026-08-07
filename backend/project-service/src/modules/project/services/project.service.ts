@@ -1,17 +1,17 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ProjectMemberStatus, ProjectRole, ProjectStatus, ProjectTemplate, ProjectType, ProjectVisibility } from '../project.enums';
+import { ProjectMemberStatus, ProjectRole, ProjectStatus, ProjectTemplate, ProjectType, ProjectVisibility } from '../../shared/project.enums';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProjectDto } from '../dto/create-project.dto';
 import { UpdateProjectDto } from '../dto/update-project.dto';
-import { ProjectAccessService } from './project-access.service';
-import { toMemberResponse, toProjectResponse } from '../mappers/project.mapper';
-import { ProjectGateway } from '../events/project.gateway';
+import { ProjectAccessService } from '../../shared/project-access.service';
+import { toMemberResponse, toProjectResponse } from '../../shared/project.mapper';
+import { ProjectGateway } from '../../realtime/project.gateway';
 import {
   ProjectRealtimeAction,
   ProjectRealtimeEvent,
   ProjectRealtimeResource,
-} from '../events/project.events';
+} from '../../realtime/project.events';
 
 @Injectable()
 export class ProjectService {
