@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { isValidDateRange, parseOptionalDate } from '../../../common/utils/date.util';
 import { ProjectMemberStatus, ProjectRole, ProjectStatus, ProjectTemplate, ProjectType, ProjectVisibility } from '../../shared/project.enums';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateProjectDto } from '../dto/create-project.dto';
@@ -23,9 +24,11 @@ export class ProjectService {
 
   async create(userId: string, dto: CreateProjectDto) {
     const now = new Date();
-    const startDate = this.toDate(dto.startDate);
-    const dueDate = this.toDate(dto.dueDate);
-    this.validateDateRange(startDate, dueDate);
+    const startDate = parseOptionalDate(dto.startDate);
+    const dueDate = parseOptionalDate(dto.dueDate);
+    if (!isValidDateRange(startDate, dueDate)) {
+      throw new ConflictException('Start date cannot be after due date');
+    }
 
     const project = await this.prisma.project.create({
       data: {
@@ -117,12 +120,14 @@ export class ProjectService {
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.projectType !== undefined) data.projectType = dto.projectType;
     if (dto.visibility !== undefined) data.visibility = dto.visibility;
-    if (dto.startDate !== undefined) data.startDate = this.toDate(dto.startDate);
-    if (dto.dueDate !== undefined) data.dueDate = this.toDate(dto.dueDate);
+    if (dto.startDate !== undefined) data.startDate = parseOptionalDate(dto.startDate);
+    if (dto.dueDate !== undefined) data.dueDate = parseOptionalDate(dto.dueDate);
 
-    const startDate = dto.startDate !== undefined ? this.toDate(dto.startDate) : current.startDate;
-    const dueDate = dto.dueDate !== undefined ? this.toDate(dto.dueDate) : current.dueDate;
-    this.validateDateRange(startDate, dueDate);
+    const startDate = dto.startDate !== undefined ? parseOptionalDate(dto.startDate) : current.startDate;
+    const dueDate = dto.dueDate !== undefined ? parseOptionalDate(dto.dueDate) : current.dueDate;
+    if (!isValidDateRange(startDate, dueDate)) {
+      throw new ConflictException('Start date cannot be after due date');
+    }
 
     if (dto.status !== undefined) {
       data.status = dto.status;
@@ -158,16 +163,6 @@ export class ProjectService {
     });
 
     return members.map(toMemberResponse);
-  }
-
-  private toDate(value?: string): Date | undefined {
-    return value === undefined ? undefined : new Date(value);
-  }
-
-  private validateDateRange(startDate?: Date | null, dueDate?: Date | null): void {
-    if (startDate && dueDate && startDate > dueDate) {
-      throw new ConflictException('Start date cannot be after due date');
-    }
   }
 
   private async createTemplateTasks(projectId: string, userId: string, template: ProjectTemplate): Promise<void> {

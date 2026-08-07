@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { isValidDateRange, parseOptionalDate } from '../../../common/utils/date.util';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ProjectAccessService } from '../../shared/project-access.service';
 import { ProjectType, SprintStatus, TaskStatus } from '../../shared/project.enums';
@@ -40,7 +41,7 @@ export class SprintService {
   async create(userId: string, projectId: string, dto: CreateSprintDto) {
     const project = await this.access.requireManager(userId, projectId);
     this.assertSoftwareProject(project.projectType);
-    await this.validateDateRange(dto.startDate, dto.endDate);
+    this.assertDateRange(dto.startDate, dto.endDate);
     const now = new Date();
     const sprint = await this.prisma.sprint.create({
       data: {
@@ -148,7 +149,7 @@ export class SprintService {
 
     const startDate = dto.startDate ? new Date(dto.startDate) : sprint.startDate;
     const endDate = dto.endDate ? new Date(dto.endDate) : sprint.endDate;
-    await this.validateDateRange(startDate?.toISOString(), endDate?.toISOString());
+    this.assertDateRange(startDate?.toISOString(), endDate?.toISOString());
 
     const updated = await this.prisma.sprint.update({
       where: { id: sprint.id },
@@ -233,8 +234,8 @@ export class SprintService {
     }
   }
 
-  private async validateDateRange(startDate?: string, endDate?: string): Promise<void> {
-    if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
+  private assertDateRange(startDate?: string, endDate?: string): void {
+    if (!isValidDateRange(parseOptionalDate(startDate), parseOptionalDate(endDate))) {
       throw new ConflictException('Sprint start date cannot be after its end date');
     }
   }

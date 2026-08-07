@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { isValidDateRange, parseOptionalDate } from '../../../common/utils/date.util';
 import { TaskStatus } from '../../shared/project.enums';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { CreateTaskDto } from '../dto/create-task.dto';
@@ -34,9 +35,11 @@ export class TaskService {
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
     await this.access.requireCanCreateTask(userId, projectId);
-    const startDate = this.toDate(dto.startDate);
-    const dueDate = this.toDate(dto.dueDate);
-    this.validateDateRange(startDate, dueDate);
+    const startDate = parseOptionalDate(dto.startDate);
+    const dueDate = parseOptionalDate(dto.dueDate);
+    if (!isValidDateRange(startDate, dueDate)) {
+      throw new ConflictException('Start date cannot be after due date');
+    }
     const parentSprintId = await this.validateParent(projectId, dto.parentTaskId);
 
     const now = new Date();
@@ -107,9 +110,11 @@ export class TaskService {
       throw new ConflictException('A task cannot be assigned and unassigned at the same time');
     }
 
-    const startDate = dto.startDate !== undefined ? this.toDate(dto.startDate) : current.startDate;
-    const dueDate = dto.dueDate !== undefined ? this.toDate(dto.dueDate) : current.dueDate;
-    this.validateDateRange(startDate, dueDate);
+    const startDate = dto.startDate !== undefined ? parseOptionalDate(dto.startDate) : current.startDate;
+    const dueDate = dto.dueDate !== undefined ? parseOptionalDate(dto.dueDate) : current.dueDate;
+    if (!isValidDateRange(startDate, dueDate)) {
+      throw new ConflictException('Start date cannot be after due date');
+    }
 
     let parentTaskId: string | null | undefined;
     if (dto.clearParent) {
@@ -241,16 +246,6 @@ export class TaskService {
     if (parent.archived) throw new ConflictException('An archived task cannot be a parent');
     if (parent.parentTaskId) throw new ConflictException('Only top-level tasks can be parents');
     return parent.sprintId;
-  }
-
-  private toDate(value?: string): Date | undefined {
-    return value === undefined ? undefined : new Date(value);
-  }
-
-  private validateDateRange(startDate?: Date | null, dueDate?: Date | null): void {
-    if (startDate && dueDate && startDate > dueDate) {
-      throw new ConflictException('Start date cannot be after due date');
-    }
   }
 
   private async recordChanges(current: Prisma.TaskGetPayload<{}>, dto: UpdateTaskDto, actorId: string, taskId: string) {
