@@ -23,5 +23,8 @@ services:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8082"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 30s
+    networks:
+      - wh_network
     restart: on-failure

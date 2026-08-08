@@ -1,0 +1,211 @@
+_format_version: "3.0"
+_transform: true
+
+consumers:
+  - username: workspace-hub-api
+    jwt_secrets:
+      - key: workspace-hub
+        secret: $JWT_SECRET_KEY
+        algorithm: HS256
+
+services:
+  - name: user-service
+    url: http://user-service:8081
+    routes:
+      - name: auth-routes
+        paths:
+          - /api/auth
+        strip_path: false
+
+      - name: user-routes
+        paths:
+          - /api/users
+        strip_path: false
+
+  - name: project-service
+    url: http://project-service:8082
+    routes:
+      - name: project-routes
+        paths:
+          - /api/projects
+          - /api/sprints
+          - /api/project-invitations
+          - /api/tasks
+          - /api/checklists
+          - /api/labels
+          - /api/task-comments
+          - /api/pomodoros
+        strip_path: false
+
+  - name: communication-service
+    url: http://communication-service:8083
+    routes:
+      - name: communication-routes
+        paths:
+          - /api/conversations
+          - /api/invitations
+          - /api/medias
+          - /api/polls
+          - /api/notes
+        strip_path: false
+
+      - name: websocket-route
+        paths:
+          - /communication.io
+        strip_path: false
+
+  - name: notification-service
+    url: http://notification-service:8084
+    routes:
+      - name: notification-routes
+        paths:
+          - /api/notifications
+        strip_path: false
+
+      - name: notification-socket-route
+        paths:
+          - /notification.io
+        strip_path: false
+
+  - name: document-service
+    url: http://document-service:8085
+    routes:
+      - name: document-public-routes
+        paths:
+          - /api/documents/public
+        strip_path: false
+
+      - name: document-routes
+        paths:
+          - /api/documents
+        strip_path: false
+
+plugins:
+  # ==========================================
+  # GLOBAL PLUGINS (Applied to all routes)
+  # ==========================================
+
+  - name: cors
+    config:
+      origins:
+        - $FRONTEND_URL
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Authorization
+        - Content-Type
+        - Origin
+        - X-Requested-With
+        - Cookie
+      exposed_headers:
+        - Set-Cookie
+      credentials: true
+
+  - name: rate-limiting
+    config:
+      minute: 600
+      policy: local
+
+  - name: request-size-limiting
+    config:
+      allowed_payload_size: 10 # 10 MB
+
+  - name: correlation-id
+    config:
+      header_name: X-Request-ID
+      generator: uuid
+      echo_downstream: true
+
+  - name: file-log
+    config:
+      path: /dev/stdout
+
+  # ==========================================
+  # ROUTE-SPECIFIC PLUGINS (Authentication)
+  # ==========================================
+
+  # user-routes
+  - name: jwt
+    route: user-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt-user-context
+    route: user-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+
+  # project-routes
+  - name: jwt
+    route: project-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt-user-context
+    route: project-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+
+  # communication-routes
+  - name: jwt
+    route: communication-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt-user-context
+    route: communication-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+
+  # notification-routes
+  - name: jwt
+    route: notification-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt-user-context
+    route: notification-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+
+  # document-routes
+  - name: jwt
+    route: document-routes
+    config:
+      claims_to_verify:
+        - exp
+
+  - name: jwt-user-context
+    route: document-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+
+  # document-public-routes
+  - name: jwt-user-context
+    route: document-public-routes
+    config:
+      header_user_id: X-User-Id
+      header_user_email: X-User-Email
+      header_user_role: X-User-Role
+      optional: true
+

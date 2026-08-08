@@ -27,7 +27,7 @@ services:
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
     command: >
       /bin/sh -c "
-      sed -e \"s|\$$FRONTEND_URL|$$FRONTEND_URL|g\" -e \"s|\$$JWT_SECRET_KEY|$$JWT_SECRET_KEY|g\" /usr/local/kong/declarative/kong.yml > /tmp/kong.yml &&
+      sed -e \"s|[$$]FRONTEND_URL|$${FRONTEND_URL}|g\" -e \"s|[$$]JWT_SECRET_KEY|$${JWT_SECRET_KEY}|g\" /usr/local/kong/declarative/kong.yml > /tmp/kong.yml &&
       /docker-entrypoint.sh kong docker-start"
     ports:
       - "8000:8000" # Proxy HTTP Port
@@ -35,7 +35,9 @@ services:
       - "8001:8001" # Admin HTTP Port
       - "8444:8444" # Admin HTTPS Port
     volumes:
-      - ../kong-gateway/kong.yml:/usr/local/kong/declarative/kong.yml
+      - ../kong-gateway/kong.docker.yml:/usr/local/kong/declarative/kong.yml
+    networks:
+      - wh_network
     restart: on-failure
 
   postgres:
@@ -55,6 +57,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - wh_network
     restart: always
 
   redis:
@@ -69,6 +73,8 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - wh_network
     restart: always
 
   kafka:
@@ -88,6 +94,8 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      - wh_network
     restart: always
 
   kafka-init:
@@ -102,8 +110,15 @@ services:
       /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic notification-topic --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
       echo 'Kafka topic notification-topic created successfully.'
       "
+    networks:
+      - wh_network
 
 
 volumes:
   postgres_data:
   redis_data:
+
+networks:
+  wh_network:
+    name: wh_network
+    driver: bridge

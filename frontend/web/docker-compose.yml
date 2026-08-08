@@ -16,14 +16,8 @@ services:
       - /app/node_modules
       - /app/.next
     depends_on:
-      user-service:
-        condition: service_healthy
-      project-service:
-        condition: service_healthy
-      communication-service:
-        condition: service_healthy
-      document-service:
-        condition: service_healthy
-      notification-service:
-        condition: service_healthy
+      kong:
+        condition: service_started
+    networks:
+      - wh_network
     restart: on-failure

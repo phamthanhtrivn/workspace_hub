@@ -10,6 +10,7 @@ class SocketService {
 
       this.socket = io(baseUrl, {
         path: "/communication.io",
+        transports: ["websocket"],
         auth: {
           token,
         },

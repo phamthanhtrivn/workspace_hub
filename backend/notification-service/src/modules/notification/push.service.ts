@@ -48,16 +48,19 @@ export class PushService implements OnModuleInit {
       await webpush.sendNotification(pushSubscription, payloadString);
       return true;
     } catch (error: any) {
-      // 410 Gone / 404 Not Found means subscription has expired or user has unsubscribed/revoked permissions
-      if (error.statusCode === 410 || error.statusCode === 404) {
+      const statusCode = error.statusCode;
+      const responseBody = error.body || error.response?.body;
+
+      // These statuses mean the subscription is invalid, expired, denied, or mismatched with VAPID details.
+      if ([400, 403, 404, 410].includes(statusCode)) {
         this.logger.warn(
-          `Subscription has expired (Status ${error.statusCode}). Endpoint: ${subscription.endpoint}`,
+          `Invalid push subscription (Status ${statusCode}). Endpoint: ${subscription.endpoint}. Body: ${responseBody || "N/A"}`,
         );
-        return false; // Return false to indicate the subscription is no longer valid
+        return false;
       }
 
       this.logger.error(
-        `Failed to send web push notification: ${error.message || error}`,
+        `Failed to send web push notification: ${error.message || error}. Status: ${statusCode || "N/A"}. Body: ${responseBody || "N/A"}`,
         error.stack,
       );
       return true; // Keep subscription for general errors (e.g. network timeout)
