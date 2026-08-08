@@ -5,7 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: workspace_hub_frontend_web
+    image: wh_web
+    container_name: wh_web
     ports:
       - "3000:3000"
     env_file:

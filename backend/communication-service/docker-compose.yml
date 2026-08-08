@@ -5,7 +5,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: workspace_hub_communication_service
+    image: wh_communication_service
+    container_name: wh_communication_service
     ports:
       - "8083:8083"
     env_file:
@@ -14,14 +15,14 @@ services:
       - .:/app
       - /app/node_modules
       - /app/dist
-    command: sh -c "npx prisma generate && npx prisma db push && npm run start:dev"
+    command: sh -c "npx prisma generate && npx prisma db push --accept-data-loss && npm run start:dev"
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 8083"]
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8083"]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -38,9 +38,9 @@ import { toast } from "react-toastify";
 import MentionDropdown from "./mention-dropdown";
 import EmojiPickerPopover from "./emoji-picker-popover";
 
-import { useAudioRecorder } from "../../hooks/use-audio-recorder";
-import { useSpeechToText } from "../../hooks/use-speech-to-text";
-import { useTextFormatting } from "../../hooks/use-text-formatting";
+import { useAudioRecorder } from "../../hooks/useAudioRecorder";
+import { useSpeechToText } from "../../hooks/useSpeechToText";
+import { useTextFormatting } from "../../hooks/useTextFormatting";
 
 interface ThreadChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
