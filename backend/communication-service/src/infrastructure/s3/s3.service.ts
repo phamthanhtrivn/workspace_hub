@@ -1,8 +1,12 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { v4 as uuidv4 } from 'uuid';
-import * as path from 'path';
+import { generateS3Key } from '../../common/utils/s3-key.util';
+import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
 
 @Injectable()
 export class S3Service {
@@ -15,23 +19,20 @@ export class S3Service {
     this.s3Client = new S3Client({
       region: process.env.AWS_REGION!,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY || process.env.AWS_ACCESS_KEY!,
-        secretAccessKey:
-          process.env.AWS_SECRET_KEY || process.env.AWS_SECRET_KEY!,
+        accessKeyId: process.env.AWS_ACCESS_KEY!,
+        secretAccessKey: process.env.AWS_SECRET_KEY!,
       },
     });
   }
 
   async generatePresignedUploadUrl(
-    conversationId: string,
+    type: S3_UPLOAD_TYPE,
+    referenceId: string,
     fileName: string,
     mimeType: string,
-    folder = 'chat-media',
   ): Promise<{ presignedUrl: string; s3Key: string }> {
     try {
-      const extension = path.extname(fileName);
-      const uniqueFileName = `${uuidv4()}${extension}`;
-      const s3Key = `${folder}/${conversationId}/${uniqueFileName}`;
+      const s3Key = generateS3Key(type, referenceId, fileName);
 
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
@@ -39,7 +40,7 @@ export class S3Service {
         ContentType: mimeType,
       });
 
-      let presignedUrl = await getSignedUrl(this.s3Client, command, {
+      const presignedUrl = await getSignedUrl(this.s3Client, command, {
         expiresIn: 600,
       });
 

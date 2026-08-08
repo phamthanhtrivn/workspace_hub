@@ -17,6 +17,7 @@ import SearchMessagesSection from "./search-messages-section";
 import GroupSettingsModal from "../modals/group-settings-modal";
 import ManageMembersModal from "../modals/manage-members-modal";
 import ThreadDetailView from "./thread-detail-view";
+import ThreadsListView from "./threads-list-view";
 import {
   X,
   Bell,
@@ -40,7 +41,7 @@ import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface ChatRightPanelProps {
   onClose: () => void;
-  initialDetailView?: "images" | "files" | "polls" | "search" | null;
+  initialDetailView?: "images" | "files" | "polls" | "search" | "threads" | null;
 }
 
 export default function ChatRightPanel({
@@ -52,7 +53,7 @@ export default function ChatRightPanel({
     "members",
   );
   const [detailView, setDetailView] = useState<
-    "images" | "files" | "polls" | "search" | "thread" | null
+    "images" | "files" | "polls" | "search" | "thread" | "threads" | null
   >(initialDetailView || null);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
@@ -263,6 +264,17 @@ export default function ChatRightPanel({
         <SearchMessagesSection
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
+        />
+      </div>
+    );
+  }
+
+  if (detailView === "threads") {
+    return (
+      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+        <ThreadsListView
+          conversationId={activeConversation!.id}
+          onClose={() => setDetailView(null)}
         />
       </div>
     );

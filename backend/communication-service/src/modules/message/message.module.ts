@@ -1,15 +1,15 @@
 import { Module } from '@nestjs/common';
-import { MessageController } from './controllers/message.controller';
-import { NoteController } from './controllers/note.controller';
-import { PollController } from './controllers/poll.controller';
-import { MediaController } from './controllers/media.controller';
+import { MessageController } from './message.controller';
+import { NoteController } from '../note/note.controller';
 
-import { MessageService } from './services/message.service';
-import { NoteService } from './services/note.service';
-import { PollService } from './services/poll.service';
+import { MessageService } from './message.service';
 
 import { PrismaModule } from '../../prisma/prisma.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
+import { NoteService } from '../note/note.service';
+import { PollService } from '../poll/poll.service';
+import { PollController } from '../poll/poll.controller';
+import { MediaController } from '../media/media.controller';
 
 @Module({
   imports: [PrismaModule, S3Module],

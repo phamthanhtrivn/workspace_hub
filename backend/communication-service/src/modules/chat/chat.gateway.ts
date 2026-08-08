@@ -11,16 +11,16 @@ import { Inject, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { Server, Socket } from 'socket.io';
 import { ChatEvent } from './chat.events';
-import { MessageService } from '../message/services/message.service';
+import { MessageService } from '../message/message.service';
 import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
-import { PollService } from '../message/services/poll.service';
-import { NoteService } from '../message/services/note.service';
 import {
   KAFKA_TOPICS,
   KAFKA_EVENTS,
 } from '../../common/constants/kafka.constants';
 import { getSenderProfile } from '../../common/utils/user.util';
+import { PollService } from '../poll/poll.service';
+import { NoteService } from '../note/note.service';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -66,12 +66,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
   handleJoinConversation(
-    @MessageBody() data: { conversationId: string },
+    @MessageBody() data: { channelId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    if (data.conversationId) {
-      client.join(data.conversationId);
-      return { status: 'joined', conversationId: data.conversationId };
+    if (data.channelId) {
+      client.join(data.channelId);
+      return { status: 'joined', channelId: data.channelId };
     }
   }
 
@@ -79,7 +79,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleSendMessage(
     @MessageBody()
     data: {
-      conversationId: string;
+      channelId: string;
       content: string;
       type?: MessageType;
       medias?: {
@@ -108,7 +108,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId;
     if (
       !userId ||
-      !data.conversationId ||
+      !data.channelId ||
       (data.content === undefined &&
         (!data.medias || data.medias.length === 0) &&
         !data.pollData &&
@@ -119,7 +119,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const message = await this.messageService.createMessage(
-        data.conversationId,
+        data.channelId,
         userId,
         data.content || '',
         data.type || MessageType.TEXT,
@@ -131,30 +131,44 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
+
+      let threadFollowers: string[] = [];
+      if (data.threadParentId) {
+        threadFollowers = await this.messageService.getThreadFollowers(
+          data.threadParentId,
+        );
+      }
 
       const messageWithUrls = {
         ...message,
         medias: mapMediaWithUrl(message.medias),
         mentions: data.mentions,
+        threadFollowers: data.threadParentId ? threadFollowers : undefined,
       };
 
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
 
       // Publish new message notification event to Kafka for offline/background push delivery
       this.messageService
-        .getConversationMembersInfo(data.conversationId)
+        .getConversationMembersInfo(data.channelId)
         .then(async (membersInfo) => {
           const mentions = data.mentions || [];
           const isMentionedAll = mentions.includes('all');
-          const recipientIds = membersInfo
+          let recipientIds = membersInfo
             .filter((m) => m.userId !== userId) // exclude sender
             .filter(
               (m) => !m.muted || isMentionedAll || mentions.includes(m.userId),
             ) // unmuted OR tagged OR @All
             .map((m) => m.userId);
+
+          if (data.threadParentId) {
+            recipientIds = recipientIds.filter((rId) =>
+              threadFollowers.includes(rId),
+            );
+          }
 
           if (recipientIds.length > 0) {
             const { senderName, senderAvatar } = await getSenderProfile(userId);
@@ -174,7 +188,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
             }
 
             this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-              key: data.conversationId,
+              key: data.channelId,
               value: {
                 recipientIds,
                 senderId: userId,
@@ -183,9 +197,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
                 title: senderName,
                 content: previewContent,
-                link: `/chat?id=${data.conversationId}`,
+                link: `/chat?id=${data.channelId}`,
                 metadata: {
-                  conversationId: data.conversationId,
+                  channelId: data.channelId,
                   messageId: message.id,
                 },
               },
@@ -201,7 +215,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
-          conversationId: data.conversationId,
+          channelId: data.channelId,
           messageId: message.id,
           media: messageWithUrls.medias,
         });
@@ -209,7 +223,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (data.pollData && messageWithUrls.poll) {
         this.server.to(targetRooms).emit(ChatEvent.POLL_UPDATED, {
-          conversationId: data.conversationId,
+          channelId: data.channelId,
           messageId: message.id,
           poll: messageWithUrls.poll,
         });
@@ -217,7 +231,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (data.noteData && messageWithUrls.note) {
         this.server.to(targetRooms).emit(ChatEvent.NOTE_UPDATED, {
-          conversationId: data.conversationId,
+          channelId: data.channelId,
           messageId: message.id,
           note: messageWithUrls.note,
         });
@@ -230,28 +244,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  async sendSystemMessage(
-    conversationId: string,
-    userId: string,
-    content: string,
-  ) {
+  async sendSystemMessage(channelId: string, userId: string, content: string) {
     try {
       const message = await this.messageService.createMessage(
-        conversationId,
+        channelId,
         userId,
         content,
         MessageType.SYSTEM,
       );
 
       const memberUserIds =
-        await this.messageService.getConversationMemberIds(conversationId);
+        await this.messageService.getConversationMemberIds(channelId);
 
       const messageWithUrls = {
         ...message,
         medias: [],
       };
 
-      const targetRooms = [conversationId, ...memberUserIds];
+      const targetRooms = [channelId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
       return { status: 'success', data: messageWithUrls };
     } catch (error) {
@@ -264,7 +274,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleReactMessage(
     @MessageBody()
     data: {
-      conversationId: string;
+      channelId: string;
       messageId: string;
       emoji: string;
       action: 'add' | 'remove';
@@ -272,8 +282,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.emoji)
-      return;
+    if (!userId || !data.messageId || !data.channelId || !data.emoji) return;
 
     try {
       let finalAction = data.action;
@@ -296,12 +305,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
-        conversationId: data.conversationId,
+        channelId: data.channelId,
         messageId: data.messageId,
         userId,
         emoji: finalEmoji,
@@ -317,16 +326,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage(ChatEvent.VOTE_POLL)
   async handleVotePoll(
     @MessageBody()
-    data: { conversationId: string; messageId: string; pollOptionId: string },
+    data: { channelId: string; messageId: string; pollOptionId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (
-      !userId ||
-      !data.messageId ||
-      !data.conversationId ||
-      !data.pollOptionId
-    )
+    if (!userId || !data.messageId || !data.channelId || !data.pollOptionId)
       return;
 
     try {
@@ -337,9 +341,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
@@ -352,12 +356,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage(ChatEvent.ADD_POLL_OPTION)
   async handleAddPollOption(
     @MessageBody()
-    data: { conversationId: string; messageId: string; text: string },
+    data: { channelId: string; messageId: string; text: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.text)
-      return;
+    if (!userId || !data.messageId || !data.channelId || !data.text) return;
 
     try {
       const updatedMessage = await this.pollService.addPollOption(
@@ -367,9 +370,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
@@ -383,7 +386,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleEditPoll(
     @MessageBody()
     data: {
-      conversationId: string;
+      channelId: string;
       messageId: string;
       title: string;
       multipleChoice: boolean;
@@ -394,8 +397,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.title)
-      return;
+    if (!userId || !data.messageId || !data.channelId || !data.title) return;
 
     try {
       const updatedMessage = await this.pollService.updatePoll(
@@ -408,9 +410,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
@@ -424,7 +426,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleEditNote(
     @MessageBody()
     data: {
-      conversationId: string;
+      channelId: string;
       messageId: string;
       title: string;
       content: string;
@@ -435,7 +437,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (
       !userId ||
       !data.messageId ||
-      !data.conversationId ||
+      !data.channelId ||
       !data.title ||
       !data.content
     )
@@ -450,9 +452,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
       return { status: 'success' };
@@ -465,14 +467,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage(ChatEvent.EDIT_MESSAGE)
   async handleEditMessage(
     @MessageBody()
-    data: { conversationId: string; messageId: string; content: string },
+    data: { channelId: string; messageId: string; content: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
     if (
       !userId ||
       !data.messageId ||
-      !data.conversationId ||
+      !data.channelId ||
       data.content === undefined
     )
       return;
@@ -485,9 +487,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server
         .to(targetRooms)
@@ -501,11 +503,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.RECALL_MESSAGE)
   async handleRecallMessage(
-    @MessageBody() data: { conversationId: string; messageId: string },
+    @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId) return;
+    if (!userId || !data.messageId || !data.channelId) return;
 
     try {
       const updatedMessage = await this.messageService.recallMessage(
@@ -514,9 +516,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server
         .to(targetRooms)
@@ -530,26 +532,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.READ_MESSAGE)
   async handleReadMessage(
-    @MessageBody() data: { conversationId: string; messageId: string },
+    @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId) return;
+    if (!userId || !data.messageId || !data.channelId) return;
 
     try {
       const readReceipt = await this.messageService.markConversationAsRead(
-        data.conversationId,
+        data.channelId,
         userId,
         data.messageId,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
-        conversationId: data.conversationId,
+        channelId: data.channelId,
         messageId: data.messageId,
         userId,
         readAt: readReceipt.lastReadAt,
@@ -563,20 +565,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.TYPING)
   async handleTyping(
-    @MessageBody() data: { conversationId: string; isTyping: boolean },
+    @MessageBody() data: { channelId: string; isTyping: boolean },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.conversationId) return;
+    if (!userId || !data.channelId) return;
 
     try {
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.TYPING, {
-        conversationId: data.conversationId,
+        channelId: data.channelId,
         userId,
         isTyping: data.isTyping,
       });
@@ -591,11 +593,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.PIN_MESSAGE)
   async handlePinMessage(
-    @MessageBody() data: { conversationId: string; messageId: string },
+    @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId) return;
+    if (!userId || !data.messageId || !data.channelId) return;
 
     try {
       const updatedMessage = await this.messageService.pinMessage(
@@ -604,9 +606,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       const messageWithUrls = {
         ...updatedMessage,
@@ -628,11 +630,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.UNPIN_MESSAGE)
   async handleUnpinMessage(
-    @MessageBody() data: { conversationId: string; messageId: string },
+    @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId) return;
+    if (!userId || !data.messageId || !data.channelId) return;
 
     try {
       const updatedMessage = await this.messageService.unpinMessage(
@@ -641,9 +643,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       const messageWithUrls = {
         ...updatedMessage,

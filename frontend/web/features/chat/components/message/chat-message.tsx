@@ -406,9 +406,7 @@ const ChatMessage = React.memo(function ChatMessage({
       }`}
     >
       <div
-        className={`flex w-full ${
-          isMe ? "justify-end" : "justify-start"
-        } relative`}
+        className="flex w-full justify-start relative"
         onMouseLeave={() => setShowReactionPicker(false)}
       >
         {!isMe && (
@@ -460,11 +458,7 @@ const ChatMessage = React.memo(function ChatMessage({
           </div>
         )}
 
-        <div
-          className={`max-w-[70%] flex flex-col gap-1 relative group/bubble ${
-            isMe ? "items-end" : "items-start"
-          }`}
-        >
+        <div className="max-w-[70%] flex flex-col gap-1 relative group/bubble items-start">
           {showSenderName && memberProfile && (
             <span className="text-[11px] text-gray-500 font-medium px-1 mb-0.5 mt-1">
               {memberProfile.fullName}
@@ -473,11 +467,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
           {msg.recalled ? (
             <div
-              className={`p-3 shadow-sm text-sm flex flex-col relative italic text-gray-500 ${
-                isMe
-                  ? "bg-blue-50/50 border border-blue-100 rounded-2xl rounded-br-sm"
-                  : "bg-gray-50/50 border border-gray-100 rounded-2xl rounded-bl-sm"
-              }`}
+              className="p-3 shadow-sm text-sm flex flex-col relative italic text-gray-500 bg-gray-50/50 border border-gray-100 rounded-2xl rounded-bl-sm"
             >
               Tin nhắn đã bị thu hồi
             </div>
@@ -538,8 +528,8 @@ const ChatMessage = React.memo(function ChatMessage({
                     className={`p-3 shadow-sm text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden ${
                       isMe
                         ? msg.threadReplyCount > 0
-                          ? "bg-[#EEF2FF] border border-indigo-200 text-indigo-950 rounded-2xl rounded-br-sm shadow-[0_0_10px_rgba(99,102,241,0.08)]"
-                          : "bg-[#DBEAFE] text-black rounded-2xl rounded-br-sm"
+                          ? "bg-[#EEF2FF] border border-indigo-200 text-indigo-950 rounded-2xl rounded-bl-sm shadow-[0_0_10px_rgba(99,102,241,0.08)]"
+                          : "bg-[#EBF5FF] border border-blue-100/85 text-slate-800 rounded-2xl rounded-bl-sm"
                         : msg.threadReplyCount > 0
                           ? "bg-[#F5F3FF] border border-indigo-200 text-indigo-950 rounded-2xl rounded-bl-sm shadow-[0_0_10px_rgba(99,102,241,0.08)]"
                           : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
@@ -556,11 +546,7 @@ const ChatMessage = React.memo(function ChatMessage({
                   return (
                     <div
                       onClick={() => onThreadReply?.(msg)}
-                      className={`flex items-center gap-2 mt-1.5 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-lg w-fit border transition-colors ${
-                        isMe
-                          ? "text-indigo-600 bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 ml-auto"
-                          : "text-indigo-600 bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 mr-auto"
-                      }`}
+                      className="flex items-center gap-2 mt-1.5 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-lg w-fit border transition-colors text-indigo-600 bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 mr-auto"
                     >
                       <MessageSquare size={12} className="text-indigo-500" />
                       <span>{msg.threadReplyCount} phản hồi</span>

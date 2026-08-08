@@ -1,8 +1,7 @@
 import React, { useMemo } from "react";
-import { User, Users, BellOff } from "lucide-react";
+import { User, BellOff, Hash, Globe } from "lucide-react";
 import Image from "next/image";
-import { formatConversationTime } from "@/lib/date";
-import MessageSnippet from "../message/message-snippet";
+import { cn } from "@/lib/utils";
 
 interface ConversationItemProps {
   conv: any;
@@ -35,88 +34,83 @@ const ConversationItem = React.memo(function ConversationItem({
 
   const avatarUrl = isDirect ? profile?.avatarUrl : conv.avatarUrl;
 
-  const latestMessage = conv.messages?.[0];
-
   const currentMember = useMemo(() => {
     return conv.members?.find((m: any) => m.userId === currentUserId);
   }, [conv.members, currentUserId]);
 
   const isMuted = currentMember?.muted || false;
 
-  const time = useMemo(() => {
-    return latestMessage
-      ? formatConversationTime(latestMessage.createdAt)
-      : formatConversationTime(conv.updatedAt || conv.createdAt || Date.now());
-  }, [latestMessage, conv.updatedAt, conv.createdAt]);
-
   return (
     <div
-      className={`flex items-center p-3 rounded-xl cursor-pointer transition ${
+      className={cn(
+        "flex items-center justify-between p-2 rounded-lg cursor-pointer transition-colors duration-150 select-none",
         isActive
-          ? "bg-blue-100 border border-blue-200"
-          : "hover:bg-gray-50 border border-transparent"
-      }`}
+          ? "bg-slate-200/60 text-slate-900 font-medium"
+          : "hover:bg-slate-100 text-slate-600 hover:text-slate-900"
+      )}
       onClick={() => onClick(conv)}
     >
-      <div className="relative">
-        <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200  rounded-full flex items-center justify-center font-bold text-lg overflow-hidden">
-          {avatarUrl ? (
-            <Image
-              src={avatarUrl}
-              alt="Avatar"
-              width={44}
-              height={44}
-              className="rounded-full"
-            />
-          ) : isDirect ? (
-            <User size={22} className="text-gray-400" />
-          ) : (
-            <Users size={22} className="text-gray-400" />
-          )}
-        </div>
-      </div>
-      <div className="ml-3 flex-1 overflow-hidden">
-        <div className="flex justify-between items-baseline mb-0.5">
-          <h3
-            className={`truncate flex items-center gap-1.5 ${conv.unreadCount ? "text-sm font-bold text-gray-900" : "text-sm font-semibold text-gray-800"}`}
-          >
-            <span className="truncate">{name}</span>
-            {isMuted && (
-              <BellOff size={13} className="text-gray-600 shrink-0" />
-            )}
-          </h3>
-          <span
-            className={`text-xs ${conv.unreadCount ? "text-blue-600 font-semibold" : "text-gray-500"}`}
-          >
-            {time}
-          </span>
-        </div>
-        <div className="flex justify-between items-center">
-          <div className="flex-1 min-w-0">
-            <MessageSnippet
-              latestMessage={latestMessage}
-              currentUserId={currentUserId}
-              isDirect={isDirect}
-              memberProfiles={memberProfiles}
-              isUnread={conv.unreadCount > 0}
-            />
-          </div>
-          {conv.hasMention && (
-            <span className="text-blue-600 font-semibold">@</span>
-          )}
-          {conv.unreadCount > 0 ? (
-            <div
-              className={`ml-1 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center flex items-center justify-center gap-0.5 ${isMuted ? "bg-slate-400" : "bg-red-500"}`}
-            >
-              <span>{conv.unreadCount > 99 ? "99+" : conv.unreadCount}</span>
+      <div className="flex items-center min-w-0 gap-2 flex-1">
+        {isDirect ? (
+          // Direct Message Item
+          <>
+            <div className="relative shrink-0">
+              <div className="w-6 h-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center overflow-hidden">
+                {avatarUrl ? (
+                  <Image
+                    src={avatarUrl}
+                    alt="Avatar"
+                    width={24}
+                    height={24}
+                    className="rounded-full animate-fade-in"
+                  />
+                ) : (
+                  <User size={12} className="text-gray-400" />
+                )}
+              </div>
             </div>
-          ) : conv.hasUnreadThread ? (
-            <div
-              className="ml-1.5 w-2.5 h-2.5 bg-blue-500 rounded-full shrink-0 animate-pulse"
-              title="Có phản hồi mới trong luồng"
-            />
-          ) : null}
-        </div>
+            <span className={cn("text-[13px] truncate", conv.unreadCount > 0 && "font-bold text-slate-900")}>
+              {name}
+            </span>
+          </>
+        ) : (
+          // Channel Item
+          <>
+            <span className="text-slate-400 shrink-0">
+              {conv.isDefault ? (
+                <Globe size={14} className="opacity-80" />
+              ) : (
+                <Hash size={14} />
+              )}
+            </span>
+            <span className={cn("text-[13px] truncate", conv.unreadCount > 0 && "font-bold text-slate-900")}>
+              {name}
+            </span>
+          </>
+        )}
+        {isMuted && <BellOff size={11} className="text-slate-400 shrink-0 ml-1" />}
+      </div>
+
+      {/* Unread indicators */}
+      <div className="flex items-center justify-end shrink-0 pl-1">
+        {conv.hasMention && (
+          <span className="text-blue-600 font-semibold text-xs mr-1">@</span>
+        )}
+        {conv.unreadCount > 0 ? (
+          <div
+            className={cn(
+              "text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center flex items-center justify-center",
+              isMuted ? "bg-slate-400" : "bg-red-500"
+            )}
+          >
+            {conv.unreadCount > 99 ? "99+" : conv.unreadCount}
+          </div>
+        ) : conv.hasUnreadThread ? (
+          <div
+            className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"
+            title="Có phản hồi mới trong luồng"
+          />
+        ) : null}
       </div>
     </div>
   );

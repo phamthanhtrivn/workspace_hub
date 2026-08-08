@@ -1,10 +1,8 @@
-"use client";
-
-import React, { useEffect, useRef } from "react";
-import { X, User, FileText, Download } from "lucide-react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
+import { X, User, FileText, Download, Bell } from "lucide-react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getThreadMessages } from "../../api/chat.api";
+import { getThreadMessages, followThread } from "../../api/chat.api";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useAppSelector } from "@/store/store";
@@ -12,6 +10,7 @@ import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { formatConversationTime } from "@/lib/date";
 import ThreadChatInput from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
+import { toast } from "react-toastify";
 
 interface ThreadDetailViewProps {
   rootMessage: any;
@@ -27,6 +26,31 @@ export default function ThreadDetailView({
   const memberProfiles = useChatMemberProfiles();
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<any>(null);
+
+  const initialFollow = useMemo(() => {
+    return rootMessage.threadFollowers?.some(
+      (tf: any) => (typeof tf === "string" ? tf === currentUserId : tf.userId === currentUserId)
+    ) || false;
+  }, [rootMessage.threadFollowers, currentUserId]);
+
+  const [isFollowing, setIsFollowing] = useState(initialFollow);
+
+  useEffect(() => {
+    setIsFollowing(initialFollow);
+  }, [initialFollow]);
+
+  const handleToggleFollow = async () => {
+    try {
+      const res = await followThread(rootMessage.id);
+      const following = res.data.following;
+      setIsFollowing(following);
+      toast.success(
+        following ? "Đang theo dõi: nhận thông báo từ luồng này" : "Đã bỏ theo dõi luồng này"
+      );
+    } catch {
+      toast.error("Không thể thay đổi trạng thái theo dõi");
+    }
+  };
 
   // Fetch thread messages (root message + replies)
   const { data: threadData, isLoading } = useQuery({
@@ -219,12 +243,24 @@ export default function ThreadDetailView({
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="font-semibold text-gray-800">Thảo luận theo chủ đề</h2>
-        <button
-          onClick={onBack}
-          className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
-        >
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleToggleFollow}
+            className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer"
+            title={isFollowing ? "Đang theo dõi luồng này" : "Theo dõi luồng này"}
+          >
+            <Bell
+              size={18}
+              className={isFollowing ? "fill-blue-500 text-blue-500" : "text-gray-400"}
+            />
+          </button>
+          <button
+            onClick={onBack}
+            className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition animate-fade-in"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Message List area */}

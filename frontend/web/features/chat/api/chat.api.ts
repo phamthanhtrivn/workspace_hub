@@ -11,7 +11,7 @@ export const searchUserByEmail = async (email: string): Promise<any> => {
 export const createDirectConversation = async (
   participantId: string,
 ): Promise<any> => {
-  const response = await api.post("/api/conversations/direct", {
+  const response = await api.post("/api/channels/direct", {
     participantId,
   });
   return response.data;
@@ -22,7 +22,7 @@ export const createGroupConversation = async (
   avatarUrl: string | undefined,
   participantIds: string[],
 ): Promise<any> => {
-  const response = await api.post("/api/conversations/group", {
+  const response = await api.post("/api/channels/group", {
     name,
     avatarUrl,
     participantIds,
@@ -35,7 +35,7 @@ export const inviteMembers = async (
   memberIds: string[],
 ): Promise<any> => {
   const response = await api.post(
-    `/api/conversations/${conversationId}/members/invite`,
+    `/api/channels/${conversationId}/members/invite`,
     { memberIds },
   );
   return response.data;
@@ -46,7 +46,7 @@ export const updateGroupInfo = async (
   name?: string,
   avatarUrl?: string,
 ): Promise<any> => {
-  const response = await api.patch(`/api/conversations/${conversationId}/info`, {
+  const response = await api.patch(`/api/channels/${conversationId}/info`, {
     name,
     avatarUrl,
   });
@@ -75,7 +75,7 @@ export const declineInvitation = async (invitationId: string): Promise<any> => {
 };
 
 export const getUserConversations = async (): Promise<any> => {
-  const response = await api.get("/api/conversations");
+  const response = await api.get("/api/channels");
   return response.data;
 };
 
@@ -86,7 +86,7 @@ export const getConversationMessages = async (
   direction?: "older" | "newer" | "around",
 ): Promise<any> => {
   const response = await api.get(
-    `/api/conversations/${conversationId}/messages`,
+    `/api/channels/${conversationId}/messages`,
     {
       params: { cursor, limit, direction },
     },
@@ -99,7 +99,7 @@ export const getConversationMedia = async (
   cursor?: string,
   limit?: number,
 ): Promise<any> => {
-  const response = await api.get(`/api/conversations/${conversationId}/media`, {
+  const response = await api.get(`/api/channels/${conversationId}/media`, {
     params: { cursor, limit },
   });
   return response.data;
@@ -109,7 +109,7 @@ export const getPinnedMessages = async (
   conversationId: string,
 ): Promise<any> => {
   const response = await api.get(
-    `/api/conversations/${conversationId}/pinned-messages`,
+    `/api/channels/${conversationId}/pinned-messages`,
   );
   return response.data;
 };
@@ -121,7 +121,7 @@ export const searchConversationMessages = async (
   type?: "TEXT",
 ): Promise<any> => {
   const response = await api.get(
-    `/api/conversations/${conversationId}/messages/search`,
+    `/api/channels/${conversationId}/messages/search`,
     {
       params: { q, senderId, type },
     },
@@ -134,7 +134,7 @@ export const updateConversationSettings = async (
   settings: any,
 ): Promise<any> => {
   const response = await api.patch(
-    `/api/conversations/${conversationId}/settings`,
+    `/api/channels/${conversationId}/settings`,
     settings,
   );
   return response.data;
@@ -146,7 +146,7 @@ export const updateMemberRole = async (
   role: "ADMIN" | "MEMBER",
 ): Promise<any> => {
   const response = await api.put(
-    `/api/conversations/${conversationId}/members/${memberId}/role`,
+    `/api/channels/${conversationId}/members/${memberId}/role`,
     { role },
   );
   return response.data;
@@ -157,7 +157,7 @@ export const transferOwnership = async (
   newOwnerId: string,
 ): Promise<any> => {
   const response = await api.post(
-    `/api/conversations/${conversationId}/transfer-owner`,
+    `/api/channels/${conversationId}/transfer-owner`,
     { newOwnerId },
   );
   return response.data;
@@ -168,7 +168,7 @@ export const kickMember = async (
   memberId: string,
 ): Promise<any> => {
   const response = await api.delete(
-    `/api/conversations/${conversationId}/members/${memberId}`,
+    `/api/channels/${conversationId}/members/${memberId}`,
   );
   return response.data;
 };
@@ -176,14 +176,14 @@ export const kickMember = async (
 export const leaveConversation = async (
   conversationId: string,
 ): Promise<any> => {
-  const response = await api.delete(`/api/conversations/${conversationId}/leave`);
+  const response = await api.delete(`/api/channels/${conversationId}/leave`);
   return response.data;
 };
 
 export const disbandConversation = async (
   conversationId: string,
 ): Promise<any> => {
-  const response = await api.delete(`/api/conversations/${conversationId}/disband`);
+  const response = await api.delete(`/api/channels/${conversationId}/disband`);
   return response.data;
 };
 
@@ -193,7 +193,7 @@ export const getGroupAvatarPresignedUrl = async (
   contentType: string,
 ): Promise<any> => {
   const response = await api.get(
-    `/api/conversations/${conversationId}/avatar/presigned-url`,
+    `/api/channels/${conversationId}/avatar/presigned-url`,
     {
       params: { fileName, contentType },
     },
@@ -206,7 +206,7 @@ export const muteConversation = async (
   muted: boolean,
 ): Promise<any> => {
   const response = await api.patch(
-    `/api/conversations/${conversationId}/mute`,
+    `/api/channels/${conversationId}/mute`,
     { muted },
   );
   return response.data;
@@ -215,7 +215,62 @@ export const muteConversation = async (
 export const getThreadMessages = async (
   messageId: string,
 ): Promise<any> => {
-  const response = await api.get(`/api/conversations/messages/${messageId}/thread`);
+  const response = await api.get(`/api/channels/messages/${messageId}/thread`);
   return response.data;
 };
 
+export const createGroup = async (
+  name: string,
+): Promise<any> => {
+  const response = await api.post("/api/spaces", { name });
+  return response.data;
+};
+
+export const getUserGroups = async (): Promise<any> => {
+  const response = await api.get("/api/spaces");
+  return response.data;
+};
+
+export const createChannel = async (
+  groupId: string,
+  name: string,
+): Promise<any> => {
+  const response = await api.post(`/api/spaces/${groupId}/channels`, { name });
+  return response.data;
+};
+
+export const getGroupChannels = async (
+  groupId: string,
+): Promise<any> => {
+  const response = await api.get(`/api/spaces/${groupId}/channels`);
+  return response.data;
+};
+
+export const inviteGroupMembers = async (
+  groupId: string,
+  userIds: string[],
+): Promise<any> => {
+  const response = await api.post(`/api/spaces/${groupId}/invite`, { userIds });
+  return response.data;
+};
+
+export const getConversationThreads = async (
+  conversationId: string,
+): Promise<any> => {
+  const response = await api.get(`/api/channels/messages/${conversationId}/threads`);
+  return response.data;
+};
+
+export const followThread = async (
+  messageId: string,
+): Promise<any> => {
+  const response = await api.post(`/api/channels/messages/${messageId}/thread/follow`);
+  return response.data;
+};
+
+export const unfollowThread = async (
+  messageId: string,
+): Promise<any> => {
+  const response = await api.post(`/api/channels/messages/${messageId}/thread/unfollow`);
+  return response.data;
+};

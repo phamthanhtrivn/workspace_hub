@@ -1,0 +1,638 @@
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
+import { SpaceRole } from '@prisma/client';
+import { ChatGateway } from '../chat/chat.gateway';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { S3Service } from 'src/infrastructure/s3/s3.service';
+import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
+import { getSenderProfile } from 'src/common/utils/user.util';
+import { ChatEvent } from '../chat/chat.events';
+import { getMediaUrl } from 'src/common/utils/file.util';
+import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
+
+@Injectable()
+export class ChannelService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly chatGateway: ChatGateway,
+    private readonly s3Service: S3Service,
+  ) {}
+
+  async createDirectConversation(userId: string, participantId: string) {
+    if (userId === participantId) {
+      throw new BadRequestException(
+        'Không thể tạo cuộc trò chuyện với chính mình',
+      );
+    }
+
+    const existingConversation = await this.prisma.directConversation.findFirst(
+      {
+        where: {
+          AND: [
+            {
+              participants: {
+                some: {
+                  userId: userId,
+                },
+              },
+            },
+            {
+              participants: {
+                some: {
+                  userId: participantId,
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          participants: true,
+        },
+      },
+    );
+
+    if (existingConversation) {
+      return existingConversation;
+    }
+
+    return this.prisma.$transaction(async (prisma) => {
+      const conversation = await prisma.directConversation.create({
+        data: {
+          participants: {
+            create: [
+              {
+                userId: userId,
+              },
+              {
+                userId: participantId,
+              },
+            ],
+          },
+        },
+        include: {
+          participants: true,
+        },
+      });
+
+      return conversation;
+    });
+  }
+
+  async getUserConversations(userId: string) {
+    const conversations = await this.prisma.directConversation.findMany({
+      where: {
+        participants: {
+          some: {
+            userId: userId,
+          },
+        },
+      },
+      include: {
+        participants: true,
+        messages: {
+          take: 1,
+          orderBy: {
+            createdAt: 'desc',
+          },
+          include: {
+            medias: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    return Promise.all(
+      conversations.map(async (conv) => {
+        const participant = conv.participants.find((p) => p.userId === userId);
+        let unreadCount = 0;
+
+        if (participant) {
+          const referenceDate = participant.lastReadAt || participant.joinedAt;
+          unreadCount = await this.prisma.directMessage.count({
+            where: {
+              conversationId: conv.id,
+              createdAt: {
+                gt: referenceDate,
+              },
+              senderId: {
+                not: userId,
+              },
+            },
+          });
+        }
+
+        const setting = {
+          allowSendMessage: true,
+          allowCreateNote: true,
+          allowCreatePoll: true,
+          allowPinMessage: true,
+        };
+
+        return {
+          ...conv,
+          setting,
+          unreadCount,
+        };
+      }),
+    );
+  }
+
+  async updateConversationSettings(
+    channelId: string,
+    userId: string,
+    updateSettingDto: UpdateConversationSettingDto,
+  ) {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+    });
+    if (!channel) {
+      throw new BadRequestException('Không tìm thấy kênh');
+    }
+
+    const spaceMember = await this.prisma.spaceMember.findUnique({
+      where: {
+        spaceId_userId: {
+          spaceId: channel.spaceId,
+          userId,
+        },
+      },
+    });
+
+    if (
+      !spaceMember ||
+      (spaceMember.role !== SpaceRole.OWNER &&
+        spaceMember.role !== SpaceRole.ADMIN)
+    ) {
+      throw new BadRequestException('Bạn không có quyền thay đổi cài đặt kênh');
+    }
+
+    const updatedSettings = await this.prisma.channelSetting.update({
+      where: { channelId },
+      data: updateSettingDto,
+    });
+
+    this.chatGateway.server.to(channelId).emit('group_setting_updated', {
+      channelId,
+      setting: updatedSettings,
+    });
+
+    return updatedSettings;
+  }
+
+  async updateMemberRole(
+    channelId: string,
+    userId: string,
+    targetUserId: string,
+    newRole: SpaceRole,
+  ) {
+    if (userId === targetUserId) {
+      throw new BadRequestException(
+        'Không thể tự thay đổi vai trò của chính mình',
+      );
+    }
+
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+    });
+    if (!channel) {
+      throw new BadRequestException('Không tìm thấy kênh');
+    }
+
+    const requester = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+    });
+
+    if (!requester || requester.role !== SpaceRole.OWNER) {
+      throw new BadRequestException(
+        'Chỉ Chủ nhóm mới có quyền thay đổi vai trò thành viên',
+      );
+    }
+
+    const targetMember = await this.prisma.spaceMember.findUnique({
+      where: {
+        spaceId_userId: { spaceId: channel.spaceId, userId: targetUserId },
+      },
+    });
+
+    if (!targetMember) {
+      throw new BadRequestException(
+        'Thành viên không tồn tại trong không gian này',
+      );
+    }
+
+    const updatedMember = await this.prisma.spaceMember.update({
+      where: {
+        spaceId_userId: { spaceId: channel.spaceId, userId: targetUserId },
+      },
+      data: { role: newRole },
+    });
+
+    const { senderName } = await getSenderProfile(userId);
+    const { senderName: targetName } = await getSenderProfile(targetUserId);
+    const roleName = newRole === SpaceRole.ADMIN ? 'Phó nhóm' : 'Thành viên';
+
+    await this.chatGateway.sendSystemMessage(
+      channelId,
+      userId,
+      `${senderName} đã chỉ định ${targetName} làm ${roleName}`,
+    );
+
+    this.chatGateway.server.to(channelId).emit('member_role_updated', {
+      channelId,
+      member: updatedMember,
+    });
+
+    return updatedMember;
+  }
+
+  async muteConversation(channelId: string, userId: string, muted: boolean) {
+    const member = await this.prisma.channelMember.findUnique({
+      where: {
+        channelId_userId: { channelId, userId },
+      },
+    });
+
+    if (!member) {
+      throw new BadRequestException(
+        'Bạn không phải là thành viên của nhóm này',
+      );
+    }
+
+    const updatedMember = await this.prisma.channelMember.update({
+      where: {
+        channelId_userId: { channelId, userId },
+      },
+      data: { muted },
+    });
+
+    // Emit websocket event to user's private room to sync all sessions/tabs
+    if (this.chatGateway?.server) {
+      this.chatGateway.server
+        .to(userId)
+        .emit(ChatEvent.CONVERSATION_MUTE_UPDATED, {
+          channelId,
+          muted,
+        });
+    }
+
+    return updatedMember;
+  }
+
+  async transferOwnership(
+    channelId: string,
+    userId: string,
+    newOwnerId: string,
+  ) {
+    if (userId === newOwnerId) {
+      throw new BadRequestException('Không thể chuyển quyền cho chính mình');
+    }
+
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+    });
+    if (!channel) {
+      throw new BadRequestException('Không tìm thấy kênh');
+    }
+
+    const requester = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+    });
+
+    if (!requester || requester.role !== SpaceRole.OWNER) {
+      throw new BadRequestException(
+        'Chỉ Chủ nhóm mới có quyền chuyển đổi trưởng nhóm',
+      );
+    }
+
+    const newOwner = await this.prisma.spaceMember.findUnique({
+      where: {
+        spaceId_userId: { spaceId: channel.spaceId, userId: newOwnerId },
+      },
+    });
+
+    if (!newOwner) {
+      throw new BadRequestException(
+        'Thành viên không tồn tại trong không gian này',
+      );
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.spaceMember.update({
+        where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+        data: { role: SpaceRole.MEMBER },
+      }),
+      this.prisma.spaceMember.update({
+        where: {
+          spaceId_userId: { spaceId: channel.spaceId, userId: newOwnerId },
+        },
+        data: { role: SpaceRole.OWNER },
+      }),
+    ]);
+
+    this.chatGateway.server.to(channelId).emit('member_role_updated', {
+      channelId,
+      member: { userId, role: SpaceRole.MEMBER },
+    });
+    this.chatGateway.server.to(channelId).emit('member_role_updated', {
+      channelId,
+      member: { userId: newOwnerId, role: SpaceRole.OWNER },
+    });
+
+    const { senderName } = await getSenderProfile(userId);
+    const { senderName: targetName } = await getSenderProfile(newOwnerId);
+
+    await this.chatGateway.sendSystemMessage(
+      channelId,
+      userId,
+      `${senderName} đã chuyển quyền Trưởng nhóm cho ${targetName}`,
+    );
+
+    return { success: true };
+  }
+
+  // async kickMember(channelId: string, userId: string, memberId: string) {
+  //   if (userId === memberId) {
+  //     throw new BadRequestException('Không thể tự kích bản thân');
+  //   }
+
+  //   const channel = await this.prisma.channel.findUnique({
+  //     where: { id: channelId },
+  //   });
+  //   if (!channel) {
+  //     throw new BadRequestException('Không tìm thấy kênh');
+  //   }
+
+  //   const requester = await this.prisma.spaceMember.findUnique({
+  //     where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+  //   });
+
+  //   const target = await this.prisma.spaceMember.findUnique({
+  //     where: { spaceId_userId: { spaceId: channel.spaceId, userId: memberId } },
+  //   });
+
+  //   if (!requester || !target) {
+  //     throw new BadRequestException(
+  //       'Thành viên không tồn tại trong không gian này',
+  //     );
+  //   }
+
+  //   if (requester.role === SpaceRole.MEMBER) {
+  //     throw new BadRequestException('Bạn không có quyền kích thành viên');
+  //   }
+
+  //   if (
+  //     requester.role === SpaceRole.ADMIN &&
+  //     target.role !== SpaceRole.MEMBER
+  //   ) {
+  //     throw new BadRequestException('Phó nhóm chỉ có thể kích Thành viên');
+  //   }
+
+  //   await this.prisma.$transaction(async (tx) => {
+  //     await tx.spaceMember.delete({
+  //       where: {
+  //         spaceId_userId: { spaceId: channel.spaceId, userId: memberId },
+  //       },
+  //     });
+
+  //     const spaceChannels = await tx.channel.findMany({
+  //       where: { spaceId: channel.spaceId },
+  //     });
+
+  //     for (const ch of spaceChannels) {
+  //       await tx.channelMember.deleteMany({
+  //         where: { channelId: ch.id, userId: memberId },
+  //       });
+  //     }
+  //   });
+
+  //   const remainingMembers = await this.prisma.channelMember.findMany({
+  //     where: { channelId },
+  //     select: { userId: true },
+  //   });
+
+  //   const spaceMember = await this.prisma.spaceMember.findUnique({
+  //     where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+  //   });
+
+  //   if (
+  //     !spaceMember ||
+  //     (spaceMember.role !== SpaceRole.OWNER &&
+  //       spaceMember.role !== SpaceRole.ADMIN &&
+  //       channel.createdBy !== userId)
+  //   ) {
+  //     throw new ForbiddenException(
+  //       'Bạn không có quyền cập nhật thông tin kênh này',
+  //     );
+  //   }
+
+  //   const updatedChannel = await this.prisma.channel.update({
+  //     where: { id: channelId },
+  //     data: {
+  //       name: data.name !== undefined ? data.name : undefined,
+  //       avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : undefined,
+  //     },
+  //   });
+
+  //   const { senderName } = await getSenderProfile(userId);
+
+  //   if (data.name !== undefined) {
+  //     await this.chatGateway.sendSystemMessage(
+  //       channelId,
+  //       userId,
+  //       `${senderName} đã đổi tên kênh thành "${data.name}"`,
+  //     );
+  //   }
+
+  //   // Broadcast the update so clients can refresh UI
+  //   const memberIds = await this.prisma.channelMember.findMany({
+  //     where: { channelId },
+  //     select: { userId: true },
+  //   });
+
+  //   const payload = {
+  //     id: channelId,
+  //     name: updatedChannel.name,
+  //     avatarUrl: updatedChannel.avatarUrl,
+  //   };
+
+  //   memberIds.forEach((m) => {
+  //     this.chatGateway.server
+  //       .to(m.userId)
+  //       .emit(ChatEvent.CONVERSATION_UPDATED, payload);
+  //   });
+
+  //   return updatedChannel;
+  // }
+
+  async leaveConversation(channelId: string, userId: string) {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+    });
+    if (!channel) {
+      throw new BadRequestException('Không tìm thấy kênh');
+    }
+
+    const member = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+    });
+
+    if (!member) {
+      throw new BadRequestException(
+        'Bạn không phải là thành viên của không gian này',
+      );
+    }
+
+    if (member.role === SpaceRole.OWNER) {
+      const otherOwners = await this.prisma.spaceMember.findMany({
+        where: {
+          spaceId: channel.spaceId,
+          role: SpaceRole.OWNER,
+          userId: { not: userId },
+        },
+      });
+
+      if (otherOwners.length === 0) {
+        throw new BadRequestException(
+          'Vui lòng chuyển quyền Trưởng nhóm trước khi rời nhóm',
+        );
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.spaceMember.delete({
+        where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+      });
+
+      const spaceChannels = await tx.channel.findMany({
+        where: { spaceId: channel.spaceId },
+      });
+
+      for (const ch of spaceChannels) {
+        await tx.channelMember.deleteMany({
+          where: { channelId: ch.id, userId },
+        });
+      }
+    });
+
+    const remainingMembers = await this.prisma.channelMember.findMany({
+      where: { channelId },
+      select: { userId: true },
+    });
+    const targetRooms = [
+      channelId,
+      userId,
+      ...remainingMembers.map((m) => m.userId),
+    ];
+
+    this.chatGateway.server.to(targetRooms).emit('member_left', {
+      channelId,
+      userId,
+    });
+
+    const { senderName } = await getSenderProfile(userId);
+
+    await this.chatGateway.sendSystemMessage(
+      channelId,
+      userId,
+      `${senderName} đã rời khỏi không gian làm việc`,
+    );
+
+    return { success: true };
+  }
+
+  async disbandConversation(channelId: string, userId: string) {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+    });
+    if (!channel) {
+      throw new BadRequestException('Không tìm thấy kênh');
+    }
+
+    if (channel.isDefault) {
+      throw new BadRequestException('Không thể xóa kênh mặc định');
+    }
+
+    const spaceMember = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+    });
+
+    if (
+      !spaceMember ||
+      (spaceMember.role !== SpaceRole.OWNER &&
+        spaceMember.role !== SpaceRole.ADMIN &&
+        channel.createdBy !== userId)
+    ) {
+      throw new BadRequestException(
+        'Chỉ Quản trị viên hoặc người tạo kênh mới có quyền giải tán kênh',
+      );
+    }
+
+    const members = await this.prisma.channelMember.findMany({
+      where: { channelId },
+      select: { userId: true },
+    });
+
+    await this.prisma.channel.delete({
+      where: { id: channelId },
+    });
+
+    const targetRooms = [channelId, ...members.map((m) => m.userId)];
+
+    this.chatGateway.server
+      .to(targetRooms)
+      .emit(ChatEvent.CONVERSATION_DISBANDED, {
+        channelId,
+      });
+
+    this.chatGateway.server.in(channelId).socketsLeave(channelId);
+
+    return { success: true };
+  }
+
+  async getAvatarUploadPresignedUrl(
+    channelId: string,
+    userId: string,
+    fileName: string,
+    contentType: string,
+  ) {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+    });
+    if (!channel) {
+      throw new BadRequestException('Không tìm thấy kênh');
+    }
+
+    const spaceMember = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
+    });
+
+    if (
+      !spaceMember ||
+      (spaceMember.role !== SpaceRole.OWNER &&
+        spaceMember.role !== SpaceRole.ADMIN &&
+        channel.createdBy !== userId)
+    ) {
+      throw new ForbiddenException(
+        'Bạn không có quyền cập nhật thông tin kênh này',
+      );
+    }
+
+    const { presignedUrl, s3Key } =
+      await this.s3Service.generatePresignedUploadUrl(
+        S3_UPLOAD_TYPE.AVATAR,
+        channelId,
+        fileName,
+        contentType,
+      );
+
+    const fileUrl = getMediaUrl(s3Key);
+
+    return { presignedUrl, s3Key, fileUrl };
+  }
+}

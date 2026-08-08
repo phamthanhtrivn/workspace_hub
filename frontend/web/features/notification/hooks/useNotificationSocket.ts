@@ -20,17 +20,17 @@ export function useNotificationSocket() {
     notificationSocketService.connect(accessToken);
 
     const socket = notificationSocketService.getSocket();
-    if (socket) {
-      const handleNewNotification = (noti: any) => {
-        dispatch(addNotification(noti));
-      };
 
-      socket.off("new_notification", handleNewNotification);
-      socket.on("new_notification", handleNewNotification);
-    }
+    if (!socket) return;
+
+    const handleNewNotification = (noti: any) => {
+      dispatch(addNotification(noti));
+    };
+
+    socket.on("new_notification", handleNewNotification);
 
     return () => {
-      socket?.off("new_notification");
+      socket.off("new_notification", handleNewNotification);
       notificationSocketService.disconnect();
     };
   }, [accessToken, dispatch]);

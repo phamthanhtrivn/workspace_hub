@@ -57,8 +57,11 @@ export function useChatSocket() {
           const conv = { ...prev[index] };
 
           if (message.threadParentId) {
-            // Thread reply – don't bump, only flag unread thread
-            if (message.senderId !== currentUserId) {
+            // Thread reply – don't bump, only flag unread thread if user follows
+            const isFollowing = message.threadFollowers?.some(
+              (tf: any) => (typeof tf === "string" ? tf === currentUserId : tf.userId === currentUserId)
+            );
+            if (message.senderId !== currentUserId && isFollowing) {
               conv.hasUnreadThread = true;
             }
             const updated = [...prev];

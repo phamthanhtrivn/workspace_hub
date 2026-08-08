@@ -730,7 +730,7 @@ export default function ChatArea({
       }
 
       let showAvatar = false;
-      if (!isMe && !NO_AVATAR_TYPES.includes(msg.type)) {
+      if (!NO_AVATAR_TYPES.includes(msg.type)) {
         if (
           i === 0 ||
           allMessages[i - 1].senderId !== msg.senderId ||
@@ -754,7 +754,7 @@ export default function ChatArea({
       }
 
       let showSenderName = false;
-      if (activeConversation?.type === "GROUP" && !isMe) {
+      if (!isMe || activeConversation?.type === "GROUP") {
         if (!nextMsg) {
           showSenderName = true;
         } else {
@@ -776,7 +776,7 @@ export default function ChatArea({
           msg={msg}
           isMe={isMe}
           showAvatar={showAvatar}
-          memberProfile={!isMe ? memberProfiles?.[msg.senderId] || null : null}
+          memberProfile={memberProfiles?.[msg.senderId] || null}
           memberRole={
             activeConversation?.members?.find(
               (m: any) => m.userId === msg.senderId,

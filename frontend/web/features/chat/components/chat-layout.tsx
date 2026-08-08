@@ -12,7 +12,7 @@ import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
 
 export default function ChatLayout() {
   const [showRightPanel, setShowRightPanel] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
+  const [rightPanelTab, setRightPanelTab] = useState<"search" | "threads" | null>(null);
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversation?.id,
@@ -46,6 +46,11 @@ export default function ChatLayout() {
     setShowRightPanel(true);
   };
 
+  const handleShowThreads = () => {
+    setRightPanelTab("threads");
+    setShowRightPanel(true);
+  };
+
   const handleSelectChat = () => {
     setMobileView("chat");
   };
@@ -56,7 +61,7 @@ export default function ChatLayout() {
       <div
         className={`flex-shrink-0 z-20 w-full md:w-80 ${mobileView === "sidebar" ? "block" : "hidden md:block"}`}
       >
-        <ChatSidebar onSelectChat={handleSelectChat} />
+        <ChatSidebar onSelectChat={handleSelectChat} onShowThreads={handleShowThreads} />
       </div>
 
       {/* Main Chat Area or Empty State */}

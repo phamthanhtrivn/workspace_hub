@@ -11,6 +11,7 @@ interface ChatState {
   watermarks: Record<string, string>; // userId -> messageId
   highlightMessageId: string | null;
   activeThreadRootMessage: any | null;
+  activeGroupId: string | null;
 }
 
 const initialState: ChatState = {
@@ -20,6 +21,7 @@ const initialState: ChatState = {
   watermarks: {},
   highlightMessageId: null,
   activeThreadRootMessage: null,
+  activeGroupId: null,
 };
 
 const chatSlice = createSlice({
@@ -126,6 +128,9 @@ const chatSlice = createSlice({
     setActiveThreadRootMessage: (state, action: PayloadAction<any | null>) => {
       state.activeThreadRootMessage = action.payload;
     },
+    setActiveGroupId: (state, action: PayloadAction<string | null>) => {
+      state.activeGroupId = action.payload;
+    },
   },
 });
 
@@ -142,6 +147,7 @@ export const {
   updateConversationInfo,
   updateMuteStatus,
   setActiveThreadRootMessage,
+  setActiveGroupId,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
