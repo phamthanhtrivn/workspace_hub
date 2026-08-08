@@ -45,7 +45,14 @@ export function useChatSocket() {
           if (!oldData) return oldData;
           const prev: any[] = oldData.conversations;
           const index = prev.findIndex((c) => c.id === message.conversationId);
-          if (index === -1) return oldData;
+          if (index === -1) {
+            // If the conversation is not in the user's sidebar list (e.g. new conversation),
+            // invalidate queries to refetch the conversations list in real-time.
+            queryClient.invalidateQueries({
+              queryKey: ["conversations", currentUserId],
+            });
+            return oldData;
+          }
 
           const conv = { ...prev[index] };
 

@@ -174,25 +174,6 @@ export default function ChatArea({
         conversationId: activeConversation.id,
       });
 
-      const handleNewMessage = (message: any) => {
-        if (message.conversationId === activeConversation?.id) {
-          setNewSocketMessages((prev) => [...prev, message]);
-
-          // Update watermark for the sender implicitly
-          dispatch(
-            updateWatermark({
-              userId: message.senderId,
-              messageId: message.id,
-            }),
-          );
-
-          // Auto scroll to bottom if we are already near bottom, else show badge
-          if (isBottomInView || message.senderId === auth.userId) {
-            setTimeout(() => scrollToBottom(), 100);
-          }
-        }
-      };
-
       const updateMessageInState = (
         messageId: string,
         updater: (msg: any) => any,
@@ -218,6 +199,35 @@ export default function ChatArea({
             };
           },
         );
+      };
+
+      const handleNewMessage = (message: any) => {
+        if (message.conversationId === activeConversation?.id) {
+          if (message.threadParentId) {
+            // It's a thread reply. Update parent message's thread info in state/cache.
+            updateMessageInState(message.threadParentId, (parentMsg) => ({
+              ...parentMsg,
+              threadReplyCount: (parentMsg.threadReplyCount || 0) + 1,
+              threadLastReplyAt: message.createdAt,
+            }));
+            return;
+          }
+
+          setNewSocketMessages((prev) => [...prev, message]);
+
+          // Update watermark for the sender implicitly
+          dispatch(
+            updateWatermark({
+              userId: message.senderId,
+              messageId: message.id,
+            }),
+          );
+
+          // Auto scroll to bottom if we are already near bottom, else show badge
+          if (isBottomInView || message.senderId === auth.userId) {
+            setTimeout(() => scrollToBottom(), 100);
+          }
+        }
       };
 
       const handleReactionUpdated = (data: any) => {
