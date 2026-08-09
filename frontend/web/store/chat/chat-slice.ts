@@ -1,6 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
-  UserProfileResponse,
+  ChatProfilesMap,
   ConversationResponse,
 } from "@/features/chat/types/chat.types";
 
@@ -12,6 +12,9 @@ interface ChatState {
   highlightMessageId: string | null;
   activeThreadRootMessage: any | null;
   activeSpaceId: string | null;
+  directConversations: ConversationResponse[];
+  memberProfiles: ChatProfilesMap;
+  directConversationsLoading: boolean;
 }
 
 const initialState: ChatState = {
@@ -22,6 +25,9 @@ const initialState: ChatState = {
   highlightMessageId: null,
   activeThreadRootMessage: null,
   activeSpaceId: null,
+  directConversations: [],
+  memberProfiles: {},
+  directConversationsLoading: false,
 };
 
 const chatSlice = createSlice({
@@ -131,6 +137,21 @@ const chatSlice = createSlice({
     setActiveSpaceId: (state, action: PayloadAction<string | null>) => {
       state.activeSpaceId = action.payload;
     },
+    setDirectConversations: (
+      state,
+      action: PayloadAction<ConversationResponse[]>,
+    ) => {
+      state.directConversations = action.payload;
+    },
+    setDirectConversationsLoading: (state, action: PayloadAction<boolean>) => {
+      state.directConversationsLoading = action.payload;
+    },
+    mergeMemberProfiles: (state, action: PayloadAction<ChatProfilesMap>) => {
+      state.memberProfiles = {
+        ...state.memberProfiles,
+        ...action.payload,
+      };
+    },
   },
 });
 
@@ -148,6 +169,9 @@ export const {
   updateMuteStatus,
   setActiveThreadRootMessage,
   setActiveSpaceId,
+  setDirectConversations,
+  setDirectConversationsLoading,
+  mergeMemberProfiles,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

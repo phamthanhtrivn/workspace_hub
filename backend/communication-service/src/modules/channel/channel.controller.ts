@@ -12,7 +12,6 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { CreateDirectConversationDto } from './dto/create-direct-channel.dto';
 import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ChannelService } from './channel.service';
@@ -25,34 +24,13 @@ export class ConversationController {
     private readonly conversationService: ChannelService,
   ) {}
 
-  @Post('direct')
-  async createDirectConversation(
-    @Headers('x-user-id') userId: string,
-    @Body() createDirectDto: CreateDirectConversationDto,
-  ) {
-    if (!userId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_ID);
-    }
-
-    const channel = await this.conversationService.createDirectConversation(
-      userId,
-      createDirectDto.participantId,
-    );
-
-    return {
-      message: CHANNEL_SUCCESS_MESSAGES.CREATED,
-      data: channel,
-    };
-  }
-
   @Get()
-  async getUserConversations(@Headers('x-user-id') userId: string) {
+  async getUserChannels(@Headers('x-user-id') userId: string) {
     if (!userId) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_ID);
     }
 
-    const channels =
-      await this.conversationService.getUserConversations(userId);
+    const channels = await this.conversationService.getUserChannels(userId);
 
     return {
       message: CHANNEL_SUCCESS_MESSAGES.LISTED,

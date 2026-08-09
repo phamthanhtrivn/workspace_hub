@@ -1,13 +1,18 @@
 import { useMemo } from "react";
 import { ChevronDown, ChevronRight, Pin } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getBulkProfilesByIds, getPinnedMessages } from "../../api/chat.api";
+import {
+  getBulkProfilesByIds,
+  getDirectPinnedMessages,
+  getPinnedMessages,
+} from "../../api/chat.api";
 import { UserProfileResponse } from "../../types/chat.types";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 
 interface PinnedMessagesSectionProps {
   conversationId: string;
+  isDirect?: boolean;
   isExpanded: boolean;
   onToggle: () => void;
   onSeeAll: () => void;
@@ -28,6 +33,7 @@ function getInitial(name?: string | null) {
 
 export default function PinnedMessagesSection({
   conversationId,
+  isDirect = false,
   isExpanded,
   onToggle,
   onSeeAll,
@@ -36,9 +42,12 @@ export default function PinnedMessagesSection({
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["pinnedMessagesPreview", conversationId],
+    queryKey: ["pinnedMessagesPreview", isDirect ? "direct" : "channel", conversationId],
     queryFn: async () => {
-      const response = await getPinnedMessages(conversationId, undefined, 5);
+      const fetchPinnedMessages = isDirect
+        ? getDirectPinnedMessages
+        : getPinnedMessages;
+      const response = await fetchPinnedMessages(conversationId, undefined, 5);
       return response.data;
     },
     enabled: isExpanded && !!conversationId,
@@ -86,7 +95,7 @@ export default function PinnedMessagesSection({
         messageId,
       });
   
-      queryClient.setQueryData(["pinnedMessagesDetail", conversationId], (oldData: any) => {
+      queryClient.setQueryData(["pinnedMessagesDetail", isDirect ? "direct" : "channel", conversationId], (oldData: any) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
@@ -96,7 +105,7 @@ export default function PinnedMessagesSection({
           })),
         };
       });
-      queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview", conversationId] });
+      queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview", isDirect ? "direct" : "channel", conversationId] });
     };
 
   return (

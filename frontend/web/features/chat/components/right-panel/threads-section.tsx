@@ -2,11 +2,15 @@ import { ChevronDown, ChevronRight, MessageCircle, MessageSquare, User } from "l
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { formatDateTime } from "@/lib/date";
-import { getConversationThreads } from "../../api/chat.api";
+import {
+  getConversationThreads,
+  getDirectConversationThreads,
+} from "../../api/chat.api";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface ThreadsSectionProps {
   conversationId: string;
+  isDirect?: boolean;
   isExpanded: boolean;
   onToggle: () => void;
   onSeeAll: () => void;
@@ -15,6 +19,7 @@ interface ThreadsSectionProps {
 
 export default function ThreadsSection({
   conversationId,
+  isDirect = false,
   isExpanded,
   onToggle,
   onSeeAll,
@@ -23,9 +28,12 @@ export default function ThreadsSection({
   const memberProfiles = useChatMemberProfiles() || {};
 
   const { data: threads, isLoading } = useQuery({
-    queryKey: ["conversation-threads", conversationId],
+    queryKey: ["conversation-threads", isDirect ? "direct" : "channel", conversationId],
     queryFn: async () => {
-      const res = await getConversationThreads(conversationId);
+      const fetchThreads = isDirect
+        ? getDirectConversationThreads
+        : getConversationThreads;
+      const res = await fetchThreads(conversationId);
       return res?.success ? res.data : [];
     },
     enabled: isExpanded && !!conversationId,

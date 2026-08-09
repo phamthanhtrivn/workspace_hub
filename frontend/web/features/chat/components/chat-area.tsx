@@ -5,7 +5,10 @@ import ConversationChatInput, { ConversationChatInputRef } from "./input/convers
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { getConversationMessages } from "../api/chat.api";
+import {
+  getConversationMessages,
+  getDirectConversationMessages,
+} from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -92,7 +95,11 @@ export default function ChatArea({
   } = useInfiniteQuery({
     queryKey: ["messages", activeConversation?.id, jumpTargetId],
     queryFn: async ({ pageParam }) => {
-      const response = await getConversationMessages(
+      const fetchMessages =
+        activeConversation?.type === "DIRECT"
+          ? getDirectConversationMessages
+          : getConversationMessages;
+      const response = await fetchMessages(
         activeConversation!.id,
         pageParam?.cursor,
         20,
@@ -142,6 +149,7 @@ export default function ChatArea({
   }, [allMessages]);
 
   const memberProfiles = useChatMemberProfiles(messageSenderIds);
+  const isDirectConversation = activeConversation?.type === "DIRECT";
 
   // Load more when scrolled to the top
   useEffect(() => {
@@ -191,9 +199,14 @@ export default function ChatArea({
     const socket = socketService.getSocket();
 
     if (socket && activeConversation?.id) {
-      socket.emit(ChatEvent.JOIN_CONVERSATION, {
-        channelId: activeConversation.id,
-      });
+      socket.emit(
+        isDirectConversation
+          ? ChatEvent.JOIN_DIRECT_CONVERSATION
+          : ChatEvent.JOIN_CONVERSATION,
+        isDirectConversation
+          ? { conversationId: activeConversation.id }
+          : { channelId: activeConversation.id },
+      );
 
       const getEventChannelId = (payload: any) =>
         payload?.channelId ?? payload?.conversationId;
@@ -470,6 +483,7 @@ export default function ChatArea({
   }, [
     activeConversation?.id,
     activeConversation?.spaceId,
+    isDirectConversation,
     auth.userId,
     memberProfiles,
     dispatch,
@@ -492,29 +506,45 @@ export default function ChatArea({
           });
           setEditingMessage(null);
         } else {
-          socket.emit(ChatEvent.SEND_MESSAGE, {
-            channelId: activeConversation?.id,
-            content,
-            medias,
-            mentions,
-          });
+          socket.emit(
+            activeConversation.type === "DIRECT"
+              ? ChatEvent.SEND_DIRECT_MESSAGE
+              : ChatEvent.SEND_MESSAGE,
+            activeConversation.type === "DIRECT"
+              ? {
+                  conversationId: activeConversation.id,
+                  content,
+                  medias,
+                  mentions,
+                }
+              : {
+                  channelId: activeConversation.id,
+                  content,
+                  medias,
+                  mentions,
+                },
+          );
         }
       }
     },
-    [activeConversation?.id, editingMessage],
+    [activeConversation, editingMessage],
   );
 
   const handleTypingChange = useCallback(
     (isTyping: boolean) => {
       const socket = socketService.getSocket();
       if (socket && activeConversation?.id) {
-        socket.emit(ChatEvent.TYPING, {
-          channelId: activeConversation.id,
-          isTyping,
-        });
+        socket.emit(
+          activeConversation.type === "DIRECT"
+            ? ChatEvent.TYPING_DIRECT
+            : ChatEvent.TYPING,
+          activeConversation.type === "DIRECT"
+            ? { conversationId: activeConversation.id, isTyping }
+            : { channelId: activeConversation.id, isTyping },
+        );
       }
     },
-    [activeConversation?.id],
+    [activeConversation],
   );
 
   const handleCreatePoll = useCallback(
@@ -834,12 +864,22 @@ export default function ChatArea({
         // i === 0 means it's the newest message because we iterate in reverse
         const myWatermark = watermarks?.[auth.userId || ""];
         if (myWatermark !== msg.id) {
-          const socket = socketService.getSocket();
-          if (socket) {
-            socket.emit(ChatEvent.READ_MESSAGE, {
-              channelId: activeConversation.id,
-              messageId: msg.id,
-            });
+            const socket = socketService.getSocket();
+            if (socket) {
+            socket.emit(
+              activeConversation.type === "DIRECT"
+                ? ChatEvent.READ_DIRECT_MESSAGE
+                : ChatEvent.READ_MESSAGE,
+              activeConversation.type === "DIRECT"
+                ? {
+                    conversationId: activeConversation.id,
+                    messageId: msg.id,
+                  }
+                : {
+                    channelId: activeConversation.id,
+                    messageId: msg.id,
+                  },
+            );
           }
         }
       }

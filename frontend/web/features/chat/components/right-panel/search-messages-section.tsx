@@ -7,7 +7,10 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { searchConversationMessages } from "../../api/chat.api";
+import {
+  searchConversationMessages,
+  searchDirectConversationMessages,
+} from "../../api/chat.api";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setHighlightMessageId } from "@/store/chat/chat-slice";
 import SearchResultItem from "./search-result-item";
@@ -77,7 +80,10 @@ export default function SearchMessagesSection({
     e?.preventDefault();
     setLoading(true);
     try {
-      const res = await searchConversationMessages(
+      const searchMessages = activeConversation?.type === "DIRECT"
+        ? searchDirectConversationMessages
+        : searchConversationMessages;
+      const res = await searchMessages(
         conversationId,
         query,
         senderId,
@@ -94,8 +100,6 @@ export default function SearchMessagesSection({
       setLoading(false);
     }
   };
-
-  console.log(results);
 
   const handleResultClick = (messageId: string) => {
     dispatch(setHighlightMessageId(messageId));

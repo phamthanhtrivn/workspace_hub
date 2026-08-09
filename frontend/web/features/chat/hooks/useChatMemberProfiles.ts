@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
-import { getUserConversations, getPublicProfile } from "../api/chat.api";
+import { getDirectConversations, getPublicProfile } from "../api/chat.api";
 import {
   ConversationResponse,
   UserProfileResponse,
 } from "../types/chat.types";
 
-export function useChatMemberProfiles(extraUserIds: string[] = []) {
+export function useChatMemberProfilesQuery(extraUserIds: string[] = []) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const activeConversation = useAppSelector(
     (state) => state.chat.activeConversation,
@@ -17,7 +17,7 @@ export function useChatMemberProfiles(extraUserIds: string[] = []) {
     .sort()
     .join(",");
 
-  const { data } = useQuery({
+  return useQuery({
     queryKey: [
       "chat-member-profiles",
       currentUserId,
@@ -28,7 +28,7 @@ export function useChatMemberProfiles(extraUserIds: string[] = []) {
     queryFn: async () => {
       if (!currentUserId) return { conversations: [], profiles: {} };
 
-      const response = await getUserConversations();
+      const response = await getDirectConversations();
       const conversationsData: ConversationResponse[] = response?.success
         ? response.data
         : [];
@@ -57,13 +57,11 @@ export function useChatMemberProfiles(extraUserIds: string[] = []) {
         Array.from(uniqueUserIds).map(async (userId) => {
           try {
             const profileRes = await getPublicProfile(userId);
-            profiles[userId] = profileRes?.success
-              ? profileRes.data
-              : ({ fullName: "Unknown User" } as UserProfileResponse);
+            if (profileRes?.success && profileRes.data) {
+              profiles[userId] = profileRes.data;
+            }
           } catch {
-            profiles[userId] = {
-              fullName: "Unknown User",
-            } as UserProfileResponse;
+            // Leave profile missing so consumers can keep a loading/fallback state.
           }
         }),
       );
@@ -72,5 +70,9 @@ export function useChatMemberProfiles(extraUserIds: string[] = []) {
     enabled: !!currentUserId,
     staleTime: 1000 * 60 * 5,
   });
+}
+
+export function useChatMemberProfiles(extraUserIds: string[] = []) {
+  const { data } = useChatMemberProfilesQuery(extraUserIds);
   return data?.profiles || {};
 }

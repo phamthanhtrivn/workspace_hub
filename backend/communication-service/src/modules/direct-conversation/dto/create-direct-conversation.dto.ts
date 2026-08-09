@@ -1,7 +1,7 @@
-import { IsNotEmpty, IsUUID } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateDirectConversationDto {
+  @IsString()
   @IsNotEmpty()
-  @IsUUID()
   participantId: string;
 }

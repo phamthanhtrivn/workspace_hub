@@ -3,7 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
-import { getConversationMedia, muteConversation } from "../../api/chat.api";
+import {
+  getConversationMedia,
+  getDirectConversationMedia,
+  muteConversation,
+  muteDirectConversation,
+} from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
 import MembersSection from "./members-section";
 import FilesSection from "./files-section";
@@ -127,7 +132,10 @@ export default function ChatRightPanel({
     setIsMuted(targetMuted);
 
     try {
-      await muteConversation(activeConversation.id, targetMuted);
+      await (isDirect ? muteDirectConversation : muteConversation)(
+        activeConversation.id,
+        targetMuted,
+      );
       dispatch(
         updateMuteStatus({
           conversationId: activeConversation.id,
@@ -221,7 +229,11 @@ export default function ChatRightPanel({
       expandedSection === "files" &&
       lastFetchedConversationId.current !== activeConversation.id
     ) {
-      getConversationMedia(activeConversation.id)
+      const fetchMedia =
+        activeConversation.type === "DIRECT"
+          ? getDirectConversationMedia
+          : getConversationMedia;
+      fetchMedia(activeConversation.id)
         .then((res: any) => {
           if (res.data && res.data.medias) {
             setMediaItems(res.data.medias);
@@ -290,6 +302,7 @@ export default function ChatRightPanel({
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeConversation!.id}
+          isDirect={isDirect}
           onBack={() => setDetailView(null)}
         />
       </div>
@@ -312,6 +325,7 @@ export default function ChatRightPanel({
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PinnedMessagesDetailView
           conversationId={activeConversation!.id}
+          isDirect={isDirect}
           onBack={() => setDetailView(null)}
           onJumpToMessage={handleJumpToMessage}
         />
@@ -335,6 +349,7 @@ export default function ChatRightPanel({
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadsListView
           conversationId={activeConversation!.id}
+          isDirect={isDirect}
           onClose={() => setDetailView(null)}
         />
       </div>
@@ -350,6 +365,7 @@ export default function ChatRightPanel({
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadDetailView
           rootMessage={activeThreadRootMessage}
+          isDirect={isDirect}
           onBack={() => {
             dispatch(setActiveThreadRootMessage(null));
             setDetailView(null);
@@ -455,6 +471,7 @@ export default function ChatRightPanel({
 
           <PinnedMessagesSection
             conversationId={activeConversation!.id}
+            isDirect={isDirect}
             isExpanded={expandedSection === "pinned"}
             onToggle={() => toggleSection("pinned")}
             onSeeAll={() => setDetailView("pinned")}
@@ -464,6 +481,7 @@ export default function ChatRightPanel({
           {isDirect && (
             <ThreadsSection
               conversationId={activeConversation!.id}
+              isDirect={isDirect}
               isExpanded={expandedSection === "threads"}
               onToggle={() => toggleSection("threads")}
               onSeeAll={() => setDetailView("threads")}

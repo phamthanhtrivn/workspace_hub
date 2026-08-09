@@ -794,6 +794,58 @@ export class MessageService {
     senderId?: string,
     type?: string,
   ) {
+    const isDirect = await this.prisma.directConversation.findUnique({
+      where: { id: channelId },
+      select: { id: true },
+    });
+
+    if (isDirect) {
+      const whereClause: any = {
+        conversationId: channelId,
+        deletedAt: null,
+        recalled: false,
+        threadParentId: null,
+      };
+
+      if (q) {
+        whereClause.OR = [
+          { content: { contains: q, mode: 'insensitive' } },
+          {
+            medias: {
+              some: { name: { contains: q, mode: 'insensitive' } },
+            },
+          },
+        ];
+      }
+
+      if (senderId) {
+        whereClause.senderId = senderId;
+      }
+
+      if (type) {
+        whereClause.type = type;
+      }
+
+      const messages = await this.prisma.directMessage.findMany({
+        where: whereClause,
+        orderBy: {
+          createdAt: 'desc',
+        },
+        include: {
+          medias: true,
+          replyTo: true,
+          threadFollowers: true,
+        },
+        take: 10,
+      });
+
+      return messages.map((message) => ({
+        ...message,
+        channelId: message.conversationId,
+        medias: mapMediaWithUrl(message.medias),
+      }));
+    }
+
     const whereClause: any = {
       channelId,
       deletedAt: null,
@@ -1055,6 +1107,24 @@ export class MessageService {
   async getConversationMembersInfo(
     channelId: string,
   ): Promise<{ userId: string; muted: boolean }[]> {
+    const isDirect = await this.prisma.directConversation.findUnique({
+      where: { id: channelId },
+      select: { id: true },
+    });
+
+    if (isDirect) {
+      const participants =
+        await this.prisma.directConversationParticipant.findMany({
+          where: { conversationId: channelId },
+          select: { userId: true, muted: true },
+        });
+
+      return participants.map((participant) => ({
+        userId: participant.userId,
+        muted: participant.muted,
+      }));
+    }
+
     const members = await this.prisma.channelMember.findMany({
       where: { channelId },
       select: { userId: true, muted: true },

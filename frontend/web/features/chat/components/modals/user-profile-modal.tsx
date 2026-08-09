@@ -14,7 +14,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
   const selectedProfileUserId = useAppSelector(
     (state) => state.chat.selectedProfileUserId,
   );
-  const currentUserId = useAppSelector((state) => state.auth.userId)
+  const currentUserId = useAppSelector((state) => state.auth.userId);
 
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -43,6 +43,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
           toast.error("Failed to load user information");
         }
       } catch (err) {
+        console.error("Failed to load selected user profile:", err);
         toast.error("Error loading user information");
       } finally {
         setLoading(false);
@@ -63,9 +64,26 @@ const UserProfileModal = React.memo(function UserProfileModal() {
     try {
       const response = await createDirectConversation(selectedProfileUserId);
       if (response?.success) {
-        // Dispatch an event to notify ChatSidebar to refresh/select
         window.dispatchEvent(
-          new CustomEvent("REFRESH_CONVERSATIONS", { detail: response.data }),
+          new CustomEvent("REFRESH_CONVERSATIONS", {
+            detail: {
+              conversation: response.data,
+              selectedProfile: userProfile
+                ? {
+                    ...userProfile,
+                    id: selectedProfileUserId,
+                  }
+                : {
+                    id: selectedProfileUserId,
+                    email: null,
+                    fullName: null,
+                    avatarUrl: null,
+                    phoneNumber: null,
+                    dob: null,
+                    bio: null,
+                  },
+            },
+          }),
         );
         handleClose();
       } else {
@@ -99,10 +117,10 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                 Loading profile...
               </p>
             </div>
-          ) : userProfile ? (
+          ) : (
             <div className="flex flex-col items-center">
               <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center overflow-hidden shadow-md border-2 border-white mb-4">
-                {userProfile.avatarUrl ? (
+                {userProfile?.avatarUrl ? (
                   <img
                     src={userProfile.avatarUrl}
                     alt="avatar"
@@ -113,30 +131,30 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                 )}
               </div>
               <h3 className="text-xl font-bold text-gray-800">
-                {userProfile.fullName || "Anonymous user"}
+                {userProfile?.fullName || "Unknown user"}
               </h3>
               <p className="text-gray-500 text-sm mb-6">
-                {userProfile.email || "No email provided"}
+                {userProfile?.email || "Profile details unavailable"}
               </p>
 
               <div className="w-full bg-gray-50 rounded-xl p-4 flex flex-col gap-3 mb-6">
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <Phone size={18} className="text-gray-400" />
                   <span>
-                    {userProfile.phoneNumber || "Phone number not updated"}
+                    {userProfile?.phoneNumber || "Phone number not updated"}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <Calendar size={18} className="text-gray-400" />
                   <span>
-                    {userProfile.dob
+                    {userProfile?.dob
                       ? new Date(userProfile.dob).toLocaleDateString("en-US")
                       : "Date of birth not updated"}
                   </span>
                 </div>
                 <div className="flex items-start gap-3 text-sm text-gray-700 mt-2 pt-2 border-t border-gray-200">
                   <Info size={18} className="text-gray-400 shrink-0 mt-0.5" />
-                  {userProfile.bio ? (
+                  {userProfile?.bio ? (
                     <span className="italic">"{userProfile.bio}"</span>
                   ) : (
                     <span>Bio not updated</span>
@@ -152,10 +170,6 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                   Send Message
                 </button>
               )}
-            </div>
-          ) : (
-            <div className="text-center py-10 text-gray-500">
-              User profile not found
             </div>
           )}
         </div>

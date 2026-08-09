@@ -1,7 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getConversationThreads } from "../../api/chat.api";
+import {
+  getConversationThreads,
+  getDirectConversationThreads,
+} from "../../api/chat.api";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { useAppDispatch } from "@/store/store";
 import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
@@ -11,20 +14,25 @@ import { formatDateTime } from "@/lib/date";
 
 interface ThreadsListViewProps {
   conversationId: string;
+  isDirect?: boolean;
   onClose: () => void;
 }
 
 export default function ThreadsListView({
   conversationId,
+  isDirect = false,
   onClose,
 }: ThreadsListViewProps) {
   const dispatch = useAppDispatch();
   const memberProfiles = useChatMemberProfiles() || {};
 
   const { data: threadsData, isLoading } = useQuery({
-    queryKey: ["conversation-threads", conversationId],
+    queryKey: ["conversation-threads", isDirect ? "direct" : "channel", conversationId],
     queryFn: async () => {
-      const res = await getConversationThreads(conversationId);
+      const fetchThreads = isDirect
+        ? getDirectConversationThreads
+        : getConversationThreads;
+      const res = await fetchThreads(conversationId);
       return res?.success ? res.data : [];
     },
     enabled: !!conversationId,

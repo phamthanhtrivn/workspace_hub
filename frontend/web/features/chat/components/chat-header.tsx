@@ -2,7 +2,6 @@ import { ArrowLeft, Info, User, Users, Search } from "lucide-react";
 import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
-import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
 
 interface ChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -18,7 +17,10 @@ export default function ChatHeader({
   const { activeConversation } = useAppSelector(
     (state) => state.chat,
   );
-  const memberProfiles = useChatMemberProfiles();
+  const {
+    memberProfiles,
+    directConversationsLoading,
+  } = useAppSelector((state) => state.chat);
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
 
@@ -27,6 +29,7 @@ export default function ChatHeader({
   let displayName = "Group Chat";
   let displayAvatarUrl = null;
   let otherMemberId: string | null = null;
+  let hasInlineDirectProfile = false;
 
   if (isDirect) {
     const otherMember = activeConversation?.members?.find(
@@ -36,6 +39,13 @@ export default function ChatHeader({
       otherMemberId = otherMember.userId;
       const profile = memberProfiles?.[otherMember.userId];
       const memberProfile = otherMember as any;
+      hasInlineDirectProfile = !!(
+        profile ||
+        memberProfile.profile?.fullName ||
+        memberProfile.fullName ||
+        memberProfile.profile?.avatarUrl ||
+        memberProfile.avatarUrl
+      );
       displayName =
         profile?.fullName ||
         memberProfile.profile?.fullName ||
@@ -51,6 +61,14 @@ export default function ChatHeader({
     displayName = activeConversation.name || "Group Chat";
     displayAvatarUrl = activeConversation.avatarUrl;
   }
+
+  const isLoadingDirectProfile =
+    isDirect &&
+    !!otherMemberId &&
+    !memberProfiles?.[otherMemberId] &&
+    !hasInlineDirectProfile &&
+    directConversationsLoading;
+
   return (
     <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">
       <div className="flex items-center gap-2 md:gap-3">
@@ -71,7 +89,9 @@ export default function ChatHeader({
           }}
         >
           <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold overflow-hidden">
-            {displayAvatarUrl ? (
+            {isLoadingDirectProfile ? (
+              <div className="h-full w-full animate-pulse rounded-full bg-gray-200" />
+            ) : displayAvatarUrl ? (
               <Image
                 src={displayAvatarUrl}
                 alt="Avatar"
@@ -87,12 +107,21 @@ export default function ChatHeader({
           </div>
         </div>
         <div>
-          <h2 className="font-semibold text-gray-800">{displayName}</h2>
-          <p className="text-xs text-gray-500">
-            {isDirect
-              ? "Direct Message"
-              : `${activeConversation?.members?.length || 0} members`}
-          </p>
+          {isLoadingDirectProfile ? (
+            <>
+              <div className="mb-1 h-4 w-32 animate-pulse rounded bg-gray-200" />
+              <div className="h-3 w-24 animate-pulse rounded bg-gray-100" />
+            </>
+          ) : (
+            <>
+              <h2 className="font-semibold text-gray-800">{displayName}</h2>
+              <p className="text-xs text-gray-500">
+                {isDirect
+                  ? "Direct Message"
+                  : `${activeConversation?.members?.length || 0} members`}
+              </p>
+            </>
+          )}
         </div>
       </div>
 

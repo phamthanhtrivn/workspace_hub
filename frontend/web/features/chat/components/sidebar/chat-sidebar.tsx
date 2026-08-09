@@ -45,6 +45,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isSpaceDropdownOpen, setIsSpaceDropdownOpen] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const { activeConversation, activeSpaceId } = useAppSelector((state) => state.chat);
@@ -108,11 +109,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         Array.from(uniqueUserIds).map(async (userId) => {
           try {
             const profileRes = await getPublicProfile(userId);
-            profiles[userId] = profileRes?.success
-              ? profileRes.data
-              : ({ fullName: "Unknown User" } as any);
+            if (profileRes?.success && profileRes.data) {
+              profiles[userId] = profileRes.data;
+            }
           } catch (e) {
-            profiles[userId] = { fullName: "Unknown User" } as any;
+            console.error("Failed to fetch channel member profile", e);
           }
         }),
       );
@@ -128,6 +129,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const {
     data: convsData,
     isLoading: loadingConvs,
+    isFetching: fetchingConvs,
     refetch: refetchConversations,
   } = useQuery({
     queryKey: ["conversations", currentUserId],
@@ -148,11 +150,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         Array.from(uniqueUserIds).map(async (userId) => {
           try {
             const profileRes = await getPublicProfile(userId);
-            profiles[userId] = profileRes?.success
-              ? profileRes.data
-              : ({ fullName: "Unknown User" } as any);
+            if (profileRes?.success && profileRes.data) {
+              profiles[userId] = profileRes.data;
+            }
           } catch (e) {
-            profiles[userId] = { fullName: "Unknown User" } as any;
+            console.error("Failed to fetch direct member profile", e);
           }
         }),
       );
@@ -283,9 +285,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
   useEffect(() => {
     const handleRefreshConversations = (event: Event) => {
-      const conversation = (event as CustomEvent).detail;
-      if (conversation) {
-        handleNewConversation(conversation);
+      const payload = (event as CustomEvent).detail;
+      if (payload?.conversation) {
+        handleNewConversation(payload.conversation, payload.selectedProfile);
+      } else if (payload) {
+        handleNewConversation(payload);
       } else {
         refetchConversations();
       }
@@ -307,10 +311,29 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     handleSelectConversation(newChannel);
   };
 
-  const handleReload = () => {
-    refetchSpaces();
-    refetchChannels();
-    refetchConversations();
+  const handleReload = async () => {
+    if (isReloading) return;
+    setIsReloading(true);
+
+    try {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["spaces"] }),
+        queryClient.invalidateQueries({ queryKey: ["channels"] }),
+        queryClient.invalidateQueries({ queryKey: ["conversations"] }),
+        queryClient.invalidateQueries({ queryKey: ["chat-member-profiles"] }),
+        queryClient.invalidateQueries({ queryKey: ["messages"] }),
+        queryClient.invalidateQueries({ queryKey: ["media"] }),
+        queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview"] }),
+        queryClient.invalidateQueries({ queryKey: ["pinnedMessagesDetail"] }),
+        queryClient.invalidateQueries({ queryKey: ["conversation-threads"] }),
+        queryClient.invalidateQueries({ queryKey: ["threadMessages"] }),
+        refetchSpaces(),
+        refetchChannels(),
+        refetchConversations(),
+      ]);
+    } finally {
+      setIsReloading(false);
+    }
   };
 
   // Filtered lists based on search
@@ -330,6 +353,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       return name.toLowerCase().includes(searchQuery.toLowerCase());
     });
   }, [directMessages, searchQuery, memberProfiles, currentUserId]);
+
+  console.log();
+  
 
   return (
     <div className="w-full h-full bg-white border-r border-slate-200/60 flex flex-col select-none">
@@ -353,10 +379,14 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               e.stopPropagation();
               handleReload();
             }}
-            className="p-1.5 hover:bg-slate-200/60 rounded-lg text-slate-500 hover:text-slate-700 transition"
-            title="Reload"
+            disabled={isReloading}
+            className={cn(
+              "cursor-pointer p-1.5 hover:bg-slate-200/60 rounded-lg text-slate-500 hover:text-slate-700 transition disabled:cursor-wait disabled:opacity-70",
+              isReloading && "bg-slate-200/60 text-blue-600",
+            )}
+            title={isReloading ? "Reloading..." : "Reload"}
           >
-            <RefreshCw size={14} />
+            <RefreshCw size={14} className={isReloading ? "animate-spin" : ""} />
           </button>
         </div>
 
@@ -462,6 +492,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   conv={conv}
                   currentUserId={currentUserId}
                   memberProfiles={memberProfiles}
+                  isLoadingProfile={loadingConvs || fetchingConvs}
                   isActive={activeConversation?.id === conv.id}
                   onClick={handleSelectConversation}
                 />

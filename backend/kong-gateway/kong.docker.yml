@@ -43,6 +43,7 @@ services:
       - name: communication-routes
         paths:
           - /api/conversations
+          - /api/direct-conversations
           - /api/channels
           - /api/spaces
           - /api/invitations

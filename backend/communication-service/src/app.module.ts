@@ -10,6 +10,8 @@ import { ChatModule } from './modules/chat/chat.module';
 import { MediaModule } from './modules/media/media.module';
 import { PollModule } from './modules/poll/poll.module';
 import { NoteModule } from './modules/note/note.module';
+import { DirectConversationModule } from './modules/direct-conversation/direct-conversation.module';
+import { DirectMessageModule } from './modules/direct-message/direct-message.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { NoteModule } from './modules/note/note.module';
     MediaModule,
     PollModule,
     NoteModule,
+    DirectConversationModule,
+    DirectMessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

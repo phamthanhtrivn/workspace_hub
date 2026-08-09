@@ -21,77 +21,18 @@ export class ChannelService {
     private readonly s3Service: S3Service,
   ) {}
 
-  async createDirectConversation(userId: string, participantId: string) {
-    if (userId === participantId) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.SELF_CONVERSATION,
-      );
-    }
-
-    const existingConversation = await this.prisma.directConversation.findFirst(
-      {
-        where: {
-          AND: [
-            {
-              participants: {
-                some: {
-                  userId: userId,
-                },
-              },
-            },
-            {
-              participants: {
-                some: {
-                  userId: participantId,
-                },
-              },
-            },
-          ],
-        },
-        include: {
-          participants: true,
-        },
-      },
-    );
-
-    if (existingConversation) {
-      return existingConversation;
-    }
-
-    return this.prisma.$transaction(async (prisma) => {
-      const conversation = await prisma.directConversation.create({
-        data: {
-          participants: {
-            create: [
-              {
-                userId: userId,
-              },
-              {
-                userId: participantId,
-              },
-            ],
-          },
-        },
-        include: {
-          participants: true,
-        },
-      });
-
-      return conversation;
-    });
-  }
-
-  async getUserConversations(userId: string) {
-    const conversations = await this.prisma.directConversation.findMany({
+  async getUserChannels(userId: string) {
+    const channels = await this.prisma.channel.findMany({
       where: {
-        participants: {
+        members: {
           some: {
-            userId: userId,
+            userId,
           },
         },
       },
       include: {
-        participants: true,
+        members: true,
+        setting: true,
         messages: {
           take: 1,
           orderBy: {
@@ -108,15 +49,15 @@ export class ChannelService {
     });
 
     return Promise.all(
-      conversations.map(async (conv) => {
-        const participant = conv.participants.find((p) => p.userId === userId);
+      channels.map(async (channel) => {
+        const member = channel.members.find((item) => item.userId === userId);
         let unreadCount = 0;
 
-        if (participant) {
-          const referenceDate = participant.lastReadAt || participant.joinedAt;
-          unreadCount = await this.prisma.directMessage.count({
+        if (member) {
+          const referenceDate = member.lastReadAt || member.joinedAt;
+          unreadCount = await this.prisma.message.count({
             where: {
-              conversationId: conv.id,
+              channelId: channel.id,
               createdAt: {
                 gt: referenceDate,
               },
@@ -127,21 +68,9 @@ export class ChannelService {
           });
         }
 
-        const setting = {
-          allowSendMessage: true,
-          allowCreateNote: true,
-          allowCreatePoll: true,
-          allowPinMessage: true,
-        };
-
         return {
-          ...conv,
-          type: 'DIRECT',
-          members: conv.participants.map((participant) => ({
-            ...participant,
-            role: SpaceRole.MEMBER,
-          })),
-          setting,
+          ...channel,
+          type: 'GROUP',
           unreadCount,
         };
       }),

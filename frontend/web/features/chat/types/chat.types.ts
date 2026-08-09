@@ -55,6 +55,64 @@ export interface ConversationResponse {
   messages?: any[];
 }
 
+export interface ChatMediaResponse {
+  id: string;
+  name: string;
+  fileUrl: string;
+  mimeType: string;
+  sizeBytes: number;
+  type?: string;
+  createdAt?: string;
+  message?: {
+    id: string;
+    senderId: string;
+    createdAt: string;
+    channelId?: string;
+    conversationId?: string;
+  };
+}
+
+export interface ChatMessageResponse {
+  id: string;
+  senderId: string;
+  channelId?: string | null;
+  conversationId?: string | null;
+  content?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+  threadParentId?: string | null;
+  threadReplyCount?: number;
+  threadLastReplyAt?: string | null;
+  medias?: ChatMediaResponse[];
+  [key: string]: unknown;
+}
+
+export interface PaginatedMessagesResponse {
+  messages: ChatMessageResponse[];
+  nextCursor?: string;
+  prevCursor?: string;
+}
+
+export interface PaginatedMediaResponse {
+  medias: ChatMediaResponse[];
+  nextCursor?: string;
+}
+
+export interface PinnedMessagesResponse {
+  messages: ChatMessageResponse[];
+  nextCursor?: string;
+}
+
+export interface ThreadMessagesResponse {
+  rootMessage?: ChatMessageResponse;
+  replies: ChatMessageResponse[];
+}
+
+export interface MuteConversationResponse {
+  muted: boolean;
+  [key: string]: unknown;
+}
+
 export type InvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
 export interface GroupInvitation {
@@ -66,4 +124,12 @@ export interface GroupInvitation {
   createdAt: string;
   respondedAt?: string;
   space?: any;
+}
+
+export type ChatProfilesMap = Record<string, UserProfileResponse>;
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
 }

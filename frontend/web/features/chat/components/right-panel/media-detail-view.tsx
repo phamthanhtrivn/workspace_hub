@@ -17,7 +17,10 @@ import { useInView } from "react-intersection-observer";
 import { saveAs } from "file-saver";
 import { formatDateTime } from "@/lib/date";
 import { formatFileSize } from "@/lib/file";
-import { getConversationMedia } from "../../api/chat.api";
+import {
+  getConversationMedia,
+  getDirectConversationMedia,
+} from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
 
 const FILE_FILTERS = [
@@ -38,6 +41,7 @@ type FileFilter = (typeof FILE_FILTERS)[number]["value"];
 
 interface MediaDetailViewProps {
   conversationId: string;
+  isDirect?: boolean;
   onBack: () => void;
 }
 
@@ -126,6 +130,7 @@ function formatMediaDate(item: any) {
 
 export default function MediaDetailView({
   conversationId,
+  isDirect = false,
   onBack,
 }: MediaDetailViewProps) {
   const [activeFilter, setActiveFilter] = useState<FileFilter>(undefined);
@@ -134,9 +139,12 @@ export default function MediaDetailView({
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery({
-      queryKey: ["media", conversationId, activeFilter],
+      queryKey: ["media", isDirect ? "direct" : "channel", conversationId, activeFilter],
       queryFn: async ({ pageParam }) => {
-        const res = await getConversationMedia(
+        const fetchMedia = isDirect
+          ? getDirectConversationMedia
+          : getConversationMedia;
+        const res = await fetchMedia(
           conversationId,
           pageParam as string | undefined,
           20,

@@ -27,6 +27,7 @@ import {
 } from '../../common/constants/kafka.constants';
 import { PollService } from '../poll/poll.service';
 import { NoteService } from '../note/note.service';
+import { DirectMessageService } from '../direct-message/direct-message.service';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -43,6 +44,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   constructor(
     private readonly messageService: MessageService,
+    private readonly directMessageService: DirectMessageService,
     private readonly pollService: PollService,
     private readonly noteService: NoteService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
@@ -78,6 +80,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (data.channelId) {
       client.join(data.channelId);
       return { status: CHAT_RESPONSE_STATUS.JOINED, channelId: data.channelId };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.JOIN_DIRECT_CONVERSATION)
+  handleJoinDirectConversation(
+    @MessageBody() data: { conversationId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (data.conversationId) {
+      client.join(data.conversationId);
+      return {
+        status: CHAT_RESPONSE_STATUS.JOINED,
+        conversationId: data.conversationId,
+      };
     }
   }
 
@@ -240,6 +256,141 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           channelId: data.channelId,
           messageId: message.id,
           note: messageWithUrls.note,
+        });
+      }
+
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
+    } catch (error) {
+      console.error(error);
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.SEND_FAILED,
+      };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.SEND_DIRECT_MESSAGE)
+  async handleSendDirectMessage(
+    @MessageBody()
+    data: {
+      conversationId: string;
+      content: string;
+      type?: MessageType;
+      medias?: {
+        name: string;
+        s3Key: string;
+        mimeType: string;
+        sizeBytes: number;
+      }[];
+      threadParentId?: string;
+      mentions?: string[];
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (
+      !userId ||
+      !data.conversationId ||
+      (data.content === undefined &&
+        (!data.medias || data.medias.length === 0))
+    ) {
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.INVALID_DATA,
+      };
+    }
+
+    try {
+      const message = await this.directMessageService.createDirectMessage(
+        data.conversationId,
+        userId,
+        data.content || '',
+        data.type || MessageType.TEXT,
+        data.medias,
+        data.threadParentId,
+      );
+
+      const memberUserIds =
+        await this.directMessageService.getDirectConversationMemberIds(
+          data.conversationId,
+        );
+
+      let threadFollowers: string[] = [];
+      if (data.threadParentId) {
+        threadFollowers =
+          await this.directMessageService.getDirectThreadFollowers(
+            data.threadParentId,
+          );
+      }
+
+      const messageWithUrls = {
+        ...message,
+        medias: mapMediaWithUrl(message.medias),
+        mentions: data.mentions,
+        threadFollowers: data.threadParentId ? threadFollowers : undefined,
+      };
+
+      const targetRooms = [data.conversationId, ...memberUserIds];
+      this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
+
+      this.directMessageService
+        .getDirectConversationMembersInfo(data.conversationId)
+        .then((membersInfo) => {
+          const mentions = data.mentions || [];
+          let recipientIds = membersInfo
+            .filter((m) => m.userId !== userId)
+            .filter((m) => !m.muted || mentions.includes(m.userId))
+            .map((m) => m.userId);
+
+          if (data.threadParentId) {
+            recipientIds = recipientIds.filter((rId) =>
+              threadFollowers.includes(rId),
+            );
+          }
+
+          if (recipientIds.length > 0) {
+            let previewContent = data.content || '';
+            if (data.medias && data.medias.length > 0) {
+              const type = data.medias[0].mimeType.startsWith('image/')
+                ? CHAT_PREVIEW_TEXT.IMAGE
+                : data.medias[0].mimeType.startsWith('video/')
+                  ? CHAT_PREVIEW_TEXT.VIDEO
+                  : CHAT_PREVIEW_TEXT.FILE;
+              previewContent = `${CHAT_PREVIEW_TEXT.SENT_ATTACHMENT_PREFIX}${type}`;
+            }
+
+            this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+              key: data.conversationId,
+              value: {
+                recipientIds,
+                senderId: userId,
+                senderName: '',
+                senderAvatar: '',
+                type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
+                title: 'New message',
+                content: previewContent,
+                link: `/chat?id=${data.conversationId}`,
+                metadata: {
+                  conversationId: data.conversationId,
+                  messageId: message.id,
+                },
+              },
+            });
+          }
+        })
+        .catch((err) => {
+          this.logger.error(
+            `Failed to handle Kafka notification for direct message: ${err.message}`,
+            err.stack,
+          );
+        });
+
+      if (data.medias && data.medias.length > 0) {
+        this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
+          conversationId: data.conversationId,
+          channelId: data.conversationId,
+          messageId: message.id,
+          media: messageWithUrls.medias,
         });
       }
 
@@ -599,6 +750,46 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage(ChatEvent.READ_DIRECT_MESSAGE)
+  async handleReadDirectMessage(
+    @MessageBody()
+    data: { conversationId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.conversationId) return;
+
+    try {
+      const readReceipt =
+        await this.directMessageService.markDirectConversationAsRead(
+          data.conversationId,
+          userId,
+          data.messageId,
+        );
+
+      const memberUserIds =
+        await this.directMessageService.getDirectConversationMemberIds(
+          data.conversationId,
+        );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
+        conversationId: data.conversationId,
+        channelId: data.conversationId,
+        messageId: data.messageId,
+        userId,
+        readAt: readReceipt.lastReadAt,
+      });
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
+    } catch (error) {
+      console.error(error);
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.READ_RECEIPT_FAILED,
+      };
+    }
+  }
+
   @SubscribeMessage(ChatEvent.TYPING)
   async handleTyping(
     @MessageBody() data: { channelId: string; isTyping: boolean },
@@ -615,6 +806,32 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server.to(targetRooms).emit(ChatEvent.TYPING, {
         channelId: data.channelId,
+        userId,
+        isTyping: data.isTyping,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.TYPING_DIRECT)
+  async handleDirectTyping(
+    @MessageBody() data: { conversationId: string; isTyping: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.conversationId) return;
+
+    try {
+      const memberUserIds =
+        await this.directMessageService.getDirectConversationMemberIds(
+          data.conversationId,
+        );
+      const targetRooms = [data.conversationId, ...memberUserIds];
+
+      this.server.to(targetRooms).emit(ChatEvent.TYPING, {
+        conversationId: data.conversationId,
+        channelId: data.conversationId,
         userId,
         isTyping: data.isTyping,
       });

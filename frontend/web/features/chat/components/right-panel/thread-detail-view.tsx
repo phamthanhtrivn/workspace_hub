@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState, useMemo } from "react";
 import { X, User, FileText, Download, Bell } from "lucide-react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getThreadMessages, followThread } from "../../api/chat.api";
+import {
+  followThread,
+  getDirectThreadMessages,
+  getThreadMessages,
+} from "../../api/chat.api";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useAppSelector } from "@/store/store";
@@ -14,11 +18,13 @@ import { toast } from "react-toastify";
 
 interface ThreadDetailViewProps {
   rootMessage: any;
+  isDirect?: boolean;
   onBack: () => void;
 }
 
 export default function ThreadDetailView({
   rootMessage,
+  isDirect = false,
   onBack,
 }: ThreadDetailViewProps) {
   const queryClient = useQueryClient();
@@ -53,8 +59,11 @@ export default function ThreadDetailView({
 
   // Fetch thread messages (root message + replies)
   const { data: threadData, isLoading } = useQuery({
-    queryKey: ["threadMessages", rootMessage.id],
-    queryFn: () => getThreadMessages(rootMessage.id),
+    queryKey: ["threadMessages", isDirect ? "direct" : "channel", rootMessage.id],
+    queryFn: () =>
+      isDirect
+        ? getDirectThreadMessages(rootMessage.id)
+        : getThreadMessages(rootMessage.id),
     staleTime: 1000 * 30, // 30s
   });
 
@@ -81,7 +90,7 @@ export default function ThreadDetailView({
     const handleNewMessage = (msg: any) => {
       if (msg.threadParentId === rootMessage.id) {
         queryClient.setQueryData(
-          ["threadMessages", rootMessage.id],
+          ["threadMessages", isDirect ? "direct" : "channel", rootMessage.id],
           (oldData: any) => {
             if (!oldData) return oldData;
             // Prevent duplicate insertion
@@ -105,7 +114,7 @@ export default function ThreadDetailView({
     return () => {
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
     };
-  }, [rootMessage.id, queryClient]);
+  }, [isDirect, rootMessage.id, queryClient]);
 
   // Scroll to bottom on new replies
   useEffect(() => {
@@ -135,13 +144,24 @@ export default function ThreadDetailView({
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    socket.emit(ChatEvent.SEND_MESSAGE, {
-      channelId: rootMessage.channelId ?? rootMessage.conversationId,
-      content,
-      medias: media,
-      threadParentId: rootMessage.id,
-      mentions,
-    });
+    socket.emit(
+      isDirect ? ChatEvent.SEND_DIRECT_MESSAGE : ChatEvent.SEND_MESSAGE,
+      isDirect
+        ? {
+            conversationId: rootMessage.conversationId ?? rootMessage.channelId,
+            content,
+            medias: media,
+            threadParentId: rootMessage.id,
+            mentions,
+          }
+        : {
+            channelId: rootMessage.channelId,
+            content,
+            medias: media,
+            threadParentId: rootMessage.id,
+            mentions,
+          },
+    );
   };
 
   const getProfile = (userId: string) => {

@@ -8,6 +8,7 @@ interface ConversationItemProps {
   conv: any;
   currentUserId: string | null;
   memberProfiles: Record<string, any>;
+  isLoadingProfile?: boolean;
   isActive?: boolean;
   onClick: (conv: any) => void;
 }
@@ -16,6 +17,7 @@ const ConversationItem = React.memo(function ConversationItem({
   conv,
   currentUserId,
   memberProfiles,
+  isLoadingProfile = false,
   isActive,
   onClick,
 }: ConversationItemProps) {
@@ -28,9 +30,10 @@ const ConversationItem = React.memo(function ConversationItem({
   }, [isDirect, conv.members, currentUserId]);
 
   const profile = otherMember ? memberProfiles[otherMember.userId] : null;
+  const isDirectProfileLoading = isDirect && !!otherMember && !profile && isLoadingProfile;
 
   const name = isDirect
-    ? profile?.fullName || "Unknown User"
+    ? profile?.fullName || "User"
     : conv.name || "Group Chat";
 
   const avatarUrl = isDirect ? profile?.avatarUrl : conv.avatarUrl;
@@ -57,7 +60,9 @@ const ConversationItem = React.memo(function ConversationItem({
           <>
             <div className="relative shrink-0">
               <div className="w-7 h-7 bg-gradient-to-br from-blue-50 to-slate-200 rounded-full flex items-center justify-center overflow-hidden border border-slate-200/60 shadow-sm transition-transform duration-200 group-hover:scale-105">
-                {avatarUrl ? (
+                {isDirectProfileLoading ? (
+                  <span className="h-full w-full animate-pulse rounded-full bg-slate-200" />
+                ) : avatarUrl ? (
                   <Image
                     src={avatarUrl}
                     alt="Avatar"
@@ -81,7 +86,11 @@ const ConversationItem = React.memo(function ConversationItem({
                 conv.unreadCount > 0 && "font-black",
               )}
             >
-              {name}
+              {isDirectProfileLoading ? (
+                <span className="block h-3 w-28 animate-pulse rounded bg-slate-200" />
+              ) : (
+                name
+              )}
             </span>
           </>
         ) : (

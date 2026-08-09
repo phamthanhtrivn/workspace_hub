@@ -1,5 +1,16 @@
 import { api } from "@/lib/axios";
-import { UserSearchResponse, UserProfileResponse } from "../types/chat.types";
+import {
+  ApiResponse,
+  ChatMessageResponse,
+  ConversationResponse,
+  MuteConversationResponse,
+  PaginatedMediaResponse,
+  PaginatedMessagesResponse,
+  PinnedMessagesResponse,
+  ThreadMessagesResponse,
+  UserSearchResponse,
+  UserProfileResponse,
+} from "../types/chat.types";
 
 export const searchUserByEmail = async (email: string): Promise<any> => {
   const response = await api.get("/api/users/search", {
@@ -29,17 +40,41 @@ function normalizeDirectConversation(conversation: any) {
   };
 }
 
+function normalizeApiResponse<T>(payload: any): ApiResponse<T> {
+  return {
+    ...payload,
+    success: payload?.success ?? true,
+    data: payload?.data ?? payload,
+  };
+}
+
 export const createDirectConversation = async (
   participantId: string,
-): Promise<any> => {
-  const response = await api.post("/api/channels/direct", {
+): Promise<ApiResponse<ConversationResponse>> => {
+  const response = await api.post("/api/direct-conversations", {
     participantId,
   });
   const payload = response.data;
   return {
+    ...normalizeApiResponse<ConversationResponse>(payload),
+    data: normalizeDirectConversation(payload?.data ?? payload),
+  };
+};
+
+export const getDirectConversations = async (): Promise<
+  ApiResponse<ConversationResponse[]>
+> => {
+  const response = await api.get("/api/direct-conversations");
+  const payload = response.data;
+  const conversations = payload?.data ?? payload;
+  return {
     ...payload,
     success: payload?.success ?? true,
-    data: normalizeDirectConversation(payload?.data ?? payload),
+    data: Array.isArray(conversations)
+      ? conversations.map((conversation: any) =>
+          normalizeDirectConversation(conversation),
+        )
+      : [],
   };
 };
 
@@ -80,16 +115,31 @@ export const updateGroupInfo = async (
 };
 
 
-export const getPublicProfile = async (id: string): Promise<any> => {
+export const getPublicProfile = async (
+  id: string,
+): Promise<ApiResponse<UserProfileResponse>> => {
   const response = await api.get(`/api/users/${id}/profile`);
-  return response.data;
+  const payload = response.data;
+  return {
+    ...payload,
+    success: payload?.success ?? true,
+    data: payload?.data ?? payload,
+  };
 };
 
-export const getBulkProfilesByIds = async (ids: string[]): Promise<any> => {
+export const getBulkProfilesByIds = async (
+  ids: string[],
+): Promise<ApiResponse<UserProfileResponse[]>> => {
   const response = await api.get("/api/users/profiles/bulk", {
     params: { ids: ids.join(",") },
   });
-  return response.data;
+  const payload = response.data;
+  const profiles = payload?.data ?? payload;
+  return {
+    ...payload,
+    success: payload?.success ?? true,
+    data: Array.isArray(profiles) ? profiles : [],
+  };
 };
 
 export const getPendingInvitations = async (): Promise<any> => {
@@ -107,9 +157,23 @@ export const declineInvitation = async (invitationId: string): Promise<any> => {
   return response.data;
 };
 
-export const getUserConversations = async (): Promise<any> => {
+export const getUserConversations = async (): Promise<
+  ApiResponse<ConversationResponse[]>
+> => {
   const response = await api.get("/api/channels");
-  return response.data;
+  const payload = response.data;
+  const conversations = payload?.data ?? payload;
+  return {
+    ...payload,
+    success: payload?.success ?? true,
+    data: Array.isArray(conversations)
+      ? conversations.map((conversation: any) =>
+          conversation.type === "DIRECT" || conversation.participants
+            ? normalizeDirectConversation(conversation)
+            : conversation,
+        )
+      : [],
+  };
 };
 
 export const getConversationMessages = async (
@@ -117,14 +181,29 @@ export const getConversationMessages = async (
   cursor?: string,
   limit?: number,
   direction?: "older" | "newer" | "around",
-): Promise<any> => {
+): Promise<ApiResponse<PaginatedMessagesResponse>> => {
   const response = await api.get(
     `/api/channels/${conversationId}/messages`,
     {
       params: { cursor, limit, direction },
     },
   );
-  return response.data;
+  return normalizeApiResponse<PaginatedMessagesResponse>(response.data);
+};
+
+export const getDirectConversationMessages = async (
+  conversationId: string,
+  cursor?: string,
+  limit?: number,
+  direction?: "older" | "newer" | "around",
+): Promise<ApiResponse<PaginatedMessagesResponse>> => {
+  const response = await api.get(
+    `/api/direct-conversations/${conversationId}/messages`,
+    {
+      params: { cursor, limit, direction },
+    },
+  );
+  return normalizeApiResponse<PaginatedMessagesResponse>(response.data);
 };
 
 export const getConversationMedia = async (
@@ -132,25 +211,51 @@ export const getConversationMedia = async (
   cursor?: string,
   limit?: number,
   mediaType?: string,
-): Promise<any> => {
+): Promise<ApiResponse<PaginatedMediaResponse>> => {
   const response = await api.get(`/api/channels/${conversationId}/media`, {
     params: { cursor, limit, mediaType },
   });
-  return response.data;
+  return normalizeApiResponse<PaginatedMediaResponse>(response.data);
+};
+
+export const getDirectConversationMedia = async (
+  conversationId: string,
+  cursor?: string,
+  limit?: number,
+  mediaType?: string,
+): Promise<ApiResponse<PaginatedMediaResponse>> => {
+  const response = await api.get(`/api/direct-conversations/${conversationId}/media`, {
+    params: { cursor, limit, mediaType },
+  });
+  return normalizeApiResponse<PaginatedMediaResponse>(response.data);
 };
 
 export const getPinnedMessages = async (
   conversationId: string,
   cursor?: string,
   limit?: number,
-): Promise<any> => {
+): Promise<ApiResponse<PinnedMessagesResponse>> => {
   const response = await api.get(
     `/api/channels/${conversationId}/pinned-messages`,
     {
       params: { cursor, limit },
     },
   );
-  return response.data;
+  return normalizeApiResponse<PinnedMessagesResponse>(response.data);
+};
+
+export const getDirectPinnedMessages = async (
+  conversationId: string,
+  cursor?: string,
+  limit?: number,
+): Promise<ApiResponse<PinnedMessagesResponse>> => {
+  const response = await api.get(
+    `/api/direct-conversations/${conversationId}/pinned-messages`,
+    {
+      params: { cursor, limit },
+    },
+  );
+  return normalizeApiResponse<PinnedMessagesResponse>(response.data);
 };
 
 export const searchConversationMessages = async (
@@ -158,14 +263,29 @@ export const searchConversationMessages = async (
   q?: string,
   senderId?: string,
   type?: "TEXT",
-): Promise<any> => {
+): Promise<ApiResponse<ChatMessageResponse[]>> => {
   const response = await api.get(
     `/api/channels/${conversationId}/messages/search`,
     {
       params: { q, senderId, type },
     },
   );
-  return response.data;
+  return normalizeApiResponse<ChatMessageResponse[]>(response.data);
+};
+
+export const searchDirectConversationMessages = async (
+  conversationId: string,
+  q?: string,
+  senderId?: string,
+  type?: "TEXT",
+): Promise<ApiResponse<ChatMessageResponse[]>> => {
+  const response = await api.get(
+    `/api/direct-conversations/${conversationId}/messages/search`,
+    {
+      params: { q, senderId, type },
+    },
+  );
+  return normalizeApiResponse<ChatMessageResponse[]>(response.data);
 };
 
 export const updateConversationSettings = async (
@@ -243,19 +363,37 @@ export const getGroupAvatarPresignedUrl = async (
 export const muteConversation = async (
   conversationId: string,
   muted: boolean,
-): Promise<any> => {
+): Promise<ApiResponse<MuteConversationResponse>> => {
   const response = await api.patch(
     `/api/channels/${conversationId}/mute`,
     { muted },
   );
-  return response.data;
+  return normalizeApiResponse<MuteConversationResponse>(response.data);
+};
+
+export const muteDirectConversation = async (
+  conversationId: string,
+  muted: boolean,
+): Promise<ApiResponse<MuteConversationResponse>> => {
+  const response = await api.patch(
+    `/api/direct-conversations/${conversationId}/mute`,
+    { muted },
+  );
+  return normalizeApiResponse<MuteConversationResponse>(response.data);
 };
 
 export const getThreadMessages = async (
   messageId: string,
-): Promise<any> => {
+): Promise<ApiResponse<ThreadMessagesResponse>> => {
   const response = await api.get(`/api/channels/messages/${messageId}/thread`);
-  return response.data;
+  return normalizeApiResponse<ThreadMessagesResponse>(response.data);
+};
+
+export const getDirectThreadMessages = async (
+  messageId: string,
+): Promise<ApiResponse<ThreadMessagesResponse>> => {
+  const response = await api.get(`/api/direct-conversations/messages/${messageId}/thread`);
+  return normalizeApiResponse<ThreadMessagesResponse>(response.data);
 };
 
 export const createSpace = async (
@@ -295,9 +433,16 @@ export const inviteSpaceMembers = async (
 
 export const getConversationThreads = async (
   conversationId: string,
-): Promise<any> => {
+): Promise<ApiResponse<ChatMessageResponse[]>> => {
   const response = await api.get(`/api/channels/messages/${conversationId}/threads`);
-  return response.data;
+  return normalizeApiResponse<ChatMessageResponse[]>(response.data);
+};
+
+export const getDirectConversationThreads = async (
+  conversationId: string,
+): Promise<ApiResponse<ChatMessageResponse[]>> => {
+  const response = await api.get(`/api/direct-conversations/${conversationId}/threads`);
+  return normalizeApiResponse<ChatMessageResponse[]>(response.data);
 };
 
 export const followThread = async (
