@@ -11,6 +11,7 @@ import {
 import { saveAs } from "file-saver";
 import { formatFileSize } from "@/lib/file";
 import { formatDateTime } from "@/lib/date";
+import SeeAllButton from "./see-all-button";
 
 interface FilesSectionProps {
   isExpanded: boolean;
@@ -134,12 +135,9 @@ export default function FilesSection({
                 ))}
               </div>
               {hasMore && (
-                <button
-                  onClick={onSeeAll}
-                  className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50 rounded-lg transition"
-                >
+                <SeeAllButton onClick={onSeeAll}>
                   See all files
-                </button>
+                </SeeAllButton>
               )}
             </>
           )}

@@ -10,6 +10,7 @@ import { UserProfileResponse } from "../../types/chat.types";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
+import SeeAllButton from "./see-all-button";
 
 interface PinnedMessagesSectionProps {
   conversationId: string;
@@ -188,12 +189,9 @@ export default function PinnedMessagesSection({
                 </button>
               ))}
               {data?.nextCursor && (
-                <button
-                  onClick={onSeeAll}
-                  className="cursor-pointer w-full rounded-lg px-2 py-1.5 text-left text-xs font-medium text-blue-600 hover:bg-blue-50 transition"
-                >
+                <SeeAllButton onClick={onSeeAll} className="mt-2">
                   See all pinned messages
-                </button>
+                </SeeAllButton>
               )}
             </div>
           )}

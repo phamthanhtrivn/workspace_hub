@@ -7,6 +7,7 @@ import {
   getDirectConversationThreads,
 } from "../../api/chat.api";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import SeeAllButton from "./see-all-button";
 
 interface ThreadsSectionProps {
   conversationId: string;
@@ -27,21 +28,30 @@ export default function ThreadsSection({
 }: ThreadsSectionProps) {
   const memberProfiles = useChatMemberProfiles() || {};
 
-  const { data: threads, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["conversation-threads", isDirect ? "direct" : "channel", conversationId],
     queryFn: async () => {
-      const fetchThreads = isDirect
-        ? getDirectConversationThreads
-        : getConversationThreads;
-      const res = await fetchThreads(conversationId);
-      return res?.success ? res.data : [];
+      const res = isDirect
+        ? await getDirectConversationThreads(conversationId, undefined, 5)
+        : await getConversationThreads(conversationId);
+      if (!res?.success) return { threads: [], nextCursor: undefined };
+      if (Array.isArray(res.data)) {
+        return {
+          threads: res.data.slice(0, 5),
+          nextCursor: res.data.length > 5 ? res.data[5]?.id : undefined,
+        };
+      }
+      return {
+        threads: res.data.messages || [],
+        nextCursor: res.data.nextCursor,
+      };
     },
     enabled: isExpanded && !!conversationId,
     refetchInterval: 3000,
   });
 
-  const previewThreads = (threads || []).slice(0, 5);
-  const hasMore = (threads || []).length > 5;
+  const previewThreads = data?.threads || [];
+  const hasMore = !!data?.nextCursor;
 
   return (
     <div>
@@ -113,12 +123,9 @@ export default function ThreadsSection({
                 );
               })}
               {hasMore && (
-                <button
-                  onClick={onSeeAll}
-                  className="cursor-pointer w-full rounded-lg px-2 py-1.5 text-left text-xs font-medium text-blue-600 hover:bg-blue-50 transition"
-                >
+                <SeeAllButton onClick={onSeeAll} className="mt-2">
                   See all threads
-                </button>
+                </SeeAllButton>
               )}
             </div>
           )}

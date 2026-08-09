@@ -280,11 +280,12 @@ export const getDirectPinnedMessages = async (
   conversationId: string,
   cursor?: string,
   limit?: number,
+  senderId?: string,
 ): Promise<ApiResponse<PinnedMessagesResponse>> => {
   const response = await api.get(
     `/api/direct-conversations/${conversationId}/pinned-messages`,
     {
-      params: { cursor, limit },
+      params: { cursor, limit, senderId },
     },
   );
   return normalizeApiResponse<PinnedMessagesResponse>(response.data);
@@ -559,9 +560,14 @@ export const getConversationThreads = async (
 
 export const getDirectConversationThreads = async (
   conversationId: string,
-): Promise<ApiResponse<ChatMessageResponse[]>> => {
-  const response = await api.get(`/api/direct-conversations/${conversationId}/threads`);
-  return normalizeApiResponse<ChatMessageResponse[]>(response.data);
+  cursor?: string,
+  limit?: number,
+  senderId?: string,
+): Promise<ApiResponse<PaginatedMessagesResponse>> => {
+  const response = await api.get(`/api/direct-conversations/${conversationId}/threads`, {
+    params: { cursor, limit, senderId },
+  });
+  return normalizeApiResponse<PaginatedMessagesResponse>(response.data);
 };
 
 export const followThread = async (

@@ -4,6 +4,7 @@ import { useAppSelector } from "@/store/store";
 import ViewPollModal from "../modals/view-poll-modal";
 import { formatDateTime } from "@/lib/date";
 import { usePolls } from "../../hooks/usePolls";
+import SeeAllButton from "./see-all-button";
 
 interface PollsSectionProps {
   isExpanded: boolean;
@@ -74,12 +75,9 @@ export default function PollsSection({
                 ))}
               </div>
               {hasMore && (
-                <button
-                  onClick={onSeeAll}
-                  className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50 rounded-lg transition"
-                >
+                <SeeAllButton onClick={onSeeAll}>
                   See all
-                </button>
+                </SeeAllButton>
               )}
             </>
           )}

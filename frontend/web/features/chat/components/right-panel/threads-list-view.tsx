@@ -1,14 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInView } from "react-intersection-observer";
 import {
   getConversationThreads,
   getDirectConversationThreads,
 } from "../../api/chat.api";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
-import { useAppDispatch } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
-import { X, MessageSquare, User, MessageCircle } from "lucide-react";
+import { Filter, X, MessageSquare, User, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { formatDateTime } from "@/lib/date";
 
@@ -24,22 +26,76 @@ export default function ThreadsListView({
   onClose,
 }: ThreadsListViewProps) {
   const dispatch = useAppDispatch();
+  const activeConversation = useAppSelector(
+    (state) => state.chat.activeConversation,
+  );
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const memberProfiles = useChatMemberProfiles() || {};
+  const { ref: loadMoreRef, inView } = useInView();
+  const [senderId, setSenderId] = useState("");
 
-  const { data: threadsData, isLoading } = useQuery({
-    queryKey: ["conversation-threads", isDirect ? "direct" : "channel", conversationId],
-    queryFn: async () => {
-      const fetchThreads = isDirect
-        ? getDirectConversationThreads
-        : getConversationThreads;
-      const res = await fetchThreads(conversationId);
-      return res?.success ? res.data : [];
+  const senderOptions = useMemo(() => {
+    if (!isDirect || !activeConversation?.members) return [];
+    return activeConversation.members
+      .map((member: any) => {
+        const profile = memberProfiles[member.userId];
+        return {
+          id: member.userId,
+          label:
+            member.userId === currentUserId
+              ? "You"
+              : profile?.fullName || member.fullName || "User",
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [activeConversation?.members, currentUserId, isDirect, memberProfiles]);
+
+  console.log(activeConversation);
+  
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
+    queryKey: [
+      "conversation-threads",
+      isDirect ? "direct" : "channel",
+      conversationId,
+      senderId || "all",
+    ],
+    queryFn: async ({ pageParam }) => {
+      if (isDirect) {
+        const res = await getDirectConversationThreads(
+          conversationId,
+          pageParam,
+          20,
+          senderId || undefined,
+        );
+        return res?.success ? res.data : { messages: [], nextCursor: undefined };
+      }
+
+      const res = await getConversationThreads(conversationId);
+      return {
+        messages: res?.success && Array.isArray(res.data) ? res.data : [],
+        nextCursor: undefined,
+      };
     },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor,
     enabled: !!conversationId,
-    refetchInterval: 3000, // Poll threads list every 3s for real-time updates
+    refetchInterval: 3000,
   });
 
-  const threads = threadsData || [];
+  useEffect(() => {
+    if (inView && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [fetchNextPage, hasNextPage, inView, isFetchingNextPage]);
+
+  const threads = data?.pages.flatMap((page) => page.messages || []) || [];
 
   const handleOpenThread = (message: any) => {
     dispatch(setActiveThreadRootMessage(message));
@@ -60,6 +116,27 @@ export default function ThreadsListView({
           <X size={18} />
         </button>
       </div>
+
+      {isDirect && (
+        <div className="px-4 py-3 border-b border-slate-100 shrink-0">
+          <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 mb-1.5">
+            <Filter size={13} />
+            Sender
+          </label>
+          <select
+            value={senderId}
+            onChange={(event) => setSenderId(event.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">All senders</option>
+            {senderOptions.map((sender) => (
+              <option key={sender.id} value={sender.id}>
+                {sender.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* List content */}
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
@@ -131,6 +208,11 @@ export default function ThreadsListView({
             </p>
           </div>
         )}
+        <div ref={loadMoreRef} className="h-8 flex items-center justify-center">
+          {isFetchingNextPage && (
+            <span className="text-xs text-slate-400">Loading more...</span>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react";
-import { ArrowLeft, Pin, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, Filter, Pin } from "lucide-react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import {
@@ -12,6 +12,8 @@ import { ChatEvent } from "../../api/chat.events";
 import { UserProfileResponse } from "../../types/chat.types";
 import { formatDateTime } from "@/lib/date";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
+import { useAppSelector } from "@/store/store";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface PinnedMessagesDetailViewProps {
   conversationId: string;
@@ -39,8 +41,21 @@ export default function PinnedMessagesDetailView({
   onJumpToMessage,
 }: PinnedMessagesDetailViewProps) {
   const queryClient = useQueryClient();
+  const activeConversation = useAppSelector(
+    (state) => state.chat.activeConversation,
+  );
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const { unpinMessage: unpinDirectPinnedMessage } = useDirectMessageActions();
   const { ref: loadMoreRef, inView } = useInView();
+  const [senderId, setSenderId] = useState("");
+  const conversationMemberIds = useMemo(
+    () =>
+      activeConversation?.members
+        ?.map((member: any) => member.userId)
+        .filter(Boolean) || [],
+    [activeConversation?.members],
+  );
+  const memberProfiles = useChatMemberProfiles(conversationMemberIds);
 
   const {
     data,
@@ -49,12 +64,21 @@ export default function PinnedMessagesDetailView({
     isFetchingNextPage,
     isLoading,
   } = useInfiniteQuery({
-    queryKey: ["pinnedMessagesDetail", isDirect ? "direct" : "channel", conversationId],
+    queryKey: [
+      "pinnedMessagesDetail",
+      isDirect ? "direct" : "channel",
+      conversationId,
+      senderId || "all",
+    ],
     queryFn: async ({ pageParam }) => {
-      const fetchPinnedMessages = isDirect
-        ? getDirectPinnedMessages
-        : getPinnedMessages;
-      const response = await fetchPinnedMessages(conversationId, pageParam, 20);
+      const response = isDirect
+        ? await getDirectPinnedMessages(
+            conversationId,
+            pageParam,
+            20,
+            senderId || undefined,
+          )
+        : await getPinnedMessages(conversationId, pageParam, 20);
       return response.data;
     },
     initialPageParam: undefined as string | undefined,
@@ -99,6 +123,28 @@ export default function PinnedMessagesDetailView({
     }
     return profiles;
   }, [profilesResponse]);
+
+  const senderOptions = useMemo(() => {
+    if (!isDirect || !activeConversation?.members) return [];
+    return activeConversation.members
+      .map((member: any) => {
+        const profile = memberProfiles[member.userId] || profilesById[member.userId];
+        return {
+          id: member.userId,
+          label:
+            member.userId === currentUserId
+              ? "You"
+              : profile?.fullName || member.fullName || "User",
+        };
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [
+    activeConversation?.members,
+    currentUserId,
+    isDirect,
+    memberProfiles,
+    profilesById,
+  ]);
 
   const handleUnpin = async (messageId: string) => {
     if (isDirect) {
@@ -148,6 +194,27 @@ export default function PinnedMessagesDetailView({
         </button>
         <h2 className="font-semibold text-gray-800">Pinned messages</h2>
       </div>
+
+      {isDirect && (
+        <div className="px-4 py-3 border-b border-gray-100 shrink-0">
+          <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 mb-1.5">
+            <Filter size={13} />
+            Sender
+          </label>
+          <select
+            value={senderId}
+            onChange={(event) => setSenderId(event.target.value)}
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            <option value="">All senders</option>
+            {senderOptions.map((sender) => (
+              <option key={sender.id} value={sender.id}>
+                {sender.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-4">
         {isLoading ? (

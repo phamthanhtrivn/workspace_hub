@@ -311,12 +311,14 @@ export class DirectMessageService {
     conversationId: string,
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
+    senderId?: string,
   ) {
     const messages = await this.prisma.directMessage.findMany({
       where: {
         conversationId,
         pinned: true,
         threadParentId: null,
+        senderId: senderId || undefined,
       },
       take: limit + 1,
       skip: cursor ? 1 : 0,
@@ -386,15 +388,24 @@ export class DirectMessageService {
     return messages.map((message) => this.mapDirectMessage(message));
   }
 
-  async getDirectConversationThreads(conversationId: string) {
+  async getDirectConversationThreads(
+    conversationId: string,
+    cursor?: string,
+    limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
+    senderId?: string,
+  ) {
     const messages = await this.prisma.directMessage.findMany({
       where: {
         conversationId,
+        senderId: senderId || undefined,
         threadReplyCount: {
           gt: 0,
         },
         threadParentId: null,
       },
+      take: limit + 1,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
       include: {
         reactions: true,
         medias: true,
@@ -406,7 +417,16 @@ export class DirectMessageService {
       },
     });
 
-    return messages.map((message) => this.mapDirectMessage(message));
+    let nextCursor: string | undefined;
+    if (messages.length > limit) {
+      const nextItem = messages.pop();
+      nextCursor = nextItem?.id;
+    }
+
+    return {
+      messages: messages.map((message) => this.mapDirectMessage(message)),
+      nextCursor,
+    };
   }
 
   async getDirectThreadMessages(messageId: string) {

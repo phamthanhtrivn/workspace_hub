@@ -147,6 +147,7 @@ export class DirectMessageController {
     @Param('id') conversationId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('senderId') senderId?: string,
   ) {
     if (!conversationId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
@@ -159,6 +160,7 @@ export class DirectMessageController {
       conversationId,
       cursor,
       parsedLimit,
+      senderId,
     );
 
     return {
@@ -192,14 +194,25 @@ export class DirectMessageController {
   }
 
   @Get(':id/threads')
-  async getDirectConversationThreads(@Param('id') conversationId: string) {
+  async getDirectConversationThreads(
+    @Param('id') conversationId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+    @Query('senderId') senderId?: string,
+  ) {
     if (!conversationId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
     }
 
+    const parsedLimit = limit
+      ? parseInt(limit, 10)
+      : MESSAGE_CONSTANTS.DEFAULT_LIMIT;
     const threads =
       await this.directMessageService.getDirectConversationThreads(
         conversationId,
+        cursor,
+        parsedLimit,
+        senderId,
       );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREADS_LISTED,
