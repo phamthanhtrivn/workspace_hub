@@ -1,8 +1,10 @@
 import { useMemo } from "react";
 import { ChevronDown, ChevronRight, Pin } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getBulkProfilesByIds, getPinnedMessages } from "../../api/chat.api";
 import { UserProfileResponse } from "../../types/chat.types";
+import { socketService } from "../../api/chat-socket.service";
+import { ChatEvent } from "../../api/chat.events";
 
 interface PinnedMessagesSectionProps {
   conversationId: string;
@@ -31,6 +33,8 @@ export default function PinnedMessagesSection({
   onSeeAll,
   onJumpToMessage,
 }: PinnedMessagesSectionProps) {
+  const queryClient = useQueryClient();
+
   const { data, isLoading } = useQuery({
     queryKey: ["pinnedMessagesPreview", conversationId],
     queryFn: async () => {
@@ -72,6 +76,28 @@ export default function PinnedMessagesSection({
     }
     return profiles;
   }, [profilesResponse]);
+
+  const handleUnpin = (messageId: string) => {
+      const socket = socketService.getSocket();
+      if (!socket) return;
+  
+      socket.emit(ChatEvent.UNPIN_MESSAGE, {
+        channelId: conversationId,
+        messageId,
+      });
+  
+      queryClient.setQueryData(["pinnedMessagesDetail", conversationId], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            messages: page.messages.filter((message: any) => message.id !== messageId),
+          })),
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview", conversationId] });
+    };
 
   return (
     <div>
@@ -123,7 +149,16 @@ export default function PinnedMessagesSection({
                       {getPinnedPreviewText(message)}
                     </span>
                   </span>
-                  <Pin size={13} className="mt-1 shrink-0 text-blue-500" />
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnpin(message.id);
+                    }}
+                    className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
+                    title="Unpin"
+                  >
+                    <Pin size={13} className="mt-1 shrink-0 text-blue-500" />
+                  </span>
                 </button>
               ))}
               {data?.nextCursor && (

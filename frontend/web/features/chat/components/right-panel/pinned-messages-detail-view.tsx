@@ -60,7 +60,7 @@ export default function PinnedMessagesDetailView({
   const senderIds = useMemo<string[]>(
     () =>
       [
-        ...new Set<string>(
+        ...new Set(
           pinnedMessages
             .map((message: any) => message.senderId)
             .filter((senderId: unknown): senderId is string => typeof senderId === "string" && senderId.length > 0),
@@ -150,24 +150,24 @@ export default function PinnedMessagesDetailView({
                   className="min-w-0 flex-1 cursor-pointer text-left"
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="truncate text-sm font-semibold text-gray-800">
+                    <span className="text-sm font-semibold text-gray-800">
                       {profilesById[message.senderId]?.fullName || "User"}
                     </span>
+                    
+                  </div>
+                  <div className="mt-1 text-sm text-gray-600 inline-flex items-center gap-2">
+                    <span className="block truncate">{getPinnedPreviewText(message)}</span>
                     <span className="shrink-0 text-[11px] text-gray-400">
-                      {new Date(message.updatedAt).toLocaleString()}
+                      {new Date(message.updatedAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <div className="mt-1 truncate text-sm text-gray-600">
-                    {getPinnedPreviewText(message)}
-                  </div>
                 </button>
-                <Pin size={15} className="mt-1 shrink-0 text-blue-500" />
                 <button
                   onClick={() => handleUnpin(message.id)}
                   className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
                   title="Unpin"
                 >
-                  <X size={15} />
+                 <Pin size={15} className="mt-1 shrink-0 text-blue-500" />
                 </button>
               </div>
             ))}
