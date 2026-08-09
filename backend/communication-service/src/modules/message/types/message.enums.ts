@@ -14,6 +14,15 @@ export enum MESSAGE_CONSTANTS {
 }
 
 export enum MESSAGE_SUCCESS_MESSAGES {
+  CREATED = 'Message created successfully',
+  UPDATED = 'Message updated successfully',
+  DELETED = 'Message deleted successfully',
+  RECALLED = 'Message recalled successfully',
+  PINNED = 'Message pinned successfully',
+  UNPINNED = 'Message unpinned successfully',
+  REACTION_UPDATED = 'Reaction updated successfully',
+  READ_RECEIPT_UPDATED = 'Read receipt updated successfully',
+  THREAD_FOLLOW_UPDATED = 'Thread follow status updated successfully',
   HISTORY_RETRIEVED = 'Message history retrieved successfully',
   MEDIA_RETRIEVED = 'Media retrieved successfully',
   PINNED_RETRIEVED = 'Pinned messages retrieved successfully',
@@ -40,4 +49,5 @@ export enum MESSAGE_ERROR_MESSAGES {
   MISSING_CHANNEL_ID = 'Missing channelId',
   MISSING_MESSAGE_ID = 'Missing messageId',
   MISSING_USER_ID = 'Missing userId',
+  INVALID_DATA = 'Invalid data',
 }

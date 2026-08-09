@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from 'src/common/utils/file.util';
 import {
   MESSAGE_CONSTANTS,
@@ -10,7 +11,10 @@ import {
 
 @Injectable()
 export class DirectMessageService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly s3Service: S3Service,
+  ) {}
 
   async createDirectMessage(
     conversationId: string,
@@ -143,6 +147,7 @@ export class DirectMessageService {
     direction: MESSAGE_DIRECTION = MESSAGE_DIRECTION.OLDER,
   ) {
     const includeQuery = {
+      reactions: true,
       medias: true,
       replyTo: true,
       threadFollowers: true,
@@ -475,12 +480,211 @@ export class DirectMessageService {
     });
   }
 
+  async addDirectReaction(messageId: string, userId: string, emoji: string) {
+    await this.assertDirectMessageMember(messageId, userId);
+    const existing = await this.prisma.directReaction.findFirst({
+      where: { messageId, userId },
+    });
+
+    if (existing) {
+      if (existing.emoji === emoji) {
+        await this.prisma.directReaction.delete({ where: { id: existing.id } });
+        return { action: 'remove', emoji };
+      }
+
+      await this.prisma.directReaction.update({
+        where: { id: existing.id },
+        data: { emoji },
+      });
+      return { action: 'update', emoji };
+    }
+
+    await this.prisma.directReaction.create({
+      data: { messageId, userId, emoji },
+    });
+    return { action: 'add', emoji };
+  }
+
+  async removeDirectReaction(messageId: string, userId: string, emoji: string) {
+    await this.assertDirectMessageMember(messageId, userId);
+    return this.prisma.directReaction.deleteMany({
+      where: { messageId, userId, emoji },
+    });
+  }
+
+  async editDirectMessage(messageId: string, content: string, userId: string) {
+    const message = await this.getOwnedDirectMessage(messageId, userId);
+    if (message.type !== MessageType.TEXT) {
+      throw new BadRequestException('Only text messages can be edited');
+    }
+    if (content.trim().length === 0) {
+      throw new BadRequestException('Message content cannot be empty');
+    }
+    this.assertWithin24Hours(message.createdAt, 'Messages can only be edited within 24 hours');
+
+    const updatedMessage = await this.prisma.directMessage.update({
+      where: { id: messageId },
+      data: { content, edited: true },
+      include: {
+        reactions: true,
+        medias: true,
+        replyTo: true,
+        threadFollowers: true,
+      },
+    });
+    return this.mapDirectMessage(updatedMessage);
+  }
+
+  async recallDirectMessage(messageId: string, userId: string) {
+    const message = await this.getOwnedDirectMessage(messageId, userId, {
+      medias: true,
+    });
+    this.assertWithin24Hours(
+      message.createdAt,
+      'Messages can only be recalled within 24 hours',
+    );
+
+    if (message.medias && message.medias.length > 0) {
+      for (const media of message.medias) {
+        if (media.s3Key) {
+          await this.s3Service.deleteFile(media.s3Key);
+        }
+      }
+      await this.prisma.directMedia.deleteMany({ where: { messageId } });
+    }
+
+    const updatedMessage = await this.prisma.directMessage.update({
+      where: { id: messageId },
+      data: { recalled: true, content: null },
+      include: {
+        reactions: true,
+        medias: true,
+        replyTo: true,
+        threadFollowers: true,
+      },
+    });
+    return this.mapDirectMessage(updatedMessage);
+  }
+
+  async deleteDirectMessage(messageId: string, userId: string) {
+    await this.getOwnedDirectMessage(messageId, userId);
+    const deletedMessage = await this.prisma.directMessage.update({
+      where: { id: messageId },
+      data: { deletedAt: new Date() },
+      include: { medias: true, replyTo: true, threadFollowers: true },
+    });
+    return this.mapDirectMessage(deletedMessage);
+  }
+
+  async pinDirectMessage(messageId: string, userId: string) {
+    const message = await this.assertDirectMessageMember(messageId, userId);
+    if (message.pinned) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.ALREADY_PINNED);
+    }
+
+    const updatedMessage = await this.prisma.directMessage.update({
+      where: { id: messageId },
+      data: { pinned: true },
+      include: { medias: true, replyTo: true, threadFollowers: true },
+    });
+    return this.mapDirectMessage(updatedMessage);
+  }
+
+  async unpinDirectMessage(messageId: string, userId: string) {
+    const message = await this.assertDirectMessageMember(messageId, userId);
+    if (!message.pinned) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_PINNED);
+    }
+
+    const updatedMessage = await this.prisma.directMessage.update({
+      where: { id: messageId },
+      data: { pinned: false },
+      include: { medias: true, replyTo: true, threadFollowers: true },
+    });
+    return this.mapDirectMessage(updatedMessage);
+  }
+
+  async followDirectThread(messageId: string, userId: string) {
+    await this.assertDirectMessageMember(messageId, userId);
+    await this.prisma.directThreadFollower.upsert({
+      where: {
+        messageId_userId: {
+          messageId,
+          userId,
+        },
+      },
+      update: {},
+      create: { messageId, userId },
+    });
+    return { following: true };
+  }
+
+  async unfollowDirectThread(messageId: string, userId: string) {
+    await this.assertDirectMessageMember(messageId, userId);
+    await this.prisma.directThreadFollower.deleteMany({
+      where: { messageId, userId },
+    });
+    return { following: false };
+  }
+
   private mapDirectMessage(message: any) {
     return {
       ...message,
       channelId: message.conversationId,
       medias: mapMediaWithUrl(message.medias || []),
     };
+  }
+
+  private async assertDirectMessageMember(messageId: string, userId: string) {
+    const message = await this.prisma.directMessage.findUnique({
+      where: { id: messageId },
+    });
+    if (!message) {
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
+    }
+
+    const participant =
+      await this.prisma.directConversationParticipant.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId: message.conversationId,
+            userId,
+          },
+        },
+      });
+    if (!participant) {
+      throw new BadRequestException(
+        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
+      );
+    }
+    return message;
+  }
+
+  private async getOwnedDirectMessage(
+    messageId: string,
+    userId: string,
+    include?: any,
+  ) {
+    const message = await this.prisma.directMessage.findUnique({
+      where: { id: messageId },
+      include,
+    });
+    if (!message) {
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
+    }
+    if (message.senderId !== userId) {
+      throw new BadRequestException('You can only modify your own messages');
+    }
+    return message as any;
+  }
+
+  private assertWithin24Hours(createdAt: Date, errorMessage: string) {
+    const hoursDifference =
+      (new Date().getTime() - new Date(createdAt).getTime()) /
+      (1000 * 60 * 60);
+    if (hoursDifference > 24) {
+      throw new BadRequestException(errorMessage);
+    }
   }
 
   private getMediaTypeWhere(mediaType?: string): any {

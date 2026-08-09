@@ -3,7 +3,10 @@ import { X, User, FileText, Download, Bell } from "lucide-react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  followDirectThread,
   followThread,
+  sendDirectMessage,
+  unfollowDirectThread,
   getDirectThreadMessages,
   getThreadMessages,
 } from "../../api/chat.api";
@@ -46,7 +49,11 @@ export default function ThreadDetailView({
 
   const handleToggleFollow = async () => {
     try {
-      const res = await followThread(rootMessage.id);
+      const res = isDirect
+        ? isFollowing
+          ? await unfollowDirectThread(rootMessage.id)
+          : await followDirectThread(rootMessage.id)
+        : await followThread(rootMessage.id);
       const following = res.data.following;
       setIsFollowing(following);
       toast.success(
@@ -142,26 +149,38 @@ export default function ThreadDetailView({
     mentions?: string[],
   ) => {
     const socket = socketService.getSocket();
+
+    if (isDirect) {
+      sendDirectMessage(rootMessage.conversationId ?? rootMessage.channelId, {
+        content,
+        medias: media,
+        threadParentId: rootMessage.id,
+      })
+        .then(() => {
+          queryClient.invalidateQueries({
+            queryKey: ["threadMessages", "direct", rootMessage.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: [
+              "conversation-threads",
+              "direct",
+              rootMessage.conversationId ?? rootMessage.channelId,
+            ],
+          });
+        })
+        .catch(() => toast.error("Failed to send reply"));
+      return;
+    }
+
     if (!socket) return;
 
-    socket.emit(
-      isDirect ? ChatEvent.SEND_DIRECT_MESSAGE : ChatEvent.SEND_MESSAGE,
-      isDirect
-        ? {
-            conversationId: rootMessage.conversationId ?? rootMessage.channelId,
-            content,
-            medias: media,
-            threadParentId: rootMessage.id,
-            mentions,
-          }
-        : {
-            channelId: rootMessage.channelId,
-            content,
-            medias: media,
-            threadParentId: rootMessage.id,
-            mentions,
-          },
-    );
+    socket.emit(ChatEvent.SEND_MESSAGE, {
+      channelId: rootMessage.channelId,
+      content,
+      medias: media,
+      threadParentId: rootMessage.id,
+      mentions,
+    });
   };
 
   const getProfile = (userId: string) => {

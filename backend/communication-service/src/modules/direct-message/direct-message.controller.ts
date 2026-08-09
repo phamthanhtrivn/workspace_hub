@@ -1,10 +1,16 @@
 import {
   BadRequestException,
+  Body,
   Controller,
+  Delete,
   Get,
+  Headers,
   Param,
+  Patch,
+  Post,
   Query,
 } from '@nestjs/common';
+import { MessageType } from '@prisma/client';
 import { DirectMessageService } from './direct-message.service';
 import {
   MESSAGE_CONSTANTS,
@@ -16,6 +22,46 @@ import {
 @Controller('api/direct-conversations')
 export class DirectMessageController {
   constructor(private readonly directMessageService: DirectMessageService) {}
+
+  @Post(':id/messages')
+  async createDirectMessage(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Body()
+    data: {
+      content?: string;
+      type?: MessageType;
+      medias?: {
+        name: string;
+        s3Key: string;
+        mimeType: string;
+        sizeBytes: number;
+      }[];
+      threadParentId?: string;
+    },
+  ) {
+    if (
+      !conversationId ||
+      !userId ||
+      (data.content === undefined && (!data.medias || data.medias.length === 0))
+    ) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.directMessageService.createDirectMessage(
+      conversationId,
+      userId,
+      data.content || '',
+      data.type || MessageType.TEXT,
+      data.medias,
+      data.threadParentId,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.CREATED,
+      data: message,
+    };
+  }
 
   @Get(':id/messages')
   async getDirectConversationMessages(
@@ -148,6 +194,205 @@ export class DirectMessageController {
     );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_RETRIEVED,
+      data: result,
+    };
+  }
+
+  @Post(':id/messages/read')
+  async markDirectConversationAsRead(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('messageId') messageId: string,
+  ) {
+    if (!conversationId || !userId || !messageId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result =
+      await this.directMessageService.markDirectConversationAsRead(
+        conversationId,
+        userId,
+        messageId,
+      );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
+      data: result,
+    };
+  }
+
+  @Patch('messages/:id')
+  async editDirectMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('content') content: string,
+  ) {
+    if (!messageId || !userId || content === undefined) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.directMessageService.editDirectMessage(
+      messageId,
+      content,
+      userId,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.UPDATED,
+      data: message,
+    };
+  }
+
+  @Patch('messages/:id/recall')
+  async recallDirectMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.directMessageService.recallDirectMessage(
+      messageId,
+      userId,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.RECALLED,
+      data: message,
+    };
+  }
+
+  @Delete('messages/:id')
+  async deleteDirectMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.directMessageService.deleteDirectMessage(
+      messageId,
+      userId,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.DELETED,
+      data: message,
+    };
+  }
+
+  @Post('messages/:id/reactions')
+  async addDirectReaction(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('emoji') emoji: string,
+  ) {
+    if (!messageId || !userId || !emoji) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result = await this.directMessageService.addDirectReaction(
+      messageId,
+      userId,
+      emoji,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.REACTION_UPDATED,
+      data: result,
+    };
+  }
+
+  @Delete('messages/:id/reactions')
+  async removeDirectReaction(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('emoji') emoji: string,
+  ) {
+    if (!messageId || !userId || !emoji) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result = await this.directMessageService.removeDirectReaction(
+      messageId,
+      userId,
+      emoji,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.REACTION_UPDATED,
+      data: result,
+    };
+  }
+
+  @Patch('messages/:id/pin')
+  async pinDirectMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.directMessageService.pinDirectMessage(
+      messageId,
+      userId,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.PINNED,
+      data: message,
+    };
+  }
+
+  @Patch('messages/:id/unpin')
+  async unpinDirectMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.directMessageService.unpinDirectMessage(
+      messageId,
+      userId,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.UNPINNED,
+      data: message,
+    };
+  }
+
+  @Post('messages/:id/thread/follow')
+  async followDirectThread(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result = await this.directMessageService.followDirectThread(
+      messageId,
+      userId,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.THREAD_FOLLOW_UPDATED,
+      data: result,
+    };
+  }
+
+  @Delete('messages/:id/thread/follow')
+  async unfollowDirectThread(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result = await this.directMessageService.unfollowDirectThread(
+      messageId,
+      userId,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.THREAD_FOLLOW_UPDATED,
       data: result,
     };
   }

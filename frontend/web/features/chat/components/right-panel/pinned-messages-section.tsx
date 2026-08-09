@@ -5,6 +5,7 @@ import {
   getBulkProfilesByIds,
   getDirectPinnedMessages,
   getPinnedMessages,
+  unpinDirectMessage,
 } from "../../api/chat.api";
 import { UserProfileResponse } from "../../types/chat.types";
 import { socketService } from "../../api/chat-socket.service";
@@ -86,7 +87,23 @@ export default function PinnedMessagesSection({
     return profiles;
   }, [profilesResponse]);
 
-  const handleUnpin = (messageId: string) => {
+  const handleUnpin = async (messageId: string) => {
+    if (isDirect) {
+      await unpinDirectMessage(messageId);
+      queryClient.setQueryData(["pinnedMessagesDetail", "direct", conversationId], (oldData: any) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          pages: oldData.pages.map((page: any) => ({
+            ...page,
+            messages: page.messages.filter((message: any) => message.id !== messageId),
+          })),
+        };
+      });
+      queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview", "direct", conversationId] });
+      return;
+    }
+
       const socket = socketService.getSocket();
       if (!socket) return;
   

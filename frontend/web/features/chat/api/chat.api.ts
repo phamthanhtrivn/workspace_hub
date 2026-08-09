@@ -206,6 +206,38 @@ export const getDirectConversationMessages = async (
   return normalizeApiResponse<PaginatedMessagesResponse>(response.data);
 };
 
+export const sendDirectMessage = async (
+  conversationId: string,
+  payload: {
+    content?: string;
+    type?: string;
+    medias?: {
+      name: string;
+      s3Key: string;
+      mimeType: string;
+      sizeBytes: number;
+    }[];
+    threadParentId?: string;
+  },
+): Promise<ApiResponse<ChatMessageResponse>> => {
+  const response = await api.post(
+    `/api/direct-conversations/${conversationId}/messages`,
+    payload,
+  );
+  return normalizeApiResponse<ChatMessageResponse>(response.data);
+};
+
+export const markDirectConversationAsRead = async (
+  conversationId: string,
+  messageId: string,
+): Promise<ApiResponse<any>> => {
+  const response = await api.post(
+    `/api/direct-conversations/${conversationId}/messages/read`,
+    { messageId },
+  );
+  return normalizeApiResponse<any>(response.data);
+};
+
 export const getConversationMedia = async (
   conversationId: string,
   cursor?: string,
@@ -256,6 +288,75 @@ export const getDirectPinnedMessages = async (
     },
   );
   return normalizeApiResponse<PinnedMessagesResponse>(response.data);
+};
+
+export const editDirectMessage = async (
+  messageId: string,
+  content: string,
+): Promise<ApiResponse<ChatMessageResponse>> => {
+  const response = await api.patch(
+    `/api/direct-conversations/messages/${messageId}`,
+    { content },
+  );
+  return normalizeApiResponse<ChatMessageResponse>(response.data);
+};
+
+export const recallDirectMessage = async (
+  messageId: string,
+): Promise<ApiResponse<ChatMessageResponse>> => {
+  const response = await api.patch(
+    `/api/direct-conversations/messages/${messageId}/recall`,
+  );
+  return normalizeApiResponse<ChatMessageResponse>(response.data);
+};
+
+export const deleteDirectMessage = async (
+  messageId: string,
+): Promise<ApiResponse<ChatMessageResponse>> => {
+  const response = await api.delete(
+    `/api/direct-conversations/messages/${messageId}`,
+  );
+  return normalizeApiResponse<ChatMessageResponse>(response.data);
+};
+
+export const addDirectReaction = async (
+  messageId: string,
+  emoji: string,
+): Promise<ApiResponse<{ action: "add" | "remove" | "update"; emoji: string }>> => {
+  const response = await api.post(
+    `/api/direct-conversations/messages/${messageId}/reactions`,
+    { emoji },
+  );
+  return normalizeApiResponse(response.data);
+};
+
+export const removeDirectReaction = async (
+  messageId: string,
+  emoji: string,
+): Promise<ApiResponse<any>> => {
+  const response = await api.delete(
+    `/api/direct-conversations/messages/${messageId}/reactions`,
+    { data: { emoji } },
+  );
+  return normalizeApiResponse<any>(response.data);
+};
+
+export const pinDirectMessage = async (
+  messageId: string,
+): Promise<ApiResponse<ChatMessageResponse>> => {
+  const response = await api.patch(
+    `/api/direct-conversations/messages/${messageId}/pin`,
+  );
+  return normalizeApiResponse<ChatMessageResponse>(response.data);
+};
+
+export const unpinDirectMessage = async (
+  messageId: string,
+): Promise<ApiResponse<ChatMessageResponse>> => {
+  const response = await api.patch(
+    `/api/direct-conversations/messages/${messageId}/unpin`,
+  );
+  return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
 export const searchConversationMessages = async (
@@ -394,6 +495,24 @@ export const getDirectThreadMessages = async (
 ): Promise<ApiResponse<ThreadMessagesResponse>> => {
   const response = await api.get(`/api/direct-conversations/messages/${messageId}/thread`);
   return normalizeApiResponse<ThreadMessagesResponse>(response.data);
+};
+
+export const followDirectThread = async (
+  messageId: string,
+): Promise<ApiResponse<{ following: boolean }>> => {
+  const response = await api.post(
+    `/api/direct-conversations/messages/${messageId}/thread/follow`,
+  );
+  return normalizeApiResponse<{ following: boolean }>(response.data);
+};
+
+export const unfollowDirectThread = async (
+  messageId: string,
+): Promise<ApiResponse<{ following: boolean }>> => {
+  const response = await api.delete(
+    `/api/direct-conversations/messages/${messageId}/thread/follow`,
+  );
+  return normalizeApiResponse<{ following: boolean }>(response.data);
 };
 
 export const createSpace = async (
