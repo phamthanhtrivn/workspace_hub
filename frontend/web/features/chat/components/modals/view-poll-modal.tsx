@@ -45,7 +45,7 @@ export default function ViewPollModal({
               const socket = socketService.getSocket();
               if (socket) {
                 socket.emit(ChatEvent.VOTE_POLL, {
-                  conversationId,
+                  channelId: conversationId,
                   messageId: poll.messageId,
                   pollOptionId,
                 });
@@ -55,7 +55,7 @@ export default function ViewPollModal({
               const socket = socketService.getSocket();
               if (socket) {
                 socket.emit(ChatEvent.ADD_POLL_OPTION, {
-                  conversationId,
+                  channelId: conversationId,
                   messageId: poll.messageId,
                   text,
                 });
@@ -71,7 +71,7 @@ export default function ViewPollModal({
               const socket = socketService.getSocket();
               if (socket) {
                 socket.emit(ChatEvent.EDIT_POLL, {
-                  conversationId,
+                  channelId: conversationId,
                   messageId: poll.messageId,
                   title,
                   multipleChoice,

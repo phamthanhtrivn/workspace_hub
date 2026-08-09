@@ -53,7 +53,7 @@ export default function PollsSection({
             </div>
           ) : polls.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              Chưa có bình chọn nào
+              No polls available
             </p>
           ) : (
             <>
@@ -68,7 +68,7 @@ export default function PollsSection({
                       {poll.title} - {formatDividerTime(poll.createdAt)}
                     </p>
                     <p className="text-[10px] text-purple-600/70">
-                      {poll.options?.length || 0} lựa chọn
+                      {poll.options?.length || 0} options
                     </p>
                   </div>
                 ))}
@@ -78,7 +78,7 @@ export default function PollsSection({
                   onClick={onSeeAll}
                   className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50 rounded-lg transition"
                 >
-                  Xem tất cả
+                  See all
                 </button>
               )}
             </>

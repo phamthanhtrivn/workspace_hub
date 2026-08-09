@@ -34,7 +34,7 @@ export default function ViewNoteModal({
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Ghi chú</h2>
+          <h2 className="text-xl font-bold text-gray-800">Note Details</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 cursor-pointer"
@@ -50,7 +50,7 @@ export default function ViewNoteModal({
               const socket = socketService.getSocket();
               if (socket) {
                 socket.emit(ChatEvent.EDIT_NOTE, {
-                  conversationId,
+                  channelId: conversationId,
                   messageId: note.messageId,
                   title,
                   content,

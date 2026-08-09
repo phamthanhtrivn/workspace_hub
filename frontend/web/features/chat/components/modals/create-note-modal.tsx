@@ -40,7 +40,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Tạo ghi chú</h2>
+          <h2 className="text-xl font-bold text-gray-800">Create Note</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
@@ -52,13 +52,13 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tiêu đề
+              Title
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Nhập tiêu đề ghi chú..."
+              placeholder="Enter note title..."
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               required
             />
@@ -66,12 +66,12 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nội dung
+              Content
             </label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Nhập nội dung ghi chú..."
+              placeholder="Enter note content..."
               rows={6}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none"
               required
@@ -84,7 +84,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
               disabled={!title.trim() || !content.trim()}
               className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Tạo ghi chú
+              Create note
             </button>
           </div>
         </form>

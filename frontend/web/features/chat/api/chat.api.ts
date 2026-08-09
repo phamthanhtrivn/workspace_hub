@@ -219,38 +219,38 @@ export const getThreadMessages = async (
   return response.data;
 };
 
-export const createGroup = async (
+export const createSpace = async (
   name: string,
 ): Promise<any> => {
   const response = await api.post("/api/spaces", { name });
   return response.data;
 };
 
-export const getUserGroups = async (): Promise<any> => {
+export const getUserSpaces = async (): Promise<any> => {
   const response = await api.get("/api/spaces");
   return response.data;
 };
 
 export const createChannel = async (
-  groupId: string,
+  spaceId: string,
   name: string,
 ): Promise<any> => {
-  const response = await api.post(`/api/spaces/${groupId}/channels`, { name });
+  const response = await api.post(`/api/spaces/${spaceId}/channels`, { name });
   return response.data;
 };
 
-export const getGroupChannels = async (
-  groupId: string,
+export const getSpaceChannels = async (
+  spaceId: string,
 ): Promise<any> => {
-  const response = await api.get(`/api/spaces/${groupId}/channels`);
+  const response = await api.get(`/api/spaces/${spaceId}/channels`);
   return response.data;
 };
 
-export const inviteGroupMembers = async (
-  groupId: string,
+export const inviteSpaceMembers = async (
+  spaceId: string,
   userIds: string[],
 ): Promise<any> => {
-  const response = await api.post(`/api/spaces/${groupId}/invite`, { userIds });
+  const response = await api.post(`/api/spaces/${spaceId}/invite`, { userIds });
   return response.data;
 };
 

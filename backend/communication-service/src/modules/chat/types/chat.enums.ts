@@ -51,12 +51,12 @@ export enum CHAT_MENTION {
 }
 
 export enum CHAT_PREVIEW_TEXT {
-  POLL_PREFIX = 'Đã tạo một bình chọn: ',
-  NOTE_PREFIX = 'Đã tạo một ghi chú: ',
-  IMAGE = 'hình ảnh',
+  POLL_PREFIX = 'Created a poll: ',
+  NOTE_PREFIX = 'Created a note: ',
+  IMAGE = 'image',
   VIDEO = 'video',
-  FILE = 'tệp đính kèm',
-  SENT_ATTACHMENT_PREFIX = 'Đã gửi một ',
+  FILE = 'attachment',
+  SENT_ATTACHMENT_PREFIX = 'Sent an ',
 }
 
 export enum CHAT_ERROR_MESSAGES {

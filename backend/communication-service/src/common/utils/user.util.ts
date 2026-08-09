@@ -1,7 +1,7 @@
 export async function getSenderProfile(
   userId: string,
 ): Promise<{ senderName: string; senderAvatar: string }> {
-  let senderName = 'Người dùng';
+  let senderName = 'User';
   let senderAvatar = '';
   try {
     const userServiceUrl = process.env.USER_SERVICE_URL;
@@ -10,7 +10,7 @@ export async function getSenderProfile(
       if (res.ok) {
         const profileResponse = await res.json();
         if (profileResponse.success && profileResponse.data) {
-          senderName = profileResponse.data.fullName || 'Người dùng';
+          senderName = profileResponse.data.fullName || 'User';
           senderAvatar = profileResponse.data.avatarUrl || '';
         }
       }

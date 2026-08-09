@@ -20,7 +20,7 @@ export class SpaceController {
     @Body() body: { name: string },
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException('Missing userId');
     }
     const space = await this.spaceService.createSpace(userId, body.name);
     return {
@@ -32,7 +32,7 @@ export class SpaceController {
   @Get()
   async getUserSpaces(@Headers('x-user-id') userId: string) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException('Missing userId');
     }
     const spaces = await this.spaceService.getUserSpaces(userId);
     return {
@@ -48,10 +48,10 @@ export class SpaceController {
     @Body() body: { name: string },
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException('Missing userId');
     }
     if (!spaceId) {
-      throw new BadRequestException('Thiếu spaceId');
+      throw new BadRequestException('Missing spaceId');
     }
     const channel = await this.spaceService.createChannel(
       userId,
@@ -70,10 +70,10 @@ export class SpaceController {
     @Param('spaceId') spaceId: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException('Missing userId');
     }
     if (!spaceId) {
-      throw new BadRequestException('Thiếu spaceId');
+      throw new BadRequestException('Missing spaceId');
     }
     const channels = await this.spaceService.getSpaceChannels(userId, spaceId);
     return {
@@ -89,10 +89,10 @@ export class SpaceController {
     @Body() body: { userIds: string[] },
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException('Missing userId');
     }
     if (!spaceId) {
-      throw new BadRequestException('Thiếu spaceId');
+      throw new BadRequestException('Missing spaceId');
     }
     const result = await this.spaceService.inviteMembersToSpace(
       userId,

@@ -28,7 +28,7 @@ export default function PollDetailView({
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-semibold text-gray-800">Bình chọn</h2>
+        <h2 className="font-semibold text-gray-800">Polls</h2>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -38,7 +38,7 @@ export default function PollDetailView({
           </div>
         ) : polls.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-4">
-            Không có bình chọn nào
+            No polls available
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -57,18 +57,18 @@ export default function PollDetailView({
                       {poll.title}
                     </p>
                     <div className="text-xs text-purple-600/70 space-y-1">
-                      <p>{poll.options?.length || 0} lựa chọn</p>
+                      <p>{poll.options?.length || 0} options</p>
                       <p>
                         {poll.options?.reduce(
                           (sum: number, opt: any) =>
                             sum + (opt.votes?.length || 0),
                           0,
                         )}{" "}
-                        lượt bình chọn
+                        votes
                       </p>
                       {poll.isLocked && (
                         <span className="inline-block mt-1 bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">
-                          Đã khóa
+                          Locked
                         </span>
                       )}
                     </div>

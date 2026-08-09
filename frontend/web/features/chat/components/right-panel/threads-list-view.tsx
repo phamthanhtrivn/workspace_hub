@@ -43,7 +43,7 @@ export default function ThreadsListView({
       <div className="flex items-center justify-between p-4 border-b border-slate-100 shrink-0">
         <div className="flex items-center gap-2">
           <MessageCircle size={18} className="text-blue-500" />
-          <h3 className="font-bold text-slate-800 text-sm">Các luồng thảo luận</h3>
+          <h3 className="font-bold text-slate-800 text-sm">Threads</h3>
         </div>
         <button
           onClick={onClose}
@@ -57,12 +57,12 @@ export default function ThreadsListView({
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
         {isLoading ? (
           <div className="text-center py-8 text-xs text-slate-400 italic">
-            Đang tải danh sách luồng...
+            Loading threads...
           </div>
         ) : threads.length > 0 ? (
           threads.map((msg: any) => {
             const sender = memberProfiles[msg.senderId];
-            const senderName = sender?.fullName || "Người dùng";
+            const senderName = sender?.fullName || "User";
             const avatarUrl = sender?.avatarUrl;
 
             let lastReplyTimeStr = "";
@@ -98,17 +98,17 @@ export default function ThreadsListView({
 
                 {/* Message body snippet */}
                 <p className="text-xs text-slate-600 line-clamp-2 break-words">
-                  {msg.content || "[Tin nhắn đính kèm]"}
+                  {msg.content || "[Attachment]"}
                 </p>
 
                 {/* Footer status */}
                 <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100/50 mt-1 shrink-0">
                   <span className="flex items-center gap-1 text-blue-600 font-bold">
                     <MessageSquare size={12} />
-                    {msg.threadReplyCount} phản hồi
+                    {msg.threadReplyCount} replies
                   </span>
                   {lastReplyTimeStr && (
-                    <span>Phản hồi cuối: {lastReplyTimeStr}</span>
+                    <span>Last reply: {lastReplyTimeStr}</span>
                   )}
                 </div>
               </div>
@@ -117,9 +117,9 @@ export default function ThreadsListView({
         ) : (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center text-slate-400">
             <MessageSquare size={32} className="text-slate-300 mb-2" />
-            <p className="text-xs">Chưa có luồng thảo luận nào trong kênh này</p>
+            <p className="text-xs">No threads in this channel yet</p>
             <p className="text-[10px] text-slate-400 max-w-[180px] mt-1">
-              Phản hồi theo chủ đề bất kỳ tin nhắn nào để bắt đầu cuộc hội thảo theo luồng.
+              Reply to any message to start a threaded conversation.
             </p>
           </div>
         )}

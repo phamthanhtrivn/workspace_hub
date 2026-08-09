@@ -53,7 +53,7 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
       }, 1000);
     } catch (err) {
       console.error("Error accessing microphone:", err);
-      toast.error("Không thể truy cập microphone. Vui lòng cấp quyền.");
+      toast.error("Cannot access microphone. Please grant permission.");
     }
   }, [onRecordComplete]);
 

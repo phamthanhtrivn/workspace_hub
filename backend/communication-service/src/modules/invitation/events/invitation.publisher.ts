@@ -18,8 +18,8 @@ export class InvitationPublisher {
     senderId: string,
     senderName: string,
     senderAvatar: string,
-    channelId: string,
-    conversationName: string | null,
+    spaceId: string,
+    spaceName: string | null,
   ) {
     try {
       this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
@@ -30,12 +30,13 @@ export class InvitationPublisher {
           senderName,
           senderAvatar,
           type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
-          title: 'Lời mời đã được chấp nhận',
-          content: 'Chấp nhận lời mời vào nhóm',
-          link: `/chat?id=${channelId}`,
+          title: 'Invitation accepted',
+          content: 'Accepted the space invitation',
+          link: '/chat',
           metadata: {
-            channelId,
-            conversationName,
+            spaceId,
+            spaceName,
+            conversationName: spaceName,
           },
         },
       });
@@ -52,8 +53,8 @@ export class InvitationPublisher {
     senderId: string,
     senderName: string,
     senderAvatar: string,
-    channelId: string,
-    conversationName: string | null | undefined,
+    spaceId: string,
+    spaceName: string | null | undefined,
   ) {
     try {
       this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
@@ -64,12 +65,13 @@ export class InvitationPublisher {
           senderName,
           senderAvatar,
           type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_DECLINED,
-          title: 'Lời mời bị từ chối',
-          content: 'Từ chối lời mời vào nhóm',
+          title: 'Invitation declined',
+          content: 'Declined the space invitation',
           link: '/chat',
           metadata: {
-            channelId,
-            conversationName,
+            spaceId,
+            spaceName,
+            conversationName: spaceName,
           },
         },
       });

@@ -28,11 +28,11 @@ export function usePolls(conversationId: string | undefined) {
       if (data.type === "POLL" && data.poll) {
         // From MESSAGE_MOVED
         pollData = data.poll;
-        convId = data.conversationId;
+        convId = data.channelId ?? data.conversationId;
       } else if (data.poll) {
         // From POLL_UPDATED
         pollData = data.poll;
-        convId = data.conversationId;
+        convId = data.channelId ?? data.conversationId;
       }
 
       if (convId === conversationId && pollData) {

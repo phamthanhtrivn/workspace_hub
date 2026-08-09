@@ -83,8 +83,8 @@ export default function ChatHeader({
           <h2 className="font-semibold text-gray-800">{displayName}</h2>
           <p className="text-xs text-gray-500">
             {isDirect
-              ? "Trò chuyện cá nhân"
-              : `${activeConversation?.members?.length || 0} thành viên`}
+              ? "Direct Message"
+              : `${activeConversation?.members?.length || 0} members`}
           </p>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function ChatHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onOpenSearch}
-          title="Tìm kiếm"
+          title="Search"
         >
           <Search size={20} />
         </button>
@@ -101,7 +101,7 @@ export default function ChatHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onToggleRightPanel}
-          title="Thông tin hội thoại"
+          title="Conversation Info"
         >
           <Info size={20} />
         </button>

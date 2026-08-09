@@ -2,17 +2,17 @@ export const DOCUMENT_CONSTANTS = {
   S3_FOLDER: 'documents',
   DEFAULT_MIME_TYPE: 'application/octet-stream',
 
-  // ── ZIP Download ─────────────────────────────────────────────────────────
+  // ZIP download
   /** Compression level for archiver ZIP (0=no compression, 9=max) */
   ZIP_COMPRESSION_LEVEL: 6,
   ZIP_CONTENT_TYPE: 'application/zip',
   ZIP_CONTENT_DISPOSITION_PREFIX: 'attachment',
 
-  // ── Fallback / Default Values ──────────────────────────────────────────
+  // Fallback / default values
   /** Placeholder when uploader's email cannot be resolved from shares */
-  FALLBACK_UPLOADER_EMAIL_PRIVATE: 'Người dùng khác',
+  FALLBACK_UPLOADER_EMAIL_PRIVATE: 'Another user',
   /** Placeholder for anonymous uploaders on public shared documents */
-  FALLBACK_UPLOADER_EMAIL_PUBLIC: 'Khách truy cập',
+  FALLBACK_UPLOADER_EMAIL_PUBLIC: 'Guest',
   /** Empty s3Key sentinel when a version's key is not yet set */
   FALLBACK_S3_KEY: '',
   /** UUID used as uploadedBy for anonymous public uploads */
@@ -22,7 +22,7 @@ export const DOCUMENT_CONSTANTS = {
   /** ID representing the original version of a document */
   ORIGINAL_VERSION_ID: 'original',
 
-  // ── Filename Sanitisation Regex ───────────────────────────────────────
+  // Filename sanitisation regex
   /**
    * Strips characters that are invalid in file/folder names on common OSes.
    * Covers: / \ ? % * : | " < >
@@ -34,7 +34,7 @@ export const DOCUMENT_CONSTANTS = {
    */
   REGEX_DIACRITICS: /[\u0300-\u036f]/g,
   /**
-   * Strips any character outside the printable ASCII range (U+0020–U+007E).
+   * Strips any character outside the printable ASCII range (U+0020-U+007E).
    * Replaces with underscore to keep filenames safe for HTTP headers.
    */
   REGEX_NON_ASCII: /[^\x20-\x7E]/g,

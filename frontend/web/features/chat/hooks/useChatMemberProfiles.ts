@@ -1,25 +1,55 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { getUserConversations, getPublicProfile } from "../api/chat.api";
-import { UserProfileResponse } from "../types/chat.types";
+import {
+  ConversationResponse,
+  UserProfileResponse,
+} from "../types/chat.types";
 
-export function useChatMemberProfiles() {
+export function useChatMemberProfiles(extraUserIds: string[] = []) {
   const currentUserId = useAppSelector((state) => state.auth.userId);
+  const activeConversation = useAppSelector(
+    (state) => state.chat.activeConversation,
+  );
+  const activeMemberIds =
+    activeConversation?.members?.map((member) => member.userId).join(",") ?? "";
+  const extraUserIdsKey = [...new Set(extraUserIds.filter(Boolean))]
+    .sort()
+    .join(",");
+
   const { data } = useQuery({
-    queryKey: ["conversations", currentUserId],
+    queryKey: [
+      "chat-member-profiles",
+      currentUserId,
+      activeConversation?.id,
+      activeMemberIds,
+      extraUserIdsKey,
+    ],
     queryFn: async () => {
       if (!currentUserId) return { conversations: [], profiles: {} };
 
       const response = await getUserConversations();
-      const conversationsData = response?.success ? response.data : [];
+      const conversationsData: ConversationResponse[] = response?.success
+        ? response.data
+        : [];
 
       const uniqueUserIds = new Set<string>();
-      conversationsData.forEach((conv: any) => {
-        conv.members?.forEach((m: any) => {
+      conversationsData.forEach((conv) => {
+        conv.members?.forEach((m) => {
           if (m.userId) {
             uniqueUserIds.add(m.userId);
           }
         });
+      });
+      activeConversation?.members?.forEach((member) => {
+        if (member.userId) {
+          uniqueUserIds.add(member.userId);
+        }
+      });
+      extraUserIds.forEach((userId) => {
+        if (userId) {
+          uniqueUserIds.add(userId);
+        }
       });
 
       const profiles: Record<string, UserProfileResponse> = {};
@@ -29,9 +59,11 @@ export function useChatMemberProfiles() {
             const profileRes = await getPublicProfile(userId);
             profiles[userId] = profileRes?.success
               ? profileRes.data
-              : ({ fullName: "Unknown User" } as any);
-          } catch (e) {
-            profiles[userId] = { fullName: "Unknown User" } as any;
+              : ({ fullName: "Unknown User" } as UserProfileResponse);
+          } catch {
+            profiles[userId] = {
+              fullName: "Unknown User",
+            } as UserProfileResponse;
           }
         }),
       );
@@ -40,5 +72,5 @@ export function useChatMemberProfiles() {
     enabled: !!currentUserId,
     staleTime: 1000 * 60 * 5,
   });
-  return (data as any)?.profiles || {};
+  return data?.profiles || {};
 }

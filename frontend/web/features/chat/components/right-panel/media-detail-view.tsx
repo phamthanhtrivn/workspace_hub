@@ -90,18 +90,18 @@ export default function MediaDetailView({
           <ArrowLeft size={20} />
         </button>
         <h2 className="font-semibold text-gray-800">
-          {type === "images" ? "Hình ảnh & Video" : "Tài liệu"}
+          {type === "images" ? "Images & Videos" : "Documents"}
         </h2>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
           <div className="text-center text-sm text-gray-400 py-4">
-            Đang tải...
+            Loading...
           </div>
         ) : allItems.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-4">
-            Không có dữ liệu
+            No data available
           </div>
         ) : (
           <>
@@ -177,7 +177,7 @@ export default function MediaDetailView({
               <div ref={loadMoreRef} className="py-4 text-center">
                 {isFetchingNextPage && (
                   <span className="text-xs text-gray-400">
-                    Đang tải thêm...
+                    Loading more...
                   </span>
                 )}
               </div>

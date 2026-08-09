@@ -121,7 +121,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         !data.pollData &&
         !data.noteData)
     ) {
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.INVALID_DATA };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.INVALID_DATA,
+      };
     }
 
     try {
@@ -247,7 +250,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.SEND_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.SEND_FAILED,
+      };
     }
   }
 
@@ -273,7 +279,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.SYSTEM_SEND_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.SYSTEM_SEND_FAILED,
+      };
     }
   }
 
@@ -326,7 +335,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.REACTION_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.REACTION_FAILED,
+      };
     }
   }
 
@@ -356,7 +368,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.POLL_VOTE_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.POLL_VOTE_FAILED,
+      };
     }
   }
 
@@ -385,7 +400,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.POLL_ADD_OPTION_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.POLL_ADD_OPTION_FAILED,
+      };
     }
   }
 
@@ -425,7 +443,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.POLL_EDIT_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.POLL_EDIT_FAILED,
+      };
     }
   }
 
@@ -467,7 +488,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.NOTE_EDIT_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.NOTE_EDIT_FAILED,
+      };
     }
   }
 
@@ -504,7 +528,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.MESSAGE_EDIT_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.MESSAGE_EDIT_FAILED,
+      };
     }
   }
 
@@ -533,7 +560,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.MESSAGE_RECALL_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.MESSAGE_RECALL_FAILED,
+      };
     }
   }
 
@@ -566,7 +596,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.READ_RECEIPT_FAILED };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.READ_RECEIPT_FAILED,
+      };
     }
   }
 

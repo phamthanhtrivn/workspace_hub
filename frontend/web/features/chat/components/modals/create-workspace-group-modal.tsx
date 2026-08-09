@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Loader2 } from "lucide-react";
-import { createGroup } from "../../api/chat.api";
+import { createSpace } from "../../api/chat.api";
 import { toast } from "react-toastify";
 
 interface CreateWorkspaceGroupModalProps {
@@ -35,24 +35,24 @@ export default function CreateWorkspaceGroupModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Vui lòng nhập tên nhóm");
+      toast.error("Please enter a space name");
       return;
     }
 
     setIsCreating(true);
     try {
-      const response = await createGroup(name.trim());
+      const response = await createSpace(name.trim());
       if (response && response.data) {
-        toast.success("Tạo nhóm thành công!");
+        toast.success("Space created successfully!");
         if (onGroupCreated) {
           onGroupCreated(response.data);
         }
         onClose();
       } else {
-        toast.error("Không thể tạo nhóm");
+        toast.error("Failed to create space");
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Lỗi tạo nhóm");
+      toast.error(err.response?.data?.message || "Error creating space");
     } finally {
       setIsCreating(false);
     }
@@ -65,7 +65,7 @@ export default function CreateWorkspaceGroupModal({
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">Tạo nhóm mới</h2>
+          <h2 className="text-lg font-bold text-gray-800">Create new space</h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
@@ -78,11 +78,11 @@ export default function CreateWorkspaceGroupModal({
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Tên nhóm của bạn
+              Your space name
             </label>
             <input
               type="text"
-              placeholder="Ví dụ: Team Softwaregorup không , Team Marketing, ..."
+              placeholder="e.g. Team Software, Team Marketing, ..."
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isCreating}
@@ -100,7 +100,7 @@ export default function CreateWorkspaceGroupModal({
               disabled={isCreating}
               className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
             >
-              Hủy
+              Cancel
             </button>
             <button
               type="submit"
@@ -108,7 +108,7 @@ export default function CreateWorkspaceGroupModal({
               className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md shadow-blue-100 transition flex items-center gap-1.5 cursor-pointer"
             >
               {isCreating && <Loader2 size={16} className="animate-spin" />}
-              Tạo nhóm
+              Create space
             </button>
           </div>
         </form>

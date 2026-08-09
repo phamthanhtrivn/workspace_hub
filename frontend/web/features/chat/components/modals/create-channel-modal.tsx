@@ -9,14 +9,14 @@ import { toast } from "react-toastify";
 interface CreateChannelModalProps {
   isOpen: boolean;
   onClose: () => void;
-  groupId: string;
+  spaceId: string;
   onChannelCreated?: (channel: any) => void;
 }
 
 export default function CreateChannelModal({
   isOpen,
   onClose,
-  groupId,
+  spaceId,
   onChannelCreated,
 }: CreateChannelModalProps) {
   const [name, setName] = useState("");
@@ -37,12 +37,12 @@ export default function CreateChannelModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Vui lòng nhập tên kênh");
+      toast.error("Please enter a channel name");
       return;
     }
 
-    if (!groupId) {
-      toast.error("Không tìm thấy thông tin nhóm");
+    if (!spaceId) {
+      toast.error("Space information not found");
       return;
     }
 
@@ -54,24 +54,24 @@ export default function CreateChannelModal({
       .replace(/[^a-z0-9-_]/g, "");
 
     if (!formattedName) {
-      toast.error("Tên kênh không hợp lệ");
+      toast.error("Invalid channel name");
       return;
     }
 
     setIsCreating(true);
     try {
-      const response = await createChannel(groupId, formattedName);
+      const response = await createChannel(spaceId, formattedName);
       if (response && response.data) {
-        toast.success("Tạo kênh thành công!");
+        toast.success("Channel created successfully!");
         if (onChannelCreated) {
           onChannelCreated(response.data);
         }
         onClose();
       } else {
-        toast.error("Không thể tạo kênh");
+        toast.error("Failed to create channel");
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Lỗi tạo kênh");
+      toast.error(err.response?.data?.message || "Error creating channel");
     } finally {
       setIsCreating(false);
     }
@@ -84,7 +84,7 @@ export default function CreateChannelModal({
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">Tạo kênh mới</h2>
+          <h2 className="text-lg font-bold text-gray-800">Create new channel</h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
@@ -97,7 +97,7 @@ export default function CreateChannelModal({
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Tên kênh
+              Channel name
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -105,7 +105,7 @@ export default function CreateChannelModal({
               </span>
               <input
                 type="text"
-                placeholder="ví dụ: sports, tin-tuc, ..."
+                placeholder="e.g. sports, news, ..."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isCreating}
@@ -115,7 +115,7 @@ export default function CreateChannelModal({
               />
             </div>
             <p className="text-[11px] text-gray-400">
-              Kênh là nơi các thành viên thảo luận về các chủ đề cụ thể. Tên kênh sẽ được chuyển về dạng viết thường và không có khoảng trắng.
+              Channels are where members discuss specific topics. Channel names will be lowercase and spaces will be replaced with dashes.
             </p>
           </div>
 
@@ -127,7 +127,7 @@ export default function CreateChannelModal({
               disabled={isCreating}
               className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
             >
-              Hủy
+              Cancel
             </button>
             <button
               type="submit"
@@ -135,7 +135,7 @@ export default function CreateChannelModal({
               className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md shadow-blue-100 transition flex items-center gap-1.5 cursor-pointer"
             >
               {isCreating && <Loader2 size={16} className="animate-spin" />}
-              Tạo kênh
+              Create channel
             </button>
           </div>
         </form>

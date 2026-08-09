@@ -14,7 +14,7 @@ export class TrashCleanupService {
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleAutomaticCleanup() {
-    this.logger.log('Bắt đầu tiến trình tự động dọn dẹp thùng rác...');
+    this.logger.log('Starting automatic trash cleanup...');
 
     const expirationDate = new Date();
     expirationDate.setDate(expirationDate.getDate() - 30);
@@ -30,11 +30,11 @@ export class TrashCleanupService {
     });
 
     if (expiredItems.length === 0) {
-      this.logger.log('Không có tài nguyên nào trong thùng rác hết hạn 30 ngày.');
+      this.logger.log('No trash items expired after 30 days.');
       return;
     }
 
-    this.logger.log(`Tìm thấy ${expiredItems.length} tài nguyên hết hạn.`);
+    this.logger.log(`Found ${expiredItems.length} expired items.`);
 
     for (const item of expiredItems) {
       try {
@@ -50,15 +50,15 @@ export class TrashCleanupService {
             item.id,
           );
           this.logger.log(
-            `Tự động xóa vĩnh viễn tài nguyên: ${item.name} (${item.id})`,
+            `Automatically permanently deleting item: ${item.name} (${item.id})`,
           );
         }
       } catch (error) {
         this.logger.error(
-          `Lỗi khi tự động dọn dẹp tài nguyên ${item.id}: ${error.message}`,
+          `Error while automatically cleaning up item ${item.id}: ${error.message}`,
         );
       }
     }
-    this.logger.log('Đã hoàn tất tiến trình tự động dọn dẹp thùng rác.');
+    this.logger.log('Automatic trash cleanup completed.');
   }
 }

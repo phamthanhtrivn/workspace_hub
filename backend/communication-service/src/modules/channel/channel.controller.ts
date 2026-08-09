@@ -16,7 +16,7 @@ import { CreateDirectConversationDto } from './dto/create-direct-channel.dto';
 import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ChannelService } from './channel.service';
-import { CHANNEL_SUCCESS_MESSAGES, CHANNEL_ERROR_MESSAGES } from './types/channel.enums';
+import { CHANNEL_ERROR_MESSAGES, CHANNEL_SUCCESS_MESSAGES } from './types/channel.enums';
 
 @Controller('api/channels')
 export class ConversationController {
@@ -122,6 +122,21 @@ export class ConversationController {
     };
   }
 
+  @Delete(':id/members/:memberId')
+  async kickMember(
+    @Param('id') channelId: string,
+    @Param('memberId') memberId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId || !channelId || !memberId) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    }
+    await this.conversationService.kickMember(channelId, userId, memberId);
+    return {
+      message: CHANNEL_SUCCESS_MESSAGES.MEMBER_REMOVED,
+    };
+  }
+
   // @Delete(':id/members/:memberId')
   // async kickMember(
   //   @Param('id') channelId: string,
@@ -133,7 +148,7 @@ export class ConversationController {
   //   }
   //   await this.conversationService.kickMember(channelId, userId, memberId);
   //   return {
-  //     message: 'Đã xoá thành viên khỏi nhóm',
+  //     message: 'Member removed successfully',
   //   };
   // }
 
@@ -153,6 +168,26 @@ export class ConversationController {
       fileName,
       contentType,
     );
+  }
+
+  @Patch(':id/info')
+  async updateGroupInfo(
+    @Param('id') channelId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() data: { name?: string; avatarUrl?: string },
+  ) {
+    if (!userId || !channelId) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    }
+    const result = await this.conversationService.updateGroupInfo(
+      channelId,
+      userId,
+      data,
+    );
+    return {
+      message: CHANNEL_SUCCESS_MESSAGES.INFO_UPDATED,
+      data: result,
+    };
   }
 
   // @Patch(':id/info')

@@ -8,12 +8,12 @@ export class QuotaController {
   @Get()
   async getQuota(@Headers('x-user-id') userId: string) {
     if (!userId) {
-      throw new BadRequestException('Thiếu x-user-id header');
+      throw new BadRequestException('Missing x-user-id header');
     }
 
     const quota = await this.quotaService.getOrCreateQuota(userId);
     return {
-      message: 'Lấy thông tin dung lượng lưu trữ thành công',
+      message: 'Storage quota retrieved successfully',
       data: quota,
     };
   }

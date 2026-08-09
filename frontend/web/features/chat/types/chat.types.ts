@@ -41,9 +41,11 @@ export interface ConversationMember {
 export interface ConversationResponse {
   id: string;
   type: ConversationType;
+  spaceId?: string | null;
   name: string | null;
   avatarUrl: string | null;
   createdBy: string;
+  isDefault?: boolean;
   createdAt: string;
   updatedAt: string;
   projectId: string | null;
@@ -56,11 +58,11 @@ export type InvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
 export interface GroupInvitation {
   id: string;
-  conversationId: string;
+  spaceId: string;
   invitedUserId: string;
   invitedBy: string;
   status: InvitationStatus;
   createdAt: string;
   respondedAt?: string;
-  conversation?: any; // To hold full conversation info
+  space?: any;
 }

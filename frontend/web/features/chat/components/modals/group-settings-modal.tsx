@@ -46,6 +46,7 @@ export default function GroupSettingsModal({
   const [mounted, setMounted] = useState(false);
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
+  const activeSpaceId = useAppSelector((state) => state.chat.activeSpaceId);
   const currentMember = conversation.members?.find(
     (m: any) => m.userId === currentUserId,
   );
@@ -83,14 +84,14 @@ export default function GroupSettingsModal({
 
         setGroupAvatar(fileUrl);
         toast.success(
-          "Tải ảnh đại diện tạm thời thành công. Nhấn Lưu để hoàn tất.",
+          "Avatar loaded temporarily. Click Save to complete.",
         );
       } else {
-        toast.error("Không thể lấy link tải ảnh");
+        toast.error("Failed to get upload link");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Lỗi khi tải ảnh lên");
+      toast.error("Error uploading image");
     } finally {
       setIsUploadingAvatar(false);
       if (fileInputRef.current) {
@@ -113,7 +114,7 @@ export default function GroupSettingsModal({
           groupAvatar !== (conversation.avatarUrl || "")
         ) {
           if (!trimmedName) {
-            toast.error("Tên nhóm không được để trống");
+            toast.error("Group name cannot be empty");
             setIsSaving(false);
             return;
           }
@@ -125,11 +126,12 @@ export default function GroupSettingsModal({
         }
       }
 
-      toast.success("Cập nhật cài đặt thành công");
+      toast.success("Settings updated successfully");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["channels", activeSpaceId] });
       onClose();
     } catch (error) {
-      toast.error("Không thể cập nhật cài đặt nhóm");
+      toast.error("Failed to update group settings");
     } finally {
       setIsSaving(false);
     }
@@ -142,7 +144,7 @@ export default function GroupSettingsModal({
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100 flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white shrink-0">
           <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
-            Cài đặt nhóm
+            Group Settings
           </h2>
           <button
             onClick={onClose}
@@ -196,13 +198,13 @@ export default function GroupSettingsModal({
                 {/* Group Name input */}
                 <div className="w-full">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
-                    Tên nhóm
+                    Group Name
                   </label>
                   <input
                     type="text"
                     value={groupName}
                     onChange={(e) => setGroupName(e.target.value)}
-                    placeholder="Nhập tên nhóm..."
+                    placeholder="Enter group name..."
                     className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium text-gray-800"
                   />
                 </div>
@@ -225,7 +227,7 @@ export default function GroupSettingsModal({
                     {groupName}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Chỉ Trưởng nhóm mới có quyền đổi thông tin nhóm
+                    Only the group owner can update group settings
                   </p>
                 </div>
               </div>
@@ -235,29 +237,29 @@ export default function GroupSettingsModal({
           <div className="p-5 bg-gray-50/50">
             <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
               <SettingItem
-                title="Cho phép nhắn tin"
-                description="Thành viên có thể gửi tin nhắn vào nhóm"
+                title="Allow sending messages"
+                description="Members can send messages in the group"
                 checked={settings.allowSendMessage}
                 onChange={() => handleToggle("allowSendMessage")}
                 icon={<FiMessageSquare size={18} />}
               />
               <SettingItem
-                title="Cho phép ghim tin nhắn"
-                description="Thành viên có thể ghim/bỏ ghim tin nhắn"
+                title="Allow pinning messages"
+                description="Members can pin/unpin messages"
                 checked={settings.allowPinMessage}
                 onChange={() => handleToggle("allowPinMessage")}
                 icon={<FiPaperclip size={18} />}
               />
               <SettingItem
-                title="Cho phép tạo bình chọn"
-                description="Thành viên có thể tạo bình chọn mới"
+                title="Allow creating polls"
+                description="Members can create new polls"
                 checked={settings.allowCreatePoll}
                 onChange={() => handleToggle("allowCreatePoll")}
                 icon={<FiBarChart2 size={18} />}
               />
               <SettingItem
-                title="Cho phép tạo ghi chú"
-                description="Thành viên có thể tạo ghi chú mới"
+                title="Allow creating notes"
+                description="Members can create new notes"
                 checked={settings.allowCreateNote}
                 onChange={() => handleToggle("allowCreateNote")}
                 icon={<FiEdit3 size={18} />}
@@ -271,7 +273,7 @@ export default function GroupSettingsModal({
             onClick={onClose}
             className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer shadow-sm"
           >
-            Hủy
+            Cancel
           </button>
           <button
             onClick={handleSave}
@@ -279,11 +281,11 @@ export default function GroupSettingsModal({
             className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
           >
             {isSaving ? (
-              "Đang lưu..."
+              "Saving..."
             ) : (
               <>
                 <FiCheck size={18} />
-                Lưu thay đổi
+                Save changes
               </>
             )}
           </button>

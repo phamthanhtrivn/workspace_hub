@@ -22,7 +22,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
   if (!latestMessage) {
     return (
       <p className={`text-sm truncate ${textClass}`}>
-        {isDirect ? "Bắt đầu nhắn tin ngay..." : "Nhóm trò chuyện"}
+        {isDirect ? "Start messaging..." : "Group Chat"}
       </p>
     );
   }
@@ -37,7 +37,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
   let prefix = "";
 
   if (isMe) {
-    prefix = "Bạn: ";
+    prefix = "You: ";
   } else if (!isDirect && latestMessage.senderId) {
     const profile = memberProfiles[latestMessage.senderId];
     const fullName = profile?.fullName || "User";
@@ -47,7 +47,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
   if (latestMessage.recalled) {
     return (
       <p className={`text-sm truncate ${textClass}`}>
-        {prefix}Tin nhắn đã bị thu hồi
+        {prefix}Message recalled
       </p>
     );
   }
@@ -57,7 +57,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
       <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
         {prefix}
         <BarChart2 size={14} className="inline-block" />
-        <span>Bình chọn {latestMessage.poll.title}</span>
+        <span>Poll: {latestMessage.poll.title}</span>
       </p>
     );
   }
@@ -67,7 +67,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
       <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
         {prefix}
         <FileText size={14} className="inline-block" />
-        <span>Đã tạo ghi chú</span>
+        <span>Created a note</span>
       </p>
     );
   }
@@ -96,7 +96,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
         <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
           {prefix}
           <ImageIcon size={14} className="inline-block" />
-          <span>Đã gửi hình ảnh</span>
+          <span>Sent an image</span>
         </p>
       );
     }
@@ -106,7 +106,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
         <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
           {prefix}
           <Video size={14} className="inline-block" />
-          <span>Đã gửi video</span>
+          <span>Sent a video</span>
         </p>
       );
     }
@@ -116,7 +116,7 @@ const MessageSnippet = React.memo(function MessageSnippet({
     <p className={`text-sm truncate flex items-center gap-1 ${textClass}`}>
       {prefix}
       <FileText size={14} className="inline-block" />
-      <span>Đã gửi tệp</span>
+      <span>Sent a file</span>
     </p>
   );
 });

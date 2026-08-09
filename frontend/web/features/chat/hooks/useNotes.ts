@@ -28,11 +28,11 @@ export function useNotes(conversationId: string | undefined) {
       if (data.type === 'NOTE' && data.note) {
         // From MESSAGE_MOVED
         noteData = data.note;
-        convId = data.conversationId;
+        convId = data.channelId ?? data.conversationId;
       } else if (data.note) {
         // From NOTE_UPDATED
         noteData = data.note;
-        convId = data.conversationId;
+        convId = data.channelId ?? data.conversationId;
       }
 
       if (convId === conversationId && noteData) {

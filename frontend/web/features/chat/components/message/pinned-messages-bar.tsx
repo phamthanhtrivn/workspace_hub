@@ -19,11 +19,11 @@ export const PinnedMessagesBar: React.FC<PinnedMessagesBarProps> = React.memo(
       let contentText = msg.content || "";
       if (!contentText) {
         if (msg.medias && msg.medias.length > 0) {
-          contentText = "[Đính kèm]";
+          contentText = "[Attachment]";
         } else if (msg.poll) {
-          contentText = "[Cuộc bình chọn]";
+          contentText = "[Poll]";
         } else if (msg.note) {
-          contentText = "[Ghi chú]";
+          contentText = "[Note]";
         }
       }
 
@@ -42,7 +42,7 @@ export const PinnedMessagesBar: React.FC<PinnedMessagesBarProps> = React.memo(
             </div>
             <div className="flex flex-col overflow-hidden text-sm w-full">
               <span className="font-medium text-gray-900 truncate">
-                Tin nhắn ghim
+                Pinned message
               </span>
               <span className="text-gray-500 truncate">{contentText}</span>
             </div>
@@ -54,7 +54,7 @@ export const PinnedMessagesBar: React.FC<PinnedMessagesBarProps> = React.memo(
                 onUnpin(msg.id);
               }}
               className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-              title="Bỏ ghim"
+              title="Unpin"
             >
               <X size={16} />
             </button>
@@ -77,11 +77,11 @@ export const PinnedMessagesBar: React.FC<PinnedMessagesBarProps> = React.memo(
     let topContentText = topMessage.content || "";
     if (!topContentText) {
       if (topMessage.medias && topMessage.medias.length > 0) {
-        topContentText = "[Đính kèm]";
+        topContentText = "[Attachment]";
       } else if (topMessage.poll) {
-        topContentText = "[Cuộc bình chọn]";
+        topContentText = "[Poll]";
       } else if (topMessage.note) {
-        topContentText = "[Ghi chú]";
+        topContentText = "[Note]";
       }
     }
 
@@ -98,7 +98,7 @@ export const PinnedMessagesBar: React.FC<PinnedMessagesBarProps> = React.memo(
               </div>
               <div className="flex flex-col overflow-hidden text-sm w-full">
                 <span className="font-medium text-gray-900 truncate">
-                  {pinnedMessages.length} tin nhắn ghim
+                  {pinnedMessages.length} pinned messages
                 </span>
                 <span className="text-gray-500 truncate">{topContentText}</span>
               </div>
@@ -114,7 +114,7 @@ export const PinnedMessagesBar: React.FC<PinnedMessagesBarProps> = React.memo(
               onClick={() => setExpanded(false)}
             >
               <div className="text-sm font-medium text-gray-700 ml-2">
-                Danh sách tin nhắn ghim ({pinnedMessages.length})
+                Pinned messages ({pinnedMessages.length})
               </div>
               <button className="p-1.5 text-gray-500 rounded-md">
                 <ChevronUp size={20} />

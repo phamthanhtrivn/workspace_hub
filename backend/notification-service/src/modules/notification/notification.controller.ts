@@ -128,7 +128,7 @@ export class NotificationController {
     );
 
     return {
-      message: "Lấy danh sách thông báo thành công",
+      message: "Notifications retrieved successfully",
       data: result.list,
       pagination: {
         page: pageNum,
@@ -147,7 +147,7 @@ export class NotificationController {
 
     const unreadCount = await this.notificationService.getUnreadCount(userId);
     return {
-      message: "Lấy số lượng thông báo chưa đọc thành công",
+      message: "Unread notification count retrieved successfully",
       data: { unreadCount },
     };
   }
@@ -171,7 +171,7 @@ export class NotificationController {
     }
 
     return {
-      message: "Đánh dấu đã đọc thành công",
+      message: "Marked as read successfully",
       data: notification,
     };
   }
@@ -184,7 +184,7 @@ export class NotificationController {
 
     const count = await this.notificationService.markAllAsRead(userId);
     return {
-      message: "Đánh dấu tất cả đã đọc thành công",
+      message: "Marked all as read successfully",
       data: { modifiedCount: count },
     };
   }
@@ -208,7 +208,7 @@ export class NotificationController {
     }
 
     return {
-      message: "Xóa thông báo thành công",
+      message: "Notification deleted successfully",
       data: { success },
     };
   }
@@ -217,7 +217,7 @@ export class NotificationController {
   getVapidPublicKey() {
     const publicKey = this.pushService.getPublicKey();
     return {
-      message: "Lấy VAPID public key thành công",
+      message: "VAPID public key retrieved successfully",
       data: { publicKey },
     };
   }
@@ -238,7 +238,7 @@ export class NotificationController {
     );
 
     return {
-      message: "Đăng ký nhận thông báo đẩy thành công",
+      message: "Push notification subscription registered successfully",
       data: subscription,
     };
   }
@@ -259,7 +259,7 @@ export class NotificationController {
     const success = await this.notificationService.unsubscribe(userId, endpoint);
 
     return {
-      message: "Hủy đăng ký nhận thông báo đẩy thành công",
+      message: "Push notification subscription removed successfully",
       data: { success },
     };
   }

@@ -1,21 +1,52 @@
 import {
   Injectable,
   BadRequestException,
-  NotFoundException,
+  Inject,
 } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SpaceRole } from '@prisma/client';
-import { DEFAULT_SPACE_CHANNEL_NAMES } from './types/space.enums';
+import { InvitationStatus, SpaceRole } from '@prisma/client';
+import {
+  KAFKA_EVENTS,
+  KAFKA_TOPICS,
+} from '../../common/constants/kafka.constants';
+import { getSenderProfile } from '../../common/utils/user.util';
 import { DefaultSpaceChannelNames } from './types/space.types';
 
 @Injectable()
 export class SpaceService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
+  ) {}
+
+  private async mapChannelForClient(channel: any) {
+    const roles = await this.prisma.spaceMember.findMany({
+      where: {
+        spaceId: channel.spaceId,
+        userId: { in: channel.members.map((member) => member.userId) },
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+    });
+    const roleByUserId = new Map(roles.map((member) => [member.userId, member.role]));
+
+    return {
+      ...channel,
+      type: 'GROUP',
+      members: channel.members.map((member) => ({
+        ...member,
+        role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
+      })),
+    };
+  }
 
   async createSpace(userId: string, name: string) {
     if (!name || name.trim().length === 0) {
       throw new BadRequestException(
-        'Tên không gian làm việc không được để trống',
+        'Space name cannot be empty',
       );
     }
 
@@ -94,12 +125,12 @@ export class SpaceService {
 
     if (!isMember) {
       throw new BadRequestException(
-        'Bạn không phải là thành viên của không gian này',
+        'You are not a member of this space',
       );
     }
 
     if (!name || name.trim().length === 0) {
-      throw new BadRequestException('Tên kênh không được để trống');
+      throw new BadRequestException('Channel name cannot be empty');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -135,7 +166,26 @@ export class SpaceService {
         });
       }
 
-      return channel;
+      const createdChannel = await tx.channel.findUnique({
+        where: { id: channel.id },
+        include: {
+          setting: true,
+          members: true,
+        },
+      });
+      if (!createdChannel) {
+        throw new BadRequestException('Channel creation failed');
+      }
+
+      return {
+        ...createdChannel,
+        type: 'GROUP',
+        members: createdChannel.members.map((member) => ({
+          ...member,
+          role: spaceMembers.find((spaceMember) => spaceMember.userId === member.userId)
+            ?.role ?? SpaceRole.MEMBER,
+        })),
+      };
     });
   }
 
@@ -151,11 +201,11 @@ export class SpaceService {
 
     if (!isMember) {
       throw new BadRequestException(
-        'Bạn không phải là thành viên của không gian này',
+        'You are not a member of this space',
       );
     }
 
-    return this.prisma.channel.findMany({
+    const channels = await this.prisma.channel.findMany({
       where: {
         spaceId,
       },
@@ -167,6 +217,8 @@ export class SpaceService {
         createdAt: 'asc',
       },
     });
+
+    return Promise.all(channels.map((channel) => this.mapChannelForClient(channel)));
   }
 
   async inviteMembersToSpace(
@@ -185,7 +237,7 @@ export class SpaceService {
 
     if (!requester || requester.role === SpaceRole.MEMBER) {
       throw new BadRequestException(
-        'Bạn không có quyền mời vào không gian này',
+        'You are not allowed to invite members to this space',
       );
     }
 
@@ -193,9 +245,21 @@ export class SpaceService {
       return { count: 0 };
     }
 
+    const invitedByProfile = await getSenderProfile(userId);
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { name: true },
+    });
+
     return this.prisma.$transaction(async (tx) => {
-      const addedMembers: string[] = [];
+      const invitationsToNotify: { userId: string; invitationId: string }[] = [];
+      const alreadyMembers: string[] = [];
+      const alreadyPending: string[] = [];
       for (const invitedId of invitedUserIds) {
+        if (!invitedId || invitedId === userId) {
+          continue;
+        }
+
         const exists = await tx.spaceMember.findUnique({
           where: {
             spaceId_userId: {
@@ -205,47 +269,82 @@ export class SpaceService {
           },
         });
 
-        if (!exists) {
-          await tx.spaceMember.create({
-            data: {
-              spaceId,
-              userId: invitedId,
-              role: SpaceRole.MEMBER,
-            },
-          });
-          addedMembers.push(invitedId);
+        if (exists) {
+          alreadyMembers.push(invitedId);
+          continue;
         }
-      }
 
-      if (addedMembers.length > 0) {
-        const channels = await tx.channel.findMany({
-          where: { spaceId },
+        const existingInvitation = await tx.spaceInvitation.findUnique({
+          where: {
+            spaceId_invitedUserId: {
+              spaceId,
+              invitedUserId: invitedId,
+            },
+          },
         });
 
-        for (const channel of channels) {
-          for (const newMemberId of addedMembers) {
-            const hasMember = await tx.channelMember.findUnique({
-              where: {
-                channelId_userId: {
-                  channelId: channel.id,
-                  userId: newMemberId,
-                },
-              },
-            });
+        if (existingInvitation?.status === InvitationStatus.PENDING) {
+          alreadyPending.push(invitedId);
+          continue;
+        }
 
-            if (!hasMember) {
-              await tx.channelMember.create({
-                data: {
-                  channelId: channel.id,
-                  userId: newMemberId,
-                },
-              });
-            }
-          }
+        if (existingInvitation) {
+          const invitation = await tx.spaceInvitation.update({
+            where: { id: existingInvitation.id },
+            data: {
+              invitedBy: userId,
+              status: InvitationStatus.PENDING,
+              respondedAt: null,
+            },
+          });
+          invitationsToNotify.push({
+            userId: invitedId,
+            invitationId: invitation.id,
+          });
+        } else {
+          const invitation = await tx.spaceInvitation.create({
+            data: {
+              spaceId,
+              invitedUserId: invitedId,
+              invitedBy: userId,
+            },
+          });
+          invitationsToNotify.push({
+            userId: invitedId,
+            invitationId: invitation.id,
+          });
         }
       }
 
-      return { count: addedMembers.length };
+      return {
+        count: invitationsToNotify.length,
+        invitationsToNotify,
+        alreadyMemberCount: alreadyMembers.length,
+        pendingCount: alreadyPending.length,
+      };
+    }).then((result) => {
+      for (const invitation of result.invitationsToNotify) {
+        this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+          key: invitation.userId,
+          value: {
+            recipientId: invitation.userId,
+            senderId: userId,
+            senderName: invitedByProfile.senderName,
+            senderAvatar: invitedByProfile.senderAvatar,
+            type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
+            title: 'Space invitation',
+            content: `You were invited to ${space?.name ?? 'a space'}`,
+            link: '/chat',
+            metadata: {
+              invitationId: invitation.invitationId,
+              spaceId,
+              spaceName: space?.name,
+            },
+          },
+        });
+      }
+
+      return result;
     });
   }
 }

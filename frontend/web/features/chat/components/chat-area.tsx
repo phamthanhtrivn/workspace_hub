@@ -32,6 +32,18 @@ import { toast } from "sonner";
 
 import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
 
+type ChatReaction = {
+  userId?: string;
+};
+
+type ChatMessageItem = {
+  senderId?: string;
+  replyTo?: {
+    senderId?: string;
+  };
+  reactions?: ChatReaction[];
+};
+
 type PageParam = {
   cursor?: string;
   direction: "older" | "newer" | "around";
@@ -51,7 +63,6 @@ export default function ChatArea({
   const { activeConversation, watermarks } = useAppSelector(
     (state) => state.chat,
   );
-  const memberProfiles = useChatMemberProfiles();
   const auth = useAppSelector((state) => state.auth);
   const highlightMessageId = useAppSelector(
     (state) => state.chat.highlightMessageId,
@@ -122,6 +133,35 @@ export default function ChatArea({
   const { ref: loadMoreRef, inView } = useInView();
   const { ref: bottomBoundaryRef, inView: isBottomInView } = useInView();
 
+  const messagePages = data?.pages;
+  const allMessages = useMemo(() => {
+    if (!messagePages) return [...newSocketMessages].reverse();
+    const pagesMessages = messagePages.flatMap((page) =>
+      [...page.messages].reverse(),
+    );
+    return [...[...newSocketMessages].reverse(), ...pagesMessages];
+  }, [messagePages, newSocketMessages]);
+
+  const messageSenderIds = useMemo(() => {
+    const ids = new Set<string>();
+    allMessages.forEach((message: ChatMessageItem) => {
+      if (message.senderId) {
+        ids.add(message.senderId);
+      }
+      if (message.replyTo?.senderId) {
+        ids.add(message.replyTo.senderId);
+      }
+      message.reactions?.forEach((reaction) => {
+        if (reaction.userId) {
+          ids.add(reaction.userId);
+        }
+      });
+    });
+    return Array.from(ids);
+  }, [allMessages]);
+
+  const memberProfiles = useChatMemberProfiles(messageSenderIds);
+
   // Load more when scrolled to the top
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
@@ -171,8 +211,11 @@ export default function ChatArea({
 
     if (socket && activeConversation?.id) {
       socket.emit(ChatEvent.JOIN_CONVERSATION, {
-        conversationId: activeConversation.id,
+        channelId: activeConversation.id,
       });
+
+      const getEventChannelId = (payload: any) =>
+        payload?.channelId ?? payload?.conversationId;
 
       const updateMessageInState = (
         messageId: string,
@@ -202,7 +245,7 @@ export default function ChatArea({
       };
 
       const handleNewMessage = (message: any) => {
-        if (message.conversationId === activeConversation?.id) {
+        if (getEventChannelId(message) === activeConversation?.id) {
           if (message.threadParentId) {
             // It's a thread reply. Update parent message's thread info in state/cache.
             updateMessageInState(message.threadParentId, (parentMsg) => ({
@@ -231,7 +274,7 @@ export default function ChatArea({
       };
 
       const handleReactionUpdated = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        if (getEventChannelId(data) === activeConversation.id) {
           updateMessageInState(data.messageId, (msg) => {
             let reactions = msg.reactions ? [...msg.reactions] : [];
             // Remove any existing reaction from this user
@@ -246,11 +289,12 @@ export default function ChatArea({
       };
 
       const handleMessageRead = (data: {
-        conversationId: string;
+        channelId?: string;
+        conversationId?: string;
         userId: string;
         messageId: string;
       }) => {
-        if (data.conversationId === activeConversation.id) {
+        if (getEventChannelId(data) === activeConversation.id) {
           dispatch(
             updateWatermark({ userId: data.userId, messageId: data.messageId }),
           );
@@ -258,7 +302,7 @@ export default function ChatArea({
       };
 
       const handlePollUpdated = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        if (getEventChannelId(data) === activeConversation.id) {
           updateMessageInState(data.messageId, (msg) => {
             return { ...msg, poll: data.poll };
           });
@@ -266,7 +310,7 @@ export default function ChatArea({
       };
 
       const handleMessageMoved = (msg: any) => {
-        if (msg.conversationId === activeConversation.id) {
+        if (getEventChannelId(msg) === activeConversation.id) {
           // Xoá tin nhắn cũ
           setNewSocketMessages((prev) => {
             const filtered = prev.filter((m) => m.id !== msg.id);
@@ -290,7 +334,7 @@ export default function ChatArea({
       };
 
       const handleMessagePinned = (msg: any) => {
-        if (msg.conversationId === activeConversation.id) {
+        if (getEventChannelId(msg) === activeConversation.id) {
           queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
             const currentList = prev || [];
             const exists = currentList.some((p) => p.id === msg.id);
@@ -307,7 +351,7 @@ export default function ChatArea({
       };
 
       const handleMessageUnpinned = (msg: any) => {
-        if (msg.conversationId === activeConversation.id) {
+        if (getEventChannelId(msg) === activeConversation.id) {
           queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
             const currentList = prev || [];
             return currentList.filter((p) => p.id !== msg.id);
@@ -317,24 +361,25 @@ export default function ChatArea({
       };
 
       const handleMessageUpdated = (msg: any) => {
-        if (msg.conversationId === activeConversation.id) {
+        if (getEventChannelId(msg) === activeConversation.id) {
           updateMessageInState(msg.id, () => msg);
         }
       };
 
       const handleTyping = (data: {
-        conversationId: string;
+        channelId?: string;
+        conversationId?: string;
         userId: string;
         isTyping: boolean;
       }) => {
         if (
-          data.conversationId === activeConversation.id &&
+          getEventChannelId(data) === activeConversation.id &&
           data.userId !== auth.userId
         ) {
           if (data.isTyping) {
             setTypingUsers((prev) => {
               if (prev.find((u) => u.id === data.userId)) return prev;
-              const name = memberProfiles?.[data.userId]?.fullName || "Ai đó";
+              const name = memberProfiles?.[data.userId]?.fullName || "Someone";
               return [...prev, { id: data.userId, name }];
             });
 
@@ -359,13 +404,13 @@ export default function ChatArea({
       };
 
       const handleGroupSettingUpdated = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        if (getEventChannelId(data) === activeConversation.id) {
           dispatch(updateGroupSettings(data.setting));
         }
       };
 
       const handleMemberRoleUpdated = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        if (getEventChannelId(data) === activeConversation.id) {
           dispatch(
             updateMemberRole({
               userId: data.member.userId,
@@ -376,22 +421,28 @@ export default function ChatArea({
       };
 
       const handleMemberKickedOrLeft = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        const affectsActiveConversation =
+          getEventChannelId(data) === activeConversation.id ||
+          (data.spaceId && data.spaceId === activeConversation.spaceId);
+
+        if (affectsActiveConversation) {
           if (data.userId === auth?.userId) {
             dispatch(setActiveConversation(null));
             queryClient.invalidateQueries({ queryKey: ["conversations"] });
-            toast.success("Bạn đã không còn ở trong nhóm này");
+            queryClient.invalidateQueries({ queryKey: ["channels"] });
+            toast.success("You are no longer in this group");
           } else {
             dispatch(removeMember(data.userId));
+            queryClient.invalidateQueries({ queryKey: ["channels"] });
           }
         }
       };
 
       const handleConversationDisbanded = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        if (getEventChannelId(data) === activeConversation.id) {
           dispatch(setActiveConversation(null));
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          toast.info("Nhóm này đã bị giải tán bởi Trưởng nhóm");
+          toast.info("This group has been disbanded by the Owner");
         }
       };
 
@@ -440,19 +491,12 @@ export default function ChatArea({
     }
   }, [
     activeConversation?.id,
+    activeConversation?.spaceId,
     auth.userId,
     memberProfiles,
     dispatch,
     queryClient,
   ]);
-
-  const allMessages = useMemo(() => {
-    if (!data?.pages) return [...newSocketMessages].reverse();
-    const pagesMessages = data.pages.flatMap((page: any) =>
-      [...page.messages].reverse(),
-    );
-    return [...[...newSocketMessages].reverse(), ...pagesMessages];
-  }, [data?.pages, newSocketMessages]);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -464,14 +508,14 @@ export default function ChatArea({
       if (socket && activeConversation?.id) {
         if (editingMessage) {
           socket.emit(ChatEvent.EDIT_MESSAGE, {
-            conversationId: activeConversation.id,
+            channelId: activeConversation.id,
             messageId: editingMessage.id,
             content,
           });
           setEditingMessage(null);
         } else {
           socket.emit(ChatEvent.SEND_MESSAGE, {
-            conversationId: activeConversation?.id,
+            channelId: activeConversation?.id,
             content,
             medias,
             replyToMessageId: replyingTo?.id,
@@ -489,7 +533,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket && activeConversation?.id) {
         socket.emit(ChatEvent.TYPING, {
-          conversationId: activeConversation.id,
+          channelId: activeConversation.id,
           isTyping,
         });
       }
@@ -503,7 +547,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.SEND_MESSAGE, {
-          conversationId: activeConversation.id,
+          channelId: activeConversation.id,
           content: "",
           type: "POLL",
           pollData: data,
@@ -518,7 +562,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket && activeConversation?.id) {
         socket.emit(ChatEvent.RECALL_MESSAGE, {
-          conversationId: activeConversation.id,
+          channelId: activeConversation.id,
           messageId: msg.id,
         });
       }
@@ -534,7 +578,7 @@ export default function ChatArea({
           socket.emit(
             ChatEvent.UNPIN_MESSAGE,
             {
-              conversationId: activeConversation.id,
+              channelId: activeConversation.id,
               messageId: msg.id,
             },
             (response: any) => {
@@ -545,7 +589,7 @@ export default function ChatArea({
           socket.emit(
             ChatEvent.PIN_MESSAGE,
             {
-              conversationId: activeConversation.id,
+              channelId: activeConversation.id,
               messageId: msg.id,
             },
             (response: any) => {
@@ -564,7 +608,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.SEND_MESSAGE, {
-          conversationId: activeConversation.id,
+          channelId: activeConversation.id,
           content: "",
           type: "NOTE",
           noteData: data,
@@ -579,7 +623,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.REACT_MESSAGE, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           emoji,
           action,
@@ -594,7 +638,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.VOTE_POLL, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           pollOptionId,
         });
@@ -608,7 +652,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.ADD_POLL_OPTION, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           text,
         });
@@ -629,7 +673,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.EDIT_POLL, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           title,
           multipleChoice,
@@ -647,7 +691,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.EDIT_NOTE, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           title,
           content,
@@ -688,7 +732,7 @@ export default function ChatArea({
     if (isLoading) {
       return (
         <div className="flex justify-center items-center h-full text-gray-400">
-          Đang tải...
+          Loading...
         </div>
       );
     }
@@ -696,7 +740,7 @@ export default function ChatArea({
     if (allMessages.length === 0) {
       return (
         <div className="flex justify-center items-center h-full text-gray-400">
-          Chưa có tin nhắn nào. Hãy gửi lời chào!
+          No messages here yet. Say hello!
         </div>
       );
     }
@@ -777,6 +821,7 @@ export default function ChatArea({
           isMe={isMe}
           showAvatar={showAvatar}
           memberProfile={memberProfiles?.[msg.senderId] || null}
+          memberProfiles={memberProfiles || {}}
           memberRole={
             activeConversation?.members?.find(
               (m: any) => m.userId === msg.senderId,
@@ -824,7 +869,7 @@ export default function ChatArea({
           const socket = socketService.getSocket();
           if (socket) {
             socket.emit(ChatEvent.READ_MESSAGE, {
-              conversationId: activeConversation.id,
+              channelId: activeConversation.id,
               messageId: msg.id,
             });
           }
@@ -869,7 +914,7 @@ export default function ChatArea({
           className="h-6 w-full flex justify-center items-center my-2"
         >
           {isFetchingNextPage && (
-            <span className="text-xs text-gray-400">Đang tải thêm...</span>
+            <span className="text-xs text-gray-400">Loading more...</span>
           )}
         </div>,
       );
@@ -883,7 +928,7 @@ export default function ChatArea({
         >
           {isFetchingPreviousPage && (
             <span className="text-xs text-gray-400">
-              Đang tải tin nhắn mới...
+              Loading new messages...
             </span>
           )}
         </div>,
@@ -920,14 +965,14 @@ export default function ChatArea({
           className="absolute top-20 cursor-pointer shadow-xl left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition z-20 flex items-center gap-2"
         >
           <ChevronDown size={16} />
-          Trở về hiện tại
+          Jump to present
         </button>
       )}
 
       {/* Message List Area */}
       <div
         ref={chatContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#e8e8e8] space-y-1 relative flex flex-col-reverse"
+        className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#f8fafc] space-y-1 relative flex flex-col-reverse [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full"
       >
         <div
           ref={(el) => {
@@ -953,19 +998,19 @@ export default function ChatArea({
         <div className="bg-blue-50 border-t border-blue-100 p-2 px-4 flex items-center justify-between">
           <div className="flex flex-col min-w-0 flex-1 border-l-4 border-blue-500 pl-3">
             <span className="text-xs font-semibold text-blue-600">
-              Đang trả lời{" "}
+              Replying to{" "}
               {replyingTo.senderId === auth.userId
-                ? "Bạn"
-                : memberProfiles?.[replyingTo.senderId]?.fullName || "Ai đó"}
+                ? "You"
+                : memberProfiles?.[replyingTo.senderId]?.fullName || "Someone"}
             </span>
             <span className="text-sm text-gray-600 truncate">
               {replyingTo.content ||
                 (replyingTo.medias?.length
-                  ? "[Đính kèm]"
+                  ? "[Attachment]"
                   : replyingTo.poll
-                    ? "[Bình chọn]"
+                    ? "[Poll]"
                     : replyingTo.note
-                      ? "[Ghi chú]"
+                      ? "[Note]"
                       : "")}
             </span>
           </div>
@@ -983,7 +1028,7 @@ export default function ChatArea({
         <div className="bg-orange-50 border-t border-orange-100 p-2 px-4 flex items-center justify-between">
           <div className="flex flex-col min-w-0 flex-1 border-l-4 border-orange-500 pl-3">
             <span className="text-xs font-semibold text-orange-600">
-              Chỉnh sửa tin nhắn
+              Edit message
             </span>
             <span className="text-sm text-gray-600 truncate">
               {editingMessage.content}

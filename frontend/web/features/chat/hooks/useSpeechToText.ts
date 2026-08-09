@@ -69,7 +69,7 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
           console.error(e);
         }
       } else {
-        toast.error("Trình duyệt của bạn không hỗ trợ tính năng đọc chính tả.");
+        toast.error("Your browser does not support speech recognition.");
       }
     }
   }, [isDictating]);

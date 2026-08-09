@@ -23,7 +23,6 @@ export default function ThreadDetailView({
 }: ThreadDetailViewProps) {
   const queryClient = useQueryClient();
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const memberProfiles = useChatMemberProfiles();
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<any>(null);
 
@@ -45,10 +44,10 @@ export default function ThreadDetailView({
       const following = res.data.following;
       setIsFollowing(following);
       toast.success(
-        following ? "Đang theo dõi: nhận thông báo từ luồng này" : "Đã bỏ theo dõi luồng này"
+        following ? "Following: you will receive notifications for this thread" : "Unfollowed this thread"
       );
     } catch {
-      toast.error("Không thể thay đổi trạng thái theo dõi");
+      toast.error("Failed to change follow status");
     }
   };
 
@@ -60,6 +59,19 @@ export default function ThreadDetailView({
   });
 
   const replies = threadData?.data?.replies || [];
+  const threadSenderIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (rootMessage.senderId) {
+      ids.add(rootMessage.senderId);
+    }
+    replies.forEach((reply: any) => {
+      if (reply.senderId) {
+        ids.add(reply.senderId);
+      }
+    });
+    return Array.from(ids);
+  }, [replies, rootMessage.senderId]);
+  const memberProfiles = useChatMemberProfiles(threadSenderIds);
 
   // Listen to new replies via WebSockets
   useEffect(() => {
@@ -124,7 +136,7 @@ export default function ThreadDetailView({
     if (!socket) return;
 
     socket.emit(ChatEvent.SEND_MESSAGE, {
-      conversationId: rootMessage.conversationId,
+      channelId: rootMessage.channelId ?? rootMessage.conversationId,
       content,
       medias: media,
       threadParentId: rootMessage.id,
@@ -135,6 +147,8 @@ export default function ThreadDetailView({
   const getProfile = (userId: string) => {
     return memberProfiles[userId] || null;
   };
+  const rootProfile = getProfile(rootMessage.senderId);
+  const rootAvatarUrl = rootProfile?.avatarUrl || undefined;
 
   const renderThreadMessageMedias = (messageItem: any) => {
     if (!messageItem.medias || messageItem.medias.length === 0) return null;
@@ -242,12 +256,12 @@ export default function ThreadDetailView({
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Thảo luận theo chủ đề</h2>
+        <h2 className="font-semibold text-gray-800">Thread Discussion</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={handleToggleFollow}
             className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer"
-            title={isFollowing ? "Đang theo dõi luồng này" : "Theo dõi luồng này"}
+            title={isFollowing ? "Following this thread" : "Follow this thread"}
           >
             <Bell
               size={18}
@@ -269,9 +283,9 @@ export default function ThreadDetailView({
         <div className="border-b border-gray-100 pb-4">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center font-bold text-sm text-blue-600 overflow-hidden">
-              {getProfile(rootMessage.senderId)?.avatarUrl ? (
+              {rootAvatarUrl ? (
                 <Image
-                  src={getProfile(rootMessage.senderId)!.avatarUrl}
+                  src={rootAvatarUrl}
                   alt="Avatar"
                   width={32}
                   height={32}
@@ -285,9 +299,9 @@ export default function ThreadDetailView({
               <div className="flex items-baseline justify-between mb-1">
                 <span className="font-bold text-xs text-gray-900 truncate">
                   {rootMessage.senderId === currentUserId
-                    ? "Bạn"
+                    ? "You"
                     : getProfile(rootMessage.senderId)?.fullName ||
-                      "Người dùng"}
+                      "User"}
                 </span>
                 <span className="text-[10px] text-gray-400">
                   {formatConversationTime(rootMessage.createdAt)}
@@ -300,21 +314,21 @@ export default function ThreadDetailView({
                     memberProfiles ?? undefined,
                   )
                 ) : (
-                  <span className="text-gray-400 italic">[Đính kèm]</span>
+                  <span className="text-gray-400 italic">[Attachment]</span>
                 )}
                 {renderThreadMessageMedias(rootMessage)}
               </div>
             </div>
           </div>
           <div className="mt-2 pl-11 text-[10px] font-semibold text-gray-500">
-            {replies.length} phản hồi
+            {replies.length} replies
           </div>
         </div>
 
         {/* Loading / Replies */}
         {isLoading ? (
           <div className="text-center text-xs text-gray-400 py-4">
-            Đang tải bình luận...
+            Loading comments...
           </div>
         ) : (
           <div className="space-y-4">
@@ -339,8 +353,8 @@ export default function ThreadDetailView({
                     <div className="flex items-baseline justify-between mb-0.5">
                       <span className="font-bold text-xs text-gray-700 truncate">
                         {reply.senderId === currentUserId
-                          ? "Bạn"
-                          : profile?.fullName || "Người dùng"}
+                          ? "You"
+                          : profile?.fullName || "User"}
                       </span>
                       <span className="text-[9px] text-gray-400">
                         {formatConversationTime(reply.createdAt)}

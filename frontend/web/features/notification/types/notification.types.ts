@@ -9,13 +9,15 @@ export enum NotificationType {
 
 export interface InvitationMetadata {
   invitationId: string;
-  conversationId: string;
+  spaceId: string;
+  spaceName?: string;
   conversationName?: string;
   conversationAvatarUrl?: string;
 }
 
 export interface InvitationResponseMetadata {
-  conversationId: string;
+  spaceId: string;
+  spaceName?: string;
   conversationName?: string;
 }
 

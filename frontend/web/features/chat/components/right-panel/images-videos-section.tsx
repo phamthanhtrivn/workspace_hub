@@ -32,7 +32,7 @@ export default function ImagesVideosSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <ImageIcon size={18} className="text-gray-500" />
-          Hình ảnh & Video
+          Images & Videos
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -45,7 +45,7 @@ export default function ImagesVideosSection({
         <div className="px-4 pb-4">
           {imagesAndVideos.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              Chưa có hình ảnh/video nào
+              No images or videos available
             </p>
           ) : (
             <>
@@ -92,7 +92,7 @@ export default function ImagesVideosSection({
                   onClick={onSeeAll}
                   className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50  rounded-lg transition"
                 >
-                  Xem tất cả
+                  See all
                 </button>
               )}
             </>

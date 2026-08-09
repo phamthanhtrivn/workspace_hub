@@ -50,8 +50,8 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
 
   const getStyle = (): React.CSSProperties => {
     const style: React.CSSProperties = {
-      left: isMe ? buttonRect.right : buttonRect.left,
-      transform: isMe ? "translateX(-100%)" : "none",
+      left: isMe ? buttonRect.right + 10 : buttonRect.left,
+      transform: "none",
     };
 
     if (buttonRect.bottom > window.innerHeight / 2) {
@@ -78,7 +78,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
       >
         <MessageSquare size={16} />
-        <span>Phản hồi</span>
+        <span>Reply</span>
       </button>
 
       {isMe && canEdit && (
@@ -90,7 +90,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
           className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
         >
           <Edit2 size={16} />
-          <span>Chỉnh sửa</span>
+          <span>Edit</span>
         </button>
       )}
 
@@ -102,7 +102,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
       >
         <Pin size={16} />
-        <span>{isPinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}</span>
+        <span>{isPinned ? "Unpin message" : "Pin message"}</span>
       </button>
 
       {isMe && canRecall && (
@@ -116,7 +116,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Trash2 size={16} />
-            <span>Thu hồi</span>
+            <span>Recall</span>
           </button>
         </>
       )}

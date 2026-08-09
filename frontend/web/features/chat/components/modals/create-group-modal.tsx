@@ -76,12 +76,12 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
         );
         setResults(filteredUsers);
         if (filteredUsers.length === 0 && users.length > 0) {
-          setError("Người dùng này đã được chọn");
+          setError("This user is already selected");
         } else if (filteredUsers.length === 0) {
-          setError("Không tìm thấy người dùng");
+          setError("User not found");
         }
       } catch (err: any) {
-        setError(err.response?.data?.message || "Lỗi tìm kiếm");
+        setError(err.response?.data?.message || "Search error");
         setResults([]);
       } finally {
         setLoading(false);
@@ -121,7 +121,7 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
       }
     } catch (err) {
       console.error(err);
-      toast.error("Không thể tải ảnh lên. Vui lòng thử lại.");
+      toast.error("Failed to upload image. Please try again.");
     } finally {
       setIsUploadingAvatar(false);
       if (fileInputRef.current) {
@@ -132,12 +132,12 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
 
   const handleCreateGroup = async () => {
     if (!groupName.trim()) {
-      toast.error("Vui lòng nhập tên nhóm");
+      toast.error("Please enter a group name");
       return;
     }
 
     if (selectedUsers.length === 0) {
-      toast.error("Vui lòng chọn ít nhất 1 thành viên");
+      toast.error("Please select at least 1 member");
       return;
     }
 
@@ -154,10 +154,10 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
         onConversationCreated?.(response.data);
         onClose();
       } else {
-        toast.error(response?.message || "Lỗi khi tạo nhóm chat");
+        toast.error(response?.message || "Failed to create group chat");
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Lỗi khi tạo nhóm chat");
+      toast.error(err.response?.data?.message || "Failed to create group chat");
     } finally {
       setIsCreating(false);
     }
@@ -170,7 +170,7 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[90vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
           <h2 className="text-xl font-bold text-gray-800 tracking-tight">
-            Tạo nhóm trò chuyện
+            Create Group Chat
           </h2>
           <button
             onClick={onClose}
@@ -218,14 +218,14 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
               type="text"
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
-              placeholder="Tên nhóm (bắt buộc)..."
+              placeholder="Group name (required)..."
               className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium text-gray-800 placeholder:text-gray-400 text-center"
             />
           </div>
 
           <div className="px-6 py-4">
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              Thành viên ({selectedUsers.length})
+              Members ({selectedUsers.length})
             </h3>
 
             {/* Selected Users */}
@@ -248,7 +248,7 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
                       )}
                     </div>
                     <span className="text-xs font-medium text-blue-700 truncate max-w-[100px]">
-                      {user.fullName || "Ẩn danh"}
+                      {user.fullName || "Anonymous"}
                     </span>
                     <button
                       onClick={() => handleRemoveUser(user.id)}
@@ -267,7 +267,7 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Tìm bạn bè bằng email..."
+                placeholder="Search friends by email..."
                 className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-sm font-medium text-gray-700 placeholder:text-gray-400 shadow-sm"
               />
               <Search
@@ -312,7 +312,7 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
                         </div>
                         <div className="overflow-hidden">
                           <p className="font-medium text-gray-800 text-sm truncate">
-                            {user.fullName || "Người dùng ẩn danh"}
+                            {user.fullName || "Anonymous user"}
                           </p>
                           <p className="text-xs text-gray-500 truncate mt-0.5">
                             {user.email}
@@ -341,10 +341,10 @@ const CreateGroupModal = React.memo(function CreateGroupModal({
           >
             {isCreating ? (
               <>
-                <Loader2 size={18} className="animate-spin" /> Đang tạo...
+                <Loader2 size={18} className="animate-spin" /> Creating...
               </>
             ) : (
-              <>Tạo nhóm ({selectedUsers.length + 1})</>
+              <>Create Group ({selectedUsers.length + 1})</>
             )}
           </button>
         </div>

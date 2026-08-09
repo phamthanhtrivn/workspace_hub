@@ -1,6 +1,6 @@
 export enum NOTE_SUCCESS_MESSAGES {
-  RETRIEVED = 'Lấy danh sách ghi chú thành công',
-  UPDATED = 'Cập nhật ghi chú thành công',
+  RETRIEVED = 'Notes retrieved successfully',
+  UPDATED = 'Note updated successfully',
 }
 
 export enum NOTE_ERROR_MESSAGES {

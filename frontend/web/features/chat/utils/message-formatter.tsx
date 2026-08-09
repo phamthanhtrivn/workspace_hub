@@ -141,7 +141,7 @@ export const formatMessageContent = (
   const allProfiles = Object.values(memberProfiles || {})
     .map((profile: any) => ({
       userId: profile.userId,
-      name: profile.fullName || "Ai đó",
+      name: profile.fullName || "Someone",
     }))
     .sort((a: any, b: any) => b.name.length - a.name.length);
 

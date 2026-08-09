@@ -168,7 +168,7 @@ const ThreadChatInput = React.memo(
         .filter((id: string) => id !== authUserId)
         .map((id: string) => ({
           id,
-          name: memberProfiles[id]?.fullName || "Ai đó",
+          name: memberProfiles[id]?.fullName || "Someone",
           avatarUrl: memberProfiles[id]?.avatarUrl,
         }))
         .filter((m: any) => m.name.toLowerCase().includes(query));
@@ -258,7 +258,7 @@ const ThreadChatInput = React.memo(
     const uploadFilesList = async (files: File[]) => {
       const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
       if (validFiles.length < files.length) {
-        toast.error("Không được upload file vượt quá 100MB.");
+        toast.error("File size cannot exceed 100MB.");
       }
       if (validFiles.length === 0) return;
 
@@ -362,7 +362,7 @@ const ThreadChatInput = React.memo(
     const handleSend = useCallback(() => {
       if (!message.trim() && uploadingMedia.length === 0) return;
       if (isUploading) {
-        toast.warning("Vui lòng đợi file tải lên hoàn tất.");
+        toast.warning("Please wait for the file to upload.");
         return;
       }
       if (!onSendMessage) return;
@@ -469,7 +469,7 @@ const ThreadChatInput = React.memo(
                     ? "bg-blue-100 text-blue-600"
                     : "text-gray-400 hover:bg-gray-200"
                 }`}
-                title="Tùy chọn"
+                title="Options"
               >
                 <Plus
                   size={18}
@@ -487,7 +487,7 @@ const ThreadChatInput = React.memo(
                     disabled={isUploading}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <Paperclip size={14} className="text-gray-500" /> Tài liệu
+                    <Paperclip size={14} className="text-gray-500" /> Document
                   </button>
                   <button
                     onClick={() => {
@@ -496,7 +496,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Type size={14} className="text-blue-500" /> Định dạng
+                    <Type size={14} className="text-blue-500" /> Formatting
                   </button>
                   <button
                     onClick={() => {
@@ -505,7 +505,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Smile size={14} className="text-yellow-500" /> Cảm xúc
+                    <Smile size={14} className="text-yellow-500" /> Emoji
                   </button>
                   <button
                     onClick={() => {
@@ -514,7 +514,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Mic size={14} className="text-green-500" /> Nhập giọng nói
+                    <Mic size={14} className="text-green-500" /> Voice Input
                   </button>
                   <button
                     onClick={() => {
@@ -523,8 +523,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Voicemail size={14} className="text-red-500" /> Ghi âm
-                    thoại
+                    <Voicemail size={14} className="text-red-500" /> Voice Message
                   </button>
                 </div>
               )}
@@ -555,7 +554,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("bold")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Đậm (Bold)"
+                    title="Bold"
                   >
                     <Bold size={13} />
                   </button>
@@ -563,7 +562,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("italic")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Nghiêng (Italic)"
+                    title="Italic"
                   >
                     <Italic size={13} />
                   </button>
@@ -571,7 +570,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("strikethrough")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Gạch ngang (Strikethrough)"
+                    title="Strikethrough"
                   >
                     <Strikethrough size={13} />
                   </button>
@@ -580,7 +579,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("heading")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Tiêu đề (Heading)"
+                    title="Heading"
                   >
                     <Heading size={13} />
                   </button>
@@ -588,7 +587,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("link")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Liên kết (Link)"
+                    title="Link"
                   >
                     <Link size={13} />
                   </button>
@@ -596,7 +595,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("code")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Đoạn mã (Code block)"
+                    title="Code block"
                   >
                     <Code size={13} />
                   </button>
@@ -604,7 +603,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("quote")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Trích dẫn (Quote)"
+                    title="Quote"
                   >
                     <Quote size={13} />
                   </button>
@@ -612,7 +611,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("bullet")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Danh sách dấu chấm"
+                    title="Bulleted list"
                   >
                     <List size={13} />
                   </button>
@@ -620,7 +619,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("number")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Danh sách số"
+                    title="Numbered list"
                   >
                     <ListOrdered size={13} />
                   </button>
@@ -643,7 +642,7 @@ const ThreadChatInput = React.memo(
                     handleTyping(e.target.value, e.target.selectionStart);
                   }
                 }}
-                placeholder="Phản hồi trong chủ đề..."
+                placeholder="Reply in thread..."
                 disabled={isUploading}
                 className="w-full bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
                 rows={1}
@@ -697,14 +696,14 @@ const ThreadChatInput = React.memo(
                   <button
                     onClick={cancelRecording}
                     className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
-                    title="Hủy ghi âm"
+                    title="Cancel recording"
                   >
                     <Trash2 size={16} />
                   </button>
                   <button
                     onClick={stopRecording}
                     className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
-                    title="Gửi"
+                    title="Send"
                   >
                     <Send size={14} />
                   </button>

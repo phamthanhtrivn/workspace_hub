@@ -47,7 +47,7 @@ export class QuotaService {
         Number(quota.maxBytes - quota.usedBytes) / QuotaConstants.BYTES_PER_MB
       ).toFixed(2);
       throw new BadRequestException(
-        `Không đủ dung lượng lưu trữ. Cần thêm ${neededMB} MB nhưng dung lượng trống chỉ còn ${freeMB} MB.`,
+        `Insufficient storage. Need ${neededMB} MB more, but only ${freeMB} MB.`,
       );
     }
 

@@ -30,7 +30,7 @@ export class DocumentController {
 
   private validateUserHeaders(userId: string, userEmail: string) {
     if (!userId || !userEmail) {
-      throw new BadRequestException('Thiếu x-user-id hoặc x-user-email header');
+      throw new BadRequestException('Missing x-user-id or x-user-email header');
     }
   }
 
@@ -47,7 +47,7 @@ export class DocumentController {
       dto,
     );
     return {
-      message: 'Tạo thư mục thành công',
+      message: 'Folder created successfully',
       data: folder,
     };
   }
@@ -65,7 +65,7 @@ export class DocumentController {
       dto,
     );
     return {
-      message: 'Khởi tạo tải lên thành công',
+      message: 'Upload initialized successfully',
       data: result,
     };
   }
@@ -83,7 +83,7 @@ export class DocumentController {
       dto,
     );
     return {
-      message: 'Tải tài liệu lên thành công',
+      message: 'Document uploaded successfully',
       data: item,
     };
   }
@@ -121,7 +121,7 @@ export class DocumentController {
     const totalPages = Math.ceil(result.totalCount / limitNum);
 
     return {
-      message: 'Lấy danh sách tài nguyên thành công',
+      message: 'Items retrieved successfully',
       data: result.items,
       meta: {
         totalItems: result.totalCount,
@@ -156,7 +156,7 @@ export class DocumentController {
     const totalPages = Math.ceil(result.totalCount / limitNum);
 
     return {
-      message: 'Lấy danh sách tài nguyên được chia sẻ thành công',
+      message: 'Shared items retrieved successfully',
       data: result.items,
       meta: {
         totalItems: result.totalCount,
@@ -182,7 +182,7 @@ export class DocumentController {
       dto,
     );
     return {
-      message: 'Đổi tên thành công',
+      message: 'Renamed successfully',
       data: item,
     };
   }
@@ -202,7 +202,7 @@ export class DocumentController {
       dto,
     );
     return {
-      message: 'Di chuyển tài nguyên thành công',
+      message: 'Item moved successfully',
       data: item,
     };
   }
@@ -221,7 +221,7 @@ export class DocumentController {
       true,
     );
     return {
-      message: 'Đã chuyển tài nguyên vào thùng rác',
+      message: 'Item moved to trash',
       data: item,
     };
   }
@@ -240,7 +240,7 @@ export class DocumentController {
       false,
     );
     return {
-      message: 'Khôi phục tài nguyên thành công',
+      message: 'Item restored successfully',
       data: item,
     };
   }
@@ -259,7 +259,7 @@ export class DocumentController {
       true,
     );
     return {
-      message: 'Đã đánh dấu sao tài nguyên',
+      message: 'Item starred successfully',
       data: item,
     };
   }
@@ -278,7 +278,7 @@ export class DocumentController {
       false,
     );
     return {
-      message: 'Đã bỏ đánh dấu sao tài nguyên',
+      message: 'Item unstarred successfully',
       data: item,
     };
   }
@@ -292,7 +292,7 @@ export class DocumentController {
     this.validateUserHeaders(userId, userEmail);
     await this.documentService.deleteItemPermanently(userId, userEmail, id);
     return {
-      message: 'Xóa tài nguyên vĩnh viễn thành công',
+      message: 'Item permanently deleted successfully',
     };
   }
 
@@ -311,7 +311,7 @@ export class DocumentController {
       versionId,
     );
     return {
-      message: 'Khởi tạo link xem trước thành công',
+      message: 'Preview link initialized successfully',
       data: { url },
     };
   }
@@ -331,7 +331,7 @@ export class DocumentController {
       versionId,
     );
     return {
-      message: 'Khởi tạo link tải xuống thành công',
+      message: 'Download link initialized successfully',
       data: { url },
     };
   }
@@ -360,7 +360,7 @@ export class DocumentController {
       id,
     );
     return {
-      message: 'Lấy danh sách phiên bản thành công',
+      message: 'Versions retrieved successfully',
       data: versions,
     };
   }
@@ -380,7 +380,7 @@ export class DocumentController {
       dto,
     );
     return {
-      message: 'Tạo phiên bản mới thành công',
+      message: 'New version created successfully',
       data: version,
     };
   }
@@ -394,7 +394,7 @@ export class DocumentController {
     this.validateUserHeaders(userId, userEmail);
     const result = await this.documentService.getSharing(userId, userEmail, id);
     return {
-      message: 'Lấy thông tin chia sẻ thành công',
+      message: 'Share information retrieved successfully',
       data: result,
     };
   }
@@ -414,7 +414,7 @@ export class DocumentController {
       dto.linkAccess,
     );
     return {
-      message: 'Cập nhật quyền liên kết thành công',
+      message: 'Link access updated successfully',
       data: result,
     };
   }
@@ -435,7 +435,7 @@ export class DocumentController {
       dto.permission,
     );
     return {
-      message: 'Thêm chia sẻ thành công',
+      message: 'Share added successfully',
       data: result,
     };
   }
@@ -450,7 +450,7 @@ export class DocumentController {
     this.validateUserHeaders(userId, userEmail);
     await this.documentService.removeShare(userId, userEmail, id, shareId);
     return {
-      message: 'Thu hồi quyền truy cập thành công',
+      message: 'Access revoked successfully',
     };
   }
 
@@ -466,7 +466,7 @@ export class DocumentController {
       userEmail,
     );
     return {
-      message: 'Lấy thông tin tài liệu công khai thành công',
+      message: 'Public document information retrieved successfully',
       data: result,
     };
   }
@@ -484,7 +484,7 @@ export class DocumentController {
       userEmail,
     );
     if (item.type === 'FOLDER') {
-      throw new BadRequestException('Không thể tải xuống thư mục');
+      throw new BadRequestException('Folders cannot be downloaded directly');
     }
     const url = await this.documentService.getDownloadUrl(
       userId,
@@ -493,7 +493,7 @@ export class DocumentController {
       versionId,
     );
     return {
-      message: 'Khởi tạo link tải xuống công khai thành công',
+      message: 'Public download link initialized successfully',
       data: { url },
     };
   }
@@ -511,7 +511,7 @@ export class DocumentController {
       userEmail,
     );
     if (item.type === 'FOLDER') {
-      throw new BadRequestException('Không thể xem trước thư mục');
+      throw new BadRequestException('Folders cannot be previewed');
     }
     const url = await this.documentService.getPreviewUrl(
       userId,
@@ -520,7 +520,7 @@ export class DocumentController {
       versionId,
     );
     return {
-      message: 'Khởi tạo link xem trước công khai thành công',
+      message: 'Public preview link initialized successfully',
       data: { url },
     };
   }
@@ -537,7 +537,7 @@ export class DocumentController {
       userEmail,
     );
     return {
-      message: 'Lấy danh sách phiên bản công khai thành công',
+      message: 'Public versions retrieved successfully',
       data: versions,
     };
   }
@@ -556,7 +556,7 @@ export class DocumentController {
       userEmail,
     );
     return {
-      message: 'Tạo phiên bản mới công khai thành công',
+      message: 'New public version created successfully',
       data: version,
     };
   }
@@ -575,7 +575,7 @@ export class DocumentController {
       userEmail,
     );
     return {
-      message: 'Đổi tên tài liệu công khai thành công',
+      message: 'Public document renamed successfully',
       data: result,
     };
   }
@@ -594,7 +594,7 @@ export class DocumentController {
       userEmail,
     );
     return {
-      message: 'Khởi tạo tải lên công khai thành công',
+      message: 'Public upload initialized successfully',
       data: result,
     };
   }
@@ -624,7 +624,7 @@ export class DocumentController {
       userEmail,
     );
     return {
-      message: 'Lấy danh sách con thành công',
+      message: 'Children retrieved successfully',
       data: children,
     };
   }

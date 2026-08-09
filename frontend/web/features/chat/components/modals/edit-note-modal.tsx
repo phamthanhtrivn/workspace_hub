@@ -49,7 +49,7 @@ export default function EditNoteModal({
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <FileText size={20} className="text-amber-600" />
-            Chỉnh sửa Ghi chú
+            Edit Note
           </h2>
           <button
             onClick={onClose}
@@ -62,13 +62,13 @@ export default function EditNoteModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tiêu đề
+              Title
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Nhập tiêu đề..."
+              placeholder="Enter title..."
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
               required
             />
@@ -76,12 +76,12 @@ export default function EditNoteModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nội dung
+              Content
             </label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Nhập nội dung ghi chú..."
+              placeholder="Enter note content..."
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all resize-none min-h-[120px]"
               required
             />
@@ -93,14 +93,14 @@ export default function EditNoteModal({
               onClick={onClose}
               className="px-5 py-2.5 rounded-xl font-medium text-gray-700 hover:bg-gray-100 transition-colors"
             >
-              Hủy
+              Cancel
             </button>
             <button
               type="submit"
               disabled={!title.trim() || !content.trim()}
               className="px-5 py-2.5 rounded-xl font-medium text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
-              Lưu thay đổi
+              Save changes
             </button>
           </div>
         </form>

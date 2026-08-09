@@ -862,19 +862,19 @@ export class MessageService {
 
     if (isDirectMsg) {
       if (isDirectMsg.senderId !== userId) {
-        throw new Error('Bạn chỉ có thể chỉnh sửa tin nhắn của chính mình');
+        throw new Error('You can only edit your own messages');
       }
       if (isDirectMsg.type !== MessageType.TEXT) {
-        throw new Error('Chỉ có tin nhắn văn bản mới có thể chỉnh sửa');
+        throw new Error('Only text messages can be edited');
       }
       if (content.trim().length === 0) {
-        throw new Error('Nội dung tin nhắn không được để trống');
+        throw new Error('Message content cannot be empty');
       }
       const now = new Date().getTime();
       const createdAt = new Date(isDirectMsg.createdAt).getTime();
       const hoursDifference = (now - createdAt) / (1000 * 60 * 60);
       if (hoursDifference > 24) {
-        throw new Error('Tin nhắn chỉ có thể sửa trong vòng 24 tiếng');
+        throw new Error('Messages can only be edited within 24 hours');
       }
       return this.prisma.directMessage.update({
         where: { id: messageId },
@@ -888,19 +888,19 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error('Không tìm thấy tin nhắn');
+      throw new Error('Message not found');
     }
 
     if (message.senderId !== userId) {
-      throw new Error('Bạn chỉ có thể chỉnh sửa tin nhắn của chính mình');
+      throw new Error('You can only edit your own messages');
     }
 
     if (message.type !== MessageType.TEXT) {
-      throw new Error('Chỉ có tin nhắn văn bản mới có thể chỉnh sửa');
+      throw new Error('Only text messages can be edited');
     }
 
     if (content.trim().length === 0) {
-      throw new Error('Nội dung tin nhắn không được để trống');
+      throw new Error('Message content cannot be empty');
     }
 
     const now = new Date().getTime();
@@ -908,7 +908,7 @@ export class MessageService {
     const hoursDifference = (now - createdAt) / (1000 * 60 * 60);
 
     if (hoursDifference > 24) {
-      throw new Error('Tin nhắn chỉ có thể sửa trong vòng 24 tiếng');
+      throw new Error('Messages can only be edited within 24 hours');
     }
 
     return this.prisma.message.update({
@@ -934,12 +934,12 @@ export class MessageService {
 
     if (isDirectMsg) {
       if (isDirectMsg.senderId !== userId) {
-        throw new Error('Bạn chỉ có thể thu hồi tin nhắn của chính mình');
+        throw new Error('You can only recall your own messages');
       }
       const now = new Date();
       const createdAt = new Date(isDirectMsg.createdAt);
       if (now.getTime() - createdAt.getTime() > 24 * 60 * 60 * 1000) {
-        throw new Error('Chỉ có thể thu hồi tin nhắn trong vòng 24 giờ');
+        throw new Error('Messages can only be recalled within 24 hours');
       }
       if (isDirectMsg.medias && isDirectMsg.medias.length > 0) {
         for (const media of isDirectMsg.medias) {
@@ -962,17 +962,17 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error('Tin nhắn không tìm thấy');
+      throw new Error('Message not found');
     }
 
     if (message.senderId !== userId) {
-      throw new Error('Bạn chỉ có thể thu hồi tin nhắn của chính mình');
+      throw new Error('You can only recall your own messages');
     }
 
     const now = new Date();
     const createdAt = new Date(message.createdAt);
     if (now.getTime() - createdAt.getTime() > 24 * 60 * 60 * 1000) {
-      throw new Error('Chỉ có thể thu hồi tin nhắn trong vòng 24 giờ');
+      throw new Error('Messages can only be recalled within 24 hours');
     }
 
     // Delete medias from S3

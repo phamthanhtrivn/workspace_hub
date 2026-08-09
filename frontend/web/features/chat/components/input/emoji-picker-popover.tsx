@@ -47,7 +47,7 @@ const EmojiPickerPopover: React.FC<EmojiPickerPopoverProps> = ({
         theme={Theme.LIGHT}
         emojiStyle={EmojiStyle.NATIVE}
         lazyLoadEmojis={true}
-        searchPlaceHolder="Tìm kiếm emoji..."
+        searchPlaceHolder="Search emoji..."
       />
     </div>
   );

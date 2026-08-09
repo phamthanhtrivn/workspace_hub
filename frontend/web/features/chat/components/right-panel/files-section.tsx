@@ -55,7 +55,7 @@ export default function FilesSection({
         <div className="px-4 pb-4">
           {filesAndDocs.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              Chưa có tài liệu nào
+              No documents available
             </p>
           ) : (
             <>
@@ -97,7 +97,7 @@ export default function FilesSection({
                   onClick={onSeeAll}
                   className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50  rounded-lg transition"
                 >
-                  Xem tất cả
+                  See all
                 </button>
               )}
             </>

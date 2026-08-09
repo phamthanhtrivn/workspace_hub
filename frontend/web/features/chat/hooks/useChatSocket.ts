@@ -28,6 +28,9 @@ export function useChatSocket() {
     activeConversationIdRef.current = activeConversation?.id ?? null;
   }, [activeConversation?.id]);
 
+  const getEventChannelId = (payload: any) =>
+    payload?.channelId ?? payload?.conversationId;
+
   useEffect(() => {
     if (!accessToken || !currentUserId) return;
 
@@ -39,12 +42,14 @@ export function useChatSocket() {
     // ─── Handler definitions ──────────────────────────────────────────────
 
     const handleNewMessage = (message: any) => {
+      const eventChannelId = getEventChannelId(message);
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
         ["conversations", currentUserId],
         (oldData: any) => {
           if (!oldData) return oldData;
           const prev: any[] = oldData.conversations;
-          const index = prev.findIndex((c) => c.id === message.conversationId);
+          const index = prev.findIndex((c) => c.id === eventChannelId);
           if (index === -1) {
             // If the conversation is not in the user's sidebar list (e.g. new conversation),
             // invalidate queries to refetch the conversations list in real-time.
@@ -75,7 +80,7 @@ export function useChatSocket() {
 
           if (
             message.senderId !== currentUserId &&
-            message.conversationId !== activeConversationIdRef.current
+            eventChannelId !== activeConversationIdRef.current
           ) {
             conv.unreadCount = (conv.unreadCount ?? 0) + 1;
             if (
@@ -103,12 +108,14 @@ export function useChatSocket() {
     };
 
     const handleMessageUpdated = (message: any) => {
+      const eventChannelId = getEventChannelId(message);
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
         ["conversations", currentUserId],
         (oldData: any) => {
           if (!oldData) return oldData;
           const prev: any[] = oldData.conversations;
-          const index = prev.findIndex((c) => c.id === message.conversationId);
+          const index = prev.findIndex((c) => c.id === eventChannelId);
           if (index === -1) return oldData;
 
           const conv = { ...prev[index] };
@@ -125,10 +132,13 @@ export function useChatSocket() {
     };
 
     const handleMessageRead = (data: {
-      conversationId: string;
+      channelId?: string;
+      conversationId?: string;
       userId: string;
       messageId: string;
     }) => {
+      const eventChannelId = getEventChannelId(data);
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
         ["conversations", currentUserId],
         (oldData: any) => {
@@ -136,7 +146,7 @@ export function useChatSocket() {
           return {
             ...oldData,
             conversations: oldData.conversations.map((c: any) => {
-              if (c.id !== data.conversationId) return c;
+              if (c.id !== eventChannelId) return c;
               const updated = { ...c };
               if (data.userId === currentUserId) {
                 updated.unreadCount = 0;
@@ -157,6 +167,8 @@ export function useChatSocket() {
     };
 
     const handleMemberJoin = (data: any) => {
+      const eventChannelId = getEventChannelId(data);
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
         ["conversations", currentUserId],
         (oldData: any) => {
@@ -168,7 +180,7 @@ export function useChatSocket() {
             ...oldData,
             profiles: updatedProfiles,
             conversations: oldData.conversations.map((c: any) => {
-              if (c.id !== data.conversationId) return c;
+              if (c.id !== eventChannelId) return c;
               const updated = { ...c };
               const alreadyMember = updated.members?.some(
                 (m: any) => m.userId === data.member?.userId,
@@ -184,6 +196,8 @@ export function useChatSocket() {
     };
 
     const handleMemberKickedOrLeft = (data: any) => {
+      const eventChannelId = getEventChannelId(data);
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
       if (data.userId === currentUserId) {
         // Current user removed – force a full refetch so the conversation disappears
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
@@ -195,7 +209,7 @@ export function useChatSocket() {
             return {
               ...oldData,
               conversations: oldData.conversations.map((c: any) => {
-                if (c.id !== data.conversationId) return c;
+                if (c.id !== eventChannelId) return c;
                 const updated = { ...c };
                 if (updated.members) {
                   updated.members = updated.members.filter(
@@ -235,14 +249,22 @@ export function useChatSocket() {
       );
     };
 
-    const handleConversationDisbanded = (_data: { conversationId: string }) => {
+    const handleConversationDisbanded = (_data: {
+      channelId?: string;
+      conversationId?: string;
+    }) => {
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
     };
 
     const handleConversationMuteUpdated = (data: {
-      conversationId: string;
+      channelId?: string;
+      conversationId?: string;
       muted: boolean;
     }) => {
+      const eventChannelId = getEventChannelId(data);
+      if (!eventChannelId) return;
+      queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
         ["conversations", currentUserId],
         (oldData: any) => {
@@ -250,7 +272,7 @@ export function useChatSocket() {
           return {
             ...oldData,
             conversations: oldData.conversations.map((c: any) => {
-              if (c.id !== data.conversationId) return c;
+              if (c.id !== eventChannelId) return c;
               return {
                 ...c,
                 members: c.members?.map((m: any) =>
@@ -264,7 +286,7 @@ export function useChatSocket() {
 
       dispatch(
         updateMuteStatus({
-          conversationId: data.conversationId,
+          conversationId: eventChannelId,
           userId: currentUserId!,
           muted: data.muted,
         }),

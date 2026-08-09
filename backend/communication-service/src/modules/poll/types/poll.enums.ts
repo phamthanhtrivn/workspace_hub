@@ -1,8 +1,8 @@
 export enum POLL_SUCCESS_MESSAGES {
-  RETRIEVED = 'Lấy danh sách bình chọn thành công',
-  VOTED = 'Bình chọn thành công',
-  OPTION_ADDED = 'Thêm lựa chọn bình chọn thành công',
-  UPDATED = 'Cập nhật bình chọn thành công',
+  RETRIEVED = 'Polls retrieved successfully',
+  VOTED = 'Vote submitted successfully',
+  OPTION_ADDED = 'Poll option added successfully',
+  UPDATED = 'Poll updated successfully',
 }
 
 export enum POLL_ERROR_MESSAGES {

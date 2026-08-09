@@ -86,15 +86,15 @@ const AddMembersModal = React.memo(function AddMembersModal({
           existingMemberIds.has(u.id),
         );
         if (isAlreadyMember) {
-          setError("Người dùng này đã là thành viên của nhóm");
+          setError("This user is already a member of the group");
         } else {
-          setError("Người dùng này đã được chọn");
+          setError("This user is already selected");
         }
       } else if (filtered.length === 0) {
-        setError("Không tìm thấy người dùng");
+        setError("User not found");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Đã xảy ra lỗi khi tìm kiếm");
+      setError(err.response?.data?.message || "An error occurred while searching");
       setResults([]);
     } finally {
       setLoading(false);
@@ -112,7 +112,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
 
   const handleAddMembers = async () => {
     if (selectedUsers.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một thành viên");
+      toast.error("Please select at least one member");
       return;
     }
 
@@ -123,7 +123,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
       onMembersAdded?.();
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Lỗi khi thêm thành viên");
+      toast.error(err.response?.data?.message || "Failed to add members");
     } finally {
       setIsAdding(false);
     }
@@ -140,7 +140,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
               <Users size={16} />
             </div>
             <h2 className="text-lg font-semibold text-gray-800">
-              Thêm thành viên
+              Add Members
             </h2>
           </div>
           <button
@@ -155,7 +155,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
           {selectedUsers.length > 0 && (
             <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-gray-700">
-                Đã chọn ({selectedUsers.length})
+                Selected ({selectedUsers.length})
               </label>
               <div className="flex flex-wrap gap-2">
                 {selectedUsers.map((user) => (
@@ -175,7 +175,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
                       )}
                     </div>
                     <span className="text-sm font-medium">
-                      {user.fullName || "Ẩn danh"}
+                      {user.fullName || "Anonymous"}
                     </span>
                     <button
                       onClick={() => handleRemoveUser(user.id)}
@@ -191,7 +191,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
 
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-gray-700">
-              Tìm kiếm
+              Search
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -199,7 +199,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
               </div>
               <input
                 type="text"
-                placeholder="Nhập email người dùng..."
+                placeholder="Enter user email..."
                 className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all text-sm"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -211,7 +211,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
             {loading ? (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-500">
                 <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                <span className="text-sm">Đang tìm kiếm...</span>
+                <span className="text-sm">Searching...</span>
               </div>
             ) : error ? (
               <div className="flex items-center justify-center h-full text-sm text-gray-500">
@@ -246,7 +246,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
                       </div>
                       <div className="flex flex-col flex-1 min-w-0">
                         <span className="text-sm font-semibold text-gray-800 truncate">
-                          {user.fullName || "Người dùng ẩn danh"}
+                          {user.fullName || "Anonymous user"}
                         </span>
                         <span className="text-xs text-gray-500 truncate">
                           {user.email}
@@ -254,7 +254,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
                       </div>
                       {isSelected && (
                         <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
-                          Đã chọn
+                          Selected
                         </span>
                       )}
                     </div>
@@ -264,7 +264,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
             ) : (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-gray-400">
                 <Search size={32} className="opacity-20" />
-                <span className="text-sm">Nhập email để tìm người dùng</span>
+                <span className="text-sm">Enter email to search for user</span>
               </div>
             )}
           </div>
@@ -275,7 +275,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
             onClick={onClose}
             className="cursor-pointer px-5 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-xl transition-colors"
           >
-            Hủy
+            Cancel
           </button>
           <button
             onClick={handleAddMembers}
@@ -283,7 +283,7 @@ const AddMembersModal = React.memo(function AddMembersModal({
             className="cursor-pointer px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm shadow-blue-200"
           >
             {isAdding && <Loader2 size={16} className="animate-spin" />}
-            Thêm vào nhóm
+            Add to Group
           </button>
         </div>
       </div>

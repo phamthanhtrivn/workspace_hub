@@ -130,7 +130,9 @@ export const InvitationModalRenderer: React.FC<{
 
         if (action === "accept") {
           queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          router.push(`/chat?id=${metadata.conversationId}`);
+          queryClient.invalidateQueries({ queryKey: ["spaces"] });
+          queryClient.invalidateQueries({ queryKey: ["channels", metadata.spaceId] });
+          router.push("/chat");
         }
       } catch (error: any) {
         toast.error(error.response?.data?.message || `Thao tác thất bại`);
@@ -156,7 +158,7 @@ export const InvitationModalRenderer: React.FC<{
           )}
         </div>
         <h3 className="text-xl font-black text-slate-800 mb-1">
-          {metadata?.conversationName || "Người dùng"}
+          {metadata?.spaceName || metadata?.conversationName || "Người dùng"}
         </h3>
         <p className="text-sm text-slate-500">
           <span className="font-semibold text-slate-700">

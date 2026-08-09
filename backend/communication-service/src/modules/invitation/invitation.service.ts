@@ -42,17 +42,17 @@ export class InvitationService {
     });
 
     if (!invitation) {
-      throw new NotFoundException('Không tìm thấy lời mời');
+      throw new NotFoundException('Invitation not found');
     }
 
     if (invitation.invitedUserId !== userId) {
       throw new BadRequestException(
-        'Bạn không có quyền thao tác với lời mời này',
+        'You are not allowed to respond to this invitation',
       );
     }
 
     if (invitation.status !== INVITATION_STATUS.PENDING) {
-      throw new BadRequestException('Lời mời này đã được xử lý');
+      throw new BadRequestException('This invitation has already been handled');
     }
 
     const { senderName, senderAvatar } = await getSenderProfile(userId);
@@ -66,8 +66,15 @@ export class InvitationService {
         },
       });
 
-      await prisma.spaceMember.create({
-        data: {
+      await prisma.spaceMember.upsert({
+        where: {
+          spaceId_userId: {
+            spaceId: invitation.spaceId,
+            userId,
+          },
+        },
+        update: {},
+        create: {
           spaceId: invitation.spaceId,
           userId,
           role: SpaceRole.MEMBER,
@@ -78,14 +85,13 @@ export class InvitationService {
         where: { spaceId: invitation.spaceId },
       });
 
-      for (const channel of channels) {
-        await prisma.channelMember.create({
-          data: {
-            channelId: channel.id,
-            userId,
-          },
-        });
-      }
+      await prisma.channelMember.createMany({
+        data: channels.map((channel) => ({
+          channelId: channel.id,
+          userId,
+        })),
+        skipDuplicates: true,
+      });
 
       return updated;
     });
@@ -98,7 +104,7 @@ export class InvitationService {
       await this.chatGateway.sendSystemMessage(
         channel.id,
         userId,
-        `${senderName} đã tham gia vào kênh chat`,
+        `${senderName} joined the chat channel`,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
@@ -111,6 +117,7 @@ export class InvitationService {
         member: {
           channelId: channel.id,
           userId,
+          role: SpaceRole.MEMBER,
         },
         profile: {
           id: userId,
@@ -139,17 +146,17 @@ export class InvitationService {
     });
 
     if (!invitation) {
-      throw new NotFoundException('Không tìm thấy lời mời');
+      throw new NotFoundException('Invitation not found');
     }
 
     if (invitation.invitedUserId !== userId) {
       throw new BadRequestException(
-        'Bạn không có quyền thao tác với lời mời này',
+        'You are not allowed to respond to this invitation',
       );
     }
 
     if (invitation.status !== INVITATION_STATUS.PENDING) {
-      throw new BadRequestException('Lời mời này đã được xử lý');
+      throw new BadRequestException('This invitation has already been handled');
     }
 
     const { senderName, senderAvatar } = await getSenderProfile(userId);

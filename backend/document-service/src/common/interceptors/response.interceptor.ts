@@ -58,7 +58,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
           return serializeBigInt(res);
         }
 
-        let message = 'Thành công';
+        let message = 'Success';
         let data = res;
         let pagination = undefined;
 

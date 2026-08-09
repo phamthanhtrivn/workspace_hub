@@ -2,6 +2,6 @@ import { IsString, IsNotEmpty } from 'class-validator';
 
 export class RenameItemDto {
   @IsString()
-  @IsNotEmpty({ message: 'Tên mới không được trống' })
+  @IsNotEmpty({ message: 'New name cannot be empty' })
   name: string;
 }

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Search, X, User, Loader2 } from "lucide-react";
-import { searchUserByEmail, inviteGroupMembers } from "../../api/chat.api";
+import { searchUserByEmail, inviteSpaceMembers } from "../../api/chat.api";
 import { UserSearchResponse } from "../../types/chat.types";
 import { toast } from "react-toastify";
 import { useAppSelector } from "@/store/store";
@@ -11,13 +11,13 @@ import { useAppSelector } from "@/store/store";
 interface InviteGroupMembersModalProps {
   isOpen: boolean;
   onClose: () => void;
-  groupId: string;
+  spaceId: string;
 }
 
 export default function InviteGroupMembersModal({
   isOpen,
   onClose,
-  groupId,
+  spaceId,
 }: InviteGroupMembersModalProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -69,12 +69,12 @@ export default function InviteGroupMembersModal({
       setResults(filtered);
 
       if (filtered.length === 0 && users.length > 0) {
-        setError("Người dùng này đã được chọn");
+        setError("This user is already selected");
       } else if (filtered.length === 0) {
-        setError("Không tìm thấy người dùng");
+        setError("User not found");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "Đã xảy ra lỗi khi tìm kiếm");
+      setError(err.response?.data?.message || "An error occurred while searching");
       setResults([]);
     } finally {
       setLoading(false);
@@ -93,22 +93,22 @@ export default function InviteGroupMembersModal({
 
   const handleInvite = async () => {
     if (selectedUsers.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một người để mời");
+      toast.error("Please select at least one user to invite");
       return;
     }
-    if (!groupId) {
-      toast.error("Thiếu thông tin nhóm");
+    if (!spaceId) {
+      toast.error("Space information missing");
       return;
     }
 
     setIsInviting(true);
     try {
       const userIds = selectedUsers.map((u) => u.id);
-      await inviteGroupMembers(groupId, userIds);
-      toast.success("Đã mời thành viên vào nhóm thành công!");
+      await inviteSpaceMembers(spaceId, userIds);
+      toast.success("Space invitation sent successfully!");
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Có lỗi xảy ra khi mời");
+      toast.error(err.response?.data?.message || "An error occurred while inviting");
     } finally {
       setIsInviting(false);
     }
@@ -121,7 +121,7 @@ export default function InviteGroupMembersModal({
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">Thêm thành viên vào nhóm</h2>
+          <h2 className="text-lg font-bold text-gray-800">Invite members to space</h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
@@ -158,7 +158,7 @@ export default function InviteGroupMembersModal({
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
             <input
               type="text"
-              placeholder="Nhập email của người dùng..."
+              placeholder="Enter user email..."
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl text-sm outline-none transition"
@@ -170,7 +170,7 @@ export default function InviteGroupMembersModal({
             {loading ? (
               <div className="flex justify-center items-center py-6 text-gray-400 text-xs gap-1.5">
                 <Loader2 size={14} className="animate-spin text-blue-500" />
-                Đang tìm kiếm...
+                Searching...
               </div>
             ) : results.length > 0 ? (
               results.map((user) => (
@@ -193,7 +193,7 @@ export default function InviteGroupMembersModal({
             ) : error ? (
               <div className="text-center py-8 text-xs text-gray-400">{error}</div>
             ) : (
-              <div className="text-center py-8 text-xs text-gray-400">Nhập email để tìm kiếm thành viên</div>
+              <div className="text-center py-8 text-xs text-gray-400">Enter email to search for members</div>
             )}
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function InviteGroupMembersModal({
             disabled={isInviting}
             className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
           >
-            Hủy
+            Cancel
           </button>
           <button
             onClick={handleInvite}
@@ -214,7 +214,7 @@ export default function InviteGroupMembersModal({
             className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer"
           >
             {isInviting && <Loader2 size={16} className="animate-spin" />}
-            Thêm vào nhóm
+            Send invitation
           </button>
         </div>
       </div>

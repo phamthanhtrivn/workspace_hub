@@ -23,13 +23,13 @@ import NoteMessage from "./note-message";
 import ReactionDetailModal from "../modals/reaction-detail-modal";
 import MediaLightbox from "./media-lightbox";
 import { renderMessageContent } from "../../utils/message-formatter";
-import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface ChatMessageProps {
   msg: any;
   isMe: boolean;
   showAvatar: boolean;
   memberProfile: UserProfileResponse | null;
+  memberProfiles: Record<string, UserProfileResponse>;
   memberRole?: "OWNER" | "ADMIN" | "MEMBER";
   readBy?: string[];
   showTime?: boolean;
@@ -64,6 +64,7 @@ const ChatMessage = React.memo(function ChatMessage({
   isMe,
   showAvatar,
   memberProfile,
+  memberProfiles,
   memberRole,
   readBy = [],
   showTime = true,
@@ -90,7 +91,6 @@ const ChatMessage = React.memo(function ChatMessage({
 
   const dispatch = useAppDispatch();
   const currentUser = useAppSelector((state) => state.auth);
-  const memberProfiles = useChatMemberProfiles();
 
   const time = useMemo(() => {
     return new Date(msg.createdAt).toLocaleTimeString([], {
@@ -127,12 +127,14 @@ const ChatMessage = React.memo(function ChatMessage({
     return renderMessageContent(msg.content, memberProfiles ?? undefined);
   }, [msg.content, memberProfiles]);
 
+  const senderName = memberProfile?.fullName || "User";
+
   if (msg.type === "SYSTEM") {
     return (
       <div className="flex justify-center my-4 w-full">
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] text-gray-700 font-medium">{time}</span>
-          <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 text-center shadow-sm">
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="text-[10px] text-slate-400 font-semibold tracking-wider uppercase">{time}</span>
+          <span className="text-xs text-slate-500 bg-slate-100/80 backdrop-blur-sm border border-slate-200/50 px-4 py-1.5 rounded-full text-center shadow-[0_2px_6px_rgba(0,0,0,0.02)] font-medium">
             {msg.content}
           </span>
         </div>
@@ -187,7 +189,7 @@ const ChatMessage = React.memo(function ChatMessage({
 
     return (
       <div
-        className={`grid gap-1 ${gridClass} w-full max-w-full ${visualMedias.length === 1 ? "sm:max-w-sm" : "sm:max-w-xs sm:max-w-sm md:max-w-md"}`}
+        className={`grid gap-1.5 ${gridClass} w-full max-w-full ${visualMedias.length === 1 ? "sm:max-w-sm" : "sm:max-w-xs sm:max-w-sm md:max-w-md"} rounded-2xl overflow-hidden`}
       >
         {visualMedias.map((media: any) => {
           if (media.type === "IMAGE") {
@@ -197,13 +199,13 @@ const ChatMessage = React.memo(function ChatMessage({
             return (
               <div
                 key={media.id}
-                className="cursor-pointer overflow-hidden rounded-lg bg-black/5"
+                className="cursor-pointer overflow-hidden bg-black/5 hover:opacity-95 transition-opacity"
                 onClick={() => setPreviewIndex(mediaIndex)}
               >
                 <img
                   src={media.fileUrl}
                   alt={media.name}
-                  className={`w-full hover:opacity-90 transition ${
+                  className={`w-full transition duration-200 hover:scale-102 ${
                     visualMedias.length === 1
                       ? "max-h-[300px] object-contain"
                       : "aspect-square object-cover"
@@ -218,7 +220,7 @@ const ChatMessage = React.memo(function ChatMessage({
             return (
               <div
                 key={media.id}
-                className={`relative w-full rounded-lg overflow-hidden bg-black/5 cursor-pointer group ${
+                className={`relative w-full overflow-hidden bg-black/5 cursor-pointer group ${
                   visualMedias.length === 1 ? "" : "aspect-square"
                 }`}
                 onClick={() => setPreviewIndex(mediaIndex)}
@@ -272,20 +274,20 @@ const ChatMessage = React.memo(function ChatMessage({
           return (
             <div
               key={media.id}
-              className={`flex items-center justify-between gap-3  py-2 px-3 rounded-xl border ${isMe ? "bg-[#DBEAFE] border-blue-500/50 " : "bg-gray-50 border-gray-200 hover:bg-gray-100"} transition `}
+              className={`flex items-center justify-between gap-3 py-2.5 px-4 rounded-xl border transition ${isMe ? "bg-[#DBEAFE]/80 border-blue-400/40 text-blue-900" : "bg-white border-slate-200/60 hover:bg-slate-50 text-slate-800"} shadow-sm`}
             >
               <div className="flex gap-3">
                 <div
-                  className={`p-2 rounded-lg ${isMe ? "bg-blue-500 text-white" : "bg-white text-blue-500 shadow-sm"}`}
+                  className={`p-2 rounded-lg ${isMe ? "bg-blue-600 text-white" : "bg-slate-100 text-blue-600 shadow-sm"}`}
                 >
                   <FileText size={20} />
                 </div>
                 <div className="flex flex-col min-w-0 max-w-[180px]">
-                  <span className="text-sm font-medium truncate">
+                  <span className="text-sm font-semibold truncate">
                     {media.name}
                   </span>
                   <span
-                    className={`text-[10px] ${isMe ? "text-gray-900" : "text-gray-500"}`}
+                    className={`text-[10px] font-medium ${isMe ? "text-blue-700/80" : "text-slate-400"}`}
                   >
                     {formatFileSize(media.sizeBytes)}
                   </span>
@@ -295,7 +297,7 @@ const ChatMessage = React.memo(function ChatMessage({
                 <Download
                   onClick={(e) => handleDownload(e, media.fileUrl, media.name)}
                   size={16}
-                  className={`ml-1 cursor-pointer ${isMe ? "text-gray-900 hover:bg-blue-100 hover:text-blue-600 rounded-full" : "text-gray-500 hover:bg-gray-100 hover:text-gray-600 rounded-full"}`}
+                  className={`ml-1 cursor-pointer transition p-1 rounded-lg ${isMe ? "text-blue-800 hover:bg-blue-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700"}`}
                 />
               </div>
             </div>
@@ -325,7 +327,7 @@ const ChatMessage = React.memo(function ChatMessage({
     }, {});
 
     return (
-      <div className="flex flex-wrap gap-1 mt-1">
+      <div className="flex flex-wrap gap-1 mt-1.5">
         {Object.keys(grouped).map((emoji) => {
           const count = grouped[emoji].length;
           const userReacted = grouped[emoji].some(
@@ -335,18 +337,18 @@ const ChatMessage = React.memo(function ChatMessage({
             <button
               key={emoji}
               onClick={() => handleReactionClick(emoji)}
-              className={`cursor-pointer flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full border transition-colors ${userReacted ? "bg-blue-50 border-blue-200 text-blue-700" : "bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100"}`}
+              className={`cursor-pointer flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-full border transition-all duration-150 ${userReacted ? "bg-blue-50 border-blue-200 text-blue-700 font-bold" : "bg-slate-50/60 border-slate-200/60 text-slate-600 hover:bg-slate-100 hover:text-slate-800"}`}
             >
               <span>{emoji}</span>
-              <span className="font-medium">{count}</span>
+              <span>{count}</span>
             </button>
           );
         })}
         <button
           onClick={() => setIsReactionDetailOpen(true)}
-          className="cursor-pointer text-[10px] text-gray-500 hover:underline px-1 py-0.5"
+          className="cursor-pointer text-[10px] text-slate-400 hover:text-slate-600 hover:underline px-2 py-0.5 transition"
         >
-          Chi tiết
+          Details
         </button>
       </div>
     );
@@ -361,32 +363,32 @@ const ChatMessage = React.memo(function ChatMessage({
 
     return (
       <div className="flex w-full justify-end px-2 mt-0.5">
-        <div className="flex items-center gap-1 -space-x-1 self-end">
+        <div className="flex items-center gap-1 -space-x-1.5 self-end">
           {otherReaders.slice(0, 5).map((userId: string, idx: number) => {
             const readerProfile = memberProfiles?.[userId];
             return (
               <div
                 key={idx}
-                className="w-3.5 h-3.5 rounded-full bg-gray-200 border border-white overflow-hidden relative cursor-pointer"
-                title={`${readerProfile?.fullName || "Người dùng"} đã xem`}
+                className="w-4 h-4 rounded-full bg-slate-200 border-2 border-white overflow-hidden relative cursor-pointer shadow-sm hover:z-10 transition-transform hover:scale-105"
+                title={`${readerProfile?.fullName || "User"} viewed`}
               >
                 {readerProfile?.avatarUrl ? (
                   <img
                     src={readerProfile.avatarUrl}
                     alt="Avatar"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover animate-fade-in"
                   />
                 ) : (
-                  <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-gray-100 to-gray-200">
-                    <User size={10} className="text-gray-400" />
+                  <div className="flex items-center justify-center w-full h-full bg-gradient-to-br from-slate-100 to-slate-200">
+                    <User size={10} className="text-slate-400" />
                   </div>
                 )}
               </div>
             );
           })}
           {otherReaders.length > 5 && (
-            <div className="w-3.5 h-3.5 rounded-full bg-gray-100 border border-white flex items-center justify-center hover:z-10 relative z-0">
-              <span className="text-[7px] text-gray-600 font-medium leading-none">
+            <div className="w-4 h-4 rounded-full bg-slate-100 border-2 border-white flex items-center justify-center hover:z-10 relative z-0 shadow-sm">
+              <span className="text-[7px] text-slate-600 font-bold leading-none">
                 +{otherReaders.length - 5}
               </span>
             </div>
@@ -399,9 +401,9 @@ const ChatMessage = React.memo(function ChatMessage({
   return (
     <div
       id={`msg-${msg.id}`}
-      className={`w-full flex flex-col mb-1 group transition-all duration-200 ${
+      className={`w-full flex flex-col mb-1.5 group transition-all duration-200 rounded-2xl ${
         msg.threadReplyCount > 0
-          ? "bg-indigo-50 border-x border-indigo-600/50 py-2.5 px-4 shadow-[inset_0_1px_2px_rgba(99,102,241,0.02)]"
+          ? "bg-indigo-50/50 border border-indigo-100/80 py-2.5 px-4 shadow-[0_4px_12px_rgba(99,102,241,0.02)]"
           : ""
       }`}
     >
@@ -409,74 +411,85 @@ const ChatMessage = React.memo(function ChatMessage({
         className="flex w-full justify-start relative"
         onMouseLeave={() => setShowReactionPicker(false)}
       >
-        {!isMe && (
-          <div
-            onClick={() =>
-              showAvatar &&
-              msg.senderId &&
-              dispatch(setSelectedProfileUserId(msg.senderId))
-            }
-            className={`w-8 h-8 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold mt-2 mr-2 ${
-              showAvatar
-                ? "bg-gradient-to-br from-gray-100 to-gray-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all"
-                : ""
-            }`}
-          >
-            {showAvatar ? (
-              <div className="relative inline-block">
-                {memberProfile?.avatarUrl ? (
-                  <Image
-                    src={memberProfile.avatarUrl}
-                    alt="Avatar"
-                    width={32}
-                    height={32}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center">
-                    <User size={16} className="text-gray-400" />
-                  </div>
-                )}
-                {memberRole === "OWNER" && (
-                  <div
-                    className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white"
-                    title="Trưởng nhóm"
-                  >
-                    <Key size={10} className="text-white" />
-                  </div>
-                )}
-                {memberRole === "ADMIN" && (
-                  <div
-                    className="absolute -bottom-1 -right-1 bg-gray-400 rounded-full p-0.5 border border-white"
-                    title="Phó nhóm"
-                  >
-                    <Key size={10} className="text-white" />
-                  </div>
-                )}
-              </div>
-            ) : null}
-          </div>
-        )}
+        <div
+          onClick={() =>
+            showAvatar &&
+            msg.senderId &&
+            dispatch(setSelectedProfileUserId(msg.senderId))
+          }
+          className={`w-9 h-9 rounded-full flex flex-shrink-0 items-center justify-center text-xs font-bold mt-1 mr-2.5 ${
+            showAvatar
+              ? "bg-gradient-to-br from-slate-100 to-slate-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all shadow-sm"
+              : ""
+          }`}
+        >
+          {showAvatar ? (
+            <div className="relative inline-block">
+              {memberProfile?.avatarUrl ? (
+                <Image
+                  src={memberProfile.avatarUrl}
+                  alt={senderName}
+                  width={36}
+                  height={36}
+                  unoptimized
+                  className="rounded-full object-cover"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center">
+                  <User size={15} className="text-slate-400" />
+                </div>
+              )}
+              {memberRole === "OWNER" && (
+                <div
+                  className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white"
+                  title="Owner"
+                >
+                  <Key size={10} className="text-white" />
+                </div>
+              )}
+              {memberRole === "ADMIN" && (
+                <div
+                  className="absolute -bottom-1 -right-1 bg-gray-400 rounded-full p-0.5 border border-white"
+                  title="Admin"
+                >
+                  <Key size={10} className="text-white" />
+                </div>
+              )}
+            </div>
+          ) : null}
+        </div>
 
         <div className="max-w-[70%] flex flex-col gap-1 relative group/bubble items-start">
-          {showSenderName && memberProfile && (
-            <span className="text-[11px] text-gray-500 font-medium px-1 mb-0.5 mt-1">
-              {memberProfile.fullName}
-            </span>
+          {showSenderName && (
+            <div className="flex items-baseline gap-2 px-1 mt-0.5 mb-0.5 min-w-0">
+              <button
+                type="button"
+                onClick={() =>
+                  msg.senderId && dispatch(setSelectedProfileUserId(msg.senderId))
+                }
+                className="text-[13px] text-slate-700 font-bold tracking-tight hover:text-blue-600 transition-colors cursor-pointer truncate"
+              >
+                {senderName}
+              </button>
+              {showTime && (
+                <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                  {time}
+                </span>
+              )}
+            </div>
           )}
-
           {msg.recalled ? (
             <div
-              className="p-3 shadow-sm text-sm flex flex-col relative italic text-gray-500 bg-gray-50/50 border border-gray-100 rounded-2xl rounded-bl-sm"
+              className="p-3 shadow-sm text-sm flex flex-col relative italic text-slate-400 bg-slate-100/50 border border-slate-200/40 rounded-2xl rounded-tl-none"
             >
-              Tin nhắn đã bị thu hồi
+              Message recalled
             </div>
           ) : (
             <>
               {msg.pinned && (
-                <div className="flex items-center gap-1 text-[11px] text-blue-600 font-medium px-1 mb-1">
-                  <Pin size={12} className="fill-blue-600" />
-                  Đã ghim
+                <div className="flex items-center gap-1 text-[11px] text-blue-600 font-bold px-1 mb-0.5">
+                  <Pin size={12} className="fill-blue-600 text-blue-600" />
+                  Pinned
                 </div>
               )}
               {renderVisualMedias()}
@@ -484,7 +497,7 @@ const ChatMessage = React.memo(function ChatMessage({
               <div className="flex flex-col relative max-w-full">
                 {msg.replyTo && (
                   <div
-                    className={`mb-1 px-3 py-2 text-xs border-l-4 rounded-md cursor-pointer hover:opacity-80 transition flex flex-col min-w-[120px] max-w-full truncate ${isMe ? "bg-[#BFDBFE] border-blue-400 text-blue-900" : "bg-gray-100 border-gray-400 text-gray-700"}`}
+                    className={`mb-1.5 px-3 py-2 text-xs border-l-4 rounded-xl cursor-pointer hover:opacity-80 transition flex flex-col min-w-[120px] max-w-full truncate ${isMe ? "bg-blue-700/20 border-blue-400 text-blue-900" : "bg-slate-100 border-slate-300 text-slate-700"}`}
                     onClick={() => {
                       if (onJumpToMessage) {
                         onJumpToMessage(msg.replyTo.id);
@@ -498,12 +511,12 @@ const ChatMessage = React.memo(function ChatMessage({
                             block: "center",
                           });
                           el.classList.add(
-                            "bg-blue-200",
+                            "bg-blue-100/70",
                             "transition-all",
                             "duration-200",
                           );
                           setTimeout(
-                            () => el.classList.remove("bg-gray-200"),
+                            () => el.classList.remove("bg-blue-100/70"),
                             1500,
                           );
                         }
@@ -512,27 +525,27 @@ const ChatMessage = React.memo(function ChatMessage({
                   >
                     <span className="font-semibold mb-0.5">
                       {msg.replyTo.senderId === currentUser.userId
-                        ? "Bạn"
+                        ? "You"
                         : memberProfiles?.[msg.replyTo.senderId]?.fullName ||
-                          "Ai đó"}
+                          "Someone"}
                     </span>
-                    <span className="truncate opacity-80">
+                    <span className="truncate opacity-80 font-medium">
                       {msg.replyTo.recalled
-                        ? "Tin nhắn đã bị thu hồi"
-                        : msg.replyTo.content || "[Đính kèm]"}
+                        ? "Message recalled"
+                        : msg.replyTo.content || "[Attachment]"}
                     </span>
                   </div>
                 )}
                 {hasText && (
                   <div
-                    className={`p-3 shadow-sm text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden ${
+                    className={`p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 ${
                       isMe
                         ? msg.threadReplyCount > 0
-                          ? "bg-[#EEF2FF] border border-indigo-200 text-indigo-950 rounded-2xl rounded-bl-sm shadow-[0_0_10px_rgba(99,102,241,0.08)]"
-                          : "bg-[#EBF5FF] border border-blue-100/85 text-slate-800 rounded-2xl rounded-bl-sm"
+                          ? "bg-indigo-600 text-white rounded-2xl rounded-tl-none shadow-[0_4px_12px_rgba(99,102,241,0.15)] font-medium"
+                          : "bg-blue-600 text-white rounded-2xl rounded-tl-none shadow-[0_4px_12px_rgba(37,99,235,0.15)] font-medium"
                         : msg.threadReplyCount > 0
-                          ? "bg-[#F5F3FF] border border-indigo-200 text-indigo-950 rounded-2xl rounded-bl-sm shadow-[0_0_10px_rgba(99,102,241,0.08)]"
-                          : "bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-bl-sm"
+                          ? "bg-indigo-50 border border-indigo-100 text-indigo-950 rounded-2xl rounded-tl-none shadow-sm font-medium"
+                          : "bg-white border border-slate-100 text-slate-800 rounded-2xl rounded-tl-none shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)] font-medium"
                     }`}
                   >
                     {renderedMessageContent}
@@ -546,13 +559,13 @@ const ChatMessage = React.memo(function ChatMessage({
                   return (
                     <div
                       onClick={() => onThreadReply?.(msg)}
-                      className="flex items-center gap-2 mt-1.5 text-xs font-semibold cursor-pointer hover:underline p-1.5 rounded-lg w-fit border transition-colors text-indigo-600 bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 mr-auto"
+                      className="flex items-center gap-2 mt-2 text-xs font-bold cursor-pointer hover:underline p-1.5 rounded-lg w-fit border transition-colors text-indigo-600 bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 mr-auto"
                     >
                       <MessageSquare size={12} className="text-indigo-500" />
-                      <span>{msg.threadReplyCount} phản hồi</span>
+                      <span>{msg.threadReplyCount} replies</span>
                       {msg.threadLastReplyAt && (
                         <span className="text-[10px] text-indigo-400 font-normal">
-                          Lần cuối:{" "}
+                          Last:{" "}
                           {new Date(msg.threadLastReplyAt).toLocaleTimeString(
                             [],
                             { hour: "2-digit", minute: "2-digit" },
@@ -566,17 +579,17 @@ const ChatMessage = React.memo(function ChatMessage({
             </>
           )}
 
-          {showTime && (
+          {showTime && !showSenderName && (
             <div
               className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
             >
               <span
-                className={`text-[10px] text-gray-700 px-1 flex gap-1 items-center`}
+                className={`text-[9px] text-slate-400 px-1 mt-0.5 flex gap-1 items-center font-bold tracking-tight`}
               >
                 {time}
                 {msg.edited && (
-                  <span className="text-gray-500 text-[10px]">
-                    (Đã chỉnh sửa)
+                  <span className="text-slate-400/80 font-normal">
+                    (Edited)
                   </span>
                 )}
               </span>
@@ -586,28 +599,28 @@ const ChatMessage = React.memo(function ChatMessage({
           {/* Reaction & Options Buttons */}
           {!msg.recalled && (
             <div
-              className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-1 ${isMe ? "right-full mr-2" : "left-full ml-2"} opacity-0 group-hover:opacity-100 transition-opacity z-10`}
+              className="absolute top-1/2 -translate-y-1/2 left-full ml-3 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
             >
               <button
                 onClick={() => onThreadReply?.(msg)}
-                title="Phản hồi theo chủ đề"
-                className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
+                title="Reply to thread"
+                className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 shadow-sm cursor-pointer hover:scale-105 transition-all duration-150"
               >
-                <MessageSquare size={16} />
+                <MessageSquare size={14} />
               </button>
 
               <div className="relative">
                 <button
                   onClick={() => setShowReactionPicker(!showReactionPicker)}
-                  className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
+                  className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 shadow-sm cursor-pointer hover:scale-105 transition-all duration-150"
                 >
-                  <SmilePlus size={16} />
+                  <SmilePlus size={14} />
                 </button>
 
                 {/* Quick Emojis Popup */}
                 {showReactionPicker && (
                   <div
-                    className={`absolute top-1/2 -translate-y-1/2 ${isMe ? "right-full mr-2" : "left-full ml-2"} bg-white border border-gray-200 rounded-full shadow-lg p-1.5 flex gap-1`}
+                    className="absolute top-1/2 -translate-y-1/2 left-full ml-2 bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-full shadow-lg p-1 flex gap-0.5 animate-in fade-in zoom-in-95 duration-100"
                   >
                     {QUICK_EMOJIS.map((emoji) => (
                       <button
@@ -616,7 +629,7 @@ const ChatMessage = React.memo(function ChatMessage({
                           handleReactionClick(emoji);
                           setShowReactionPicker(false);
                         }}
-                        className="w-8 h-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+                        className="w-7 h-7 flex items-center justify-center text-base hover:bg-slate-100 rounded-full transition-all duration-150 cursor-pointer hover:scale-110"
                       >
                         {emoji}
                       </button>
@@ -630,9 +643,9 @@ const ChatMessage = React.memo(function ChatMessage({
                   setOptionsMenuRect(e.currentTarget.getBoundingClientRect());
                   setIsOptionsMenuOpen(true);
                 }}
-                className="p-1.5 bg-white border border-gray-200 rounded-full text-gray-500 hover:text-gray-700 hover:bg-gray-50 shadow-sm cursor-pointer"
+                className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-200 shadow-sm cursor-pointer hover:scale-105 transition-all duration-150"
               >
-                <MoreHorizontal size={16} />
+                <MoreHorizontal size={14} />
               </button>
             </div>
           )}

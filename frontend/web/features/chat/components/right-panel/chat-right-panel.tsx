@@ -87,7 +87,7 @@ export default function ChatRightPanel({
 
   let displayName = "Group Chat";
   let displayAvatarUrl = null;
-  let displayDescription = `${activeConversation?.members?.length || 0} thành viên`;
+  let displayDescription = `${activeConversation?.members?.length || 0} members`;
   let otherMemberId: string | null = null;
   const currentMember = activeConversation?.members?.find(
     (m: any) => m.userId === currentUserId,
@@ -199,8 +199,11 @@ export default function ChatRightPanel({
   useEffect(() => {
     const socket = socketService.getSocket();
     if (socket) {
+      const getEventChannelId = (payload: any) =>
+        payload?.channelId ?? payload?.conversationId;
+
       const handleMediaUpdated = (data: any) => {
-        if (data.conversationId === activeConversation?.id && data.media) {
+        if (getEventChannelId(data) === activeConversation?.id && data.media) {
           setMediaItems((prev) => [...data.media, ...prev]);
         }
       };
@@ -208,7 +211,7 @@ export default function ChatRightPanel({
       const handleMemberJoin = (data: any) => {
         if (
           activeConversation &&
-          data.conversationId === activeConversation.id &&
+          getEventChannelId(data) === activeConversation.id &&
           data.member &&
           data.profile
         ) {
@@ -298,7 +301,7 @@ export default function ChatRightPanel({
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Chi tiết</h2>
+        <h2 className="font-semibold text-gray-800">Details</h2>
         <button
           onClick={onClose}
           className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
@@ -346,7 +349,7 @@ export default function ChatRightPanel({
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">
-                {isMuted ? "Bật thông báo" : "Tắt thông báo"}
+                {isMuted ? "Unmute" : "Mute"}
               </span>
             </button>
 
@@ -358,7 +361,7 @@ export default function ChatRightPanel({
                 <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                   <Users size={18} />
                 </div>
-                <span className="text-xs font-medium">Thành viên</span>
+                <span className="text-xs font-medium">Members</span>
               </button>
             )}
 
@@ -370,7 +373,7 @@ export default function ChatRightPanel({
                 <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                   <Settings size={18} />
                 </div>
-                <span className="text-xs font-medium">Cài đặt</span>
+                <span className="text-xs font-medium">Settings</span>
               </button>
             )}
           </div>

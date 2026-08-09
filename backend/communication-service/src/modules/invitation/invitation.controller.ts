@@ -16,7 +16,7 @@ export class InvitationController {
   @Get('pending')
   async getPendingInvitations(@Headers('x-user-id') userId: string) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException('Missing userId');
     }
     const invitations =
       await this.invitationService.getPendingInvitations(userId);
@@ -32,7 +32,7 @@ export class InvitationController {
     @Param('id') invitationId: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException('Missing userId');
     }
     const result = await this.invitationService.acceptInvitation(
       userId,
@@ -50,7 +50,7 @@ export class InvitationController {
     @Param('id') invitationId: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException('Missing userId');
     }
     const result = await this.invitationService.declineInvitation(
       userId,

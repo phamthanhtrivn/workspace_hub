@@ -2,9 +2,8 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Users, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
-import { useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
-import AddMembersModal from "../modals/add-members-modal";
+import InviteGroupMembersModal from "../modals/invite-group-members-modal";
 import { FaKey } from "react-icons/fa";
 
 interface MembersSectionProps {
@@ -28,8 +27,9 @@ export default function MembersSection({
   const currentMember = activeConversation?.members?.find(
     (m: any) => m.userId === currentUserId,
   );
-  const isOwner = currentMember?.role === "OWNER";
-  const conversationId = activeConversation?.id;
+  const canInvite =
+    currentMember?.role === "OWNER" || currentMember?.role === "ADMIN";
+  const spaceId = activeConversation?.spaceId;
 
   return (
     <div>
@@ -40,7 +40,7 @@ export default function MembersSection({
         >
           <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
             <Users size={18} className="text-gray-500" />
-            Thành viên ({activeConversation?.members?.length || 0})
+            Members ({activeConversation?.members?.length || 0})
           </div>
           {isExpanded ? (
             <ChevronDown size={16} className="text-gray-400" />
@@ -56,7 +56,7 @@ export default function MembersSection({
                 const profile = memberProfiles?.[member.userId];
                 const name = profile?.fullName || "User";
                 const isMe = member.userId === currentUserId;
-                const displayName = isMe ? "Bạn" : name;
+                const displayName = isMe ? "You" : name;
 
                 return (
                   <div
@@ -87,13 +87,12 @@ export default function MembersSection({
                       </span>
                       {member.role === "OWNER" && (
                         <span className="text-[10px] bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-yellow-100 w-fit">
-                          <FaKey size={10} className="text-yellow-500" /> Trưởng
-                          nhóm
+                          <FaKey size={10} className="text-yellow-500" /> Owner
                         </span>
                       )}
                       {member.role === "ADMIN" && (
                         <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-gray-200 w-fit">
-                          <FaKey size={10} className="text-gray-400" /> Phó nhóm
+                          <FaKey size={10} className="text-gray-400" /> Admin
                         </span>
                       )}
                     </div>
@@ -101,7 +100,7 @@ export default function MembersSection({
                 );
               })}
             </div>
-            {isOwner && (
+            {canInvite && spaceId && (
               <button
                 onClick={() => setShowAddMembersModal(true)}
                 className="flex items-center gap-3 p-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full transition mt-1"
@@ -109,21 +108,18 @@ export default function MembersSection({
                 <div className="cursor-pointer w-8 h-8 rounded-full border border-dashed border-blue-400 flex items-center justify-center">
                   <Users size={14} />
                 </div>
-                <span className="text-sm font-medium">Thêm thành viên</span>
+                <span className="text-sm font-medium">Invite members</span>
               </button>
             )}
           </div>
         )}
       </div>
 
-      {showAddMembersModal && (
-        <AddMembersModal
+      {showAddMembersModal && spaceId && (
+        <InviteGroupMembersModal
           isOpen={showAddMembersModal}
           onClose={() => setShowAddMembersModal(false)}
-          conversationId={conversationId}
-          onMembersAdded={() => {
-            // Optional: You could fetch the conversation again or rely on the socket events to refresh members
-          }}
+          spaceId={spaceId}
         />
       )}
 

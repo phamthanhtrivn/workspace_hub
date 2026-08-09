@@ -80,11 +80,10 @@ export default function ChatLayout() {
               <MessageCircle size={48} className="text-blue-500" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              Chào mừng đến với WorkspaceHub Chat
+              Welcome to WorkspaceHub Chat
             </h2>
             <p className="text-gray-500 max-w-md text-center mb-6">
-              Chọn một cuộc trò chuyện từ danh sách hoặc tìm kiếm bạn bè để bắt
-              đầu nhắn tin.
+              Select a conversation from the list or search for friends to start messaging.
             </p>
           </div>
         )}

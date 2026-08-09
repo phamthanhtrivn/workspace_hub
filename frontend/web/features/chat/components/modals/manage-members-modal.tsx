@@ -57,17 +57,17 @@ export default function ManageMembersModal({
 
     const actionText =
       role === "ADMIN"
-        ? "thăng cấp người này thành Phó nhóm"
-        : "giáng cấp người này xuống Thành viên";
+        ? "promote this user to Admin"
+        : "demote this user to Member";
     const result = await Swal.fire({
-      title: "Cập nhật vai trò?",
-      text: `Bạn có chắc chắn muốn ${actionText}?`,
+      title: "Update role?",
+      text: `Are you sure you want to ${actionText}?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Đồng ý",
-      cancelButtonText: "Hủy",
+      confirmButtonText: "Yes",
+      cancelButtonText: "Cancel",
     });
 
     if (!result.isConfirmed) return;
@@ -75,11 +75,12 @@ export default function ManageMembersModal({
     setIsProcessing(true);
     try {
       await updateMemberRole(conversation.id, memberId, role);
-      toast.success("Cập nhật vai trò thành công");
+      toast.success("Role updated successfully");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
     } catch (error: any) {
       toast.error(
-        error.response?.data?.message || "Không thể cập nhật vai trò",
+        error.response?.data?.message || "Failed to update role",
       );
     } finally {
       setIsProcessing(false);
@@ -90,26 +91,27 @@ export default function ManageMembersModal({
     if (isProcessing) return;
 
     const result = await Swal.fire({
-      title: "Chuyển quyền Trưởng nhóm?",
-      text: "Bạn có chắc chắn muốn chuyển quyền Trưởng nhóm cho người này?",
+      title: "Transfer ownership?",
+      text: "Are you sure you want to transfer ownership to this user?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Đồng ý",
-      cancelButtonText: "Hủy",
+      confirmButtonText: "Yes",
+      cancelButtonText: "Cancel",
     });
 
     if (!result.isConfirmed) return;
     setIsProcessing(true);
     try {
       await transferOwnership(conversation.id, memberId);
-      toast.success("Đã chuyển quyền trưởng nhóm");
+      toast.success("Ownership transferred successfully");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
       onClose();
     } catch (error: any) {
       toast.error(
-        error.response?.data?.message || "Không thể chuyển quyền trưởng nhóm",
+        error.response?.data?.message || "Failed to transfer ownership",
       );
     } finally {
       setIsProcessing(false);
@@ -119,24 +121,25 @@ export default function ManageMembersModal({
   const handleKickMember = async (memberId: string) => {
     if (isProcessing) return;
     const result = await Swal.fire({
-      title: "Xóa thành viên?",
-      text: "Bạn có chắc chắn muốn xóa người này khỏi nhóm?",
+      title: "Kick member?",
+      text: "Are you sure you want to kick this user from group?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Xóa",
-      cancelButtonText: "Hủy",
+      confirmButtonText: "Kick",
+      cancelButtonText: "Cancel",
     });
 
     if (!result.isConfirmed) return;
     setIsProcessing(true);
     try {
       await kickMember(conversation.id, memberId);
-      toast.success("Đã xóa khỏi nhóm");
+      toast.success("Member kicked successfully");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Không thể xóa thành viên");
+      toast.error(error.response?.data?.message || "Failed to kick member");
     } finally {
       setIsProcessing(false);
     }
@@ -149,20 +152,20 @@ export default function ManageMembersModal({
         (m: any) => m.userId !== currentUserId,
       );
       if (otherMembers?.length > 0) {
-        toast.error("Vui lòng chuyển quyền Trưởng nhóm trước khi rời nhóm");
+        toast.error("Please transfer ownership before leaving the group");
         return;
       }
     }
 
     const result = await Swal.fire({
-      title: "Rời nhóm?",
-      text: "Bạn có chắc chắn muốn rời nhóm?",
+      title: "Leave group?",
+      text: "Are you sure you want to leave the group?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Rời nhóm",
-      cancelButtonText: "Hủy",
+      confirmButtonText: "Leave group",
+      cancelButtonText: "Cancel",
     });
 
     if (!result.isConfirmed) return;
@@ -170,9 +173,10 @@ export default function ManageMembersModal({
     try {
       await leaveConversation(conversation.id);
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Không thể rời nhóm");
+      toast.error(error.response?.data?.message || "Failed to leave group");
     } finally {
       setIsProcessing(false);
     }
@@ -181,25 +185,26 @@ export default function ManageMembersModal({
   const handleDisbandGroup = async () => {
     if (isProcessing) return;
     const result = await Swal.fire({
-      title: "Giải tán nhóm?",
-      text: "Bạn có chắc chắn muốn giải tán nhóm? Toàn bộ thông tin nhóm sẽ bị xoá vĩnh viễn.",
+      title: "Disband group?",
+      text: "Are you sure you want to disband the group? All messages and data will be permanently deleted.",
       icon: "error",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Giải tán",
-      cancelButtonText: "Hủy",
+      confirmButtonText: "Disband",
+      cancelButtonText: "Cancel",
     });
 
     if (!result.isConfirmed) return;
     setIsProcessing(true);
     try {
       await disbandConversation(conversation.id);
-      toast.success("Đã giải tán nhóm");
+      toast.success("Group disbanded successfully");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Không thể giải tán nhóm");
+      toast.error(error.response?.data?.message || "Failed to disband group");
     } finally {
       setIsProcessing(false);
     }
@@ -218,7 +223,7 @@ export default function ManageMembersModal({
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] border border-gray-100">
         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
           <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
-            Quản lý thành viên
+            Manage Members
           </h2>
           <button
             onClick={onClose}
@@ -236,7 +241,7 @@ export default function ManageMembersModal({
             />
             <input
               type="text"
-              placeholder="Tìm kiếm thành viên..."
+              placeholder="Search members..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400"
@@ -249,7 +254,7 @@ export default function ManageMembersModal({
             const profile = memberProfiles?.[member.userId];
             const name = profile?.fullName || "User";
             const isMe = member.userId === currentUserId;
-            const displayName = isMe ? "Bạn" : name;
+            const displayName = isMe ? "You" : name;
 
             return (
               <div
@@ -279,13 +284,12 @@ export default function ManageMembersModal({
                       </span>
                       {member.role === "OWNER" && (
                         <span className="text-[10px] bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-yellow-100">
-                          <FaKey size={10} className="text-yellow-500" /> Trưởng
-                          nhóm
+                          <FaKey size={10} className="text-yellow-500" /> Owner
                         </span>
                       )}
                       {member.role === "ADMIN" && (
                         <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-gray-200">
-                          <FaKey size={10} className="text-gray-400" /> Phó nhóm
+                          <FaKey size={10} className="text-gray-400" /> Admin
                         </span>
                       )}
                     </div>
@@ -304,7 +308,7 @@ export default function ManageMembersModal({
                             onClick={() =>
                               handleUpdateRole(member.userId, "ADMIN")
                             }
-                            title="Thăng cấp Phó nhóm"
+                            title="Promote to Admin"
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <FiShield size={18} />
@@ -315,7 +319,7 @@ export default function ManageMembersModal({
                             onClick={() =>
                               handleUpdateRole(member.userId, "MEMBER")
                             }
-                            title="Giáng cấp Thành viên"
+                            title="Demote to Member"
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <FiShieldOff size={18} />
@@ -323,7 +327,7 @@ export default function ManageMembersModal({
                         )}
                         <button
                           onClick={() => handleTransferOwnership(member.userId)}
-                          title="Chuyển quyền Trưởng nhóm"
+                          title="Transfer Ownership"
                           className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <FiShieldOff size={18} />
@@ -336,7 +340,7 @@ export default function ManageMembersModal({
                         member.role === "MEMBER")) && (
                       <button
                         onClick={() => handleKickMember(member.userId)}
-                        title="Xóa khỏi nhóm"
+                        title="Kick from group"
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={18} />
@@ -356,7 +360,7 @@ export default function ManageMembersModal({
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <FiLogOut size={18} />
-            Rời nhóm
+            Leave group
           </button>
 
           {currentUserRole === "OWNER" && (
@@ -366,7 +370,7 @@ export default function ManageMembersModal({
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-200"
             >
               <FiTrash2 size={18} />
-              Giải tán nhóm
+              Disband group
             </button>
           )}
         </div>
