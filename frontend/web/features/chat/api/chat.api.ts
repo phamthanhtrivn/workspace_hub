@@ -131,9 +131,10 @@ export const getConversationMedia = async (
   conversationId: string,
   cursor?: string,
   limit?: number,
+  mediaType?: string,
 ): Promise<any> => {
   const response = await api.get(`/api/channels/${conversationId}/media`, {
-    params: { cursor, limit },
+    params: { cursor, limit, mediaType },
   });
   return response.data;
 };

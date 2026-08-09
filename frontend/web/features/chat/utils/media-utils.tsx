@@ -18,3 +18,12 @@ export const renderAudioPlayer = (media: any, isMe: boolean) => {
     </div>
   );
 };
+
+export function formatDate(createdAt: string) {
+  if (!createdAt) return "";
+  return new Date(createdAt).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}

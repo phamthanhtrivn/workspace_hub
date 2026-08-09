@@ -4,6 +4,7 @@ import {
   IsNumber,
   ValidateNested,
   ArrayMinSize,
+  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -19,8 +20,13 @@ class FileDto {
 }
 
 export class PresignRequestDto {
+  @IsOptional()
   @IsString()
-  channelId: string;
+  channelId?: string;
+
+  @IsOptional()
+  @IsString()
+  conversationId?: string;
 
   @IsArray()
   @ArrayMinSize(1)

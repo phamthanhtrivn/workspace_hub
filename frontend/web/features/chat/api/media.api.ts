@@ -19,7 +19,7 @@ export const getPresignedUrls = async (
   files: PresignRequest[],
 ): Promise<PresignResponse[]> => {
   const response = await api.post("/api/medias/presign", {
-    conversationId,
+    channelId: conversationId,
     files,
   });
   return response.data.data;

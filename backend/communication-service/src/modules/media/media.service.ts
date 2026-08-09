@@ -11,6 +11,7 @@ export class MediaService {
 
   async generatePresignedUrls(body: PresignRequestDto) {
     this.validatePresignRequest(body);
+    const referenceId = body.channelId || body.conversationId;
 
     const results: any[] = [];
 
@@ -20,7 +21,7 @@ export class MediaService {
       const { presignedUrl, s3Key } =
         await this.s3Service.generatePresignedUploadUrl(
           S3_UPLOAD_TYPE.CHAT_MEDIA,
-          body.channelId,
+          referenceId!,
           file.fileName,
           file.mimeType,
         );
@@ -41,6 +42,12 @@ export class MediaService {
   }
 
   private validatePresignRequest(body: PresignRequestDto): void {
+    if (!body.channelId && !body.conversationId) {
+      throw new BadRequestException(
+        MEDIA_ERROR_MESSAGES.MISSING_REQUIRED_FIELDS,
+      );
+    }
+
     if (!body.files || body.files.length === 0) {
       throw new BadRequestException(
         MEDIA_ERROR_MESSAGES.EMPTY_FILES,

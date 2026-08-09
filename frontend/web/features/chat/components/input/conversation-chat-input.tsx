@@ -607,7 +607,7 @@ const ConversationChatInput = React.memo(
                       disabled={isUploading}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Paperclip size={16} className="text-gray-500" /> Document
+                      <Paperclip size={16} className="text-gray-500" /> Files
                     </button>
 
                     <div className="h-px bg-gray-100 my-1"></div>

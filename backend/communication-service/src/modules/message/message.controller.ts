@@ -50,6 +50,7 @@ export class MessageController {
     @Param('id') channelId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('mediaType') mediaType?: string,
   ) {
     if (!channelId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
@@ -61,6 +62,7 @@ export class MessageController {
       channelId,
       cursor,
       parsedLimit,
+      mediaType,
     );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.MEDIA_RETRIEVED,

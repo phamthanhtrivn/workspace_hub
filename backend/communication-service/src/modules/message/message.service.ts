@@ -570,11 +570,71 @@ export class MessageService {
     channelId: string,
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
+    mediaType?: string,
   ) {
+    const mediaTypeWhere = this.getMediaTypeWhere(mediaType);
+    const isDirect = await this.prisma.directConversation.findUnique({
+      where: { id: channelId },
+      select: { id: true },
+    });
+
+    if (isDirect) {
+      const medias = await this.prisma.directMedia.findMany({
+        where: {
+          ...mediaTypeWhere,
+          message: {
+            conversationId: channelId,
+            deletedAt: null,
+            recalled: false,
+          },
+        },
+        take: limit + 1,
+        skip: cursor ? 1 : 0,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: {
+          message: {
+            createdAt: 'desc',
+          },
+        },
+        include: {
+          message: {
+            select: {
+              id: true,
+              senderId: true,
+              createdAt: true,
+              conversationId: true,
+            },
+          },
+        },
+      });
+
+      let nextCursor: string | undefined = undefined;
+      if (medias.length > limit) {
+        const nextItem = medias.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return {
+        medias: mapMediaWithUrl(medias).map((media) => ({
+          ...media,
+          message: media.message
+            ? {
+                ...media.message,
+                channelId: media.message.conversationId,
+              }
+            : media.message,
+        })),
+        nextCursor,
+      };
+    }
+
     const medias = await this.prisma.media.findMany({
       where: {
+        ...mediaTypeWhere,
         message: {
           channelId,
+          deletedAt: null,
+          recalled: false,
         },
       },
       take: limit + 1,
@@ -605,6 +665,127 @@ export class MessageService {
       medias: mapMediaWithUrl(medias),
       nextCursor,
     };
+  }
+
+  private getMediaTypeWhere(mediaType?: string): Record<string, any> {
+    switch (mediaType) {
+      case 'image':
+        return { mimeType: { startsWith: 'image/' } };
+      case 'video':
+        return { mimeType: { startsWith: 'video/' } };
+      case 'audio':
+        return { mimeType: { startsWith: 'audio/' } };
+      case 'pdf':
+        return { mimeType: 'application/pdf' };
+      case 'document':
+        return {
+          OR: [
+            { mimeType: { contains: 'wordprocessingml' } },
+            { mimeType: { contains: 'msword' } },
+            { mimeType: { contains: 'opendocument.text' } },
+            { mimeType: 'text/plain' },
+            { name: { endsWith: '.doc', mode: 'insensitive' } },
+            { name: { endsWith: '.docx', mode: 'insensitive' } },
+            { name: { endsWith: '.txt', mode: 'insensitive' } },
+          ],
+        };
+      case 'spreadsheet':
+        return {
+          OR: [
+            { mimeType: { contains: 'spreadsheet' } },
+            { mimeType: { contains: 'excel' } },
+            { mimeType: 'text/csv' },
+            { name: { endsWith: '.xls', mode: 'insensitive' } },
+            { name: { endsWith: '.xlsx', mode: 'insensitive' } },
+            { name: { endsWith: '.csv', mode: 'insensitive' } },
+          ],
+        };
+      case 'presentation':
+        return {
+          OR: [
+            { mimeType: { contains: 'presentation' } },
+            { mimeType: { contains: 'powerpoint' } },
+            { name: { endsWith: '.ppt', mode: 'insensitive' } },
+            { name: { endsWith: '.pptx', mode: 'insensitive' } },
+          ],
+        };
+      case 'archive':
+        return {
+          OR: [
+            { mimeType: { contains: 'zip' } },
+            { mimeType: { contains: 'rar' } },
+            { mimeType: { contains: '7z' } },
+            { mimeType: { contains: 'tar' } },
+            { name: { endsWith: '.zip', mode: 'insensitive' } },
+            { name: { endsWith: '.rar', mode: 'insensitive' } },
+            { name: { endsWith: '.7z', mode: 'insensitive' } },
+            { name: { endsWith: '.tar', mode: 'insensitive' } },
+            { name: { endsWith: '.gz', mode: 'insensitive' } },
+          ],
+        };
+      case 'code':
+        return {
+          OR: [
+            { mimeType: { startsWith: 'text/' } },
+            { name: { endsWith: '.js', mode: 'insensitive' } },
+            { name: { endsWith: '.ts', mode: 'insensitive' } },
+            { name: { endsWith: '.tsx', mode: 'insensitive' } },
+            { name: { endsWith: '.jsx', mode: 'insensitive' } },
+            { name: { endsWith: '.json', mode: 'insensitive' } },
+            { name: { endsWith: '.css', mode: 'insensitive' } },
+            { name: { endsWith: '.html', mode: 'insensitive' } },
+            { name: { endsWith: '.java', mode: 'insensitive' } },
+            { name: { endsWith: '.py', mode: 'insensitive' } },
+          ],
+        };
+      case 'other':
+        return {
+          NOT: [
+            { mimeType: { startsWith: 'image/' } },
+            { mimeType: { startsWith: 'video/' } },
+            { mimeType: { startsWith: 'audio/' } },
+            { mimeType: 'application/pdf' },
+            { mimeType: { contains: 'wordprocessingml' } },
+            { mimeType: { contains: 'msword' } },
+            { mimeType: { contains: 'opendocument.text' } },
+            { mimeType: { contains: 'spreadsheet' } },
+            { mimeType: { contains: 'excel' } },
+            { mimeType: 'text/csv' },
+            { mimeType: { contains: 'presentation' } },
+            { mimeType: { contains: 'powerpoint' } },
+            { mimeType: { contains: 'zip' } },
+            { mimeType: { contains: 'rar' } },
+            { mimeType: { contains: '7z' } },
+            { mimeType: { contains: 'tar' } },
+            { mimeType: { startsWith: 'text/' } },
+            { name: { endsWith: '.pdf', mode: 'insensitive' } },
+            { name: { endsWith: '.doc', mode: 'insensitive' } },
+            { name: { endsWith: '.docx', mode: 'insensitive' } },
+            { name: { endsWith: '.txt', mode: 'insensitive' } },
+            { name: { endsWith: '.xls', mode: 'insensitive' } },
+            { name: { endsWith: '.xlsx', mode: 'insensitive' } },
+            { name: { endsWith: '.csv', mode: 'insensitive' } },
+            { name: { endsWith: '.ppt', mode: 'insensitive' } },
+            { name: { endsWith: '.pptx', mode: 'insensitive' } },
+            { name: { endsWith: '.zip', mode: 'insensitive' } },
+            { name: { endsWith: '.rar', mode: 'insensitive' } },
+            { name: { endsWith: '.7z', mode: 'insensitive' } },
+            { name: { endsWith: '.tar', mode: 'insensitive' } },
+            { name: { endsWith: '.gz', mode: 'insensitive' } },
+            { name: { endsWith: '.js', mode: 'insensitive' } },
+            { name: { endsWith: '.ts', mode: 'insensitive' } },
+            { name: { endsWith: '.tsx', mode: 'insensitive' } },
+            { name: { endsWith: '.jsx', mode: 'insensitive' } },
+            { name: { endsWith: '.json', mode: 'insensitive' } },
+            { name: { endsWith: '.css', mode: 'insensitive' } },
+            { name: { endsWith: '.html', mode: 'insensitive' } },
+            { name: { endsWith: '.java', mode: 'insensitive' } },
+            { name: { endsWith: '.py', mode: 'insensitive' } },
+          ],
+        };
+      default:
+        return {};
+    }
   }
 
   async searchMessages(

@@ -1,34 +1,70 @@
 import React from "react";
-import { FileText, ChevronDown, ChevronRight, Download } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Download,
+  File,
+  FileImage,
+  FileText,
+  FileVideo,
+} from "lucide-react";
 import { saveAs } from "file-saver";
+import { formatFileSize } from "@/lib/file";
+import { formatDate } from "../../utils/media-utils";
 
 interface FilesSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
-  filesAndDocs: any[];
+  files: any[];
   onSeeAll?: () => void;
+  onOpenPreview?: (mediaId: string) => void;
+}
+
+function isVisualFile(item: any) {
+  return item.mimeType?.startsWith("image/") || item.mimeType?.startsWith("video/");
+}
+
+function FileThumb({ item }: { item: any }) {
+  if (item.mimeType?.startsWith("image/") && item.fileUrl) {
+    return <img src={item.fileUrl} alt={item.name} className="h-full w-full object-cover" />;
+  }
+
+  if (item.mimeType?.startsWith("video/") && item.fileUrl) {
+    return <video src={item.fileUrl} className="h-full w-full object-cover" />;
+  }
+
+  const Icon = item.mimeType?.startsWith("image/")
+    ? FileImage
+    : item.mimeType?.startsWith("video/")
+      ? FileVideo
+      : item.mimeType === "application/pdf"
+        ? FileText
+        : File;
+
+  return (
+    <span className="flex h-full w-full items-center justify-center bg-blue-500 text-white">
+      <Icon size={18} />
+    </span>
+  );
 }
 
 export default function FilesSection({
   isExpanded,
   onToggle,
-  filesAndDocs,
+  files,
   onSeeAll,
+  onOpenPreview,
 }: FilesSectionProps) {
-  const displayItems = filesAndDocs.slice(0, 3);
-  const hasMore = filesAndDocs.length > 3;
+  const displayItems = files.slice(0, 5);
+  const hasMore = files.length > 5;
 
-  const handleDownload = async (
-    e: React.MouseEvent,
-    url: string,
-    name: string,
-  ) => {
+  const handleDownload = async (e: React.MouseEvent, item: any) => {
     e.preventDefault();
     e.stopPropagation();
     try {
-      const response = await fetch(url);
+      const response = await fetch(item.fileUrl);
       const blob = await response.blob();
-      saveAs(blob, name);
+      saveAs(blob, item.name);
     } catch (error) {
       console.error("Download error:", error);
     }
@@ -53,58 +89,63 @@ export default function FilesSection({
 
       {isExpanded && (
         <div className="px-4 pb-4">
-          {filesAndDocs.length === 0 ? (
+          {files.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              No documents available
+              No files available
             </p>
           ) : (
             <>
               <div className="flex flex-col gap-2">
                 {displayItems.map((item, idx) => (
-                  <div
+                  <button
                     key={item.id || idx}
-                    className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition border-2 border-gray-200"
+                    onClick={() => {
+                      if (isVisualFile(item)) {
+                        onOpenPreview?.(item.id);
+                        return;
+                      }
+                      if (item.fileUrl) {
+                        window.open(item.fileUrl, "_blank", "noopener,noreferrer");
+                      }
+                    }}
+                    className="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-gray-200 p-2 text-left transition hover:bg-gray-50"
                   >
-                    <div className="w-10 h-10 bg-blue-500 text-white rounded flex items-center justify-center">
-                      <FileText size={20} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-gray-800 font-medium truncate">
+                    <span className="h-10 w-10 shrink-0 overflow-hidden rounded-md bg-gray-100">
+                      <FileThumb item={item} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-gray-800">
                         {item.name}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {item.sizeBytes
-                          ? (item.sizeBytes / 1024).toFixed(2)
-                          : "0"}{" "}
-                        KB
-                      </p>
-                    </div>
+                      </span>
+                      <span className="block truncate text-xs text-gray-500">
+                        {formatFileSize(item.sizeBytes)} - {new Date(item.message?.createdAt || item.createdAt).toLocaleDateString()}
+                      </span>
+                    </span>
                     {item.fileUrl && (
-                      <button
-                        onClick={(e) =>
-                          handleDownload(e, item.fileUrl, item.name)
-                        }
-                        className="cursor-pointer p-1.5 text-gray-400 hover:text-blue-700 hover:bg-blue-100 rounded transition"
+                      <span
+                        onClick={(e) => handleDownload(e, item)}
+                        className="rounded-md p-1.5 text-gray-400 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
+                        title="Download"
                       >
-                        <Download size={18} />
-                      </button>
+                        <Download size={15} />
+                      </span>
                     )}
-                  </div>
+                  </button>
                 ))}
               </div>
               {hasMore && (
                 <button
                   onClick={onSeeAll}
-                  className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50  rounded-lg transition"
+                  className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50 rounded-lg transition"
                 >
-                  See all
+                  See all files
                 </button>
               )}
             </>
           )}
         </div>
       )}
-      <div className="h-px bg-gray-100 mx-4 my-1"></div>
+      <div className="h-px bg-gray-100 mx-4 my-1" />
     </div>
   );
 }

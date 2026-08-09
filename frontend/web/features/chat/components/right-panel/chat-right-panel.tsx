@@ -6,7 +6,6 @@ import { ChatEvent } from "../../api/chat.events";
 import { getConversationMedia, muteConversation } from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
 import MembersSection from "./members-section";
-import ImagesVideosSection from "./images-videos-section";
 import FilesSection from "./files-section";
 import PollsSection from "./polls-section";
 import NotesSection from "./notes-section";
@@ -45,7 +44,7 @@ import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface ChatRightPanelProps {
   onClose: () => void;
-  initialDetailView?: "images" | "files" | "polls" | "search" | "threads" | null;
+  initialDetailView?: "files" | "polls" | "search" | "threads" | null;
 }
 
 function getMessageConversationId(message: any) {
@@ -61,7 +60,6 @@ export default function ChatRightPanel({
     "members",
   );
   const [detailView, setDetailView] = useState<
-    | "images"
     | "files"
     | "polls"
     | "search"
@@ -220,7 +218,7 @@ export default function ChatRightPanel({
   useEffect(() => {
     if (
       activeConversation?.id &&
-      (expandedSection === "images" || expandedSection === "files") &&
+      expandedSection === "files" &&
       lastFetchedConversationId.current !== activeConversation.id
     ) {
       getConversationMedia(activeConversation.id)
@@ -287,12 +285,11 @@ export default function ChatRightPanel({
     }
   }, [activeConversation, dispatch]);
 
-  if (detailView === "images" || detailView === "files") {
+  if (detailView === "files") {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
           conversationId={activeConversation!.id}
-          type={detailView}
           onBack={() => setDetailView(null)}
         />
       </div>
@@ -474,26 +471,18 @@ export default function ChatRightPanel({
             />
           )}
 
-          <ImagesVideosSection
-            isExpanded={expandedSection === "images"}
-            onToggle={() => toggleSection("images")}
-            imagesAndVideos={mediaItems.filter(
-              (m) =>
-                m.mimeType?.startsWith("image/") ||
-                m.mimeType?.startsWith("video/"),
-            )}
-            onOpenLightbox={(idx) => setLightboxIndex(idx)}
-            onSeeAll={() => setDetailView("images")}
-          />
-
           <FilesSection
             isExpanded={expandedSection === "files"}
             onToggle={() => toggleSection("files")}
-            filesAndDocs={mediaItems.filter(
-              (m) =>
-                !m.mimeType?.startsWith("image/") &&
-                !m.mimeType?.startsWith("video/"),
-            )}
+            files={mediaItems}
+            onOpenPreview={(mediaId) => {
+              const visualItems = mediaItems.filter(
+                (m) =>
+                  m.mimeType?.startsWith("image/") ||
+                  m.mimeType?.startsWith("video/"),
+              );
+              setLightboxIndex(visualItems.findIndex((item) => item.id === mediaId));
+            }}
             onSeeAll={() => setDetailView("files")}
           />
 
