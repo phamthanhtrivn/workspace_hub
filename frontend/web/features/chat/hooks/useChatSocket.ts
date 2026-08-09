@@ -11,9 +11,6 @@ import { sortDirectConversations } from "../utils/direct-conversation-utils";
  * Global hook that owns the chat WebSocket connection lifecycle and syncs
  * the direct conversation React Query cache for all components.
  *
- * Mount this once at the WorkspaceShell level so every page benefits from
- * real-time updates (unread badge, conversation preview, etc.) without each
- * child having to manage its own socket listeners.
  */
 export function useChatSocket() {
   const { userId: currentUserId, accessToken } = useAppSelector(
@@ -329,6 +326,7 @@ export function useChatSocket() {
         ChatEvent.CONVERSATION_MUTE_UPDATED,
         handleConversationMuteUpdated,
       );
+      socketService.disconnect();
     };
   }, [accessToken, currentUserId, queryClient, dispatch]);
 }

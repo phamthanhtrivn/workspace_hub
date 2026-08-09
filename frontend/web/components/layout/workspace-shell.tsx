@@ -23,11 +23,9 @@ import {
 import { useAppSelector } from "@/store/store";
 import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
 import WorkspaceHeader from "./workspace-header";
-import { useQuery } from "@tanstack/react-query";
-import { getUserConversations } from "@/features/chat/api/chat.api";
-import { useChatSocket } from "@/features/chat/hooks/useChatSocket";
 import { SETTING_TABS } from "@/features/user-setting/types/settings.enums";
 import { cn } from "@/lib/utils";
+import { useChatSocket } from "@/features/chat/hooks/useChatSocket";
 
 const menuItems = [
   {
@@ -103,29 +101,8 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
     SETTING_TABS.PROFILE,
   );
 
+  const { email } = useAppSelector((state: any) => state.auth);
   useChatSocket();
-
-  const { email, userId } = useAppSelector((state: any) => state.auth);
-
-  const { data } = useQuery({
-    queryKey: ["conversations", userId],
-    queryFn: async () => {
-      const response = await getUserConversations();
-      return response?.success
-        ? { conversations: response.data }
-        : { conversations: [] };
-    },
-    enabled: !!userId,
-    staleTime: 1000 * 60,
-  });
-
-  const totalUnreadChat = React.useMemo(() => {
-    const conversations = data?.conversations || [];
-    return conversations.reduce(
-      (sum: number, conv: any) => sum + (conv.unreadCount || 0),
-      0,
-    );
-  }, [data]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -244,13 +221,6 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                   )}
                 >
                   <Icon className="h-4 w-4" strokeWidth={2} />
-                  {item.href === "/chat" &&
-                    pathname !== "/chat" &&
-                    totalUnreadChat > 0 && (
-                      <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-black h-5 min-w-5 px-1 rounded-full flex items-center justify-center border border-white">
-                        {totalUnreadChat > 99 ? "99+" : totalUnreadChat}
-                      </span>
-                    )}
                 </span>
                 <div
                   className={cn(
