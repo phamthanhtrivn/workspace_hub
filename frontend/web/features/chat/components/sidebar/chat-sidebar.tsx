@@ -233,15 +233,69 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   );
 
   const handleNewConversation = useCallback(
-    async (newConversation: any) => {
-      // Invalidate query to load fresh data
+    async (newConversation: any, selectedProfile?: UserProfileResponse & { id?: string | null }) => {
+      const selectedUserId = selectedProfile?.id;
+
+      if (selectedUserId) {
+        queryClient.setQueryData(
+          ["conversations", currentUserId],
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            const conversations = oldData.conversations || [];
+            const exists = conversations.some((conv: any) => conv.id === newConversation.id);
+            return {
+              ...oldData,
+              conversations: exists
+                ? conversations.map((conv: any) =>
+                    conv.id === newConversation.id ? newConversation : conv,
+                  )
+                : [newConversation, ...conversations],
+              profiles: {
+                ...(oldData.profiles || {}),
+                [selectedUserId]: selectedProfile,
+              },
+            };
+          },
+        );
+
+        queryClient.setQueriesData(
+          { queryKey: ["chat-member-profiles"] },
+          (oldData: any) => {
+            if (!oldData) return oldData;
+            return {
+              ...oldData,
+              profiles: {
+                ...(oldData.profiles || {}),
+                [selectedUserId]: selectedProfile,
+              },
+            };
+          },
+        );
+      }
+
       refetchConversations();
       dispatch(setActiveConversation(newConversation));
       router.push(`/chat?id=${newConversation.id}`);
       if (onSelectChat) onSelectChat();
     },
-    [dispatch, router, onSelectChat, refetchConversations],
+    [currentUserId, dispatch, router, onSelectChat, queryClient, refetchConversations],
   );
+
+  useEffect(() => {
+    const handleRefreshConversations = (event: Event) => {
+      const conversation = (event as CustomEvent).detail;
+      if (conversation) {
+        handleNewConversation(conversation);
+      } else {
+        refetchConversations();
+      }
+    };
+
+    window.addEventListener("REFRESH_CONVERSATIONS", handleRefreshConversations);
+    return () => {
+      window.removeEventListener("REFRESH_CONVERSATIONS", handleRefreshConversations);
+    };
+  }, [handleNewConversation, refetchConversations]);
 
   const handleNewSpace = (newSpace: any) => {
     refetchSpaces();

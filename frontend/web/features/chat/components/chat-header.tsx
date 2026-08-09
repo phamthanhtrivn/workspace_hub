@@ -34,11 +34,18 @@ export default function ChatHeader({
     );
     if (otherMember) {
       otherMemberId = otherMember.userId;
-      if (memberProfiles?.[otherMember.userId]) {
-        const profile = memberProfiles[otherMember.userId];
-        displayName = profile.fullName || "User";
-        displayAvatarUrl = profile.avatarUrl;
-      }
+      const profile = memberProfiles?.[otherMember.userId];
+      const memberProfile = otherMember as any;
+      displayName =
+        profile?.fullName ||
+        memberProfile.profile?.fullName ||
+        memberProfile.fullName ||
+        "User";
+      displayAvatarUrl =
+        profile?.avatarUrl ||
+        memberProfile.profile?.avatarUrl ||
+        memberProfile.avatarUrl ||
+        null;
     }
   } else if (activeConversation) {
     displayName = activeConversation.name || "Group Chat";

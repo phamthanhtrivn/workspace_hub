@@ -8,13 +8,39 @@ export const searchUserByEmail = async (email: string): Promise<any> => {
   return response.data;
 };
 
+function normalizeDirectConversation(conversation: any) {
+  if (!conversation) return conversation;
+
+  const members = conversation.members || conversation.participants || [];
+
+  return {
+    ...conversation,
+    type: "DIRECT",
+    members: members.map((member: any) => ({
+      ...member,
+      role: member.role || "MEMBER",
+    })),
+    setting: conversation.setting || {
+      allowSendMessage: true,
+      allowCreateNote: true,
+      allowCreatePoll: true,
+      allowPinMessage: true,
+    },
+  };
+}
+
 export const createDirectConversation = async (
   participantId: string,
 ): Promise<any> => {
   const response = await api.post("/api/channels/direct", {
     participantId,
   });
-  return response.data;
+  const payload = response.data;
+  return {
+    ...payload,
+    success: payload?.success ?? true,
+    data: normalizeDirectConversation(payload?.data ?? payload),
+  };
 };
 
 export const createGroupConversation = async (

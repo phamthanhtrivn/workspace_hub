@@ -23,7 +23,10 @@ import { toast } from "react-toastify";
 interface SearchUserModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConversationCreated?: (conversation: any) => void;
+  onConversationCreated?: (
+    conversation: any,
+    selectedProfile: UserProfileResponse & { id?: string | null },
+  ) => void;
 }
 
 const SearchUserModal = React.memo(function SearchUserModal({
@@ -109,7 +112,15 @@ const SearchUserModal = React.memo(function SearchUserModal({
     try {
       const response = await createDirectConversation(user.id);
       if (response && response.success) {
-        onConversationCreated?.(response.data);
+        onConversationCreated?.(response.data, {
+          id: user.id,
+          email: userProfile?.email || user.email,
+          fullName: userProfile?.fullName || user.fullName,
+          avatarUrl: userProfile?.avatarUrl || user.avatarUrl,
+          phoneNumber: userProfile?.phoneNumber || null,
+          dob: userProfile?.dob || null,
+          bio: userProfile?.bio || null,
+        });
         onClose();
       } else {
         toast.error(response?.message || "Failed to create chat room");
