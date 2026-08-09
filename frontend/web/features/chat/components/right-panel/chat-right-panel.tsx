@@ -309,7 +309,7 @@ export default function ChatRightPanel({
     );
   }
 
-  if (detailView === "polls") {
+  if (detailView === "polls" && !isDirect) {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PollDetailView
@@ -504,21 +504,25 @@ export default function ChatRightPanel({
             onSeeAll={() => setDetailView("files")}
           />
 
-          <PollsSection
-            isExpanded={expandedSection === "polls"}
-            onToggle={() => toggleSection("polls")}
-            onSeeAll={() => setDetailView("polls")}
-          />
+          {!isDirect && (
+            <>
+              <PollsSection
+                isExpanded={expandedSection === "polls"}
+                onToggle={() => toggleSection("polls")}
+                onSeeAll={() => setDetailView("polls")}
+              />
 
-          <NotesSection
-            isExpanded={expandedSection === "notes"}
-            onToggle={() => toggleSection("notes")}
-          />
+              <NotesSection
+                isExpanded={expandedSection === "notes"}
+                onToggle={() => toggleSection("notes")}
+              />
 
-          <TasksSection
-            isExpanded={expandedSection === "tasks"}
-            onToggle={() => toggleSection("tasks")}
-          />
+              <TasksSection
+                isExpanded={expandedSection === "tasks"}
+                onToggle={() => toggleSection("tasks")}
+              />
+            </>
+          )}
         </div>
       </div>
 

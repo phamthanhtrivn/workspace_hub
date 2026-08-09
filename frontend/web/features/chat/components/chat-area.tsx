@@ -2,6 +2,9 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import ConversationChatInput, { ConversationChatInputRef } from "./input/conversation-chat-input";
+import DirectMessageInput, {
+  DirectMessageInputRef,
+} from "./input/direct-message-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -47,6 +50,8 @@ type PageParam = {
   direction: "older" | "newer" | "around";
 };
 
+type ChatInputRef = ConversationChatInputRef | DirectMessageInputRef;
+
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
   onOpenSearch?: () => void;
@@ -85,7 +90,7 @@ export default function ChatArea({
   const typingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<ConversationChatInputRef>(null);
+  const chatInputRef = useRef<ChatInputRef>(null);
 
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
@@ -1058,7 +1063,7 @@ export default function ChatArea({
       {!isBottomInView && allMessages.length > 0 && (
         <button
           onClick={scrollToBottom}
-          className="absolute bottom-35 cursor-pointer shadow-2xl right-6 w-10 h-10 border border-gray-200 rounded-full flex items-center justify-center bg-blue-500 text-white hover:text-gray-50 hover:bg-blue-700 transition z-10"
+          className="absolute bottom-30 cursor-pointer shadow-2xl right-6 w-10 h-10 border border-gray-200 rounded-full flex items-center justify-center bg-blue-500 text-white hover:text-gray-50 hover:bg-blue-700 transition z-10"
         >
           <ChevronDown size={24} />
         </button>
@@ -1090,25 +1095,38 @@ export default function ChatArea({
       {typingUsers.length > 0 && <TypingIndicator typingUsers={typingUsers} />}
 
       {/* Input Area */}
-      <ConversationChatInput
-        ref={chatInputRef}
-        onSendMessage={handleSendMessage}
-        onCreatePoll={() => setIsPollModalOpen(true)}
-        onCreateNote={() => setIsNoteModalOpen(true)}
-        onTypingChange={handleTypingChange}
-      />
+      {isDirectConversation ? (
+        <DirectMessageInput
+          ref={chatInputRef}
+          onSendMessage={handleSendMessage}
+          onTypingChange={handleTypingChange}
+          placeholder="Message direct conversation..."
+        />
+      ) : (
+        <ConversationChatInput
+          ref={chatInputRef}
+          onSendMessage={handleSendMessage}
+          onCreatePoll={() => setIsPollModalOpen(true)}
+          onCreateNote={() => setIsNoteModalOpen(true)}
+          onTypingChange={handleTypingChange}
+        />
+      )}
 
-      <CreatePollModal
-        isOpen={isPollModalOpen}
-        onClose={() => setIsPollModalOpen(false)}
-        onSubmit={handleCreatePoll}
-      />
+      {!isDirectConversation && (
+        <>
+          <CreatePollModal
+            isOpen={isPollModalOpen}
+            onClose={() => setIsPollModalOpen(false)}
+            onSubmit={handleCreatePoll}
+          />
 
-      <CreateNoteModal
-        isOpen={isNoteModalOpen}
-        onClose={() => setIsNoteModalOpen(false)}
-        onSubmit={handleCreateNote}
-      />
+          <CreateNoteModal
+            isOpen={isNoteModalOpen}
+            onClose={() => setIsNoteModalOpen(false)}
+            onSubmit={handleCreateNote}
+          />
+        </>
+      )}
     </div>
   );
 }

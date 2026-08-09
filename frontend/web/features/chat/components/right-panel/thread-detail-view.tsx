@@ -15,6 +15,7 @@ import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 import { formatDateTime } from "@/lib/date";
+import DirectMessageInput from "../input/direct-message-input";
 import ThreadChatInput from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
 import { toast } from "react-toastify";
@@ -417,7 +418,16 @@ export default function ThreadDetailView({
       </div>
 
       {/* Input bar */}
-      <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
+      {isDirect ? (
+        <DirectMessageInput
+          ref={chatInputRef}
+          compact
+          onSendMessage={handleSendReply}
+          placeholder="Reply in thread..."
+        />
+      ) : (
+        <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
+      )}
     </div>
   );
 }
