@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   followDirectThread,
   followThread,
-  sendDirectMessage,
   unfollowDirectThread,
   getDirectThreadMessages,
   getThreadMessages,
@@ -14,6 +13,7 @@ import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 import { formatDateTime } from "@/lib/date";
 import ThreadChatInput from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
@@ -31,6 +31,7 @@ export default function ThreadDetailView({
   onBack,
 }: ThreadDetailViewProps) {
   const queryClient = useQueryClient();
+  const { sendMessage: sendDirectThreadReply } = useDirectMessageActions();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<any>(null);
@@ -151,12 +152,12 @@ export default function ThreadDetailView({
     const socket = socketService.getSocket();
 
     if (isDirect) {
-      sendDirectMessage(rootMessage.conversationId ?? rootMessage.channelId, {
+      sendDirectThreadReply({
+        conversationId: rootMessage.conversationId ?? rootMessage.channelId,
         content,
         medias: media,
         threadParentId: rootMessage.id,
-      })
-        .then(() => {
+        onSent: () => {
           queryClient.invalidateQueries({
             queryKey: ["threadMessages", "direct", rootMessage.id],
           });
@@ -167,7 +168,8 @@ export default function ThreadDetailView({
               rootMessage.conversationId ?? rootMessage.channelId,
             ],
           });
-        })
+        },
+      })
         .catch(() => toast.error("Failed to send reply"));
       return;
     }

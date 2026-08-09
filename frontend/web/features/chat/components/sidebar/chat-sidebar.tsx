@@ -24,10 +24,12 @@ import {
 } from "../../api/chat.api";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
+  mergeMemberProfiles,
   setActiveConversation,
   setActiveSpaceId,
 } from "@/store/chat/chat-slice";
 import {
+  ChatProfilesMap,
   ConversationResponse,
   UserProfileResponse,
 } from "../../types/chat.types";
@@ -125,7 +127,27 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   });
   const channels = channelsData?.channels || [];
 
-  const memberProfiles = channelsData?.profiles || {};
+  const hydrateDirectConversation = useCallback(
+    (
+      conversation: ConversationResponse,
+      profiles?: ChatProfilesMap,
+    ): ConversationResponse => {
+      if (conversation.type !== "DIRECT" || !profiles) return conversation;
+
+      return {
+        ...conversation,
+        members: conversation.members?.map((member) => ({
+          ...member,
+          profile: profiles[member.userId] || (member as any).profile,
+          fullName:
+            profiles[member.userId]?.fullName || (member as any).fullName,
+          avatarUrl:
+            profiles[member.userId]?.avatarUrl || (member as any).avatarUrl,
+        })),
+      };
+    },
+    [],
+  );
 
   const handleSelectSpace = (spaceId: string) => {
     dispatch(setActiveSpaceId(spaceId));
@@ -134,8 +156,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   };
 
   const handleSelectConversation = useCallback(
-    (conv: ConversationResponse) => {
-      dispatch(setActiveConversation(conv));
+    (conv: ConversationResponse, profiles?: ChatProfilesMap) => {
+      const hydratedConversation = hydrateDirectConversation(conv, profiles);
+      dispatch(setActiveConversation(hydratedConversation));
 
       // Optimistically clear unread count
       queryClient.setQueryData(
@@ -183,7 +206,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       if (onSelectChat) onSelectChat();
     },
-    [dispatch, onSelectChat, queryClient, currentUserId],
+    [
+      currentUserId,
+      dispatch,
+      hydrateDirectConversation,
+      onSelectChat,
+      queryClient,
+    ],
   );
 
   const handleNewConversation = useCallback(
@@ -191,6 +220,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       const selectedUserId = selectedProfile?.id;
 
       if (selectedUserId) {
+        dispatch(mergeMemberProfiles({ [selectedUserId]: selectedProfile }));
         queryClient.setQueryData(
           [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
           (oldData: any) => {
@@ -230,11 +260,25 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       queryClient.invalidateQueries({
         queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
       });
-      dispatch(setActiveConversation(newConversation));
+      const hydratedConversation =
+        selectedUserId && selectedProfile
+          ? hydrateDirectConversation(newConversation, {
+              [selectedUserId]: selectedProfile,
+            })
+          : newConversation;
+
+      dispatch(setActiveConversation(hydratedConversation));
       router.push(`/chat?id=${newConversation.id}`);
       if (onSelectChat) onSelectChat();
     },
-    [currentUserId, dispatch, router, onSelectChat, queryClient],
+    [
+      currentUserId,
+      dispatch,
+      hydrateDirectConversation,
+      router,
+      onSelectChat,
+      queryClient,
+    ],
   );
 
   useEffect(() => {
@@ -433,7 +477,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   key={conv.id}
                   conv={conv}
                   currentUserId={currentUserId}
-                  memberProfiles={memberProfiles}
                   isActive={activeConversation?.id === conv.id}
                   onClick={handleSelectConversation}
                 />

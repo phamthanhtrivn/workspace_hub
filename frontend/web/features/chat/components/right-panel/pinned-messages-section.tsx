@@ -5,11 +5,11 @@ import {
   getBulkProfilesByIds,
   getDirectPinnedMessages,
   getPinnedMessages,
-  unpinDirectMessage,
 } from "../../api/chat.api";
 import { UserProfileResponse } from "../../types/chat.types";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
+import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 
 interface PinnedMessagesSectionProps {
   conversationId: string;
@@ -41,6 +41,7 @@ export default function PinnedMessagesSection({
   onJumpToMessage,
 }: PinnedMessagesSectionProps) {
   const queryClient = useQueryClient();
+  const { unpinMessage: unpinDirectPinnedMessage } = useDirectMessageActions();
 
   const { data, isLoading } = useQuery({
     queryKey: ["pinnedMessagesPreview", isDirect ? "direct" : "channel", conversationId],
@@ -89,7 +90,7 @@ export default function PinnedMessagesSection({
 
   const handleUnpin = async (messageId: string) => {
     if (isDirect) {
-      await unpinDirectMessage(messageId);
+      await unpinDirectPinnedMessage(conversationId, messageId);
       queryClient.setQueryData(["pinnedMessagesDetail", "direct", conversationId], (oldData: any) => {
         if (!oldData) return oldData;
         return {
@@ -100,7 +101,6 @@ export default function PinnedMessagesSection({
           })),
         };
       });
-      queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview", "direct", conversationId] });
       return;
     }
 

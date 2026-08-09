@@ -41,113 +41,6 @@ export class MessageService {
     replyToMessageId?: string,
     threadParentId?: string,
   ): Promise<any> {
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-    });
-
-    if (isDirect) {
-      return this.prisma.$transaction(async (tx) => {
-        const participant = await tx.directConversationParticipant.findUnique({
-          where: {
-            conversationId_userId: {
-              conversationId: channelId,
-              userId: senderId,
-            },
-          },
-        });
-
-        if (!participant) {
-          throw new BadRequestException(
-            MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
-          );
-        }
-
-        if (threadParentId) {
-          const parentMsg = await tx.directMessage.findUnique({
-            where: { id: threadParentId },
-          });
-          if (!parentMsg || parentMsg.conversationId !== channelId) {
-            throw new BadRequestException(MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND);
-          }
-
-          await tx.directMessage.update({
-            where: { id: threadParentId },
-            data: {
-              threadReplyCount: { increment: 1 },
-              threadLastReplyAt: new Date(),
-            },
-          });
-
-          await tx.directThreadFollower.upsert({
-            where: {
-              messageId_userId: {
-                messageId: threadParentId,
-                userId: parentMsg.senderId,
-              },
-            },
-            update: {},
-            create: { messageId: threadParentId, userId: parentMsg.senderId },
-          });
-
-          await tx.directThreadFollower.upsert({
-            where: {
-              messageId_userId: { messageId: threadParentId, userId: senderId },
-            },
-            update: {},
-            create: { messageId: threadParentId, userId: senderId },
-          });
-        }
-
-        const dm = await tx.directMessage.create({
-          data: {
-            conversationId: channelId,
-            senderId,
-            content,
-            type: type || MessageType.TEXT,
-            replyToMessageId,
-            threadParentId,
-            medias:
-              medias && medias.length > 0
-                ? {
-                    create: medias.map((m) => ({
-                      name: m.name,
-                      s3Key: m.s3Key,
-                      mimeType: m.mimeType,
-                      sizeBytes: m.sizeBytes,
-                      type: getMediaType(m.mimeType),
-                    })),
-                  }
-                : undefined,
-          },
-          include: {
-            medias: true,
-            replyTo: true,
-            threadFollowers: true,
-          },
-        });
-
-        await tx.directConversation.update({
-          where: { id: channelId },
-          data: { updatedAt: new Date() },
-        });
-
-        await tx.directConversationParticipant.update({
-          where: {
-            conversationId_userId: {
-              conversationId: channelId,
-              userId: senderId,
-            },
-          },
-          data: {
-            lastReadMessageId: dm.id,
-            lastReadAt: new Date(),
-          },
-        });
-
-        return dm;
-      });
-    }
-
     return this.prisma.$transaction(async (tx) => {
       if (type !== MessageType.SYSTEM) {
         const member = (await tx.channelMember.findUnique({
@@ -328,127 +221,6 @@ export class MessageService {
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     direction: MESSAGE_DIRECTION = MESSAGE_DIRECTION.OLDER,
   ) {
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-    });
-
-    if (isDirect) {
-      const includeQuery = {
-        medias: true,
-        replyTo: true,
-        threadFollowers: true,
-      };
-
-      if (direction === MESSAGE_DIRECTION.OLDER) {
-        const messages = await this.prisma.directMessage.findMany({
-          where: { conversationId: channelId, threadParentId: null },
-          take: limit + 1,
-          skip: cursor ? 1 : 0,
-          cursor: cursor ? { id: cursor } : undefined,
-          orderBy: { createdAt: 'desc' },
-          include: includeQuery,
-        });
-
-        let nextCursor: string | undefined = undefined;
-        if (messages.length > limit) {
-          const nextItem = messages.pop();
-          nextCursor = nextItem?.id;
-        }
-
-        return {
-          messages: messages.reverse().map((message) => ({
-            ...message,
-            medias: mapMediaWithUrl(message.medias),
-          })),
-          nextCursor,
-        };
-      } else if (direction === MESSAGE_DIRECTION.NEWER) {
-        const messages = await this.prisma.directMessage.findMany({
-          where: { conversationId: channelId, threadParentId: null },
-          take: limit + 1,
-          skip: cursor ? 1 : 0,
-          cursor: cursor ? { id: cursor } : undefined,
-          orderBy: { createdAt: 'asc' },
-          include: includeQuery,
-        });
-
-        let prevCursor: string | undefined = undefined;
-        if (messages.length > limit) {
-          const prevItem = messages.pop();
-          prevCursor = prevItem?.id;
-        }
-
-        return {
-          messages: messages.map((message) => ({
-            ...message,
-            medias: mapMediaWithUrl(message.medias),
-          })),
-          prevCursor,
-        };
-      } else if (direction === MESSAGE_DIRECTION.AROUND && cursor) {
-        const halfLimit = Math.floor(limit / 2);
-
-        const [targetMessage, olderMessages, newerMessages] = await Promise.all(
-          [
-            this.prisma.directMessage.findUnique({
-              where: { id: cursor },
-              include: includeQuery,
-            }),
-            this.prisma.directMessage.findMany({
-              where: { conversationId: channelId, threadParentId: null },
-              take: halfLimit + 1,
-              skip: 1,
-              cursor: { id: cursor },
-              orderBy: { createdAt: 'desc' },
-              include: includeQuery,
-            }),
-            this.prisma.directMessage.findMany({
-              where: { conversationId: channelId, threadParentId: null },
-              take: halfLimit + 1,
-              skip: 1,
-              cursor: { id: cursor },
-              orderBy: { createdAt: 'asc' },
-              include: includeQuery,
-            }),
-          ],
-        );
-
-        let nextCursor: string | undefined = undefined;
-        if (olderMessages.length > halfLimit) {
-          const nextItem = olderMessages.pop();
-          nextCursor = nextItem?.id;
-        }
-
-        let prevCursor: string | undefined = undefined;
-        if (newerMessages.length > halfLimit) {
-          const prevItem = newerMessages.pop();
-          prevCursor = prevItem?.id;
-        }
-
-        const allMessages: typeof olderMessages = [];
-        if (olderMessages.length > 0) {
-          allMessages.push(...olderMessages.reverse());
-        }
-        if (targetMessage) {
-          allMessages.push(targetMessage);
-        }
-        if (newerMessages.length > 0) {
-          allMessages.push(...newerMessages);
-        }
-
-        return {
-          messages: allMessages.map((message) => ({
-            ...message,
-            medias: mapMediaWithUrl(message.medias),
-          })),
-          nextCursor,
-          prevCursor,
-        };
-      }
-
-      return { messages: [], nextCursor: undefined, prevCursor: undefined };
-    }
-
     const includeQuery = {
       reactions: true,
       medias: true,
@@ -573,60 +345,6 @@ export class MessageService {
     mediaType?: string,
   ) {
     const mediaTypeWhere = this.getMediaTypeWhere(mediaType);
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-      select: { id: true },
-    });
-
-    if (isDirect) {
-      const medias = await this.prisma.directMedia.findMany({
-        where: {
-          ...mediaTypeWhere,
-          message: {
-            conversationId: channelId,
-            deletedAt: null,
-            recalled: false,
-          },
-        },
-        take: limit + 1,
-        skip: cursor ? 1 : 0,
-        cursor: cursor ? { id: cursor } : undefined,
-        orderBy: {
-          message: {
-            createdAt: 'desc',
-          },
-        },
-        include: {
-          message: {
-            select: {
-              id: true,
-              senderId: true,
-              createdAt: true,
-              conversationId: true,
-            },
-          },
-        },
-      });
-
-      let nextCursor: string | undefined = undefined;
-      if (medias.length > limit) {
-        const nextItem = medias.pop();
-        nextCursor = nextItem?.id;
-      }
-
-      return {
-        medias: mapMediaWithUrl(medias).map((media) => ({
-          ...media,
-          message: media.message
-            ? {
-                ...media.message,
-                channelId: media.message.conversationId,
-              }
-            : media.message,
-        })),
-        nextCursor,
-      };
-    }
 
     const medias = await this.prisma.media.findMany({
       where: {
@@ -794,58 +512,6 @@ export class MessageService {
     senderId?: string,
     type?: string,
   ) {
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-      select: { id: true },
-    });
-
-    if (isDirect) {
-      const whereClause: any = {
-        conversationId: channelId,
-        deletedAt: null,
-        recalled: false,
-        threadParentId: null,
-      };
-
-      if (q) {
-        whereClause.OR = [
-          { content: { contains: q, mode: 'insensitive' } },
-          {
-            medias: {
-              some: { name: { contains: q, mode: 'insensitive' } },
-            },
-          },
-        ];
-      }
-
-      if (senderId) {
-        whereClause.senderId = senderId;
-      }
-
-      if (type) {
-        whereClause.type = type;
-      }
-
-      const messages = await this.prisma.directMessage.findMany({
-        where: whereClause,
-        orderBy: {
-          createdAt: 'desc',
-        },
-        include: {
-          medias: true,
-          replyTo: true,
-          threadFollowers: true,
-        },
-        take: 10,
-      });
-
-      return messages.map((message) => ({
-        ...message,
-        channelId: message.conversationId,
-        medias: mapMediaWithUrl(message.medias),
-      }));
-    }
-
     const whereClause: any = {
       channelId,
       deletedAt: null,
@@ -888,31 +554,6 @@ export class MessageService {
   }
 
   async getConversationThreads(channelId: string) {
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-    });
-
-    if (isDirect) {
-      return this.prisma.directMessage.findMany({
-        where: {
-          conversationId: channelId,
-          threadReplyCount: {
-            gt: 0,
-          },
-          threadParentId: null,
-        },
-        include: {
-          reactions: true,
-          medias: true,
-          replyTo: true,
-          threadFollowers: true,
-        },
-        orderBy: {
-          threadLastReplyAt: 'desc',
-        },
-      });
-    }
-
     const includeQuery = {
       reactions: true,
       medias: true,
@@ -942,43 +583,7 @@ export class MessageService {
     });
 
     if (!message) {
-      const directMessage = await this.prisma.directMessage.findUnique({
-        where: { id: messageId },
-      });
-
-      if (!directMessage) {
-        throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
-      }
-
-      const existingDirectFollow =
-        await this.prisma.directThreadFollower.findUnique({
-          where: {
-            messageId_userId: {
-              messageId,
-              userId,
-            },
-          },
-        });
-
-      if (existingDirectFollow) {
-        await this.prisma.directThreadFollower.delete({
-          where: {
-            messageId_userId: {
-              messageId,
-              userId,
-            },
-          },
-        });
-        return { following: false };
-      }
-
-      await this.prisma.directThreadFollower.create({
-        data: {
-          messageId,
-          userId,
-        },
-      });
-      return { following: true };
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
 
     const existingFollow = await this.prisma.threadFollower.findUnique({
@@ -1027,42 +632,9 @@ export class MessageService {
     });
 
     if (!rootMessage) {
-      const directIncludeQuery = {
-        reactions: true,
-        medias: true,
-        replyTo: true,
-        threadFollowers: true,
-      };
-
-      const directRootMessage = await this.prisma.directMessage.findUnique({
-        where: { id: messageId },
-        include: directIncludeQuery,
-      });
-
-      if (!directRootMessage) {
-        throw new NotFoundException(
-          MESSAGE_ERROR_MESSAGES.ROOT_THREAD_NOT_FOUND,
-        );
-      }
-
-      const directReplies = await this.prisma.directMessage.findMany({
-        where: { threadParentId: messageId },
-        orderBy: { createdAt: 'asc' },
-        include: directIncludeQuery,
-      });
-
-      return {
-        rootMessage: {
-          ...directRootMessage,
-          channelId: directRootMessage.conversationId,
-          medias: mapMediaWithUrl(directRootMessage.medias),
-        },
-        replies: directReplies.map((reply) => ({
-          ...reply,
-          channelId: reply.conversationId,
-          medias: mapMediaWithUrl(reply.medias),
-        })),
-      };
+      throw new NotFoundException(
+        MESSAGE_ERROR_MESSAGES.ROOT_THREAD_NOT_FOUND,
+      );
     }
 
     const replies = await this.prisma.message.findMany({
@@ -1084,19 +656,6 @@ export class MessageService {
   }
 
   async getConversationMemberIds(channelId: string): Promise<string[]> {
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-    });
-
-    if (isDirect) {
-      const participants =
-        await this.prisma.directConversationParticipant.findMany({
-          where: { conversationId: channelId },
-          select: { userId: true },
-        });
-      return participants.map((participant) => participant.userId);
-    }
-
     const members = await this.prisma.channelMember.findMany({
       where: { channelId },
       select: { userId: true },
@@ -1107,24 +666,6 @@ export class MessageService {
   async getConversationMembersInfo(
     channelId: string,
   ): Promise<{ userId: string; muted: boolean }[]> {
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-      select: { id: true },
-    });
-
-    if (isDirect) {
-      const participants =
-        await this.prisma.directConversationParticipant.findMany({
-          where: { conversationId: channelId },
-          select: { userId: true, muted: true },
-        });
-
-      return participants.map((participant) => ({
-        userId: participant.userId,
-        muted: participant.muted,
-      }));
-    }
-
     const members = await this.prisma.channelMember.findMany({
       where: { channelId },
       select: { userId: true, muted: true },
@@ -1136,36 +677,6 @@ export class MessageService {
   }
 
   async addReaction(messageId: string, userId: string, emoji: string) {
-    const isDirectMsg = await this.prisma.directMessage.findUnique({
-      where: { id: messageId },
-    });
-
-    if (isDirectMsg) {
-      const existing = await this.prisma.directReaction.findFirst({
-        where: { messageId, userId },
-      });
-
-      if (existing) {
-        if (existing.emoji === emoji) {
-          await this.prisma.directReaction.delete({
-            where: { id: existing.id },
-          });
-          return { action: 'remove', emoji };
-        } else {
-          await this.prisma.directReaction.update({
-            where: { id: existing.id },
-            data: { emoji },
-          });
-          return { action: 'update', emoji };
-        }
-      } else {
-        await this.prisma.directReaction.create({
-          data: { messageId, userId, emoji },
-        });
-        return { action: 'add', emoji };
-      }
-    }
-
     const existing = await this.prisma.reaction.findFirst({
       where: { messageId, userId },
     });
@@ -1193,20 +704,6 @@ export class MessageService {
   }
 
   async removeReaction(messageId: string, userId: string, emoji: string) {
-    const isDirectMsg = await this.prisma.directMessage.findUnique({
-      where: { id: messageId },
-    });
-
-    if (isDirectMsg) {
-      return this.prisma.directReaction.deleteMany({
-        where: {
-          messageId,
-          userId,
-          emoji,
-        },
-      });
-    }
-
     return this.prisma.reaction.deleteMany({
       where: {
         messageId,
@@ -1221,25 +718,6 @@ export class MessageService {
     userId: string,
     messageId: string,
   ) {
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-    });
-
-    if (isDirect) {
-      return this.prisma.directConversationParticipant.update({
-        where: {
-          conversationId_userId: {
-            conversationId: channelId,
-            userId,
-          },
-        },
-        data: {
-          lastReadMessageId: messageId,
-          lastReadAt: new Date(),
-        },
-      });
-    }
-
     return this.prisma.channelMember.update({
       where: {
         channelId_userId: {
@@ -1255,33 +733,6 @@ export class MessageService {
   }
 
   async editMessage(messageId: string, content: string, userId: string) {
-    const isDirectMsg = await this.prisma.directMessage.findUnique({
-      where: { id: messageId },
-    });
-
-    if (isDirectMsg) {
-      if (isDirectMsg.senderId !== userId) {
-        throw new Error('You can only edit your own messages');
-      }
-      if (isDirectMsg.type !== MessageType.TEXT) {
-        throw new Error('Only text messages can be edited');
-      }
-      if (content.trim().length === 0) {
-        throw new Error('Message content cannot be empty');
-      }
-      const now = new Date().getTime();
-      const createdAt = new Date(isDirectMsg.createdAt).getTime();
-      const hoursDifference = (now - createdAt) / (1000 * 60 * 60);
-      if (hoursDifference > 24) {
-        throw new Error('Messages can only be edited within 24 hours');
-      }
-      return this.prisma.directMessage.update({
-        where: { id: messageId },
-        data: { content, edited: true },
-        include: { medias: true, replyTo: true },
-      });
-    }
-
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
     });
@@ -1326,35 +777,6 @@ export class MessageService {
   }
 
   async recallMessage(messageId: string, userId: string) {
-    const isDirectMsg = await this.prisma.directMessage.findUnique({
-      where: { id: messageId },
-      include: { medias: true },
-    });
-
-    if (isDirectMsg) {
-      if (isDirectMsg.senderId !== userId) {
-        throw new Error('You can only recall your own messages');
-      }
-      const now = new Date();
-      const createdAt = new Date(isDirectMsg.createdAt);
-      if (now.getTime() - createdAt.getTime() > 24 * 60 * 60 * 1000) {
-        throw new Error('Messages can only be recalled within 24 hours');
-      }
-      if (isDirectMsg.medias && isDirectMsg.medias.length > 0) {
-        for (const media of isDirectMsg.medias) {
-          if (media.s3Key) {
-            await this.s3Service.deleteFile(media.s3Key);
-          }
-        }
-        await this.prisma.directMedia.deleteMany({ where: { messageId } });
-      }
-      return this.prisma.directMessage.update({
-        where: { id: messageId },
-        data: { recalled: true, content: null },
-        include: { medias: true, replyTo: true },
-      });
-    }
-
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
       include: { medias: true },
@@ -1410,43 +832,7 @@ export class MessageService {
     });
 
     if (!message) {
-      const directMessage = await this.prisma.directMessage.findUnique({
-        where: { id: messageId },
-      });
-
-      if (!directMessage) {
-        throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
-      }
-
-      if (directMessage.pinned) {
-        throw new BadRequestException(MESSAGE_ERROR_MESSAGES.ALREADY_PINNED);
-      }
-
-      const participant =
-        await this.prisma.directConversationParticipant.findUnique({
-          where: {
-            conversationId_userId: {
-              conversationId: directMessage.conversationId,
-              userId,
-            },
-          },
-        });
-
-      if (!participant) {
-        throw new BadRequestException(
-          MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
-        );
-      }
-
-      return this.prisma.directMessage.update({
-        where: { id: messageId },
-        data: { pinned: true },
-        include: {
-          medias: true,
-          replyTo: true,
-          threadFollowers: true,
-        },
-      });
+      throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
     }
 
     if (message.pinned) {
@@ -1505,43 +891,7 @@ export class MessageService {
     });
 
     if (!message) {
-      const directMessage = await this.prisma.directMessage.findUnique({
-        where: { id: messageId },
-      });
-
-      if (!directMessage) {
-        throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
-      }
-
-      if (!directMessage.pinned) {
-        throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_PINNED);
-      }
-
-      const participant =
-        await this.prisma.directConversationParticipant.findUnique({
-          where: {
-            conversationId_userId: {
-              conversationId: directMessage.conversationId,
-              userId,
-            },
-          },
-        });
-
-      if (!participant) {
-        throw new BadRequestException(
-          MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
-        );
-      }
-
-      return this.prisma.directMessage.update({
-        where: { id: messageId },
-        data: { pinned: false },
-        include: {
-          medias: true,
-          replyTo: true,
-          threadFollowers: true,
-        },
-      });
+      throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
     }
 
     if (!message.pinned) {
@@ -1599,44 +949,6 @@ export class MessageService {
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
   ) {
-    const isDirect = await this.prisma.directConversation.findUnique({
-      where: { id: channelId },
-    });
-
-    if (isDirect) {
-      const messages = await this.prisma.directMessage.findMany({
-        where: {
-          conversationId: channelId,
-          pinned: true,
-          threadParentId: null,
-        },
-        take: limit + 1,
-        skip: cursor ? 1 : 0,
-        cursor: cursor ? { id: cursor } : undefined,
-        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
-        include: {
-          medias: true,
-          replyTo: true,
-          threadFollowers: true,
-        },
-      });
-
-      let nextCursor: string | undefined = undefined;
-      if (messages.length > limit) {
-        const nextItem = messages.pop();
-        nextCursor = nextItem?.id;
-      }
-
-      return {
-        messages: messages.map((message) => ({
-          ...message,
-          channelId: message.conversationId,
-          medias: mapMediaWithUrl(message.medias),
-        })),
-        nextCursor,
-      };
-    }
-
     const messages = await this.prisma.message.findMany({
       where: {
         channelId,
@@ -1675,15 +987,7 @@ export class MessageService {
       where: { messageId },
       select: { userId: true },
     });
-    if (followers.length > 0) {
-      return followers.map((f) => f.userId);
-    }
-
-    const directFollowers = await this.prisma.directThreadFollower.findMany({
-      where: { messageId },
-      select: { userId: true },
-    });
-    return directFollowers.map((f) => f.userId);
+    return followers.map((f) => f.userId);
   }
 
   async addThreadFollower(messageId: string, userId: string): Promise<void> {

@@ -432,14 +432,18 @@ const ThreadChatInput = React.memo(
                     />
                   )}
 
-                  {media.status !== "uploading" && (
-                    <button
-                      onClick={() => removeFile(media.id)}
-                      className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeFile(media.id)}
+                    className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
+                    title={
+                      media.status === "uploading"
+                        ? "Remove uploading file"
+                        : "Remove file"
+                    }
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
               ))}
             </div>

@@ -1,8 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useAppDispatch } from "@/store/store";
+import {
+  mergeMemberProfiles,
+  setDirectConversations,
+  setDirectConversationsLoading,
+} from "@/store/chat/chat-slice";
 import {
   getBulkProfilesByIds,
   getDirectConversations,
@@ -15,19 +21,25 @@ import {
   ChatQueryKey,
   ChatSidebarSection,
 } from "../../types/chat.constant";
-import ConversationItem from "./conversation-item";
+import DirectConversationItem from "./direct-conversation-item";
 
 interface DirectConversationsQueryData {
   conversations: ConversationResponse[];
   profiles: ChatProfilesMap;
 }
 
+const EMPTY_DIRECT_CONVERSATIONS: ConversationResponse[] = [];
+const EMPTY_MEMBER_PROFILES: ChatProfilesMap = {};
+
 interface DirectConversationsSectionProps {
   activeConversationId?: string;
   currentUserId: string | null;
   searchQuery: string;
   onCreateDirectConversation: () => void;
-  onSelectConversation: (conversation: ConversationResponse) => void;
+  onSelectConversation: (
+    conversation: ConversationResponse,
+    profiles?: ChatProfilesMap,
+  ) => void;
 }
 
 export default function DirectConversationsSection({
@@ -37,6 +49,7 @@ export default function DirectConversationsSection({
   onCreateDirectConversation,
   onSelectConversation,
 }: DirectConversationsSectionProps) {
+  const dispatch = useAppDispatch();
   const {
     data,
     isLoading,
@@ -75,9 +88,19 @@ export default function DirectConversationsSection({
     staleTime: 1000 * 60 * 5,
   });
 
-  const directConversations = data?.conversations || [];
-  const memberProfiles = data?.profiles || {};
+  const directConversations = data?.conversations ?? EMPTY_DIRECT_CONVERSATIONS;
+  const memberProfiles = data?.profiles ?? EMPTY_MEMBER_PROFILES;
   const isLoadingProfiles = isLoading || isFetching;
+
+  useEffect(() => {
+    dispatch(setDirectConversationsLoading(isLoadingProfiles));
+  }, [dispatch, isLoadingProfiles]);
+
+  useEffect(() => {
+    if (!data) return;
+    dispatch(setDirectConversations(data.conversations));
+    dispatch(mergeMemberProfiles(data.profiles));
+  }, [data, dispatch]);
 
   const filteredDirectConversations = useMemo(() => {
     const trimmedQuery = searchQuery.trim().toLowerCase();
@@ -112,14 +135,16 @@ export default function DirectConversationsSection({
           </div>
         ) : filteredDirectConversations.length > 0 ? (
           filteredDirectConversations.map((conversation) => (
-            <ConversationItem
+            <DirectConversationItem
               key={conversation.id}
-              conv={conversation}
+              conversation={conversation}
               currentUserId={currentUserId}
               memberProfiles={memberProfiles}
               isLoadingProfile={isLoadingProfiles}
               isActive={activeConversationId === conversation.id}
-              onClick={onSelectConversation}
+              onClick={(selectedConversation) =>
+                onSelectConversation(selectedConversation, memberProfiles)
+              }
             />
           ))
         ) : (

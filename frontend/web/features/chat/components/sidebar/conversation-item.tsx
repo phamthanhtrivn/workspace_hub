@@ -1,14 +1,11 @@
-import React, { useMemo } from "react";
-import { User, BellOff, Hash, Globe } from "lucide-react";
-import Image from "next/image";
+import React from "react";
+import { BellOff, Globe, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 
 interface ConversationItemProps {
   conv: any;
   currentUserId: string | null;
-  memberProfiles: Record<string, any>;
-  isLoadingProfile?: boolean;
   isActive?: boolean;
   onClick: (conv: any) => void;
 }
@@ -16,33 +13,14 @@ interface ConversationItemProps {
 const ConversationItem = React.memo(function ConversationItem({
   conv,
   currentUserId,
-  memberProfiles,
-  isLoadingProfile = false,
   isActive,
   onClick,
 }: ConversationItemProps) {
-  const isDirect = conv.type === "DIRECT";
-
-  const otherMember = useMemo(() => {
-    return isDirect
-      ? conv.members?.find((m: any) => m.userId !== currentUserId)
-      : null;
-  }, [isDirect, conv.members, currentUserId]);
-
-  const profile = otherMember ? memberProfiles[otherMember.userId] : null;
-  const isDirectProfileLoading = isDirect && !!otherMember && !profile && isLoadingProfile;
-
-  const name = isDirect
-    ? profile?.fullName || "User"
-    : conv.name || "Group Chat";
-
-  const avatarUrl = isDirect ? profile?.avatarUrl : conv.avatarUrl;
-
-  const currentMember = useMemo(() => {
-    return conv.members?.find((m: any) => m.userId === currentUserId);
-  }, [conv.members, currentUserId]);
-
+  const currentMember = conv.members?.find(
+    (member: any) => member.userId === currentUserId,
+  );
   const isMuted = currentMember?.muted || false;
+  const name = conv.name || "Group Chat";
 
   return (
     <div
@@ -55,80 +33,38 @@ const ConversationItem = React.memo(function ConversationItem({
       onClick={() => onClick(conv)}
     >
       <div className="flex items-center min-w-0 gap-2.5 flex-1">
-        {isDirect ? (
-          // Direct Message Item
-          <>
-            <div className="relative shrink-0">
-              <div className="w-7 h-7 bg-gradient-to-br from-blue-50 to-slate-200 rounded-full flex items-center justify-center overflow-hidden border border-slate-200/60 shadow-sm transition-transform duration-200 group-hover:scale-105">
-                {isDirectProfileLoading ? (
-                  <span className="h-full w-full animate-pulse rounded-full bg-slate-200" />
-                ) : avatarUrl ? (
-                  <Image
-                    src={avatarUrl}
-                    alt="Avatar"
-                    width={28}
-                    height={28}
-                    className="rounded-full animate-fade-in object-cover"
-                  />
-                ) : (
-                  <User size={13} className="text-slate-400" />
-                )}
-              </div>
-              {/* Online indicator placeholder (represented nicely) */}
-              <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-emerald-500 ring-1.5 ring-white" />
-            </div>
-            <span
-              className={cn(
-                "text-[13px] font-semibold truncate tracking-tight transition-colors duration-150",
-                isActive
-                  ? "text-blue-900"
-                  : "text-slate-700 group-hover:text-slate-900",
-                conv.unreadCount > 0 && "font-black",
-              )}
-            >
-              {isDirectProfileLoading ? (
-                <span className="block h-3 w-28 animate-pulse rounded bg-slate-200" />
-              ) : (
-                name
-              )}
-            </span>
-          </>
-        ) : (
-          // Channel Item
-          <>
-            <span
-              className={cn(
-                "shrink-0 p-1 rounded-lg transition-all duration-150",
-                isActive
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-slate-200/50 text-slate-500 group-hover:text-slate-700 group-hover:bg-slate-200/80",
-              )}
-            >
-              {conv.isDefault ? (
-                <Globe size={13} className="opacity-90" />
-              ) : (
-                <Hash size={13} />
-              )}
-            </span>
-            <span
-              className={cn(
-                "text-[13px] font-semibold truncate tracking-tight transition-colors duration-150",
-                isActive
-                  ? "text-blue-900"
-                  : "text-slate-700 group-hover:text-slate-900",
-                conv.unreadCount > 0 && "font-black",
-              )}
-            >
-              {name}
-            </span>
-          </>
-        )}
+        <span
+          className={cn(
+            "shrink-0 p-1 rounded-lg transition-all duration-150",
+            isActive
+              ? "bg-blue-100 text-blue-700"
+              : "bg-slate-200/50 text-slate-500 group-hover:text-slate-700 group-hover:bg-slate-200/80",
+          )}
+        >
+          {conv.isDefault ? (
+            <Globe size={13} className="opacity-90" />
+          ) : (
+            <Hash size={13} />
+          )}
+        </span>
+
+        <span
+          className={cn(
+            "text-[13px] font-semibold truncate tracking-tight transition-colors duration-150",
+            isActive
+              ? "text-blue-900"
+              : "text-slate-700 group-hover:text-slate-900",
+            conv.unreadCount > 0 && "font-black",
+          )}
+        >
+          {name}
+        </span>
+
         {isMuted && (
           <BellOff size={11} className="text-slate-400/80 shrink-0 ml-1" />
         )}
       </div>
 
-      {/* Unread indicators */}
       <div className="flex items-center justify-end shrink-0 pl-1">
         {conv.hasMention && (
           <span className="text-blue-600 font-bold text-xs mr-1 animate-bounce">

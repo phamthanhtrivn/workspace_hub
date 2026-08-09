@@ -323,6 +323,7 @@ export class DirectMessageService {
       cursor: cursor ? { id: cursor } : undefined,
       orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       include: {
+        reactions: true,
         medias: true,
         replyTo: true,
         threadFollowers: true,
@@ -385,8 +386,8 @@ export class DirectMessageService {
     return messages.map((message) => this.mapDirectMessage(message));
   }
 
-  getDirectConversationThreads(conversationId: string) {
-    return this.prisma.directMessage.findMany({
+  async getDirectConversationThreads(conversationId: string) {
+    const messages = await this.prisma.directMessage.findMany({
       where: {
         conversationId,
         threadReplyCount: {
@@ -404,6 +405,8 @@ export class DirectMessageService {
         threadLastReplyAt: 'desc',
       },
     });
+
+    return messages.map((message) => this.mapDirectMessage(message));
   }
 
   async getDirectThreadMessages(messageId: string) {
@@ -459,6 +462,17 @@ export class DirectMessageService {
       select: { userId: true },
     });
     return followers.map((follower) => follower.userId);
+  }
+
+  async getDirectMessageConversationId(messageId: string) {
+    const message = await this.prisma.directMessage.findUnique({
+      where: { id: messageId },
+      select: { conversationId: true },
+    });
+    if (!message) {
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
+    }
+    return message.conversationId;
   }
 
   markDirectConversationAsRead(
@@ -571,7 +585,12 @@ export class DirectMessageService {
     const deletedMessage = await this.prisma.directMessage.update({
       where: { id: messageId },
       data: { deletedAt: new Date() },
-      include: { medias: true, replyTo: true, threadFollowers: true },
+      include: {
+        reactions: true,
+        medias: true,
+        replyTo: true,
+        threadFollowers: true,
+      },
     });
     return this.mapDirectMessage(deletedMessage);
   }
@@ -585,7 +604,12 @@ export class DirectMessageService {
     const updatedMessage = await this.prisma.directMessage.update({
       where: { id: messageId },
       data: { pinned: true },
-      include: { medias: true, replyTo: true, threadFollowers: true },
+      include: {
+        reactions: true,
+        medias: true,
+        replyTo: true,
+        threadFollowers: true,
+      },
     });
     return this.mapDirectMessage(updatedMessage);
   }
@@ -599,7 +623,12 @@ export class DirectMessageService {
     const updatedMessage = await this.prisma.directMessage.update({
       where: { id: messageId },
       data: { pinned: false },
-      include: { medias: true, replyTo: true, threadFollowers: true },
+      include: {
+        reactions: true,
+        medias: true,
+        replyTo: true,
+        threadFollowers: true,
+      },
     });
     return this.mapDirectMessage(updatedMessage);
   }

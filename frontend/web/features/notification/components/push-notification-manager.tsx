@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAppSelector, useAppDispatch } from "@/store/store";
+import { useAppSelector } from "@/store/store";
 import { socketService } from "@/features/chat/api/chat-socket.service";
 import { ChatEvent } from "@/features/chat/api/chat.events";
-import { setActiveConversation } from "@/store/chat/chat-slice";
-import { toast } from "react-toastify";
+import { ChatQueryKey } from "@/features/chat/types/chat.constant";
 import axios from "axios";
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -32,7 +31,6 @@ export default function PushNotificationManager() {
   const activeConversationId = useAppSelector(
     (state) => state.chat.activeConversation?.id,
   );
-  const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const router = useRouter();
 
@@ -184,22 +182,33 @@ export default function PushNotificationManager() {
     if (!socket) return;
 
     const handleNewMessage = (message: any) => {
+      const messageConversationId = message.conversationId ?? message.channelId;
+
       // 1. Ignore if sender is current user
       if (message.senderId === currentUserId) return;
 
       // 2. Ignore if user is currently active in this conversation room
       const isViewingRoom =
-        message.conversationId === activeConversationIdRef.current;
+        messageConversationId === activeConversationIdRef.current;
       if (isViewingRoom) return;
 
       // 3. Retrieve muted state of the conversation from cached queries
-      const cachedData: any = queryClient.getQueryData([
+      const cachedDirectData: any = queryClient.getQueryData([
+        ChatQueryKey.DIRECT_CONVERSATIONS,
+        currentUserId,
+      ]);
+      const cachedLegacyData: any = queryClient.getQueryData([
         "conversations",
         currentUserId,
       ]);
-      const conversations = cachedData?.conversations || [];
+      const conversations =
+        cachedDirectData?.conversations ||
+        cachedDirectData?.data ||
+        cachedLegacyData?.conversations ||
+        cachedLegacyData?.data ||
+        [];
       const conv = conversations.find(
-        (c: any) => c.id === message.conversationId,
+        (c: any) => c.id === messageConversationId,
       );
 
       const meInConv = conv?.members?.find(
@@ -226,7 +235,7 @@ export default function PushNotificationManager() {
         // Dynamic Document Title update (only increments count, side-effect handled by useEffect)
         if (
           document.visibilityState !== "visible" ||
-          message.conversationId !== activeConversationIdRef.current
+          messageConversationId !== activeConversationIdRef.current
         ) {
           setUnreadNotifCount((prev) => prev + 1);
         }
@@ -237,7 +246,7 @@ export default function PushNotificationManager() {
     return () => {
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
     };
-  }, [accessToken, currentUserId, queryClient, dispatch, router]);
+  }, [accessToken, currentUserId, queryClient, router]);
 
   // 3. Listen for Navigation messages from Service Worker
   useEffect(() => {

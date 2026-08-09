@@ -5,17 +5,7 @@ import ConversationChatInput, { ConversationChatInputRef } from "./input/convers
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import {
-  addDirectReaction,
-  editDirectMessage,
-  getConversationMessages,
-  getDirectConversationMessages,
-  markDirectConversationAsRead,
-  pinDirectMessage,
-  recallDirectMessage,
-  sendDirectMessage,
-  unpinDirectMessage,
-} from "../api/chat.api";
+import { getConversationMessages } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,6 +31,7 @@ import { ChatQueryKey } from "../types/chat.constant";
 import { toast } from "sonner";
 
 import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
+import { useDirectMessageActions } from "../hooks/useDirectMessageActions";
 
 type ChatReaction = {
   userId?: string;
@@ -76,6 +67,16 @@ export default function ChatArea({
   );
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
+  const {
+    editMessage: editDirectChatMessage,
+    getMessages: getDirectMessages,
+    markAsRead: markDirectMessageAsRead,
+    reactToMessage: reactToDirectMessage,
+    recallMessage: recallDirectChatMessage,
+    sendTyping: sendDirectTyping,
+    sendMessage: sendDirectChatMessage,
+    togglePinMessage: toggleDirectPinMessage,
+  } = useDirectMessageActions();
 
   const [newSocketMessages, setNewSocketMessages] = useState<any[]>([]);
   const [typingUsers, setTypingUsers] = useState<
@@ -105,7 +106,7 @@ export default function ChatArea({
     queryFn: async ({ pageParam }) => {
       const fetchMessages =
         activeConversation?.type === "DIRECT"
-          ? getDirectConversationMessages
+          ? getDirectMessages
           : getConversationMessages;
       const response = await fetchMessages(
         activeConversation!.id,
@@ -337,11 +338,21 @@ export default function ChatArea({
 
       const handleMessagePinned = (msg: any) => {
         if (getEventChannelId(msg) === activeConversation.id) {
+          const conversationScope =
+            activeConversation.type === "DIRECT" ? "direct" : "channel";
           queryClient.invalidateQueries({
-            queryKey: ["pinnedMessagesPreview", activeConversation.id],
+            queryKey: [
+              "pinnedMessagesPreview",
+              conversationScope,
+              activeConversation.id,
+            ],
           });
           queryClient.invalidateQueries({
-            queryKey: ["pinnedMessagesDetail", activeConversation.id],
+            queryKey: [
+              "pinnedMessagesDetail",
+              conversationScope,
+              activeConversation.id,
+            ],
           });
           updateMessageInState(msg.id, () => msg);
         }
@@ -349,11 +360,21 @@ export default function ChatArea({
 
       const handleMessageUnpinned = (msg: any) => {
         if (getEventChannelId(msg) === activeConversation.id) {
+          const conversationScope =
+            activeConversation.type === "DIRECT" ? "direct" : "channel";
           queryClient.invalidateQueries({
-            queryKey: ["pinnedMessagesPreview", activeConversation.id],
+            queryKey: [
+              "pinnedMessagesPreview",
+              conversationScope,
+              activeConversation.id,
+            ],
           });
           queryClient.invalidateQueries({
-            queryKey: ["pinnedMessagesDetail", activeConversation.id],
+            queryKey: [
+              "pinnedMessagesDetail",
+              conversationScope,
+              activeConversation.id,
+            ],
           });
           updateMessageInState(msg.id, () => msg);
         }
@@ -513,14 +534,16 @@ export default function ChatArea({
         if (editingMessage) {
           if (activeConversation.type === "DIRECT") {
             try {
-              await editDirectMessage(editingMessage.id, content);
-              queryClient.invalidateQueries({
-                queryKey: ["messages", activeConversation.id],
-              });
-              setEditingMessage(null);
+              const edited = await editDirectChatMessage(
+                activeConversation.id,
+                editingMessage.id,
+                content,
+              );
+              if (edited) {
+                setEditingMessage(null);
+              }
               return;
-            } catch (error: any) {
-              toast.error(error.response?.data?.message || "Failed to edit message");
+            } catch {
               return;
             }
           }
@@ -533,23 +556,16 @@ export default function ChatArea({
           setEditingMessage(null);
         } else {
           if (activeConversation.type === "DIRECT") {
-            try {
-              const response = await sendDirectMessage(activeConversation.id, {
-                content,
-                medias,
-              });
-              if (response.success) {
-                setNewSocketMessages((prev) => [...prev, response.data]);
-                queryClient.invalidateQueries({
-                  queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
-                });
+            await sendDirectChatMessage({
+              conversationId: activeConversation.id,
+              content,
+              medias,
+              mentions,
+              onSent: () => {
                 setTimeout(() => scrollToBottom(), 100);
-              }
-              return;
-            } catch (error: any) {
-              toast.error(error.response?.data?.message || "Failed to send message");
-              return;
-            }
+              },
+            });
+            return;
           }
           if (!socket) return;
           socket.emit(
@@ -564,24 +580,31 @@ export default function ChatArea({
         }
       }
     },
-    [activeConversation, editingMessage, queryClient, scrollToBottom],
+    [
+      activeConversation,
+      editingMessage,
+      editDirectChatMessage,
+      scrollToBottom,
+      sendDirectChatMessage,
+    ],
   );
 
   const handleTypingChange = useCallback(
     (isTyping: boolean) => {
       const socket = socketService.getSocket();
+      if (activeConversation?.id && activeConversation.type === "DIRECT") {
+        sendDirectTyping(activeConversation.id, isTyping);
+        return;
+      }
+
       if (socket && activeConversation?.id) {
         socket.emit(
-          activeConversation.type === "DIRECT"
-            ? ChatEvent.TYPING_DIRECT
-            : ChatEvent.TYPING,
-          activeConversation.type === "DIRECT"
-            ? { conversationId: activeConversation.id, isTyping }
-            : { channelId: activeConversation.id, isTyping },
+          ChatEvent.TYPING,
+          { channelId: activeConversation.id, isTyping },
         );
       }
     },
-    [activeConversation],
+    [activeConversation, sendDirectTyping],
   );
 
   const handleCreatePoll = useCallback(
@@ -606,12 +629,11 @@ export default function ChatArea({
       if (activeConversation?.id) {
         if (activeConversation.type === "DIRECT") {
           try {
-            await recallDirectMessage(msg.id);
-            queryClient.invalidateQueries({
-              queryKey: ["messages", activeConversation.id],
-            });
-          } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to recall message");
+            await recallDirectChatMessage(
+              activeConversation.id,
+              msg.id,
+            );
+          } catch {
           }
           return;
         }
@@ -622,7 +644,7 @@ export default function ChatArea({
         });
       }
     },
-    [activeConversation, queryClient],
+    [activeConversation, recallDirectChatMessage],
   );
 
   const handlePinMessage = useCallback(
@@ -631,18 +653,11 @@ export default function ChatArea({
       if (activeConversation?.id) {
         if (activeConversation.type === "DIRECT") {
           try {
-            await (msg.pinned ? unpinDirectMessage : pinDirectMessage)(msg.id);
-            queryClient.invalidateQueries({
-              queryKey: ["messages", activeConversation.id],
-            });
-            queryClient.invalidateQueries({
-              queryKey: ["pinnedMessagesPreview", "direct", activeConversation.id],
-            });
-            queryClient.invalidateQueries({
-              queryKey: ["pinnedMessagesDetail", "direct", activeConversation.id],
-            });
-          } catch (error: any) {
-            toast.error(error.response?.data?.message || "Failed to update pin");
+            await toggleDirectPinMessage(
+              activeConversation.id,
+              msg,
+            );
+          } catch {
           }
           return;
         }
@@ -672,7 +687,7 @@ export default function ChatArea({
         }
       }
     },
-    [activeConversation, queryClient],
+    [activeConversation, toggleDirectPinMessage],
   );
 
   const handleCreateNote = useCallback(
@@ -696,12 +711,12 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (activeConversation?.type === "DIRECT") {
         try {
-          await addDirectReaction(messageId, emoji);
-          queryClient.invalidateQueries({
-            queryKey: ["messages", activeConversation.id],
-          });
-        } catch (error: any) {
-          toast.error(error.response?.data?.message || "Failed to react");
+          await reactToDirectMessage(
+            activeConversation.id,
+            messageId,
+            emoji,
+          );
+        } catch {
         }
         return;
       }
@@ -714,7 +729,7 @@ export default function ChatArea({
         });
       }
     },
-    [activeConversation, queryClient],
+    [activeConversation, reactToDirectMessage],
   );
 
   const handlePollVoteMessage = useCallback(
@@ -944,7 +959,7 @@ export default function ChatArea({
         if (myWatermark !== msg.id) {
           const socket = socketService.getSocket();
           if (activeConversation.type === "DIRECT") {
-            void markDirectConversationAsRead(activeConversation.id, msg.id);
+            void markDirectMessageAsRead(activeConversation.id, msg.id);
           } else if (socket) {
             socket.emit(
               ChatEvent.READ_MESSAGE,
