@@ -37,6 +37,7 @@ import {
   setActiveThreadRootMessage,
 } from "@/store/chat/chat-slice";
 import { NO_AVATAR_TYPES } from "../types/chat.types";
+import { ChatQueryKey } from "../types/chat.constant";
 import { toast } from "sonner";
 
 import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
@@ -426,7 +427,9 @@ export default function ChatArea({
         if (affectsActiveConversation) {
           if (data.userId === auth?.userId) {
             dispatch(setActiveConversation(null));
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
+            queryClient.invalidateQueries({
+              queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
+            });
             queryClient.invalidateQueries({ queryKey: ["channels"] });
             toast.success("You are no longer in this group");
           } else {
@@ -439,7 +442,9 @@ export default function ChatArea({
       const handleConversationDisbanded = (data: any) => {
         if (getEventChannelId(data) === activeConversation.id) {
           dispatch(setActiveConversation(null));
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
+          queryClient.invalidateQueries({
+            queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
+          });
           toast.info("This group has been disbanded by the Owner");
         }
       };
@@ -535,7 +540,9 @@ export default function ChatArea({
               });
               if (response.success) {
                 setNewSocketMessages((prev) => [...prev, response.data]);
-                queryClient.invalidateQueries({ queryKey: ["conversations"] });
+                queryClient.invalidateQueries({
+                  queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
+                });
                 setTimeout(() => scrollToBottom(), 100);
               }
               return;

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ChatGateway } from './chat.gateway';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { MessageModule } from '../message/message.module';
@@ -14,7 +14,7 @@ import { DirectMessageModule } from '../direct-message/direct-message.module';
     KafkaProducerModule,
     PollModule,
     NoteModule,
-    DirectMessageModule,
+    forwardRef(() => DirectMessageModule),
   ],
   controllers: [],
   providers: [ChatGateway],

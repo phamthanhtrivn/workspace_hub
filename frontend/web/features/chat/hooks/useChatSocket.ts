@@ -4,10 +4,11 @@ import { useAppDispatch, useAppSelector } from "@/store/store";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { updateMuteStatus } from "@/store/chat/chat-slice";
+import { ChatQueryKey } from "../types/chat.constant";
 
 /**
  * Global hook that owns the chat WebSocket connection lifecycle and syncs
- * the ["conversations", userId] React Query cache for all components.
+ * the direct conversation React Query cache for all components.
  *
  * Mount this once at the WorkspaceShell level so every page benefits from
  * real-time updates (unread badge, conversation preview, etc.) without each
@@ -45,7 +46,7 @@ export function useChatSocket() {
       const eventChannelId = getEventChannelId(message);
       queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
-        ["conversations", currentUserId],
+        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
         (oldData: any) => {
           if (!oldData) return oldData;
           const prev: any[] = oldData.conversations;
@@ -54,7 +55,7 @@ export function useChatSocket() {
             // If the conversation is not in the user's sidebar list (e.g. new conversation),
             // invalidate queries to refetch the conversations list in real-time.
             queryClient.invalidateQueries({
-              queryKey: ["conversations", currentUserId],
+              queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
             });
             return oldData;
           }
@@ -111,7 +112,7 @@ export function useChatSocket() {
       const eventChannelId = getEventChannelId(message);
       queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
-        ["conversations", currentUserId],
+        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
         (oldData: any) => {
           if (!oldData) return oldData;
           const prev: any[] = oldData.conversations;
@@ -140,7 +141,7 @@ export function useChatSocket() {
       const eventChannelId = getEventChannelId(data);
       queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
-        ["conversations", currentUserId],
+        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
         (oldData: any) => {
           if (!oldData) return oldData;
           return {
@@ -170,7 +171,7 @@ export function useChatSocket() {
       const eventChannelId = getEventChannelId(data);
       queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
-        ["conversations", currentUserId],
+        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
         (oldData: any) => {
           if (!oldData) return oldData;
           const updatedProfiles = data.profile
@@ -200,10 +201,10 @@ export function useChatSocket() {
       queryClient.invalidateQueries({ queryKey: ["channels"] });
       if (data.userId === currentUserId) {
         // Current user removed – force a full refetch so the conversation disappears
-        queryClient.invalidateQueries({ queryKey: ["conversations"] });
+        queryClient.invalidateQueries({ queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS] });
       } else {
         queryClient.setQueryData(
-          ["conversations", currentUserId],
+          [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
           (oldData: any) => {
             if (!oldData) return oldData;
             return {
@@ -230,7 +231,7 @@ export function useChatSocket() {
       avatarUrl?: string;
     }) => {
       queryClient.setQueryData(
-        ["conversations", currentUserId],
+        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
         (oldData: any) => {
           if (!oldData) return oldData;
           return {
@@ -254,7 +255,7 @@ export function useChatSocket() {
       conversationId?: string;
     }) => {
       queryClient.invalidateQueries({ queryKey: ["channels"] });
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
+      queryClient.invalidateQueries({ queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS] });
     };
 
     const handleConversationMuteUpdated = (data: {
@@ -266,7 +267,7 @@ export function useChatSocket() {
       if (!eventChannelId) return;
       queryClient.invalidateQueries({ queryKey: ["channels"] });
       queryClient.setQueryData(
-        ["conversations", currentUserId],
+        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
         (oldData: any) => {
           if (!oldData) return oldData;
           return {
