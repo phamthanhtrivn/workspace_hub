@@ -9,6 +9,7 @@ export interface UserSearchResponse {
 }
 
 export interface UserProfileResponse {
+  id?: string | null;
   email: string | null;
   fullName: string | null;
   avatarUrl: string | null;

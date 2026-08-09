@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowLeft, Pin, X } from "lucide-react";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
-import { getPinnedMessages } from "../../api/chat.api";
+import { getBulkProfilesByIds, getPinnedMessages } from "../../api/chat.api";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
+import { UserProfileResponse } from "../../types/chat.types";
 
 interface PinnedMessagesDetailViewProps {
   conversationId: string;
@@ -18,6 +19,10 @@ function getPinnedPreviewText(message: any) {
   if (message.poll) return "[Poll]";
   if (message.note) return "[Note]";
   return "[Message]";
+}
+
+function getInitial(name?: string | null) {
+  return (name?.trim()?.charAt(0) || "U").toUpperCase();
 }
 
 export default function PinnedMessagesDetailView({
@@ -52,6 +57,36 @@ export default function PinnedMessagesDetailView({
   }, [fetchNextPage, hasNextPage, inView, isFetchingNextPage]);
 
   const pinnedMessages = data?.pages.flatMap((page) => page?.messages || []) || [];
+  const senderIds = useMemo<string[]>(
+    () =>
+      [
+        ...new Set<string>(
+          pinnedMessages
+            .map((message: any) => message.senderId)
+            .filter((senderId: unknown): senderId is string => typeof senderId === "string" && senderId.length > 0),
+        ),
+      ].sort(),
+    [pinnedMessages],
+  );
+
+  const { data: profilesResponse } = useQuery({
+    queryKey: ["chat-pinned-message-profiles", senderIds],
+    queryFn: async () => getBulkProfilesByIds(senderIds),
+    enabled: senderIds.length > 0,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const profilesById = useMemo(() => {
+    const profiles: Record<string, UserProfileResponse> = {};
+    if (profilesResponse?.success && Array.isArray(profilesResponse.data)) {
+      profilesResponse.data.forEach((profile: UserProfileResponse) => {
+        if (profile.id) {
+          profiles[profile.id] = profile;
+        }
+      });
+    }
+    return profiles;
+  }, [profilesResponse]);
 
   const handleUnpin = (messageId: string) => {
     const socket = socketService.getSocket();
@@ -73,7 +108,6 @@ export default function PinnedMessagesDetailView({
       };
     });
     queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview", conversationId] });
-    queryClient.invalidateQueries({ queryKey: ["pinnedMessages", conversationId] });
   };
 
   return (
@@ -100,18 +134,34 @@ export default function PinnedMessagesDetailView({
                 key={message.id}
                 className="group flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-3 hover:bg-gray-100 transition"
               >
-                <Pin size={16} className="mt-0.5 shrink-0 text-blue-500" />
+                {profilesById[message.senderId]?.avatarUrl ? (
+                  <img
+                    src={profilesById[message.senderId].avatarUrl || ""}
+                    alt={profilesById[message.senderId].fullName || "User"}
+                    className="h-9 w-9 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600">
+                    {getInitial(profilesById[message.senderId]?.fullName)}
+                  </div>
+                )}
                 <button
                   onClick={() => onJumpToMessage(message.id)}
                   className="min-w-0 flex-1 cursor-pointer text-left"
                 >
-                  <div className="truncate text-sm font-medium text-gray-800">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate text-sm font-semibold text-gray-800">
+                      {profilesById[message.senderId]?.fullName || "User"}
+                    </span>
+                    <span className="shrink-0 text-[11px] text-gray-400">
+                      {new Date(message.updatedAt).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="mt-1 truncate text-sm text-gray-600">
                     {getPinnedPreviewText(message)}
                   </div>
-                  <div className="mt-1 text-[11px] text-gray-400">
-                    {new Date(message.updatedAt).toLocaleString()}
-                  </div>
                 </button>
+                <Pin size={15} className="mt-1 shrink-0 text-blue-500" />
                 <button
                   onClick={() => handleUnpin(message.id)}
                   className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"

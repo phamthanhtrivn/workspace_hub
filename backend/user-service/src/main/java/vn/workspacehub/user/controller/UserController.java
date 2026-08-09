@@ -102,8 +102,9 @@ public class UserController {
 
     @GetMapping("/profiles/bulk")
     public ResponseEntity<ApiResponse<List<UserProfileResponse>>> getBulkProfiles(
-            @RequestParam List<String> emails) {
-        List<UserProfileResponse> profiles = userService.getBulkProfilesByEmails(emails);
+            @RequestParam(required = false) List<UUID> ids,
+            @RequestParam(required = false) List<String> emails) {
+        List<UserProfileResponse> profiles = userService.getBulkProfiles(ids, emails);
         return ResponseEntity.ok(ApiResponse.<List<UserProfileResponse>>builder()
                 .success(true)
                 .message("Lấy danh sách thông tin người dùng thành công")

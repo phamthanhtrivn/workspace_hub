@@ -316,17 +316,6 @@ export default function ChatArea({
 
       const handleMessagePinned = (msg: any) => {
         if (getEventChannelId(msg) === activeConversation.id) {
-          queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
-            const currentList = prev || [];
-            const exists = currentList.some((p) => p.id === msg.id);
-            if (exists) return currentList;
-            // Add to top
-            return [msg, ...currentList].sort(
-              (a, b) =>
-                new Date(b.updatedAt).getTime() -
-                new Date(a.updatedAt).getTime(),
-            ).slice(0, 3);
-          });
           queryClient.invalidateQueries({
             queryKey: ["pinnedMessagesPreview", activeConversation.id],
           });
@@ -339,10 +328,6 @@ export default function ChatArea({
 
       const handleMessageUnpinned = (msg: any) => {
         if (getEventChannelId(msg) === activeConversation.id) {
-          queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
-            const currentList = prev || [];
-            return currentList.filter((p) => p.id !== msg.id);
-          });
           queryClient.invalidateQueries({
             queryKey: ["pinnedMessagesPreview", activeConversation.id],
           });

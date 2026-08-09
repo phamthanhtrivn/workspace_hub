@@ -65,8 +65,16 @@ public class UserService {
         return userProfileMapper.toResponse(user);
     }
 
-    public List<UserProfileResponse> getBulkProfilesByEmails(List<String> emails) {
-        List<User> users = userRepository.findByEmailIn(emails);
+    public List<UserProfileResponse> getBulkProfiles(List<UUID> ids, List<String> emails) {
+        List<User> users;
+        if (ids != null && !ids.isEmpty()) {
+            users = userRepository.findAllById(ids);
+        } else if (emails != null && !emails.isEmpty()) {
+            users = userRepository.findByEmailIn(emails);
+        } else {
+            users = List.of();
+        }
+
         return users.stream()
                 .map(userProfileMapper::toResponse)
                 .collect(Collectors.toList());

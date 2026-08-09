@@ -59,6 +59,13 @@ export const getPublicProfile = async (id: string): Promise<any> => {
   return response.data;
 };
 
+export const getBulkProfilesByIds = async (ids: string[]): Promise<any> => {
+  const response = await api.get("/api/users/profiles/bulk", {
+    params: { ids: ids.join(",") },
+  });
+  return response.data;
+};
+
 export const getPendingInvitations = async (): Promise<any> => {
   const response = await api.get("/api/invitations/pending");
   return response.data;
