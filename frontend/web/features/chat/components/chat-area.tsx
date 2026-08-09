@@ -160,6 +160,10 @@ export default function ChatArea({
   const memberProfiles = useChatMemberProfiles(messageSenderIds);
   const isDirectConversation = activeConversation?.type === "DIRECT";
 
+  useEffect(() => {
+    setJumpTargetId(null);
+  }, [activeConversation?.id]);
+
   // Load more when scrolled to the top
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
@@ -178,13 +182,6 @@ export default function ChatArea({
     isFetchingPreviousPage,
     fetchPreviousPage,
   ]);
-
-  // Reset jump target when conversation changes
-  useEffect(() => {
-    setJumpTargetId(null);
-  }, [activeConversation?.id]);
-
-  // (Moved jump target to below handleJumpToMessage)
 
   // Handle socket messages
   useEffect(() => {
@@ -1043,19 +1040,6 @@ export default function ChatArea({
         onBack={onBack}
       />
 
-      {jumpTargetId && (
-        <button
-          onClick={() => {
-            setJumpTargetId(null);
-            setTimeout(scrollToBottom, 100);
-          }}
-          className="absolute top-20 cursor-pointer shadow-xl left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition z-20 flex items-center gap-2"
-        >
-          <ChevronDown size={16} />
-          Jump to present
-        </button>
-      )}
-
       {/* Message List Area */}
       <div
         ref={chatContainerRef}
@@ -1074,7 +1058,7 @@ export default function ChatArea({
       {!isBottomInView && allMessages.length > 0 && (
         <button
           onClick={scrollToBottom}
-          className="absolute bottom-25 cursor-pointer shadow-2xl right-6 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-blue-500 hover:bg-gray-50 transition z-10"
+          className="absolute bottom-35 cursor-pointer shadow-2xl right-6 w-10 h-10 border border-gray-200 rounded-full flex items-center justify-center bg-blue-500 text-white hover:text-gray-50 hover:bg-blue-700 transition z-10"
         >
           <ChevronDown size={24} />
         </button>
