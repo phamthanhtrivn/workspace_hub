@@ -25,7 +25,6 @@ import {
   KAFKA_TOPICS,
   KAFKA_EVENTS,
 } from '../../common/constants/kafka.constants';
-import { getSenderProfile } from '../../common/utils/user.util';
 import { PollService } from '../poll/poll.service';
 import { NoteService } from '../note/note.service';
 
@@ -106,7 +105,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         title: string;
         content: string;
       };
-      replyToMessageId?: string;
       threadParentId?: string;
       mentions?: string[];
     },
@@ -136,7 +134,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.medias,
         data.pollData,
         data.noteData,
-        data.replyToMessageId,
+        undefined,
         data.threadParentId,
       );
 
@@ -181,8 +179,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           }
 
           if (recipientIds.length > 0) {
-            const { senderName, senderAvatar } = await getSenderProfile(userId);
-
             let previewContent = data.content || '';
             if (data.type === MessageType.POLL) {
               previewContent = `${CHAT_PREVIEW_TEXT.POLL_PREFIX}${data.pollData?.title || ''}`;
@@ -202,10 +198,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
               value: {
                 recipientIds,
                 senderId: userId,
-                senderName,
-                senderAvatar,
+                senderName: '',
+                senderAvatar: '',
                 type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
-                title: senderName,
+                title: 'New message',
                 content: previewContent,
                 link: `/chat?id=${data.channelId}`,
                 metadata: {

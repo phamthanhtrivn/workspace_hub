@@ -10,7 +10,6 @@ import {
   KAFKA_EVENTS,
   KAFKA_TOPICS,
 } from '../../common/constants/kafka.constants';
-import { getSenderProfile } from '../../common/utils/user.util';
 import { DefaultSpaceChannelNames } from './types/space.types';
 
 @Injectable()
@@ -245,7 +244,6 @@ export class SpaceService {
       return { count: 0 };
     }
 
-    const invitedByProfile = await getSenderProfile(userId);
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
       select: { name: true },
@@ -329,8 +327,8 @@ export class SpaceService {
           value: {
             recipientId: invitation.userId,
             senderId: userId,
-            senderName: invitedByProfile.senderName,
-            senderAvatar: invitedByProfile.senderAvatar,
+            senderName: '',
+            senderAvatar: '',
             type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
             title: 'Space invitation',
             content: `You were invited to ${space?.name ?? 'a space'}`,

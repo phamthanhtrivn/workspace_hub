@@ -107,9 +107,14 @@ export const getConversationMedia = async (
 
 export const getPinnedMessages = async (
   conversationId: string,
+  cursor?: string,
+  limit?: number,
 ): Promise<any> => {
   const response = await api.get(
     `/api/channels/${conversationId}/pinned-messages`,
+    {
+      params: { cursor, limit },
+    },
   );
   return response.data;
 };

@@ -69,11 +69,22 @@ export class MessageController {
   }
 
   @Get(':id/pinned-messages')
-  async getPinnedMessages(@Param('id') channelId: string) {
+  async getPinnedMessages(
+    @Param('id') channelId: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+  ) {
     if (!channelId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
     }
-    const messages = await this.messageService.getPinnedMessages(channelId);
+    const parsedLimit = limit
+      ? parseInt(limit, 10)
+      : MESSAGE_CONSTANTS.DEFAULT_LIMIT;
+    const messages = await this.messageService.getPinnedMessages(
+      channelId,
+      cursor,
+      parsedLimit,
+    );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.PINNED_RETRIEVED,
       data: messages,

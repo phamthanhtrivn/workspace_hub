@@ -4,12 +4,11 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import ConversationChatInput, { ConversationChatInputRef } from "./input/conversation-chat-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
-import { PinnedMessagesBar } from "./message/pinned-messages-bar";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { getConversationMessages, getPinnedMessages } from "../api/chat.api";
+import { getConversationMessages } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import TimeDivider from "./message/time-divider";
 import { ChevronDown, X } from "lucide-react";
@@ -38,9 +37,6 @@ type ChatReaction = {
 
 type ChatMessageItem = {
   senderId?: string;
-  replyTo?: {
-    senderId?: string;
-  };
   reactions?: ChatReaction[];
 };
 
@@ -81,20 +77,8 @@ export default function ChatArea({
 
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
-  const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const [jumpTargetId, setJumpTargetId] = useState<string | null>(null);
-
-  // Fetch pinned messages
-  const { data: pinnedMessages = [] } = useQuery({
-    queryKey: ["pinnedMessages", activeConversation?.id],
-    queryFn: async () => {
-      const res = await getPinnedMessages(activeConversation!.id);
-      return res.data || [];
-    },
-    enabled: !!activeConversation?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
-  });
 
   const {
     data,
@@ -147,9 +131,6 @@ export default function ChatArea({
     allMessages.forEach((message: ChatMessageItem) => {
       if (message.senderId) {
         ids.add(message.senderId);
-      }
-      if (message.replyTo?.senderId) {
-        ids.add(message.replyTo.senderId);
       }
       message.reactions?.forEach((reaction) => {
         if (reaction.userId) {
@@ -344,7 +325,13 @@ export default function ChatArea({
               (a, b) =>
                 new Date(b.updatedAt).getTime() -
                 new Date(a.updatedAt).getTime(),
-            );
+            ).slice(0, 3);
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["pinnedMessagesPreview", activeConversation.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["pinnedMessagesDetail", activeConversation.id],
           });
           updateMessageInState(msg.id, () => msg);
         }
@@ -355,6 +342,12 @@ export default function ChatArea({
           queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
             const currentList = prev || [];
             return currentList.filter((p) => p.id !== msg.id);
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["pinnedMessagesPreview", activeConversation.id],
+          });
+          queryClient.invalidateQueries({
+            queryKey: ["pinnedMessagesDetail", activeConversation.id],
           });
           updateMessageInState(msg.id, () => msg);
         }
@@ -518,14 +511,12 @@ export default function ChatArea({
             channelId: activeConversation?.id,
             content,
             medias,
-            replyToMessageId: replyingTo?.id,
             mentions,
           });
-          setReplyingTo(null);
         }
       }
     },
-    [activeConversation?.id, replyingTo, editingMessage],
+    [activeConversation?.id, editingMessage],
   );
 
   const handleTypingChange = useCallback(
@@ -837,16 +828,8 @@ export default function ChatArea({
           onPollAddOption={handlePollAddOptionMessage}
           onPollEdit={handlePollEditMessage}
           onNoteEdit={handleNoteEditMessage}
-          onReply={(msgToReply) => {
-            setReplyingTo(msgToReply);
-            setEditingMessage(null);
-            setTimeout(() => {
-              chatInputRef.current?.focus();
-            }, 50);
-          }}
           onEditMessage={(msgToEdit) => {
             setEditingMessage(msgToEdit);
-            setReplyingTo(null);
             setTimeout(() => {
               chatInputRef.current?.setMessage(msgToEdit.content || "");
               chatInputRef.current?.focus();
@@ -947,15 +930,6 @@ export default function ChatArea({
         onBack={onBack}
       />
 
-      <PinnedMessagesBar
-        pinnedMessages={pinnedMessages}
-        onJumpToMessage={handleJumpToMessage}
-        onUnpin={(messageId) =>
-          handlePinMessage({ id: messageId, pinned: true })
-        }
-        currentUserId={auth.userId!}
-      />
-
       {jumpTargetId && (
         <button
           onClick={() => {
@@ -987,40 +961,10 @@ export default function ChatArea({
       {!isBottomInView && allMessages.length > 0 && (
         <button
           onClick={scrollToBottom}
-          className={`absolute ${replyingTo ? "bottom-40" : "bottom-25"} cursor-pointer shadow-2xl right-6 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-blue-500 hover:bg-gray-50 transition z-10`}
+          className="absolute bottom-25 cursor-pointer shadow-2xl right-6 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-blue-500 hover:bg-gray-50 transition z-10"
         >
           <ChevronDown size={24} />
         </button>
-      )}
-
-      {/* Replying To UI */}
-      {replyingTo && (
-        <div className="bg-blue-50 border-t border-blue-100 p-2 px-4 flex items-center justify-between">
-          <div className="flex flex-col min-w-0 flex-1 border-l-4 border-blue-500 pl-3">
-            <span className="text-xs font-semibold text-blue-600">
-              Replying to{" "}
-              {replyingTo.senderId === auth.userId
-                ? "You"
-                : memberProfiles?.[replyingTo.senderId]?.fullName || "Someone"}
-            </span>
-            <span className="text-sm text-gray-600 truncate">
-              {replyingTo.content ||
-                (replyingTo.medias?.length
-                  ? "[Attachment]"
-                  : replyingTo.poll
-                    ? "[Poll]"
-                    : replyingTo.note
-                      ? "[Note]"
-                      : "")}
-            </span>
-          </div>
-          <button
-            onClick={() => setReplyingTo(null)}
-            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-blue-100 rounded-full cursor-pointer ml-2 transition-colors"
-          >
-            <X size={16} />
-          </button>
-        </div>
       )}
 
       {/* Editing UI */}

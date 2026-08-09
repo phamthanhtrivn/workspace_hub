@@ -11,8 +11,10 @@ import FilesSection from "./files-section";
 import PollsSection from "./polls-section";
 import NotesSection from "./notes-section";
 import TasksSection from "./tasks-section";
+import PinnedMessagesSection from "./pinned-messages-section";
 import MediaDetailView from "./media-detail-view";
 import PollDetailView from "./poll-detail-view";
+import PinnedMessagesDetailView from "./pinned-messages-detail-view";
 import SearchMessagesSection from "./search-messages-section";
 import GroupSettingsModal from "../modals/group-settings-modal";
 import ManageMembersModal from "../modals/manage-members-modal";
@@ -36,6 +38,7 @@ import {
   setSelectedProfileUserId,
   updateMuteStatus,
   setActiveThreadRootMessage,
+  setHighlightMessageId,
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
@@ -53,7 +56,14 @@ export default function ChatRightPanel({
     "members",
   );
   const [detailView, setDetailView] = useState<
-    "images" | "files" | "polls" | "search" | "thread" | "threads" | null
+    | "images"
+    | "files"
+    | "polls"
+    | "search"
+    | "thread"
+    | "threads"
+    | "pinned"
+    | null
   >(initialDetailView || null);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
@@ -168,6 +178,12 @@ export default function ChatRightPanel({
     }
   };
 
+  const handleJumpToMessage = (messageId: string) => {
+    dispatch(setHighlightMessageId(messageId));
+    setDetailView(null);
+    onClose();
+  };
+
   useEffect(() => {
     if (
       activeConversation?.id &&
@@ -256,6 +272,18 @@ export default function ChatRightPanel({
         <PollDetailView
           conversationId={activeConversation!.id}
           onBack={() => setDetailView(null)}
+        />
+      </div>
+    );
+  }
+
+  if (detailView === "pinned") {
+    return (
+      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+        <PinnedMessagesDetailView
+          conversationId={activeConversation!.id}
+          onBack={() => setDetailView(null)}
+          onJumpToMessage={handleJumpToMessage}
         />
       </div>
     );
@@ -390,6 +418,14 @@ export default function ChatRightPanel({
               currentUserId={currentUserId}
             />
           )}
+
+          <PinnedMessagesSection
+            conversationId={activeConversation!.id}
+            isExpanded={expandedSection === "pinned"}
+            onToggle={() => toggleSection("pinned")}
+            onSeeAll={() => setDetailView("pinned")}
+            onJumpToMessage={handleJumpToMessage}
+          />
 
           <ImagesVideosSection
             isExpanded={expandedSection === "images"}

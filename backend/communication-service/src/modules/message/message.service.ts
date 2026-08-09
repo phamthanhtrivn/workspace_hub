@@ -62,6 +62,42 @@ export class MessageService {
           );
         }
 
+        if (threadParentId) {
+          const parentMsg = await tx.directMessage.findUnique({
+            where: { id: threadParentId },
+          });
+          if (!parentMsg || parentMsg.conversationId !== channelId) {
+            throw new BadRequestException(MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND);
+          }
+
+          await tx.directMessage.update({
+            where: { id: threadParentId },
+            data: {
+              threadReplyCount: { increment: 1 },
+              threadLastReplyAt: new Date(),
+            },
+          });
+
+          await tx.directThreadFollower.upsert({
+            where: {
+              messageId_userId: {
+                messageId: threadParentId,
+                userId: parentMsg.senderId,
+              },
+            },
+            update: {},
+            create: { messageId: threadParentId, userId: parentMsg.senderId },
+          });
+
+          await tx.directThreadFollower.upsert({
+            where: {
+              messageId_userId: { messageId: threadParentId, userId: senderId },
+            },
+            update: {},
+            create: { messageId: threadParentId, userId: senderId },
+          });
+        }
+
         const dm = await tx.directMessage.create({
           data: {
             conversationId: channelId,
@@ -69,6 +105,7 @@ export class MessageService {
             content,
             type: type || MessageType.TEXT,
             replyToMessageId,
+            threadParentId,
             medias:
               medias && medias.length > 0
                 ? {
@@ -85,6 +122,7 @@ export class MessageService {
           include: {
             medias: true,
             replyTo: true,
+            threadFollowers: true,
           },
         });
 
@@ -298,11 +336,12 @@ export class MessageService {
       const includeQuery = {
         medias: true,
         replyTo: true,
+        threadFollowers: true,
       };
 
       if (direction === MESSAGE_DIRECTION.OLDER) {
         const messages = await this.prisma.directMessage.findMany({
-          where: { conversationId: channelId },
+          where: { conversationId: channelId, threadParentId: null },
           take: limit + 1,
           skip: cursor ? 1 : 0,
           cursor: cursor ? { id: cursor } : undefined,
@@ -325,7 +364,7 @@ export class MessageService {
         };
       } else if (direction === MESSAGE_DIRECTION.NEWER) {
         const messages = await this.prisma.directMessage.findMany({
-          where: { conversationId: channelId },
+          where: { conversationId: channelId, threadParentId: null },
           take: limit + 1,
           skip: cursor ? 1 : 0,
           cursor: cursor ? { id: cursor } : undefined,
@@ -356,7 +395,7 @@ export class MessageService {
               include: includeQuery,
             }),
             this.prisma.directMessage.findMany({
-              where: { conversationId: channelId },
+              where: { conversationId: channelId, threadParentId: null },
               take: halfLimit + 1,
               skip: 1,
               cursor: { id: cursor },
@@ -364,7 +403,7 @@ export class MessageService {
               include: includeQuery,
             }),
             this.prisma.directMessage.findMany({
-              where: { conversationId: channelId },
+              where: { conversationId: channelId, threadParentId: null },
               take: halfLimit + 1,
               skip: 1,
               cursor: { id: cursor },
@@ -616,6 +655,31 @@ export class MessageService {
   }
 
   async getConversationThreads(channelId: string) {
+    const isDirect = await this.prisma.directConversation.findUnique({
+      where: { id: channelId },
+    });
+
+    if (isDirect) {
+      return this.prisma.directMessage.findMany({
+        where: {
+          conversationId: channelId,
+          threadReplyCount: {
+            gt: 0,
+          },
+          threadParentId: null,
+        },
+        include: {
+          reactions: true,
+          medias: true,
+          replyTo: true,
+          threadFollowers: true,
+        },
+        orderBy: {
+          threadLastReplyAt: 'desc',
+        },
+      });
+    }
+
     const includeQuery = {
       reactions: true,
       medias: true,
@@ -645,7 +709,43 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
+      const directMessage = await this.prisma.directMessage.findUnique({
+        where: { id: messageId },
+      });
+
+      if (!directMessage) {
+        throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
+      }
+
+      const existingDirectFollow =
+        await this.prisma.directThreadFollower.findUnique({
+          where: {
+            messageId_userId: {
+              messageId,
+              userId,
+            },
+          },
+        });
+
+      if (existingDirectFollow) {
+        await this.prisma.directThreadFollower.delete({
+          where: {
+            messageId_userId: {
+              messageId,
+              userId,
+            },
+          },
+        });
+        return { following: false };
+      }
+
+      await this.prisma.directThreadFollower.create({
+        data: {
+          messageId,
+          userId,
+        },
+      });
+      return { following: true };
     }
 
     const existingFollow = await this.prisma.threadFollower.findUnique({
@@ -694,7 +794,42 @@ export class MessageService {
     });
 
     if (!rootMessage) {
-      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.ROOT_THREAD_NOT_FOUND);
+      const directIncludeQuery = {
+        reactions: true,
+        medias: true,
+        replyTo: true,
+        threadFollowers: true,
+      };
+
+      const directRootMessage = await this.prisma.directMessage.findUnique({
+        where: { id: messageId },
+        include: directIncludeQuery,
+      });
+
+      if (!directRootMessage) {
+        throw new NotFoundException(
+          MESSAGE_ERROR_MESSAGES.ROOT_THREAD_NOT_FOUND,
+        );
+      }
+
+      const directReplies = await this.prisma.directMessage.findMany({
+        where: { threadParentId: messageId },
+        orderBy: { createdAt: 'asc' },
+        include: directIncludeQuery,
+      });
+
+      return {
+        rootMessage: {
+          ...directRootMessage,
+          channelId: directRootMessage.conversationId,
+          medias: mapMediaWithUrl(directRootMessage.medias),
+        },
+        replies: directReplies.map((reply) => ({
+          ...reply,
+          channelId: reply.conversationId,
+          medias: mapMediaWithUrl(reply.medias),
+        })),
+      };
     }
 
     const replies = await this.prisma.message.findMany({
@@ -716,6 +851,19 @@ export class MessageService {
   }
 
   async getConversationMemberIds(channelId: string): Promise<string[]> {
+    const isDirect = await this.prisma.directConversation.findUnique({
+      where: { id: channelId },
+    });
+
+    if (isDirect) {
+      const participants =
+        await this.prisma.directConversationParticipant.findMany({
+          where: { conversationId: channelId },
+          select: { userId: true },
+        });
+      return participants.map((participant) => participant.userId);
+    }
+
     const members = await this.prisma.channelMember.findMany({
       where: { channelId },
       select: { userId: true },
@@ -1011,7 +1159,43 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
+      const directMessage = await this.prisma.directMessage.findUnique({
+        where: { id: messageId },
+      });
+
+      if (!directMessage) {
+        throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
+      }
+
+      if (directMessage.pinned) {
+        throw new BadRequestException(MESSAGE_ERROR_MESSAGES.ALREADY_PINNED);
+      }
+
+      const participant =
+        await this.prisma.directConversationParticipant.findUnique({
+          where: {
+            conversationId_userId: {
+              conversationId: directMessage.conversationId,
+              userId,
+            },
+          },
+        });
+
+      if (!participant) {
+        throw new BadRequestException(
+          MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
+        );
+      }
+
+      return this.prisma.directMessage.update({
+        where: { id: messageId },
+        data: { pinned: true },
+        include: {
+          medias: true,
+          replyTo: true,
+          threadFollowers: true,
+        },
+      });
     }
 
     if (message.pinned) {
@@ -1052,17 +1236,6 @@ export class MessageService {
       );
     }
 
-    const pinnedCount = await this.prisma.message.count({
-      where: {
-        channelId: message.channelId,
-        pinned: true,
-      },
-    });
-
-    if (pinnedCount >= 3) {
-      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MAX_PIN_REACHED);
-    }
-
     return this.prisma.message.update({
       where: { id: messageId },
       data: { pinned: true },
@@ -1081,7 +1254,43 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
+      const directMessage = await this.prisma.directMessage.findUnique({
+        where: { id: messageId },
+      });
+
+      if (!directMessage) {
+        throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
+      }
+
+      if (!directMessage.pinned) {
+        throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_PINNED);
+      }
+
+      const participant =
+        await this.prisma.directConversationParticipant.findUnique({
+          where: {
+            conversationId_userId: {
+              conversationId: directMessage.conversationId,
+              userId,
+            },
+          },
+        });
+
+      if (!participant) {
+        throw new BadRequestException(
+          MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
+        );
+      }
+
+      return this.prisma.directMessage.update({
+        where: { id: messageId },
+        data: { pinned: false },
+        include: {
+          medias: true,
+          replyTo: true,
+          threadFollowers: true,
+        },
+      });
     }
 
     if (!message.pinned) {
@@ -1134,15 +1343,59 @@ export class MessageService {
     });
   }
 
-  async getPinnedMessages(channelId: string) {
-    return this.prisma.message.findMany({
+  async getPinnedMessages(
+    channelId: string,
+    cursor?: string,
+    limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
+  ) {
+    const isDirect = await this.prisma.directConversation.findUnique({
+      where: { id: channelId },
+    });
+
+    if (isDirect) {
+      const messages = await this.prisma.directMessage.findMany({
+        where: {
+          conversationId: channelId,
+          pinned: true,
+          threadParentId: null,
+        },
+        take: limit + 1,
+        skip: cursor ? 1 : 0,
+        cursor: cursor ? { id: cursor } : undefined,
+        orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+        include: {
+          medias: true,
+          replyTo: true,
+          threadFollowers: true,
+        },
+      });
+
+      let nextCursor: string | undefined = undefined;
+      if (messages.length > limit) {
+        const nextItem = messages.pop();
+        nextCursor = nextItem?.id;
+      }
+
+      return {
+        messages: messages.map((message) => ({
+          ...message,
+          channelId: message.conversationId,
+          medias: mapMediaWithUrl(message.medias),
+        })),
+        nextCursor,
+      };
+    }
+
+    const messages = await this.prisma.message.findMany({
       where: {
         channelId,
         pinned: true,
+        threadParentId: null,
       },
-      orderBy: {
-        updatedAt: 'desc',
-      },
+      take: limit + 1,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
       include: {
         medias: true,
         poll: { include: { options: { include: { votes: true } } } },
@@ -1150,6 +1403,20 @@ export class MessageService {
         replyTo: true,
       },
     });
+
+    let nextCursor: string | undefined = undefined;
+    if (messages.length > limit) {
+      const nextItem = messages.pop();
+      nextCursor = nextItem?.id;
+    }
+
+    return {
+      messages: messages.map((message) => ({
+        ...message,
+        medias: mapMediaWithUrl(message.medias),
+      })),
+      nextCursor,
+    };
   }
 
   async getThreadFollowers(messageId: string): Promise<string[]> {
@@ -1157,7 +1424,15 @@ export class MessageService {
       where: { messageId },
       select: { userId: true },
     });
-    return followers.map((f) => f.userId);
+    if (followers.length > 0) {
+      return followers.map((f) => f.userId);
+    }
+
+    const directFollowers = await this.prisma.directThreadFollower.findMany({
+      where: { messageId },
+      select: { userId: true },
+    });
+    return directFollowers.map((f) => f.userId);
   }
 
   async addThreadFollower(messageId: string, userId: string): Promise<void> {

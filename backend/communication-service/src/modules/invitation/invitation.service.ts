@@ -7,7 +7,6 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { SpaceRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { MessageService } from '../message/message.service';
-import { getSenderProfile } from '../../common/utils/user.util';
 import { INVITATION_STATUS } from './types/invitation.enums';
 import { InvitationPublisher } from './events/invitation.publisher';
 
@@ -54,8 +53,6 @@ export class InvitationService {
     if (invitation.status !== INVITATION_STATUS.PENDING) {
       throw new BadRequestException('This invitation has already been handled');
     }
-
-    const { senderName, senderAvatar } = await getSenderProfile(userId);
 
     const updatedInvitation = await this.prisma.$transaction(async (prisma) => {
       const updated = await prisma.spaceInvitation.update({
@@ -104,7 +101,7 @@ export class InvitationService {
       await this.chatGateway.sendSystemMessage(
         channel.id,
         userId,
-        `${senderName} joined the chat channel`,
+        `${userId} joined the chat channel`,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
@@ -119,19 +116,12 @@ export class InvitationService {
           userId,
           role: SpaceRole.MEMBER,
         },
-        profile: {
-          id: userId,
-          fullName: senderName,
-          avatarUrl: senderAvatar,
-        },
       });
     }
 
     this.conversationPublisher.publishInvitationAccepted(
       invitation.invitedBy,
       userId,
-      senderName,
-      senderAvatar,
       invitation.spaceId,
       invitation.space.name,
     );
@@ -159,8 +149,6 @@ export class InvitationService {
       throw new BadRequestException('This invitation has already been handled');
     }
 
-    const { senderName, senderAvatar } = await getSenderProfile(userId);
-
     const updatedInvitation = await this.prisma.spaceInvitation.update({
       where: { id: invitationId },
       data: {
@@ -172,8 +160,6 @@ export class InvitationService {
     this.conversationPublisher.publishInvitationDeclined(
       invitation.invitedBy,
       userId,
-      senderName,
-      senderAvatar,
       invitation.spaceId,
       invitation.space?.name,
     );

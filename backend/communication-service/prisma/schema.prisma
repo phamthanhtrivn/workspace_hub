@@ -241,17 +241,26 @@ model DirectMessage {
   type             MessageType
   replyToMessageId String?          @map("reply_to_message_id") @db.Uuid
   edited           Boolean          @default(false)
+  pinned           Boolean          @default(false)
   recalled         Boolean          @default(false)
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
   deletedAt        DateTime?        @map("deleted_at")
 
+  /* Thread */
+  threadParentId    String?          @map("thread_parent_id") @db.Uuid
+  threadReplyCount  Int              @default(0) @map("thread_reply_count")
+  threadLastReplyAt DateTime?        @map("thread_last_reply_at")
+
   conversation     DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   replyTo          DirectMessage?   @relation("DirectMessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
   replies          DirectMessage[]  @relation("DirectMessageReplies")
+  threadParent      DirectMessage?   @relation("DirectThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
+  threadReplies     DirectMessage[]  @relation("DirectThreadReplies")
 
   reactions        DirectReaction[]
   medias           DirectMedia[]
+  threadFollowers  DirectThreadFollower[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
@@ -414,4 +423,16 @@ model ThreadFollower {
 
   @@unique([messageId, userId])
   @@map("thread_followers")
+}
+
+model DirectThreadFollower {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message   DirectMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@map("direct_thread_followers")
 }

@@ -51,7 +51,6 @@ interface ChatMessageProps {
     isLocked: boolean,
   ) => void;
   onNoteEdit?: (messageId: string, title: string, content: string) => void;
-  onReply?: (msg: any) => void;
   onEditMessage?: (msg: any) => void;
   onRecallMessage?: (msg: any) => void;
   onJumpToMessage?: (messageId: string) => void;
@@ -74,7 +73,6 @@ const ChatMessage = React.memo(function ChatMessage({
   onPollAddOption,
   onPollEdit,
   onNoteEdit,
-  onReply,
   onEditMessage,
   onRecallMessage,
   onJumpToMessage,
@@ -495,47 +493,6 @@ const ChatMessage = React.memo(function ChatMessage({
               {renderVisualMedias()}
               {renderFileMedias()}
               <div className="flex flex-col relative max-w-full">
-                {msg.replyTo && (
-                  <div
-                    className={`mb-1.5 px-3 py-2 text-xs border-l-4 rounded-xl cursor-pointer hover:opacity-80 transition flex flex-col min-w-[120px] max-w-full truncate ${isMe ? "bg-blue-700/20 border-blue-400 text-blue-900" : "bg-slate-100 border-slate-300 text-slate-700"}`}
-                    onClick={() => {
-                      if (onJumpToMessage) {
-                        onJumpToMessage(msg.replyTo.id);
-                      } else {
-                        const el = document.getElementById(
-                          `msg-${msg.replyTo.id}`,
-                        );
-                        if (el) {
-                          el.scrollIntoView({
-                            behavior: "smooth",
-                            block: "center",
-                          });
-                          el.classList.add(
-                            "bg-blue-100/70",
-                            "transition-all",
-                            "duration-200",
-                          );
-                          setTimeout(
-                            () => el.classList.remove("bg-blue-100/70"),
-                            1500,
-                          );
-                        }
-                      }
-                    }}
-                  >
-                    <span className="font-semibold mb-0.5">
-                      {msg.replyTo.senderId === currentUser.userId
-                        ? "You"
-                        : memberProfiles?.[msg.replyTo.senderId]?.fullName ||
-                          "Someone"}
-                    </span>
-                    <span className="truncate opacity-80 font-medium">
-                      {msg.replyTo.recalled
-                        ? "Message recalled"
-                        : msg.replyTo.content || "[Attachment]"}
-                    </span>
-                  </div>
-                )}
                 {hasText && (
                   <div
                     className={`p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 ${
@@ -677,7 +634,6 @@ const ChatMessage = React.memo(function ChatMessage({
         canEdit={msg.type === "TEXT" && isWithin24Hours && hasText}
         canRecall={isWithin24Hours}
         isPinned={msg.pinned}
-        onReply={() => onReply?.(msg)}
         onEdit={() => onEditMessage?.(msg)}
         onRecall={() => onRecallMessage?.(msg)}
         onPin={() => onPinMessage?.(msg)}

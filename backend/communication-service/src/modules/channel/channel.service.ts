@@ -8,7 +8,6 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
-import { getSenderProfile } from 'src/common/utils/user.util';
 import { ChatEvent } from '../chat/chat.events';
 import { getMediaUrl } from 'src/common/utils/file.util';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
@@ -262,14 +261,12 @@ export class ChannelService {
       data: { role: newRole },
     });
 
-    const { senderName } = await getSenderProfile(userId);
-    const { senderName: targetName } = await getSenderProfile(targetUserId);
     const roleName = newRole === SpaceRole.ADMIN ? 'Admin' : 'Member';
 
     await this.chatGateway.sendSystemMessage(
       channelId,
       userId,
-      `${senderName} set ${targetName} as ${roleName}`,
+      `${userId} set ${targetUserId} as ${roleName}`,
     );
 
     await this.emitRoleUpdateToSpaceChannels(channel.spaceId, {
@@ -373,13 +370,10 @@ export class ChannelService {
       role: SpaceRole.OWNER,
     });
 
-    const { senderName } = await getSenderProfile(userId);
-    const { senderName: targetName } = await getSenderProfile(newOwnerId);
-
     await this.chatGateway.sendSystemMessage(
       channelId,
       userId,
-      `${senderName} transferred ownership to ${targetName}`,
+      `${userId} transferred ownership to ${newOwnerId}`,
     );
 
     return { success: true };
@@ -567,12 +561,10 @@ export class ChannelService {
       userId,
     });
 
-    const { senderName } = await getSenderProfile(userId);
-
     await this.chatGateway.sendSystemMessage(
       channelId,
       userId,
-      `${senderName} left the space`,
+      `${userId} left the space`,
     );
 
     return { success: true };
