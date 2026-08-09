@@ -3,6 +3,7 @@ import { MAX_FILE_SIZE } from 'src/common/utils/file.util';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { PresignRequestDto } from './dto/presign-request.dto';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
+import { MEDIA_SUCCESS_MESSAGES, MEDIA_ERROR_MESSAGES } from './types/media.enums';
 
 @Injectable()
 export class MediaService {
@@ -34,7 +35,7 @@ export class MediaService {
     }
 
     return {
-      message: 'Generated presigned URLs successfully',
+      message: MEDIA_SUCCESS_MESSAGES.PRESIGNED_URLS_GENERATED,
       data: results,
     };
   }
@@ -42,7 +43,7 @@ export class MediaService {
   private validatePresignRequest(body: PresignRequestDto): void {
     if (!body.files || body.files.length === 0) {
       throw new BadRequestException(
-        'Files array is required and cannot be empty',
+        MEDIA_ERROR_MESSAGES.EMPTY_FILES,
       );
     }
   }
@@ -50,7 +51,7 @@ export class MediaService {
   private validateFileSize(fileName: string, sizeBytes: number): void {
     if (sizeBytes > MAX_FILE_SIZE) {
       throw new BadRequestException(
-        `File ${fileName} exceeds the 100MB limit.`,
+        MEDIA_ERROR_MESSAGES.FILE_TOO_LARGE.replace('{fileName}', fileName),
       );
     }
   }

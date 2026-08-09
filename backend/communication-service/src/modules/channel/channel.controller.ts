@@ -16,6 +16,7 @@ import { CreateDirectConversationDto } from './dto/create-direct-channel.dto';
 import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ChannelService } from './channel.service';
+import { CHANNEL_SUCCESS_MESSAGES, CHANNEL_ERROR_MESSAGES } from './types/channel.enums';
 
 @Controller('api/channels')
 export class ConversationController {
@@ -30,7 +31,7 @@ export class ConversationController {
     @Body() createDirectDto: CreateDirectConversationDto,
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_ID);
     }
 
     const channel = await this.conversationService.createDirectConversation(
@@ -39,7 +40,7 @@ export class ConversationController {
     );
 
     return {
-      message: 'Cuộc trò chuyện được tạo thành công',
+      message: CHANNEL_SUCCESS_MESSAGES.CREATED,
       data: channel,
     };
   }
@@ -47,14 +48,14 @@ export class ConversationController {
   @Get()
   async getUserConversations(@Headers('x-user-id') userId: string) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_ID);
     }
 
     const channels =
       await this.conversationService.getUserConversations(userId);
 
     return {
-      message: 'Lấy danh sách cuộc trò chuyện thành công',
+      message: CHANNEL_SUCCESS_MESSAGES.LISTED,
       data: channels,
     };
   }
@@ -66,7 +67,7 @@ export class ConversationController {
     @Body() updateSettingDto: UpdateConversationSettingDto,
   ) {
     if (!userId || !channelId) {
-      throw new BadRequestException('Thiếu userId hoặc channelId');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_OR_CHANNEL_ID);
     }
     const result = await this.conversationService.updateConversationSettings(
       channelId,
@@ -74,7 +75,7 @@ export class ConversationController {
       updateSettingDto,
     );
     return {
-      message: 'Cập nhật cài đặt nhóm thành công',
+      message: CHANNEL_SUCCESS_MESSAGES.SETTINGS_UPDATED,
       data: result,
     };
   }
@@ -87,7 +88,7 @@ export class ConversationController {
     @Body() updateRoleDto: UpdateMemberRoleDto,
   ) {
     if (!userId || !channelId || !memberId) {
-      throw new BadRequestException('Thiếu thông tin yêu cầu');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
     }
     const result = await this.conversationService.updateMemberRole(
       channelId,
@@ -96,7 +97,7 @@ export class ConversationController {
       updateRoleDto.role,
     );
     return {
-      message: 'Cập nhật vai trò thành công',
+      message: CHANNEL_SUCCESS_MESSAGES.ROLE_UPDATED,
       data: result,
     };
   }
@@ -108,7 +109,7 @@ export class ConversationController {
     @Body('newOwnerId') newOwnerId: string,
   ) {
     if (!userId || !channelId || !newOwnerId) {
-      throw new BadRequestException('Thiếu thông tin yêu cầu');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
     }
     const result = await this.conversationService.transferOwnership(
       channelId,
@@ -116,7 +117,7 @@ export class ConversationController {
       newOwnerId,
     );
     return {
-      message: 'Chuyển quyền trưởng nhóm thành công',
+      message: CHANNEL_SUCCESS_MESSAGES.OWNER_TRANSFERRED,
       data: result,
     };
   }
@@ -128,7 +129,7 @@ export class ConversationController {
   //   @Headers('x-user-id') userId: string,
   // ) {
   //   if (!userId || !channelId || !memberId) {
-  //     throw new BadRequestException('Thiếu thông tin yêu cầu');
+  //     throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
   //   }
   //   await this.conversationService.kickMember(channelId, userId, memberId);
   //   return {
@@ -144,7 +145,7 @@ export class ConversationController {
     @Query('contentType') contentType: string,
   ) {
     if (!userId || !channelId || !fileName || !contentType) {
-      throw new BadRequestException('Thiếu thông tin yêu cầu');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
     }
     return this.conversationService.getAvatarUploadPresignedUrl(
       channelId,
@@ -161,7 +162,7 @@ export class ConversationController {
   //   @Body() data: { name?: string; avatarUrl?: string },
   // ) {
   //   if (!userId || !channelId) {
-  //     throw new BadRequestException('Thiếu thông tin yêu cầu');
+  //     throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
   //   }
   //   return this.conversationService.updateGroupInfo(channelId, userId, data);
   // }
@@ -172,11 +173,11 @@ export class ConversationController {
     @Headers('x-user-id') userId: string,
   ) {
     if (!userId || !channelId) {
-      throw new BadRequestException('Thiếu thông tin yêu cầu');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
     }
     await this.conversationService.leaveConversation(channelId, userId);
     return {
-      message: 'Đã rời khỏi nhóm',
+      message: CHANNEL_SUCCESS_MESSAGES.LEFT,
     };
   }
 
@@ -186,11 +187,11 @@ export class ConversationController {
     @Headers('x-user-id') userId: string,
   ) {
     if (!userId || !channelId) {
-      throw new BadRequestException('Thiếu thông tin yêu cầu');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
     }
     await this.conversationService.disbandConversation(channelId, userId);
     return {
-      message: 'Đã giải tán nhóm thành công',
+      message: CHANNEL_SUCCESS_MESSAGES.DISBANDED,
     };
   }
 
@@ -201,7 +202,7 @@ export class ConversationController {
     @Body('muted') muted: boolean,
   ) {
     if (!userId || !channelId || muted === undefined) {
-      throw new BadRequestException('Thiếu thông tin yêu cầu');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
     }
     const result = await this.conversationService.muteConversation(
       channelId,
@@ -210,8 +211,8 @@ export class ConversationController {
     );
     return {
       message: muted
-        ? 'Đã tắt thông báo cuộc trò chuyện'
-        : 'Đã bật thông báo cuộc trò chuyện',
+        ? CHANNEL_SUCCESS_MESSAGES.MUTE_ON
+        : CHANNEL_SUCCESS_MESSAGES.MUTE_OFF,
       data: result,
     };
   }

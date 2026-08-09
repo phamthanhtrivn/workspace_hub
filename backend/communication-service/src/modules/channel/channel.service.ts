@@ -12,6 +12,7 @@ import { getSenderProfile } from 'src/common/utils/user.util';
 import { ChatEvent } from '../chat/chat.events';
 import { getMediaUrl } from 'src/common/utils/file.util';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
+import { CHANNEL_ERROR_MESSAGES } from './types/channel.enums';
 
 @Injectable()
 export class ChannelService {
@@ -24,7 +25,7 @@ export class ChannelService {
   async createDirectConversation(userId: string, participantId: string) {
     if (userId === participantId) {
       throw new BadRequestException(
-        'Không thể tạo cuộc trò chuyện với chính mình',
+        CHANNEL_ERROR_MESSAGES.SELF_CONVERSATION,
       );
     }
 
@@ -152,7 +153,7 @@ export class ChannelService {
       where: { id: channelId },
     });
     if (!channel) {
-      throw new BadRequestException('Không tìm thấy kênh');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -169,7 +170,7 @@ export class ChannelService {
       (spaceMember.role !== SpaceRole.OWNER &&
         spaceMember.role !== SpaceRole.ADMIN)
     ) {
-      throw new BadRequestException('Bạn không có quyền thay đổi cài đặt kênh');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.SETTINGS_ACCESS_DENIED);
     }
 
     const updatedSettings = await this.prisma.channelSetting.update({
@@ -177,7 +178,7 @@ export class ChannelService {
       data: updateSettingDto,
     });
 
-    this.chatGateway.server.to(channelId).emit('group_setting_updated', {
+    this.chatGateway.server.to(channelId).emit(ChatEvent.GROUP_SETTING_UPDATED, {
       channelId,
       setting: updatedSettings,
     });
@@ -193,7 +194,7 @@ export class ChannelService {
   ) {
     if (userId === targetUserId) {
       throw new BadRequestException(
-        'Không thể tự thay đổi vai trò của chính mình',
+        CHANNEL_ERROR_MESSAGES.SELF_ROLE_CHANGE,
       );
     }
 
@@ -201,7 +202,7 @@ export class ChannelService {
       where: { id: channelId },
     });
     if (!channel) {
-      throw new BadRequestException('Không tìm thấy kênh');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     const requester = await this.prisma.spaceMember.findUnique({
@@ -210,7 +211,7 @@ export class ChannelService {
 
     if (!requester || requester.role !== SpaceRole.OWNER) {
       throw new BadRequestException(
-        'Chỉ Chủ nhóm mới có quyền thay đổi vai trò thành viên',
+        CHANNEL_ERROR_MESSAGES.ROLE_CHANGE_ACCESS_DENIED,
       );
     }
 
@@ -222,7 +223,7 @@ export class ChannelService {
 
     if (!targetMember) {
       throw new BadRequestException(
-        'Thành viên không tồn tại trong không gian này',
+        CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE,
       );
     }
 
@@ -243,7 +244,7 @@ export class ChannelService {
       `${senderName} đã chỉ định ${targetName} làm ${roleName}`,
     );
 
-    this.chatGateway.server.to(channelId).emit('member_role_updated', {
+    this.chatGateway.server.to(channelId).emit(ChatEvent.MEMBER_ROLE_UPDATED, {
       channelId,
       member: updatedMember,
     });
@@ -260,7 +261,7 @@ export class ChannelService {
 
     if (!member) {
       throw new BadRequestException(
-        'Bạn không phải là thành viên của nhóm này',
+        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP,
       );
     }
 
@@ -290,14 +291,14 @@ export class ChannelService {
     newOwnerId: string,
   ) {
     if (userId === newOwnerId) {
-      throw new BadRequestException('Không thể chuyển quyền cho chính mình');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.SELF_OWNERSHIP_TRANSFER);
     }
 
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
     });
     if (!channel) {
-      throw new BadRequestException('Không tìm thấy kênh');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     const requester = await this.prisma.spaceMember.findUnique({
@@ -306,7 +307,7 @@ export class ChannelService {
 
     if (!requester || requester.role !== SpaceRole.OWNER) {
       throw new BadRequestException(
-        'Chỉ Chủ nhóm mới có quyền chuyển đổi trưởng nhóm',
+        CHANNEL_ERROR_MESSAGES.TRANSFER_ACCESS_DENIED,
       );
     }
 
@@ -318,7 +319,7 @@ export class ChannelService {
 
     if (!newOwner) {
       throw new BadRequestException(
-        'Thành viên không tồn tại trong không gian này',
+        CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE,
       );
     }
 
@@ -335,11 +336,11 @@ export class ChannelService {
       }),
     ]);
 
-    this.chatGateway.server.to(channelId).emit('member_role_updated', {
+    this.chatGateway.server.to(channelId).emit(ChatEvent.MEMBER_ROLE_UPDATED, {
       channelId,
       member: { userId, role: SpaceRole.MEMBER },
     });
-    this.chatGateway.server.to(channelId).emit('member_role_updated', {
+    this.chatGateway.server.to(channelId).emit(ChatEvent.MEMBER_ROLE_UPDATED, {
       channelId,
       member: { userId: newOwnerId, role: SpaceRole.OWNER },
     });
@@ -475,7 +476,7 @@ export class ChannelService {
       where: { id: channelId },
     });
     if (!channel) {
-      throw new BadRequestException('Không tìm thấy kênh');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     const member = await this.prisma.spaceMember.findUnique({
@@ -484,7 +485,7 @@ export class ChannelService {
 
     if (!member) {
       throw new BadRequestException(
-        'Bạn không phải là thành viên của không gian này',
+        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE,
       );
     }
 
@@ -499,7 +500,7 @@ export class ChannelService {
 
       if (otherOwners.length === 0) {
         throw new BadRequestException(
-          'Vui lòng chuyển quyền Trưởng nhóm trước khi rời nhóm',
+          CHANNEL_ERROR_MESSAGES.OWNER_LEAVE_PREVENTED,
         );
       }
     }
@@ -530,7 +531,7 @@ export class ChannelService {
       ...remainingMembers.map((m) => m.userId),
     ];
 
-    this.chatGateway.server.to(targetRooms).emit('member_left', {
+    this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEMBER_LEFT, {
       channelId,
       userId,
     });
@@ -551,11 +552,11 @@ export class ChannelService {
       where: { id: channelId },
     });
     if (!channel) {
-      throw new BadRequestException('Không tìm thấy kênh');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     if (channel.isDefault) {
-      throw new BadRequestException('Không thể xóa kênh mặc định');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.DEFAULT_CHANNEL_DELETE_PREVENTED);
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -569,7 +570,7 @@ export class ChannelService {
         channel.createdBy !== userId)
     ) {
       throw new BadRequestException(
-        'Chỉ Quản trị viên hoặc người tạo kênh mới có quyền giải tán kênh',
+        CHANNEL_ERROR_MESSAGES.DISBAND_ACCESS_DENIED,
       );
     }
 
@@ -605,7 +606,7 @@ export class ChannelService {
       where: { id: channelId },
     });
     if (!channel) {
-      throw new BadRequestException('Không tìm thấy kênh');
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -619,7 +620,7 @@ export class ChannelService {
         channel.createdBy !== userId)
     ) {
       throw new ForbiddenException(
-        'Bạn không có quyền cập nhật thông tin kênh này',
+        CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED,
       );
     }
 

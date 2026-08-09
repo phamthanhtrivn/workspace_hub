@@ -7,7 +7,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MessageType, Prisma, SpaceRole } from '@prisma/client';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
-import { MESSAGE_DIRECTION } from './types/message.enums';
+import { MESSAGE_DIRECTION, MESSAGE_CONSTANTS, MESSAGE_ERROR_MESSAGES } from './types/message.enums';
 
 @Injectable()
 export class MessageService {
@@ -58,7 +58,7 @@ export class MessageService {
 
         if (!participant) {
           throw new BadRequestException(
-            'Bạn không phải là thành viên của cuộc trò chuyện này',
+            MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CONVERSATION,
           );
         }
 
@@ -119,7 +119,7 @@ export class MessageService {
 
         if (!member) {
           throw new BadRequestException(
-            'Bạn không phải là thành viên của kênh này',
+            MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
           );
         }
 
@@ -134,7 +134,7 @@ export class MessageService {
 
         if (!spaceMember) {
           throw new BadRequestException(
-            'Bạn không phải là thành viên của không gian này',
+            MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE,
           );
         }
 
@@ -142,17 +142,17 @@ export class MessageService {
           const setting = member.channel.setting;
           if (type === MessageType.TEXT && !setting.allowSendMessage) {
             throw new BadRequestException(
-              'Quản trị viên đã tắt tính năng nhắn tin ở kênh này',
+              MESSAGE_ERROR_MESSAGES.MESSAGE_DISABLED,
             );
           }
           if (type === MessageType.POLL && !setting.allowCreatePoll) {
             throw new BadRequestException(
-              'Quản trị viên đã tắt tính năng tạo bình chọn ở kênh này',
+              MESSAGE_ERROR_MESSAGES.POLL_DISABLED,
             );
           }
           if (type === MessageType.NOTE && !setting.allowCreateNote) {
             throw new BadRequestException(
-              'Quản trị viên đã tắt tính năng tạo ghi chú ở kênh này',
+              MESSAGE_ERROR_MESSAGES.NOTE_DISABLED,
             );
           }
         }
@@ -163,7 +163,7 @@ export class MessageService {
           where: { id: threadParentId },
         });
         if (!parentMsg) {
-          throw new BadRequestException('Tin nhắn gốc của luồng không tồn tại');
+          throw new BadRequestException(MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND);
         }
         await tx.message.update({
           where: { id: threadParentId },
@@ -287,7 +287,7 @@ export class MessageService {
   async getConversationMessages(
     channelId: string,
     cursor?: string,
-    limit: number = 20,
+    limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     direction: MESSAGE_DIRECTION = MESSAGE_DIRECTION.OLDER,
   ) {
     const isDirect = await this.prisma.directConversation.findUnique({
@@ -530,7 +530,7 @@ export class MessageService {
   async getConversationMedia(
     channelId: string,
     cursor?: string,
-    limit: number = 20,
+    limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
   ) {
     const medias = await this.prisma.media.findMany({
       where: {
@@ -645,7 +645,7 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new NotFoundException('Không tìm thấy tin nhắn');
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
     }
 
     const existingFollow = await this.prisma.threadFollower.findUnique({
@@ -694,7 +694,7 @@ export class MessageService {
     });
 
     if (!rootMessage) {
-      throw new NotFoundException('Không tìm thấy tin nhắn gốc của luồng');
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.ROOT_THREAD_NOT_FOUND);
     }
 
     const replies = await this.prisma.message.findMany({
@@ -1011,11 +1011,11 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error('Tin nhắn không tìm thấy');
+      throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
     }
 
     if (message.pinned) {
-      throw new BadRequestException('Tin nhắn đã được ghim');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.ALREADY_PINNED);
     }
 
     const member = (await this.prisma.channelMember.findUnique({
@@ -1024,7 +1024,7 @@ export class MessageService {
     })) as any;
 
     if (!member) {
-      throw new BadRequestException('Bạn không phải là thành viên nhóm này');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP);
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -1038,7 +1038,7 @@ export class MessageService {
 
     if (!spaceMember) {
       throw new BadRequestException(
-        'Bạn không phải là thành viên của không gian này',
+        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE,
       );
     }
 
@@ -1048,7 +1048,7 @@ export class MessageService {
       !member.channel.setting.allowPinMessage
     ) {
       throw new BadRequestException(
-        'Quản trị viên đã tắt tính năng ghim tin nhắn ở kênh này',
+        MESSAGE_ERROR_MESSAGES.PIN_DISABLED,
       );
     }
 
@@ -1060,7 +1060,7 @@ export class MessageService {
     });
 
     if (pinnedCount >= 3) {
-      throw new BadRequestException('Chỉ được ghim tối đa 3 tin nhắn');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MAX_PIN_REACHED);
     }
 
     return this.prisma.message.update({
@@ -1081,11 +1081,11 @@ export class MessageService {
     });
 
     if (!message) {
-      throw new Error('Tin nhắn không tìm thấy');
+      throw new Error(MESSAGE_ERROR_MESSAGES.NOT_FOUND_SIMPLE);
     }
 
     if (!message.pinned) {
-      throw new BadRequestException('Tin nhắn chưa được ghim');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_PINNED);
     }
 
     const member = (await this.prisma.channelMember.findUnique({
@@ -1094,7 +1094,7 @@ export class MessageService {
     })) as any;
 
     if (!member) {
-      throw new BadRequestException('Bạn không phải là thành viên nhóm này');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP);
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -1108,7 +1108,7 @@ export class MessageService {
 
     if (!spaceMember) {
       throw new BadRequestException(
-        'Bạn không phải là thành viên của không gian này',
+        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE,
       );
     }
 
@@ -1118,7 +1118,7 @@ export class MessageService {
       !member.channel.setting.allowPinMessage
     ) {
       throw new BadRequestException(
-        'Quản trị viên đã tắt tính năng ghim tin nhắn ở kênh này',
+        MESSAGE_ERROR_MESSAGES.PIN_DISABLED,
       );
     }
 

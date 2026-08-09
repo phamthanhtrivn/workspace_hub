@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { POLL_ERROR_MESSAGES } from './types/poll.enums';
 
 @Injectable()
 export class PollService {
@@ -28,12 +29,12 @@ export class PollService {
     });
 
     if (!poll) {
-      throw new Error('Poll not found');
+      throw new Error(POLL_ERROR_MESSAGES.NOT_FOUND);
     }
 
     const option = poll.options.find((opt) => opt.id === pollOptionId);
     if (!option) {
-      throw new Error('Poll option not found');
+      throw new Error(POLL_ERROR_MESSAGES.OPTION_NOT_FOUND);
     }
 
     const hasVotedThisOption = option.votes.some((v) => v.userId === userId);
@@ -77,8 +78,8 @@ export class PollService {
     const poll = await this.prisma.poll.findUnique({
       where: { messageId },
     });
-    if (!poll) throw new Error('Poll not found');
-    if (!poll.allowAddOptions) throw new Error('Adding options is not allowed');
+    if (!poll) throw new Error(POLL_ERROR_MESSAGES.NOT_FOUND);
+    if (!poll.allowAddOptions) throw new Error(POLL_ERROR_MESSAGES.ADD_OPTION_PREVENTED);
 
     const newOption = await this.prisma.pollOption.create({
       data: {

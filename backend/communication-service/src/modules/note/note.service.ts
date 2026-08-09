@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { NOTE_ERROR_MESSAGES } from './types/note.enums';
 
 @Injectable()
 export class NoteService {
@@ -29,11 +30,11 @@ export class NoteService {
     });
 
     if (!note) {
-      throw new Error('Note not found');
+      throw new Error(NOTE_ERROR_MESSAGES.NOT_FOUND);
     }
 
     if (note.createdBy !== userId) {
-      throw new Error('Only the creator can edit this note');
+      throw new Error(NOTE_ERROR_MESSAGES.EDIT_ACCESS_DENIED);
     }
 
     await this.prisma.note.update({

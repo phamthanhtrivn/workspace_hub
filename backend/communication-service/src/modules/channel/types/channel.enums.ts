@@ -1,0 +1,31 @@
+export enum CHANNEL_ERROR_MESSAGES {
+  SELF_CONVERSATION = 'Không thể tạo cuộc trò chuyện với chính mình',
+  CHANNEL_NOT_FOUND = 'Không tìm thấy kênh',
+  SETTINGS_ACCESS_DENIED = 'Bạn không có quyền thay đổi cài đặt kênh',
+  SELF_ROLE_CHANGE = 'Không thể tự thay đổi vai trò của chính mình',
+  ROLE_CHANGE_ACCESS_DENIED = 'Chỉ Chủ nhóm mới có quyền thay đổi vai trò thành viên',
+  MEMBER_NOT_IN_SPACE = 'Thành viên không tồn tại trong không gian này',
+  NOT_MEMBER_OF_GROUP = 'Bạn không phải là thành viên của nhóm này',
+  SELF_OWNERSHIP_TRANSFER = 'Không thể chuyển quyền cho chính mình',
+  TRANSFER_ACCESS_DENIED = 'Chỉ Chủ nhóm mới có quyền chuyển đổi trưởng nhóm',
+  NOT_MEMBER_OF_SPACE = 'Bạn không phải là thành viên của không gian này',
+  OWNER_LEAVE_PREVENTED = 'Vui lòng chuyển quyền Trưởng nhóm trước khi rời nhóm',
+  DEFAULT_CHANNEL_DELETE_PREVENTED = 'Không thể xóa kênh mặc định',
+  DISBAND_ACCESS_DENIED = 'Chỉ Quản trị viên hoặc người tạo kênh mới có quyền giải tán kênh',
+  UPDATE_ACCESS_DENIED = 'Bạn không có quyền cập nhật thông tin kênh này',
+  MISSING_USER_ID = 'Thiếu userId',
+  MISSING_USER_OR_CHANNEL_ID = 'Thiếu userId hoặc channelId',
+  MISSING_REQUIRED_INFO = 'Thiếu thông tin yêu cầu',
+}
+
+export enum CHANNEL_SUCCESS_MESSAGES {
+  CREATED = 'Cuộc trò chuyện được tạo thành công',
+  LISTED = 'Lấy danh sách cuộc trò chuyện thành công',
+  SETTINGS_UPDATED = 'Cập nhật cài đặt nhóm thành công',
+  ROLE_UPDATED = 'Cập nhật vai trò thành công',
+  OWNER_TRANSFERRED = 'Chuyển quyền trưởng nhóm thành công',
+  LEFT = 'Đã rời khỏi nhóm',
+  DISBANDED = 'Đã giải tán nhóm thành công',
+  MUTE_ON = 'Đã tắt thông báo cuộc trò chuyện',
+  MUTE_OFF = 'Đã bật thông báo cuộc trò chuyện',
+}

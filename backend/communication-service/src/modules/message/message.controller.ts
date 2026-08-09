@@ -8,7 +8,13 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { MessageService } from './message.service';
-import { MESSAGE_DIRECTION, THREAD_FOLLOW_LABEL } from './types/message.enums';
+import {
+  MESSAGE_DIRECTION,
+  THREAD_FOLLOW_LABEL,
+  MESSAGE_CONSTANTS,
+  MESSAGE_SUCCESS_MESSAGES,
+  MESSAGE_ERROR_MESSAGES,
+} from './types/message.enums';
 
 @Controller('api/channels')
 export class MessageController {
@@ -22,9 +28,11 @@ export class MessageController {
     @Query('direction') direction?: MESSAGE_DIRECTION,
   ) {
     if (!channelId) {
-      throw new BadRequestException('Thiếu channelId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
     }
-    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const parsedLimit = limit
+      ? parseInt(limit, 10)
+      : MESSAGE_CONSTANTS.DEFAULT_LIMIT;
     const messages = await this.messageService.getConversationMessages(
       channelId,
       cursor,
@@ -32,7 +40,7 @@ export class MessageController {
       direction,
     );
     return {
-      message: 'Lấy lịch sử tin nhắn thành công',
+      message: MESSAGE_SUCCESS_MESSAGES.HISTORY_RETRIEVED,
       data: messages,
     };
   }
@@ -44,16 +52,18 @@ export class MessageController {
     @Query('limit') limit?: string,
   ) {
     if (!channelId) {
-      throw new BadRequestException('Thiếu channelId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
     }
-    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const parsedLimit = limit
+      ? parseInt(limit, 10)
+      : MESSAGE_CONSTANTS.DEFAULT_LIMIT;
     const media = await this.messageService.getConversationMedia(
       channelId,
       cursor,
       parsedLimit,
     );
     return {
-      message: 'Lấy dữ liệu media thành công',
+      message: MESSAGE_SUCCESS_MESSAGES.MEDIA_RETRIEVED,
       data: media,
     };
   }
@@ -61,11 +71,11 @@ export class MessageController {
   @Get(':id/pinned-messages')
   async getPinnedMessages(@Param('id') channelId: string) {
     if (!channelId) {
-      throw new BadRequestException('Thiếu channelId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
     }
     const messages = await this.messageService.getPinnedMessages(channelId);
     return {
-      message: 'Lấy danh sách tin nhắn ghim thành công',
+      message: MESSAGE_SUCCESS_MESSAGES.PINNED_RETRIEVED,
       data: messages,
     };
   }
@@ -78,7 +88,7 @@ export class MessageController {
     @Query('type') type?: string,
   ) {
     if (!channelId) {
-      throw new BadRequestException('Thiếu channelId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
     }
     const messages = await this.messageService.searchMessages(
       channelId,
@@ -87,7 +97,7 @@ export class MessageController {
       type,
     );
     return {
-      message: 'Tìm kiếm tin nhắn thành công',
+      message: MESSAGE_SUCCESS_MESSAGES.SEARCH_COMPLETED,
       data: messages,
     };
   }
@@ -95,11 +105,11 @@ export class MessageController {
   @Get('messages/:id/thread')
   async getThreadMessages(@Param('id') messageId: string) {
     if (!messageId) {
-      throw new BadRequestException('Thiếu messageId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
     const result = await this.messageService.getThreadMessages(messageId);
     return {
-      message: 'Lấy tin nhắn trong luồng thành công',
+      message: MESSAGE_SUCCESS_MESSAGES.THREAD_RETRIEVED,
       data: result,
     };
   }
@@ -107,11 +117,11 @@ export class MessageController {
   @Get('messages/:id/threads')
   async getConversationThreads(@Param('id') channelId: string) {
     if (!channelId) {
-      throw new BadRequestException('Thiếu channelId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
     }
     const threads = await this.messageService.getConversationThreads(channelId);
     return {
-      message: 'Lấy danh sách các luồng thành công',
+      message: MESSAGE_SUCCESS_MESSAGES.THREADS_LISTED,
       data: threads,
     };
   }
@@ -122,10 +132,10 @@ export class MessageController {
     @Param('id') messageId: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_USER_ID);
     }
     if (!messageId) {
-      throw new BadRequestException('Thiếu messageId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
     const result = await this.messageService.toggleFollowThread(
       userId,
@@ -145,10 +155,10 @@ export class MessageController {
     @Param('id') messageId: string,
   ) {
     if (!userId) {
-      throw new BadRequestException('Thiếu userId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_USER_ID);
     }
     if (!messageId) {
-      throw new BadRequestException('Thiếu messageId');
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
     const result = await this.messageService.toggleFollowThread(
       userId,

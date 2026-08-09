@@ -10,7 +10,14 @@ import {
 import { Inject, Logger } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { Server, Socket } from 'socket.io';
-import { ChatEvent } from './chat.events';
+import {
+  ChatEvent,
+  CHAT_RESPONSE_STATUS,
+  CHAT_REACTION_ACTION,
+  CHAT_MENTION,
+  CHAT_PREVIEW_TEXT,
+  CHAT_ERROR_MESSAGES,
+} from './types/chat.enums';
 import { MessageService } from '../message/message.service';
 import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
@@ -71,7 +78,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     if (data.channelId) {
       client.join(data.channelId);
-      return { status: 'joined', channelId: data.channelId };
+      return { status: CHAT_RESPONSE_STATUS.JOINED, channelId: data.channelId };
     }
   }
 
@@ -114,7 +121,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         !data.pollData &&
         !data.noteData)
     ) {
-      return { status: 'error', message: 'Invalid data' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.INVALID_DATA };
     }
 
     try {
@@ -156,7 +163,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         .getConversationMembersInfo(data.channelId)
         .then(async (membersInfo) => {
           const mentions = data.mentions || [];
-          const isMentionedAll = mentions.includes('all');
+          const isMentionedAll = mentions.includes(CHAT_MENTION.ALL);
           let recipientIds = membersInfo
             .filter((m) => m.userId !== userId) // exclude sender
             .filter(
@@ -175,16 +182,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             let previewContent = data.content || '';
             if (data.type === MessageType.POLL) {
-              previewContent = `Đã tạo một bình chọn: ${data.pollData?.title || ''}`;
+              previewContent = `${CHAT_PREVIEW_TEXT.POLL_PREFIX}${data.pollData?.title || ''}`;
             } else if (data.type === MessageType.NOTE) {
-              previewContent = `Đã tạo một ghi chú: ${data.noteData?.title || ''}`;
+              previewContent = `${CHAT_PREVIEW_TEXT.NOTE_PREFIX}${data.noteData?.title || ''}`;
             } else if (data.medias && data.medias.length > 0) {
               const type = data.medias[0].mimeType.startsWith('image/')
-                ? 'hình ảnh'
+                ? CHAT_PREVIEW_TEXT.IMAGE
                 : data.medias[0].mimeType.startsWith('video/')
-                  ? 'video'
-                  : 'tệp đính kèm';
-              previewContent = `Đã gửi một ${type}`;
+                  ? CHAT_PREVIEW_TEXT.VIDEO
+                  : CHAT_PREVIEW_TEXT.FILE;
+              previewContent = `${CHAT_PREVIEW_TEXT.SENT_ATTACHMENT_PREFIX}${type}`;
             }
 
             this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
@@ -237,10 +244,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       }
 
-      return { status: 'success', data: messageWithUrls };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to send message' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.SEND_FAILED };
     }
   }
 
@@ -263,10 +270,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const targetRooms = [channelId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
-      return { status: 'success', data: messageWithUrls };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to send system message' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.SYSTEM_SEND_FAILED };
     }
   }
 
@@ -277,7 +284,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       channelId: string;
       messageId: string;
       emoji: string;
-      action: 'add' | 'remove';
+      action: CHAT_REACTION_ACTION.ADD | CHAT_REACTION_ACTION.REMOVE;
     },
     @ConnectedSocket() client: Socket,
   ) {
@@ -288,7 +295,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       let finalAction = data.action;
       let finalEmoji = data.emoji;
 
-      if (data.action === 'add') {
+      if (data.action === CHAT_REACTION_ACTION.ADD) {
         const result = await this.messageService.addReaction(
           data.messageId,
           userId,
@@ -316,10 +323,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         emoji: finalEmoji,
         action: finalAction,
       });
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to update reaction' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.REACTION_FAILED };
     }
   }
 
@@ -346,10 +353,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to vote poll' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.POLL_VOTE_FAILED };
     }
   }
 
@@ -375,10 +382,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to add poll option' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.POLL_ADD_OPTION_FAILED };
     }
   }
 
@@ -415,10 +422,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to edit poll' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.POLL_EDIT_FAILED };
     }
   }
 
@@ -457,10 +464,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to edit note' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.NOTE_EDIT_FAILED };
     }
   }
 
@@ -494,10 +501,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server
         .to(targetRooms)
         .emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to edit message' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.MESSAGE_EDIT_FAILED };
     }
   }
 
@@ -523,10 +530,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server
         .to(targetRooms)
         .emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to recall message' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.MESSAGE_RECALL_FAILED };
     }
   }
 
@@ -556,10 +563,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userId,
         readAt: readReceipt.lastReadAt,
       });
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to mark as read' };
+      return { status: CHAT_RESPONSE_STATUS.ERROR, message: CHAT_ERROR_MESSAGES.READ_RECEIPT_FAILED };
     }
   }
 
@@ -618,12 +625,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server
         .to(targetRooms)
         .emit(ChatEvent.MESSAGE_PINNED, messageWithUrls);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
       return {
-        status: 'error',
-        message: error.message || 'Failed to pin message',
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: error.message || CHAT_ERROR_MESSAGES.PIN_FAILED,
       };
     }
   }
@@ -655,12 +662,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server
         .to(targetRooms)
         .emit(ChatEvent.MESSAGE_UNPINNED, messageWithUrls);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
       return {
-        status: 'error',
-        message: error.message || 'Failed to unpin message',
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: error.message || CHAT_ERROR_MESSAGES.UNPIN_FAILED,
       };
     }
   }
