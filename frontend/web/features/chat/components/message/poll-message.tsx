@@ -10,7 +10,7 @@ import {
   Edit2,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
-import { formatDividerTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProfile } from "../../api/chat.api";
 import EditPollModal from "../modals/edit-poll-modal";
@@ -139,7 +139,7 @@ const PollMessage = React.memo(function PollMessage({
                   </span>
                 </span>
                 <span>•</span>
-                <span>{formatDividerTime(new Date(poll.createdAt))}</span>
+                <span>{formatDateTime(poll.createdAt)}</span>
               </div>
             </div>
           </div>

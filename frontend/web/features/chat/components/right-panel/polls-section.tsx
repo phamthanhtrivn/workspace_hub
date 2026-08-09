@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { BarChart2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import ViewPollModal from "../modals/view-poll-modal";
-import { formatDividerTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { usePolls } from "../../hooks/usePolls";
 
 interface PollsSectionProps {
@@ -65,7 +65,7 @@ export default function PollsSection({
                     className="p-3 bg-purple-50 border border-purple-100 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors"
                   >
                     <p className="text-xs font-semibold text-purple-900 mb-1 truncate">
-                      {poll.title} - {formatDividerTime(poll.createdAt)}
+                      {poll.title} - {formatDateTime(poll.createdAt)}
                     </p>
                     <p className="text-[10px] text-purple-600/70">
                       {poll.options?.length || 0} options

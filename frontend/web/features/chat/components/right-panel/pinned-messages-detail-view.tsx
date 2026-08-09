@@ -6,6 +6,7 @@ import { getBulkProfilesByIds, getPinnedMessages } from "../../api/chat.api";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { UserProfileResponse } from "../../types/chat.types";
+import { formatDateTime } from "@/lib/date";
 
 interface PinnedMessagesDetailViewProps {
   conversationId: string;
@@ -158,7 +159,7 @@ export default function PinnedMessagesDetailView({
                   <div className="mt-1 text-sm text-gray-600 inline-flex items-center gap-2">
                     <span className="block truncate">{getPinnedPreviewText(message)}</span>
                     <span className="shrink-0 text-[11px] text-gray-400">
-                      {new Date(message.updatedAt).toLocaleDateString()}
+                      {formatDateTime(message.updatedAt)}
                     </span>
                   </div>
                 </button>

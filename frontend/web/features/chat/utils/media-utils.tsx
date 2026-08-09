@@ -1,3 +1,5 @@
+import { formatDateTime } from "@/lib/date";
+
 export const isAudioFile = (media: any): boolean => {
   if (!media) return false;
   return (
@@ -20,10 +22,5 @@ export const renderAudioPlayer = (media: any, isMe: boolean) => {
 };
 
 export function formatDate(createdAt: string) {
-  if (!createdAt) return "";
-  return new Date(createdAt).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+  return formatDateTime(createdAt);
 }

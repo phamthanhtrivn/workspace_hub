@@ -8,7 +8,7 @@ import {
   BarChart2,
 } from "lucide-react";
 import { UserProfileResponse } from "../../types/chat.types";
-import { formatTimeAgo } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { formatMessageContent } from "../../utils/message-formatter";
 
 interface SearchResultItemProps {
@@ -119,7 +119,7 @@ export default function SearchResultItem({
             {fullName}
           </span>
           <span className="text-[11px] text-gray-400 whitespace-nowrap flex-shrink-0">
-            {formatTimeAgo(message.createdAt)}
+            {formatDateTime(message.createdAt)}
           </span>
         </div>
 

@@ -7,7 +7,7 @@ import { useAppDispatch } from "@/store/store";
 import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
 import { X, MessageSquare, User, MessageCircle } from "lucide-react";
 import Image from "next/image";
-import { formatTimeAgo } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 
 interface ThreadsListViewProps {
   conversationId: string;
@@ -67,7 +67,7 @@ export default function ThreadsListView({
 
             let lastReplyTimeStr = "";
             if (msg.threadLastReplyAt) {
-              lastReplyTimeStr = formatTimeAgo(msg.threadLastReplyAt);
+              lastReplyTimeStr = formatDateTime(msg.threadLastReplyAt);
             }
 
             return (

@@ -7,7 +7,7 @@ import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
-import { formatConversationTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import ThreadChatInput from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
 import { toast } from "react-toastify";
@@ -304,7 +304,7 @@ export default function ThreadDetailView({
                       "User"}
                 </span>
                 <span className="text-[10px] text-gray-400">
-                  {formatConversationTime(rootMessage.createdAt)}
+                  {formatDateTime(rootMessage.createdAt)}
                 </span>
               </div>
               <div className="text-xs text-gray-800 break-words bg-gray-200 p-2.5 rounded-lg border border-gray-100">
@@ -357,7 +357,7 @@ export default function ThreadDetailView({
                           : profile?.fullName || "User"}
                       </span>
                       <span className="text-[9px] text-gray-400">
-                        {formatConversationTime(reply.createdAt)}
+                        {formatDateTime(reply.createdAt)}
                       </span>
                     </div>
                     <div className="text-xs text-gray-800 break-words bg-gray-100/50 p-2 rounded-lg">

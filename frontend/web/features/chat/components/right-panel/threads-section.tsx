@@ -1,7 +1,7 @@
 import { ChevronDown, ChevronRight, MessageCircle, MessageSquare, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
-import { formatTimeAgo } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { getConversationThreads } from "../../api/chat.api";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
@@ -64,7 +64,7 @@ export default function ThreadsSection({
                 const profile = memberProfiles[message.senderId];
                 const name = profile?.fullName || "User";
                 const lastReplyTime = message.threadLastReplyAt
-                  ? formatTimeAgo(message.threadLastReplyAt)
+                  ? formatDateTime(message.threadLastReplyAt)
                   : null;
 
                 return (

@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { saveAs } from "file-saver";
 import { formatFileSize } from "@/lib/file";
-import { formatDate } from "../../utils/media-utils";
+import { formatDateTime } from "@/lib/date";
 
 interface FilesSectionProps {
   isExpanded: boolean;
@@ -118,7 +118,7 @@ export default function FilesSection({
                         {item.name}
                       </span>
                       <span className="block truncate text-xs text-gray-500">
-                        {formatFileSize(item.sizeBytes)} - {new Date(item.message?.createdAt || item.createdAt).toLocaleDateString()}
+                        {formatFileSize(item.sizeBytes)} - {formatDateTime(item.message?.createdAt || item.createdAt)}
                       </span>
                     </span>
                     {item.fileUrl && (

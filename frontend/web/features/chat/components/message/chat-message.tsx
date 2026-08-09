@@ -23,6 +23,7 @@ import NoteMessage from "./note-message";
 import ReactionDetailModal from "../modals/reaction-detail-modal";
 import MediaLightbox from "./media-lightbox";
 import { renderMessageContent } from "../../utils/message-formatter";
+import { formatDateTime } from "@/lib/date";
 
 interface ChatMessageProps {
   msg: any;
@@ -91,10 +92,7 @@ const ChatMessage = React.memo(function ChatMessage({
   const currentUser = useAppSelector((state) => state.auth);
 
   const time = useMemo(() => {
-    return new Date(msg.createdAt).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatDateTime(msg.createdAt);
   }, [msg.createdAt]);
 
   const isWithin24Hours = useMemo(() => {
@@ -522,11 +520,7 @@ const ChatMessage = React.memo(function ChatMessage({
                       <span>{msg.threadReplyCount} replies</span>
                       {msg.threadLastReplyAt && (
                         <span className="text-[10px] text-indigo-400 font-normal">
-                          Last:{" "}
-                          {new Date(msg.threadLastReplyAt).toLocaleTimeString(
-                            [],
-                            { hour: "2-digit", minute: "2-digit" },
-                          )}
+                          Last: {formatDateTime(msg.threadLastReplyAt)}
                         </span>
                       )}
                     </div>

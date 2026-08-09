@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { FileText, Edit2 } from "lucide-react";
 import EditNoteModal from "../modals/edit-note-modal";
 import { useAppSelector } from "@/store/store";
-import { formatDividerTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicProfile } from "../../api/chat.api";
 
@@ -72,7 +72,7 @@ const NoteMessage = React.memo(function NoteMessage({
                 </span>
               </span>
               <span>•</span>
-              <span>{formatDividerTime(new Date(note.createdAt))}</span>
+              <span>{formatDateTime(note.createdAt)}</span>
             </div>
           </div>
         </div>

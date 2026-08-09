@@ -15,6 +15,7 @@ import {
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import { saveAs } from "file-saver";
+import { formatDateTime } from "@/lib/date";
 import { formatFileSize } from "@/lib/file";
 import { getConversationMedia } from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
@@ -120,14 +121,7 @@ function getFileIconBg(item: any) {
 }
 
 function formatMediaDate(item: any) {
-  const rawDate = item.message?.createdAt || item.createdAt;
-  if (!rawDate) return "";
-  return new Date(rawDate).toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return formatDateTime(item.message?.createdAt || item.createdAt);
 }
 
 export default function MediaDetailView({

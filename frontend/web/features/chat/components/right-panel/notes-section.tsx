@@ -1,6 +1,6 @@
 import { FileText, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
-import { formatDividerTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { useNotes } from "../../hooks/useNotes";
 import ViewNoteModal from "../modals/view-note-modal";
 import { useState } from "react";
@@ -56,7 +56,7 @@ export default function NotesSection({
                 className="p-3 bg-amber-50 border border-amber-100 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors"
               >
                 <p className="text-xs font-semibold text-amber-900 mb-1 truncate">
-                  {note.title} - {formatDividerTime(note.createdAt)}
+                  {note.title} - {formatDateTime(note.createdAt)}
                 </p>
                 <p className="text-[10px] text-amber-700/80 line-clamp-2">
                   {note.content}
