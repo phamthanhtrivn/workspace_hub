@@ -8,6 +8,7 @@ import {
   getDirectConversationMedia,
   muteConversation,
   muteDirectConversation,
+  pinDirectConversation,
 } from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
 import MembersSection from "./members-section";
@@ -29,10 +30,9 @@ import {
   X,
   Bell,
   BellOff,
-  LogOut,
+  Pin,
   User,
   Users,
-  Search,
   Settings,
 } from "lucide-react";
 import Image from "next/image";
@@ -42,10 +42,12 @@ import {
   setActiveConversation,
   setSelectedProfileUserId,
   updateMuteStatus,
+  updatePinStatus,
   setActiveThreadRootMessage,
   setHighlightMessageId,
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { ChatQueryKey } from "../../types/chat.constant";
 
 interface ChatRightPanelProps {
   onClose: () => void;
@@ -126,6 +128,48 @@ export default function ChatRightPanel({
     setIsMuted(currentMember?.muted || false);
   }, [currentMember]);
 
+  const isPinned = currentMember?.pinned || false;
+
+  const updateDirectConversationMemberCache = (
+    conversationId: string,
+    memberPatch: { muted?: boolean; pinned?: boolean },
+  ) => {
+    queryClient.setQueriesData(
+      { queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS] },
+      (oldData: any) => {
+        if (!oldData?.conversations) return oldData;
+        return {
+          ...oldData,
+          conversations: oldData.conversations
+            .map((conversation: any) => {
+              if (conversation.id !== conversationId) return conversation;
+              return {
+                ...conversation,
+                members: conversation.members?.map((member: any) =>
+                  member.userId === currentUserId
+                    ? { ...member, ...memberPatch }
+                    : member,
+                ),
+              };
+            })
+            .sort((a: any, b: any) => {
+              const aPinned = a.members?.find(
+                (member: any) => member.userId === currentUserId,
+              )?.pinned;
+              const bPinned = b.members?.find(
+                (member: any) => member.userId === currentUserId,
+              )?.pinned;
+              if (aPinned !== bPinned) return aPinned ? -1 : 1;
+              return (
+                new Date(b.updatedAt).getTime() -
+                new Date(a.updatedAt).getTime()
+              );
+            }),
+        };
+      },
+    );
+  };
+
   const handleToggleMute = async () => {
     if (!activeConversation || !currentUserId) return;
     const targetMuted = !isMuted;
@@ -144,31 +188,49 @@ export default function ChatRightPanel({
         }),
       );
 
-      queryClient.setQueryData(
-        ["conversations", currentUserId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            conversations: oldData.conversations.map((c: any) => {
-              if (c.id === activeConversation.id) {
-                return {
-                  ...c,
-                  members: c.members?.map((m: any) =>
-                    m.userId === currentUserId
-                      ? { ...m, muted: targetMuted }
-                      : m,
-                  ),
-                };
-              }
-              return c;
-            }),
-          };
-        },
-      );
+      if (isDirect) {
+        updateDirectConversationMemberCache(activeConversation.id, {
+          muted: targetMuted,
+        });
+      }
     } catch (error) {
       setIsMuted(isMuted);
       console.error("Failed to update mute status:", error);
+    }
+  };
+
+  const handleTogglePin = async () => {
+    if (!activeConversation || !currentUserId || !isDirect) return;
+    const targetPinned = !isPinned;
+
+    dispatch(
+      updatePinStatus({
+        conversationId: activeConversation.id,
+        userId: currentUserId,
+        pinned: targetPinned,
+      }),
+    );
+    updateDirectConversationMemberCache(activeConversation.id, {
+      pinned: targetPinned,
+    });
+
+    try {
+      await pinDirectConversation(activeConversation.id, targetPinned);
+      queryClient.invalidateQueries({
+        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
+      });
+    } catch (error) {
+      dispatch(
+        updatePinStatus({
+          conversationId: activeConversation.id,
+          userId: currentUserId,
+          pinned: isPinned,
+        }),
+      );
+      updateDirectConversationMemberCache(activeConversation.id, {
+        pinned: isPinned,
+      });
+      console.error("Failed to update pin status:", error);
     }
   };
   const isOwnerOrAdmin =
@@ -419,6 +481,23 @@ export default function ChatRightPanel({
           <p className="text-sm text-gray-500 mb-4">{displayDescription}</p>
 
           <div className="flex gap-4">
+            {isDirect && (
+              <button
+                onClick={handleTogglePin}
+                className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
+              >
+                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                  <Pin
+                    size={18}
+                    className={isPinned ? "fill-blue-600 text-blue-600" : ""}
+                  />
+                </div>
+                <span className="text-xs font-medium">
+                  {isPinned ? "Unpin" : "Pin"}
+                </span>
+              </button>
+            )}
+
             <button
               onClick={handleToggleMute}
               className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"

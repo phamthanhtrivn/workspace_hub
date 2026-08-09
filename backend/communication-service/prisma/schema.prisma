@@ -164,7 +164,6 @@ model Message {
   senderId          String           @map("sender_id") @db.Uuid
   content           String?
   type              MessageType
-  replyToMessageId  String?          @map("reply_to_message_id") @db.Uuid
   edited            Boolean          @default(false)
   pinned            Boolean          @default(false)
   recalled          Boolean          @default(false)
@@ -178,8 +177,6 @@ model Message {
   threadLastReplyAt DateTime?        @map("thread_last_reply_at")
 
   channel           Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  replyTo           Message?         @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies           Message[]        @relation("MessageReplies")
   threadParent      Message?         @relation("ThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
   threadReplies     Message[]        @relation("ThreadReplies")
 
@@ -221,6 +218,7 @@ model DirectConversationParticipant {
   lastReadMessageId String?            @map("last_read_message_id") @db.Uuid
   lastReadAt        DateTime?          @map("last_read_at")
   muted             Boolean            @default(false)
+  pinned            Boolean            @default(false)
 
   conversation      DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 
@@ -239,7 +237,6 @@ model DirectMessage {
   senderId         String           @map("sender_id") @db.Uuid
   content          String?
   type             MessageType
-  replyToMessageId String?          @map("reply_to_message_id") @db.Uuid
   edited           Boolean          @default(false)
   pinned           Boolean          @default(false)
   recalled         Boolean          @default(false)
@@ -253,8 +250,6 @@ model DirectMessage {
   threadLastReplyAt DateTime?        @map("thread_last_reply_at")
 
   conversation     DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  replyTo          DirectMessage?   @relation("DirectMessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies          DirectMessage[]  @relation("DirectMessageReplies")
   threadParent      DirectMessage?   @relation("DirectThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
   threadReplies     DirectMessage[]  @relation("DirectThreadReplies")
 

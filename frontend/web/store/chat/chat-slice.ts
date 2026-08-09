@@ -131,6 +131,27 @@ const chatSlice = createSlice({
         }
       }
     },
+    updatePinStatus: (
+      state,
+      action: PayloadAction<{
+        conversationId: string;
+        userId: string;
+        pinned: boolean;
+      }>,
+    ) => {
+      if (
+        state.activeConversation &&
+        state.activeConversation.id === action.payload.conversationId &&
+        state.activeConversation.members
+      ) {
+        const member = state.activeConversation.members.find(
+          (m) => m.userId === action.payload.userId,
+        );
+        if (member) {
+          member.pinned = action.payload.pinned;
+        }
+      }
+    },
     setActiveThreadRootMessage: (state, action: PayloadAction<any | null>) => {
       state.activeThreadRootMessage = action.payload;
     },
@@ -167,6 +188,7 @@ export const {
   removeMember,
   updateConversationInfo,
   updateMuteStatus,
+  updatePinStatus,
   setActiveThreadRootMessage,
   setActiveSpaceId,
   setDirectConversations,

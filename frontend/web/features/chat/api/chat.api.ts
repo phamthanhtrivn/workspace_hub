@@ -484,6 +484,17 @@ export const muteDirectConversation = async (
   return normalizeApiResponse<MuteConversationResponse>(response.data);
 };
 
+export const pinDirectConversation = async (
+  conversationId: string,
+  pinned: boolean,
+): Promise<ApiResponse<any>> => {
+  const response = await api.patch(
+    `/api/direct-conversations/${conversationId}/pin`,
+    { pinned },
+  );
+  return normalizeApiResponse<any>(response.data);
+};
+
 export const getThreadMessages = async (
   messageId: string,
 ): Promise<ApiResponse<ThreadMessagesResponse>> => {

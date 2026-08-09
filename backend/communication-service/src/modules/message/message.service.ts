@@ -38,7 +38,6 @@ export class MessageService {
       title: string;
       content: string;
     },
-    replyToMessageId?: string,
     threadParentId?: string,
   ): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
@@ -138,7 +137,6 @@ export class MessageService {
           senderId,
           content,
           type,
-          replyToMessageId,
           threadParentId,
           medias:
             medias && medias.length > 0
@@ -187,7 +185,6 @@ export class MessageService {
           medias: true,
           poll: { include: { options: { include: { votes: true } } } },
           note: true,
-          replyTo: true,
         },
       });
 
@@ -226,7 +223,6 @@ export class MessageService {
       medias: true,
       poll: { include: { options: { include: { votes: true } } } },
       note: true,
-      replyTo: true,
       threadFollowers: true,
     };
 
@@ -542,7 +538,6 @@ export class MessageService {
         medias: true,
         poll: { include: { options: { include: { votes: true } } } },
         note: true,
-        replyTo: true,
       },
       take: 10,
     });
@@ -559,7 +554,6 @@ export class MessageService {
       medias: true,
       poll: { include: { options: { include: { votes: true } } } },
       note: true,
-      replyTo: true,
     };
 
     return this.prisma.message.findMany({
@@ -622,7 +616,6 @@ export class MessageService {
       medias: true,
       poll: { include: { options: { include: { votes: true } } } },
       note: true,
-      replyTo: true,
       threadFollowers: true,
     };
 
@@ -771,7 +764,6 @@ export class MessageService {
         medias: true,
         poll: { include: { options: { include: { votes: true } } } },
         note: true,
-        replyTo: true,
       },
     });
   }
@@ -821,7 +813,6 @@ export class MessageService {
         medias: true,
         poll: { include: { options: { include: { votes: true } } } },
         note: true,
-        replyTo: true,
       },
     });
   }
@@ -880,7 +871,6 @@ export class MessageService {
         medias: true,
         poll: { include: { options: { include: { votes: true } } } },
         note: true,
-        replyTo: true,
       },
     });
   }
@@ -939,7 +929,6 @@ export class MessageService {
         medias: true,
         poll: { include: { options: { include: { votes: true } } } },
         note: true,
-        replyTo: true,
       },
     });
   }
@@ -963,7 +952,6 @@ export class MessageService {
         medias: true,
         poll: { include: { options: { include: { votes: true } } } },
         note: true,
-        replyTo: true,
       },
     });
 

@@ -35,6 +35,7 @@ export interface ConversationMember {
   joinedAt: string;
   lastReadMessageId: string | null;
   muted: boolean;
+  pinned?: boolean;
   nickname: string | null;
   role: ConversationRole;
 }

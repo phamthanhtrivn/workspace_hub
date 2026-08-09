@@ -150,7 +150,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         data.medias,
         data.pollData,
         data.noteData,
-        undefined,
         data.threadParentId,
       );
 

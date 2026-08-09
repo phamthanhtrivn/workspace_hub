@@ -92,7 +92,7 @@ export class DirectConversationService {
       },
     });
 
-    return Promise.all(
+    const mappedConversations = await Promise.all(
       conversations.map(async (conversation) => {
         const participant = conversation.participants.find(
           (item) => item.userId === userId,
@@ -117,6 +117,16 @@ export class DirectConversationService {
         return this.mapDirectConversation(conversation, userId, unreadCount);
       }),
     );
+
+    return mappedConversations.sort((a, b) => {
+      const aPinned = a.members?.find((member) => member.userId === userId)?.pinned;
+      const bPinned = b.members?.find((member) => member.userId === userId)?.pinned;
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
+      return (
+        new Date(b.updatedAt).getTime() -
+        new Date(a.updatedAt).getTime()
+      );
+    });
   }
 
   async muteDirectConversation(
@@ -158,6 +168,39 @@ export class DirectConversationService {
           muted,
         });
     }
+
+    return updatedParticipant;
+  }
+
+  async pinDirectConversation(
+    conversationId: string,
+    userId: string,
+    pinned: boolean,
+  ) {
+    const participant =
+      await this.prisma.directConversationParticipant.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId,
+          },
+        },
+      });
+
+    if (!participant) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP);
+    }
+
+    const updatedParticipant =
+      await this.prisma.directConversationParticipant.update({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId,
+          },
+        },
+        data: { pinned },
+      });
 
     return updatedParticipant;
   }

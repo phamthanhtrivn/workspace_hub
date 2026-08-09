@@ -2,16 +2,20 @@
 
 import { useEffect, useMemo } from "react";
 import { Plus } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store/store";
 import {
   mergeMemberProfiles,
   setDirectConversations,
   setDirectConversationsLoading,
+  updateMuteStatus,
+  updatePinStatus,
 } from "@/store/chat/chat-slice";
 import {
   getBulkProfilesByIds,
   getDirectConversations,
+  muteDirectConversation,
+  pinDirectConversation,
 } from "../../api/chat.api";
 import {
   ChatProfilesMap,
@@ -22,6 +26,7 @@ import {
   ChatSidebarSection,
 } from "../../types/chat.constant";
 import DirectConversationItem from "./direct-conversation-item";
+import { sortDirectConversations } from "../../utils/direct-conversation-utils";
 
 interface DirectConversationsQueryData {
   conversations: ConversationResponse[];
@@ -50,6 +55,7 @@ export default function DirectConversationsSection({
   onSelectConversation,
 }: DirectConversationsSectionProps) {
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
   const {
     data,
     isLoading,
@@ -88,7 +94,14 @@ export default function DirectConversationsSection({
     staleTime: 1000 * 60 * 5,
   });
 
-  const directConversations = data?.conversations ?? EMPTY_DIRECT_CONVERSATIONS;
+  const directConversations = useMemo(
+    () =>
+      sortDirectConversations(
+        data?.conversations ?? EMPTY_DIRECT_CONVERSATIONS,
+        currentUserId,
+      ),
+    [currentUserId, data?.conversations],
+  );
   const memberProfiles = data?.profiles ?? EMPTY_MEMBER_PROFILES;
   const isLoadingProfiles = isLoading || isFetching;
 
@@ -98,9 +111,9 @@ export default function DirectConversationsSection({
 
   useEffect(() => {
     if (!data) return;
-    dispatch(setDirectConversations(data.conversations));
+    dispatch(setDirectConversations(sortDirectConversations(data.conversations, currentUserId)));
     dispatch(mergeMemberProfiles(data.profiles));
-  }, [data, dispatch]);
+  }, [currentUserId, data, dispatch]);
 
   const filteredDirectConversations = useMemo(() => {
     const trimmedQuery = searchQuery.trim().toLowerCase();
@@ -115,6 +128,140 @@ export default function DirectConversationsSection({
       return name.toLowerCase().includes(trimmedQuery);
     });
   }, [currentUserId, directConversations, memberProfiles, searchQuery]);
+
+  const updateDirectConversationMemberCache = (
+    conversationId: string,
+    memberPatch: { pinned?: boolean; muted?: boolean },
+  ) => {
+    const queryKey = [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId];
+    queryClient.setQueryData<DirectConversationsQueryData>(
+      queryKey,
+      (oldData) => {
+        if (!oldData) return oldData;
+
+        const conversations = sortDirectConversations(oldData.conversations
+          .map((conversation) => {
+            if (conversation.id !== conversationId) return conversation;
+            return {
+              ...conversation,
+              members: conversation.members.map((member) =>
+                member.userId === currentUserId
+                  ? { ...member, ...memberPatch }
+                  : member,
+              ),
+            };
+          }), currentUserId);
+
+        return { ...oldData, conversations };
+      },
+    );
+  };
+
+  const pinMutation = useMutation({
+    mutationFn: ({
+      conversationId,
+      pinned,
+    }: {
+      conversationId: string;
+      pinned: boolean;
+    }) => pinDirectConversation(conversationId, pinned),
+    onMutate: async ({ conversationId, pinned }) => {
+      await queryClient.cancelQueries({
+        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+      });
+      const queryKey = [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId];
+      const previousData =
+        queryClient.getQueryData<DirectConversationsQueryData>(queryKey);
+
+      updateDirectConversationMemberCache(conversationId, { pinned });
+      if (currentUserId) {
+        dispatch(updatePinStatus({ conversationId, userId: currentUserId, pinned }));
+      }
+
+      return { previousData };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+          context.previousData,
+        );
+        const previousConversation = context.previousData.conversations.find(
+          (conversation) => conversation.id === _variables.conversationId,
+        );
+        const previousMember = previousConversation?.members.find(
+          (member) => member.userId === currentUserId,
+        );
+        if (currentUserId && previousMember) {
+          dispatch(
+            updatePinStatus({
+              conversationId: _variables.conversationId,
+              userId: currentUserId,
+              pinned: previousMember.pinned || false,
+            }),
+          );
+        }
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+      });
+    },
+  });
+
+  const muteMutation = useMutation({
+    mutationFn: ({
+      conversationId,
+      muted,
+    }: {
+      conversationId: string;
+      muted: boolean;
+    }) => muteDirectConversation(conversationId, muted),
+    onMutate: async ({ conversationId, muted }) => {
+      await queryClient.cancelQueries({
+        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+      });
+      const queryKey = [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId];
+      const previousData =
+        queryClient.getQueryData<DirectConversationsQueryData>(queryKey);
+
+      updateDirectConversationMemberCache(conversationId, { muted });
+      if (currentUserId) {
+        dispatch(updateMuteStatus({ conversationId, userId: currentUserId, muted }));
+      }
+
+      return { previousData };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+          context.previousData,
+        );
+        const previousConversation = context.previousData.conversations.find(
+          (conversation) => conversation.id === _variables.conversationId,
+        );
+        const previousMember = previousConversation?.members.find(
+          (member) => member.userId === currentUserId,
+        );
+        if (currentUserId && previousMember) {
+          dispatch(
+            updateMuteStatus({
+              conversationId: _variables.conversationId,
+              userId: currentUserId,
+              muted: previousMember.muted || false,
+            }),
+          );
+        }
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+      });
+    },
+  });
 
   return (
     <div className="flex flex-col gap-1">
@@ -144,6 +291,18 @@ export default function DirectConversationsSection({
               isActive={activeConversationId === conversation.id}
               onClick={(selectedConversation) =>
                 onSelectConversation(selectedConversation, memberProfiles)
+              }
+              onTogglePin={(selectedConversation, pinned) =>
+                pinMutation.mutate({
+                  conversationId: selectedConversation.id,
+                  pinned,
+                })
+              }
+              onToggleMute={(selectedConversation, muted) =>
+                muteMutation.mutate({
+                  conversationId: selectedConversation.id,
+                  muted,
+                })
               }
             />
           ))

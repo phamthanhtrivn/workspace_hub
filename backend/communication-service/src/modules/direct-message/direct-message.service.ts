@@ -113,7 +113,6 @@ export class DirectMessageService {
         },
         include: {
           medias: true,
-          replyTo: true,
           threadFollowers: true,
         },
       });
@@ -149,7 +148,6 @@ export class DirectMessageService {
     const includeQuery = {
       reactions: true,
       medias: true,
-      replyTo: true,
       threadFollowers: true,
     };
 
@@ -327,7 +325,6 @@ export class DirectMessageService {
       include: {
         reactions: true,
         medias: true,
-        replyTo: true,
         threadFollowers: true,
       },
     });
@@ -379,7 +376,6 @@ export class DirectMessageService {
       },
       include: {
         medias: true,
-        replyTo: true,
         threadFollowers: true,
       },
       take: 10,
@@ -409,7 +405,6 @@ export class DirectMessageService {
       include: {
         reactions: true,
         medias: true,
-        replyTo: true,
         threadFollowers: true,
       },
       orderBy: {
@@ -433,7 +428,6 @@ export class DirectMessageService {
     const includeQuery = {
       reactions: true,
       medias: true,
-      replyTo: true,
       threadFollowers: true,
     };
 
@@ -562,7 +556,6 @@ export class DirectMessageService {
       include: {
         reactions: true,
         medias: true,
-        replyTo: true,
         threadFollowers: true,
       },
     });
@@ -593,7 +586,6 @@ export class DirectMessageService {
       include: {
         reactions: true,
         medias: true,
-        replyTo: true,
         threadFollowers: true,
       },
     });
@@ -608,7 +600,6 @@ export class DirectMessageService {
       include: {
         reactions: true,
         medias: true,
-        replyTo: true,
         threadFollowers: true,
       },
     });
@@ -627,7 +618,6 @@ export class DirectMessageService {
       include: {
         reactions: true,
         medias: true,
-        replyTo: true,
         threadFollowers: true,
       },
     });
@@ -646,7 +636,6 @@ export class DirectMessageService {
       include: {
         reactions: true,
         medias: true,
-        replyTo: true,
         threadFollowers: true,
       },
     });

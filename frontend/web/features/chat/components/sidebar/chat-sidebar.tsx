@@ -33,6 +33,7 @@ import {
   ConversationResponse,
   UserProfileResponse,
 } from "../../types/chat.types";
+import { sortDirectConversations } from "../../utils/direct-conversation-utils";
 import { ChatQueryKey } from "../../types/chat.constant";
 import { cn } from "@/lib/utils";
 
@@ -227,13 +228,18 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             if (!oldData) return oldData;
             const conversations = oldData.conversations || [];
             const exists = conversations.some((conv: any) => conv.id === newConversation.id);
+            const nextConversations = exists
+              ? conversations.map((conv: any) =>
+                  conv.id === newConversation.id ? newConversation : conv,
+                )
+              : [newConversation, ...conversations];
+
             return {
               ...oldData,
-              conversations: exists
-                ? conversations.map((conv: any) =>
-                    conv.id === newConversation.id ? newConversation : conv,
-                  )
-                : [newConversation, ...conversations],
+              conversations: sortDirectConversations(
+                nextConversations,
+                currentUserId,
+              ),
               profiles: {
                 ...(oldData.profiles || {}),
                 [selectedUserId]: selectedProfile,
@@ -314,6 +320,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const handleReload = async () => {
     if (isReloading) return;
     setIsReloading(true);
+    dispatch(setActiveConversation(null));
 
     try {
       await Promise.all([
@@ -329,6 +336,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         queryClient.invalidateQueries({ queryKey: ["threadMessages"] }),
         refetchSpaces(),
         refetchChannels(),
+        
       ]);
     } finally {
       setIsReloading(false);

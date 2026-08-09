@@ -76,4 +76,26 @@ export class DirectConversationController {
       data: result,
     };
   }
+
+  @Patch(':id/pin')
+  async pinDirectConversation(
+    @Param('id') conversationId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('pinned') pinned: boolean,
+  ) {
+    if (!userId || !conversationId || pinned === undefined) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    }
+
+    const result = await this.directConversationService.pinDirectConversation(
+      conversationId,
+      userId,
+      pinned,
+    );
+
+    return {
+      message: pinned ? 'Direct conversation pinned' : 'Direct conversation unpinned',
+      data: result,
+    };
+  }
 }

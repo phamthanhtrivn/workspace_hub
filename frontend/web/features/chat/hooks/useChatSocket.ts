@@ -5,6 +5,7 @@ import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { updateMuteStatus } from "@/store/chat/chat-slice";
 import { ChatQueryKey } from "../types/chat.constant";
+import { sortDirectConversations } from "../utils/direct-conversation-utils";
 
 /**
  * Global hook that owns the chat WebSocket connection lifecycle and syncs
@@ -72,7 +73,10 @@ export function useChatSocket() {
             }
             const updated = [...prev];
             updated[index] = conv;
-            return { ...oldData, conversations: updated };
+            return {
+              ...oldData,
+              conversations: sortDirectConversations(updated, currentUserId),
+            };
           }
 
           // Normal message – bump to top and update preview
@@ -101,9 +105,11 @@ export function useChatSocket() {
           }
 
           const updated = [...prev];
-          updated.splice(index, 1);
-          updated.unshift(conv);
-          return { ...oldData, conversations: updated };
+          updated[index] = conv;
+          return {
+            ...oldData,
+            conversations: sortDirectConversations(updated, currentUserId),
+          };
         },
       );
     };

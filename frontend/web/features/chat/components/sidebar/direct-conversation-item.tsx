@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
-import { BellOff, User } from "lucide-react";
+import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 import { ChatProfilesMap, ConversationResponse } from "../../types/chat.types";
@@ -18,6 +18,8 @@ interface DirectConversationItemProps {
   isLoadingProfile?: boolean;
   isActive?: boolean;
   onClick: (conversation: DirectConversationListItem) => void;
+  onTogglePin?: (conversation: DirectConversationListItem, pinned: boolean) => void;
+  onToggleMute?: (conversation: DirectConversationListItem, muted: boolean) => void;
 }
 
 const DirectConversationItem = React.memo(function DirectConversationItem({
@@ -27,7 +29,12 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
   isLoadingProfile = false,
   isActive,
   onClick,
+  onTogglePin,
+  onToggleMute,
 }: DirectConversationItemProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const otherMember = useMemo(() => {
     return conversation.members?.find(
       (member) => member.userId !== currentUserId,
@@ -46,7 +53,21 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
   const name = profile?.fullName || "User";
   const avatarUrl = profile?.avatarUrl;
   const isMuted = currentMember?.muted || false;
+  const isPinned = currentMember?.pinned || false;
   const unreadCount = conversation.unreadCount ?? 0;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMenuOpen]);
 
   return (
     <div
@@ -99,7 +120,10 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
         )}
       </div>
 
-      <div className="flex items-center justify-end shrink-0 pl-1">
+      <div className="flex items-center justify-end shrink-0 pl-1 gap-1">
+        {isPinned && (
+          <Pin size={11} className="shrink-0 fill-blue-600 text-blue-600" />
+        )}
         {conversation.hasMention && (
           <span className="text-blue-600 font-bold text-xs mr-1 animate-bounce">
             @
@@ -122,6 +146,50 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
             title="New replies in thread"
           />
         ) : null}
+
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsMenuOpen((value) => !value);
+            }}
+            className="rounded-md p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+            title="Conversation options"
+          >
+            <MoreVertical size={14} />
+          </button>
+
+          {isMenuOpen && (
+            <div
+              className="absolute right-0 top-full z-30 mt-1 min-w-[150px] rounded-xl border border-slate-200 bg-white py-1 text-xs text-slate-700 shadow-lg animate-in fade-in zoom-in-95 duration-100"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onTogglePin?.(conversation, !isPinned);
+                  setIsMenuOpen(false);
+                }}
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50"
+              >
+                <Pin size={14} className={isPinned ? "fill-blue-600 text-blue-600" : ""} />
+                <span>{isPinned ? "Unpin" : "Pin"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleMute?.(conversation, !isMuted);
+                  setIsMenuOpen(false);
+                }}
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50"
+              >
+                {isMuted ? <Bell size={14} /> : <BellOff size={14} />}
+                <span>{isMuted ? "Unmute" : "Mute"}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
