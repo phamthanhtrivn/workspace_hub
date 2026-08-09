@@ -12,7 +12,6 @@ import {
   Hash,
   Globe,
   PlusCircle,
-  MessageCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SearchUserModal from "../modals/search-user-modal";
@@ -37,10 +36,9 @@ import { cn } from "@/lib/utils";
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
-  onShowThreads?: () => void;
 }
 
-export default function ChatSidebar({ onSelectChat, onShowThreads }: ChatSidebarProps) {
+export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
@@ -384,27 +382,6 @@ export default function ChatSidebar({ onSelectChat, onShowThreads }: ChatSidebar
 
       {/* Main Items Scrollable List */}
       <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-        {/* Navigation Section */}
-        <div className="flex flex-col gap-0.5">
-          <button
-            onClick={() => {
-              if (onShowThreads && activeConversation) {
-                onShowThreads();
-              }
-            }}
-            disabled={!activeConversation}
-            className={cn(
-              "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-all duration-200 text-[13px] font-semibold cursor-pointer",
-              !activeConversation && "opacity-40 cursor-not-allowed"
-            )}
-          >
-            <span className="p-1.5 rounded-lg bg-slate-100 text-slate-500">
-              <MessageCircle size={14} />
-            </span>
-            <span>Threads</span>
-          </button>
-        </div>
-
         {/* Channels Section */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">

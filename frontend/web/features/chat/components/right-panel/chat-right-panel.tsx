@@ -12,6 +12,7 @@ import PollsSection from "./polls-section";
 import NotesSection from "./notes-section";
 import TasksSection from "./tasks-section";
 import PinnedMessagesSection from "./pinned-messages-section";
+import ThreadsSection from "./threads-section";
 import MediaDetailView from "./media-detail-view";
 import PollDetailView from "./poll-detail-view";
 import PinnedMessagesDetailView from "./pinned-messages-detail-view";
@@ -45,6 +46,10 @@ import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 interface ChatRightPanelProps {
   onClose: () => void;
   initialDetailView?: "images" | "files" | "polls" | "search" | "threads" | null;
+}
+
+function getMessageConversationId(message: any) {
+  return message?.channelId ?? message?.conversationId ?? null;
 }
 
 export default function ChatRightPanel({
@@ -86,12 +91,23 @@ export default function ChatRightPanel({
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (activeThreadRootMessage) {
-      setDetailView("thread");
-    } else if (detailView === "thread") {
-      setDetailView(null);
+    if (!activeThreadRootMessage) {
+      if (detailView === "thread") {
+        setDetailView(null);
+      }
+      return;
     }
-  }, [activeThreadRootMessage]);
+
+    if (getMessageConversationId(activeThreadRootMessage) !== activeConversation?.id) {
+      dispatch(setActiveThreadRootMessage(null));
+      if (detailView === "thread") {
+        setDetailView(null);
+      }
+      return;
+    }
+
+    setDetailView("thread");
+  }, [activeConversation?.id, activeThreadRootMessage, detailView, dispatch]);
 
   const isDirect = activeConversation?.type === "DIRECT";
 
@@ -182,6 +198,12 @@ export default function ChatRightPanel({
     dispatch(setHighlightMessageId(messageId));
     setDetailView(null);
     onClose();
+  };
+
+  const handleOpenThread = (message: any) => {
+    if (getMessageConversationId(message) !== activeConversation?.id) return;
+    dispatch(setActiveThreadRootMessage(message));
+    setDetailView("thread");
   };
 
   useEffect(() => {
@@ -311,7 +333,11 @@ export default function ChatRightPanel({
     );
   }
 
-  if (detailView === "thread" && activeThreadRootMessage) {
+  if (
+    detailView === "thread" &&
+    activeThreadRootMessage &&
+    getMessageConversationId(activeThreadRootMessage) === activeConversation?.id
+  ) {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadDetailView
@@ -426,6 +452,16 @@ export default function ChatRightPanel({
             onSeeAll={() => setDetailView("pinned")}
             onJumpToMessage={handleJumpToMessage}
           />
+
+          {isDirect && (
+            <ThreadsSection
+              conversationId={activeConversation!.id}
+              isExpanded={expandedSection === "threads"}
+              onToggle={() => toggleSection("threads")}
+              onSeeAll={() => setDetailView("threads")}
+              onOpenThread={handleOpenThread}
+            />
+          )}
 
           <ImagesVideosSection
             isExpanded={expandedSection === "images"}
