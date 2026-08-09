@@ -14,6 +14,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
   const selectedProfileUserId = useAppSelector(
     (state) => state.chat.selectedProfileUserId,
   );
+  const currentUserId = useAppSelector((state) => state.auth.userId)
 
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -143,12 +144,14 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                 </div>
               </div>
 
-              <button
-                onClick={handleMessage}
-                className="cursor-pointer w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
-              >
-                Send Message
-              </button>
+              {currentUserId !== selectedProfileUserId && (
+                <button
+                  onClick={handleMessage}
+                  className="cursor-pointer w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  Send Message
+                </button>
+              )}
             </div>
           ) : (
             <div className="text-center py-10 text-gray-500">
