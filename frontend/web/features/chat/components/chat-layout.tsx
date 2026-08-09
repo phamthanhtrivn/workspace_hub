@@ -8,8 +8,10 @@ import { useAppSelector, useAppDispatch } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import UserProfileModal from "./modals/user-profile-modal";
 import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
+import { useChatSocket } from "../hooks/useChatSocket";
 
 export default function ChatLayout() {
+  useChatSocket();
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");

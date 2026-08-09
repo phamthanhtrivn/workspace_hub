@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -13,9 +13,7 @@ import {
   LayoutDashboard,
   Mail,
   MessageSquareText,
-  Search,
   Settings,
-  Menu,
   X,
   ChevronLeft,
   ChevronRight,
@@ -102,7 +100,6 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   );
 
   const { email } = useAppSelector((state: any) => state.auth);
-  useChatSocket();
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
