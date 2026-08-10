@@ -121,6 +121,20 @@ export interface GroupInvitation {
   spaceId: string;
   invitedUserId: string;
   invitedBy: string;
+  invitedByName?: string;
+  invitedByAvatar?: string;
+  invitedUserName?: string ;
+  invitedUserAvatar?: string;
+  inviter?: {
+    userId: string;
+    fullName: string;
+    avatarUrl: string;
+  };
+  invitee?: {
+    userId: string;
+    fullName: string;
+    avatarUrl: string;
+  };
   status: InvitationStatus;
   createdAt: string;
   respondedAt?: string;

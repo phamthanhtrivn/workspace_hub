@@ -9,6 +9,7 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { MessageService } from '../message/message.service';
 import { INVITATION_STATUS } from './types/invitation.enums';
 import { InvitationPublisher } from './events/invitation.publisher';
+import { UserProfileSnapshot } from 'src/common/types/user.types';
 
 @Injectable()
 export class InvitationService {
@@ -20,7 +21,7 @@ export class InvitationService {
   ) {}
 
   async getPendingInvitations(userId: string) {
-    return this.prisma.spaceInvitation.findMany({
+    const invitations = await this.prisma.spaceInvitation.findMany({
       where: {
         invitedUserId: userId,
         status: INVITATION_STATUS.PENDING,
@@ -32,9 +33,27 @@ export class InvitationService {
         createdAt: 'desc',
       },
     });
+
+    return invitations.map((invitation) => ({
+      ...invitation,
+      inviter: {
+        userId: invitation.invitedBy,
+        fullName: invitation.invitedByName,
+        avatarUrl: invitation.invitedByAvatar,
+      },
+      invitee: {
+        userId: invitation.invitedUserId,
+        fullName: invitation.invitedUserName,
+        avatarUrl: invitation.invitedUserAvatar,
+      },
+    }));
   }
 
-  async acceptInvitation(userId: string, invitationId: string) {
+  async acceptInvitation(
+    userId: string,
+    invitationId: string,
+    responderSnapshot: UserProfileSnapshot,
+  ) {
     const invitation = await this.prisma.spaceInvitation.findUnique({
       where: { id: invitationId },
       include: { space: true },
@@ -122,6 +141,8 @@ export class InvitationService {
     this.conversationPublisher.publishInvitationAccepted(
       invitation.invitedBy,
       userId,
+      responderSnapshot.fullName,
+      responderSnapshot.avatarUrl,
       invitation.spaceId,
       invitation.space.name,
     );
@@ -129,7 +150,11 @@ export class InvitationService {
     return updatedInvitation;
   }
 
-  async declineInvitation(userId: string, invitationId: string) {
+  async declineInvitation(
+    userId: string,
+    invitationId: string,
+    responderSnapshot: UserProfileSnapshot,
+  ) {
     const invitation = await this.prisma.spaceInvitation.findUnique({
       where: { id: invitationId },
       include: { space: true },
@@ -160,6 +185,8 @@ export class InvitationService {
     this.conversationPublisher.publishInvitationDeclined(
       invitation.invitedBy,
       userId,
+      responderSnapshot.fullName,
+      responderSnapshot.avatarUrl,
       invitation.spaceId,
       invitation.space?.name,
     );

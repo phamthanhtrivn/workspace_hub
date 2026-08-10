@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { SpaceService } from './space.service';
 import { SPACE_SUCCESS_MESSAGES_LABEL } from './types/space.enums';
+import { InviteSpaceMembersDto } from './dto/invite-space-members.dto';
 
 @Controller('api/spaces')
 export class SpaceController {
@@ -85,8 +86,10 @@ export class SpaceController {
   @Post(':spaceId/invite')
   async inviteMembers(
     @Headers('x-user-id') userId: string,
+    @Headers('x-user-name') userName: string,
+    @Headers('x-user-avatar') userAvatar: string,
     @Param('spaceId') spaceId: string,
-    @Body() body: { userIds: string[] },
+    @Body() body: InviteSpaceMembersDto,
   ) {
     if (!userId) {
       throw new BadRequestException('Missing userId');
@@ -97,7 +100,11 @@ export class SpaceController {
     const result = await this.spaceService.inviteMembersToSpace(
       userId,
       spaceId,
-      body.userIds,
+      body.invitees,
+      {
+        fullName: userName,
+        avatarUrl: userAvatar,
+      },
     );
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.INVITED,

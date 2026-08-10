@@ -556,9 +556,15 @@ export const getSpaceChannels = async (
 
 export const inviteSpaceMembers = async (
   spaceId: string,
-  userIds: string[],
+  invitees: Pick<UserSearchResponse, "id" | "fullName" | "avatarUrl">[],
 ): Promise<any> => {
-  const response = await api.post(`/api/spaces/${spaceId}/invite`, { userIds });
+  const response = await api.post(`/api/spaces/${spaceId}/invite`, {
+    invitees: invitees.map((user) => ({
+      userId: user.id,
+      fullName: user.fullName,
+      avatarUrl: user.avatarUrl,
+    })),
+  });
   return response.data;
 };
 

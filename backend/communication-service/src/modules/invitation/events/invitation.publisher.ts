@@ -16,6 +16,8 @@ export class InvitationPublisher {
   publishInvitationAccepted(
     invitedBy: string,
     senderId: string,
+    senderName: string | null | undefined,
+    senderAvatar: string | null | undefined,
     spaceId: string,
     spaceName: string | null,
   ) {
@@ -25,9 +27,9 @@ export class InvitationPublisher {
         value: {
           recipientId: invitedBy,
           senderId,
-          senderName: '',
-          senderAvatar: '',
-          type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_ACCEPTED,
+          senderName: senderName ?? '',
+          senderAvatar: senderAvatar ?? '',
+          type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION_ACCEPTED,
           title: 'Invitation accepted',
           content: 'Accepted the space invitation',
           link: '/chat',
@@ -49,6 +51,8 @@ export class InvitationPublisher {
   publishInvitationDeclined(
     invitedBy: string,
     senderId: string,
+    senderName: string | null | undefined,
+    senderAvatar: string | null | undefined,
     spaceId: string,
     spaceName: string | null | undefined,
   ) {
@@ -58,9 +62,9 @@ export class InvitationPublisher {
         value: {
           recipientId: invitedBy,
           senderId,
-          senderName: '',
-          senderAvatar: '',
-          type: KAFKA_EVENTS.NOTIFICATION.CHAT_INVITATION_DECLINED,
+          senderName: senderName ?? '',
+          senderAvatar: senderAvatar ?? '',
+          type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION_DECLINED,
           title: 'Invitation declined',
           content: 'Declined the space invitation',
           link: '/chat',

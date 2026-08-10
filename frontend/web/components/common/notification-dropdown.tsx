@@ -49,14 +49,29 @@ if (!isRegistryInitialized) {
     DefaultListItemRenderer,
   );
   registerNotificationRenderer(
+    NotificationType.SPACE_INVITATION,
+    InvitationModalRenderer,
+    InvitationListItemRenderer,
+  );
+  registerNotificationRenderer(
     NotificationType.CHAT_GROUP_INVITATION,
     InvitationModalRenderer,
     InvitationListItemRenderer,
   );
   registerNotificationRenderer(
+    NotificationType.SPACE_INVITATION_ACCEPTED,
+    InvitationAcceptedModalRenderer,
+    InvitationAcceptedListItemRenderer,
+  );
+  registerNotificationRenderer(
     NotificationType.CHAT_INVITATION_ACCEPTED,
     InvitationAcceptedModalRenderer,
     InvitationAcceptedListItemRenderer,
+  );
+  registerNotificationRenderer(
+    NotificationType.SPACE_INVITATION_DECLINED,
+    InvitationDeclinedModalRenderer,
+    InvitationDeclinedListItemRenderer,
   );
   registerNotificationRenderer(
     NotificationType.CHAT_INVITATION_DECLINED,
@@ -79,6 +94,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const [tab, setTab] = useState<"ALL" | "UNREAD">("ALL");
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
+    
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 

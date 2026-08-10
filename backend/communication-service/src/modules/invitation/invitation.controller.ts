@@ -29,6 +29,8 @@ export class InvitationController {
   @Post(':id/accept')
   async acceptInvitation(
     @Headers('x-user-id') userId: string,
+    @Headers('x-user-name') userName: string,
+    @Headers('x-user-avatar') userAvatar: string,
     @Param('id') invitationId: string,
   ) {
     if (!userId) {
@@ -37,6 +39,10 @@ export class InvitationController {
     const result = await this.invitationService.acceptInvitation(
       userId,
       invitationId,
+      {
+        fullName: userName,
+        avatarUrl: userAvatar,
+      },
     );
     return {
       message: INVITATION_SUCCESS_MESSAGES_LABEL.ACCEPTED,
@@ -47,6 +53,8 @@ export class InvitationController {
   @Post(':id/decline')
   async declineInvitation(
     @Headers('x-user-id') userId: string,
+    @Headers('x-user-name') userName: string,
+    @Headers('x-user-avatar') userAvatar: string,
     @Param('id') invitationId: string,
   ) {
     if (!userId) {
@@ -55,6 +63,10 @@ export class InvitationController {
     const result = await this.invitationService.declineInvitation(
       userId,
       invitationId,
+      {
+        fullName: userName,
+        avatarUrl: userAvatar,
+      },
     );
     return {
       message: INVITATION_SUCCESS_MESSAGES_LABEL.DECLINED,

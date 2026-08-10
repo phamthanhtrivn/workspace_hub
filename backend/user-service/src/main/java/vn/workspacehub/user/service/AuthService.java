@@ -67,20 +67,12 @@ public class AuthService {
             throw new BusinessException("Email hoặc mật khẩu không chính xác");
         }
 
-        String accessToken = jwtService.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name());
-
         String ipAddress = getClientIpAddress(request);
 
         String rawRefreshToken = createAndSaveRefreshToken(user, request, ipAddress);
         setRefreshTokenCookie(response, rawRefreshToken);
 
-        return LoginResponseDto.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .accessToken(accessToken)
-                .build();
+        return buildLoginResponse(user);
     }
 
     @Transactional
@@ -159,7 +151,8 @@ public class AuthService {
                         .fullName(fullName)
                         .avatarUrl(avatarUrl)
                         .build();
-                userProfileRepository.save(userProfile);
+                userProfile = userProfileRepository.save(userProfile);
+                user.setProfile(userProfile);
 
                 AccountSetting accountSetting = AccountSetting.builder()
                         .user(user)
@@ -184,19 +177,11 @@ public class AuthService {
         }
 
         // Tạo JWT cho session
-        String accessToken = jwtService.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name());
-
         String ipAddress = getClientIpAddress(request);
         String rawRefreshToken = createAndSaveRefreshToken(user, request, ipAddress);
         setRefreshTokenCookie(response, rawRefreshToken);
 
-        return LoginResponseDto.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .accessToken(accessToken)
-                .build();
+        return buildLoginResponse(user);
     }
 
     @Transactional
@@ -239,15 +224,7 @@ public class AuthService {
 
         User user = storedToken.getUser();
 
-        String newAccessToken = jwtService.generateAccessToken(
-                user.getId(), user.getEmail(), user.getRole().name());
-
-        return LoginResponseDto.builder()
-                .userId(user.getId())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .accessToken(newAccessToken)
-                .build();
+        return buildLoginResponse(user);
     }
 
     @Transactional
@@ -378,6 +355,24 @@ public class AuthService {
     private void setRefreshTokenCookie(HttpServletResponse response, String rawRefreshToken) {
         CookieUtils.setCookie(response, REFRESH_TOKEN_COOKIE, rawRefreshToken,
                 (int) (refreshTokenExpirationMs / 1000), "/");
+    }
+
+    private LoginResponseDto buildLoginResponse(User user) {
+        UserProfile profile = user.getProfile();
+        String fullName = profile != null ? profile.getFullName() : null;
+        String avatarUrl = profile != null ? profile.getAvatarUrl() : null;
+
+        String accessToken = jwtService.generateAccessToken(
+                user.getId(), user.getEmail(), user.getRole().name(), fullName, avatarUrl);
+
+        return LoginResponseDto.builder()
+                .userId(user.getId())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .fullName(fullName)
+                .avatarUrl(avatarUrl)
+                .accessToken(accessToken)
+                .build();
     }
 
     private void revokeToken(RefreshToken token) {

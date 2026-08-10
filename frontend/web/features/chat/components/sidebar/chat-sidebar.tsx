@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import SearchUserModal from "../modals/search-user-modal";
 import CreateWorkspaceGroupModal from "../modals/create-workspace-group-modal";
 import CreateChannelModal from "../modals/create-channel-modal";
-import InviteGroupMembersModal from "../modals/invite-group-members-modal";
+import InviteGroupMembersModal from "../modals/invite-space-members-modal";
 import ConversationItem from "./conversation-item";
 import DirectConversationsSection from "./direct-conversations-section";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

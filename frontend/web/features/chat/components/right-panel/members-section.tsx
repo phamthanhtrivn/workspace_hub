@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Users, ChevronDown, ChevronRight, User } from "lucide-react";
 import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
-import InviteGroupMembersModal from "../modals/invite-group-members-modal";
+import InviteGroupMembersModal from "../modals/invite-space-members-modal";
 import { FaKey } from "react-icons/fa";
 
 interface MembersSectionProps {

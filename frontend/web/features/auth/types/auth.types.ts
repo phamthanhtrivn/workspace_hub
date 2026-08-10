@@ -1,3 +1,5 @@
+import { USER_ROLES } from "./auth.constants";
+
 export interface RegisterRequest {
   fullName: string;
   dob: string;
@@ -13,6 +15,8 @@ export interface LoginRequest {
 export interface LoginResponse {
   userId: string;
   email: string;
-  role: "USER" | "ADMIN";
+  role: USER_ROLES;
+  fullName: string;
+  avatarUrl: string;
   accessToken: string;
 }

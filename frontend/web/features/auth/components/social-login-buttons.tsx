@@ -28,6 +28,8 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
             userId: data.userId,
             email: data.email,
             role: data.role,
+            fullName: data.fullName,
+            avatarUrl: data.avatarUrl,
           }),
         );
 

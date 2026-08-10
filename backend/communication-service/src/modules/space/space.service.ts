@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  Inject,
-} from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InvitationStatus, SpaceRole } from '@prisma/client';
@@ -11,6 +7,8 @@ import {
   KAFKA_TOPICS,
 } from '../../common/constants/kafka.constants';
 import { DefaultSpaceChannelNames } from './types/space.types';
+import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
+import { UserProfileSnapshot } from 'src/common/types/user.types';
 
 @Injectable()
 export class SpaceService {
@@ -30,7 +28,9 @@ export class SpaceService {
         role: true,
       },
     });
-    const roleByUserId = new Map(roles.map((member) => [member.userId, member.role]));
+    const roleByUserId = new Map(
+      roles.map((member) => [member.userId, member.role]),
+    );
 
     return {
       ...channel,
@@ -44,9 +44,7 @@ export class SpaceService {
 
   async createSpace(userId: string, name: string) {
     if (!name || name.trim().length === 0) {
-      throw new BadRequestException(
-        'Space name cannot be empty',
-      );
+      throw new BadRequestException('Space name cannot be empty');
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -123,9 +121,7 @@ export class SpaceService {
     });
 
     if (!isMember) {
-      throw new BadRequestException(
-        'You are not a member of this space',
-      );
+      throw new BadRequestException('You are not a member of this space');
     }
 
     if (!name || name.trim().length === 0) {
@@ -181,8 +177,10 @@ export class SpaceService {
         type: 'GROUP',
         members: createdChannel.members.map((member) => ({
           ...member,
-          role: spaceMembers.find((spaceMember) => spaceMember.userId === member.userId)
-            ?.role ?? SpaceRole.MEMBER,
+          role:
+            spaceMembers.find(
+              (spaceMember) => spaceMember.userId === member.userId,
+            )?.role ?? SpaceRole.MEMBER,
         })),
       };
     });
@@ -199,9 +197,7 @@ export class SpaceService {
     });
 
     if (!isMember) {
-      throw new BadRequestException(
-        'You are not a member of this space',
-      );
+      throw new BadRequestException('You are not a member of this space');
     }
 
     const channels = await this.prisma.channel.findMany({
@@ -217,13 +213,16 @@ export class SpaceService {
       },
     });
 
-    return Promise.all(channels.map((channel) => this.mapChannelForClient(channel)));
+    return Promise.all(
+      channels.map((channel) => this.mapChannelForClient(channel)),
+    );
   }
 
   async inviteMembersToSpace(
     userId: string,
     spaceId: string,
-    invitedUserIds: string[],
+    invitees: InviteSpaceMemberDto[],
+    invitedBySnapshot: UserProfileSnapshot,
   ) {
     const requester = await this.prisma.spaceMember.findUnique({
       where: {
@@ -240,7 +239,7 @@ export class SpaceService {
       );
     }
 
-    if (!invitedUserIds || invitedUserIds.length === 0) {
+    if (!invitees || invitees.length === 0) {
       return { count: 0 };
     }
 
@@ -249,100 +248,120 @@ export class SpaceService {
       select: { name: true },
     });
 
-    return this.prisma.$transaction(async (tx) => {
-      const invitationsToNotify: { userId: string; invitationId: string }[] = [];
-      const alreadyMembers: string[] = [];
-      const alreadyPending: string[] = [];
-      for (const invitedId of invitedUserIds) {
-        if (!invitedId || invitedId === userId) {
-          continue;
-        }
+    return this.prisma
+      .$transaction(async (tx) => {
+        const invitationsToNotify: {
+          userId: string;
+          invitationId: string;
+          invitedByName?: string | null;
+          invitedByAvatar?: string | null;
+        }[] = [];
+        const alreadyMembers: string[] = [];
+        const alreadyPending: string[] = [];
+        for (const invitee of invitees) {
+          const invitedId = invitee.userId;
+          if (!invitedId || invitedId === userId) {
+            continue;
+          }
 
-        const exists = await tx.spaceMember.findUnique({
-          where: {
-            spaceId_userId: {
-              spaceId,
+          const exists = await tx.spaceMember.findUnique({
+            where: {
+              spaceId_userId: {
+                spaceId,
+                userId: invitedId,
+              },
+            },
+          });
+
+          if (exists) {
+            alreadyMembers.push(invitedId);
+            continue;
+          }
+
+          const existingInvitation = await tx.spaceInvitation.findUnique({
+            where: {
+              spaceId_invitedUserId: {
+                spaceId,
+                invitedUserId: invitedId,
+              },
+            },
+          });
+
+          if (existingInvitation?.status === InvitationStatus.PENDING) {
+            alreadyPending.push(invitedId);
+            continue;
+          }
+
+          if (existingInvitation) {
+            const invitation = await tx.spaceInvitation.update({
+              where: { id: existingInvitation.id },
+              data: {
+                invitedBy: userId,
+                invitedByName: invitedBySnapshot.fullName,
+                invitedByAvatar: invitedBySnapshot.avatarUrl,
+                invitedUserName: invitee.fullName,
+                invitedUserAvatar: invitee.avatarUrl,
+                status: InvitationStatus.PENDING,
+                respondedAt: null,
+              },
+            });
+            invitationsToNotify.push({
               userId: invitedId,
-            },
-          },
-        });
-
-        if (exists) {
-          alreadyMembers.push(invitedId);
-          continue;
+              invitationId: invitation.id,
+              invitedByName: invitation.invitedByName,
+              invitedByAvatar: invitation.invitedByAvatar,
+            });
+          } else {
+            const invitation = await tx.spaceInvitation.create({
+              data: {
+                spaceId,
+                invitedUserId: invitedId,
+                invitedBy: userId,
+                invitedByName: invitedBySnapshot.fullName,
+                invitedByAvatar: invitedBySnapshot.avatarUrl,
+                invitedUserName: invitee.fullName,
+                invitedUserAvatar: invitee.avatarUrl,
+              },
+            });
+            invitationsToNotify.push({
+              userId: invitedId,
+              invitationId: invitation.id,
+              invitedByName: invitation.invitedByName,
+              invitedByAvatar: invitation.invitedByAvatar,
+            });
+          }
         }
 
-        const existingInvitation = await tx.spaceInvitation.findUnique({
-          where: {
-            spaceId_invitedUserId: {
-              spaceId,
-              invitedUserId: invitedId,
+        return {
+          count: invitationsToNotify.length,
+          invitationsToNotify,
+          alreadyMemberCount: alreadyMembers.length,
+          pendingCount: alreadyPending.length,
+        };
+      })
+      .then((result) => {
+        for (const invitation of result.invitationsToNotify) {
+          this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+            key: invitation.userId,
+            value: {
+              recipientId: invitation.userId,
+              senderId: userId,
+              senderName: invitation.invitedByName,
+              senderAvatar: invitation.invitedByAvatar,
+              type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION,
+              title: 'Space invitation',
+              content: `You were invited to ${space?.name}`,
+              link: '/chat',
+              metadata: {
+                invitationId: invitation.invitationId,
+                spaceId,
+                spaceName: space?.name,
+              },
             },
-          },
-        });
-
-        if (existingInvitation?.status === InvitationStatus.PENDING) {
-          alreadyPending.push(invitedId);
-          continue;
+          });
         }
 
-        if (existingInvitation) {
-          const invitation = await tx.spaceInvitation.update({
-            where: { id: existingInvitation.id },
-            data: {
-              invitedBy: userId,
-              status: InvitationStatus.PENDING,
-              respondedAt: null,
-            },
-          });
-          invitationsToNotify.push({
-            userId: invitedId,
-            invitationId: invitation.id,
-          });
-        } else {
-          const invitation = await tx.spaceInvitation.create({
-            data: {
-              spaceId,
-              invitedUserId: invitedId,
-              invitedBy: userId,
-            },
-          });
-          invitationsToNotify.push({
-            userId: invitedId,
-            invitationId: invitation.id,
-          });
-        }
-      }
-
-      return {
-        count: invitationsToNotify.length,
-        invitationsToNotify,
-        alreadyMemberCount: alreadyMembers.length,
-        pendingCount: alreadyPending.length,
-      };
-    }).then((result) => {
-      for (const invitation of result.invitationsToNotify) {
-        this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-          key: invitation.userId,
-          value: {
-            recipientId: invitation.userId,
-            senderId: userId,
-            senderName: '',
-            senderAvatar: '',
-            type: KAFKA_EVENTS.NOTIFICATION.CHAT_GROUP_INVITATION,
-            title: 'Space invitation',
-            content: `You were invited to ${space?.name ?? 'a space'}`,
-            link: '/chat',
-            metadata: {
-              invitationId: invitation.invitationId,
-              spaceId,
-              spaceName: space?.name,
-            },
-          },
-        });
-      }
-
-      return result;
-    });
+        return result;
+      });
   }
 }

@@ -146,6 +146,8 @@ plugins:
       header_user_id: X-User-Id
       header_user_email: X-User-Email
       header_user_role: X-User-Role
+      header_user_name: X-User-Name
+      header_user_avatar: X-User-Avatar
 
   # project-routes
   - name: jwt
@@ -160,6 +162,8 @@ plugins:
       header_user_id: X-User-Id
       header_user_email: X-User-Email
       header_user_role: X-User-Role
+      header_user_name: X-User-Name
+      header_user_avatar: X-User-Avatar
 
   # communication-routes
   - name: jwt
@@ -174,6 +178,8 @@ plugins:
       header_user_id: X-User-Id
       header_user_email: X-User-Email
       header_user_role: X-User-Role
+      header_user_name: X-User-Name
+      header_user_avatar: X-User-Avatar
 
   # notification-routes
   - name: jwt
@@ -188,6 +194,8 @@ plugins:
       header_user_id: X-User-Id
       header_user_email: X-User-Email
       header_user_role: X-User-Role
+      header_user_name: X-User-Name
+      header_user_avatar: X-User-Avatar
 
   # document-routes
   - name: jwt
@@ -202,6 +210,8 @@ plugins:
       header_user_id: X-User-Id
       header_user_email: X-User-Email
       header_user_role: X-User-Role
+      header_user_name: X-User-Name
+      header_user_avatar: X-User-Avatar
 
   # document-public-routes
   - name: jwt-user-context
@@ -210,5 +220,7 @@ plugins:
       header_user_id: X-User-Id
       header_user_email: X-User-Email
       header_user_role: X-User-Role
+      header_user_name: X-User-Name
+      header_user_avatar: X-User-Avatar
       optional: true
 

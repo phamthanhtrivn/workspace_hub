@@ -80,7 +80,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
       onClick={() => onClick(conversation)}
     >
       <div className="flex items-center min-w-0 gap-2.5 flex-1">
-        <div className="relative shrink-0">
+        <div className="shrink-0">
           <div className="w-7 h-7 bg-gradient-to-br from-blue-50 to-slate-200 rounded-full flex items-center justify-center overflow-hidden border border-slate-200/60 shadow-sm transition-transform duration-200 group-hover:scale-105">
             {isDirectProfileLoading ? (
               <span className="h-full w-full animate-pulse rounded-full bg-slate-200" />
@@ -96,7 +96,6 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
               <User size={13} className="text-slate-400" />
             )}
           </div>
-          <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-emerald-500 ring-1.5 ring-white" />
         </div>
 
         <span

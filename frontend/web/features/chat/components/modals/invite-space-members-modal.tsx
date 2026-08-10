@@ -1,24 +1,25 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Search, X, User, Loader2 } from "lucide-react";
+import { Search, X, Loader2, User } from "lucide-react";
 import { searchUserByEmail, inviteSpaceMembers } from "../../api/chat.api";
 import { UserSearchResponse } from "../../types/chat.types";
 import { toast } from "react-toastify";
 import { useAppSelector } from "@/store/store";
+import Image from "next/image";
 
-interface InviteGroupMembersModalProps {
+interface InviteSpaceMembersModalProps {
   isOpen: boolean;
   onClose: () => void;
   spaceId: string;
 }
 
-export default function InviteGroupMembersModal({
+export default function InviteSpaceMembersModal({
   isOpen,
   onClose,
   spaceId,
-}: InviteGroupMembersModalProps) {
+}: InviteSpaceMembersModalProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<UserSearchResponse[]>([]);
@@ -64,7 +65,7 @@ export default function InviteGroupMembersModal({
       const filtered = users.filter(
         (u: UserSearchResponse) =>
           u.id !== currentUserId &&
-          !selectedUsers.some((selected) => selected.id === u.id)
+          !selectedUsers.some((selected) => selected.id === u.id),
       );
       setResults(filtered);
 
@@ -74,7 +75,9 @@ export default function InviteGroupMembersModal({
         setError("User not found");
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || "An error occurred while searching");
+      setError(
+        err.response?.data?.message || "An error occurred while searching",
+      );
       setResults([]);
     } finally {
       setLoading(false);
@@ -103,12 +106,13 @@ export default function InviteGroupMembersModal({
 
     setIsInviting(true);
     try {
-      const userIds = selectedUsers.map((u) => u.id);
-      await inviteSpaceMembers(spaceId, userIds);
+      await inviteSpaceMembers(spaceId, selectedUsers);
       toast.success("Space invitation sent successfully!");
       onClose();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "An error occurred while inviting");
+      toast.error(
+        err.response?.data?.message || "An error occurred while inviting",
+      );
     } finally {
       setIsInviting(false);
     }
@@ -121,7 +125,9 @@ export default function InviteGroupMembersModal({
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl border border-gray-100 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">Invite members to space</h2>
+          <h2 className="text-lg font-bold text-gray-800">
+            Invite members to space
+          </h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
@@ -140,11 +146,13 @@ export default function InviteGroupMembersModal({
                   key={user.id}
                   className="flex items-center gap-1.5 bg-blue-50 border border-blue-100 text-blue-700 text-xs px-2.5 py-1 rounded-lg"
                 >
-                  <span>{user.fullName}</span>
+                  <span>
+                    {user.fullName} ({user.email})
+                  </span>
                   <button
                     type="button"
                     onClick={() => handleRemoveUser(user.id)}
-                    className="hover:bg-blue-100 rounded text-blue-500 hover:text-blue-700 p-0.5"
+                    className="hover:bg-blue-100 rounded text-blue-500 hover:text-blue-700 p-0.5 cursor-pointer"
                   >
                     <X size={12} />
                   </button>
@@ -155,7 +163,10 @@ export default function InviteGroupMembersModal({
 
           {/* Search Box */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={16}
+            />
             <input
               type="text"
               placeholder="Enter user email..."
@@ -180,20 +191,38 @@ export default function InviteGroupMembersModal({
                   className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg cursor-pointer transition"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-500">
-                      {(user.fullName || "U").substring(0, 1).toUpperCase()}
+                    <div className="w-7 h-7 bg-gradient-to-br from-blue-50 to-slate-200 rounded-full flex items-center justify-center overflow-hidden border border-slate-200/60 shadow-sm">
+                      {user.avatarUrl ? (
+                        <Image
+                          src={user.avatarUrl}
+                          alt="Avatar"
+                          width={28}
+                          height={28}
+                          className="rounded-full animate-fade-in object-cover"
+                        />
+                      ) : (
+                        <User size={13} className="text-slate-400" />
+                      )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-xs font-semibold text-slate-800">{user.fullName}</span>
-                      <span className="text-[10px] text-slate-400">{user.email}</span>
+                      <span className="text-xs font-semibold text-slate-800">
+                        {user.fullName}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {user.email}
+                      </span>
                     </div>
                   </div>
                 </div>
               ))
             ) : error ? (
-              <div className="text-center py-8 text-xs text-gray-400">{error}</div>
+              <div className="text-center py-8 text-xs text-gray-400">
+                {error}
+              </div>
             ) : (
-              <div className="text-center py-8 text-xs text-gray-400">Enter email to search for members</div>
+              <div className="text-center py-8 text-xs text-gray-400">
+                Enter email to search for members
+              </div>
             )}
           </div>
         </div>
@@ -219,6 +248,6 @@ export default function InviteGroupMembersModal({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 }
