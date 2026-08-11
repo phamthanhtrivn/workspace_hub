@@ -15,7 +15,11 @@ import {
 import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ChannelService } from './channel.service';
-import { CHANNEL_ERROR_MESSAGES, CHANNEL_SUCCESS_MESSAGES } from './types/channel.enums';
+import { decodeHeaderUtf8 } from '../../common/utils/string.util';
+import {
+  CHANNEL_ERROR_MESSAGES,
+  CHANNEL_SUCCESS_MESSAGES,
+} from './types/channel.enums';
 
 @Controller('api/channels')
 export class ConversationController {
@@ -45,7 +49,9 @@ export class ConversationController {
     @Body() updateSettingDto: UpdateConversationSettingDto,
   ) {
     if (!userId || !channelId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_OR_CHANNEL_ID);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_USER_OR_CHANNEL_ID,
+      );
     }
     const result = await this.conversationService.updateConversationSettings(
       channelId,
@@ -66,7 +72,9 @@ export class ConversationController {
     @Body() updateRoleDto: UpdateMemberRoleDto,
   ) {
     if (!userId || !channelId || !memberId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
     const result = await this.conversationService.updateMemberRole(
       channelId,
@@ -87,7 +95,9 @@ export class ConversationController {
     @Body('newOwnerId') newOwnerId: string,
   ) {
     if (!userId || !channelId || !newOwnerId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
     const result = await this.conversationService.transferOwnership(
       channelId,
@@ -107,7 +117,9 @@ export class ConversationController {
     @Headers('x-user-id') userId: string,
   ) {
     if (!userId || !channelId || !memberId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
     await this.conversationService.kickMember(channelId, userId, memberId);
     return {
@@ -138,7 +150,9 @@ export class ConversationController {
     @Query('contentType') contentType: string,
   ) {
     if (!userId || !channelId || !fileName || !contentType) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
     return this.conversationService.getAvatarUploadPresignedUrl(
       channelId,
@@ -155,7 +169,9 @@ export class ConversationController {
     @Body() data: { name?: string; avatarUrl?: string },
   ) {
     if (!userId || !channelId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
     const result = await this.conversationService.updateGroupInfo(
       channelId,
@@ -186,7 +202,9 @@ export class ConversationController {
     @Headers('x-user-id') userId: string,
   ) {
     if (!userId || !channelId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
     await this.conversationService.leaveConversation(channelId, userId);
     return {
@@ -200,7 +218,9 @@ export class ConversationController {
     @Headers('x-user-id') userId: string,
   ) {
     if (!userId || !channelId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
     await this.conversationService.disbandConversation(channelId, userId);
     return {
@@ -215,7 +235,9 @@ export class ConversationController {
     @Body('muted') muted: boolean,
   ) {
     if (!userId || !channelId || muted === undefined) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
     const result = await this.conversationService.muteConversation(
       channelId,
@@ -226,6 +248,27 @@ export class ConversationController {
       message: muted
         ? CHANNEL_SUCCESS_MESSAGES.MUTE_ON
         : CHANNEL_SUCCESS_MESSAGES.MUTE_OFF,
+      data: result,
+    };
+  }
+
+  @Post(':id/join')
+  async joinChannel(
+    @Param('id') channelId: string,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-name') userName: string,
+  ) {
+    if (!userId || !channelId) {
+      throw new BadRequestException('Missing channelId or userId');
+    }
+    const decodedUserName = decodeHeaderUtf8(userName);
+    const result = await this.conversationService.joinChannel(
+      channelId,
+      userId,
+      decodedUserName,
+    );
+    return {
+      message: 'Joined channel successfully',
       data: result,
     };
   }

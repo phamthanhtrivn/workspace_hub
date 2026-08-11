@@ -588,4 +588,69 @@ export class ChannelService {
 
     return { presignedUrl, s3Key, fileUrl };
   }
+
+  async joinChannel(channelId: string, userId: string, userName?: string) {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+    });
+    if (!channel) {
+      throw new BadRequestException('Channel not found');
+    }
+
+    const isSpaceMember = await this.prisma.spaceMember.findUnique({
+      where: {
+        spaceId_userId: {
+          spaceId: channel.spaceId,
+          userId,
+        },
+      },
+    });
+
+    if (!isSpaceMember) {
+      throw new BadRequestException('You are not a member of this space');
+    }
+
+    const isMember = await this.prisma.channelMember.findUnique({
+      where: {
+        channelId_userId: {
+          channelId,
+          userId,
+        },
+      },
+    });
+
+    if (isMember) {
+      return { success: true, message: 'Already a member of this channel' };
+    }
+
+    await this.prisma.channelMember.create({
+      data: {
+        channelId,
+        userId,
+      },
+    });
+
+    await this.chatGateway.sendSystemMessage(
+      channelId,
+      userId,
+      `${userName || userId} joined the chat channel`,
+    );
+
+    const members = await this.prisma.channelMember.findMany({
+      where: { channelId },
+      select: { userId: true },
+    });
+    const targetRooms = [channelId, ...members.map((m) => m.userId)];
+
+    this.chatGateway.emitMemberJoin(targetRooms, {
+      channelId,
+      member: {
+        channelId,
+        userId,
+        role: SpaceRole.MEMBER,
+      },
+    });
+
+    return { success: true };
+  }
 }

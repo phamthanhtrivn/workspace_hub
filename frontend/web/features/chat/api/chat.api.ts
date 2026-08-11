@@ -549,8 +549,11 @@ export const createChannel = async (
 
 export const getSpaceChannels = async (
   spaceId: string,
+  search?: string,
 ): Promise<any> => {
-  const response = await api.get(`/api/spaces/${spaceId}/channels`);
+  const response = await api.get(`/api/spaces/${spaceId}/channels`, {
+    params: { search },
+  });
   return response.data;
 };
 
@@ -598,5 +601,12 @@ export const unfollowThread = async (
   messageId: string,
 ): Promise<any> => {
   const response = await api.post(`/api/channels/messages/${messageId}/thread/unfollow`);
+  return response.data;
+};
+
+export const joinChannel = async (
+  channelId: string,
+): Promise<any> => {
+  const response = await api.post(`/api/channels/${channelId}/join`);
   return response.data;
 };

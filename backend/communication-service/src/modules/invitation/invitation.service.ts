@@ -98,7 +98,7 @@ export class InvitationService {
       });
 
       const channels = await prisma.channel.findMany({
-        where: { spaceId: invitation.spaceId },
+        where: { spaceId: invitation.spaceId, isDefault: true },
       });
 
       await prisma.channelMember.createMany({
@@ -113,14 +113,14 @@ export class InvitationService {
     });
 
     const spaceChannels = await this.prisma.channel.findMany({
-      where: { spaceId: invitation.spaceId },
+      where: { spaceId: invitation.spaceId, isDefault: true },
     });
 
     for (const channel of spaceChannels) {
       await this.chatGateway.sendSystemMessage(
         channel.id,
         userId,
-        `${userId} joined the chat channel`,
+        `${responderSnapshot.fullName || userId} joined the chat channel`,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(

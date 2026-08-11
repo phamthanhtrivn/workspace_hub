@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, ChevronDown, ChevronRight } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store/store";
 import {
@@ -17,14 +17,8 @@ import {
   muteDirectConversation,
   pinDirectConversation,
 } from "../../api/chat.api";
-import {
-  ChatProfilesMap,
-  ConversationResponse,
-} from "../../types/chat.types";
-import {
-  ChatQueryKey,
-  ChatSidebarSection,
-} from "../../types/chat.constant";
+import { ChatProfilesMap, ConversationResponse } from "../../types/chat.types";
+import { ChatQueryKey, ChatSidebarSection } from "../../types/chat.constant";
 import DirectConversationItem from "./direct-conversation-item";
 import { sortDirectConversations } from "../../utils/direct-conversation-utils";
 
@@ -56,11 +50,8 @@ export default function DirectConversationsSection({
 }: DirectConversationsSectionProps) {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
-  const {
-    data,
-    isLoading,
-    isFetching,
-  } = useQuery({
+  const [isDmExpanded, setIsDmExpanded] = useState(true);
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
     queryFn: async (): Promise<DirectConversationsQueryData> => {
       if (!currentUserId) return { conversations: [], profiles: {} };
@@ -111,7 +102,11 @@ export default function DirectConversationsSection({
 
   useEffect(() => {
     if (!data) return;
-    dispatch(setDirectConversations(sortDirectConversations(data.conversations, currentUserId)));
+    dispatch(
+      setDirectConversations(
+        sortDirectConversations(data.conversations, currentUserId),
+      ),
+    );
     dispatch(mergeMemberProfiles(data.profiles));
   }, [currentUserId, data, dispatch]);
 
@@ -139,8 +134,8 @@ export default function DirectConversationsSection({
       (oldData) => {
         if (!oldData) return oldData;
 
-        const conversations = sortDirectConversations(oldData.conversations
-          .map((conversation) => {
+        const conversations = sortDirectConversations(
+          oldData.conversations.map((conversation) => {
             if (conversation.id !== conversationId) return conversation;
             return {
               ...conversation,
@@ -150,7 +145,9 @@ export default function DirectConversationsSection({
                   : member,
               ),
             };
-          }), currentUserId);
+          }),
+          currentUserId,
+        );
 
         return { ...oldData, conversations };
       },
@@ -175,7 +172,9 @@ export default function DirectConversationsSection({
 
       updateDirectConversationMemberCache(conversationId, { pinned });
       if (currentUserId) {
-        dispatch(updatePinStatus({ conversationId, userId: currentUserId, pinned }));
+        dispatch(
+          updatePinStatus({ conversationId, userId: currentUserId, pinned }),
+        );
       }
 
       return { previousData };
@@ -228,7 +227,9 @@ export default function DirectConversationsSection({
 
       updateDirectConversationMemberCache(conversationId, { muted });
       if (currentUserId) {
-        dispatch(updateMuteStatus({ conversationId, userId: currentUserId, muted }));
+        dispatch(
+          updateMuteStatus({ conversationId, userId: currentUserId, muted }),
+        );
       }
 
       return { previousData };
@@ -265,8 +266,18 @@ export default function DirectConversationsSection({
 
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-        <span>{ChatSidebarSection.DIRECT_MESSAGES}</span>
+      <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
+        <button
+          onClick={() => setIsDmExpanded(!isDmExpanded)}
+          className="flex items-center gap-1 hover:text-slate-600 transition cursor-pointer text-left"
+        >
+          {isDmExpanded ? (
+            <ChevronDown size={12} />
+          ) : (
+            <ChevronRight size={12} />
+          )}
+          <span>{ChatSidebarSection.DIRECT_MESSAGES}</span>
+        </button>
         <button
           onClick={onCreateDirectConversation}
           className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition cursor-pointer"
@@ -275,43 +286,45 @@ export default function DirectConversationsSection({
           <Plus size={14} />
         </button>
       </div>
-      <div className="flex flex-col gap-0.5">
-        {isLoading ? (
-          <div className="text-[11px] text-slate-400 italic px-3 py-1">
-            Loading...
-          </div>
-        ) : filteredDirectConversations.length > 0 ? (
-          filteredDirectConversations.map((conversation) => (
-            <DirectConversationItem
-              key={conversation.id}
-              conversation={conversation}
-              currentUserId={currentUserId}
-              memberProfiles={memberProfiles}
-              isLoadingProfile={isLoadingProfiles}
-              isActive={activeConversationId === conversation.id}
-              onClick={(selectedConversation) =>
-                onSelectConversation(selectedConversation, memberProfiles)
-              }
-              onTogglePin={(selectedConversation, pinned) =>
-                pinMutation.mutate({
-                  conversationId: selectedConversation.id,
-                  pinned,
-                })
-              }
-              onToggleMute={(selectedConversation, muted) =>
-                muteMutation.mutate({
-                  conversationId: selectedConversation.id,
-                  muted,
-                })
-              }
-            />
-          ))
-        ) : (
-          <div className="text-[11px] text-slate-400 italic px-3 py-1">
-            No direct messages
-          </div>
-        )}
-      </div>
+      {isDmExpanded && (
+        <div className="max-h-48 overflow-y-auto pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+          {isLoading ? (
+            <div className="text-[11px] text-slate-400 italic px-3 py-1">
+              Loading...
+            </div>
+          ) : filteredDirectConversations.length > 0 ? (
+            filteredDirectConversations.map((conversation) => (
+              <DirectConversationItem
+                key={conversation.id}
+                conversation={conversation}
+                currentUserId={currentUserId}
+                memberProfiles={memberProfiles}
+                isLoadingProfile={isLoadingProfiles}
+                isActive={activeConversationId === conversation.id}
+                onClick={(selectedConversation) =>
+                  onSelectConversation(selectedConversation, memberProfiles)
+                }
+                onTogglePin={(selectedConversation, pinned) =>
+                  pinMutation.mutate({
+                    conversationId: selectedConversation.id,
+                    pinned,
+                  })
+                }
+                onToggleMute={(selectedConversation, muted) =>
+                  muteMutation.mutate({
+                    conversationId: selectedConversation.id,
+                    muted,
+                  })
+                }
+              />
+            ))
+          ) : (
+            <div className="text-[11px] text-slate-400 italic px-3 py-1">
+              No direct messages
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

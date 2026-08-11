@@ -8,12 +8,15 @@ import {
   Plus,
   ChevronDown,
   PlusCircle,
+  ChevronRight,
+  Globe,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SearchUserModal from "../modals/search-user-modal";
 import CreateWorkspaceGroupModal from "../modals/create-workspace-group-modal";
 import CreateChannelModal from "../modals/create-channel-modal";
 import InviteGroupMembersModal from "../modals/invite-space-members-modal";
+import BrowseChannelsModal from "../modals/browse-channels-modal";
 import ConversationItem from "./conversation-item";
 import DirectConversationsSection from "./direct-conversations-section";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -49,6 +52,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isSpaceDropdownOpen, setIsSpaceDropdownOpen] = useState(false);
   const [isReloading, setIsReloading] = useState(false);
+  const [isChannelsExpanded, setIsChannelsExpanded] = useState(true);
+  const [isChannelsDropdownOpen, setIsChannelsDropdownOpen] = useState(false);
+  const [isBrowseChannelsModalOpen, setIsBrowseChannelsModalOpen] = useState(false);
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const { activeConversation, activeSpaceId } = useAppSelector((state) => state.chat);
@@ -56,12 +62,16 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const channelsDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsSpaceDropdownOpen(false);
+      }
+      if (channelsDropdownRef.current && !channelsDropdownRef.current.contains(event.target as Node)) {
+        setIsChannelsDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -344,12 +354,18 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   };
 
   // Filtered lists based on search
+  const joinedChannels = useMemo(() => {
+    return channels.filter((channel: any) =>
+      channel.members?.some((m: any) => m.userId === currentUserId)
+    );
+  }, [channels, currentUserId]);
+
   const filteredChannels = useMemo(() => {
-    if (!searchQuery.trim()) return channels;
-    return channels.filter((c: any) =>
+    if (!searchQuery.trim()) return joinedChannels;
+    return joinedChannels.filter((c: any) =>
       c.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [channels, searchQuery]);
+  }, [joinedChannels, searchQuery]);
 
   return (
     <div className="w-full h-full bg-white border-r border-slate-200/60 flex flex-col select-none">
@@ -462,39 +478,73 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
         {/* Channels Section */}
         <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            <span>Channels</span>
+          <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
+            <button
+              onClick={() => setIsChannelsExpanded(!isChannelsExpanded)}
+              className="flex items-center gap-1 hover:text-slate-600 transition cursor-pointer text-left"
+            >
+              {isChannelsExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              <span>Channels</span>
+            </button>
             {activeSpaceId && (
-              <button
-                onClick={() => setIsCreateChannelModalOpen(true)}
-                className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition cursor-pointer"
-                title="Create new channel"
-              >
-                <Plus size={14} />
-              </button>
+              <div className="relative" ref={channelsDropdownRef}>
+                <button
+                  onClick={() => setIsChannelsDropdownOpen(!isChannelsDropdownOpen)}
+                  className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                  title="Channel options"
+                >
+                  <Plus size={14} />
+                </button>
+                {isChannelsDropdownOpen && (
+                  <div className="absolute right-0 mt-1 w-44 bg-white border border-slate-150 rounded-xl shadow-lg z-50 py-1 text-slate-700 font-normal normal-case">
+                    <button
+                      onClick={() => {
+                        setIsBrowseChannelsModalOpen(true);
+                        setIsChannelsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <Globe size={14} className="text-slate-400" />
+                      Browse channels
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsCreateChannelModalOpen(true);
+                        setIsChannelsDropdownOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
+                    >
+                      <Plus size={14} className="text-slate-400" />
+                      Create new channel
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-          <div className="flex flex-col gap-0.5">
-            {loadingChannels ? (
-              <div className="text-[11px] text-slate-400 italic px-3 py-1">
-                Loading channels...
-              </div>
-            ) : filteredChannels.length > 0 ? (
-              filteredChannels.map((conv: any) => (
-                <ConversationItem
-                  key={conv.id}
-                  conv={conv}
-                  currentUserId={currentUserId}
-                  isActive={activeConversation?.id === conv.id}
-                  onClick={handleSelectConversation}
-                />
-              ))
-            ) : (
-              <div className="text-[11px] text-slate-400 italic px-3 py-1">
-                {activeSpaceId ? "No channels yet" : "Select a space to view channels"}
-              </div>
-            )}
-          </div>
+          {isChannelsExpanded && (
+            <div className="max-h-48 overflow-y-auto pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+              {loadingChannels ? (
+                <div className="text-[11px] text-slate-400 italic px-3 py-1">
+                  Loading channels...
+                </div>
+              ) : filteredChannels.length > 0 ? (
+                filteredChannels.map((conv: any) => (
+                  <ConversationItem
+                    key={conv.id}
+                    conv={conv}
+                    currentUserId={currentUserId}
+                    isActive={activeConversation?.id === conv.id}
+                    onClick={handleSelectConversation}
+                  />
+                ))
+              ) : (
+                <div className="text-[11px] text-slate-400 italic px-3 py-1">
+                  {activeSpaceId ? "No channels yet" : "Select a space to view channels"}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <DirectConversationsSection
@@ -524,6 +574,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             isOpen={isInviteModalOpen}
             onClose={() => setIsInviteModalOpen(false)}
             spaceId={activeSpaceId}
+          />
+          <BrowseChannelsModal
+            isOpen={isBrowseChannelsModalOpen}
+            onClose={() => setIsBrowseChannelsModalOpen(false)}
+            spaceId={activeSpaceId}
+            currentUserId={currentUserId}
+            onJoinSuccess={handleNewChannel}
           />
         </>
       )}

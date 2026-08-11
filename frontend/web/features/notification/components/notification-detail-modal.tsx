@@ -56,7 +56,7 @@ const NotificationDetailModal = React.memo(function NotificationDetailModal({
       ></div>
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="font-bold text-slate-800">Chi tiết thông báo</h2>
+          <h2 className="font-bold text-slate-800">Notification Details</h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-slate-400 hover:bg-slate-200 hover:text-slate-600 transition cursor-pointer"

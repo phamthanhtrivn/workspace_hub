@@ -54,27 +54,12 @@ if (!isRegistryInitialized) {
     InvitationListItemRenderer,
   );
   registerNotificationRenderer(
-    NotificationType.CHAT_GROUP_INVITATION,
-    InvitationModalRenderer,
-    InvitationListItemRenderer,
-  );
-  registerNotificationRenderer(
     NotificationType.SPACE_INVITATION_ACCEPTED,
     InvitationAcceptedModalRenderer,
     InvitationAcceptedListItemRenderer,
   );
   registerNotificationRenderer(
-    NotificationType.CHAT_INVITATION_ACCEPTED,
-    InvitationAcceptedModalRenderer,
-    InvitationAcceptedListItemRenderer,
-  );
-  registerNotificationRenderer(
     NotificationType.SPACE_INVITATION_DECLINED,
-    InvitationDeclinedModalRenderer,
-    InvitationDeclinedListItemRenderer,
-  );
-  registerNotificationRenderer(
-    NotificationType.CHAT_INVITATION_DECLINED,
     InvitationDeclinedModalRenderer,
     InvitationDeclinedListItemRenderer,
   );

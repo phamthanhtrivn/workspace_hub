@@ -6,10 +6,12 @@ import {
   Body,
   Headers,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { SpaceService } from './space.service';
 import { SPACE_SUCCESS_MESSAGES_LABEL } from './types/space.enums';
 import { InviteSpaceMembersDto } from './dto/invite-space-members.dto';
+import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 
 @Controller('api/spaces')
 export class SpaceController {
@@ -69,6 +71,7 @@ export class SpaceController {
   async getSpaceChannels(
     @Headers('x-user-id') userId: string,
     @Param('spaceId') spaceId: string,
+    @Query('search') search?: string,
   ) {
     if (!userId) {
       throw new BadRequestException('Missing userId');
@@ -76,7 +79,7 @@ export class SpaceController {
     if (!spaceId) {
       throw new BadRequestException('Missing spaceId');
     }
-    const channels = await this.spaceService.getSpaceChannels(userId, spaceId);
+    const channels = await this.spaceService.getSpaceChannels(userId, spaceId, search);
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.CHANNEL_LISTED,
       data: channels,
@@ -97,12 +100,13 @@ export class SpaceController {
     if (!spaceId) {
       throw new BadRequestException('Missing spaceId');
     }
+    const decodedUserName = decodeHeaderUtf8(userName);
     const result = await this.spaceService.inviteMembersToSpace(
       userId,
       spaceId,
       body.invitees,
       {
-        fullName: userName,
+        fullName: decodedUserName,
         avatarUrl: userAvatar,
       },
     );

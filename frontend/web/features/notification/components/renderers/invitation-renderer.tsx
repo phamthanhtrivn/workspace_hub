@@ -20,10 +20,13 @@ import {
   acceptInvitation,
   declineInvitation,
   getPendingInvitations,
+  getSpaceChannels,
 } from "@/features/chat/api/chat.api";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAppDispatch } from "@/store/store";
+import { setActiveSpaceId, setActiveConversation } from "@/store/chat/chat-slice";
 
 function getInitials(name?: string | null) {
   const source = name?.trim() || "Workspace";
@@ -124,6 +127,7 @@ export const InvitationModalRenderer: React.FC<{
   const metadata = notification.metadata as InvitationMetadata;
   const router = useRouter();
   const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isResponded, setIsResponded] = useState(false);
   const spaceName = metadata?.spaceName || metadata?.conversationName || "this space";
@@ -184,6 +188,21 @@ export const InvitationModalRenderer: React.FC<{
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
         queryClient.invalidateQueries({ queryKey: ["spaces"] });
         queryClient.invalidateQueries({ queryKey: ["channels", metadata.spaceId] });
+        
+        if (metadata?.spaceId) {
+          dispatch(setActiveSpaceId(metadata.spaceId));
+          try {
+            const channelsRes = await getSpaceChannels(metadata.spaceId);
+            const channels = channelsRes?.success ? channelsRes.data : (Array.isArray(channelsRes) ? channelsRes : []);
+            const generalChannel = channels.find((c: any) => c.isDefault === true || c.name === "general");
+            if (generalChannel) {
+              dispatch(setActiveConversation(generalChannel));
+            }
+          } catch (e) {
+            console.error("Failed to pre-select general channel", e);
+          }
+        }
+        
         router.push("/chat");
       }
     } catch (error: any) {

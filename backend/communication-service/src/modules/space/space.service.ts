@@ -148,18 +148,12 @@ export class SpaceService {
         },
       });
 
-      const spaceMembers = await tx.spaceMember.findMany({
-        where: { spaceId },
+      await tx.channelMember.create({
+        data: {
+          channelId: channel.id,
+          userId,
+        },
       });
-
-      for (const member of spaceMembers) {
-        await tx.channelMember.create({
-          data: {
-            channelId: channel.id,
-            userId: member.userId,
-          },
-        });
-      }
 
       const createdChannel = await tx.channel.findUnique({
         where: { id: channel.id },
@@ -171,6 +165,13 @@ export class SpaceService {
       if (!createdChannel) {
         throw new BadRequestException('Channel creation failed');
       }
+
+      const spaceMembers = await tx.spaceMember.findMany({
+        where: {
+          spaceId,
+          userId: { in: createdChannel.members.map((m) => m.userId) },
+        },
+      });
 
       return {
         ...createdChannel,
@@ -186,7 +187,7 @@ export class SpaceService {
     });
   }
 
-  async getSpaceChannels(userId: string, spaceId: string) {
+  async getSpaceChannels(userId: string, spaceId: string, search?: string) {
     const isMember = await this.prisma.spaceMember.findUnique({
       where: {
         spaceId_userId: {
@@ -200,10 +201,16 @@ export class SpaceService {
       throw new BadRequestException('You are not a member of this space');
     }
 
+    const whereClause: any = { spaceId };
+    if (search && search.trim().length > 0) {
+      whereClause.name = {
+        contains: search.trim(),
+        mode: 'insensitive',
+      };
+    }
+
     const channels = await this.prisma.channel.findMany({
-      where: {
-        spaceId,
-      },
+      where: whereClause,
       include: {
         setting: true,
         members: true,

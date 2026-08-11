@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { InvitationService } from './invitation.service';
 import { INVITATION_SUCCESS_MESSAGES_LABEL } from './types/invitation.enums';
+import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 
 @Controller('api/invitations')
 export class InvitationController {
@@ -36,11 +37,12 @@ export class InvitationController {
     if (!userId) {
       throw new BadRequestException('Missing userId');
     }
+    const decodedUserName = decodeHeaderUtf8(userName);
     const result = await this.invitationService.acceptInvitation(
       userId,
       invitationId,
       {
-        fullName: userName,
+        fullName: decodedUserName,
         avatarUrl: userAvatar,
       },
     );
@@ -60,11 +62,12 @@ export class InvitationController {
     if (!userId) {
       throw new BadRequestException('Missing userId');
     }
+    const decodedUserName = decodeHeaderUtf8(userName);
     const result = await this.invitationService.declineInvitation(
       userId,
       invitationId,
       {
-        fullName: userName,
+        fullName: decodedUserName,
         avatarUrl: userAvatar,
       },
     );
