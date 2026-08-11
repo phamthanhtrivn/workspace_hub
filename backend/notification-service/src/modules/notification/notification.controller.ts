@@ -15,18 +15,12 @@ import {
   BadRequestException,
   NotFoundException,
 } from "@nestjs/common";
-import { EventPattern, Payload } from "@nestjs/microservices";
 import { NotificationService } from "./notification.service";
 import { EmailService } from "./email.service";
 import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-email.dto";
 import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
-import { KAFKA_TOPICS, KAFKA_EVENTS } from "../../common/constants/kafka.constants";
-import type {
-  KafkaNotificationMessage,
-  KafkaNotificationPayload,
-} from "./types/notification.types";
 
 @Controller("api/notifications")
 export class NotificationController {
@@ -67,36 +61,6 @@ export class NotificationController {
     const notification = await this.notificationService.createNotification(dto);
     return { message: "Notification created successfully", data: notification };
   }
-  @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)
-  async handleIncomingNotification(@Payload() data: KafkaNotificationMessage) {
-    try {
-      const rawPayload = data.value ?? data;
-      const payload = rawPayload as unknown as KafkaNotificationPayload;
-
-      if (payload.type === KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE) {
-        return;
-      }
-
-      if (!payload.recipientId) {
-        throw new BadRequestException("Missing notification recipientId");
-      }
-
-      await this.notificationService.createNotification({
-        recipientId: payload.recipientId,
-        senderId: payload.senderId,
-        senderName: payload.senderName,
-        senderAvatar: payload.senderAvatar,
-        type: payload.type,
-        title: payload.title,
-        content: payload.content,
-        link: payload.link,
-        metadata: payload.metadata,
-      });
-    } catch (error) {
-      console.error("Failed to process Kafka notification event:", error);
-    }
-  }
-
 
   @Get()
   async getNotifications(

@@ -6,21 +6,15 @@ import {
   Get,
   Headers,
   Inject,
-  Logger,
   Param,
   Patch,
   Post,
   Query,
   forwardRef,
 } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
 import { MessageType } from '@prisma/client';
-import {
-  KAFKA_EVENTS,
-  KAFKA_TOPICS,
-} from '../../common/constants/kafka.constants';
 import { ChatGateway } from '../chat/chat.gateway';
-import { ChatEvent, CHAT_MENTION, CHAT_PREVIEW_TEXT } from '../chat/types/chat.enums';
+import { ChatEvent } from '../chat/types/chat.enums';
 import { DirectMessageService } from './direct-message.service';
 import {
   MESSAGE_CONSTANTS,
@@ -31,13 +25,10 @@ import {
 
 @Controller('api/direct-conversations')
 export class DirectMessageController {
-  private readonly logger = new Logger(DirectMessageController.name);
-
   constructor(
     private readonly directMessageService: DirectMessageService,
     @Inject(forwardRef(() => ChatGateway))
     private readonly chatGateway: ChatGateway,
-    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
 
   @Post(':id/messages')
@@ -543,89 +534,5 @@ export class DirectMessageController {
       });
     }
 
-    this.publishDirectMessageNotification(
-      conversationId,
-      senderId,
-      message,
-      data,
-      threadFollowers,
-    );
-  }
-
-  private publishDirectMessageNotification(
-    conversationId: string,
-    senderId: string,
-    message: any,
-    data: {
-      content?: string;
-      medias?: {
-        name: string;
-        s3Key: string;
-        mimeType: string;
-        sizeBytes: number;
-      }[];
-      threadParentId?: string;
-      mentions?: string[];
-    },
-    threadFollowers: string[],
-  ) {
-    this.directMessageService
-      .getDirectConversationMembersInfo(conversationId)
-      .then((membersInfo) => {
-        const mentions = data.mentions || [];
-        const isMentionedAll = mentions.includes(CHAT_MENTION.ALL);
-        let recipientIds = membersInfo
-          .filter((member) => member.userId !== senderId)
-          .filter(
-            (member) =>
-              !member.muted ||
-              isMentionedAll ||
-              mentions.includes(member.userId),
-          )
-          .map((member) => member.userId);
-
-        if (data.threadParentId) {
-          recipientIds = recipientIds.filter((recipientId) =>
-            threadFollowers.includes(recipientId),
-          );
-        }
-
-        if (recipientIds.length === 0) return;
-
-        let previewContent = data.content || '';
-        if (data.medias && data.medias.length > 0) {
-          const type = data.medias[0].mimeType.startsWith('image/')
-            ? CHAT_PREVIEW_TEXT.IMAGE
-            : data.medias[0].mimeType.startsWith('video/')
-              ? CHAT_PREVIEW_TEXT.VIDEO
-              : CHAT_PREVIEW_TEXT.FILE;
-          previewContent = `${CHAT_PREVIEW_TEXT.SENT_ATTACHMENT_PREFIX}${type}`;
-        }
-
-        this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-          key: conversationId,
-          value: {
-            recipientIds,
-            senderId,
-            senderName: '',
-            senderAvatar: '',
-            type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
-            title: 'New message',
-            content: previewContent,
-            link: `/chat?id=${conversationId}`,
-            metadata: {
-              conversationId,
-              channelId: conversationId,
-              messageId: message.id,
-            },
-          },
-        });
-      })
-      .catch((error) => {
-        this.logger.error(
-          `Failed to handle Kafka notification for direct message: ${error.message}`,
-          error.stack,
-        );
-      });
   }
 }

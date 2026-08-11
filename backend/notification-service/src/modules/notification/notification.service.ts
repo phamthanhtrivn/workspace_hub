@@ -5,7 +5,6 @@ import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { NotificationGateway } from "./notification.gateway";
 import { PushService } from "./push.service";
 import { Notification, Prisma, PushSubscription } from "@prisma/client";
-import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 import {
   NotificationWhereInput,
   PushNotificationPayload,
@@ -64,7 +63,6 @@ export class NotificationService {
   ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
     const where: NotificationWhereInput = {
       recipientId,
-      type: { not: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE },
     };
     if (isRead !== undefined) {
       where.isRead = isRead;
@@ -84,7 +82,6 @@ export class NotificationService {
         where: {
           recipientId,
           isRead: false,
-          type: { not: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE },
         },
       }),
     ]);
@@ -97,7 +94,6 @@ export class NotificationService {
       where: {
         recipientId,
         isRead: false,
-        type: { not: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE },
       },
     });
   }
@@ -125,7 +121,6 @@ export class NotificationService {
       where: {
         recipientId,
         isRead: false,
-        type: { not: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE },
       },
       data: { isRead: true },
     });
