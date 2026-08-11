@@ -589,6 +589,31 @@ export class ChannelService {
     return { presignedUrl, s3Key, fileUrl };
   }
 
+  private async mapChannelForClient(channel: any) {
+    const roles = await this.prisma.spaceMember.findMany({
+      where: {
+        spaceId: channel.spaceId,
+        userId: { in: channel.members.map((member) => member.userId) },
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+    });
+    const roleByUserId = new Map(
+      roles.map((member) => [member.userId, member.role]),
+    );
+
+    return {
+      ...channel,
+      type: 'GROUP',
+      members: channel.members.map((member) => ({
+        ...member,
+        role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
+      })),
+    };
+  }
+
   async joinChannel(channelId: string, userId: string, userName?: string) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
@@ -620,7 +645,14 @@ export class ChannelService {
     });
 
     if (isMember) {
-      return { success: true, message: 'Already a member of this channel' };
+      const channelObj = await this.prisma.channel.findUnique({
+        where: { id: channelId },
+        include: {
+          setting: true,
+          members: true,
+        },
+      });
+      return this.mapChannelForClient(channelObj);
     }
 
     await this.prisma.channelMember.create({
@@ -651,6 +683,14 @@ export class ChannelService {
       },
     });
 
-    return { success: true };
+    const updatedChannel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+      include: {
+        setting: true,
+        members: true,
+      },
+    });
+
+    return this.mapChannelForClient(updatedChannel);
   }
 }

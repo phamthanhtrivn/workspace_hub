@@ -75,7 +75,7 @@ export default function BrowseChannelsModal({
       // Invalidate queries to refresh sidebar and modal lists
       queryClient.invalidateQueries({ queryKey: ["channels", spaceId] });
 
-      const joinedChannel = channels.find((c: any) => c.id === channelId);
+      const joinedChannel = data?.data || channels.find((c: any) => c.id === channelId);
       if (joinedChannel && onJoinSuccess) {
         onJoinSuccess(joinedChannel);
       }
