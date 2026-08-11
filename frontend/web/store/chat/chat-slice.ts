@@ -6,6 +6,9 @@ import {
 
 interface ChatState {
   activeConversation: ConversationResponse | null;
+  activeChannel: ConversationResponse | null;
+  activeDirectMessage: ConversationResponse | null;
+  activeChatType: "CHANNEL" | "DIRECT" | null;
   isMobileSidebarOpen: boolean;
   selectedProfileUserId: string | null;
   watermarks: Record<string, string>; // userId -> messageId
@@ -19,6 +22,9 @@ interface ChatState {
 
 const initialState: ChatState = {
   activeConversation: null,
+  activeChannel: null,
+  activeDirectMessage: null,
+  activeChatType: null,
   isMobileSidebarOpen: false,
   selectedProfileUserId: null,
   watermarks: {},
@@ -41,6 +47,42 @@ const chatSlice = createSlice({
       state.activeConversation = action.payload;
       state.highlightMessageId = null; // Reset highlight when changing conversation
       state.activeThreadRootMessage = null; // Reset thread when changing conversation
+      
+      if (!action.payload) {
+        state.activeChatType = null;
+      } else if (action.payload.type === "DIRECT") {
+        state.activeDirectMessage = action.payload;
+        state.activeChatType = "DIRECT";
+      } else {
+        state.activeChannel = action.payload;
+        state.activeChatType = "CHANNEL";
+      }
+    },
+    setActiveChannel: (
+      state,
+      action: PayloadAction<ConversationResponse | null>,
+    ) => {
+      state.activeChannel = action.payload;
+      if (action.payload) {
+        state.activeConversation = action.payload;
+        state.activeChatType = "CHANNEL";
+      } else if (state.activeChatType === "CHANNEL") {
+        state.activeConversation = null;
+        state.activeChatType = null;
+      }
+    },
+    setActiveDirectMessage: (
+      state,
+      action: PayloadAction<ConversationResponse | null>,
+    ) => {
+      state.activeDirectMessage = action.payload;
+      if (action.payload) {
+        state.activeConversation = action.payload;
+        state.activeChatType = "DIRECT";
+      } else if (state.activeChatType === "DIRECT") {
+        state.activeConversation = null;
+        state.activeChatType = null;
+      }
     },
     toggleMobileSidebar: (state) => {
       state.isMobileSidebarOpen = !state.isMobileSidebarOpen;
@@ -178,6 +220,8 @@ const chatSlice = createSlice({
 
 export const {
   setActiveConversation,
+  setActiveChannel,
+  setActiveDirectMessage,
   toggleMobileSidebar,
   setSelectedProfileUserId,
   updateWatermark,
