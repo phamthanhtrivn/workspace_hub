@@ -19,7 +19,7 @@ export interface UserProfileResponse {
 }
 
 export type ConversationType = "DIRECT" | "CHANNEL";
-export type ConversationRole = "OWNER" | "ADMIN" | "MEMBER";
+export type ConversationRole = "ADMIN" | "MEMBER";
 
 export interface ConversationSetting {
   id: string;

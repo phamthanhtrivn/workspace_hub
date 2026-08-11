@@ -43,7 +43,7 @@ export default function ChannelSettingsModal({
   const currentMember = conversation.members?.find(
     (m: any) => m.userId === currentUserId,
   );
-  const isOwner = currentMember?.role === "OWNER";
+  const isAdmin = currentMember?.role === "ADMIN";
 
   useEffect(() => {
     setMounted(true);
@@ -58,7 +58,7 @@ export default function ChannelSettingsModal({
     try {
       await updateConversationSettings(conversation.id, settings);
 
-      if (isOwner) {
+      if (isAdmin) {
         const trimmedName = channelName.trim();
         if (trimmedName !== (conversation.name || "")) {
           if (!trimmedName) {
@@ -102,7 +102,7 @@ export default function ChannelSettingsModal({
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           {/* Channel Info Section */}
           <div className="p-5 bg-gray-50/50 flex flex-col gap-4 border-b border-gray-100">
-            {isOwner ? (
+            {isAdmin ? (
               <div className="flex flex-col items-center gap-4">
                 <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center border border-gray-200 shadow-sm shrink-0">
                   <Hash size={28} className="text-gray-400" />
@@ -132,7 +132,7 @@ export default function ChannelSettingsModal({
                     {channelName}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Only the space owner can update channel settings
+                    Only space admins can update channel settings
                   </p>
                 </div>
               </div>

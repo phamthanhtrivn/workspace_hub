@@ -27,8 +27,7 @@ export default function MembersSection({
   const currentMember = activeConversation?.members?.find(
     (m: any) => m.userId === currentUserId,
   );
-  const canInvite =
-    currentMember?.role === "OWNER" || currentMember?.role === "ADMIN";
+  const canInvite = currentMember?.role === "ADMIN";
   const spaceId = activeConversation?.spaceId;
 
   return (
@@ -85,11 +84,6 @@ export default function MembersSection({
                       <span className="text-sm text-gray-700">
                         {displayName}
                       </span>
-                      {member.role === "OWNER" && (
-                        <span className="text-[10px] bg-yellow-100 text-yellow-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-yellow-100 w-fit">
-                          <FaKey size={10} className="text-yellow-500" /> Owner
-                        </span>
-                      )}
                       {member.role === "ADMIN" && (
                         <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-gray-200 w-fit">
                           <FaKey size={10} className="text-gray-400" /> Admin

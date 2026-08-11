@@ -88,28 +88,6 @@ export class ConversationController {
     };
   }
 
-  @Post(':id/transfer-owner')
-  async transferOwnership(
-    @Param('id') channelId: string,
-    @Headers('x-user-id') userId: string,
-    @Body('newOwnerId') newOwnerId: string,
-  ) {
-    if (!userId || !channelId || !newOwnerId) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
-      );
-    }
-    const result = await this.conversationService.transferOwnership(
-      channelId,
-      userId,
-      newOwnerId,
-    );
-    return {
-      message: CHANNEL_SUCCESS_MESSAGES.OWNER_TRANSFERRED,
-      data: result,
-    };
-  }
-
   @Delete(':id/members/:memberId')
   async kickMember(
     @Param('id') channelId: string,

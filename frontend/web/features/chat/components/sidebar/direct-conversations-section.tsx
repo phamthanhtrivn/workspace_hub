@@ -21,6 +21,7 @@ import { ChatProfilesMap, ConversationResponse } from "../../types/chat.types";
 import { ChatQueryKey, ChatSidebarSection } from "../../types/chat.constant";
 import DirectConversationItem from "./direct-conversation-item";
 import { sortDirectConversations } from "../../utils/direct-conversation-utils";
+import { cn } from "@/lib/utils";
 
 interface DirectConversationsQueryData {
   conversations: ConversationResponse[];
@@ -287,7 +288,13 @@ export default function DirectConversationsSection({
         </button>
       </div>
       {isDmExpanded && (
-        <div className="max-h-48 overflow-y-auto pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+        <div
+          className={cn(
+            "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full",
+            filteredDirectConversations.length > 10 &&
+              "max-h-80 overflow-y-auto",
+          )}
+        >
           {isLoading ? (
             <div className="text-[11px] text-slate-400 italic px-3 py-1">
               Loading...

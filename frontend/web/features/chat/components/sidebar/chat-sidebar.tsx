@@ -561,7 +561,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             )}
           </div>
           {isChannelsExpanded && (
-            <div className="max-h-48 overflow-y-auto pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+            <div
+              className={cn(
+                "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full",
+                filteredChannels.length > 10 && "max-h-80 overflow-y-auto",
+              )}
+            >
               {loadingChannels ? (
                 <div className="text-[11px] text-slate-400 italic px-3 py-1">
                   Loading channels...

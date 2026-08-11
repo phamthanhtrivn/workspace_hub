@@ -10,7 +10,6 @@ import {
 } from "react-icons/fi";
 import {
   updateMemberRole,
-  transferOwnership,
   kickMember,
   leaveConversation,
   disbandConversation,
@@ -87,37 +86,6 @@ export default function ManageMembersModal({
     }
   };
 
-  const handleTransferOwnership = async (memberId: string) => {
-    if (isProcessing) return;
-
-    const result = await Swal.fire({
-      title: "Transfer ownership?",
-      text: "Are you sure you want to transfer ownership to this user?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes",
-      cancelButtonText: "Cancel",
-    });
-
-    if (!result.isConfirmed) return;
-    setIsProcessing(true);
-    try {
-      await transferOwnership(conversation.id, memberId);
-      toast.success("Ownership transferred successfully");
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
-      onClose();
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Failed to transfer ownership",
-      );
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
   const handleKickMember = async (memberId: string) => {
     if (isProcessing) return;
     const result = await Swal.fire({
@@ -147,15 +115,6 @@ export default function ManageMembersModal({
 
   const handleLeaveSpace = async () => {
     if (isProcessing) return;
-    if (currentUserRole === "OWNER") {
-      const otherMembers = conversation.members?.filter(
-        (m: any) => m.userId !== currentUserId,
-      );
-      if (otherMembers?.length > 0) {
-        toast.error("Please transfer ownership before leaving the space");
-        return;
-      }
-    }
 
     const result = await Swal.fire({
       title: "Leave space?",
@@ -282,11 +241,6 @@ export default function ManageMembersModal({
                       <span className="text-sm font-medium text-gray-800">
                         {displayName}
                       </span>
-                      {member.role === "OWNER" && (
-                        <span className="text-[10px] bg-yellow-50 text-yellow-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-yellow-100">
-                          <FaKey size={10} className="text-yellow-500" /> Owner
-                        </span>
-                      )}
                       {member.role === "ADMIN" && (
                         <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-gray-200">
                           <FaKey size={10} className="text-gray-400" /> Admin
@@ -301,7 +255,7 @@ export default function ManageMembersModal({
 
                 {!isMe && (
                   <div className="flex items-center gap-2">
-                    {currentUserRole === "OWNER" && (
+                    {currentUserRole === "ADMIN" && (
                       <>
                         {member.role === "MEMBER" && (
                           <button
@@ -325,19 +279,11 @@ export default function ManageMembersModal({
                             <FiShieldOff size={18} />
                           </button>
                         )}
-                        <button
-                          onClick={() => handleTransferOwnership(member.userId)}
-                          title="Transfer Ownership"
-                          className="p-2 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <FiShieldOff size={18} />
-                        </button>
                       </>
                     )}
 
-                    {(currentUserRole === "OWNER" ||
-                      (currentUserRole === "ADMIN" &&
-                        member.role === "MEMBER")) && (
+                    {currentUserRole === "ADMIN" &&
+                      member.role === "MEMBER" && (
                       <button
                         onClick={() => handleKickMember(member.userId)}
                         title="Remove from space"
@@ -363,7 +309,7 @@ export default function ManageMembersModal({
             Leave space
           </button>
 
-          {currentUserRole === "OWNER" && (
+          {currentUserRole === "ADMIN" && (
             <button
               onClick={handleDisbandChannel}
               disabled={isProcessing}

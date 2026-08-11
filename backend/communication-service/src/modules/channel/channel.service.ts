@@ -148,11 +148,7 @@ export class ChannelService {
       },
     });
 
-    if (
-      !spaceMember ||
-      (spaceMember.role !== SpaceRole.OWNER &&
-        spaceMember.role !== SpaceRole.ADMIN)
-    ) {
+    if (!spaceMember || spaceMember.role !== SpaceRole.ADMIN) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.SETTINGS_ACCESS_DENIED,
       );
@@ -194,7 +190,7 @@ export class ChannelService {
       where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
     });
 
-    if (!requester || requester.role !== SpaceRole.OWNER) {
+    if (!requester || requester.role !== SpaceRole.ADMIN) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.ROLE_CHANGE_ACCESS_DENIED,
       );
@@ -264,75 +260,6 @@ export class ChannelService {
     return updatedMember;
   }
 
-  async transferOwnership(
-    channelId: string,
-    userId: string,
-    newOwnerId: string,
-  ) {
-    if (userId === newOwnerId) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.SELF_OWNERSHIP_TRANSFER,
-      );
-    }
-
-    const channel = await this.prisma.channel.findUnique({
-      where: { id: channelId },
-    });
-    if (!channel) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
-    }
-
-    const requester = await this.prisma.spaceMember.findUnique({
-      where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
-    });
-
-    if (!requester || requester.role !== SpaceRole.OWNER) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.TRANSFER_ACCESS_DENIED,
-      );
-    }
-
-    const newOwner = await this.prisma.spaceMember.findUnique({
-      where: {
-        spaceId_userId: { spaceId: channel.spaceId, userId: newOwnerId },
-      },
-    });
-
-    if (!newOwner) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE);
-    }
-
-    await this.prisma.$transaction([
-      this.prisma.spaceMember.update({
-        where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
-        data: { role: SpaceRole.MEMBER },
-      }),
-      this.prisma.spaceMember.update({
-        where: {
-          spaceId_userId: { spaceId: channel.spaceId, userId: newOwnerId },
-        },
-        data: { role: SpaceRole.OWNER },
-      }),
-    ]);
-
-    await this.emitRoleUpdateToSpaceChannels(channel.spaceId, {
-      userId,
-      role: SpaceRole.MEMBER,
-    });
-    await this.emitRoleUpdateToSpaceChannels(channel.spaceId, {
-      userId: newOwnerId,
-      role: SpaceRole.OWNER,
-    });
-
-    await this.chatGateway.sendSystemMessage(
-      channelId,
-      userId,
-      `${userId} transferred ownership to ${newOwnerId}`,
-    );
-
-    return { success: true };
-  }
-
   async kickMember(channelId: string, userId: string, memberId: string) {
     if (userId === memberId) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.SELF_KICK);
@@ -354,9 +281,6 @@ export class ChannelService {
 
     if (!requester || !target) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE);
-    }
-    if (target.role === SpaceRole.OWNER) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.KICK_ACCESS_DENIED);
     }
     if (
       requester.role === SpaceRole.MEMBER ||
@@ -419,9 +343,7 @@ export class ChannelService {
 
     if (
       !spaceMember ||
-      (spaceMember.role !== SpaceRole.OWNER &&
-        spaceMember.role !== SpaceRole.ADMIN &&
-        channel.createdBy !== userId)
+      (spaceMember.role !== SpaceRole.ADMIN && channel.createdBy !== userId)
     ) {
       throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED);
     }
@@ -466,22 +388,6 @@ export class ChannelService {
 
     if (!member) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE);
-    }
-
-    if (member.role === SpaceRole.OWNER) {
-      const otherOwners = await this.prisma.spaceMember.findMany({
-        where: {
-          spaceId: channel.spaceId,
-          role: SpaceRole.OWNER,
-          userId: { not: userId },
-        },
-      });
-
-      if (otherOwners.length === 0) {
-        throw new BadRequestException(
-          CHANNEL_ERROR_MESSAGES.OWNER_LEAVE_PREVENTED,
-        );
-      }
     }
 
     const spaceChannels = await this.prisma.channel.findMany({
@@ -546,9 +452,7 @@ export class ChannelService {
 
     if (
       !spaceMember ||
-      (spaceMember.role !== SpaceRole.OWNER &&
-        spaceMember.role !== SpaceRole.ADMIN &&
-        channel.createdBy !== userId)
+      (spaceMember.role !== SpaceRole.ADMIN && channel.createdBy !== userId)
     ) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.DISBAND_ACCESS_DENIED,
@@ -596,9 +500,7 @@ export class ChannelService {
 
     if (
       !spaceMember ||
-      (spaceMember.role !== SpaceRole.OWNER &&
-        spaceMember.role !== SpaceRole.ADMIN &&
-        channel.createdBy !== userId)
+      (spaceMember.role !== SpaceRole.ADMIN && channel.createdBy !== userId)
     ) {
       throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED);
     }

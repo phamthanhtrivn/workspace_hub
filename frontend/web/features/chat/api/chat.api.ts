@@ -398,17 +398,6 @@ export const updateMemberRole = async (
   return response.data;
 };
 
-export const transferOwnership = async (
-  channelId: string,
-  newOwnerId: string,
-): Promise<any> => {
-  const response = await api.post(
-    `/api/channels/${channelId}/transfer-owner`,
-    { newOwnerId },
-  );
-  return response.data;
-};
-
 export const kickMember = async (
   channelId: string,
   memberId: string,

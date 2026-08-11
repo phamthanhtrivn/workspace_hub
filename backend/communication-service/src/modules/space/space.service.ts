@@ -59,7 +59,7 @@ export class SpaceService {
         data: {
           spaceId: space.id,
           userId,
-          role: SpaceRole.OWNER,
+          role: SpaceRole.ADMIN,
         },
       });
 

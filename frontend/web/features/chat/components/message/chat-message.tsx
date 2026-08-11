@@ -31,7 +31,7 @@ interface ChatMessageProps {
   showAvatar: boolean;
   memberProfile: UserProfileResponse | null;
   memberProfiles: Record<string, UserProfileResponse>;
-  memberRole?: "OWNER" | "ADMIN" | "MEMBER";
+  memberRole?: "ADMIN" | "MEMBER";
   readBy?: string[];
   showTime?: boolean;
   showSenderName?: boolean;
@@ -433,14 +433,6 @@ const ChatMessage = React.memo(function ChatMessage({
               ) : (
                 <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center">
                   <User size={15} className="text-slate-400" />
-                </div>
-              )}
-              {memberRole === "OWNER" && (
-                <div
-                  className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white"
-                  title="Owner"
-                >
-                  <Key size={10} className="text-white" />
                 </div>
               )}
               {memberRole === "ADMIN" && (

@@ -233,8 +233,7 @@ export default function ChatRightPanel({
       console.error("Failed to update pin status:", error);
     }
   };
-  const isOwnerOrAdmin =
-    currentMember?.role === "OWNER" || currentMember?.role === "ADMIN";
+  const isAdmin = currentMember?.role === "ADMIN";
 
   if (isDirect) {
     const otherMember = activeConversation?.members?.find(
@@ -522,7 +521,7 @@ export default function ChatRightPanel({
               </button>
             )}
 
-            {!isDirect && isOwnerOrAdmin && (
+            {!isDirect && isAdmin && (
               <button
                 onClick={() => setShowSettingsModal(true)}
                 className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
