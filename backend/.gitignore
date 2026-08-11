@@ -36,4 +36,5 @@ Desktop.ini
 .DS_Store
 
 .env
+.env.docker
 .idea

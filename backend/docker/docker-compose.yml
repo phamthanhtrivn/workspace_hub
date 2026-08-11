@@ -1,11 +1,19 @@
 version: '3.8'
 
+include:
+  - path: ../user-service/docker-compose.yml
+  - path: ../project-service/docker-compose.yml
+  - path: ../communication-service/docker-compose.yml
+  - path: ../document-service/docker-compose.yml
+  - path: ../notification-service/docker-compose.yml
+  - path: ../../frontend/web/docker-compose.yml
+
 services:
   kong:
     build: 
       context: ../kong-gateway
       dockerfile: Dockerfile
-    container_name: workspace_hub_kong
+    container_name: wh_kong
     env_file:
       - ../kong-gateway/.env
     environment:
@@ -19,7 +27,7 @@ services:
       - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
     command: >
       /bin/sh -c "
-      sed -e \"s|\\$$FRONTEND_URL|$$FRONTEND_URL|g\" -e \"s|\\$$JWT_SECRET_KEY|$$JWT_SECRET_KEY|g\" /usr/local/kong/declarative/kong.yml > /tmp/kong.yml &&
+      sed -e \"s|[$$]FRONTEND_URL|$${FRONTEND_URL}|g\" -e \"s|[$$]JWT_SECRET_KEY|$${JWT_SECRET_KEY}|g\" /usr/local/kong/declarative/kong.yml > /tmp/kong.yml &&
       /docker-entrypoint.sh kong docker-start"
     ports:
       - "8000:8000" # Proxy HTTP Port
@@ -27,12 +35,14 @@ services:
       - "8001:8001" # Admin HTTP Port
       - "8444:8444" # Admin HTTPS Port
     volumes:
-      - ../kong-gateway/kong.yml:/usr/local/kong/declarative/kong.yml
+      - ../kong-gateway/kong.docker.yml:/usr/local/kong/declarative/kong.yml
+    networks:
+      - wh_network
     restart: on-failure
 
   postgres:
     image: postgres:15-alpine
-    container_name: workspace_hub_postgres
+    container_name: wh_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -42,20 +52,34 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wh_network
     restart: always
 
   redis:
     image: redis:7-alpine
-    container_name: workspace_hub_redis
+    container_name: wh_redis
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wh_network
     restart: always
 
   kafka:
     image: apache/kafka:latest
-    container_name: workspace_hub_kafka
+    container_name: wh_kafka
     ports:
       - "${KAFKA_PORT}:9092"
     environment:
@@ -70,11 +94,13 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    networks:
+      - wh_network
     restart: always
 
   kafka-init:
     image: apache/kafka:latest
-    container_name: workspace_hub_kafka_init
+    container_name: wh_kafka_init
     depends_on:
       - kafka
     command: >
@@ -84,8 +110,15 @@ services:
       /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic notification-topic --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
       echo 'Kafka topic notification-topic created successfully.'
       "
+    networks:
+      - wh_network
+
 
 volumes:
   postgres_data:
   redis_data:
 
+networks:
+  wh_network:
+    name: wh_network
+    driver: bridge

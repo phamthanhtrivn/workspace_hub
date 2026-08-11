@@ -20,17 +20,17 @@ import {
   updateMuteStatus,
 } from "@/store/chat/chat-slice";
 import { UserProfileResponse } from "../../types/chat.types";
-import { socketService } from "../../api/chat-socket.service";
-import { ChatEvent } from "../../api/chat.events";
+import { CHAT_SIDEBAR_TABS, CONVERSATION_TYPE } from "../../types/chat.enums";
 import { MdOutlineGroupAdd } from "react-icons/md";
+import { cn } from "@/lib/utils";
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
 }
 
 export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
-  const [activeTab, setActiveTab] = useState<"all" | "personal" | "groups">(
-    "all",
+  const [activeTab, setActiveTab] = useState<CHAT_SIDEBAR_TABS>(
+    CHAT_SIDEBAR_TABS.ALL,
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -94,297 +94,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   useEffect(() => {
     activeConversationIdRef.current = activeConversation?.id || null;
   }, [activeConversation?.id]);
-
-  useEffect(() => {
-    if (!currentUserId) return;
-
-    const timeout = setTimeout(() => {
-      const socket = socketService.getSocket();
-      if (!socket) return;
-
-      const handleNewMessage = (message: any) => {
-        queryClient.setQueryData(
-          ["conversations", currentUserId],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            const prev = oldData.conversations;
-            const index = prev.findIndex(
-              (c: any) => c.id === message.conversationId,
-            );
-            if (index > -1) {
-              const conv = { ...prev[index] };
-
-              if (message.threadParentId) {
-                // Thread reply: do not bump, do not change latest message preview
-                if (message.senderId !== currentUserId) {
-                  conv.hasUnreadThread = true;
-                }
-                const newConversations = [...prev];
-                newConversations[index] = conv;
-                return { ...oldData, conversations: newConversations };
-              } else {
-                // Normal message: bump to top and update preview
-                conv.updatedAt = message.createdAt;
-                conv.messages = [message];
-
-                // Increment unread count if we are not currently viewing this conversation and didn't send it
-                if (
-                  message.senderId !== currentUserId &&
-                  message.conversationId !== activeConversationIdRef.current
-                ) {
-                  conv.unreadCount = (conv.unreadCount || 0) + 1;
-                  if (
-                    message.mentions?.includes(currentUserId) ||
-                    message.mentions?.includes("all")
-                  ) {
-                    conv.hasMention = true;
-                  }
-                }
-
-                // Update sender's lastReadMessageId
-                if (conv.members) {
-                  conv.members = conv.members.map((m: any) =>
-                    m.userId === message.senderId
-                      ? { ...m, lastReadMessageId: message.id }
-                      : m,
-                  );
-                }
-
-                const newConversations = [...prev];
-                newConversations.splice(index, 1);
-                newConversations.unshift(conv);
-                return { ...oldData, conversations: newConversations };
-              }
-            }
-            return oldData;
-          },
-        );
-      };
-
-      const handleMessageUpdated = (message: any) => {
-        queryClient.setQueryData(
-          ["conversations", currentUserId],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            const prev = oldData.conversations;
-            const index = prev.findIndex(
-              (c: any) => c.id === message.conversationId,
-            );
-            if (index > -1) {
-              const conv = { ...prev[index] };
-              // Only update the snippet if this edited/recalled message IS the latest message
-              if (conv.messages?.[0]?.id === message.id) {
-                conv.messages = [message];
-                const newConversations = [...prev];
-                newConversations[index] = conv;
-                return { ...oldData, conversations: newConversations };
-              }
-            }
-            return oldData;
-          },
-        );
-      };
-
-      const handleMessageRead = (data: {
-        conversationId: string;
-        userId: string;
-        messageId: string;
-      }) => {
-        queryClient.setQueryData(
-          ["conversations", currentUserId],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            return {
-              ...oldData,
-              conversations: oldData.conversations.map((c: any) => {
-                if (c.id === data.conversationId) {
-                  const updatedConv = { ...c };
-                  if (data.userId === currentUserId) {
-                    updatedConv.unreadCount = 0;
-                    updatedConv.hasMention = false;
-                  }
-                  if (updatedConv.members) {
-                    updatedConv.members = updatedConv.members.map((m: any) =>
-                      m.userId === data.userId
-                        ? { ...m, lastReadMessageId: data.messageId }
-                        : m,
-                    );
-                  }
-                  return updatedConv;
-                }
-                return c;
-              }),
-            };
-          },
-        );
-      };
-
-      const handleMemberJoin = (data: any) => {
-        queryClient.setQueryData(
-          ["conversations", currentUserId],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            const updatedProfiles = data.profile
-              ? { ...oldData.profiles, [data.profile.id]: data.profile }
-              : oldData.profiles;
-            return {
-              ...oldData,
-              profiles: updatedProfiles,
-              conversations: oldData.conversations.map((c: any) => {
-                if (c.id === data.conversationId) {
-                  const updatedConv = { ...c };
-                  const isAlreadyMember = updatedConv.members?.some(
-                    (m: any) => m.userId === data.member?.userId,
-                  );
-                  if (!isAlreadyMember && updatedConv.members && data.member) {
-                    updatedConv.members = [...updatedConv.members, data.member];
-                  }
-                  return updatedConv;
-                }
-                return c;
-              }),
-            };
-          },
-        );
-      };
-
-      const handleMemberKickedOrLeft = (data: any) => {
-        if (data.userId === currentUserId) {
-          // If the current user is kicked or left, invalidate query to refresh conversation list
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-        } else {
-          // If someone else is kicked or left, just remove them from the members array
-          queryClient.setQueryData(
-            ["conversations", currentUserId],
-            (oldData: any) => {
-              if (!oldData) return oldData;
-              return {
-                ...oldData,
-                conversations: oldData.conversations.map((c: any) => {
-                  if (c.id === data.conversationId) {
-                    const updatedConv = { ...c };
-                    if (updatedConv.members) {
-                      updatedConv.members = updatedConv.members.filter(
-                        (m: any) => m.userId !== data.userId,
-                      );
-                    }
-                    return updatedConv;
-                  }
-                  return c;
-                }),
-              };
-            },
-          );
-        }
-      };
-
-      const handleConversationUpdated = (data: {
-        id: string;
-        name?: string;
-        avatarUrl?: string;
-      }) => {
-        queryClient.setQueryData(
-          ["conversations", currentUserId],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            return {
-              ...oldData,
-              conversations: oldData.conversations.map((c: any) => {
-                if (c.id === data.id) {
-                  return {
-                    ...c,
-                    name: data.name !== undefined ? data.name : c.name,
-                    avatarUrl:
-                      data.avatarUrl !== undefined
-                        ? data.avatarUrl
-                        : c.avatarUrl,
-                  };
-                }
-                return c;
-              }),
-            };
-          },
-        );
-      };
-
-      const handleConversationDisbanded = (data: {
-        conversationId: string;
-      }) => {
-        queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      };
-
-      const handleConversationMuteUpdated = (data: {
-        conversationId: string;
-        muted: boolean;
-      }) => {
-        queryClient.setQueryData(
-          ["conversations", currentUserId],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            return {
-              ...oldData,
-              conversations: oldData.conversations.map((c: any) => {
-                if (c.id === data.conversationId) {
-                  return {
-                    ...c,
-                    members: c.members?.map((m: any) =>
-                      m.userId === currentUserId
-                        ? { ...m, muted: data.muted }
-                        : m,
-                    ),
-                  };
-                }
-                return c;
-              }),
-            };
-          },
-        );
-
-        dispatch(
-          updateMuteStatus({
-            conversationId: data.conversationId,
-            userId: currentUserId!,
-            muted: data.muted,
-          }),
-        );
-      };
-
-      socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
-      socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
-      socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
-      socket.on(ChatEvent.MESSAGE_READ, handleMessageRead);
-      socket.on(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
-      socket.on(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
-      socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
-      socket.on(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
-      socket.on(ChatEvent.CONVERSATION_DISBANDED, handleConversationDisbanded);
-      socket.on(
-        ChatEvent.CONVERSATION_MUTE_UPDATED,
-        handleConversationMuteUpdated,
-      );
-
-      return () => {
-        socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
-        socket.off(ChatEvent.MESSAGE_MOVED, handleNewMessage);
-        socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
-        socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
-        socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
-        socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
-        socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
-        socket.off(ChatEvent.CONVERSATION_UPDATED, handleConversationUpdated);
-        socket.off(
-          ChatEvent.CONVERSATION_DISBANDED,
-          handleConversationDisbanded,
-        );
-        socket.off(
-          ChatEvent.CONVERSATION_MUTE_UPDATED,
-          handleConversationMuteUpdated,
-        );
-      };
-    }, 500); // Allow time for layout to connect socket
-
-    return () => clearTimeout(timeout);
-  }, [currentUserId, queryClient]);
 
   const handleSelectConversation = useCallback(
     (conv: any) => {
@@ -484,8 +193,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     return conversations.filter((conv: any) => {
       // Lọc theo tab
       let matchesTab = true;
-      if (activeTab === "personal") matchesTab = conv.type === "DIRECT";
-      if (activeTab === "groups") matchesTab = conv.type === "GROUP";
+      if (activeTab === CHAT_SIDEBAR_TABS.PERSONAL)
+        matchesTab = conv.type === CONVERSATION_TYPE.DIRECT;
+      if (activeTab === CHAT_SIDEBAR_TABS.GROUPS)
+        matchesTab = conv.type === CONVERSATION_TYPE.GROUP;
 
       if (!matchesTab) return false;
 
@@ -494,7 +205,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         const lowerQuery = searchQuery.toLowerCase();
         let name = "";
 
-        if (conv.type === "DIRECT") {
+        if (conv.type === CONVERSATION_TYPE.DIRECT) {
           const otherMember = conv.members?.find(
             (m: any) => m.userId !== currentUserId,
           );
@@ -563,20 +274,35 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       {/* Tabs */}
       <div className="flex px-4 py-2 gap-4 justify-center border-b border-gray-100 bg-white">
         <button
-          onClick={() => setActiveTab("all")}
-          className={`cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "all" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          onClick={() => setActiveTab(CHAT_SIDEBAR_TABS.ALL)}
+          className={cn(
+            "cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition",
+            activeTab === CHAT_SIDEBAR_TABS.ALL
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700",
+          )}
         >
           <MessageSquare size={16} /> Tất cả
         </button>
         <button
-          onClick={() => setActiveTab("personal")}
-          className={`cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "personal" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          onClick={() => setActiveTab(CHAT_SIDEBAR_TABS.PERSONAL)}
+          className={cn(
+            "cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition",
+            activeTab === CHAT_SIDEBAR_TABS.PERSONAL
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700",
+          )}
         >
           <UserPlus size={16} /> Cá nhân
         </button>
         <button
-          onClick={() => setActiveTab("groups")}
-          className={`cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition ${activeTab === "groups" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"}`}
+          onClick={() => setActiveTab(CHAT_SIDEBAR_TABS.GROUPS)}
+          className={cn(
+            "cursor-pointer flex items-center gap-1.5 pb-2 px-1 border-b-2 text-sm font-medium transition",
+            activeTab === CHAT_SIDEBAR_TABS.GROUPS
+              ? "border-blue-500 text-blue-600"
+              : "border-transparent text-gray-500 hover:text-gray-700",
+          )}
         >
           <Users size={16} /> Nhóm
         </button>

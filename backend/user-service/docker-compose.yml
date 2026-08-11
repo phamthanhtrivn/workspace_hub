@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wh_user_service
+    container_name: wh_user_service
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env.docker
+    volumes:
+      - .:/app
+      - /app/target
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://127.0.0.1:8081"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wh_network
+    restart: on-failure

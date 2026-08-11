@@ -9,26 +9,9 @@ export class PushService implements OnModuleInit {
   private vapidSubject: string;
 
   onModuleInit() {
-    this.vapidSubject = process.env.VAPID_SUBJECT || "mailto:admin@workspacehub.com";
-    
-    const pubKey = process.env.VAPID_PUBLIC_KEY;
-    const privKey = process.env.VAPID_PRIVATE_KEY;
-
-    if (!pubKey || !privKey) {
-      const keys = webpush.generateVAPIDKeys();
-      this.logger.warn("=============================================================");
-      this.logger.warn("VAPID Keys are missing in .env! Generating temporary VAPID keys:");
-      this.logger.warn(`VAPID_PUBLIC_KEY="${keys.publicKey}"`);
-      this.logger.warn(`VAPID_PRIVATE_KEY="${keys.privateKey}"`);
-      this.logger.warn("Please save these variables in your notification-service/.env file.");
-      this.logger.warn("=============================================================");
-      
-      this.vapidPublicKey = keys.publicKey;
-      this.vapidPrivateKey = keys.privateKey;
-    } else {
-      this.vapidPublicKey = pubKey;
-      this.vapidPrivateKey = privKey;
-    }
+    this.vapidSubject = process.env.VAPID_SUBJECT!;
+    this.vapidPublicKey = process.env.VAPID_PUBLIC_KEY!;
+    this.vapidPrivateKey = process.env.VAPID_PRIVATE_KEY!;
 
     webpush.setVapidDetails(
       this.vapidSubject,
@@ -43,7 +26,13 @@ export class PushService implements OnModuleInit {
 
   async sendPushNotification(
     subscription: { endpoint: string; p256dh: string; auth: string },
-    payload: { title: string; content: string; link?: string; senderName?: string; senderAvatar?: string },
+    payload: {
+      title: string;
+      content: string;
+      link?: string;
+      senderName?: string;
+      senderAvatar?: string;
+    },
   ): Promise<boolean> {
     try {
       const pushSubscription = {
@@ -59,13 +48,21 @@ export class PushService implements OnModuleInit {
       await webpush.sendNotification(pushSubscription, payloadString);
       return true;
     } catch (error: any) {
-      // 410 Gone / 404 Not Found means subscription has expired or user has unsubscribed/revoked permissions
-      if (error.statusCode === 410 || error.statusCode === 404) {
-        this.logger.warn(`Subscription has expired (Status ${error.statusCode}). Endpoint: ${subscription.endpoint}`);
-        return false; // Return false to indicate the subscription is no longer valid
+      const statusCode = error.statusCode;
+      const responseBody = error.body || error.response?.body;
+
+      // These statuses mean the subscription is invalid, expired, denied, or mismatched with VAPID details.
+      if ([400, 403, 404, 410].includes(statusCode)) {
+        this.logger.warn(
+          `Invalid push subscription (Status ${statusCode}). Endpoint: ${subscription.endpoint}. Body: ${responseBody || "N/A"}`,
+        );
+        return false;
       }
 
-      this.logger.error(`Failed to send web push notification: ${error.message || error}`, error.stack);
+      this.logger.error(
+        `Failed to send web push notification: ${error.message || error}. Status: ${statusCode || "N/A"}. Body: ${responseBody || "N/A"}`,
+        error.stack,
+      );
       return true; // Keep subscription for general errors (e.g. network timeout)
     }
   }

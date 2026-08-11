@@ -1,18 +1,16 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React from "react";
 import { Menu, Search } from "lucide-react";
 import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
-import { socketService } from "@/features/chat/api/chat-socket.service";
-import { addNotification } from "@/store/notification/notification.slice";
+import { SETTING_TABS } from "@/features/user-setting/types/settings.enums";
+import { useNotificationSocket } from "@/features/notification/hooks/useNotificationSocket";
 
 interface WorkspaceHeaderProps {
   currentTitle: string;
   onMenuClick: () => void;
-  onOpenSettings: (tab: "profile" | "settings" | "sessions") => void;
+  onOpenSettings: (tab: SETTING_TABS) => void;
 }
 
 const WorkspaceHeader = React.memo(function WorkspaceHeader({
@@ -20,28 +18,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
   onMenuClick,
   onOpenSettings,
 }: WorkspaceHeaderProps) {
-  const { accessToken } = useAppSelector((state) => state.auth);
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    if (!accessToken) return;
-
-    // Connect both notification and chat sockets globally
-    notificationSocketService.connect(accessToken);
-    socketService.connect(accessToken);
-
-    const socket = notificationSocketService.getSocket();
-    if (socket) {
-      socket.on("new_notification", (noti: any) => {
-        dispatch(addNotification(noti));
-      });
-    }
-
-    return () => {
-      notificationSocketService.disconnect();
-      socketService.disconnect();
-    };
-  }, [accessToken, dispatch]);
+  useNotificationSocket();
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 py-3.5 backdrop-blur-xl px-4 sm:px-6 lg:px-8">

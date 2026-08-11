@@ -12,9 +12,10 @@ import { logoutApi } from "@/features/auth/api/auth.api";
 import { getUserProfile } from "@/features/user-setting/api/user-setting.api";
 import { UserProfile } from "@/features/user-setting/types/user-setting.types";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
+import { SETTING_TABS } from "@/features/user-setting/types/settings.enums";
 
 interface UserProfileDropdownProps {
-  onOpenSettings: (tab: "profile" | "settings" | "sessions") => void;
+  onOpenSettings: (tab: SETTING_TABS) => void;
 }
 
 const UserProfileDropdown = React.memo(function UserProfileDropdown({
@@ -111,7 +112,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             <button
               onClick={() => {
                 setIsUserDropdownOpen(false);
-                onOpenSettings("profile");
+                onOpenSettings(SETTING_TABS.PROFILE);
               }}
               className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-[var(--color-primary-dark)] transition cursor-pointer"
             >
@@ -121,7 +122,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
             <button
               onClick={() => {
                 setIsUserDropdownOpen(false);
-                onOpenSettings("settings");
+                onOpenSettings(SETTING_TABS.GENERAL);
               }}
               className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-[var(--color-primary-dark)] transition cursor-pointer"
             >

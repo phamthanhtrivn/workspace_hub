@@ -5,21 +5,22 @@ import { X, User, Settings, Shield } from "lucide-react";
 import ProfileTab from "./profile-tab";
 import SettingsTab from "./settings-tab";
 import SessionsTab from "./sessions-tab";
+import { SETTING_TABS } from "../types/settings.enums";
 
 type UserSettingsModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: "profile" | "settings" | "sessions";
+  initialTab?: SETTING_TABS;
 };
 
 const UserSettingsModal = React.memo(function UserSettingsModal({
   isOpen,
   onClose,
-  initialTab = "profile",
+  initialTab = SETTING_TABS.PROFILE,
 }: UserSettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<
-    "profile" | "settings" | "sessions"
-  >(initialTab);
+  const [activeTab, setActiveTab] = useState<SETTING_TABS>(
+    initialTab ?? SETTING_TABS.PROFILE,
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -46,9 +47,9 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
 
           <nav className="flex justify-center space-x-2 overflow-x-auto pb-2 md:justify-start md:pb-0 md:flex-col md:space-x-0 md:space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             <button
-              onClick={() => setActiveTab("profile")}
+              onClick={() => setActiveTab(SETTING_TABS.PROFILE)}
               className={`flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
-                activeTab === "profile"
+                activeTab === SETTING_TABS.PROFILE
                   ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
                   : "text-slate-600 hover:bg-slate-300/70"
               }`}
@@ -57,9 +58,9 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               <span className="text-xs font-bold md:text-sm">Tài khoản</span>
             </button>
             <button
-              onClick={() => setActiveTab("settings")}
+              onClick={() => setActiveTab(SETTING_TABS.GENERAL)}
               className={`flex min-w-[100px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
-                activeTab === "settings"
+                activeTab === SETTING_TABS.GENERAL
                   ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
                   : "text-slate-600 hover:bg-slate-300/70"
               }`}
@@ -68,9 +69,9 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               <span className="text-xs font-bold md:text-sm">Tùy chỉnh</span>
             </button>
             <button
-              onClick={() => setActiveTab("sessions")}
+              onClick={() => setActiveTab(SETTING_TABS.SESSION)}
               className={`flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
-                activeTab === "sessions"
+                activeTab === SETTING_TABS.SESSION
                   ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
                   : "text-slate-600 hover:bg-slate-300/70"
               }`}
@@ -91,9 +92,9 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
           </button>
 
           <div className="mx-auto max-w-2xl mt-4">
-            {activeTab === "profile" && <ProfileTab />}
-            {activeTab === "settings" && <SettingsTab />}
-            {activeTab === "sessions" && <SessionsTab />}
+            {activeTab === SETTING_TABS.PROFILE && <ProfileTab />}
+            {activeTab === SETTING_TABS.GENERAL && <SettingsTab />}
+            {activeTab === SETTING_TABS.SESSION && <SessionsTab />}
           </div>
         </div>
       </div>
