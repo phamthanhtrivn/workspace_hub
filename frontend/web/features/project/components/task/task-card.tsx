@@ -1,5 +1,7 @@
 "use client";
 
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { type Task, TaskPriority } from "@/features/project/types/project";
 import { LabelBadge } from "../shared/status-badge";
 import { AvatarStack } from "../shared/avatar-stack";
@@ -132,17 +134,22 @@ export default function TaskCard({
   const issueType = getIssueTypeDetails(task);
   const priorityIcon = getPriorityIcon(task.priority);
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData("text/plain", task.id);
-    e.dataTransfer.effectAllowed = "move";
-  };
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: `board-task:${task.id}`,
+    data: { type: "task", taskId: task.id },
+  });
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      draggable
-      onDragStart={handleDragStart}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       onClick={onClick}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -150,7 +157,11 @@ export default function TaskCard({
           onClick?.();
         }
       }}
-      className="group w-full rounded border border-slate-200 bg-white p-3 text-left shadow-[0_1px_1px_rgba(9,30,66,0.25)] hover:bg-[#F4F5F7] cursor-grab active:cursor-grabbing transition duration-150 focus-visible:outline-none"
+      style={{ transform: CSS.Translate.toString(transform) }}
+      className={cn(
+        "group w-full rounded border border-slate-200 bg-white p-3 text-left shadow-[0_1px_1px_rgba(9,30,66,0.25)] hover:bg-[#F4F5F7] cursor-grab active:cursor-grabbing transition duration-150 focus-visible:outline-none",
+        isDragging && "z-10 opacity-50",
+      )}
     >
       {/* Title */}
       <p className="text-sm font-medium leading-normal text-[#172B4D] group-hover:text-[#0052CC] break-words">

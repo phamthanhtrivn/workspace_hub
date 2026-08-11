@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { useState, type KeyboardEvent } from "react";
 import {
   type Task,
@@ -79,6 +86,65 @@ function StatusCircles({
   );
 }
 
+function DraggableListTaskRow({
+  task,
+  groupId,
+  enabled,
+  onClick,
+  children,
+}: {
+  task: Task;
+  groupId?: string;
+  enabled: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragNodeRef,
+    transform,
+    isDragging,
+  } = useDraggable({
+    id: `list-task:${task.id}`,
+    disabled: !enabled,
+    data: { type: "list-task", taskId: task.id, groupId },
+  });
+  const { setNodeRef: setDropNodeRef, isOver } = useDroppable({
+    id: `list-target:${task.id}`,
+    disabled: !enabled,
+    data: { type: "list-target", taskId: task.id, groupId },
+  });
+
+  const setNodeRef = (node: HTMLDivElement | null) => {
+    setDragNodeRef(node);
+    setDropNodeRef(node);
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      onClick={onClick}
+      onKeyDown={(event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onClick?.();
+        }
+      }}
+      style={{ transform: CSS.Translate.toString(transform) }}
+      className={cn(
+        "group flex items-center gap-3 px-4 py-[7px] hover:bg-[#F4F5F7] transition-colors cursor-pointer border-b border-slate-200 bg-white text-left focus-visible:bg-[#DEEBFF] focus-visible:outline-none",
+        isOver && enabled && "ring-2 ring-inset ring-blue-300",
+        isDragging && "relative z-10 opacity-50",
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 /**
  * Jira-style Backlog ListView.
  *
@@ -125,7 +191,6 @@ export default function ListView({
   const [reorderingGroupId, setReorderingGroupId] = useState<string | null>(
     null,
   );
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [localOrders, setLocalOrders] = useState<Record<string, string[]>>({});
 
   // Inline creation state: which panel's "+ Create" is active
@@ -176,6 +241,57 @@ export default function ListView({
     ];
   };
 
+  const handleReorder = async (
+    group: Task,
+    draggedTaskId: string,
+    targetTaskId: string,
+  ) => {
+    if (draggedTaskId === targetTaskId) return;
+    const children = orderedChildren(
+      group.id,
+      childrenByParent.get(group.id) || [],
+    );
+    const fromIndex = children.findIndex((task) => task.id === draggedTaskId);
+    const toIndex = children.findIndex((task) => task.id === targetTaskId);
+    if (fromIndex < 0 || toIndex < 0) return;
+
+    const nextChildren = [...children];
+    const [movedTask] = nextChildren.splice(fromIndex, 1);
+    nextChildren.splice(toIndex, 0, movedTask);
+    setLocalOrders((previous) => ({
+      ...previous,
+      [group.id]: nextChildren.map((task) => task.id),
+    }));
+    try {
+      await onReorderTasks?.(group, nextChildren);
+    } catch {
+      setLocalOrders((previous) => {
+        const next = { ...previous };
+        delete next[group.id];
+        return next;
+      });
+    }
+  };
+
+  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+    if (!over || active.data.current?.type !== "list-task") return;
+    const activeData = active.data.current as {
+      taskId: string;
+      groupId?: string;
+    };
+    const targetData = over.data.current as {
+      taskId?: string;
+      groupId?: string;
+    };
+    if (!activeData.groupId || !targetData.taskId) return;
+    if (activeData.groupId !== targetData.groupId) return;
+
+    const group = groupTasks.find((task) => task.id === activeData.groupId);
+    if (group) {
+      void handleReorder(group, activeData.taskId, targetData.taskId);
+    }
+  };
+
   const togglePanel = (id: string) => {
     setCollapsedPanels((prev) => {
       const next = new Set(prev);
@@ -222,7 +338,6 @@ export default function ListView({
     reorder?: {
       group?: Task;
       enabled?: boolean;
-      onDrop?: (targetTaskId: string) => void;
       onAddSubtask?: () => void;
     },
   ) => {
@@ -232,32 +347,12 @@ export default function ListView({
     const priorityIcon = getPriorityIcon(task.priority);
 
     return (
-      <div
+      <DraggableListTaskRow
         key={task.id}
-        role="button"
-        tabIndex={0}
-        draggable={reorder?.enabled}
-        onDragStart={() => {
-          if (reorder?.enabled) setDraggedTaskId(task.id);
-        }}
-        onDragEnd={() => setDraggedTaskId(null)}
-        onDragOver={(e) => {
-          if (reorder?.enabled) e.preventDefault();
-        }}
-        onDrop={(e) => {
-          if (reorder?.enabled) {
-            e.preventDefault();
-            reorder.onDrop?.(task.id);
-          }
-        }}
+        task={task}
+        groupId={reorder?.group?.id}
+        enabled={Boolean(reorder?.enabled)}
         onClick={() => onTaskClick?.(task)}
-        onKeyDown={(e: KeyboardEvent<HTMLDivElement>) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onTaskClick?.(task);
-          }
-        }}
-        className="group flex items-center gap-3 px-4 py-[7px] hover:bg-[#F4F5F7] transition-colors cursor-pointer border-b border-slate-200 bg-white text-left focus-visible:bg-[#DEEBFF] focus-visible:outline-none"
       >
         {/* Type icon */}
         <div className="shrink-0">{issueType.icon}</div>
@@ -340,7 +435,7 @@ export default function ListView({
             <span className="hidden xl:inline">Subtask</span>
           </button>
         )}
-      </div>
+      </DraggableListTaskRow>
     );
   };
 
@@ -426,7 +521,8 @@ export default function ListView({
   };
 
   return (
-    <div className="space-y-5 select-none pb-8">
+    <DndContext onDragEnd={handleDragEnd}>
+      <div className="space-y-5 select-none pb-8">
       {/* ════════════════════════════════════════════════════════
           1. GROUP PANELS (Root tasks that have children)
          ════════════════════════════════════════════════════════ */}
@@ -443,31 +539,6 @@ export default function ListView({
             group.startDate,
             group.dueDate,
           );
-
-          const handleDrop = async (targetTaskId: string) => {
-            if (!draggedTaskId || draggedTaskId === targetTaskId) return;
-            const fromIndex = children.findIndex(
-              (task) => task.id === draggedTaskId,
-            );
-            const toIndex = children.findIndex(
-              (task) => task.id === targetTaskId,
-            );
-            if (fromIndex < 0 || toIndex < 0) return;
-
-            const nextChildren = [...children];
-            const [movedTask] = nextChildren.splice(fromIndex, 1);
-            nextChildren.splice(toIndex, 0, movedTask);
-            setLocalOrders((previous) => ({
-              ...previous,
-              [group.id]: nextChildren.map((task) => task.id),
-            }));
-            setDraggedTaskId(null);
-            try {
-              await onReorderTasks?.(group, nextChildren);
-            } catch {
-              // The parent handles the error notification. Keep the local order usable.
-            }
-          };
 
           return (
             <div
@@ -588,7 +659,6 @@ export default function ListView({
                       renderTaskRow(task, {
                         group,
                         enabled: isReordering,
-                        onDrop: (targetTaskId) => void handleDrop(targetTaskId),
                       }),
                     )
                   ) : (
@@ -749,6 +819,7 @@ export default function ListView({
           <span>{isGeneralProject ? "Tạo công việc" : "Create"}</span>
         </button>
       )}
-    </div>
+      </div>
+    </DndContext>
   );
 }

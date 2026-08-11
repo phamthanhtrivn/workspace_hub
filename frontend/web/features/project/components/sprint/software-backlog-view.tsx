@@ -2,6 +2,13 @@
 
 import { useMemo, useState } from "react";
 import {
+  DndContext,
+  useDraggable,
+  useDroppable,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
+import {
   Check,
   CirclePlay,
   Pencil,
@@ -30,6 +37,146 @@ export interface SprintCreateValues {
   goal: string;
   startDate: string;
   endDate: string;
+}
+
+type SprintDragData = {
+  type: "sprint-task";
+  taskId: string;
+  sprintId?: string;
+};
+
+function DraggableTaskTitle({
+  task,
+  sprintId,
+  onClick,
+}: {
+  task: Task;
+  sprintId?: string;
+  onClick?: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `sprint-task:${task.id}`,
+      data: { type: "sprint-task", taskId: task.id, sprintId },
+    });
+
+  return (
+    <button
+      ref={setNodeRef}
+      type="button"
+      {...attributes}
+      {...listeners}
+      onClick={onClick}
+      style={{ transform: CSS.Translate.toString(transform) }}
+      className={cn(
+        "min-w-0 flex-1 cursor-grab text-left active:cursor-grabbing",
+        isDragging && "z-10 opacity-50",
+      )}
+    >
+      <span className="block truncate text-xs font-bold text-[#172B4D]">
+        {task.title}
+      </span>
+      <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">
+        {task.id.slice(0, 8).toUpperCase()}
+      </span>
+    </button>
+  );
+}
+
+function DraggableSprintTaskRow({
+  task,
+  sprintId,
+  nested,
+  onTaskClick,
+  onOpenChat,
+}: {
+  task: Task;
+  sprintId: string;
+  nested?: boolean;
+  onTaskClick?: (task: Task) => void;
+  onOpenChat?: (task: Task) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({
+      id: `sprint-task:${task.id}`,
+      data: { type: "sprint-task", taskId: task.id, sprintId },
+    });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      style={{ transform: CSS.Translate.toString(transform) }}
+      className={cn(
+        "flex w-full cursor-grab items-center gap-3 py-2.5 pr-4 text-left hover:bg-slate-50 active:cursor-grabbing",
+        nested
+          ? "border-t border-slate-100 bg-slate-50/50 pl-12"
+          : "px-4",
+        isDragging && "relative z-10 opacity-50",
+      )}
+    >
+      {nested && <span className="text-xs text-slate-400">↳</span>}
+      <button
+        type="button"
+        onClick={() => onTaskClick?.(task)}
+        className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-700"
+      >
+        {task.title}
+      </button>
+      <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
+      <TaskStatusBadge status={task.status} compact />
+    </div>
+  );
+}
+
+function BacklogDropZone({ children }: { children: React.ReactNode }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: "sprint-backlog",
+    data: { type: "backlog" },
+  });
+
+  return (
+    <section
+      ref={setNodeRef}
+      className={cn(
+        "overflow-hidden rounded border bg-white shadow-sm transition",
+        isOver
+          ? "border-blue-400 ring-2 ring-blue-100"
+          : "border-slate-200",
+      )}
+    >
+      {children}
+    </section>
+  );
+}
+
+function SprintDropZone({
+  sprint,
+  children,
+}: {
+  sprint: Sprint;
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `sprint:${sprint.id}`,
+    disabled: sprint.status !== SprintStatus.PLANNED,
+    data: { type: "sprint", sprintId: sprint.id },
+  });
+
+  return (
+    <section
+      ref={setNodeRef}
+      className={cn(
+        "overflow-hidden rounded border bg-white shadow-sm transition",
+        isOver
+          ? "border-blue-400 ring-2 ring-blue-100"
+          : "border-slate-200",
+      )}
+    >
+      {children}
+    </section>
+  );
 }
 
 export default function SoftwareBacklogView({
@@ -77,7 +224,6 @@ export default function SoftwareBacklogView({
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null);
   const [inlineSprintId, setInlineSprintId] = useState<string | null>(null);
   const [inlineTaskTitle, setInlineTaskTitle] = useState("");
-  const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [goal, setGoal] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -181,69 +327,40 @@ export default function SoftwareBacklogView({
     setInlineSprintId(null);
   };
 
-  const handleDragStart = (
-    event: React.DragEvent,
-    taskId: string,
-    sprintId?: string,
-  ) => {
-    event.dataTransfer.effectAllowed = "move";
-    event.dataTransfer.setData(
-      "application/x-project-task",
-      JSON.stringify({ taskId, sprintId }),
-    );
-  };
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
+    if (!over || active.data.current?.type !== "sprint-task") return;
 
-  const readDragPayload = (
-    event: React.DragEvent,
-  ): { taskId: string; sprintId?: string } | null => {
-    try {
-      const payload = JSON.parse(
-        event.dataTransfer.getData("application/x-project-task"),
-      );
-      return payload?.taskId ? payload : null;
-    } catch {
-      return null;
+    const payload = active.data.current as SprintDragData;
+    const target = over.data.current as
+      | { type: "backlog" }
+      | { type: "sprint"; sprintId: string }
+      | undefined;
+
+    if (target?.type === "sprint") {
+      if (target.sprintId !== payload.sprintId && onAddTasksToSprint) {
+        await onAddTasksToSprint(target.sprintId, [payload.taskId]);
+      }
+      return;
+    }
+
+    if (
+      target?.type === "backlog" &&
+      payload.sprintId &&
+      onRemoveTaskFromSprint
+    ) {
+      await onRemoveTaskFromSprint(payload.sprintId, payload.taskId);
     }
   };
 
-  const handleDropOnSprint = async (event: React.DragEvent, sprint: Sprint) => {
-    event.preventDefault();
-    setDragOverTarget(null);
-    if (sprint.status !== SprintStatus.PLANNED || !onAddTasksToSprint) return;
-    const payload = readDragPayload(event);
-    if (!payload || payload.sprintId === sprint.id) return;
-    await onAddTasksToSprint(sprint.id, [payload.taskId]);
-  };
-
-  const handleDropOnBacklog = async (event: React.DragEvent) => {
-    event.preventDefault();
-    setDragOverTarget(null);
-    const payload = readDragPayload(event);
-    if (!payload?.sprintId || !onRemoveTaskFromSprint) return;
-    await onRemoveTaskFromSprint(payload.sprintId, payload.taskId);
-  };
-
   return (
-    <div className="space-y-5">
+    <DndContext onDragEnd={(event) => void handleDragEnd(event)}>
+      <div className="space-y-5">
       <ProjectFilePanel
         files={projectFiles}
         onAddFiles={(files) => addFiles(files, "Project")}
         onRemoveFile={removeFile}
       />
-      <section
-        className={cn(
-          "overflow-hidden rounded border bg-white shadow-sm transition",
-          dragOverTarget === "backlog"
-            ? "border-blue-400 ring-2 ring-blue-100"
-            : "border-slate-200",
-        )}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragOverTarget("backlog");
-        }}
-        onDragLeave={() => setDragOverTarget(null)}
-        onDrop={(event) => void handleDropOnBacklog(event)}
-      >
+      <BacklogDropZone>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
           <div>
             <h2 className="text-sm font-black text-[#172B4D]">Backlog</h2>
@@ -334,20 +451,10 @@ export default function SoftwareBacklogView({
                       className="h-4 w-4 accent-[#0052CC]"
                       aria-label={`Chọn ${task.title}`}
                     />
-                    <button
-                      type="button"
-                      draggable
-                      onDragStart={(event) => handleDragStart(event, task.id)}
+                    <DraggableTaskTitle
+                      task={task}
                       onClick={() => onTaskClick?.(task)}
-                      className="min-w-0 flex-1 cursor-grab text-left active:cursor-grabbing"
-                    >
-                      <span className="block truncate text-xs font-bold text-[#172B4D]">
-                        {task.title}
-                      </span>
-                      <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">
-                        {task.id.slice(0, 8).toUpperCase()}
-                      </span>
-                    </button>
+                    />
                     <TaskChatButton
                       task={task}
                       onOpenChat={onOpenChat}
@@ -392,7 +499,7 @@ export default function SoftwareBacklogView({
             </div>
           )}
         </div>
-      </section>
+      </BacklogDropZone>
 
       <div className="space-y-4">
         {sprints.map((sprint) => {
@@ -404,51 +511,8 @@ export default function SoftwareBacklogView({
             childrenByParent.set(task.parentTaskId, children);
           });
           const rootTasks = sprint.tasks.filter((task) => !task.parentTaskId);
-          const renderTaskRow = (task: Task, nested = false) => (
-            <div
-              key={task.id}
-              draggable
-              onDragStart={(event) =>
-                handleDragStart(event, task.id, sprint.id)
-              }
-              className={cn(
-                "flex w-full cursor-grab items-center gap-3 py-2.5 pr-4 text-left hover:bg-slate-50 active:cursor-grabbing",
-                nested
-                  ? "border-t border-slate-100 bg-slate-50/50 pl-12"
-                  : "px-4",
-              )}
-            >
-              {nested && <span className="text-xs text-slate-400">↳</span>}
-              <button
-                type="button"
-                onClick={() => onTaskClick?.(task)}
-                className="min-w-0 flex-1 truncate text-left text-xs font-semibold text-slate-700"
-              >
-                {task.title}
-              </button>
-              <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
-              <TaskStatusBadge status={task.status} compact />
-            </div>
-          );
-
           return (
-            <section
-              key={sprint.id}
-              className={cn(
-                "overflow-hidden rounded border bg-white shadow-sm transition",
-                dragOverTarget === sprint.id
-                  ? "border-blue-400 ring-2 ring-blue-100"
-                  : "border-slate-200",
-              )}
-              onDragOver={(event) => {
-                if (sprint.status === SprintStatus.PLANNED) {
-                  event.preventDefault();
-                  setDragOverTarget(sprint.id);
-                }
-              }}
-              onDragLeave={() => setDragOverTarget(null)}
-              onDrop={(event) => void handleDropOnSprint(event, sprint)}
-            >
+            <SprintDropZone sprint={sprint} key={sprint.id}>
               <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
                 <div className="flex items-center gap-2">
                   {sprint.status === SprintStatus.ACTIVE ? (
@@ -527,9 +591,22 @@ export default function SoftwareBacklogView({
                 {sprint.tasks.length > 0 ? (
                   (rootTasks.length > 0 ? rootTasks : sprint.tasks).flatMap(
                     (task) => [
-                      renderTaskRow(task),
+                      <DraggableSprintTaskRow
+                        key={task.id}
+                        task={task}
+                        sprintId={sprint.id}
+                        onTaskClick={onTaskClick}
+                        onOpenChat={onOpenChat}
+                      />,
                       ...(childrenByParent.get(task.id) || []).map((child) =>
-                        renderTaskRow(child, true),
+                        <DraggableSprintTaskRow
+                          key={child.id}
+                          task={child}
+                          sprintId={sprint.id}
+                          nested
+                          onTaskClick={onTaskClick}
+                          onOpenChat={onOpenChat}
+                        />,
                       ),
                     ],
                   )
@@ -587,7 +664,7 @@ export default function SoftwareBacklogView({
                   </button>
                 )}
               </div>
-            </section>
+            </SprintDropZone>
           );
         })}
       </div>
@@ -676,6 +753,7 @@ export default function SoftwareBacklogView({
           </form>
         </div>
       )}
-    </div>
+      </div>
+    </DndContext>
   );
 }
