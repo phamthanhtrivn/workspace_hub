@@ -6,7 +6,7 @@ import { Toaster } from "sonner";
 import StoreProvider from "@/store/store-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import QueryProvider from "@/store/query-provider";
-import PushNotificationManager from "@/features/notification/components/push-notification-manager";
+import NotificationManagers from "@/features/notification/components/notification-managers";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -32,7 +32,7 @@ export default function RootLayout({
           <QueryProvider>
             <StoreProvider>
               {children}
-              <PushNotificationManager />
+              <NotificationManagers />
             </StoreProvider>
           </QueryProvider>
         </GoogleOAuthProvider>

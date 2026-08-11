@@ -7,24 +7,16 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Inject, Logger } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
 import { Server, Socket } from 'socket.io';
 import {
   ChatEvent,
   CHAT_RESPONSE_STATUS,
   CHAT_REACTION_ACTION,
-  CHAT_MENTION,
-  CHAT_PREVIEW_TEXT,
   CHAT_ERROR_MESSAGES,
 } from './types/chat.enums';
 import { MessageService } from '../message/message.service';
 import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
-import {
-  KAFKA_TOPICS,
-  KAFKA_EVENTS,
-} from '../../common/constants/kafka.constants';
 import { PollService } from '../poll/poll.service';
 import { NoteService } from '../note/note.service';
 import { DirectMessageService } from '../direct-message/direct-message.service';
@@ -40,14 +32,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private readonly logger = new Logger(ChatGateway.name);
-
   constructor(
     private readonly messageService: MessageService,
     private readonly directMessageService: DirectMessageService,
     private readonly pollService: PollService,
     private readonly noteService: NoteService,
-    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -174,66 +163,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.channelId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
 
-      // Publish new message notification event to Kafka for offline/background push delivery
-      this.messageService
-        .getConversationMembersInfo(data.channelId)
-        .then(async (membersInfo) => {
-          const mentions = data.mentions || [];
-          const isMentionedAll = mentions.includes(CHAT_MENTION.ALL);
-          let recipientIds = membersInfo
-            .filter((m) => m.userId !== userId) // exclude sender
-            .filter(
-              (m) => !m.muted || isMentionedAll || mentions.includes(m.userId),
-            ) // unmuted OR tagged OR @All
-            .map((m) => m.userId);
-
-          if (data.threadParentId) {
-            recipientIds = recipientIds.filter((rId) =>
-              threadFollowers.includes(rId),
-            );
-          }
-
-          if (recipientIds.length > 0) {
-            let previewContent = data.content || '';
-            if (data.type === MessageType.POLL) {
-              previewContent = `${CHAT_PREVIEW_TEXT.POLL_PREFIX}${data.pollData?.title || ''}`;
-            } else if (data.type === MessageType.NOTE) {
-              previewContent = `${CHAT_PREVIEW_TEXT.NOTE_PREFIX}${data.noteData?.title || ''}`;
-            } else if (data.medias && data.medias.length > 0) {
-              const type = data.medias[0].mimeType.startsWith('image/')
-                ? CHAT_PREVIEW_TEXT.IMAGE
-                : data.medias[0].mimeType.startsWith('video/')
-                  ? CHAT_PREVIEW_TEXT.VIDEO
-                  : CHAT_PREVIEW_TEXT.FILE;
-              previewContent = `${CHAT_PREVIEW_TEXT.SENT_ATTACHMENT_PREFIX}${type}`;
-            }
-
-            this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-              key: data.channelId,
-              value: {
-                recipientIds,
-                senderId: userId,
-                senderName: '',
-                senderAvatar: '',
-                type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
-                title: 'New message',
-                content: previewContent,
-                link: `/chat?id=${data.channelId}`,
-                metadata: {
-                  channelId: data.channelId,
-                  messageId: message.id,
-                },
-              },
-            });
-          }
-        })
-        .catch((err) => {
-          this.logger.error(
-            `Failed to handle Kafka notification for new message: ${err.message}`,
-            err.stack,
-          );
-        });
-
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
           channelId: data.channelId,
@@ -331,58 +260,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const targetRooms = [data.conversationId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
-
-      this.directMessageService
-        .getDirectConversationMembersInfo(data.conversationId)
-        .then((membersInfo) => {
-          const mentions = data.mentions || [];
-          let recipientIds = membersInfo
-            .filter((m) => m.userId !== userId)
-            .filter((m) => !m.muted || mentions.includes(m.userId))
-            .map((m) => m.userId);
-
-          if (data.threadParentId) {
-            recipientIds = recipientIds.filter((rId) =>
-              threadFollowers.includes(rId),
-            );
-          }
-
-          if (recipientIds.length > 0) {
-            let previewContent = data.content || '';
-            if (data.medias && data.medias.length > 0) {
-              const type = data.medias[0].mimeType.startsWith('image/')
-                ? CHAT_PREVIEW_TEXT.IMAGE
-                : data.medias[0].mimeType.startsWith('video/')
-                  ? CHAT_PREVIEW_TEXT.VIDEO
-                  : CHAT_PREVIEW_TEXT.FILE;
-              previewContent = `${CHAT_PREVIEW_TEXT.SENT_ATTACHMENT_PREFIX}${type}`;
-            }
-
-            this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-              key: data.conversationId,
-              value: {
-                recipientIds,
-                senderId: userId,
-                senderName: '',
-                senderAvatar: '',
-                type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
-                title: 'New message',
-                content: previewContent,
-                link: `/chat?id=${data.conversationId}`,
-                metadata: {
-                  conversationId: data.conversationId,
-                  messageId: message.id,
-                },
-              },
-            });
-          }
-        })
-        .catch((err) => {
-          this.logger.error(
-            `Failed to handle Kafka notification for direct message: ${err.message}`,
-            err.stack,
-          );
-        });
 
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {

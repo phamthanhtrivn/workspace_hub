@@ -23,6 +23,10 @@ import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { KAFKA_TOPICS, KAFKA_EVENTS } from "../../common/constants/kafka.constants";
+import type {
+  KafkaNotificationMessage,
+  KafkaNotificationPayload,
+} from "./types/notification.types";
 
 @Controller("api/notifications")
 export class NotificationController {
@@ -64,25 +68,17 @@ export class NotificationController {
     return { message: "Notification created successfully", data: notification };
   }
   @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)
-  async handleIncomingNotification(@Payload() data: any) {
+  async handleIncomingNotification(@Payload() data: KafkaNotificationMessage) {
     try {
-      const payload = data.value || data;
+      const rawPayload = data.value ?? data;
+      const payload = rawPayload as unknown as KafkaNotificationPayload;
 
-      // Handle message push alerts separately without saving them as database notifications
       if (payload.type === KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE) {
-        const recipientIds = payload.recipientIds || [];
-        await Promise.all(
-          recipientIds.map((recipientId: string) =>
-            this.notificationService.sendPushToUser(recipientId, {
-              title: payload.title,
-              content: payload.content,
-              link: payload.link,
-              senderName: payload.senderName,
-              senderAvatar: payload.senderAvatar,
-            }),
-          ),
-        );
         return;
+      }
+
+      if (!payload.recipientId) {
+        throw new BadRequestException("Missing notification recipientId");
       }
 
       await this.notificationService.createNotification({
