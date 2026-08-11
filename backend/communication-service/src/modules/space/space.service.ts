@@ -17,7 +17,7 @@ export class SpaceService {
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
 
-  private async mapChannelForClient(channel: any) {
+  private async mapChannelForClient(channel: any, userId?: string) {
     const roles = await this.prisma.spaceMember.findMany({
       where: {
         spaceId: channel.spaceId,
@@ -32,9 +32,27 @@ export class SpaceService {
       roles.map((member) => [member.userId, member.role]),
     );
 
+    let unreadCount = 0;
+    if (userId) {
+      const currentMember = channel.members.find(
+        (member) => member.userId === userId,
+      );
+      if (currentMember) {
+        const referenceDate = currentMember.lastReadAt || currentMember.joinedAt;
+        unreadCount = await this.prisma.message.count({
+          where: {
+            channelId: channel.id,
+            senderId: { not: userId },
+            createdAt: { gt: referenceDate },
+          },
+        });
+      }
+    }
+
     return {
       ...channel,
       type: 'CHANNEL',
+      unreadCount,
       members: channel.members.map((member) => ({
         ...member,
         role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
@@ -214,6 +232,15 @@ export class SpaceService {
       include: {
         setting: true,
         members: true,
+        messages: {
+          take: 1,
+          orderBy: {
+            createdAt: 'desc',
+          },
+          include: {
+            medias: true,
+          },
+        },
       },
       orderBy: {
         createdAt: 'asc',
@@ -221,7 +248,7 @@ export class SpaceService {
     });
 
     return Promise.all(
-      channels.map((channel) => this.mapChannelForClient(channel)),
+      channels.map((channel) => this.mapChannelForClient(channel, userId)),
     );
   }
 

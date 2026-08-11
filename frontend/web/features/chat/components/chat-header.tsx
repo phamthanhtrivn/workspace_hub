@@ -1,7 +1,6 @@
-import { ArrowLeft, Info, User, Users, Search } from "lucide-react";
-import Image from "next/image";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
+import ChannelConversationHeader from "./header/channel-conversation-header";
+import DirectConversationHeader from "./header/direct-conversation-header";
+import { useAppSelector } from "@/store/store";
 
 interface ChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -9,138 +8,12 @@ interface ChatHeaderProps {
   onBack?: () => void;
 }
 
-export default function ChatHeader({
-  onToggleRightPanel,
-  onOpenSearch,
-  onBack,
-}: ChatHeaderProps) {
-  const { activeConversation } = useAppSelector(
-    (state) => state.chat,
-  );
-  const { memberProfiles, directMessages } = useAppSelector(
-    (state) => state.chat,
-  );
-  const currentUserId = useAppSelector((state) => state.auth.userId);
-  const dispatch = useAppDispatch();
+export default function ChatHeader(props: ChatHeaderProps) {
+  const { activeConversation } = useAppSelector((state) => state.chat);
 
-  const isDirect = activeConversation?.type === "DIRECT";
-
-  let displayName = "Channel";
-  let displayAvatarUrl = null;
-  let otherMemberId: string | null = null;
-  let hasInlineDirectProfile = false;
-
-  if (isDirect) {
-    const otherMember = activeConversation?.members?.find(
-      (m) => m.userId !== currentUserId,
-    );
-    if (otherMember) {
-      otherMemberId = otherMember.userId;
-      const profile = memberProfiles?.[otherMember.userId];
-      const memberProfile = otherMember as any;
-      hasInlineDirectProfile = !!(
-        profile ||
-        memberProfile.profile?.fullName ||
-        memberProfile.fullName ||
-        memberProfile.profile?.avatarUrl ||
-        memberProfile.avatarUrl
-      );
-      displayName =
-        profile?.fullName ||
-        memberProfile.profile?.fullName ||
-        memberProfile.fullName ||
-        "User";
-      displayAvatarUrl =
-        profile?.avatarUrl ||
-        memberProfile.profile?.avatarUrl ||
-        memberProfile.avatarUrl ||
-        null;
-    }
-  } else if (activeConversation) {
-    displayName = activeConversation.name || "Channel";
-    displayAvatarUrl = activeConversation.avatarUrl;
+  if (activeConversation?.type === "DIRECT") {
+    return <DirectConversationHeader {...props} />;
   }
 
-  const isLoadingDirectProfile =
-    isDirect &&
-    !!otherMemberId &&
-    !memberProfiles?.[otherMemberId] &&
-    !hasInlineDirectProfile &&
-    directMessages.loading;
-
-  return (
-    <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">
-      <div className="flex items-center gap-2 md:gap-3">
-        {onBack && (
-          <button
-            className="md:hidden p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
-            onClick={onBack}
-          >
-            <ArrowLeft size={20} />
-          </button>
-        )}
-        <div
-          className={`relative ${isDirect ? "cursor-pointer" : ""}`}
-          onClick={() => {
-            if (isDirect && otherMemberId) {
-              dispatch(setSelectedProfileUserId(otherMemberId));
-            }
-          }}
-        >
-          <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold overflow-hidden">
-            {isLoadingDirectProfile ? (
-              <div className="h-full w-full animate-pulse rounded-full bg-gray-200" />
-            ) : displayAvatarUrl ? (
-              <Image
-                src={displayAvatarUrl}
-                alt="Avatar"
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
-            ) : isDirect ? (
-              <User size={20} className="text-gray-400" />
-            ) : (
-              <Users size={20} className="text-gray-400" />
-            )}
-          </div>
-        </div>
-        <div>
-          {isLoadingDirectProfile ? (
-            <>
-              <div className="mb-1 h-4 w-32 animate-pulse rounded bg-gray-200" />
-              <div className="h-3 w-24 animate-pulse rounded bg-gray-100" />
-            </>
-          ) : (
-            <>
-              <h2 className="font-semibold text-gray-800">{displayName}</h2>
-              <p className="text-xs text-gray-500">
-                {isDirect
-                  ? "Direct Message"
-                  : `${activeConversation?.members?.length || 0} members`}
-              </p>
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="flex items-center gap-1 text-gray-500">
-        <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
-          onClick={onOpenSearch}
-          title="Search"
-        >
-          <Search size={20} />
-        </button>
-        <div className="w-px h-6 bg-gray-200 mx-1"></div>
-        <button
-          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
-          onClick={onToggleRightPanel}
-          title="Conversation Info"
-        >
-          <Info size={20} />
-        </button>
-      </div>
-    </div>
-  );
+  return <ChannelConversationHeader {...props} />;
 }

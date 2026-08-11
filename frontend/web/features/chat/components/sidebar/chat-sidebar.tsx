@@ -28,6 +28,7 @@ import {
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   mergeMemberProfiles,
+  clearSpaceChannelUnread,
   setActiveConversation,
   setActiveSpaceId,
   setSpaceChannels,
@@ -223,6 +224,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       // Invalidate channels query to keep counts in sync if necessary
       if (conv.spaceId) {
+        dispatch(
+          clearSpaceChannelUnread({
+            spaceId: conv.spaceId,
+            channelId: conv.id,
+          }),
+        );
         queryClient.setQueryData(
           ["channels", conv.spaceId],
           (oldData: any) => {

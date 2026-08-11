@@ -5,6 +5,7 @@ import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { NotificationGateway } from "./notification.gateway";
 import { PushService } from "./push.service";
 import { Notification } from "@prisma/client";
+import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 
 @Injectable()
 export class NotificationService {
@@ -55,7 +56,10 @@ export class NotificationService {
     limit = 10,
     isRead?: boolean,
   ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
-    const where: any = { recipientId };
+    const where: any = {
+      recipientId,
+      type: { not: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE },
+    };
     if (isRead !== undefined) {
       where.isRead = isRead;
     }
@@ -70,7 +74,13 @@ export class NotificationService {
         take: limit,
       }),
       this.prisma.notification.count({ where }),
-      this.prisma.notification.count({ where: { recipientId, isRead: false } }),
+      this.prisma.notification.count({
+        where: {
+          recipientId,
+          isRead: false,
+          type: { not: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE },
+        },
+      }),
     ]);
 
     return { list, total, unreadCount };
@@ -78,7 +88,11 @@ export class NotificationService {
 
   async getUnreadCount(recipientId: string): Promise<number> {
     return this.prisma.notification.count({
-      where: { recipientId, isRead: false },
+      where: {
+        recipientId,
+        isRead: false,
+        type: { not: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE },
+      },
     });
   }
 
@@ -102,7 +116,11 @@ export class NotificationService {
 
   async markAllAsRead(recipientId: string): Promise<number> {
     const result = await this.prisma.notification.updateMany({
-      where: { recipientId, isRead: false },
+      where: {
+        recipientId,
+        isRead: false,
+        type: { not: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE },
+      },
       data: { isRead: true },
     });
     return result.count;

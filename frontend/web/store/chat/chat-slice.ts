@@ -1,6 +1,7 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
   ChatProfilesMap,
+  ConversationMember,
   ConversationResponse,
 } from "@/features/chat/types/chat.types";
 
@@ -46,6 +47,33 @@ const initialState: ChatState = {
     loadingBySpaceId: {},
   },
   memberProfiles: {},
+};
+
+const updateChannelInCollections = (
+  state: ChatState,
+  channelId: string,
+  updater: (channel: ConversationResponse) => ConversationResponse,
+  spaceId?: string,
+) => {
+  const targetSpaceIds = spaceId
+    ? [spaceId]
+    : Object.keys(state.spaceChannels.bySpaceId);
+
+  targetSpaceIds.forEach((targetSpaceId) => {
+    const channels = state.spaceChannels.bySpaceId[targetSpaceId];
+    if (!channels) return;
+    state.spaceChannels.bySpaceId[targetSpaceId] = channels.map((channel) =>
+      channel.id === channelId ? updater(channel) : channel,
+    );
+  });
+
+  if (state.activeChannel?.id === channelId) {
+    state.activeChannel = updater(state.activeChannel);
+  }
+
+  if (state.activeConversation?.id === channelId) {
+    state.activeConversation = updater(state.activeConversation);
+  }
 };
 
 const chatSlice = createSlice({
@@ -266,6 +294,107 @@ const chatSlice = createSlice({
       }
       state.spaceChannels.bySpaceId[spaceId] = channels;
     },
+    patchSpaceChannel: (
+      state,
+      action: PayloadAction<{
+        spaceId?: string;
+        channelId: string;
+        changes: Partial<ConversationResponse>;
+      }>,
+    ) => {
+      const { spaceId, channelId, changes } = action.payload;
+      updateChannelInCollections(
+        state,
+        channelId,
+        (channel) => ({ ...channel, ...changes }),
+        spaceId,
+      );
+    },
+    clearSpaceChannelUnread: (
+      state,
+      action: PayloadAction<{ spaceId?: string; channelId: string }>,
+    ) => {
+      const { spaceId, channelId } = action.payload;
+      updateChannelInCollections(
+        state,
+        channelId,
+        (channel) => ({
+          ...channel,
+          unreadCount: 0,
+          hasMention: false,
+          hasUnreadThread: false,
+        }),
+        spaceId,
+      );
+    },
+    upsertSpaceChannelMember: (
+      state,
+      action: PayloadAction<{
+        spaceId?: string;
+        channelId: string;
+        member: ConversationMember;
+      }>,
+    ) => {
+      const { spaceId, channelId, member } = action.payload;
+      updateChannelInCollections(
+        state,
+        channelId,
+        (channel) => {
+          const members = channel.members || [];
+          const exists = members.some((item) => item.userId === member.userId);
+          return {
+            ...channel,
+            members: exists
+              ? members.map((item) =>
+                  item.userId === member.userId ? { ...item, ...member } : item,
+                )
+              : [...members, member],
+          };
+        },
+        spaceId,
+      );
+    },
+    removeSpaceChannelMember: (
+      state,
+      action: PayloadAction<{
+        spaceId?: string;
+        channelId: string;
+        userId: string;
+      }>,
+    ) => {
+      const { spaceId, channelId, userId } = action.payload;
+      updateChannelInCollections(
+        state,
+        channelId,
+        (channel) => ({
+          ...channel,
+          members: channel.members?.filter((member) => member.userId !== userId),
+        }),
+        spaceId,
+      );
+    },
+    updateSpaceChannelMember: (
+      state,
+      action: PayloadAction<{
+        spaceId?: string;
+        channelId: string;
+        userId: string;
+        changes: Partial<ConversationMember>;
+      }>,
+    ) => {
+      const { spaceId, channelId, userId, changes } = action.payload;
+      updateChannelInCollections(
+        state,
+        channelId,
+        (channel) => ({
+          ...channel,
+          members: channel.members?.map((member) =>
+            member.userId === userId ? { ...member, ...changes } : member,
+          ),
+        }),
+        spaceId,
+      );
+    },
     mergeMemberProfiles: (state, action: PayloadAction<ChatProfilesMap>) => {
       state.memberProfiles = {
         ...state.memberProfiles,
@@ -298,6 +427,11 @@ export const {
   setSpaceChannels,
   setSpaceChannelsLoading,
   upsertSpaceChannel,
+  patchSpaceChannel,
+  clearSpaceChannelUnread,
+  upsertSpaceChannelMember,
+  removeSpaceChannelMember,
+  updateSpaceChannelMember,
   mergeMemberProfiles,
 } = chatSlice.actions;
 

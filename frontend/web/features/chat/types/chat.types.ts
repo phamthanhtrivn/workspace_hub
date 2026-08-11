@@ -54,6 +54,9 @@ export interface ConversationResponse {
   setting?: ConversationSetting | null;
   members: ConversationMember[];
   messages?: any[];
+  unreadCount?: number;
+  hasMention?: boolean;
+  hasUnreadThread?: boolean;
 }
 
 export interface ChatMediaResponse {

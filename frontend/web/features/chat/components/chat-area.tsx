@@ -165,6 +165,34 @@ export default function ChatArea({
   const memberProfiles = useChatMemberProfiles(messageSenderIds);
   const isDirectConversation = activeConversation?.type === "DIRECT";
 
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const appendRealtimeMessage = useCallback(
+    (message: any) => {
+      if (!message || !activeConversation?.id) return;
+
+      setNewSocketMessages((prev) => {
+        const exists = prev.some((item) => item.id === message.id);
+        if (exists) return prev;
+        return [...prev, message];
+      });
+
+      dispatch(
+        updateWatermark({
+          userId: message.senderId,
+          messageId: message.id,
+        }),
+      );
+
+      if (isBottomInView || message.senderId === auth.userId) {
+        setTimeout(() => scrollToBottom(), 100);
+      }
+    },
+    [activeConversation?.id, auth.userId, dispatch, isBottomInView, scrollToBottom],
+  );
+
   useEffect(() => {
     setJumpTargetId(null);
   }, [activeConversation?.id]);
@@ -207,7 +235,9 @@ export default function ChatArea({
   }, [activeConversation, dispatch]);
 
   useEffect(() => {
-    const socket = socketService.getSocket();
+    const socket =
+      socketService.getSocket() ||
+      (auth.accessToken ? socketService.connect(auth.accessToken) : null);
 
     if (socket && activeConversation?.id) {
       socket.emit(
@@ -261,20 +291,7 @@ export default function ChatArea({
             return;
           }
 
-          setNewSocketMessages((prev) => [...prev, message]);
-
-          // Update watermark for the sender implicitly
-          dispatch(
-            updateWatermark({
-              userId: message.senderId,
-              messageId: message.id,
-            }),
-          );
-
-          // Auto scroll to bottom if we are already near bottom, else show badge
-          if (isBottomInView || message.senderId === auth.userId) {
-            setTimeout(() => scrollToBottom(), 100);
-          }
+          appendRealtimeMessage(message);
         }
       };
 
@@ -518,16 +535,14 @@ export default function ChatArea({
   }, [
     activeConversation?.id,
     activeConversation?.spaceId,
+    appendRealtimeMessage,
     isDirectConversation,
+    auth.accessToken,
     auth.userId,
     memberProfiles,
     dispatch,
     queryClient,
   ]);
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
 
   const handleSendMessage = useCallback(
     async (content: string, medias?: any[], mentions?: string[]) => {
@@ -578,6 +593,13 @@ export default function ChatArea({
               medias,
               mentions,
             },
+            (response: any) => {
+              if (response?.status === "success" && response.data) {
+                appendRealtimeMessage(response.data);
+              } else if (response?.message) {
+                toast.error(response.message);
+              }
+            },
           );
         }
       }
@@ -586,6 +608,7 @@ export default function ChatArea({
       activeConversation,
       editingMessage,
       editDirectChatMessage,
+      appendRealtimeMessage,
       scrollToBottom,
       sendDirectChatMessage,
     ],
