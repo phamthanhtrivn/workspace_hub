@@ -836,7 +836,7 @@ export class MessageService {
     })) as any;
 
     if (!member) {
-      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP);
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -894,7 +894,7 @@ export class MessageService {
     })) as any;
 
     if (!member) {
-      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP);
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({

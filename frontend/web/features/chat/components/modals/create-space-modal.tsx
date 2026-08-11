@@ -6,17 +6,17 @@ import { X, Loader2 } from "lucide-react";
 import { createSpace } from "../../api/chat.api";
 import { toast } from "react-toastify";
 
-interface CreateWorkspaceGroupModalProps {
+interface CreateSpaceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onGroupCreated?: (group: any) => void;
+  onSpaceCreated?: (space: any) => void;
 }
 
-export default function CreateWorkspaceGroupModal({
+export default function CreateSpaceModal({
   isOpen,
   onClose,
-  onGroupCreated,
-}: CreateWorkspaceGroupModalProps) {
+  onSpaceCreated,
+}: CreateSpaceModalProps) {
   const [name, setName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -44,8 +44,8 @@ export default function CreateWorkspaceGroupModal({
       const response = await createSpace(name.trim());
       if (response && response.data) {
         toast.success("Space created successfully!");
-        if (onGroupCreated) {
-          onGroupCreated(response.data);
+        if (onSpaceCreated) {
+          onSpaceCreated(response.data);
         }
         onClose();
       } else {

@@ -145,7 +145,7 @@ export class DirectConversationService {
       });
 
     if (!participant) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP);
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
     }
 
     const updatedParticipant =
@@ -188,7 +188,7 @@ export class DirectConversationService {
       });
 
     if (!participant) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP);
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
     }
 
     const updatedParticipant =

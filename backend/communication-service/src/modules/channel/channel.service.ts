@@ -70,7 +70,7 @@ export class ChannelService {
 
         return {
           ...channel,
-          type: 'GROUP',
+          type: 'CHANNEL',
           unreadCount,
         };
       }),
@@ -86,6 +86,31 @@ export class ChannelService {
     return channels.map((channel) => channel.id);
   }
 
+  private async mapChannelForClient(channel: any) {
+    const roles = await this.prisma.spaceMember.findMany({
+      where: {
+        spaceId: channel.spaceId,
+        userId: { in: channel.members.map((member) => member.userId) },
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+    });
+    const roleByUserId = new Map(
+      roles.map((member) => [member.userId, member.role]),
+    );
+
+    return {
+      ...channel,
+      type: 'CHANNEL',
+      members: channel.members.map((member) => ({
+        ...member,
+        role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
+      })),
+    };
+  }
+
   private async emitRoleUpdateToSpaceChannels(
     spaceId: string,
     member: { userId: string; role: SpaceRole },
@@ -93,10 +118,12 @@ export class ChannelService {
     const channelIds = await this.getSpaceChannelIds(spaceId);
 
     channelIds.forEach((channelId) => {
-      this.chatGateway.server.to(channelId).emit(ChatEvent.MEMBER_ROLE_UPDATED, {
-        channelId,
-        member,
-      });
+      this.chatGateway.server
+        .to(channelId)
+        .emit(ChatEvent.MEMBER_ROLE_UPDATED, {
+          channelId,
+          member,
+        });
     });
   }
 
@@ -126,7 +153,9 @@ export class ChannelService {
       (spaceMember.role !== SpaceRole.OWNER &&
         spaceMember.role !== SpaceRole.ADMIN)
     ) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.SETTINGS_ACCESS_DENIED);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.SETTINGS_ACCESS_DENIED,
+      );
     }
 
     const updatedSettings = await this.prisma.channelSetting.update({
@@ -134,10 +163,12 @@ export class ChannelService {
       data: updateSettingDto,
     });
 
-    this.chatGateway.server.to(channelId).emit(ChatEvent.GROUP_SETTING_UPDATED, {
-      channelId,
-      setting: updatedSettings,
-    });
+    this.chatGateway.server
+      .to(channelId)
+      .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
+        channelId,
+        setting: updatedSettings,
+      });
 
     return updatedSettings;
   }
@@ -149,9 +180,7 @@ export class ChannelService {
     newRole: SpaceRole,
   ) {
     if (userId === targetUserId) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.SELF_ROLE_CHANGE,
-      );
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.SELF_ROLE_CHANGE);
     }
 
     const channel = await this.prisma.channel.findUnique({
@@ -178,9 +207,7 @@ export class ChannelService {
     });
 
     if (!targetMember) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE,
-      );
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE);
     }
 
     const updatedMember = await this.prisma.spaceMember.update({
@@ -214,9 +241,7 @@ export class ChannelService {
     });
 
     if (!member) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_GROUP,
-      );
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
     }
 
     const updatedMember = await this.prisma.channelMember.update({
@@ -245,7 +270,9 @@ export class ChannelService {
     newOwnerId: string,
   ) {
     if (userId === newOwnerId) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.SELF_OWNERSHIP_TRANSFER);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.SELF_OWNERSHIP_TRANSFER,
+      );
     }
 
     const channel = await this.prisma.channel.findUnique({
@@ -272,9 +299,7 @@ export class ChannelService {
     });
 
     if (!newOwner) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE,
-      );
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE);
     }
 
     await this.prisma.$transaction([
@@ -355,7 +380,9 @@ export class ChannelService {
       await tx.channelMember.deleteMany({
         where: {
           userId: memberId,
-          channelId: { in: spaceChannels.map((spaceChannel) => spaceChannel.id) },
+          channelId: {
+            in: spaceChannels.map((spaceChannel) => spaceChannel.id),
+          },
         },
       });
     });
@@ -374,10 +401,10 @@ export class ChannelService {
     return { success: true };
   }
 
-  async updateGroupInfo(
+  async updateChannelInfo(
     channelId: string,
     userId: string,
-    data: { name?: string; avatarUrl?: string },
+    data: { name: string },
   ) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
@@ -399,15 +426,16 @@ export class ChannelService {
       throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED);
     }
 
-    if (data.name !== undefined && data.name.trim().length === 0) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    if (!data.name || data.name.trim().length === 0) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
 
     const updatedChannel = await this.prisma.channel.update({
       where: { id: channelId },
       data: {
-        name: data.name !== undefined ? data.name.trim() : undefined,
-        avatarUrl: data.avatarUrl !== undefined ? data.avatarUrl : undefined,
+        name: data.name.trim(),
       },
     });
 
@@ -415,10 +443,11 @@ export class ChannelService {
       id: channelId,
       channelId,
       name: updatedChannel.name,
-      avatarUrl: updatedChannel.avatarUrl,
     };
 
-    this.chatGateway.server.to(channelId).emit(ChatEvent.CONVERSATION_UPDATED, payload);
+    this.chatGateway.server
+      .to(channelId)
+      .emit(ChatEvent.CONVERSATION_UPDATED, payload);
 
     return updatedChannel;
   }
@@ -436,9 +465,7 @@ export class ChannelService {
     });
 
     if (!member) {
-      throw new BadRequestException(
-        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE,
-      );
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE);
     }
 
     if (member.role === SpaceRole.OWNER) {
@@ -508,7 +535,9 @@ export class ChannelService {
     }
 
     if (channel.isDefault) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.DEFAULT_CHANNEL_DELETE_PREVENTED);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.DEFAULT_CHANNEL_DELETE_PREVENTED,
+      );
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -571,9 +600,7 @@ export class ChannelService {
         spaceMember.role !== SpaceRole.ADMIN &&
         channel.createdBy !== userId)
     ) {
-      throw new ForbiddenException(
-        CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED,
-      );
+      throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED);
     }
 
     const { presignedUrl, s3Key } =
@@ -587,31 +614,6 @@ export class ChannelService {
     const fileUrl = getMediaUrl(s3Key);
 
     return { presignedUrl, s3Key, fileUrl };
-  }
-
-  private async mapChannelForClient(channel: any) {
-    const roles = await this.prisma.spaceMember.findMany({
-      where: {
-        spaceId: channel.spaceId,
-        userId: { in: channel.members.map((member) => member.userId) },
-      },
-      select: {
-        userId: true,
-        role: true,
-      },
-    });
-    const roleByUserId = new Map(
-      roles.map((member) => [member.userId, member.role]),
-    );
-
-    return {
-      ...channel,
-      type: 'GROUP',
-      members: channel.members.map((member) => ({
-        ...member,
-        role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
-      })),
-    };
   }
 
   async joinChannel(channelId: string, userId: string, userName?: string) {
@@ -645,14 +647,15 @@ export class ChannelService {
     });
 
     if (isMember) {
-      const channelObj = await this.prisma.channel.findUnique({
+      const joinedChannel = await this.prisma.channel.findUnique({
         where: { id: channelId },
         include: {
           setting: true,
           members: true,
         },
       });
-      return this.mapChannelForClient(channelObj);
+
+      return this.mapChannelForClient(joinedChannel);
     }
 
     await this.prisma.channelMember.create({
@@ -683,7 +686,7 @@ export class ChannelService {
       },
     });
 
-    const updatedChannel = await this.prisma.channel.findUnique({
+    const joinedChannel = await this.prisma.channel.findUnique({
       where: { id: channelId },
       include: {
         setting: true,
@@ -691,6 +694,6 @@ export class ChannelService {
       },
     });
 
-    return this.mapChannelForClient(updatedChannel);
+    return this.mapChannelForClient(joinedChannel);
   }
 }

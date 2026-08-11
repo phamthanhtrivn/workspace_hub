@@ -18,7 +18,7 @@ export interface UserProfileResponse {
   bio: string | null;
 }
 
-export type ConversationType = "DIRECT" | "GROUP";
+export type ConversationType = "DIRECT" | "CHANNEL";
 export type ConversationRole = "OWNER" | "ADMIN" | "MEMBER";
 
 export interface ConversationSetting {
@@ -116,7 +116,7 @@ export interface MuteConversationResponse {
 
 export type InvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
 
-export interface GroupInvitation {
+export interface SpaceInvitation {
   id: string;
   spaceId: string;
   invitedUserId: string;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
   FiX,
@@ -7,39 +7,32 @@ import {
   FiPaperclip,
   FiBarChart2,
   FiEdit3,
-  FiCamera,
-  FiLoader,
 } from "react-icons/fi";
 import {
   updateConversationSettings,
-  getGroupAvatarPresignedUrl,
-  updateGroupInfo,
+  updateChannelInfo,
 } from "../../api/chat.api";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
-import { Loader2, Users } from "lucide-react";
-import axios from "axios";
+import { Hash } from "lucide-react";
 
-interface GroupSettingsModalProps {
+interface ChannelSettingsModalProps {
   conversation: any;
   onClose: () => void;
 }
 
-export default function GroupSettingsModal({
+export default function ChannelSettingsModal({
   conversation,
   onClose,
-}: GroupSettingsModalProps) {
+}: ChannelSettingsModalProps) {
   const [settings, setSettings] = useState({
     allowSendMessage: conversation.setting?.allowSendMessage ?? true,
     allowPinMessage: conversation.setting?.allowPinMessage ?? true,
     allowCreatePoll: conversation.setting?.allowCreatePoll ?? true,
     allowCreateNote: conversation.setting?.allowCreateNote ?? true,
   });
-  const [groupName, setGroupName] = useState(conversation.name || "");
-  const [groupAvatar, setGroupAvatar] = useState(conversation.avatarUrl || "");
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [channelName, setChannelName] = useState(conversation.name || "");
 
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
@@ -60,69 +53,20 @@ export default function GroupSettingsModal({
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleAvatarChange = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setIsUploadingAvatar(true);
-    try {
-      const response = await getGroupAvatarPresignedUrl(
-        conversation.id,
-        file.name,
-        file.type,
-      );
-      if (response && response.success) {
-        const { presignedUrl, fileUrl } = response.data;
-
-        await axios.put(presignedUrl, file, {
-          headers: {
-            "Content-Type": file.type,
-          },
-        });
-
-        setGroupAvatar(fileUrl);
-        toast.success(
-          "Avatar loaded temporarily. Click Save to complete.",
-        );
-      } else {
-        toast.error("Failed to get upload link");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error uploading image");
-    } finally {
-      setIsUploadingAvatar(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // 1. Save settings
       await updateConversationSettings(conversation.id, settings);
 
-      // 2. If owner, save name and avatarUrl if they changed
       if (isOwner) {
-        const trimmedName = groupName.trim();
-        if (
-          trimmedName !== (conversation.name || "") ||
-          groupAvatar !== (conversation.avatarUrl || "")
-        ) {
+        const trimmedName = channelName.trim();
+        if (trimmedName !== (conversation.name || "")) {
           if (!trimmedName) {
-            toast.error("Group name cannot be empty");
+            toast.error("Channel name cannot be empty");
             setIsSaving(false);
             return;
           }
-          await updateGroupInfo(
-            conversation.id,
-            trimmedName,
-            groupAvatar || undefined,
-          );
+          await updateChannelInfo(conversation.id, trimmedName);
         }
       }
 
@@ -131,7 +75,7 @@ export default function GroupSettingsModal({
       queryClient.invalidateQueries({ queryKey: ["channels", activeSpaceId] });
       onClose();
     } catch (error) {
-      toast.error("Failed to update group settings");
+      toast.error("Failed to update channel settings");
     } finally {
       setIsSaving(false);
     }
@@ -144,7 +88,7 @@ export default function GroupSettingsModal({
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100 flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white shrink-0">
           <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
-            Group Settings
+            Channel Settings
           </h2>
           <button
             onClick={onClose}
@@ -156,78 +100,39 @@ export default function GroupSettingsModal({
 
         {/* Scrollable Modal Content */}
         <div className="overflow-y-auto flex-1 custom-scrollbar">
-          {/* Group Info Section */}
+          {/* Channel Info Section */}
           <div className="p-5 bg-gray-50/50 flex flex-col gap-4 border-b border-gray-100">
             {isOwner ? (
               <div className="flex flex-col items-center gap-4">
-                {/* Avatar Upload */}
-                <div className="relative group w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden border border-gray-200 shadow-sm shrink-0">
-                  {isUploadingAvatar ? (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
-                      <Loader2 className="animate-spin h-6 w-6" />
-                    </div>
-                  ) : (
-                    <>
-                      {groupAvatar ? (
-                        <img
-                          src={groupAvatar}
-                          alt="Group Avatar"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Users size={32} className="text-gray-400" />
-                      )}
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="absolute inset-0 bg-black/40 text-white opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-full cursor-pointer"
-                        disabled={isSaving}
-                      >
-                        <FiCamera className="h-6 w-6" />
-                      </button>
-                    </>
-                  )}
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                  />
+                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center border border-gray-200 shadow-sm shrink-0">
+                  <Hash size={28} className="text-gray-400" />
                 </div>
 
-                {/* Group Name input */}
+                {/* Channel Name input */}
                 <div className="w-full">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
-                    Group Name
+                    Channel Name
                   </label>
                   <input
                     type="text"
-                    value={groupName}
-                    onChange={(e) => setGroupName(e.target.value)}
-                    placeholder="Enter group name..."
+                    value={channelName}
+                    onChange={(e) => setChannelName(e.target.value)}
+                    placeholder="Enter channel name..."
                     className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium text-gray-800"
                   />
                 </div>
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden shrink-0">
-                  {groupAvatar ? (
-                    <img
-                      src={groupAvatar}
-                      alt="Group Avatar"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Users size={20} className="text-gray-400" />
-                  )}
+                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
+                  <Hash size={20} className="text-gray-400" />
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-800 text-base">
-                    {groupName}
+                    {channelName}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Only the group owner can update group settings
+                    Only the space owner can update channel settings
                   </p>
                 </div>
               </div>
@@ -238,7 +143,7 @@ export default function GroupSettingsModal({
             <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
               <SettingItem
                 title="Allow sending messages"
-                description="Members can send messages in the group"
+                description="Members can send messages in the channel"
                 checked={settings.allowSendMessage}
                 onChange={() => handleToggle("allowSendMessage")}
                 icon={<FiMessageSquare size={18} />}

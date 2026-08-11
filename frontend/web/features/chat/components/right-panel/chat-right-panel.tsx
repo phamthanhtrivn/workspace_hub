@@ -22,7 +22,7 @@ import MediaDetailView from "./media-detail-view";
 import PollDetailView from "./poll-detail-view";
 import PinnedMessagesDetailView from "./pinned-messages-detail-view";
 import SearchMessagesSection from "./search-messages-section";
-import GroupSettingsModal from "../modals/group-settings-modal";
+import ChannelSettingsModal from "../modals/channel-settings-modal";
 import ManageMembersModal from "../modals/manage-members-modal";
 import ThreadDetailView from "./thread-detail-view";
 import ThreadsListView from "./threads-list-view";
@@ -116,7 +116,7 @@ export default function ChatRightPanel({
 
   const isDirect = activeConversation?.type === "DIRECT";
 
-  let displayName = "Group Chat";
+  let displayName = "Channel";
   let displayAvatarUrl = null;
   let displayDescription = `${activeConversation?.members?.length || 0} members`;
   let otherMemberId: string | null = null;
@@ -261,7 +261,7 @@ export default function ChatRightPanel({
         "";
     }
   } else if (activeConversation) {
-    displayName = activeConversation.name || "Group Chat";
+    displayName = activeConversation.name || "Channel";
     displayAvatarUrl = activeConversation.avatarUrl;
   }
 
@@ -619,7 +619,7 @@ export default function ChatRightPanel({
       )}
 
       {showSettingsModal && (
-        <GroupSettingsModal
+        <ChannelSettingsModal
           conversation={activeConversation}
           onClose={() => setShowSettingsModal(false)}
         />

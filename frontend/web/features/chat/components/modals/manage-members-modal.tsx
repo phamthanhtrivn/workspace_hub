@@ -122,7 +122,7 @@ export default function ManageMembersModal({
     if (isProcessing) return;
     const result = await Swal.fire({
       title: "Kick member?",
-      text: "Are you sure you want to kick this user from group?",
+      text: "Are you sure you want to remove this user from the space?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -145,26 +145,26 @@ export default function ManageMembersModal({
     }
   };
 
-  const handleLeaveGroup = async () => {
+  const handleLeaveSpace = async () => {
     if (isProcessing) return;
     if (currentUserRole === "OWNER") {
       const otherMembers = conversation.members?.filter(
         (m: any) => m.userId !== currentUserId,
       );
       if (otherMembers?.length > 0) {
-        toast.error("Please transfer ownership before leaving the group");
+        toast.error("Please transfer ownership before leaving the space");
         return;
       }
     }
 
     const result = await Swal.fire({
-      title: "Leave group?",
-      text: "Are you sure you want to leave the group?",
+      title: "Leave space?",
+      text: "Are you sure you want to leave this space?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Leave group",
+      confirmButtonText: "Leave space",
       cancelButtonText: "Cancel",
     });
 
@@ -176,17 +176,17 @@ export default function ManageMembersModal({
       queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to leave group");
+      toast.error(error.response?.data?.message || "Failed to leave space");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handleDisbandGroup = async () => {
+  const handleDisbandChannel = async () => {
     if (isProcessing) return;
     const result = await Swal.fire({
-      title: "Disband group?",
-      text: "Are you sure you want to disband the group? All messages and data will be permanently deleted.",
+      title: "Disband channel?",
+      text: "Are you sure you want to disband this channel? All messages and data will be permanently deleted.",
       icon: "error",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -199,12 +199,12 @@ export default function ManageMembersModal({
     setIsProcessing(true);
     try {
       await disbandConversation(conversation.id);
-      toast.success("Group disbanded successfully");
+      toast.success("Channel disbanded successfully");
       queryClient.invalidateQueries({ queryKey: ["conversations"] });
       queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
       onClose();
     } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to disband group");
+      toast.error(error.response?.data?.message || "Failed to disband channel");
     } finally {
       setIsProcessing(false);
     }
@@ -340,7 +340,7 @@ export default function ManageMembersModal({
                         member.role === "MEMBER")) && (
                       <button
                         onClick={() => handleKickMember(member.userId)}
-                        title="Kick from group"
+                        title="Remove from space"
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={18} />
@@ -355,22 +355,22 @@ export default function ManageMembersModal({
 
         <div className="p-5 border-t border-gray-100 bg-gray-50 flex gap-3">
           <button
-            onClick={handleLeaveGroup}
+            onClick={handleLeaveSpace}
             disabled={isProcessing}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <FiLogOut size={18} />
-            Leave group
+            Leave space
           </button>
 
           {currentUserRole === "OWNER" && (
             <button
-              onClick={handleDisbandGroup}
+              onClick={handleDisbandChannel}
               disabled={isProcessing}
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-200"
             >
               <FiTrash2 size={18} />
-              Disband group
+              Disband channel
             </button>
           )}
         </div>

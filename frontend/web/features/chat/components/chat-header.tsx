@@ -17,16 +17,15 @@ export default function ChatHeader({
   const { activeConversation } = useAppSelector(
     (state) => state.chat,
   );
-  const {
-    memberProfiles,
-    directConversationsLoading,
-  } = useAppSelector((state) => state.chat);
+  const { memberProfiles, directMessages } = useAppSelector(
+    (state) => state.chat,
+  );
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
 
   const isDirect = activeConversation?.type === "DIRECT";
 
-  let displayName = "Group Chat";
+  let displayName = "Channel";
   let displayAvatarUrl = null;
   let otherMemberId: string | null = null;
   let hasInlineDirectProfile = false;
@@ -58,7 +57,7 @@ export default function ChatHeader({
         null;
     }
   } else if (activeConversation) {
-    displayName = activeConversation.name || "Group Chat";
+    displayName = activeConversation.name || "Channel";
     displayAvatarUrl = activeConversation.avatarUrl;
   }
 
@@ -67,7 +66,7 @@ export default function ChatHeader({
     !!otherMemberId &&
     !memberProfiles?.[otherMemberId] &&
     !hasInlineDirectProfile &&
-    directConversationsLoading;
+    directMessages.loading;
 
   return (
     <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">

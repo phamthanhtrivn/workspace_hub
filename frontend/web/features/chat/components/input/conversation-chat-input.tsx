@@ -186,7 +186,7 @@ const ConversationChatInput = React.memo(
           .filter((m: any) => m.name.toLowerCase().includes(query));
 
         if (
-          activeConversation?.type === "GROUP" &&
+          activeConversation?.type === "CHANNEL" &&
           ("all".includes(query) ||
             "everyone".includes(query) ||
             query === "")

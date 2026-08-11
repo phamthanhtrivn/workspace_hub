@@ -163,17 +163,17 @@ export class ConversationController {
   }
 
   @Patch(':id/info')
-  async updateGroupInfo(
+  async updateChannelInfo(
     @Param('id') channelId: string,
     @Headers('x-user-id') userId: string,
-    @Body() data: { name?: string; avatarUrl?: string },
+    @Body() data: { name: string },
   ) {
     if (!userId || !channelId) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
       );
     }
-    const result = await this.conversationService.updateGroupInfo(
+    const result = await this.conversationService.updateChannelInfo(
       channelId,
       userId,
       data,
@@ -183,18 +183,6 @@ export class ConversationController {
       data: result,
     };
   }
-
-  // @Patch(':id/info')
-  // updateGroupInfo(
-  //   @Param('id') channelId: string,
-  //   @Headers('x-user-id') userId: string,
-  //   @Body() data: { name?: string; avatarUrl?: string },
-  // ) {
-  //   if (!userId || !channelId) {
-  //     throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
-  //   }
-  //   return this.conversationService.updateGroupInfo(channelId, userId, data);
-  // }
 
   @Delete(':id/leave')
   async leaveConversation(

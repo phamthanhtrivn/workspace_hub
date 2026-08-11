@@ -5,7 +5,7 @@ export enum CHANNEL_ERROR_MESSAGES {
   SELF_ROLE_CHANGE = 'You cannot change your own role',
   ROLE_CHANGE_ACCESS_DENIED = 'Only the space owner can change member roles',
   MEMBER_NOT_IN_SPACE = 'Member does not exist in this space',
-  NOT_MEMBER_OF_GROUP = 'You are not a member of this channel',
+  NOT_MEMBER_OF_CHANNEL = 'You are not a member of this channel',
   SELF_OWNERSHIP_TRANSFER = 'You cannot transfer ownership to yourself',
   TRANSFER_ACCESS_DENIED = 'Only the space owner can transfer ownership',
   NOT_MEMBER_OF_SPACE = 'You are not a member of this space',

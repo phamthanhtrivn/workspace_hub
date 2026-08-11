@@ -13,9 +13,9 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SearchUserModal from "../modals/search-user-modal";
-import CreateWorkspaceGroupModal from "../modals/create-workspace-group-modal";
+import CreateSpaceModal from "../modals/create-space-modal";
 import CreateChannelModal from "../modals/create-channel-modal";
-import InviteGroupMembersModal from "../modals/invite-space-members-modal";
+import InviteSpaceMembersModal from "../modals/invite-space-members-modal";
 import BrowseChannelsModal from "../modals/browse-channels-modal";
 import ConversationItem from "./conversation-item";
 import DirectConversationsSection from "./direct-conversations-section";
@@ -30,6 +30,10 @@ import {
   mergeMemberProfiles,
   setActiveConversation,
   setActiveSpaceId,
+  setSpaceChannels,
+  setSpaceChannelsLoading,
+  upsertDirectConversation,
+  upsertSpaceChannel,
 } from "@/store/chat/chat-slice";
 import {
   ChatProfilesMap,
@@ -57,7 +61,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [isBrowseChannelsModalOpen, setIsBrowseChannelsModalOpen] = useState(false);
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const { activeConversation, activeSpaceId } = useAppSelector((state) => state.chat);
+  const { activeConversation, activeSpaceId, spaceChannels } = useAppSelector((state) => state.chat);
   const dispatch = useAppDispatch();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -136,7 +140,32 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     enabled: !!activeSpaceId,
     staleTime: 1000 * 60 * 5,
   });
-  const channels = channelsData?.channels || [];
+  const queriedChannels = channelsData?.channels || [];
+
+  useEffect(() => {
+    if (!activeSpaceId) return;
+    dispatch(
+      setSpaceChannelsLoading({
+        spaceId: activeSpaceId,
+        loading: loadingChannels,
+      }),
+    );
+  }, [activeSpaceId, dispatch, loadingChannels]);
+
+  useEffect(() => {
+    if (!activeSpaceId || !channelsData) return;
+    dispatch(
+      setSpaceChannels({
+        spaceId: activeSpaceId,
+        channels: queriedChannels,
+      }),
+    );
+    dispatch(mergeMemberProfiles(channelsData.profiles));
+  }, [activeSpaceId, channelsData, dispatch, queriedChannels]);
+
+  const channels =
+    (activeSpaceId && spaceChannels.bySpaceId[activeSpaceId]) ||
+    queriedChannels;
 
   const hydrateDirectConversation = useCallback(
     (
@@ -283,6 +312,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             })
           : newConversation;
 
+      dispatch(upsertDirectConversation(hydratedConversation));
       dispatch(setActiveConversation(hydratedConversation));
       router.push(`/chat?id=${newConversation.id}`);
       if (onSelectChat) onSelectChat();
@@ -323,6 +353,14 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   };
 
   const handleNewChannel = (newChannel: any) => {
+    if (newChannel?.spaceId) {
+      dispatch(
+        upsertSpaceChannel({
+          spaceId: newChannel.spaceId,
+          channel: newChannel,
+        }),
+      );
+    }
     refetchChannels();
     handleSelectConversation(newChannel);
   };
@@ -557,10 +595,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       </div>
 
       {/* Modals */}
-      <CreateWorkspaceGroupModal
+      <CreateSpaceModal
         isOpen={isCreateSpaceModalOpen}
         onClose={() => setIsCreateSpaceModalOpen(false)}
-        onGroupCreated={handleNewSpace}
+        onSpaceCreated={handleNewSpace}
       />
       {activeSpaceId && (
         <>
@@ -570,7 +608,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             spaceId={activeSpaceId}
             onChannelCreated={handleNewChannel}
           />
-          <InviteGroupMembersModal
+          <InviteSpaceMembersModal
             isOpen={isInviteModalOpen}
             onClose={() => setIsInviteModalOpen(false)}
             spaceId={activeSpaceId}

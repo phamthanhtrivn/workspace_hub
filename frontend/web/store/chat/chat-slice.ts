@@ -15,9 +15,15 @@ interface ChatState {
   highlightMessageId: string | null;
   activeThreadRootMessage: any | null;
   activeSpaceId: string | null;
-  directConversations: ConversationResponse[];
+  directMessages: {
+    conversations: ConversationResponse[];
+    loading: boolean;
+  };
+  spaceChannels: {
+    bySpaceId: Record<string, ConversationResponse[]>;
+    loadingBySpaceId: Record<string, boolean>;
+  };
   memberProfiles: ChatProfilesMap;
-  directConversationsLoading: boolean;
 }
 
 const initialState: ChatState = {
@@ -31,9 +37,15 @@ const initialState: ChatState = {
   highlightMessageId: null,
   activeThreadRootMessage: null,
   activeSpaceId: null,
-  directConversations: [],
+  directMessages: {
+    conversations: [],
+    loading: false,
+  },
+  spaceChannels: {
+    bySpaceId: {},
+    loadingBySpaceId: {},
+  },
   memberProfiles: {},
-  directConversationsLoading: false,
 };
 
 const chatSlice = createSlice({
@@ -102,7 +114,7 @@ const chatSlice = createSlice({
     setHighlightMessageId: (state, action: PayloadAction<string | null>) => {
       state.highlightMessageId = action.payload;
     },
-    updateGroupSettings: (
+    updateChannelSettings: (
       state,
       action: PayloadAction<Partial<ConversationResponse["setting"]>>,
     ) => {
@@ -204,10 +216,55 @@ const chatSlice = createSlice({
       state,
       action: PayloadAction<ConversationResponse[]>,
     ) => {
-      state.directConversations = action.payload;
+      state.directMessages.conversations = action.payload;
+    },
+    upsertDirectConversation: (
+      state,
+      action: PayloadAction<ConversationResponse>,
+    ) => {
+      const conversation = action.payload;
+      const existingIndex = state.directMessages.conversations.findIndex(
+        (item) => item.id === conversation.id,
+      );
+      if (existingIndex >= 0) {
+        state.directMessages.conversations[existingIndex] = conversation;
+      } else {
+        state.directMessages.conversations.unshift(conversation);
+      }
     },
     setDirectConversationsLoading: (state, action: PayloadAction<boolean>) => {
-      state.directConversationsLoading = action.payload;
+      state.directMessages.loading = action.payload;
+    },
+    setSpaceChannels: (
+      state,
+      action: PayloadAction<{
+        spaceId: string;
+        channels: ConversationResponse[];
+      }>,
+    ) => {
+      state.spaceChannels.bySpaceId[action.payload.spaceId] =
+        action.payload.channels;
+    },
+    setSpaceChannelsLoading: (
+      state,
+      action: PayloadAction<{ spaceId: string; loading: boolean }>,
+    ) => {
+      state.spaceChannels.loadingBySpaceId[action.payload.spaceId] =
+        action.payload.loading;
+    },
+    upsertSpaceChannel: (
+      state,
+      action: PayloadAction<{ spaceId: string; channel: ConversationResponse }>,
+    ) => {
+      const { spaceId, channel } = action.payload;
+      const channels = state.spaceChannels.bySpaceId[spaceId] || [];
+      const existingIndex = channels.findIndex((item) => item.id === channel.id);
+      if (existingIndex >= 0) {
+        channels[existingIndex] = channel;
+      } else {
+        channels.push(channel);
+      }
+      state.spaceChannels.bySpaceId[spaceId] = channels;
     },
     mergeMemberProfiles: (state, action: PayloadAction<ChatProfilesMap>) => {
       state.memberProfiles = {
@@ -227,7 +284,7 @@ export const {
   updateWatermark,
   setWatermarks,
   setHighlightMessageId,
-  updateGroupSettings,
+  updateChannelSettings,
   updateMemberRole,
   removeMember,
   updateConversationInfo,
@@ -236,7 +293,11 @@ export const {
   setActiveThreadRootMessage,
   setActiveSpaceId,
   setDirectConversations,
+  upsertDirectConversation,
   setDirectConversationsLoading,
+  setSpaceChannels,
+  setSpaceChannelsLoading,
+  upsertSpaceChannel,
   mergeMemberProfiles,
 } = chatSlice.actions;
 

@@ -20,7 +20,7 @@ const ConversationItem = React.memo(function ConversationItem({
     (member: any) => member.userId === currentUserId,
   );
   const isMuted = currentMember?.muted || false;
-  const name = conv.name || "Group Chat";
+  const name = conv.name || "Channel";
 
   return (
     <div

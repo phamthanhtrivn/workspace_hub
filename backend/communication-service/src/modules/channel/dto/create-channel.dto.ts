@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString, IsArray, IsUUID } from 'class-validator';
 
-export class CreateGroupConversationDto {
+export class CreateChannelDto {
   @IsOptional()
   @IsString()
   name?: string;

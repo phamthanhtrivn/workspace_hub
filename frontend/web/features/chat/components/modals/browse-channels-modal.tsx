@@ -70,12 +70,15 @@ export default function BrowseChannelsModal({
 
   const joinMutation = useMutation({
     mutationFn: (channelId: string) => joinChannel(channelId),
-    onSuccess: (data, channelId) => {
+    onSuccess: (response, channelId) => {
       toast.success("Joined channel successfully!");
       // Invalidate queries to refresh sidebar and modal lists
       queryClient.invalidateQueries({ queryKey: ["channels", spaceId] });
 
-      const joinedChannel = data?.data || channels.find((c: any) => c.id === channelId);
+      const joinedChannel =
+        response?.success && response.data
+          ? response.data
+          : channels.find((c: any) => c.id === channelId);
       if (joinedChannel && onJoinSuccess) {
         onJoinSuccess(joinedChannel);
       }

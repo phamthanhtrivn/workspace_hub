@@ -44,7 +44,6 @@ export enum MESSAGE_ERROR_MESSAGES {
   PIN_DISABLED = 'Message pinning is disabled in this channel',
   ALREADY_PINNED = 'Message is already pinned',
   NOT_PINNED = 'Message is not pinned',
-  NOT_MEMBER_OF_GROUP = 'You are not a member of this group',
   NOT_FOUND_SIMPLE = 'Message not found',
   MISSING_CHANNEL_ID = 'Missing channelId',
   MISSING_MESSAGE_ID = 'Missing messageId',

@@ -22,7 +22,7 @@ import {
   updateWatermark,
   setWatermarks,
   setHighlightMessageId,
-  updateGroupSettings,
+  updateChannelSettings,
   updateMemberRole,
   removeMember,
   setActiveConversation,
@@ -425,9 +425,9 @@ export default function ChatArea({
         }
       };
 
-      const handleGroupSettingUpdated = (data: any) => {
+      const handleChannelSettingUpdated = (data: any) => {
         if (getEventChannelId(data) === activeConversation.id) {
-          dispatch(updateGroupSettings(data.setting));
+          dispatch(updateChannelSettings(data.setting));
         }
       };
 
@@ -454,7 +454,7 @@ export default function ChatArea({
               queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
             });
             queryClient.invalidateQueries({ queryKey: ["channels"] });
-            toast.success("You are no longer in this group");
+            toast.success("You are no longer in this space");
           } else {
             dispatch(removeMember(data.userId));
             queryClient.invalidateQueries({ queryKey: ["channels"] });
@@ -468,7 +468,7 @@ export default function ChatArea({
           queryClient.invalidateQueries({
             queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
           });
-          toast.info("This group has been disbanded by the Owner");
+          toast.info("This channel has been disbanded by the Owner");
         }
       };
 
@@ -487,7 +487,7 @@ export default function ChatArea({
       socket.on(ChatEvent.TYPING, handleTyping);
       socket.on(ChatEvent.MESSAGE_PINNED, handleMessagePinned);
       socket.on(ChatEvent.MESSAGE_UNPINNED, handleMessageUnpinned);
-      socket.on(ChatEvent.GROUP_SETTING_UPDATED, handleGroupSettingUpdated);
+      socket.on(ChatEvent.CHANNEL_SETTING_UPDATED, handleChannelSettingUpdated);
       socket.on(ChatEvent.MEMBER_ROLE_UPDATED, handleMemberRoleUpdated);
       socket.on(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
       socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
@@ -504,7 +504,7 @@ export default function ChatArea({
         socket.off(ChatEvent.TYPING, handleTyping);
         socket.off(ChatEvent.MESSAGE_PINNED, handleMessagePinned);
         socket.off(ChatEvent.MESSAGE_UNPINNED, handleMessageUnpinned);
-        socket.off(ChatEvent.GROUP_SETTING_UPDATED, handleGroupSettingUpdated);
+        socket.off(ChatEvent.CHANNEL_SETTING_UPDATED, handleChannelSettingUpdated);
         socket.off(ChatEvent.MEMBER_ROLE_UPDATED, handleMemberRoleUpdated);
         socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
         socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
@@ -899,7 +899,7 @@ export default function ChatArea({
       }
 
       let showSenderName = false;
-      if (!isMe || activeConversation?.type === "GROUP") {
+      if (!isMe || activeConversation?.type === "CHANNEL") {
         if (!nextMsg) {
           showSenderName = true;
         } else {

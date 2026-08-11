@@ -34,7 +34,7 @@ export class SpaceService {
 
     return {
       ...channel,
-      type: 'GROUP',
+      type: 'CHANNEL',
       members: channel.members.map((member) => ({
         ...member,
         role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
@@ -175,7 +175,7 @@ export class SpaceService {
 
       return {
         ...createdChannel,
-        type: 'GROUP',
+        type: 'CHANNEL',
         members: createdChannel.members.map((member) => ({
           ...member,
           role:
