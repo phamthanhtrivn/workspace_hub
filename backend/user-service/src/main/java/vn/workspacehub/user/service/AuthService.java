@@ -15,25 +15,28 @@ import org.springframework.web.client.RestTemplate;
 import vn.workspacehub.user.dto.request.RegisterRequestDto;
 import vn.workspacehub.user.dto.response.LoginResponseDto;
 import vn.workspacehub.user.dto.response.UserSessionResponse;
-import vn.workspacehub.user.entity.*;
+import vn.workspacehub.user.entity.AccountSetting;
+import vn.workspacehub.user.entity.OAuthAccount;
+import vn.workspacehub.user.entity.RefreshToken;
+import vn.workspacehub.user.entity.User;
+import vn.workspacehub.user.entity.UserProfile;
+import vn.workspacehub.user.enums.OAuthProvider;
 import vn.workspacehub.user.enums.UserRole;
 import vn.workspacehub.user.enums.UserStatus;
 import vn.workspacehub.user.exception.BusinessException;
-import vn.workspacehub.user.repository.*;
+import vn.workspacehub.user.repository.AccountSettingRepository;
+import vn.workspacehub.user.repository.OAuthAccountRepository;
+import vn.workspacehub.user.repository.RefreshTokenRepository;
+import vn.workspacehub.user.repository.UserProfileRepository;
+import vn.workspacehub.user.repository.UserRepository;
 import vn.workspacehub.user.util.CookieUtils;
 import vn.workspacehub.user.util.HashUtils;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
-import vn.workspacehub.user.enums.OAuthProvider;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,10 +64,10 @@ public class AuthService {
     public LoginResponseDto login(String email, String password, HttpServletRequest request,
             HttpServletResponse response) {
         User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new BusinessException("Email hoặc mật khẩu không chính xác"));
+                .orElseThrow(() -> new BusinessException("Email or password is incorrect"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new BusinessException("Email hoặc mật khẩu không chính xác");
+            throw new BusinessException("Email or password is incorrect");
         }
 
         String ipAddress = getClientIpAddress(request);
@@ -81,8 +84,7 @@ public class AuthService {
         if (provider == OAuthProvider.GOOGLE) {
             return processGoogleLogin(credential, request, response);
         }
-        // TODO: Handle LinkedIn
-        throw new BusinessException("Provider không được hỗ trợ");
+        throw new BusinessException("Provider is not supported");
     }
 
     private LoginResponseDto processGoogleLogin(String credential, HttpServletRequest request,
@@ -101,12 +103,12 @@ public class AuthService {
                         entity,
                         Map.class);
             } catch (org.springframework.web.client.HttpClientErrorException e) {
-                throw new BusinessException("Lỗi xác thực Google: " + e.getResponseBodyAsString());
+                throw new BusinessException("Google authentication error: " + e.getResponseBodyAsString());
             }
 
             Map<String, Object> payload = responseEntity.getBody();
             if (payload == null || !payload.containsKey("email")) {
-                throw new BusinessException("Không thể lấy thông tin người dùng từ Google");
+                throw new BusinessException("Could not retrieve user information from Google");
             }
 
             String email = (String) payload.get("email");
@@ -118,13 +120,12 @@ public class AuthService {
                     response);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new BusinessException("Xác thực Google thất bại: " + e.getClass().getName() + " - " + e.getMessage());
+            throw new BusinessException("Google authentication failed: " + e.getClass().getName() + " - " + e.getMessage());
         }
     }
 
     private LoginResponseDto processOAuthUser(String email, String providerUserId, OAuthProvider provider,
             String fullName, String avatarUrl, HttpServletRequest request, HttpServletResponse response) {
-        // 1. Kiểm tra OAuth Account đã liên kết chưa
         Optional<OAuthAccount> optionalOAuth = oauthAccountRepository.findByProviderAndProviderUserId(provider,
                 providerUserId);
 
@@ -132,15 +133,13 @@ public class AuthService {
         if (optionalOAuth.isPresent()) {
             user = optionalOAuth.get().getUser();
         } else {
-            // 2. Nếu chưa liên kết, kiểm tra email
             Optional<User> optionalUser = userRepository.findUserByEmail(email);
             if (optionalUser.isPresent()) {
                 user = optionalUser.get();
             } else {
-                // 3. Tạo User mới nếu email chưa tồn tại
                 user = User.builder()
                         .email(email)
-                        .passwordHash("") // Không cần password cho social login
+                        .passwordHash("")
                         .role(UserRole.USER)
                         .status(UserStatus.ACTIVE)
                         .build();
@@ -163,7 +162,6 @@ public class AuthService {
                 accountSettingRepository.save(accountSetting);
             }
 
-            // 4. Tạo và lưu OAuth Account
             OAuthAccount oauthAccount = OAuthAccount.builder()
                     .user(user)
                     .provider(provider)
@@ -173,10 +171,9 @@ public class AuthService {
         }
 
         if (user.getStatus() != UserStatus.ACTIVE) {
-            throw new BusinessException("Tài khoản của bạn đã bị khóa");
+            throw new BusinessException("Your account has been locked");
         }
 
-        // Tạo JWT cho session
         String ipAddress = getClientIpAddress(request);
         String rawRefreshToken = createAndSaveRefreshToken(user, request, ipAddress);
         setRefreshTokenCookie(response, rawRefreshToken);
@@ -206,7 +203,6 @@ public class AuthService {
             return null;
         }
 
-        // Anomaly Detection (Device Binding)
         String currentIp = getClientIpAddress(request);
         String currentUa = request.getHeader("User-Agent");
         String currentBrowser = vn.workspacehub.user.util.DeviceUtils.extractBrowser(currentUa);
@@ -219,7 +215,7 @@ public class AuthService {
 
         if (ipMismatch || browserMismatch || osMismatch) {
             revokeToken(storedToken);
-            throw new BusinessException("Phát hiện bất thường về bảo mật. Vui lòng đăng nhập lại.");
+            throw new BusinessException("A security anomaly was detected. Please sign in again.");
         }
 
         User user = storedToken.getUser();
@@ -243,7 +239,7 @@ public class AuthService {
     @Transactional
     public void register(RegisterRequestDto dto) {
         if (userRepository.existsByEmail(dto.getEmail())) {
-            throw new BusinessException("Email đã tồn tại trong hệ thống");
+            throw new BusinessException("Email already exists");
         }
 
         User user = User.builder()
@@ -301,19 +297,17 @@ public class AuthService {
     @Transactional
     public void revokeSession(UUID userId, UUID sessionId, String password) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("Người dùng không tồn tại"));
+                .orElseThrow(() -> new BusinessException("User does not exist"));
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
-            throw new BusinessException("Mật khẩu không chính xác");
+            throw new BusinessException("Password is incorrect");
         }
 
         RefreshToken token = refreshTokenRepository.findByIdAndUserIdAndRevokedFalse(sessionId, userId)
-                .orElseThrow(() -> new BusinessException("Phiên đăng nhập không tồn tại hoặc đã bị thu hồi"));
+                .orElseThrow(() -> new BusinessException("Session does not exist or has already been revoked"));
 
         revokeToken(token);
     }
-
-    // ── Private helpers ──
 
     private String getClientIpAddress(HttpServletRequest request) {
         String xfHeader = request.getHeader("X-Forwarded-For");

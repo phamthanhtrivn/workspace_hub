@@ -19,13 +19,13 @@ public class EmailService {
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(toEmail);
-            message.setSubject("Yêu cầu khôi phục mật khẩu - Workspace Hub");
-            message.setText("Xin chào,\n\n"
-                    + "Mã xác nhận (OTP) để khôi phục mật khẩu của bạn là: " + otpCode + "\n\n"
-                    + "Mã này có hiệu lực trong vòng 10 phút.\n"
-                    + "Nếu bạn không yêu cầu khôi phục mật khẩu, vui lòng bỏ qua email này.\n\n"
-                    + "Trân trọng,\n"
-                    + "Đội ngũ Workspace Hub");
+            message.setSubject("Password reset request - Workspace Hub");
+            message.setText("Hello,\n\n"
+                    + "Your verification code (OTP) for resetting your password is: " + otpCode + "\n\n"
+                    + "This code is valid for 10 minutes.\n"
+                    + "If you did not request a password reset, please ignore this email.\n\n"
+                    + "Regards,\n"
+                    + "Workspace Hub Team");
 
             javaMailSender.send(message);
             log.info("OTP email sent successfully to {}", toEmail);

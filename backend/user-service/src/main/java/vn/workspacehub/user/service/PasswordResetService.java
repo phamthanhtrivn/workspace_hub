@@ -24,7 +24,7 @@ public class PasswordResetService {
 
     public void requestForgotPassword(ForgotPasswordRequest request) {
         User user = userRepository.findUserByEmail(request.getEmail())
-                .orElseThrow(() -> new BusinessException("Email không tồn tại trong hệ thống"));
+                .orElseThrow(() -> new BusinessException("Email does not exist"));
 
         String otp = otpService.generateAndSaveOtp(user.getEmail());
         emailService.sendOtpEmail(user.getEmail(), otp);
@@ -33,16 +33,16 @@ public class PasswordResetService {
     public String verifyOtp(VerifyOtpRequest request) {
         boolean isValid = otpService.validateOtp(request.getEmail(), request.getOtp());
         if (!isValid) {
-            throw new BusinessException("Mã OTP không hợp lệ hoặc đã hết hạn");
+            throw new BusinessException("OTP is invalid or has expired");
         }
 
         User user = userRepository.findUserByEmail(request.getEmail())
-                .orElseThrow(() -> new BusinessException("Email không tồn tại trong hệ thống"));
+                .orElseThrow(() -> new BusinessException("Email does not exist"));
 
         String resetToken = jwtService.generateResetToken(user.getId(), user.getEmail());
-        
+
         otpService.clearOtp(request.getEmail());
-        
+
         return resetToken;
     }
 
@@ -50,23 +50,23 @@ public class PasswordResetService {
     public void resetPassword(ResetPasswordRequest request) {
         try {
             if (jwtService.isTokenExpired(request.getResetToken())) {
-                throw new BusinessException("Mã reset token đã hết hạn");
+                throw new BusinessException("Reset token has expired");
             }
 
             String emailFromToken = jwtService.extractEmail(request.getResetToken());
             String roleFromToken = jwtService.extractRole(request.getResetToken());
 
             if (!request.getEmail().equals(emailFromToken) || !"RESET_PASSWORD_ROLE".equals(roleFromToken)) {
-                throw new BusinessException("Mã reset token không hợp lệ hoặc không thuộc về email này");
+                throw new BusinessException("Reset token is invalid or does not belong to this email");
             }
         } catch (ExpiredJwtException e) {
-            throw new BusinessException("Mã reset token đã hết hạn");
+            throw new BusinessException("Reset token has expired");
         } catch (Exception e) {
-            throw new BusinessException("Mã reset token không hợp lệ");
+            throw new BusinessException("Reset token is invalid");
         }
 
         User user = userRepository.findUserByEmail(request.getEmail())
-                .orElseThrow(() -> new BusinessException("Email không tồn tại trong hệ thống"));
+                .orElseThrow(() -> new BusinessException("Email does not exist"));
 
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);

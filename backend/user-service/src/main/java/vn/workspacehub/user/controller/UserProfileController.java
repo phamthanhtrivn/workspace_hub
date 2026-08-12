@@ -26,7 +26,7 @@ public class UserProfileController {
         UserProfileResponse response = userProfileService.getMyProfile(userId);
         return ResponseEntity.ok(ApiResponse.<UserProfileResponse>builder()
                 .success(true)
-                .message("Lấy thông tin hồ sơ người dùng thành công")
+                .message("User profile retrieved successfully")
                 .data(response)
                 .build());
     }
@@ -39,7 +39,7 @@ public class UserProfileController {
         UserProfileResponse response = userProfileService.updateMyProfile(userId, request);
         return ResponseEntity.ok(ApiResponse.<UserProfileResponse>builder()
                 .success(true)
-                .message("Cập nhật thông tin hồ sơ người dùng thành công")
+                .message("User profile updated successfully")
                 .data(response)
                 .build());
     }
@@ -49,12 +49,12 @@ public class UserProfileController {
             @RequestHeader(value = "X-User-Id") UUID userId,
             @RequestParam("fileName") String fileName,
             @RequestParam("contentType") String contentType) {
-        
+
         PresignedUrlResponse response = userProfileService.generateAvatarPresignedUrl(userId, fileName, contentType);
-        
+
         return ResponseEntity.ok(ApiResponse.<PresignedUrlResponse>builder()
                 .success(true)
-                .message("Tạo presigned URL thành công")
+                .message("Presigned URL generated successfully")
                 .data(response)
                 .build());
     }

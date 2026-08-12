@@ -7,20 +7,20 @@ import java.time.LocalDate;
 
 @Getter
 public class RegisterRequestDto {
-    @NotBlank(message = "Họ tên không được trống")
+    @NotBlank(message = "Full name is required")
     private String fullName;
 
-    @Past(message = "Ngày sinh phải là ngày trong quá khứ")
+    @Past(message = "Date of birth must be in the past")
     private LocalDate dob;
 
-    @Email(message = "Email không hợp lệ")
-    @NotBlank(message = "Email không được trống")
+    @Email(message = "Email is invalid")
+    @NotBlank(message = "Email is required")
     private String email;
 
-    @Size(min = 8, message = "Mật khẩu phải có ít nhất 8 ký tự")
+    @Size(min = 8, message = "Password must be at least 8 characters")
     @Pattern(
             regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{6,}$",
-            message = "Mật khẩu phải chứa ít nhất một chữ cái viết hoa, một chữ cái viết thường, một chữ số và một ký tự đặc biệt"
+            message = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
     )
     private String password;
 }

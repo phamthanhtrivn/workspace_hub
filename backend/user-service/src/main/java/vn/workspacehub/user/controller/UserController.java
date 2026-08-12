@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import vn.workspacehub.user.common.ApiResponse;
 import vn.workspacehub.user.dto.request.RevokeSessionRequest;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
-import vn.workspacehub.user.dto.response.UserSessionResponse;
-import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
+import vn.workspacehub.user.dto.response.UserSearchResponse;
+import vn.workspacehub.user.dto.response.UserSessionResponse;
 import vn.workspacehub.user.service.AuthService;
 import vn.workspacehub.user.service.UserService;
 
@@ -33,7 +33,7 @@ public class UserController {
         List<UserSessionResponse> sessions = authService.getActiveSessions(userId, request);
         return ResponseEntity.ok(ApiResponse.<List<UserSessionResponse>>builder()
                 .success(true)
-                .message("Lấy danh sách phiên đăng nhập thành công")
+                .message("Signed-in sessions retrieved successfully")
                 .data(sessions)
                 .build());
     }
@@ -47,7 +47,7 @@ public class UserController {
         authService.revokeSession(userId, sessionId, revokeRequest.getPassword());
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
-                .message("Đăng xuất thiết bị thành công")
+                .message("Device signed out successfully")
                 .build());
     }
 
@@ -58,7 +58,7 @@ public class UserController {
         AccountSettingResponse settings = userService.getAccountSettings(userId);
         return ResponseEntity.ok(ApiResponse.<AccountSettingResponse>builder()
                 .success(true)
-                .message("Lấy thông tin cài đặt thành công")
+                .message("Settings retrieved successfully")
                 .data(settings)
                 .build());
     }
@@ -67,11 +67,11 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> updatePrivacySettings(
             @RequestHeader(value = "X-User-Id") UUID userId,
             @RequestBody vn.workspacehub.user.dto.request.UpdatePrivacyRequest request) {
-        
+
         userService.updatePrivacySettings(userId, request);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
-                .message("Cập nhật cài đặt riêng tư thành công")
+                .message("Privacy settings updated successfully")
                 .build());
     }
 
@@ -83,7 +83,7 @@ public class UserController {
         List<UserSearchResponse> users = userService.searchUserByEmail(userId, email);
         return ResponseEntity.ok(ApiResponse.<List<UserSearchResponse>>builder()
                 .success(true)
-                .message("Tìm kiếm người dùng thành công")
+                .message("Users searched successfully")
                 .data(users)
                 .build());
     }
@@ -91,11 +91,11 @@ public class UserController {
     @GetMapping("/{id}/profile")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getPublicProfile(
             @PathVariable UUID id) {
-        
+
         UserProfileResponse profile = userService.getPublicProfile(id);
         return ResponseEntity.ok(ApiResponse.<UserProfileResponse>builder()
                 .success(true)
-                .message("Lấy thông tin người dùng thành công")
+                .message("User profile retrieved successfully")
                 .data(profile)
                 .build());
     }
@@ -107,7 +107,7 @@ public class UserController {
         List<UserProfileResponse> profiles = userService.getBulkProfiles(ids, emails);
         return ResponseEntity.ok(ApiResponse.<List<UserProfileResponse>>builder()
                 .success(true)
-                .message("Lấy danh sách thông tin người dùng thành công")
+                .message("User profiles retrieved successfully")
                 .data(profiles)
                 .build());
     }
