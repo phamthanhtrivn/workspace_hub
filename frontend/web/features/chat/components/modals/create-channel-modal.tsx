@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Loader2, Hash } from "lucide-react";
 import { createChannel } from "../../api/chat.api";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface CreateChannelModalProps {
   isOpen: boolean;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface UseSpeechToTextProps {
   onTranscript: (finalText: string) => void;

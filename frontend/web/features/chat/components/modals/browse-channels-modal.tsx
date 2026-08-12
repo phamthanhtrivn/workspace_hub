@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Loader2, Search, Hash, Check, Globe } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSpaceChannels, joinChannel } from "../../api/chat.api";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface BrowseChannelsModalProps {
   isOpen: boolean;

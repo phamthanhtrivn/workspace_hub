@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Loader2 } from "lucide-react";
 import { createSpace } from "../../api/chat.api";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface CreateSpaceModalProps {
   isOpen: boolean;

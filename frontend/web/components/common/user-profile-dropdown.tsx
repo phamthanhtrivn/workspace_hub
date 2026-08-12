@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { LogOut, Settings, User } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { clearCredentials } from "@/store/auth/auth-slice";
 import { useLogoutMutation } from "@/features/auth/hooks/useAuthMutations";

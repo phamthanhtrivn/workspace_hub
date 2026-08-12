@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import {
   UserLanguage,
   UserTheme,

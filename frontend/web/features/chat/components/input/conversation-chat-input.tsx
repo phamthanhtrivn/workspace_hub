@@ -37,7 +37,7 @@ import {
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import MentionDropdown from "./mention-dropdown";
 import EmojiPickerPopover from "./emoji-picker-popover";
 

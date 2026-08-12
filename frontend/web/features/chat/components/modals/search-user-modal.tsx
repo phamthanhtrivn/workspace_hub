@@ -18,7 +18,7 @@ import {
   createDirectConversation,
 } from "../../api/chat.api";
 import { UserSearchResponse, UserProfileResponse } from "../../types/chat.types";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface SearchUserModalProps {
   isOpen: boolean;

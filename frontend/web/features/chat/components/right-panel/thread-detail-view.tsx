@@ -36,7 +36,7 @@ import ThreadChatInput, {
   ThreadChatInputRef,
 } from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 interface ThreadDetailViewProps {
   rootMessage: ChatMessageResponse;

@@ -21,7 +21,7 @@ import {
   Voicemail,
   X,
 } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import EmojiPickerPopover from "./emoji-picker-popover";
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";

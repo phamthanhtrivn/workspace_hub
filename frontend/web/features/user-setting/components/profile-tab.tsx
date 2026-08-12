@@ -3,7 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2, Save, User } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import {
   useUpdateUserProfileMutation,

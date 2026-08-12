@@ -11,7 +11,7 @@ import {
   User,
   UserPlus,
 } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
 import { useRegisterMutation } from "../hooks/useAuthMutations";
 import { AuthRouteTarget } from "../types/auth.constants";

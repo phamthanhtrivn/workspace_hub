@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
 import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";

@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { getPublicProfile, createDirectConversation } from "../../api/chat.api";
 import { UserProfileResponse } from "../../types/chat.types";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const UserProfileModal = React.memo(function UserProfileModal() {
   const dispatch = useAppDispatch();

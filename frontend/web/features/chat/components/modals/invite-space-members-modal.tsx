@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { Search, X, Loader2, User } from "lucide-react";
 import { searchUserByEmail, inviteSpaceMembers } from "../../api/chat.api";
 import { UserSearchResponse } from "../../types/chat.types";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import Image from "next/image";
 
