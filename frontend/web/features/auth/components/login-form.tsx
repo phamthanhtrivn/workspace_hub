@@ -1,20 +1,25 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
-import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
-import { loginApi } from "../api/auth.api";
-import { toast } from "react-toastify";
-import InputField from "@/components/common/input-field";
+import React, { useCallback, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
+import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
+import { toast } from "react-toastify";
+import InputField from "@/components/common/input-field";
 import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
-import Link from "next/link";
+import { useLoginMutation } from "../hooks/useAuthMutations";
+import { AuthRouteTarget, USER_ROLES } from "../types/auth.constants";
+import {
+  getAuthErrorMessage,
+  getAuthValidationErrors,
+} from "../utils/auth-error";
 
 const LoginForm = React.memo(function LoginForm() {
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
-  const [loading, setLoading] = useState(false);
+  const loginMutation = useLoginMutation();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
 
@@ -37,57 +42,52 @@ const LoginForm = React.memo(function LoginForm() {
     }));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setErrors({});
 
-    try {
-      setLoading(true);
-      setErrors({});
-
-      const response = await loginApi({
+    loginMutation.mutate(
+      {
         email: formData.email,
         password: formData.password,
-      });
+      },
+      {
+        onSuccess: (response) => {
+          const data = response.data;
 
-      const data = response.data;
+          dispatch(
+            setCredentials({
+              accessToken: data.accessToken,
+              userId: data.userId,
+              email: data.email,
+              role: data.role,
+              fullName: data.fullName,
+              avatarUrl: data.avatarUrl,
+            }),
+          );
 
-      dispatch(
-        setCredentials({
-          accessToken: data.accessToken,
-          userId: data.userId,
-          email: data.email,
-          role: data.role,
-          fullName: data.fullName,
-          avatarUrl: data.avatarUrl,
-        }),
-      );
+          toast.success(response.message);
+          router.replace(
+            data.role === USER_ROLES.ADMIN
+              ? AuthRouteTarget.ADMIN_HOME
+              : AuthRouteTarget.USER_DASHBOARD,
+          );
+        },
+        onError: (error) => {
+          const validationErrors = getAuthValidationErrors(error);
+          if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+          }
 
-      toast.success(response.message);
-
-      if (data.role === "ADMIN") {
-        router.replace("/");
-      } else {
-        router.replace("/dashboard");
-      }
-    } catch (error: any) {
-      const response = error?.response?.data;
-
-      console.log(response);
-
-      if (response?.errors && Object.keys(response.errors).length > 0) {
-        setErrors(response.errors);
-        return;
-      }
-
-      toast.error(response?.message ?? "Đăng nhập thất bại");
-    } finally {
-      setLoading(false);
-    }
+          toast.error(getAuthErrorMessage(error, "Login failed"));
+        },
+      },
+    );
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* EMAIL */}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
           <label
@@ -109,21 +109,20 @@ const LoginForm = React.memo(function LoginForm() {
         />
       </div>
 
-      {/* PASSWORD */}
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-4">
           <label
             htmlFor="password"
             className="text-sm font-semibold text-slate-700"
           >
-            Mật khẩu <span className="text-red-500">*</span>
+            Password <span className="text-red-500">*</span>
           </label>
           <div>
             <Link
               href="/forgot-password"
               className="text-sm font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition"
             >
-              Quên mật khẩu?
+              Forgot password?
             </Link>
           </div>
         </div>
@@ -132,7 +131,7 @@ const LoginForm = React.memo(function LoginForm() {
           id="password"
           type={showPassword ? "text" : "password"}
           icon={Lock}
-          placeholder="Nhập mật khẩu"
+          placeholder="Enter your password"
           value={formData.password}
           error={errors.password}
           onChange={handleChange}
@@ -147,14 +146,13 @@ const LoginForm = React.memo(function LoginForm() {
         />
       </div>
 
-      {/* SUBMIT */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={loginMutation.isPending}
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/25 cursor-pointer disabled:opacity-70"
       >
         <LogIn className="h-4 w-4" />
-        {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+        {loginMutation.isPending ? "Signing in..." : "Sign in"}
       </button>
     </form>
   );

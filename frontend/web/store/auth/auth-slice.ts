@@ -1,10 +1,11 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { USER_ROLES } from "@/features/auth/types/auth.constants";
 
 interface AuthState {
   accessToken: string | null;
   userId: string | null;
   email: string | null;
-  role: "USER" | "ADMIN" | null;
+  role: USER_ROLES | null;
   fullName: string | null;
   avatarUrl: string | null;
 }
@@ -28,7 +29,7 @@ const authSlice = createSlice({
         accessToken: string;
         userId: string;
         email: string;
-        role: "USER" | "ADMIN";
+        role: USER_ROLES;
         fullName?: string | null;
         avatarUrl?: string | null;
       }>,

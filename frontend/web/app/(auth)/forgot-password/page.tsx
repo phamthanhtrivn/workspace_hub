@@ -10,15 +10,15 @@ export default function ForgotPasswordPage() {
         className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-[var(--color-primary)] transition mb-6"
       >
         <ArrowLeft className="h-4 w-4" />
-        Quay về trang đăng nhập
+        Back to sign in
       </Link>
 
       <div className="mb-8 justify-center text-center">
         <h2 className="mt-3 text-3xl font-black tracking-tight text-[var(--color-primary-dark)] sm:text-4xl">
-          Quên Mật Khẩu?
+          Forgot password?
         </h2>
         <p className="text-sm font-semibold text-[var(--color-secondary)] mt-2">
-          Đừng lo lắng! Chúng tôi sẽ giúp bạn lấy lại quyền truy cập.
+          No worries. We will help you regain access to your account.
         </p>
       </div>
 

@@ -18,7 +18,7 @@ export default function AuthLayout({
           </div>
 
           <div className="pointer-events-none col-start-1 row-start-1 flex h-full w-full items-end justify-end">
-            <div className="mb-12 mr-10 h-44 w-44 rounded-[3rem] b    order border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/40 backdrop-blur" />
+            <div className="mb-12 mr-10 h-44 w-44 rounded-[3rem] border border-white/10 bg-white/5 shadow-2xl shadow-cyan-950/40 backdrop-blur" />
           </div>
 
           <div className="z-10 col-start-1 row-start-1 flex h-full w-full flex-col justify-start px-20 pt-54">
@@ -27,12 +27,12 @@ export default function AuthLayout({
               className="mb-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ArrowLeft className="h-4 w-4" />
-              Về trang chủ
+              Back to home
             </Link>
             <div className="max-w-2xl">
               <div className="mb-8 inline-flex items-center gap-2 rounded-md border border-white/12 bg-white/8 px-3.5 py-2 text-sm font-medium text-cyan-50 shadow-xl shadow-blue-950/20 backdrop-blur-md">
                 <Sparkles className="h-4 w-4 text-[#9fd8e7]" />
-                Intelligent Workspace for Personal and Team
+                Intelligent Workspace for Individuals and Teams
               </div>
 
               <h1 className="max-w-xl text-balance text-6xl font-black leading-[0.95] tracking-tight text-white xl:text-7xl">
@@ -40,9 +40,8 @@ export default function AuthLayout({
               </h1>
 
               <p className="mt-7 max-w-lg text-pretty text-lg leading-8 text-slate-300">
-                Quản lý công việc, tài liệu, học tập, lịch trình và trao đổi
-                trong một không gian làm việc rõ ràng và thông minh hơn với sự
-                hỗ trợ của AI.
+                Manage work, documents, learning, schedules, and conversations
+                in a clearer, smarter workspace powered by AI.
               </p>
             </div>
           </div>

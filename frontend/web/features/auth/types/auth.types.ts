@@ -1,4 +1,18 @@
-import { USER_ROLES } from "./auth.constants";
+import { AuthProvider, USER_ROLES } from "./auth.constants";
+
+export type ApiValidationErrors = Record<string, string>;
+
+export interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data: T;
+  errors?: ApiValidationErrors;
+}
+
+export interface AuthErrorResponse {
+  message?: string;
+  errors?: ApiValidationErrors;
+}
 
 export interface RegisterRequest {
   fullName: string;
@@ -6,6 +20,8 @@ export interface RegisterRequest {
   email: string;
   password: string;
 }
+
+export type RegisterResponse = Record<string, unknown>;
 
 export interface LoginRequest {
   email: string;
@@ -20,3 +36,35 @@ export interface LoginResponse {
   avatarUrl: string;
   accessToken: string;
 }
+
+export type RefreshResponse = LoginResponse;
+
+export type LogoutResponse = Record<string, unknown>;
+
+export interface SocialLoginRequest {
+  provider: AuthProvider;
+  credential: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export type ForgotPasswordResponse = Record<string, unknown>;
+
+export interface VerifyResetOtpRequest {
+  email: string;
+  otp: string;
+}
+
+export interface VerifyResetOtpResponse {
+  resetToken: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  resetToken: string;
+  newPassword: string;
+}
+
+export type ResetPasswordResponse = Record<string, unknown>;
