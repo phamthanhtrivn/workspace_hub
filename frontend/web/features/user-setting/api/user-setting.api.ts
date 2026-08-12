@@ -1,14 +1,24 @@
 import { api } from "@/lib/axios";
-import { UserProfile } from "@/features/user-setting/types/user-setting.types";
+import {
+  ApiResponse,
+  AvatarPresignedUrlResponse,
+  BulkUserProfileResponse,
+  RevokeUserSessionRequest,
+  UpdatePrivacySettingsRequest,
+  UpdateUserProfileRequest,
+  UserProfile,
+  UserSession,
+  UserSettings,
+} from "@/features/user-setting/types/user-setting.types";
 
-export const getUserProfile = async (): Promise<any> => {
+export const getUserProfile = async (): Promise<ApiResponse<UserProfile>> => {
   const response = await api.get("/api/users/me/profile");
   return response.data;
 };
 
 export const updateUserProfile = async (
-  profile: Partial<UserProfile>,
-): Promise<any> => {
+  profile: UpdateUserProfileRequest,
+): Promise<ApiResponse<UserProfile>> => {
   const response = await api.put("/api/users/me/profile", profile);
   return response.data;
 };
@@ -16,39 +26,45 @@ export const updateUserProfile = async (
 export const getAvatarPresignedUrl = async (
   fileName: string,
   contentType: string,
-): Promise<any> => {
+): Promise<ApiResponse<AvatarPresignedUrlResponse>> => {
   const response = await api.get("/api/users/me/profile/avatar/presigned-url", {
     params: { fileName, contentType },
   });
   return response.data;
 };
 
-export const getUserSettings = async (): Promise<any> => {
+export const getUserSettings = async (): Promise<ApiResponse<UserSettings>> => {
   const response = await api.get("/api/users/me/settings");
   return response.data;
 };
 
-export const updatePrivacySettings = async (data: { allowSearchByEmail: boolean }): Promise<any> => {
+export const updatePrivacySettings = async (
+  data: UpdatePrivacySettingsRequest,
+): Promise<ApiResponse<UserSettings>> => {
   const response = await api.put("/api/users/me/settings/privacy", data);
   return response.data;
 };
 
-export const getUserSessions = async (): Promise<any> => {
+export const getUserSessions = async (): Promise<
+  ApiResponse<UserSession[]>
+> => {
   const response = await api.get("/api/users/me/sessions");
   return response.data;
 };
 
-export const revokeUserSession = async (
-  sessionId: string,
-  password?: string,
-): Promise<any> => {
+export const revokeUserSession = async ({
+  sessionId,
+  password,
+}: RevokeUserSessionRequest): Promise<ApiResponse<null>> => {
   const response = await api.delete(`/api/users/me/sessions/${sessionId}`, {
     data: { password: password || "" },
   });
   return response.data;
 };
 
-export const getBulkProfilesByEmails = async (emails: string[]): Promise<any> => {
+export const getBulkProfilesByEmails = async (
+  emails: string[],
+): Promise<ApiResponse<BulkUserProfileResponse[]>> => {
   const response = await api.get("/api/users/profiles/bulk", {
     params: { emails: emails.join(",") },
   });

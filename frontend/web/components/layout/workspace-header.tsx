@@ -4,13 +4,13 @@ import React from "react";
 import { Menu, Search } from "lucide-react";
 import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
-import { SETTING_TABS } from "@/features/user-setting/types/settings.enums";
+import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { useNotificationSocket } from "@/features/notification/hooks/useNotificationSocket";
 
 interface WorkspaceHeaderProps {
   currentTitle: string;
   onMenuClick: () => void;
-  onOpenSettings: (tab: SETTING_TABS) => void;
+  onOpenSettings: (tab: UserSettingTab) => void;
 }
 
 const WorkspaceHeader = React.memo(function WorkspaceHeader({

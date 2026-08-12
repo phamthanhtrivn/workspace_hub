@@ -4,11 +4,11 @@ import React, { useCallback, useMemo } from "react";
 import { Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
-import { getBulkProfilesByEmails } from "@/features/user-setting/api/user-setting.api";
+import { useBulkUserProfilesByEmailsQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
 import {
   PERMISSION_ROLE_LABELS,
   PERMISSION_ROLE_SHARE,
@@ -47,22 +47,18 @@ export function ShareModalList({
   }, [ownerEmail, shares]);
 
   // Fetch profiles in batch
-  const { data: profilesResponse } = useQuery({
-    queryKey: ["user-profiles", allEmails],
-    queryFn: () => getBulkProfilesByEmails(allEmails),
-    enabled: allEmails.length > 0,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-  });
+  const { data: profilesResponse } =
+    useBulkUserProfilesByEmailsQuery(allEmails);
 
   // Create a profile map for O(1) lookup
   const profilesMap = useMemo(() => {
     const map = new Map<string, { fullName?: string; avatarUrl?: string }>();
     if (profilesResponse?.success && Array.isArray(profilesResponse.data)) {
-      profilesResponse.data.forEach((p: any) => {
-        if (p.email) {
-          map.set(p.email.toLowerCase(), {
-            fullName: p.fullName,
-            avatarUrl: p.avatarUrl,
+      profilesResponse.data.forEach((profile) => {
+        if (profile.email) {
+          map.set(profile.email.toLowerCase(), {
+            fullName: profile.fullName,
+            avatarUrl: profile.avatarUrl,
           });
         }
       });
