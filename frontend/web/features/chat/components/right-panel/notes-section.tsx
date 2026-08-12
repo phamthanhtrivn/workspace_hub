@@ -1,9 +1,9 @@
 import { FileText, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
-import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
 import { useNotes } from "../../hooks/useNotes";
 import ViewNoteModal from "../modals/view-note-modal";
 import { useState } from "react";
+import { useActiveChat } from "../../hooks/useChatQueries";
 
 interface NotesSectionProps {
   isExpanded: boolean;
@@ -14,9 +14,7 @@ export default function NotesSection({
   isExpanded,
   onToggle,
 }: NotesSectionProps) {
-  const activeConversation = useAppSelector(
-    (state) => state.chat.activeConversation,
-  );
+  const { activeChat: activeConversation } = useActiveChat();
 
   const [selectedNote, setSelectedNote] = useState<any | null>(null);
 

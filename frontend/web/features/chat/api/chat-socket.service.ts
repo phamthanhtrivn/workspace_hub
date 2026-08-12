@@ -1,9 +1,18 @@
 import { io, Socket } from "socket.io-client";
+import {
+  ClientToServerChatEvents,
+  ServerToClientChatEvents,
+} from "../types/chat-socket.types";
+
+export type ChatSocket = Socket<
+  ServerToClientChatEvents,
+  ClientToServerChatEvents
+>;
 
 class SocketService {
-  private socket: Socket | null = null;
+  private socket: ChatSocket | null = null;
 
-  connect(token: string): Socket {
+  connect(token: string): ChatSocket {
     if (!this.socket) {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
       const baseUrl = apiUrl.replace(/\/api$/, "");
@@ -14,7 +23,7 @@ class SocketService {
         auth: {
           token,
         },
-      });
+      }) as ChatSocket;
 
       this.socket.on("connect", () => {});
 
@@ -35,7 +44,7 @@ class SocketService {
     }
   }
 
-  getSocket(): Socket | null {
+  getSocket(): ChatSocket | null {
     return this.socket;
   }
 }

@@ -15,25 +15,23 @@ export default function ChatLayout() {
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
-  const activeConversationId = useAppSelector(
-    (state) => state.chat.activeConversation?.id,
-  );
-  const activeThreadRootMessage = useAppSelector(
-    (state) => state.chat.activeThreadRootMessage,
+  const activeChatId = useAppSelector((state) => state.chat.activeChatId);
+  const activeThreadRootMessageId = useAppSelector(
+    (state) => state.chat.activeThreadRootMessageId,
   );
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    if (activeConversationId) {
+    if (activeChatId) {
       setMobileView("chat");
     }
-  }, [activeConversationId]);
+  }, [activeChatId]);
 
   useEffect(() => {
-    if (activeThreadRootMessage) {
+    if (activeThreadRootMessageId) {
       setShowRightPanel(true);
     }
-  }, [activeThreadRootMessage]);
+  }, [activeThreadRootMessageId]);
 
   const toggleRightPanel = () => {
     setShowRightPanel((prev) => !prev);
@@ -64,7 +62,7 @@ export default function ChatLayout() {
       <div
         className={`flex-1 min-w-0 h-full min-h-0 z-10 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)] relative ${mobileView === "chat" ? "flex" : "hidden md:flex"} flex-col bg-gray-50`}
       >
-        {activeConversationId ? (
+        {activeChatId ? (
           <ChatArea
             onToggleRightPanel={toggleRightPanel}
             onOpenSearch={handleOpenSearch}
@@ -86,7 +84,7 @@ export default function ChatLayout() {
       </div>
 
       {/* Right Panel - Togglable (Only show if active chat) */}
-      {showRightPanel && activeConversationId && (
+      {showRightPanel && activeChatId && (
         <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
           <ChatRightPanel
             onClose={() => {

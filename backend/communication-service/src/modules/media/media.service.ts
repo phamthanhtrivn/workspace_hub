@@ -11,9 +11,15 @@ export class MediaService {
 
   async generatePresignedUrls(body: PresignRequestDto) {
     this.validatePresignRequest(body);
-    const referenceId = body.channelId || body.conversationId;
+    const referenceId = this.getReferenceId(body);
 
-    const results: any[] = [];
+    const results: {
+      fileName: string;
+      mimeType: string;
+      sizeBytes: number;
+      s3Key: string;
+      presignedUrl: string;
+    }[] = [];
 
     for (const file of body.files) {
       this.validateFileSize(file.fileName, file.sizeBytes);
@@ -21,7 +27,7 @@ export class MediaService {
       const { presignedUrl, s3Key } =
         await this.s3Service.generatePresignedUploadUrl(
           S3_UPLOAD_TYPE.CHAT_MEDIA,
-          referenceId!,
+          referenceId,
           file.fileName,
           file.mimeType,
         );
@@ -42,7 +48,7 @@ export class MediaService {
   }
 
   private validatePresignRequest(body: PresignRequestDto): void {
-    if (!body.channelId && !body.conversationId) {
+    if (!this.getReferenceId(body)) {
       throw new BadRequestException(
         MEDIA_ERROR_MESSAGES.MISSING_REQUIRED_FIELDS,
       );
@@ -53,6 +59,22 @@ export class MediaService {
         MEDIA_ERROR_MESSAGES.EMPTY_FILES,
       );
     }
+  }
+
+  private getReferenceId(body: PresignRequestDto): string {
+    if (body.chatId && body.chatType) {
+      return body.chatId;
+    }
+
+    if (body.channelId) {
+      return body.channelId;
+    }
+
+    if (body.conversationId) {
+      return body.conversationId;
+    }
+
+    return '';
   }
 
   private validateFileSize(fileName: string, sizeBytes: number): void {

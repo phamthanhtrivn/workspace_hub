@@ -8,6 +8,7 @@ import {
   MESSAGE_DIRECTION,
   MESSAGE_ERROR_MESSAGES,
 } from '../message/types/message.enums';
+import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 
 @Injectable()
 export class DirectMessageService {
@@ -668,7 +669,8 @@ export class DirectMessageService {
   private mapDirectMessage(message: any) {
     return {
       ...message,
-      channelId: message.conversationId,
+      chatId: message.conversationId,
+      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       medias: mapMediaWithUrl(message.medias || []),
     };
   }

@@ -2,18 +2,17 @@ import { useCallback } from "react";
 import { toast } from "sonner";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
-import { ChatMessageResponse } from "../types/chat.types";
-
-type DirectSocketResponse<T = unknown> = {
-  status?: "success" | "error";
-  message?: string;
-  data?: T;
-};
+import { ChatContextType, ChatMessageResponse } from "../types/chat.types";
+import {
+  ChatSocketAckResponse,
+  SendSocketMessageMedia,
+} from "../types/chat-socket.types";
+import { useAppSelector } from "@/store/store";
 
 interface SendDirectSocketMessageParams {
   conversationId: string;
   content: string;
-  medias?: any[];
+  medias?: SendSocketMessageMedia[];
   threadParentId?: string;
   mentions?: string[];
 }
@@ -24,6 +23,8 @@ function getConnectedSocket() {
 }
 
 export function useDirectMessageSocket() {
+  const currentUserId = useAppSelector((state) => state.auth.userId);
+
   const sendMessage = useCallback(
     (params: SendDirectSocketMessageParams) => {
       const socket = getConnectedSocket();
@@ -35,8 +36,12 @@ export function useDirectMessageSocket() {
       return new Promise<ChatMessageResponse>((resolve, reject) => {
         socket.emit(
           ChatEvent.SEND_DIRECT_MESSAGE,
-          params,
-          (response: DirectSocketResponse<ChatMessageResponse>) => {
+          {
+            ...params,
+            chatId: params.conversationId,
+            chatType: ChatContextType.DIRECT_MESSAGE,
+          },
+          (response: ChatSocketAckResponse<ChatMessageResponse>) => {
             if (response?.status === "success" && response.data) {
               resolve(response.data);
               return;
@@ -59,6 +64,8 @@ export function useDirectMessageSocket() {
 
       socket.emit(ChatEvent.READ_DIRECT_MESSAGE, {
         conversationId,
+        chatId: conversationId,
+        chatType: ChatContextType.DIRECT_MESSAGE,
         messageId,
       });
     },
@@ -71,9 +78,12 @@ export function useDirectMessageSocket() {
 
     socket.emit(ChatEvent.TYPING_DIRECT, {
       conversationId,
+      chatId: conversationId,
+      chatType: ChatContextType.DIRECT_MESSAGE,
+      userId: currentUserId || "",
       isTyping,
     });
-  }, []);
+  }, [currentUserId]);
 
   return {
     markAsRead,

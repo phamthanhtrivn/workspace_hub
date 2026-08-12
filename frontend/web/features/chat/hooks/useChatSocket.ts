@@ -1,34 +1,59 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAppDispatch, useAppSelector } from "@/store/store";
-import {
-  clearSpaceChannelUnread,
-  patchSpaceChannel,
-  removeSpaceChannelMember,
-  updateMuteStatus,
-  updateSpaceChannelMember,
-  upsertSpaceChannelMember,
-} from "@/store/chat/chat-slice";
+import { useAppSelector } from "@/store/store";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
-import { ChatQueryKey } from "../types/chat.constant";
-import { sortDirectConversations } from "../utils/direct-conversation-utils";
+import { chatKeys } from "../types/chat.constant";
+import { ChatContextType } from "../types/chat.types";
+import {
+  ChatSocketMemberPayload,
+  ChatSocketMessagePayload,
+  ChatSocketMuteUpdatedPayload,
+  ChatSocketReadPayload,
+  ChatSocketRoleUpdatedPayload,
+  ChatSocketSettingUpdatedPayload,
+  ChatSocketUpdatedPayload,
+  ThreadFollowerPayload,
+} from "../types/chat-socket.types";
+import {
+  clearChatUnread,
+  getMessageChatId,
+  patchChatMember,
+  updateChannelsCache,
+  updateDirectMessagesCache,
+} from "../utils/chat-cache";
+
+function isChannelPayload(payload: {
+  chatType?: ChatContextType;
+  channelId?: string | null;
+  conversationId?: string | null;
+}) {
+  return (
+    payload.chatType === ChatContextType.CHANNEL ||
+    (!!payload.channelId && !payload.conversationId)
+  );
+}
+
+function isThreadFollowerCurrentUser(
+  follower: ThreadFollowerPayload,
+  currentUserId: string,
+) {
+  return typeof follower === "string"
+    ? follower === currentUserId
+    : follower.userId === currentUserId;
+}
 
 export function useChatSocket() {
   const { userId: currentUserId, accessToken } = useAppSelector(
-    (state: any) => state.auth,
+    (state) => state.auth,
   );
-  const { activeConversation } = useAppSelector((state: any) => state.chat);
-  const dispatch = useAppDispatch();
+  const activeChatId = useAppSelector((state) => state.chat.activeChatId);
   const queryClient = useQueryClient();
+  const activeChatIdRef = useRef<string | null>(null);
 
-  const activeConversationIdRef = useRef<string | null>(null);
   useEffect(() => {
-    activeConversationIdRef.current = activeConversation?.id ?? null;
-  }, [activeConversation?.id]);
-
-  const getEventChannelId = (payload: any) =>
-    payload?.channelId ?? payload?.conversationId;
+    activeChatIdRef.current = activeChatId ?? null;
+  }, [activeChatId]);
 
   useEffect(() => {
     if (!accessToken || !currentUserId) return;
@@ -37,56 +62,33 @@ export function useChatSocket() {
     const socket = socketService.getSocket();
     if (!socket) return;
 
-    const isChannelEvent = (payload: any) =>
-      !!payload?.channelId && !payload?.conversationId;
-
-    const updateChannelQueryData = (
-      channelId: string,
-      updater: (channel: any) => any,
-    ) => {
-      let didUpdate = false;
-      queryClient.setQueriesData({ queryKey: ["channels"] }, (oldData: any) => {
-        if (!oldData?.channels) return oldData;
-        return {
-          ...oldData,
-          channels: oldData.channels.map((channel: any) => {
-            if (channel.id !== channelId) return channel;
-            didUpdate = true;
-            return updater(channel);
-          }),
-        };
-      });
-
-      if (!didUpdate) {
-        queryClient.invalidateQueries({ queryKey: ["channels"] });
+    const clearUnread = (chatId: string, spaceId?: string | null) => {
+      if (spaceId) {
+        updateChannelsCache(queryClient, chatId, clearChatUnread, spaceId);
+        return;
       }
+
+      updateChannelsCache(queryClient, chatId, clearChatUnread);
+      updateDirectMessagesCache(
+        queryClient,
+        currentUserId,
+        clearChatUnread,
+        chatId,
+      );
     };
 
-    const clearChannelUnread = (channelId: string, spaceId?: string) => {
-      dispatch(clearSpaceChannelUnread({ channelId, spaceId }));
-      updateChannelQueryData(channelId, (channel) => ({
-        ...channel,
-        unreadCount: 0,
-        hasMention: false,
-        hasUnreadThread: false,
-      }));
-    };
+    const handleNewMessage = (message: ChatSocketMessagePayload) => {
+      const chatId = getMessageChatId(message);
+      if (!chatId) return;
 
-    const handleNewMessage = (message: any) => {
-      const eventChannelId = getEventChannelId(message);
-      if (!eventChannelId) return;
-
-      if (isChannelEvent(message)) {
-        updateChannelQueryData(eventChannelId, (channel) => {
+      if (isChannelPayload(message)) {
+        updateChannelsCache(queryClient, chatId, (channel) => {
           const isThreadReply = !!message.threadParentId;
           const shouldMarkUnread =
             message.senderId !== currentUserId &&
-            eventChannelId !== activeConversationIdRef.current;
+            chatId !== activeChatIdRef.current;
           const isFollowingThread = message.threadFollowers?.some(
-            (follower: any) =>
-              typeof follower === "string"
-                ? follower === currentUserId
-                : follower.userId === currentUserId,
+            (follower) => isThreadFollowerCurrentUser(follower, currentUserId),
           );
           const hasMention =
             message.mentions?.includes(currentUserId) ||
@@ -96,7 +98,7 @@ export function useChatSocket() {
             ...channel,
             updatedAt: message.createdAt ?? channel.updatedAt,
             messages: isThreadReply ? channel.messages : [message],
-            members: channel.members?.map((member: any) =>
+            members: channel.members?.map((member) =>
               member.userId === message.senderId
                 ? { ...member, lastReadMessageId: message.id }
                 : member,
@@ -116,441 +118,243 @@ export function useChatSocket() {
             }
           }
 
-          dispatch(
-            patchSpaceChannel({
-              spaceId: channel.spaceId,
-              channelId: eventChannelId,
-              changes: updatedChannel,
-            }),
-          );
-
           return updatedChannel;
         });
         return;
       }
 
-      queryClient.setQueryData(
-        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          const prev: any[] = oldData.conversations;
-          const index = prev.findIndex((c) => c.id === eventChannelId);
-          if (index === -1) {
-            queryClient.invalidateQueries({
-              queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-            });
-            return oldData;
-          }
-
-          const conv = { ...prev[index] };
-
+      updateDirectMessagesCache(
+        queryClient,
+        currentUserId,
+        (directMessage) => {
           if (message.threadParentId) {
-            const isFollowing = message.threadFollowers?.some((tf: any) =>
-              typeof tf === "string"
-                ? tf === currentUserId
-                : tf.userId === currentUserId,
+            const isFollowing = message.threadFollowers?.some((threadFollower) =>
+              isThreadFollowerCurrentUser(threadFollower, currentUserId),
             );
-            if (message.senderId !== currentUserId && isFollowing) {
-              conv.hasUnreadThread = true;
-            }
-            const updated = [...prev];
-            updated[index] = conv;
             return {
-              ...oldData,
-              conversations: sortDirectConversations(updated, currentUserId),
+              ...directMessage,
+              hasUnreadThread:
+                message.senderId !== currentUserId && isFollowing
+                  ? true
+                  : directMessage.hasUnreadThread,
             };
           }
 
-          conv.updatedAt = message.createdAt;
-          conv.messages = [message];
-
-          if (
+          const shouldMarkUnread =
             message.senderId !== currentUserId &&
-            eventChannelId !== activeConversationIdRef.current
-          ) {
-            conv.unreadCount = (conv.unreadCount ?? 0) + 1;
-            if (
-              message.mentions?.includes(currentUserId) ||
-              message.mentions?.includes("all")
-            ) {
-              conv.hasMention = true;
-            }
-          }
-
-          if (conv.members) {
-            conv.members = conv.members.map((m: any) =>
-              m.userId === message.senderId
-                ? { ...m, lastReadMessageId: message.id }
-                : m,
-            );
-          }
-
-          const updated = [...prev];
-          updated[index] = conv;
+            chatId !== activeChatIdRef.current;
           return {
-            ...oldData,
-            conversations: sortDirectConversations(updated, currentUserId),
-          };
-        },
-      );
-    };
-
-    const handleMessageUpdated = (message: any) => {
-      const eventChannelId = getEventChannelId(message);
-      if (!eventChannelId) return;
-
-      if (isChannelEvent(message)) {
-        updateChannelQueryData(eventChannelId, (channel) => {
-          if (channel.messages?.[0]?.id !== message.id) return channel;
-          const updatedChannel = { ...channel, messages: [message] };
-          dispatch(
-            patchSpaceChannel({
-              spaceId: channel.spaceId,
-              channelId: eventChannelId,
-              changes: updatedChannel,
-            }),
-          );
-          return updatedChannel;
-        });
-        return;
-      }
-
-      queryClient.setQueryData(
-        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          const prev: any[] = oldData.conversations;
-          const index = prev.findIndex((c) => c.id === eventChannelId);
-          if (index === -1) return oldData;
-
-          const conv = { ...prev[index] };
-          if (conv.messages?.[0]?.id === message.id) {
-            conv.messages = [message];
-            const updated = [...prev];
-            updated[index] = conv;
-            return { ...oldData, conversations: updated };
-          }
-          return oldData;
-        },
-      );
-    };
-
-    const handleMessageRead = (data: {
-      channelId?: string;
-      conversationId?: string;
-      userId: string;
-      messageId: string;
-    }) => {
-      const eventChannelId = getEventChannelId(data);
-      if (!eventChannelId) return;
-
-      if (isChannelEvent(data)) {
-        if (data.userId === currentUserId) {
-          clearChannelUnread(eventChannelId);
-        }
-        dispatch(
-          updateSpaceChannelMember({
-            channelId: eventChannelId,
-            userId: data.userId,
-            changes: { lastReadMessageId: data.messageId },
-          }),
-        );
-        updateChannelQueryData(eventChannelId, (channel) => ({
-          ...channel,
-          members: channel.members?.map((member: any) =>
-            member.userId === data.userId
-              ? { ...member, lastReadMessageId: data.messageId }
-              : member,
-          ),
-        }));
-        return;
-      }
-
-      queryClient.setQueryData(
-        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            conversations: oldData.conversations.map((c: any) => {
-              if (c.id !== eventChannelId) return c;
-              const updated = { ...c };
-              if (data.userId === currentUserId) {
-                updated.unreadCount = 0;
-                updated.hasMention = false;
-              }
-              if (updated.members) {
-                updated.members = updated.members.map((m: any) =>
-                  m.userId === data.userId
-                    ? { ...m, lastReadMessageId: data.messageId }
-                    : m,
-                );
-              }
-              return updated;
-            }),
-          };
-        },
-      );
-    };
-
-    const handleMemberJoin = (data: any) => {
-      const eventChannelId = getEventChannelId(data);
-      if (!eventChannelId) return;
-
-      if (isChannelEvent(data)) {
-        if (data.member) {
-          dispatch(
-            upsertSpaceChannelMember({
-              channelId: eventChannelId,
-              member: data.member,
-            }),
-          );
-          updateChannelQueryData(eventChannelId, (channel) => {
-            const members = channel.members || [];
-            const alreadyMember = members.some(
-              (member: any) => member.userId === data.member.userId,
-            );
-            return {
-              ...channel,
-              members: alreadyMember
-                ? members.map((member: any) =>
-                    member.userId === data.member.userId
-                      ? { ...member, ...data.member }
-                      : member,
-                  )
-                : [...members, data.member],
-            };
-          });
-        } else {
-          queryClient.invalidateQueries({ queryKey: ["channels"] });
-        }
-        return;
-      }
-
-      queryClient.setQueryData(
-        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          const updatedProfiles = data.profile
-            ? { ...oldData.profiles, [data.profile.id]: data.profile }
-            : oldData.profiles;
-          return {
-            ...oldData,
-            profiles: updatedProfiles,
-            conversations: oldData.conversations.map((c: any) => {
-              if (c.id !== eventChannelId) return c;
-              const updated = { ...c };
-              const alreadyMember = updated.members?.some(
-                (m: any) => m.userId === data.member?.userId,
-              );
-              if (!alreadyMember && updated.members && data.member) {
-                updated.members = [...updated.members, data.member];
-              }
-              return updated;
-            }),
-          };
-        },
-      );
-    };
-
-    const handleMemberKickedOrLeft = (data: any) => {
-      const eventChannelId = getEventChannelId(data);
-      if (!eventChannelId) return;
-
-      if (isChannelEvent(data)) {
-        if (data.userId === currentUserId) {
-          queryClient.invalidateQueries({ queryKey: ["channels"] });
-        } else {
-          dispatch(
-            removeSpaceChannelMember({
-              spaceId: data.spaceId,
-              channelId: eventChannelId,
-              userId: data.userId,
-            }),
-          );
-          updateChannelQueryData(eventChannelId, (channel) => ({
-            ...channel,
-            members: channel.members?.filter(
-              (member: any) => member.userId !== data.userId,
+            ...directMessage,
+            updatedAt: message.createdAt ?? directMessage.updatedAt,
+            messages: [message],
+            unreadCount: shouldMarkUnread
+              ? (directMessage.unreadCount ?? 0) + 1
+              : directMessage.unreadCount,
+            hasMention:
+              shouldMarkUnread &&
+              (message.mentions?.includes(currentUserId) ||
+                message.mentions?.includes("all"))
+                ? true
+                : directMessage.hasMention,
+            members: directMessage.members?.map((member) =>
+              member.userId === message.senderId
+                ? { ...member, lastReadMessageId: message.id }
+                : member,
             ),
-          }));
-        }
+          };
+        },
+        chatId,
+      );
+    };
+
+    const handleMessageUpdated = (message: ChatSocketMessagePayload) => {
+      const chatId = getMessageChatId(message);
+      if (!chatId) return;
+
+      if (isChannelPayload(message)) {
+        updateChannelsCache(queryClient, chatId, (channel) =>
+          channel.messages?.[0]?.id === message.id
+            ? { ...channel, messages: [message] }
+            : channel,
+        );
         return;
       }
+
+      updateDirectMessagesCache(
+        queryClient,
+        currentUserId,
+        (directMessage) =>
+          directMessage.messages?.[0]?.id === message.id
+            ? { ...directMessage, messages: [message] }
+            : directMessage,
+        chatId,
+      );
+    };
+
+    const handleMessageRead = (data: ChatSocketReadPayload) => {
+      const chatId = getMessageChatId(data);
+      if (!chatId) return;
 
       if (data.userId === currentUserId) {
-        queryClient.invalidateQueries({
-          queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
-        });
-      } else {
-        queryClient.setQueryData(
-          [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            return {
-              ...oldData,
-              conversations: oldData.conversations.map((c: any) => {
-                if (c.id !== eventChannelId) return c;
-                const updated = { ...c };
-                if (updated.members) {
-                  updated.members = updated.members.filter(
-                    (m: any) => m.userId !== data.userId,
-                  );
-                }
-                return updated;
-              }),
-            };
-          },
-        );
+        clearUnread(chatId, data.channelId ? undefined : null);
       }
+
+      if (isChannelPayload(data)) {
+        updateChannelsCache(queryClient, chatId, (channel) =>
+          patchChatMember(channel, data.userId, {
+            lastReadMessageId: data.messageId,
+          }),
+        );
+        return;
+      }
+
+      updateDirectMessagesCache(
+        queryClient,
+        currentUserId,
+        (directMessage) =>
+          patchChatMember(
+            data.userId === currentUserId
+              ? clearChatUnread(directMessage)
+              : directMessage,
+            data.userId,
+            { lastReadMessageId: data.messageId },
+          ),
+        chatId,
+      );
     };
 
-    const handleMemberRoleUpdated = (data: any) => {
-      const eventChannelId = getEventChannelId(data);
-      if (!eventChannelId || !data.member) return;
+    const handleMemberJoin = (data: ChatSocketMemberPayload) => {
+      const chatId = getMessageChatId(data);
+      if (!chatId) return;
 
-      dispatch(
-        updateSpaceChannelMember({
-          channelId: eventChannelId,
-          userId: data.member.userId,
-          changes: { role: data.member.role },
+      if (isChannelPayload(data)) {
+        if (!data.member) {
+          queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+          return;
+        }
+        const memberPayload = data.member;
+        updateChannelsCache(queryClient, chatId, (channel) => {
+          const members = channel.members || [];
+          const alreadyMember = members.some(
+            (member) => member.userId === memberPayload.userId,
+          );
+          return {
+            ...channel,
+            members: alreadyMember
+              ? members.map((member) =>
+                  member.userId === memberPayload.userId
+                    ? { ...member, ...memberPayload }
+                    : member,
+                )
+              : [...members, memberPayload],
+          };
+        });
+        return;
+      }
+
+      updateDirectMessagesCache(
+        queryClient,
+        currentUserId,
+        (directMessage) => {
+          const alreadyMember = directMessage.members?.some(
+            (member) => member.userId === data.member?.userId,
+          );
+          if (alreadyMember || !data.member) return directMessage;
+
+          const memberPayload = data.member;
+          return {
+            ...directMessage,
+            members: [...(directMessage.members || []), memberPayload],
+          };
+        },
+        chatId,
+      );
+    };
+
+    const handleMemberKickedOrLeft = (data: ChatSocketMemberPayload) => {
+      const chatId = getMessageChatId(data);
+      if (!chatId) return;
+
+      if (isChannelPayload(data)) {
+        queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+        return;
+      }
+
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.directMessages(currentUserId),
+      });
+    };
+
+    const handleMemberRoleUpdated = (data: ChatSocketRoleUpdatedPayload) => {
+      const chatId = getMessageChatId(data);
+      if (!chatId || !data.member) return;
+
+      updateChannelsCache(queryClient, chatId, (channel) =>
+        patchChatMember(channel, data.member.userId, {
+          role: data.member.role,
         }),
       );
-      updateChannelQueryData(eventChannelId, (channel) => ({
+    };
+
+    const handleChannelSettingUpdated = (data: ChatSocketSettingUpdatedPayload) => {
+      const chatId = getMessageChatId(data);
+      if (!chatId || !data.setting) return;
+
+      updateChannelsCache(queryClient, chatId, (channel) => ({
         ...channel,
-        members: channel.members?.map((member: any) =>
-          member.userId === data.member.userId
-            ? { ...member, role: data.member.role }
-            : member,
-        ),
+        setting: data.setting,
       }));
     };
 
-    const handleChannelSettingUpdated = (data: any) => {
-      const eventChannelId = getEventChannelId(data);
-      if (!eventChannelId || !data.setting) return;
-
-      updateChannelQueryData(eventChannelId, (channel) => {
-        const updatedChannel = { ...channel, setting: data.setting };
-        dispatch(
-          patchSpaceChannel({
-            spaceId: channel.spaceId,
-            channelId: eventChannelId,
-            changes: updatedChannel,
-          }),
-        );
-        return updatedChannel;
-      });
-    };
-
-    const handleConversationUpdated = (data: {
-      id: string;
-      channelId?: string;
-      name?: string;
-      avatarUrl?: string;
-    }) => {
-      const eventChannelId = getEventChannelId(data) ?? data.id;
+    const handleConversationUpdated = (data: ChatSocketUpdatedPayload) => {
+      const chatId = getMessageChatId(data) ?? data.id;
       if (data.channelId) {
-        updateChannelQueryData(eventChannelId, (channel) => {
-          const updatedChannel = {
-            ...channel,
-            name: data.name !== undefined ? data.name : channel.name,
-            avatarUrl:
-              data.avatarUrl !== undefined ? data.avatarUrl : channel.avatarUrl,
-          };
-          dispatch(
-            patchSpaceChannel({
-              spaceId: channel.spaceId,
-              channelId: eventChannelId,
-              changes: updatedChannel,
-            }),
-          );
-          return updatedChannel;
-        });
+        updateChannelsCache(queryClient, chatId, (channel) => ({
+          ...channel,
+          name: data.name ?? channel.name,
+          avatarUrl: data.avatarUrl ?? channel.avatarUrl,
+        }));
         return;
       }
 
-      queryClient.setQueryData(
-        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            conversations: oldData.conversations.map((c: any) => {
-              if (c.id !== data.id) return c;
-              return {
-                ...c,
-                name: data.name !== undefined ? data.name : c.name,
-                avatarUrl:
-                  data.avatarUrl !== undefined ? data.avatarUrl : c.avatarUrl,
-              };
-            }),
-          };
-        },
+      updateDirectMessagesCache(
+        queryClient,
+        currentUserId,
+        (directMessage) => ({
+          ...directMessage,
+          name: data.name ?? directMessage.name,
+          avatarUrl: data.avatarUrl ?? directMessage.avatarUrl,
+        }),
+        data.id,
       );
     };
 
-    const handleConversationDisbanded = (_data: {
-      channelId?: string;
-      conversationId?: string;
-    }) => {
-      queryClient.invalidateQueries({ queryKey: ["channels"] });
+    const handleConversationDisbanded = () => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
       queryClient.invalidateQueries({
-        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
+        queryKey: chatKeys.directMessages(currentUserId),
       });
     };
 
-    const handleConversationMuteUpdated = (data: {
-      channelId?: string;
-      conversationId?: string;
-      muted: boolean;
-    }) => {
-      const eventChannelId = getEventChannelId(data);
-      if (!eventChannelId) return;
+    const handleConversationMuteUpdated = (data: ChatSocketMuteUpdatedPayload) => {
+      const chatId = getMessageChatId(data);
+      if (!chatId) return;
 
-      if (isChannelEvent(data)) {
-        dispatch(
-          updateSpaceChannelMember({
-            channelId: eventChannelId,
-            userId: currentUserId,
-            changes: { muted: data.muted },
-          }),
+      if (isChannelPayload(data)) {
+        updateChannelsCache(queryClient, chatId, (channel) =>
+          patchChatMember(channel, currentUserId, { muted: data.muted }),
         );
-        updateChannelQueryData(eventChannelId, (channel) => ({
-          ...channel,
-          members: channel.members?.map((member: any) =>
-            member.userId === currentUserId
-              ? { ...member, muted: data.muted }
-              : member,
-          ),
-        }));
+        return;
       }
 
-      queryClient.setQueryData(
-        [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            conversations: oldData.conversations.map((c: any) => {
-              if (c.id !== eventChannelId) return c;
-              return {
-                ...c,
-                members: c.members?.map((m: any) =>
-                  m.userId === currentUserId ? { ...m, muted: data.muted } : m,
-                ),
-              };
-            }),
-          };
-        },
-      );
-
-      dispatch(
-        updateMuteStatus({
-          conversationId: eventChannelId,
-          userId: currentUserId,
-          muted: data.muted,
-        }),
+      updateDirectMessagesCache(
+        queryClient,
+        currentUserId,
+        (directMessage) =>
+          patchChatMember(directMessage, currentUserId, {
+            muted: data.muted,
+          }),
+        chatId,
       );
     };
 
@@ -588,5 +392,5 @@ export function useChatSocket() {
       );
       socketService.disconnect();
     };
-  }, [accessToken, currentUserId, queryClient, dispatch]);
+  }, [accessToken, currentUserId, queryClient]);
 }

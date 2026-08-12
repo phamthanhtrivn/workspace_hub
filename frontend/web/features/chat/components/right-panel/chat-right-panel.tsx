@@ -39,7 +39,6 @@ import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
-  setActiveConversation,
   setSelectedProfileUserId,
   updateMuteStatus,
   updatePinStatus,
@@ -48,6 +47,11 @@ import {
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { ChatQueryKey } from "../../types/chat.constant";
+import { ChatContextType } from "../../types/chat.types";
+import {
+  useActiveChat,
+  useActiveThreadRootMessage,
+} from "../../hooks/useChatQueries";
 
 interface ChatRightPanelProps {
   onClose: () => void;
@@ -87,9 +91,8 @@ export default function ChatRightPanel({
     }
   }, [initialDetailView]);
 
-  const { activeConversation, activeThreadRootMessage } = useAppSelector(
-    (state) => state.chat,
-  );
+  const { activeChat: activeConversation, activeChatType } = useActiveChat();
+  const activeThreadRootMessage = useActiveThreadRootMessage();
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
@@ -114,7 +117,7 @@ export default function ChatRightPanel({
     setDetailView("thread");
   }, [activeConversation?.id, activeThreadRootMessage, detailView, dispatch]);
 
-  const isDirect = activeConversation?.type === "DIRECT";
+  const isDirect = activeChatType === ChatContextType.DIRECT_MESSAGE;
 
   let displayName = "Channel";
   let displayAvatarUrl = null;
@@ -291,7 +294,7 @@ export default function ChatRightPanel({
       lastFetchedConversationId.current !== activeConversation.id
     ) {
       const fetchMedia =
-        activeConversation.type === "DIRECT"
+        isDirect
           ? getDirectConversationMedia
           : getConversationMedia;
       fetchMedia(activeConversation.id)
@@ -339,11 +342,7 @@ export default function ChatRightPanel({
             (m) => m.userId === data.member.userId,
           );
           if (!isAlreadyMember) {
-            const updatedConversation = {
-              ...activeConversation,
-              members: [...(activeConversation.members || []), data.member],
-            };
-            dispatch(setActiveConversation(updatedConversation));
+            queryClient.invalidateQueries({ queryKey: ["channels"] });
           }
         }
       };

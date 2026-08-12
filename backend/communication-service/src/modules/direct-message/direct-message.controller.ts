@@ -14,7 +14,11 @@ import {
 } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
-import { ChatEvent } from '../chat/types/chat.enums';
+import {
+  ChatEvent,
+  CHAT_CONTEXT_TYPE,
+  CHAT_REACTION_ACTION,
+} from '../chat/types/chat.enums';
 import { DirectMessageService } from './direct-message.service';
 import {
   MESSAGE_CONSTANTS,
@@ -244,8 +248,9 @@ export class DirectMessageController {
       );
     const targetRooms = await this.getDirectTargetRooms(conversationId);
     this.chatGateway.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
+      chatId: conversationId,
+      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       conversationId,
-      channelId: conversationId,
       messageId,
       userId,
       readAt: result.lastReadAt,
@@ -341,8 +346,9 @@ export class DirectMessageController {
       await this.directMessageService.getDirectMessageConversationId(messageId);
     const targetRooms = await this.getDirectTargetRooms(conversationId);
     this.chatGateway.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
+      chatId: conversationId,
+      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       conversationId,
-      channelId: conversationId,
       messageId,
       userId,
       emoji: result.emoji,
@@ -374,12 +380,13 @@ export class DirectMessageController {
       await this.directMessageService.getDirectMessageConversationId(messageId);
     const targetRooms = await this.getDirectTargetRooms(conversationId);
     this.chatGateway.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
+      chatId: conversationId,
+      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       conversationId,
-      channelId: conversationId,
       messageId,
       userId,
       emoji,
-      action: 'remove',
+      action: CHAT_REACTION_ACTION.REMOVE,
     });
 
     return {
@@ -481,8 +488,9 @@ export class DirectMessageController {
     const targetRooms = await this.getDirectTargetRooms(conversationId);
     this.chatGateway.server.to(targetRooms).emit(event, {
       ...message,
+      chatId: conversationId,
+      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       conversationId,
-      channelId: conversationId,
     });
   }
 
@@ -515,8 +523,9 @@ export class DirectMessageController {
 
     const messagePayload = {
       ...message,
+      chatId: conversationId,
+      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       conversationId,
-      channelId: conversationId,
       mentions: data.mentions,
       threadFollowers: data.threadParentId ? threadFollowers : undefined,
     };
@@ -527,8 +536,9 @@ export class DirectMessageController {
 
     if (data.medias && data.medias.length > 0) {
       this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
+        chatId: conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         conversationId,
-        channelId: conversationId,
         messageId: message.id,
         media: messagePayload.medias,
       });

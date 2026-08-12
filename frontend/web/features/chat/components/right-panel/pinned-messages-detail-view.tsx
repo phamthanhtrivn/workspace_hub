@@ -14,6 +14,7 @@ import { formatDateTime } from "@/lib/date";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { useActiveChat } from "../../hooks/useChatQueries";
 
 interface PinnedMessagesDetailViewProps {
   conversationId: string;
@@ -41,9 +42,7 @@ export default function PinnedMessagesDetailView({
   onJumpToMessage,
 }: PinnedMessagesDetailViewProps) {
   const queryClient = useQueryClient();
-  const activeConversation = useAppSelector(
-    (state) => state.chat.activeConversation,
-  );
+  const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const { unpinMessage: unpinDirectPinnedMessage } = useDirectMessageActions();
   const { ref: loadMoreRef, inView } = useInView();

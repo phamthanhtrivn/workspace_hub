@@ -13,12 +13,7 @@ export default function ChatMessageAlertManager() {
   const { accessToken, userId: currentUserId } = useAppSelector(
     (state) => state.auth,
   );
-  const activeConversationId = useAppSelector(
-    (state) => state.chat.activeConversation?.id,
-  );
-  const spaceChannelsBySpaceId = useAppSelector(
-    (state) => state.chat.spaceChannels.bySpaceId,
-  );
+  const activeConversationId = useAppSelector((state) => state.chat.activeChatId);
   const activeConversationIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
   const titleAlert = useFlashingDocumentTitle("You have new chat messages!");
@@ -43,20 +38,14 @@ export default function ChatMessageAlertManager() {
       if (messageConversationId === activeConversationIdRef.current) return;
 
       const cachedDirectData: any = queryClient.getQueryData([
-        ChatQueryKey.DIRECT_CONVERSATIONS,
-        currentUserId,
-      ]);
-      const cachedLegacyData: any = queryClient.getQueryData([
-        "conversations",
+        ChatQueryKey.DIRECT_MESSAGES,
         currentUserId,
       ]);
       const conversations =
-        cachedDirectData?.conversations ||
-        cachedDirectData?.data ||
-        cachedLegacyData?.conversations ||
-        cachedLegacyData?.data ||
-        [];
-      const channels = Object.values(spaceChannelsBySpaceId).flat();
+        cachedDirectData?.directMessages || cachedDirectData?.data || [];
+      const channels = queryClient
+        .getQueriesData<any>({ queryKey: ["channels"] })
+        .flatMap(([, data]) => data?.channels || []);
       const conversation =
         conversations.find((item: any) => item.id === messageConversationId) ||
         channels.find((item: any) => item.id === messageConversationId);
@@ -82,7 +71,6 @@ export default function ChatMessageAlertManager() {
     accessToken,
     currentUserId,
     queryClient,
-    spaceChannelsBySpaceId,
     titleAlert,
   ]);
 

@@ -1,5 +1,5 @@
 import { ArrowLeft, Globe, Hash, Info, Search, User } from "lucide-react";
-import { useAppSelector } from "@/store/store";
+import { useActiveChat } from "../../hooks/useChatQueries";
 
 interface ChannelConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -12,9 +12,13 @@ export default function ChannelConversationHeader({
   onOpenSearch,
   onBack,
 }: ChannelConversationHeaderProps) {
-  const { activeConversation } = useAppSelector((state) => state.chat);
+  const { activeChat: activeConversation } = useActiveChat();
   const displayName = activeConversation?.name || "Channel";
   const memberCount = activeConversation?.members?.length || 0;
+  const isDefaultChannel =
+    !!activeConversation &&
+    "isDefault" in activeConversation &&
+    activeConversation.isDefault;
 
   return (
     <div className="py-2 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">
@@ -30,7 +34,7 @@ export default function ChannelConversationHeader({
 
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-5 h-5 bg-gradient-to-br from-slate-100 to-slate-200 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0">
-            {activeConversation?.isDefault ? (
+            {isDefaultChannel ? (
               <Globe size={20} className="text-gray-400" />
             ) : (
               <Hash size={20} className="text-gray-400" />

@@ -44,6 +44,8 @@ import EmojiPickerPopover from "./emoji-picker-popover";
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
 import { useTextFormatting } from "../../hooks/useTextFormatting";
+import { useActiveChat } from "../../hooks/useChatQueries";
+import { ChatContextType } from "../../types/chat.types";
 
 interface ConversationChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -82,9 +84,10 @@ const ConversationChatInput = React.memo(
         [],
       );
 
-      const activeConversation = useAppSelector(
-        (state: any) => state.chat.activeConversation,
-      );
+      const {
+        activeChat: activeConversation,
+        activeChatType,
+      } = useActiveChat();
       const memberProfiles = useChatMemberProfiles();
       const authUserId = useAppSelector((state: any) => state.auth.userId);
 
@@ -186,7 +189,7 @@ const ConversationChatInput = React.memo(
           .filter((m: any) => m.name.toLowerCase().includes(query));
 
         if (
-          activeConversation?.type === "CHANNEL" &&
+          activeChatType === ChatContextType.CHANNEL &&
           ("all".includes(query) ||
             "everyone".includes(query) ||
             query === "")
@@ -344,10 +347,13 @@ const ConversationChatInput = React.memo(
             sizeBytes: u.sizeBytes,
           }));
 
-          const presignedUrls = await getPresignedUrls(
-            activeConversationId,
-            presignRequests,
-          );
+          if (!activeChatType) throw new Error("No active chat type");
+
+          const presignedUrls = await getPresignedUrls({
+            chatId: activeConversationId,
+            chatType: activeChatType,
+            files: presignRequests,
+          });
 
           newUploads.forEach(async (upload, idx) => {
             const presignedInfo = presignedUrls[idx];
@@ -468,6 +474,9 @@ const ConversationChatInput = React.memo(
       const currentMember = activeConversation?.members?.find(
         (m: any) => m.userId === authUserId,
       );
+      const otherDirectMemberId =
+        activeConversation?.members?.find((m) => m.userId !== authUserId)
+          ?.userId ?? null;
       const isMember = currentMember?.role === "MEMBER";
       const allowSendMessage =
         isMember && activeConversation?.setting
@@ -769,13 +778,12 @@ const ConversationChatInput = React.memo(
                     }
                   }}
                   placeholder={
-                    activeConversation?.type === "DIRECT"
+                    activeChatType === ChatContextType.DIRECT_MESSAGE
                       ? `Message ${
-                          memberProfiles?.[
-                            activeConversation.members?.find(
-                              (m: any) => m.userId !== authUserId,
-                            )?.userId
-                          ]?.fullName || "user"
+                          otherDirectMemberId
+                            ? memberProfiles?.[otherDirectMemberId]?.fullName ||
+                              "user"
+                            : "user"
                         }...`
                       : "Type @ to mention, message " + activeConversation?.name
                   }

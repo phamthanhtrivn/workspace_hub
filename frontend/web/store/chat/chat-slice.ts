@@ -1,128 +1,109 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
-  ChatProfilesMap,
-  ConversationMember,
-  ConversationResponse,
+  ChatContextType,
+  ChatEntity,
+  ChatMessageResponse,
+  ChatUiType,
 } from "@/features/chat/types/chat.types";
 
+interface ActiveThreadPayload {
+  id?: string | null;
+  messageId: string | null;
+  chatId?: string | null;
+  chatType?: ChatUiType | null;
+  channelId?: string | null;
+  conversationId?: string | null;
+}
+
+type ActiveThreadMessagePayload = ChatMessageResponse & {
+  messageId?: string | null;
+  chatId?: string | null;
+  chatType?: ChatUiType | null;
+};
+
 interface ChatState {
-  activeConversation: ConversationResponse | null;
-  activeChannel: ConversationResponse | null;
-  activeDirectMessage: ConversationResponse | null;
-  activeChatType: "CHANNEL" | "DIRECT" | null;
+  activeChatId: string | null;
+  activeChatType: ChatUiType | null;
+  activeSpaceId: string | null;
   isMobileSidebarOpen: boolean;
   selectedProfileUserId: string | null;
-  watermarks: Record<string, string>; // userId -> messageId
   highlightMessageId: string | null;
-  activeThreadRootMessage: any | null;
-  activeSpaceId: string | null;
-  directMessages: {
-    conversations: ConversationResponse[];
-    loading: boolean;
-  };
-  spaceChannels: {
-    bySpaceId: Record<string, ConversationResponse[]>;
-    loadingBySpaceId: Record<string, boolean>;
-  };
-  memberProfiles: ChatProfilesMap;
+  activeThreadRootMessageId: string | null;
+  activeThreadChatId: string | null;
+  activeThreadChatType: ChatUiType | null;
 }
 
 const initialState: ChatState = {
-  activeConversation: null,
-  activeChannel: null,
-  activeDirectMessage: null,
+  activeChatId: null,
   activeChatType: null,
+  activeSpaceId: null,
   isMobileSidebarOpen: false,
   selectedProfileUserId: null,
-  watermarks: {},
   highlightMessageId: null,
-  activeThreadRootMessage: null,
-  activeSpaceId: null,
-  directMessages: {
-    conversations: [],
-    loading: false,
-  },
-  spaceChannels: {
-    bySpaceId: {},
-    loadingBySpaceId: {},
-  },
-  memberProfiles: {},
-};
-
-const updateChannelInCollections = (
-  state: ChatState,
-  channelId: string,
-  updater: (channel: ConversationResponse) => ConversationResponse,
-  spaceId?: string,
-) => {
-  const targetSpaceIds = spaceId
-    ? [spaceId]
-    : Object.keys(state.spaceChannels.bySpaceId);
-
-  targetSpaceIds.forEach((targetSpaceId) => {
-    const channels = state.spaceChannels.bySpaceId[targetSpaceId];
-    if (!channels) return;
-    state.spaceChannels.bySpaceId[targetSpaceId] = channels.map((channel) =>
-      channel.id === channelId ? updater(channel) : channel,
-    );
-  });
-
-  if (state.activeChannel?.id === channelId) {
-    state.activeChannel = updater(state.activeChannel);
-  }
-
-  if (state.activeConversation?.id === channelId) {
-    state.activeConversation = updater(state.activeConversation);
-  }
+  activeThreadRootMessageId: null,
+  activeThreadChatId: null,
+  activeThreadChatType: null,
 };
 
 const chatSlice = createSlice({
   name: "chat",
   initialState,
   reducers: {
+    setActiveChat: (
+      state,
+      action: PayloadAction<{
+        chatId: string | null;
+        chatType?: ChatUiType | null;
+      }>,
+    ) => {
+      state.activeChatId = action.payload.chatId;
+      state.activeChatType = action.payload.chatId
+        ? action.payload.chatType ?? state.activeChatType
+        : null;
+      state.highlightMessageId = null;
+      state.activeThreadRootMessageId = null;
+      state.activeThreadChatId = null;
+      state.activeThreadChatType = null;
+    },
     setActiveConversation: (
       state,
-      action: PayloadAction<ConversationResponse | null>,
+      action: PayloadAction<ChatEntity | null>,
     ) => {
-      state.activeConversation = action.payload;
-      state.highlightMessageId = null; // Reset highlight when changing conversation
-      state.activeThreadRootMessage = null; // Reset thread when changing conversation
-      
-      if (!action.payload) {
-        state.activeChatType = null;
-      } else if (action.payload.type === "DIRECT") {
-        state.activeDirectMessage = action.payload;
-        state.activeChatType = "DIRECT";
-      } else {
-        state.activeChannel = action.payload;
-        state.activeChatType = "CHANNEL";
-      }
+      state.activeChatId = action.payload?.id ?? null;
+      state.activeChatType = action.payload ? state.activeChatType : null;
+      state.highlightMessageId = null;
+      state.activeThreadRootMessageId = null;
+      state.activeThreadChatId = null;
+      state.activeThreadChatType = null;
     },
-    setActiveChannel: (
-      state,
-      action: PayloadAction<ConversationResponse | null>,
-    ) => {
-      state.activeChannel = action.payload;
-      if (action.payload) {
-        state.activeConversation = action.payload;
-        state.activeChatType = "CHANNEL";
-      } else if (state.activeChatType === "CHANNEL") {
-        state.activeConversation = null;
-        state.activeChatType = null;
-      }
+    setActiveChannel: (state, action: PayloadAction<ChatEntity | null>) => {
+      state.activeChatId = action.payload?.id ?? null;
+      state.activeChatType = action.payload ? ChatContextType.CHANNEL : null;
+      state.highlightMessageId = null;
+      state.activeThreadRootMessageId = null;
+      state.activeThreadChatId = null;
+      state.activeThreadChatType = null;
     },
     setActiveDirectMessage: (
       state,
-      action: PayloadAction<ConversationResponse | null>,
+      action: PayloadAction<ChatEntity | null>,
     ) => {
-      state.activeDirectMessage = action.payload;
-      if (action.payload) {
-        state.activeConversation = action.payload;
-        state.activeChatType = "DIRECT";
-      } else if (state.activeChatType === "DIRECT") {
-        state.activeConversation = null;
-        state.activeChatType = null;
-      }
+      state.activeChatId = action.payload?.id ?? null;
+      state.activeChatType = action.payload
+        ? ChatContextType.DIRECT_MESSAGE
+        : null;
+      state.highlightMessageId = null;
+      state.activeThreadRootMessageId = null;
+      state.activeThreadChatId = null;
+      state.activeThreadChatType = null;
+    },
+    clearActiveChat: (state) => {
+      state.activeChatId = null;
+      state.activeChatType = null;
+      state.highlightMessageId = null;
+      state.activeThreadRootMessageId = null;
+      state.activeThreadChatId = null;
+      state.activeThreadChatType = null;
     },
     toggleMobileSidebar: (state) => {
       state.isMobileSidebarOpen = !state.isMobileSidebarOpen;
@@ -130,297 +111,78 @@ const chatSlice = createSlice({
     setSelectedProfileUserId: (state, action: PayloadAction<string | null>) => {
       state.selectedProfileUserId = action.payload;
     },
-    updateWatermark: (
-      state,
-      action: PayloadAction<{ userId: string; messageId: string }>,
-    ) => {
-      state.watermarks[action.payload.userId] = action.payload.messageId;
-    },
-    setWatermarks: (state, action: PayloadAction<Record<string, string>>) => {
-      state.watermarks = action.payload;
-    },
     setHighlightMessageId: (state, action: PayloadAction<string | null>) => {
       state.highlightMessageId = action.payload;
     },
-    updateChannelSettings: (
+    setActiveThreadRootMessage: (
       state,
-      action: PayloadAction<Partial<ConversationResponse["setting"]>>,
+      action: PayloadAction<
+        ActiveThreadMessagePayload | ActiveThreadPayload | null
+      >,
     ) => {
-      if (state.activeConversation && state.activeConversation.setting) {
-        state.activeConversation.setting = {
-          ...state.activeConversation.setting,
-          ...action.payload,
-        };
-      } else if (state.activeConversation) {
-        state.activeConversation.setting = action.payload as any;
-      }
-    },
-    updateMemberRole: (
-      state,
-      action: PayloadAction<{ userId: string; role: any }>,
-    ) => {
-      if (state.activeConversation && state.activeConversation.members) {
-        const member = state.activeConversation.members.find(
-          (m) => m.userId === action.payload.userId,
-        );
-        if (member) {
-          member.role = action.payload.role;
-        }
-      }
-    },
-    removeMember: (state, action: PayloadAction<string>) => {
-      if (state.activeConversation && state.activeConversation.members) {
-        state.activeConversation.members =
-          state.activeConversation.members.filter(
-            (m) => m.userId !== action.payload,
-          );
-      }
-    },
-    updateConversationInfo: (
-      state,
-      action: PayloadAction<{ id: string; name?: string; avatarUrl?: string }>,
-    ) => {
-      if (
-        state.activeConversation &&
-        state.activeConversation.id === action.payload.id
-      ) {
-        if (action.payload.name !== undefined) {
-          state.activeConversation.name = action.payload.name;
-        }
-        if (action.payload.avatarUrl !== undefined) {
-          state.activeConversation.avatarUrl = action.payload.avatarUrl;
-        }
-      }
-    },
-    updateMuteStatus: (
-      state,
-      action: PayloadAction<{
-        conversationId: string;
-        userId: string;
-        muted: boolean;
-      }>,
-    ) => {
-      if (
-        state.activeConversation &&
-        state.activeConversation.id === action.payload.conversationId &&
-        state.activeConversation.members
-      ) {
-        const member = state.activeConversation.members.find(
-          (m) => m.userId === action.payload.userId,
-        );
-        if (member) {
-          member.muted = action.payload.muted;
-        }
-      }
-    },
-    updatePinStatus: (
-      state,
-      action: PayloadAction<{
-        conversationId: string;
-        userId: string;
-        pinned: boolean;
-      }>,
-    ) => {
-      if (
-        state.activeConversation &&
-        state.activeConversation.id === action.payload.conversationId &&
-        state.activeConversation.members
-      ) {
-        const member = state.activeConversation.members.find(
-          (m) => m.userId === action.payload.userId,
-        );
-        if (member) {
-          member.pinned = action.payload.pinned;
-        }
-      }
-    },
-    setActiveThreadRootMessage: (state, action: PayloadAction<any | null>) => {
-      state.activeThreadRootMessage = action.payload;
+      const payload = action.payload;
+      const messageId = payload?.messageId ?? payload?.id ?? null;
+      const chatId =
+        payload?.chatId ?? payload?.channelId ?? payload?.conversationId ?? null;
+      const chatType =
+        payload?.chatType ??
+        (payload?.conversationId
+          ? ChatContextType.DIRECT_MESSAGE
+          : payload?.channelId
+            ? ChatContextType.CHANNEL
+            : null);
+
+      state.activeThreadRootMessageId = messageId;
+      state.activeThreadChatId = messageId ? chatId ?? state.activeChatId : null;
+      state.activeThreadChatType = messageId
+        ? chatType ?? state.activeChatType
+        : null;
     },
     setActiveSpaceId: (state, action: PayloadAction<string | null>) => {
       state.activeSpaceId = action.payload;
     },
-    setDirectConversations: (
-      state,
-      action: PayloadAction<ConversationResponse[]>,
-    ) => {
-      state.directMessages.conversations = action.payload;
-    },
-    upsertDirectConversation: (
-      state,
-      action: PayloadAction<ConversationResponse>,
-    ) => {
-      const conversation = action.payload;
-      const existingIndex = state.directMessages.conversations.findIndex(
-        (item) => item.id === conversation.id,
-      );
-      if (existingIndex >= 0) {
-        state.directMessages.conversations[existingIndex] = conversation;
-      } else {
-        state.directMessages.conversations.unshift(conversation);
-      }
-    },
-    setDirectConversationsLoading: (state, action: PayloadAction<boolean>) => {
-      state.directMessages.loading = action.payload;
-    },
-    setSpaceChannels: (
-      state,
-      action: PayloadAction<{
-        spaceId: string;
-        channels: ConversationResponse[];
-      }>,
-    ) => {
-      state.spaceChannels.bySpaceId[action.payload.spaceId] =
-        action.payload.channels;
-    },
-    setSpaceChannelsLoading: (
-      state,
-      action: PayloadAction<{ spaceId: string; loading: boolean }>,
-    ) => {
-      state.spaceChannels.loadingBySpaceId[action.payload.spaceId] =
-        action.payload.loading;
-    },
-    upsertSpaceChannel: (
-      state,
-      action: PayloadAction<{ spaceId: string; channel: ConversationResponse }>,
-    ) => {
-      const { spaceId, channel } = action.payload;
-      const channels = state.spaceChannels.bySpaceId[spaceId] || [];
-      const existingIndex = channels.findIndex((item) => item.id === channel.id);
-      if (existingIndex >= 0) {
-        channels[existingIndex] = channel;
-      } else {
-        channels.push(channel);
-      }
-      state.spaceChannels.bySpaceId[spaceId] = channels;
-    },
-    patchSpaceChannel: (
-      state,
-      action: PayloadAction<{
-        spaceId?: string;
-        channelId: string;
-        changes: Partial<ConversationResponse>;
-      }>,
-    ) => {
-      const { spaceId, channelId, changes } = action.payload;
-      updateChannelInCollections(
-        state,
-        channelId,
-        (channel) => ({ ...channel, ...changes }),
-        spaceId,
-      );
-    },
-    clearSpaceChannelUnread: (
-      state,
-      action: PayloadAction<{ spaceId?: string; channelId: string }>,
-    ) => {
-      const { spaceId, channelId } = action.payload;
-      updateChannelInCollections(
-        state,
-        channelId,
-        (channel) => ({
-          ...channel,
-          unreadCount: 0,
-          hasMention: false,
-          hasUnreadThread: false,
-        }),
-        spaceId,
-      );
-    },
-    upsertSpaceChannelMember: (
-      state,
-      action: PayloadAction<{
-        spaceId?: string;
-        channelId: string;
-        member: ConversationMember;
-      }>,
-    ) => {
-      const { spaceId, channelId, member } = action.payload;
-      updateChannelInCollections(
-        state,
-        channelId,
-        (channel) => {
-          const members = channel.members || [];
-          const exists = members.some((item) => item.userId === member.userId);
-          return {
-            ...channel,
-            members: exists
-              ? members.map((item) =>
-                  item.userId === member.userId ? { ...item, ...member } : item,
-                )
-              : [...members, member],
-          };
-        },
-        spaceId,
-      );
-    },
-    removeSpaceChannelMember: (
-      state,
-      action: PayloadAction<{
-        spaceId?: string;
-        channelId: string;
-        userId: string;
-      }>,
-    ) => {
-      const { spaceId, channelId, userId } = action.payload;
-      updateChannelInCollections(
-        state,
-        channelId,
-        (channel) => ({
-          ...channel,
-          members: channel.members?.filter((member) => member.userId !== userId),
-        }),
-        spaceId,
-      );
-    },
-    updateSpaceChannelMember: (
-      state,
-      action: PayloadAction<{
-        spaceId?: string;
-        channelId: string;
-        userId: string;
-        changes: Partial<ConversationMember>;
-      }>,
-    ) => {
-      const { spaceId, channelId, userId, changes } = action.payload;
-      updateChannelInCollections(
-        state,
-        channelId,
-        (channel) => ({
-          ...channel,
-          members: channel.members?.map((member) =>
-            member.userId === userId ? { ...member, ...changes } : member,
-          ),
-        }),
-        spaceId,
-      );
-    },
-    mergeMemberProfiles: (state, action: PayloadAction<ChatProfilesMap>) => {
-      state.memberProfiles = {
-        ...state.memberProfiles,
-        ...action.payload,
-      };
-    },
+    updateMuteStatus: (_state, _action: PayloadAction<unknown>) => {},
+    updatePinStatus: (_state, _action: PayloadAction<unknown>) => {},
+    updateChannelSettings: (_state, _action: PayloadAction<unknown>) => {},
+    updateMemberRole: (_state, _action: PayloadAction<unknown>) => {},
+    removeMember: (_state, _action: PayloadAction<unknown>) => {},
+    updateConversationInfo: (_state, _action: PayloadAction<unknown>) => {},
+    updateWatermark: (_state, _action: PayloadAction<unknown>) => {},
+    setWatermarks: (_state, _action: PayloadAction<unknown>) => {},
+    setDirectConversations: (_state, _action: PayloadAction<unknown>) => {},
+    upsertDirectConversation: (_state, _action: PayloadAction<unknown>) => {},
+    setDirectConversationsLoading: (_state, _action: PayloadAction<unknown>) => {},
+    setSpaceChannels: (_state, _action: PayloadAction<unknown>) => {},
+    setSpaceChannelsLoading: (_state, _action: PayloadAction<unknown>) => {},
+    upsertSpaceChannel: (_state, _action: PayloadAction<unknown>) => {},
+    patchSpaceChannel: (_state, _action: PayloadAction<unknown>) => {},
+    clearSpaceChannelUnread: (_state, _action: PayloadAction<unknown>) => {},
+    upsertSpaceChannelMember: (_state, _action: PayloadAction<unknown>) => {},
+    removeSpaceChannelMember: (_state, _action: PayloadAction<unknown>) => {},
+    updateSpaceChannelMember: (_state, _action: PayloadAction<unknown>) => {},
+    mergeMemberProfiles: (_state, _action: PayloadAction<unknown>) => {},
   },
 });
 
 export const {
+  setActiveChat,
   setActiveConversation,
   setActiveChannel,
   setActiveDirectMessage,
+  clearActiveChat,
   toggleMobileSidebar,
   setSelectedProfileUserId,
-  updateWatermark,
-  setWatermarks,
   setHighlightMessageId,
+  setActiveThreadRootMessage,
+  setActiveSpaceId,
+  updateMuteStatus,
+  updatePinStatus,
   updateChannelSettings,
   updateMemberRole,
   removeMember,
   updateConversationInfo,
-  updateMuteStatus,
-  updatePinStatus,
-  setActiveThreadRootMessage,
-  setActiveSpaceId,
+  updateWatermark,
+  setWatermarks,
   setDirectConversations,
   upsertDirectConversation,
   setDirectConversationsLoading,

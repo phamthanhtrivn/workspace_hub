@@ -1,4 +1,5 @@
 import { api } from "@/lib/axios";
+import { ApiResponse, ChatContextType } from "../types/chat.types";
 
 export interface PresignRequest {
   fileName: string;
@@ -14,15 +15,35 @@ export interface PresignResponse {
   presignedUrl: string;
 }
 
+export interface GetPresignedUrlsParams {
+  chatId: string;
+  chatType: ChatContextType;
+  files: PresignRequest[];
+}
+
+interface PresignPayload {
+  chatId: string;
+  chatType: ChatContextType;
+  channelId?: string;
+  conversationId?: string;
+  files: PresignRequest[];
+}
+
 export const getPresignedUrls = async (
-  conversationId: string,
-  files: PresignRequest[],
+  params: GetPresignedUrlsParams,
 ): Promise<PresignResponse[]> => {
+  const payload: PresignPayload = {
+    chatId: params.chatId,
+    chatType: params.chatType,
+    files: params.files,
+    ...(params.chatType === ChatContextType.CHANNEL
+      ? { channelId: params.chatId }
+      : { conversationId: params.chatId }),
+  };
   const response = await api.post("/api/medias/presign", {
-    channelId: conversationId,
-    files,
+    ...payload,
   });
-  return response.data.data;
+  return (response.data as ApiResponse<PresignResponse[]>).data;
 };
 
 export const uploadToS3 = async (

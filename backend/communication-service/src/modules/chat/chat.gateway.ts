@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import {
   ChatEvent,
+  CHAT_CONTEXT_TYPE,
   CHAT_RESPONSE_STATUS,
   CHAT_REACTION_ACTION,
   CHAT_ERROR_MESSAGES,
@@ -68,7 +69,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     if (data.channelId) {
       client.join(data.channelId);
-      return { status: CHAT_RESPONSE_STATUS.JOINED, channelId: data.channelId };
+      return {
+        status: CHAT_RESPONSE_STATUS.JOINED,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      };
     }
   }
 
@@ -81,6 +87,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.join(data.conversationId);
       return {
         status: CHAT_RESPONSE_STATUS.JOINED,
+        chatId: data.conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         conversationId: data.conversationId,
       };
     }
@@ -155,6 +163,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const messageWithUrls = {
         ...message,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         medias: mapMediaWithUrl(message.medias),
         mentions: data.mentions,
         threadFollowers: data.threadParentId ? threadFollowers : undefined,
@@ -165,6 +175,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
+          chatId: data.channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
           channelId: data.channelId,
           messageId: message.id,
           media: messageWithUrls.medias,
@@ -173,6 +185,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (data.pollData && messageWithUrls.poll) {
         this.server.to(targetRooms).emit(ChatEvent.POLL_UPDATED, {
+          chatId: data.channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
           channelId: data.channelId,
           messageId: message.id,
           poll: messageWithUrls.poll,
@@ -181,6 +195,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (data.noteData && messageWithUrls.note) {
         this.server.to(targetRooms).emit(ChatEvent.NOTE_UPDATED, {
+          chatId: data.channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
           channelId: data.channelId,
           messageId: message.id,
           note: messageWithUrls.note,
@@ -253,6 +269,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const messageWithUrls = {
         ...message,
+        chatId: data.conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         medias: mapMediaWithUrl(message.medias),
         mentions: data.mentions,
         threadFollowers: data.threadParentId ? threadFollowers : undefined,
@@ -263,8 +281,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
+          chatId: data.conversationId,
+          chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
           conversationId: data.conversationId,
-          channelId: data.conversationId,
           messageId: message.id,
           media: messageWithUrls.medias,
         });
@@ -294,6 +313,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const messageWithUrls = {
         ...message,
+        chatId: channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         medias: [],
       };
 
@@ -349,6 +370,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         channelId: data.channelId,
         messageId: data.messageId,
         userId,
@@ -611,6 +634,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         channelId: data.channelId,
         messageId: data.messageId,
         userId,
@@ -650,8 +675,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.conversationId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
+        chatId: data.conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         conversationId: data.conversationId,
-        channelId: data.conversationId,
         messageId: data.messageId,
         userId,
         readAt: readReceipt.lastReadAt,
@@ -681,6 +707,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.TYPING, {
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         channelId: data.channelId,
         userId,
         isTyping: data.isTyping,
@@ -706,8 +734,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const targetRooms = [data.conversationId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.TYPING, {
+        chatId: data.conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         conversationId: data.conversationId,
-        channelId: data.conversationId,
         userId,
         isTyping: data.isTyping,
       });

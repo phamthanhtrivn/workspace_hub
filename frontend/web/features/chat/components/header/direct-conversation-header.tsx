@@ -2,6 +2,8 @@ import { ArrowLeft, Info, Search, User } from "lucide-react";
 import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
+import { useActiveChat } from "../../hooks/useChatQueries";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface DirectConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -14,9 +16,8 @@ export default function DirectConversationHeader({
   onOpenSearch,
   onBack,
 }: DirectConversationHeaderProps) {
-  const { activeConversation, directMessages, memberProfiles } = useAppSelector(
-    (state) => state.chat,
-  );
+  const { activeChat: activeConversation } = useActiveChat();
+  const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
 
@@ -37,7 +38,7 @@ export default function DirectConversationHeader({
     !!otherMemberId &&
     !memberProfiles?.[otherMemberId] &&
     !hasInlineProfile &&
-    directMessages.loading;
+    false;
   const displayName =
     profile?.fullName ||
     memberProfile?.profile?.fullName ||

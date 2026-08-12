@@ -1,43 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, ChevronDown, ChevronRight } from "lucide-react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAppDispatch } from "@/store/store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  mergeMemberProfiles,
-  setDirectConversations,
-  setDirectConversationsLoading,
-  updateMuteStatus,
-  updatePinStatus,
-} from "@/store/chat/chat-slice";
-import {
-  getBulkProfilesByIds,
-  getDirectConversations,
   muteDirectConversation,
   pinDirectConversation,
 } from "../../api/chat.api";
-import { ChatProfilesMap, ConversationResponse } from "../../types/chat.types";
-import { ChatQueryKey, ChatSidebarSection } from "../../types/chat.constant";
+import { ChatProfilesMap, DirectMessage } from "../../types/chat.types";
+import { ChatSidebarSection, chatKeys } from "../../types/chat.constant";
 import DirectConversationItem from "./direct-conversation-item";
 import { sortDirectConversations } from "../../utils/direct-conversation-utils";
 import { cn } from "@/lib/utils";
+import {
+  DirectMessagesQueryData,
+  useDirectMessagesQuery,
+} from "../../hooks/useChatQueries";
 
-interface DirectConversationsQueryData {
-  conversations: ConversationResponse[];
-  profiles: ChatProfilesMap;
-}
-
-const EMPTY_DIRECT_CONVERSATIONS: ConversationResponse[] = [];
+const EMPTY_DIRECT_MESSAGES: DirectMessage[] = [];
 const EMPTY_MEMBER_PROFILES: ChatProfilesMap = {};
 
-interface DirectConversationsSectionProps {
+interface DirectMessagesSectionProps {
   activeConversationId?: string;
   currentUserId: string | null;
   searchQuery: string;
   onCreateDirectConversation: () => void;
   onSelectConversation: (
-    conversation: ConversationResponse,
+    directMessage: DirectMessage,
     profiles?: ChatProfilesMap,
   ) => void;
 }
@@ -48,219 +37,123 @@ export default function DirectConversationsSection({
   searchQuery,
   onCreateDirectConversation,
   onSelectConversation,
-}: DirectConversationsSectionProps) {
-  const dispatch = useAppDispatch();
+}: DirectMessagesSectionProps) {
   const queryClient = useQueryClient();
   const [isDmExpanded, setIsDmExpanded] = useState(true);
-  const { data, isLoading, isFetching } = useQuery({
-    queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-    queryFn: async (): Promise<DirectConversationsQueryData> => {
-      if (!currentUserId) return { conversations: [], profiles: {} };
+  const { data, isLoading, isFetching } = useDirectMessagesQuery(currentUserId);
 
-      const response = await getDirectConversations();
-      const conversations = response.success ? response.data : [];
-
-      const userIds = new Set<string>();
-      conversations.forEach((conversation) => {
-        conversation.members?.forEach((member) => {
-          if (member.userId) userIds.add(member.userId);
-        });
-      });
-
-      const profiles: ChatProfilesMap = {};
-      const profileIds = Array.from(userIds);
-      if (profileIds.length > 0) {
-        const profilesResponse = await getBulkProfilesByIds(profileIds);
-        if (profilesResponse.success) {
-          profilesResponse.data.forEach((profile) => {
-            if (profile.id) {
-              profiles[profile.id] = profile;
-            }
-          });
-        }
-      }
-
-      return { conversations, profiles };
-    },
-    enabled: !!currentUserId,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const directConversations = useMemo(
+  const directMessages = useMemo(
     () =>
       sortDirectConversations(
-        data?.conversations ?? EMPTY_DIRECT_CONVERSATIONS,
+        data?.directMessages ?? EMPTY_DIRECT_MESSAGES,
         currentUserId,
       ),
-    [currentUserId, data?.conversations],
+    [currentUserId, data?.directMessages],
   );
   const memberProfiles = data?.profiles ?? EMPTY_MEMBER_PROFILES;
   const isLoadingProfiles = isLoading || isFetching;
 
-  useEffect(() => {
-    dispatch(setDirectConversationsLoading(isLoadingProfiles));
-  }, [dispatch, isLoadingProfiles]);
-
-  useEffect(() => {
-    if (!data) return;
-    dispatch(
-      setDirectConversations(
-        sortDirectConversations(data.conversations, currentUserId),
-      ),
-    );
-    dispatch(mergeMemberProfiles(data.profiles));
-  }, [currentUserId, data, dispatch]);
-
-  const filteredDirectConversations = useMemo(() => {
+  const filteredDirectMessages = useMemo(() => {
     const trimmedQuery = searchQuery.trim().toLowerCase();
-    if (!trimmedQuery) return directConversations;
+    if (!trimmedQuery) return directMessages;
 
-    return directConversations.filter((conversation) => {
-      const otherMember = conversation.members?.find(
+    return directMessages.filter((directMessage) => {
+      const otherMember = directMessage.members?.find(
         (member) => member.userId !== currentUserId,
       );
       const profile = otherMember ? memberProfiles[otherMember.userId] : null;
       const name = profile?.fullName || "User";
       return name.toLowerCase().includes(trimmedQuery);
     });
-  }, [currentUserId, directConversations, memberProfiles, searchQuery]);
+  }, [currentUserId, directMessages, memberProfiles, searchQuery]);
 
-  const updateDirectConversationMemberCache = (
-    conversationId: string,
+  const updateDirectMessageMemberCache = (
+    directMessageId: string,
     memberPatch: { pinned?: boolean; muted?: boolean },
   ) => {
-    const queryKey = [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId];
-    queryClient.setQueryData<DirectConversationsQueryData>(
-      queryKey,
-      (oldData) => {
-        if (!oldData) return oldData;
+    const queryKey = chatKeys.directMessages(currentUserId);
+    queryClient.setQueryData<DirectMessagesQueryData>(queryKey, (oldData) => {
+      if (!oldData) return oldData;
 
-        const conversations = sortDirectConversations(
-          oldData.conversations.map((conversation) => {
-            if (conversation.id !== conversationId) return conversation;
-            return {
-              ...conversation,
-              members: conversation.members.map((member) =>
-                member.userId === currentUserId
-                  ? { ...member, ...memberPatch }
-                  : member,
-              ),
-            };
-          }),
-          currentUserId,
-        );
+      const nextDirectMessages = sortDirectConversations(
+        oldData.directMessages.map((directMessage) => {
+          if (directMessage.id !== directMessageId) return directMessage;
+          return {
+            ...directMessage,
+            members: directMessage.members.map((member) =>
+              member.userId === currentUserId
+                ? { ...member, ...memberPatch }
+                : member,
+            ),
+          };
+        }),
+        currentUserId,
+      );
 
-        return { ...oldData, conversations };
-      },
-    );
+      return { ...oldData, directMessages: nextDirectMessages };
+    });
   };
 
   const pinMutation = useMutation({
     mutationFn: ({
-      conversationId,
+      directMessageId,
       pinned,
     }: {
-      conversationId: string;
+      directMessageId: string;
       pinned: boolean;
-    }) => pinDirectConversation(conversationId, pinned),
-    onMutate: async ({ conversationId, pinned }) => {
-      await queryClient.cancelQueries({
-        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-      });
-      const queryKey = [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId];
+    }) => pinDirectConversation(directMessageId, pinned),
+    onMutate: async ({ directMessageId, pinned }) => {
+      const queryKey = chatKeys.directMessages(currentUserId);
+      await queryClient.cancelQueries({ queryKey });
       const previousData =
-        queryClient.getQueryData<DirectConversationsQueryData>(queryKey);
+        queryClient.getQueryData<DirectMessagesQueryData>(queryKey);
 
-      updateDirectConversationMemberCache(conversationId, { pinned });
-      if (currentUserId) {
-        dispatch(
-          updatePinStatus({ conversationId, userId: currentUserId, pinned }),
-        );
-      }
-
+      updateDirectMessageMemberCache(directMessageId, { pinned });
       return { previousData };
     },
     onError: (_error, _variables, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(
-          [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+          chatKeys.directMessages(currentUserId),
           context.previousData,
         );
-        const previousConversation = context.previousData.conversations.find(
-          (conversation) => conversation.id === _variables.conversationId,
-        );
-        const previousMember = previousConversation?.members.find(
-          (member) => member.userId === currentUserId,
-        );
-        if (currentUserId && previousMember) {
-          dispatch(
-            updatePinStatus({
-              conversationId: _variables.conversationId,
-              userId: currentUserId,
-              pinned: previousMember.pinned || false,
-            }),
-          );
-        }
       }
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+        queryKey: chatKeys.directMessages(currentUserId),
       });
     },
   });
 
   const muteMutation = useMutation({
     mutationFn: ({
-      conversationId,
+      directMessageId,
       muted,
     }: {
-      conversationId: string;
+      directMessageId: string;
       muted: boolean;
-    }) => muteDirectConversation(conversationId, muted),
-    onMutate: async ({ conversationId, muted }) => {
-      await queryClient.cancelQueries({
-        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
-      });
-      const queryKey = [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId];
+    }) => muteDirectConversation(directMessageId, muted),
+    onMutate: async ({ directMessageId, muted }) => {
+      const queryKey = chatKeys.directMessages(currentUserId);
+      await queryClient.cancelQueries({ queryKey });
       const previousData =
-        queryClient.getQueryData<DirectConversationsQueryData>(queryKey);
+        queryClient.getQueryData<DirectMessagesQueryData>(queryKey);
 
-      updateDirectConversationMemberCache(conversationId, { muted });
-      if (currentUserId) {
-        dispatch(
-          updateMuteStatus({ conversationId, userId: currentUserId, muted }),
-        );
-      }
-
+      updateDirectMessageMemberCache(directMessageId, { muted });
       return { previousData };
     },
     onError: (_error, _variables, context) => {
       if (context?.previousData) {
         queryClient.setQueryData(
-          [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+          chatKeys.directMessages(currentUserId),
           context.previousData,
         );
-        const previousConversation = context.previousData.conversations.find(
-          (conversation) => conversation.id === _variables.conversationId,
-        );
-        const previousMember = previousConversation?.members.find(
-          (member) => member.userId === currentUserId,
-        );
-        if (currentUserId && previousMember) {
-          dispatch(
-            updateMuteStatus({
-              conversationId: _variables.conversationId,
-              userId: currentUserId,
-              muted: previousMember.muted || false,
-            }),
-          );
-        }
       }
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS, currentUserId],
+        queryKey: chatKeys.directMessages(currentUserId),
       });
     },
   });
@@ -291,35 +184,34 @@ export default function DirectConversationsSection({
         <div
           className={cn(
             "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full",
-            filteredDirectConversations.length > 10 &&
-              "max-h-80 overflow-y-auto",
+            filteredDirectMessages.length > 10 && "max-h-80 overflow-y-auto",
           )}
         >
           {isLoading ? (
             <div className="text-[11px] text-slate-400 italic px-3 py-1">
               Loading...
             </div>
-          ) : filteredDirectConversations.length > 0 ? (
-            filteredDirectConversations.map((conversation) => (
+          ) : filteredDirectMessages.length > 0 ? (
+            filteredDirectMessages.map((directMessage) => (
               <DirectConversationItem
-                key={conversation.id}
-                conversation={conversation}
+                key={directMessage.id}
+                conversation={directMessage}
                 currentUserId={currentUserId}
                 memberProfiles={memberProfiles}
                 isLoadingProfile={isLoadingProfiles}
-                isActive={activeConversationId === conversation.id}
-                onClick={(selectedConversation) =>
-                  onSelectConversation(selectedConversation, memberProfiles)
+                isActive={activeConversationId === directMessage.id}
+                onClick={(selectedDirectMessage) =>
+                  onSelectConversation(selectedDirectMessage, memberProfiles)
                 }
-                onTogglePin={(selectedConversation, pinned) =>
+                onTogglePin={(selectedDirectMessage, pinned) =>
                   pinMutation.mutate({
-                    conversationId: selectedConversation.id,
+                    directMessageId: selectedDirectMessage.id,
                     pinned,
                   })
                 }
-                onToggleMute={(selectedConversation, muted) =>
+                onToggleMute={(selectedDirectMessage, muted) =>
                   muteMutation.mutate({
-                    conversationId: selectedConversation.id,
+                    directMessageId: selectedDirectMessage.id,
                     muted,
                   })
                 }

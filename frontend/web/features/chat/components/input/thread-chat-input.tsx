@@ -41,6 +41,7 @@ import EmojiPickerPopover from "./emoji-picker-popover";
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
 import { useTextFormatting } from "../../hooks/useTextFormatting";
+import { useActiveChat } from "../../hooks/useChatQueries";
 
 interface ThreadChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -72,9 +73,10 @@ const ThreadChatInput = React.memo(
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
 
-    const activeConversation = useAppSelector(
-      (state: any) => state.chat.activeConversation,
-    );
+    const {
+      activeChat: activeConversation,
+      activeChatType,
+    } = useActiveChat();
     const memberProfiles = useChatMemberProfiles();
     const authUserId = useAppSelector((state: any) => state.auth.userId);
 
@@ -283,10 +285,13 @@ const ThreadChatInput = React.memo(
           sizeBytes: u.sizeBytes,
         }));
 
-        const presignedUrls = await getPresignedUrls(
-          activeConversationId,
-          presignRequests,
-        );
+        if (!activeChatType) throw new Error("No active chat type");
+
+        const presignedUrls = await getPresignedUrls({
+          chatId: activeConversationId,
+          chatType: activeChatType,
+          files: presignRequests,
+        });
 
         newUploads.forEach(async (upload, idx) => {
           const presignedInfo = presignedUrls[idx];

@@ -15,13 +15,19 @@ import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 import { formatDateTime } from "@/lib/date";
+import { chatKeys } from "../../types/chat.constant";
+import {
+  ChatContextType,
+  ChatMessageResponse,
+} from "../../types/chat.types";
+import { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import DirectMessageInput from "../input/direct-message-input";
 import ThreadChatInput from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
 import { toast } from "react-toastify";
 
 interface ThreadDetailViewProps {
-  rootMessage: any;
+  rootMessage: ChatMessageResponse;
   isDirect?: boolean;
   onBack: () => void;
 }
@@ -68,7 +74,10 @@ export default function ThreadDetailView({
 
   // Fetch thread messages (root message + replies)
   const { data: threadData, isLoading } = useQuery({
-    queryKey: ["threadMessages", isDirect ? "direct" : "channel", rootMessage.id],
+    queryKey: chatKeys.threadMessages(
+      isDirect ? "direct" : "channel",
+      rootMessage.id,
+    ),
     queryFn: () =>
       isDirect
         ? getDirectThreadMessages(rootMessage.id)
@@ -147,20 +156,23 @@ export default function ThreadDetailView({
 
   const handleSendReply = (
     content: string,
-    media?: any[],
+    media?: SendSocketMessageMedia[],
     mentions?: string[],
   ) => {
     const socket = socketService.getSocket();
 
     if (isDirect) {
+      const directChatId = rootMessage.conversationId ?? rootMessage.channelId;
+      if (!directChatId) return;
+
       sendDirectThreadReply({
-        conversationId: rootMessage.conversationId ?? rootMessage.channelId,
+        conversationId: directChatId,
         content,
         medias: media,
         threadParentId: rootMessage.id,
         onSent: () => {
           queryClient.invalidateQueries({
-            queryKey: ["threadMessages", "direct", rootMessage.id],
+          queryKey: chatKeys.threadMessages("direct", rootMessage.id),
           });
           queryClient.invalidateQueries({
             queryKey: [
@@ -175,10 +187,12 @@ export default function ThreadDetailView({
       return;
     }
 
-    if (!socket) return;
+    if (!socket || !rootMessage.channelId) return;
 
     socket.emit(ChatEvent.SEND_MESSAGE, {
       channelId: rootMessage.channelId,
+      chatId: rootMessage.channelId,
+      chatType: ChatContextType.CHANNEL,
       content,
       medias: media,
       threadParentId: rootMessage.id,

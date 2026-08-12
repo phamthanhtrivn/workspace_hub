@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { SpaceRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { ChatEvent } from '../chat/chat.events';
+import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 import { CHANNEL_ERROR_MESSAGES } from '../channel/types/channel.enums';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -163,7 +164,8 @@ export class DirectConversationService {
       this.chatGateway.server
         .to(userId)
         .emit(ChatEvent.CONVERSATION_MUTE_UPDATED, {
-          channelId: conversationId,
+          chatId: conversationId,
+          chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
           conversationId,
           muted,
         });
@@ -212,7 +214,6 @@ export class DirectConversationService {
   ) {
     return {
       ...conversation,
-      type: 'DIRECT',
       members: conversation.participants.map((participant) => ({
         ...participant,
         role: SpaceRole.MEMBER,

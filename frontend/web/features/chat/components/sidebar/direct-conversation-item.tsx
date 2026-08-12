@@ -3,9 +3,12 @@ import Image from "next/image";
 import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
-import { ChatProfilesMap, ConversationResponse } from "../../types/chat.types";
+import {
+  ChatProfilesMap,
+  DirectConversationResponse,
+} from "../../types/chat.types";
 
-type DirectConversationListItem = ConversationResponse & {
+type DirectConversationListItem = DirectConversationResponse & {
   unreadCount?: number;
   hasMention?: boolean;
   hasUnreadThread?: boolean;

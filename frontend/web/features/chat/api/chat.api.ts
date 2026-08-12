@@ -2,32 +2,60 @@ import { api } from "@/lib/axios";
 import {
   ApiResponse,
   ChatMessageResponse,
+  ChannelResponse,
+  ConversationMember,
   ConversationResponse,
+  ConversationSetting,
+  DirectConversationResponse,
   MuteConversationResponse,
   PaginatedMediaResponse,
   PaginatedMessagesResponse,
   PinnedMessagesResponse,
+  SpaceInvitation,
+  SpaceResponse,
   ThreadMessagesResponse,
   UserSearchResponse,
   UserProfileResponse,
 } from "../types/chat.types";
 
-export const searchUserByEmail = async (email: string): Promise<any> => {
+type UnknownRecord = Record<string, unknown>;
+
+type RawDirectConversation = Partial<DirectConversationResponse> &
+  UnknownRecord & {
+    participants?: ConversationMember[];
+    members?: ConversationMember[];
+    setting?: ConversationSetting | null;
+  };
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null;
+}
+
+export const searchUserByEmail = async (
+  email: string,
+): Promise<ApiResponse<UserSearchResponse[]>> => {
   const response = await api.get("/api/users/search", {
     params: { email },
   });
-  return response.data;
+  const payload = normalizeApiResponse<UserSearchResponse[] | UserSearchResponse>(
+    response.data,
+  );
+  return {
+    ...payload,
+    data: Array.isArray(payload.data) ? payload.data : [payload.data],
+  };
 };
 
-function normalizeDirectConversation(conversation: any) {
+function normalizeDirectConversation(
+  conversation: RawDirectConversation,
+): DirectConversationResponse {
   if (!conversation) return conversation;
 
   const members = conversation.members || conversation.participants || [];
 
   return {
     ...conversation,
-    type: "DIRECT",
-    members: members.map((member: any) => ({
+    members: members.map((member) => ({
       ...member,
       role: member.role || "MEMBER",
     })),
@@ -37,32 +65,38 @@ function normalizeDirectConversation(conversation: any) {
       allowCreatePoll: true,
       allowPinMessage: true,
     },
-  };
+  } as DirectConversationResponse;
 }
 
-function normalizeApiResponse<T>(payload: any): ApiResponse<T> {
+function normalizeApiResponse<T>(payload: unknown): ApiResponse<T> {
+  const responsePayload = isRecord(payload) ? payload : {};
+  const data =
+    isRecord(payload) && "data" in payload ? payload.data : payload;
   return {
-    ...payload,
-    success: payload?.success ?? true,
-    data: payload?.data ?? payload,
+    ...responsePayload,
+    success:
+      typeof responsePayload.success === "boolean"
+        ? responsePayload.success
+        : true,
+    data: data as T,
   };
 }
 
 export const createDirectConversation = async (
   participantId: string,
-): Promise<ApiResponse<ConversationResponse>> => {
+): Promise<ApiResponse<DirectConversationResponse>> => {
   const response = await api.post("/api/direct-conversations", {
     participantId,
   });
   const payload = response.data;
   return {
-    ...normalizeApiResponse<ConversationResponse>(payload),
+    ...normalizeApiResponse<DirectConversationResponse>(payload),
     data: normalizeDirectConversation(payload?.data ?? payload),
   };
 };
 
 export const getDirectConversations = async (): Promise<
-  ApiResponse<ConversationResponse[]>
+  ApiResponse<DirectConversationResponse[]>
 > => {
   const response = await api.get("/api/direct-conversations");
   const payload = response.data;
@@ -71,7 +105,7 @@ export const getDirectConversations = async (): Promise<
     ...payload,
     success: payload?.success ?? true,
     data: Array.isArray(conversations)
-      ? conversations.map((conversation: any) =>
+      ? conversations.map((conversation: RawDirectConversation) =>
           normalizeDirectConversation(conversation),
         )
       : [],
@@ -81,22 +115,22 @@ export const getDirectConversations = async (): Promise<
 export const inviteMembers = async (
   channelId: string,
   memberIds: string[],
-): Promise<any> => {
+): Promise<ApiResponse<unknown>> => {
   const response = await api.post(
     `/api/channels/${channelId}/members/invite`,
     { memberIds },
   );
-  return response.data;
+  return normalizeApiResponse<unknown>(response.data);
 };
 
 export const updateChannelInfo = async (
   channelId: string,
   name: string,
-): Promise<any> => {
+): Promise<ApiResponse<ChannelResponse>> => {
   const response = await api.patch(`/api/channels/${channelId}/info`, {
     name,
   });
-  return response.data;
+  return normalizeApiResponse<ChannelResponse>(response.data);
 };
 
 
@@ -127,19 +161,27 @@ export const getBulkProfilesByIds = async (
   };
 };
 
-export const getPendingInvitations = async (): Promise<any> => {
+export const getPendingInvitations = async (): Promise<
+  ApiResponse<SpaceInvitation[]>
+> => {
   const response = await api.get("/api/invitations/pending");
-  return response.data;
+  return normalizeApiResponse<SpaceInvitation[]>(response.data);
 };
 
-export const acceptInvitation = async (invitationId: string): Promise<any> => {
+export const acceptInvitation = async (
+  invitationId: string,
+): Promise<ApiResponse<SpaceInvitation | ChannelResponse>> => {
   const response = await api.post(`/api/invitations/${invitationId}/accept`);
-  return response.data;
+  return normalizeApiResponse<SpaceInvitation | ChannelResponse>(
+    response.data,
+  );
 };
 
-export const declineInvitation = async (invitationId: string): Promise<any> => {
+export const declineInvitation = async (
+  invitationId: string,
+): Promise<ApiResponse<SpaceInvitation>> => {
   const response = await api.post(`/api/invitations/${invitationId}/decline`);
-  return response.data;
+  return normalizeApiResponse<SpaceInvitation>(response.data);
 };
 
 export const getUserConversations = async (): Promise<
@@ -152,10 +194,10 @@ export const getUserConversations = async (): Promise<
     ...payload,
     success: payload?.success ?? true,
     data: Array.isArray(conversations)
-      ? conversations.map((conversation: any) =>
-          conversation.type === "DIRECT" || conversation.participants
+      ? conversations.map((conversation: RawDirectConversation) =>
+          conversation.participants
             ? normalizeDirectConversation(conversation)
-            : conversation,
+            : (conversation as unknown as ChannelResponse),
         )
       : [],
   };
@@ -215,12 +257,12 @@ export const sendDirectMessage = async (
 export const markDirectConversationAsRead = async (
   conversationId: string,
   messageId: string,
-): Promise<ApiResponse<any>> => {
+): Promise<ApiResponse<{ messageId: string }>> => {
   const response = await api.post(
     `/api/direct-conversations/${conversationId}/messages/read`,
     { messageId },
   );
-  return normalizeApiResponse<any>(response.data);
+  return normalizeApiResponse<{ messageId: string }>(response.data);
 };
 
 export const getConversationMedia = async (
@@ -319,12 +361,14 @@ export const addDirectReaction = async (
 export const removeDirectReaction = async (
   messageId: string,
   emoji: string,
-): Promise<ApiResponse<any>> => {
+): Promise<ApiResponse<{ action: "remove"; emoji: string }>> => {
   const response = await api.delete(
     `/api/direct-conversations/messages/${messageId}/reactions`,
     { data: { emoji } },
   );
-  return normalizeApiResponse<any>(response.data);
+  return normalizeApiResponse<{ action: "remove"; emoji: string }>(
+    response.data,
+  );
 };
 
 export const pinDirectMessage = async (
@@ -377,63 +421,65 @@ export const searchDirectConversationMessages = async (
 
 export const updateConversationSettings = async (
   channelId: string,
-  settings: any,
-): Promise<any> => {
+  settings: Partial<ConversationSetting>,
+): Promise<ApiResponse<ConversationSetting>> => {
   const response = await api.patch(
     `/api/channels/${channelId}/settings`,
     settings,
   );
-  return response.data;
+  return normalizeApiResponse<ConversationSetting>(response.data);
 };
 
 export const updateMemberRole = async (
   channelId: string,
   memberId: string,
   role: "ADMIN" | "MEMBER",
-): Promise<any> => {
+): Promise<ApiResponse<ConversationMember>> => {
   const response = await api.put(
     `/api/channels/${channelId}/members/${memberId}/role`,
     { role },
   );
-  return response.data;
+  return normalizeApiResponse<ConversationMember>(response.data);
 };
 
 export const kickMember = async (
   channelId: string,
   memberId: string,
-): Promise<any> => {
+): Promise<ApiResponse<unknown>> => {
   const response = await api.delete(
     `/api/channels/${channelId}/members/${memberId}`,
   );
-  return response.data;
+  return normalizeApiResponse<unknown>(response.data);
 };
 
 export const leaveConversation = async (
   channelId: string,
-): Promise<any> => {
+): Promise<ApiResponse<unknown>> => {
   const response = await api.delete(`/api/channels/${channelId}/leave`);
-  return response.data;
+  return normalizeApiResponse<unknown>(response.data);
 };
 
 export const disbandConversation = async (
   channelId: string,
-): Promise<any> => {
+): Promise<ApiResponse<unknown>> => {
   const response = await api.delete(`/api/channels/${channelId}/disband`);
-  return response.data;
+  return normalizeApiResponse<unknown>(response.data);
 };
 
 export const getChannelAvatarPresignedUrl = async (
   channelId: string,
   fileName: string,
   contentType: string,
-): Promise<any> => {
+): Promise<ApiResponse<{ presignedUrl: string; fileUrl?: string }>> => {
   const response = await api.get(
     `/api/channels/${channelId}/avatar/presigned-url`,
     {
       params: { fileName, contentType },
     },
   );
-  return response.data;
+  return normalizeApiResponse<{ presignedUrl: string; fileUrl?: string }>(
+    response.data,
+  );
 };
 
 export const muteConversation = async (
@@ -461,12 +507,12 @@ export const muteDirectConversation = async (
 export const pinDirectConversation = async (
   conversationId: string,
   pinned: boolean,
-): Promise<ApiResponse<any>> => {
+): Promise<ApiResponse<{ pinned: boolean }>> => {
   const response = await api.patch(
     `/api/direct-conversations/${conversationId}/pin`,
     { pinned },
   );
-  return normalizeApiResponse<any>(response.data);
+  return normalizeApiResponse<{ pinned: boolean }>(response.data);
 };
 
 export const getThreadMessages = async (
@@ -503,12 +549,12 @@ export const unfollowDirectThread = async (
 
 export const createSpace = async (
   name: string,
-): Promise<ApiResponse<any>> => {
+): Promise<ApiResponse<SpaceResponse>> => {
   const response = await api.post("/api/spaces", { name });
-  return normalizeApiResponse<any>(response.data);
+  return normalizeApiResponse<SpaceResponse>(response.data);
 };
 
-export const getUserSpaces = async (): Promise<ApiResponse<any[]>> => {
+export const getUserSpaces = async (): Promise<ApiResponse<SpaceResponse[]>> => {
   const response = await api.get("/api/spaces");
   const payload = response.data;
   const spaces = payload?.data ?? payload;
@@ -522,15 +568,15 @@ export const getUserSpaces = async (): Promise<ApiResponse<any[]>> => {
 export const createChannel = async (
   spaceId: string,
   name: string,
-): Promise<ApiResponse<ConversationResponse>> => {
+): Promise<ApiResponse<ChannelResponse>> => {
   const response = await api.post(`/api/spaces/${spaceId}/channels`, { name });
-  return normalizeApiResponse<ConversationResponse>(response.data);
+  return normalizeApiResponse<ChannelResponse>(response.data);
 };
 
 export const getSpaceChannels = async (
   spaceId: string,
   search?: string,
-): Promise<ApiResponse<ConversationResponse[]>> => {
+): Promise<ApiResponse<ChannelResponse[]>> => {
   const response = await api.get(`/api/spaces/${spaceId}/channels`, {
     params: { search },
   });
@@ -546,7 +592,7 @@ export const getSpaceChannels = async (
 export const inviteSpaceMembers = async (
   spaceId: string,
   invitees: Pick<UserSearchResponse, "id" | "fullName" | "avatarUrl">[],
-): Promise<any> => {
+): Promise<ApiResponse<SpaceInvitation[]>> => {
   const response = await api.post(`/api/spaces/${spaceId}/invite`, {
     invitees: invitees.map((user) => ({
       userId: user.id,
@@ -554,7 +600,7 @@ export const inviteSpaceMembers = async (
       avatarUrl: user.avatarUrl,
     })),
   });
-  return response.data;
+  return normalizeApiResponse<SpaceInvitation[]>(response.data);
 };
 
 export const getConversationThreads = async (
@@ -578,21 +624,21 @@ export const getDirectConversationThreads = async (
 
 export const followThread = async (
   messageId: string,
-): Promise<any> => {
+): Promise<ApiResponse<{ following: boolean }>> => {
   const response = await api.post(`/api/channels/messages/${messageId}/thread/follow`);
-  return response.data;
+  return normalizeApiResponse<{ following: boolean }>(response.data);
 };
 
 export const unfollowThread = async (
   messageId: string,
-): Promise<any> => {
+): Promise<ApiResponse<{ following: boolean }>> => {
   const response = await api.post(`/api/channels/messages/${messageId}/thread/unfollow`);
-  return response.data;
+  return normalizeApiResponse<{ following: boolean }>(response.data);
 };
 
 export const joinChannel = async (
   channelId: string,
-): Promise<ApiResponse<ConversationResponse>> => {
+): Promise<ApiResponse<ChannelResponse>> => {
   const response = await api.post(`/api/channels/${channelId}/join`);
-  return normalizeApiResponse<ConversationResponse>(response.data);
+  return normalizeApiResponse<ChannelResponse>(response.data);
 };

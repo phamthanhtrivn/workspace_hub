@@ -15,6 +15,8 @@ import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setHighlightMessageId } from "@/store/chat/chat-slice";
 import SearchResultItem from "./search-result-item";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { useActiveChat } from "../../hooks/useChatQueries";
+import { ChatContextType } from "../../types/chat.types";
 
 interface SearchMessagesSectionProps {
   conversationId: string;
@@ -30,7 +32,7 @@ export default function SearchMessagesSection({
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { activeConversation } = useAppSelector((state) => state.chat);
+  const { activeChat: activeConversation, activeChatType } = useActiveChat();
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
@@ -80,7 +82,8 @@ export default function SearchMessagesSection({
     e?.preventDefault();
     setLoading(true);
     try {
-      const searchMessages = activeConversation?.type === "DIRECT"
+      const isDirectMessage = activeChatType === ChatContextType.DIRECT_MESSAGE;
+      const searchMessages = isDirectMessage
         ? searchDirectConversationMessages
         : searchConversationMessages;
       const res = await searchMessages(
@@ -234,7 +237,7 @@ export default function SearchMessagesSection({
                 message={msg}
                 currentUserId={currentUserId}
                 memberProfiles={memberProfiles || {}}
-                isDirect={activeConversation?.type === "DIRECT"}
+                isDirect={activeChatType === ChatContextType.DIRECT_MESSAGE}
                 onClick={handleResultClick}
               />
             ))}

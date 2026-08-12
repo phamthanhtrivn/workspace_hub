@@ -45,6 +45,11 @@ export enum CHAT_RESPONSE_STATUS {
   JOINED = 'joined',
 }
 
+export enum CHAT_CONTEXT_TYPE {
+  DIRECT_MESSAGE = 'DIRECT_MESSAGE',
+  CHANNEL = 'CHANNEL',
+}
+
 export enum CHAT_REACTION_ACTION {
   ADD = 'add',
   REMOVE = 'remove',

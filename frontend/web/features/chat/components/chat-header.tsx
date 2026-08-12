@@ -1,6 +1,7 @@
 import ChannelConversationHeader from "./header/channel-conversation-header";
 import DirectConversationHeader from "./header/direct-conversation-header";
-import { useAppSelector } from "@/store/store";
+import { useActiveChat } from "../hooks/useChatQueries";
+import { ChatContextType } from "../types/chat.types";
 
 interface ChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -9,9 +10,9 @@ interface ChatHeaderProps {
 }
 
 export default function ChatHeader(props: ChatHeaderProps) {
-  const { activeConversation } = useAppSelector((state) => state.chat);
+  const { activeChatType } = useActiveChat();
 
-  if (activeConversation?.type === "DIRECT") {
+  if (activeChatType === ChatContextType.DIRECT_MESSAGE) {
     return <DirectConversationHeader {...props} />;
   }
 

@@ -5,8 +5,10 @@ import {
   ValidateNested,
   ArrayMinSize,
   IsOptional,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { CHAT_CONTEXT_TYPE } from '../../chat/types/chat.enums';
 
 class FileDto {
   @IsString()
@@ -20,6 +22,14 @@ class FileDto {
 }
 
 export class PresignRequestDto {
+  @IsOptional()
+  @IsString()
+  chatId?: string;
+
+  @IsOptional()
+  @IsEnum(CHAT_CONTEXT_TYPE)
+  chatType?: CHAT_CONTEXT_TYPE;
+
   @IsOptional()
   @IsString()
   channelId?: string;

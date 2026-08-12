@@ -9,6 +9,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
 import { ChatEvent } from '../chat/chat.events';
+import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 import { getMediaUrl } from 'src/common/utils/file.util';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
 import { CHANNEL_ERROR_MESSAGES } from './types/channel.enums';
@@ -70,7 +71,6 @@ export class ChannelService {
 
         return {
           ...channel,
-          type: 'CHANNEL',
           unreadCount,
         };
       }),
@@ -103,7 +103,6 @@ export class ChannelService {
 
     return {
       ...channel,
-      type: 'CHANNEL',
       members: channel.members.map((member) => ({
         ...member,
         role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
@@ -121,6 +120,8 @@ export class ChannelService {
       this.chatGateway.server
         .to(channelId)
         .emit(ChatEvent.MEMBER_ROLE_UPDATED, {
+          chatId: channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
           channelId,
           member,
         });
@@ -162,6 +163,8 @@ export class ChannelService {
     this.chatGateway.server
       .to(channelId)
       .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
+        chatId: channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         channelId,
         setting: updatedSettings,
       });
@@ -252,6 +255,8 @@ export class ChannelService {
       this.chatGateway.server
         .to(userId)
         .emit(ChatEvent.CONVERSATION_MUTE_UPDATED, {
+          chatId: channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
           channelId,
           muted,
         });
@@ -317,6 +322,8 @@ export class ChannelService {
     ];
 
     this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEMBER_KICKED, {
+      chatId: channelId,
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
       spaceId: channel.spaceId,
       userId: memberId,
@@ -363,6 +370,8 @@ export class ChannelService {
 
     const payload = {
       id: channelId,
+      chatId: channelId,
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
       name: updatedChannel.name,
     };
@@ -418,6 +427,8 @@ export class ChannelService {
     ];
 
     this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEMBER_LEFT, {
+      chatId: channelId,
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
       spaceId: channel.spaceId,
       userId,
@@ -473,6 +484,8 @@ export class ChannelService {
     this.chatGateway.server
       .to(targetRooms)
       .emit(ChatEvent.CONVERSATION_DISBANDED, {
+        chatId: channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         channelId,
       });
 
@@ -580,6 +593,8 @@ export class ChannelService {
     const targetRooms = [channelId, ...members.map((m) => m.userId)];
 
     this.chatGateway.emitMemberJoin(targetRooms, {
+      chatId: channelId,
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
       member: {
         channelId,

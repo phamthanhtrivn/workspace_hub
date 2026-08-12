@@ -1,6 +1,16 @@
 export const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
 export const NO_AVATAR_TYPES = ["POLL", "NOTE", "TASK", "SYSTEM", "EVENT"];
 
+export enum ChatContextType {
+  DIRECT_MESSAGE = "DIRECT_MESSAGE",
+  CHANNEL = "CHANNEL",
+}
+
+export enum ConversationRoles {
+  ADMIN = "ADMIN",
+  MEMBER = "MEMBER",
+}
+
 export interface UserSearchResponse {
   id: string;
   email: string;
@@ -18,8 +28,8 @@ export interface UserProfileResponse {
   bio: string | null;
 }
 
-export type ConversationType = "DIRECT" | "CHANNEL";
-export type ConversationRole = "ADMIN" | "MEMBER";
+export type ConversationRole = ConversationRoles.ADMIN | ConversationRoles.MEMBER;
+export type ChatUiType = ChatContextType.DIRECT_MESSAGE | ChatContextType.CHANNEL;
 
 export interface ConversationSetting {
   id: string;
@@ -40,23 +50,44 @@ export interface ConversationMember {
   role: ConversationRole;
 }
 
-export interface ConversationResponse {
+interface ChatListEntityBase {
   id: string;
-  type: ConversationType;
-  spaceId?: string | null;
   name: string | null;
   avatarUrl: string | null;
   createdBy: string;
-  isDefault?: boolean;
   createdAt: string;
   updatedAt: string;
   projectId: string | null;
   setting?: ConversationSetting | null;
   members: ConversationMember[];
-  messages?: any[];
+  messages?: ChatMessageResponse[];
   unreadCount?: number;
   hasMention?: boolean;
   hasUnreadThread?: boolean;
+}
+
+export interface DirectConversationResponse extends ChatListEntityBase {
+  participants?: ConversationMember[];
+}
+
+export interface ChannelResponse extends ChatListEntityBase {
+  spaceId: string;
+  isDefault?: boolean;
+}
+
+export type ChatEntity = DirectConversationResponse | ChannelResponse;
+export type DirectMessage = DirectConversationResponse;
+export type SpaceChannel = ChannelResponse;
+export type ConversationResponse = ChatEntity;
+
+export interface SpaceResponse {
+  id: string;
+  name: string;
+  avatarUrl?: string | null;
+  ownerId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  defaultChannelId?: string | null;
 }
 
 export interface ChatMediaResponse {
@@ -76,17 +107,26 @@ export interface ChatMediaResponse {
   };
 }
 
+export type ThreadFollowerResponse =
+  | string
+  | {
+      userId: string;
+    };
+
 export interface ChatMessageResponse {
   id: string;
   senderId: string;
-  channelId?: string | null;
-  conversationId?: string | null;
+  channelId?: string;
+  conversationId?: string;
+  type: string;
   content?: string | null;
   createdAt: string;
   updatedAt?: string;
   threadParentId?: string | null;
   threadReplyCount?: number;
   threadLastReplyAt?: string | null;
+  threadFollowers?: ThreadFollowerResponse[];
+  mentions?: string[];
   medias?: ChatMediaResponse[];
   [key: string]: unknown;
 }
@@ -141,7 +181,7 @@ export interface SpaceInvitation {
   status: InvitationStatus;
   createdAt: string;
   respondedAt?: string;
-  space?: any;
+  space?: SpaceResponse;
 }
 
 export type ChatProfilesMap = Record<string, UserProfileResponse>;

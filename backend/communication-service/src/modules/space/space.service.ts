@@ -51,7 +51,6 @@ export class SpaceService {
 
     return {
       ...channel,
-      type: 'CHANNEL',
       unreadCount,
       members: channel.members.map((member) => ({
         ...member,
@@ -193,7 +192,6 @@ export class SpaceService {
 
       return {
         ...createdChannel,
-        type: 'CHANNEL',
         members: createdChannel.members.map((member) => ({
           ...member,
           role:

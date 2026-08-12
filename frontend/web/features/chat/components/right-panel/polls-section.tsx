@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { BarChart2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
-import { useAppSelector } from "@/store/store";
 import ViewPollModal from "../modals/view-poll-modal";
 import { formatDateTime } from "@/lib/date";
 import { usePolls } from "../../hooks/usePolls";
 import SeeAllButton from "./see-all-button";
+import { useActiveChat } from "../../hooks/useChatQueries";
 
 interface PollsSectionProps {
   isExpanded: boolean;
@@ -17,9 +17,7 @@ export default function PollsSection({
   onToggle,
   onSeeAll,
 }: PollsSectionProps) {
-  const activeConversation = useAppSelector(
-    (state) => state.chat.activeConversation,
-  );
+  const { activeChat: activeConversation } = useActiveChat();
   
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
 

@@ -22,11 +22,11 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { useAppSelector } from "@/store/store";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import EmojiPickerPopover from "./emoji-picker-popover";
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
+import { useActiveChat } from "../../hooks/useChatQueries";
 
 export interface DirectMessageInputProps {
   onSendMessage?: (content: string, media?: any[]) => void;
@@ -71,9 +71,10 @@ const DirectMessageInput = React.memo(
       },
       ref,
     ) {
-      const activeConversationId = useAppSelector(
-        (state) => state.chat.activeConversation?.id,
-      );
+      const {
+        activeChatId: activeConversationId,
+        activeChatType,
+      } = useActiveChat();
       const [message, setMessage] = useState("");
       const [showEmojiPicker, setShowEmojiPicker] = useState(false);
       const [showMicOptions, setShowMicOptions] = useState(false);
@@ -246,14 +247,19 @@ const DirectMessageInput = React.memo(
               throw new Error("No active conversation");
             }
 
-            const presignedUrls = await getPresignedUrls(
-              activeConversationId,
-              newUploads.map((upload) => ({
+            if (!activeChatType) {
+              throw new Error("No active chat type");
+            }
+
+            const presignedUrls = await getPresignedUrls({
+              chatId: activeConversationId,
+              chatType: activeChatType,
+              files: newUploads.map((upload) => ({
                 fileName: upload.name,
                 mimeType: upload.mimeType,
                 sizeBytes: upload.sizeBytes,
               })),
-            );
+            });
 
             newUploads.forEach(async (upload, index) => {
               const presignedInfo = presignedUrls[index];
@@ -294,7 +300,7 @@ const DirectMessageInput = React.memo(
             );
           }
         },
-        [activeConversationId],
+        [activeChatType, activeConversationId],
       );
 
       const handleFileChange = useCallback(

@@ -13,6 +13,7 @@ import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
 import { Filter, X, MessageSquare, User, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { formatDateTime } from "@/lib/date";
+import { useActiveChat } from "../../hooks/useChatQueries";
 
 interface ThreadsListViewProps {
   conversationId: string;
@@ -26,9 +27,7 @@ export default function ThreadsListView({
   onClose,
 }: ThreadsListViewProps) {
   const dispatch = useAppDispatch();
-  const activeConversation = useAppSelector(
-    (state) => state.chat.activeConversation,
-  );
+  const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const memberProfiles = useChatMemberProfiles() || {};
   const { ref: loadMoreRef, inView } = useInView();
@@ -49,9 +48,6 @@ export default function ThreadsListView({
       })
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [activeConversation?.members, currentUserId, isDirect, memberProfiles]);
-
-  console.log(activeConversation);
-  
 
   const {
     data,
