@@ -227,13 +227,14 @@ export default function ChatArea({
     fetchPreviousPage,
   ]);
 
-  // Handle socket messages
   useEffect(() => {
     setNewSocketMessages([]); // Reset on conversation change
     setTypingUsers([]);
     Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
     typingTimeoutsRef.current = {};
+  }, [activeConversation?.id]);
 
+  useEffect(() => {
     if (activeConversation?.members) {
       const initialWatermarks: Record<string, string> = {};
       activeConversation.members.forEach((m: any) => {
@@ -243,7 +244,9 @@ export default function ChatArea({
       });
       setReadReceipts(initialWatermarks);
     }
-  }, [activeConversation]);
+  }, [activeConversation?.members]);
+
+  // Handle socket messages
 
   useEffect(() => {
     const socket =
@@ -584,7 +587,10 @@ export default function ChatArea({
               return;
             }
           }
-          if (!socket) return;
+          if (!socket) {
+            toast.error("Chat connection is not ready. Please try again.");
+            return;
+          }
           socket.emit(ChatEvent.EDIT_MESSAGE, {
             channelId: activeConversation.id,
             messageId: editingMessage.id,
@@ -593,7 +599,7 @@ export default function ChatArea({
           setEditingMessage(null);
         } else {
           if (isDirectConversation) {
-            await sendDirectChatMessage({
+            const sentMessage = await sendDirectChatMessage({
               conversationId: activeConversation.id,
               content,
               medias,
@@ -602,9 +608,15 @@ export default function ChatArea({
                 setTimeout(() => scrollToBottom(), 100);
               },
             });
+            if (sentMessage) {
+              appendRealtimeMessage(sentMessage);
+            }
             return;
           }
-          if (!socket) return;
+          if (!socket) {
+            toast.error("Chat connection is not ready. Please try again.");
+            return;
+          }
           socket.emit(
             ChatEvent.SEND_MESSAGE,
             {

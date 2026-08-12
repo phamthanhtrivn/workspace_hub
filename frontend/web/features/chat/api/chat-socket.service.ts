@@ -19,7 +19,6 @@ class SocketService {
 
       this.socket = io(baseUrl, {
         path: "/communication.io",
-        transports: ["websocket"],
         auth: {
           token,
         },
@@ -27,7 +26,6 @@ class SocketService {
 
       this.socket.on("connect", () => {});
 
-      this.socket.on("disconnect", () => {});
     }
 
     if (!this.socket.connected) {

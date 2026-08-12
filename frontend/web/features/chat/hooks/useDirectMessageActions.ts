@@ -10,6 +10,8 @@ import {
   unpinDirectMessage,
 } from "../api/chat.api";
 import { ChatQueryKey } from "../types/chat.constant";
+import { ChatMessageResponse } from "../types/chat.types";
+import { SendSocketMessageMedia } from "../types/chat-socket.types";
 import { useDirectMessageSocket } from "./useDirectMessageSocket";
 
 type MessageDirection = "older" | "newer" | "around";
@@ -17,10 +19,39 @@ type MessageDirection = "older" | "newer" | "around";
 interface SendDirectMessageParams {
   conversationId: string;
   content: string;
-  medias?: any[];
+  medias?: SendSocketMessageMedia[];
   threadParentId?: string;
   mentions?: string[];
   onSent?: () => void;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof error.response === "object" &&
+    error.response !== null &&
+    "data" in error.response &&
+    typeof error.response.data === "object" &&
+    error.response.data !== null &&
+    "message" in error.response.data &&
+    typeof error.response.data.message === "string"
+  ) {
+    return error.response.data.message;
+  }
+
+  return fallback;
+}
+
+function hasErrorMessage(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "message" in error &&
+    typeof error.message === "string" &&
+    error.message.length > 0
+  );
 }
 
 export function useDirectMessageActions() {
@@ -68,9 +99,9 @@ export function useDirectMessageActions() {
       threadParentId,
       mentions,
       onSent,
-    }: SendDirectMessageParams) => {
+    }: SendDirectMessageParams): Promise<ChatMessageResponse | null> => {
       try {
-        await sendDirectSocketMessage({
+        const sentMessage = await sendDirectSocketMessage({
           conversationId,
           content,
           medias,
@@ -82,10 +113,12 @@ export function useDirectMessageActions() {
           queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
         });
         onSent?.();
-      } catch (error: any) {
-        if (!error?.message) {
+        return sentMessage;
+      } catch (error: unknown) {
+        if (!hasErrorMessage(error)) {
           toast.error("Failed to send message");
         }
+        return null;
       }
     },
     [queryClient, sendDirectSocketMessage],
@@ -99,8 +132,8 @@ export function useDirectMessageActions() {
           queryKey: ["messages", conversationId],
         });
         return true;
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || "Failed to edit message");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "Failed to edit message"));
         return false;
       }
     },
@@ -114,8 +147,8 @@ export function useDirectMessageActions() {
         queryClient.invalidateQueries({
           queryKey: ["messages", conversationId],
         });
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || "Failed to recall message");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "Failed to recall message"));
       }
     },
     [queryClient],
@@ -139,8 +172,8 @@ export function useDirectMessageActions() {
         queryClient.invalidateQueries({
           queryKey: ["pinnedMessagesDetail", "direct", conversationId],
         });
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || "Failed to update pin");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "Failed to update pin"));
       }
     },
     [queryClient],
@@ -156,8 +189,8 @@ export function useDirectMessageActions() {
         queryClient.invalidateQueries({
           queryKey: ["pinnedMessagesDetail", "direct", conversationId],
         });
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || "Failed to unpin message");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "Failed to unpin message"));
       }
     },
     [queryClient],
@@ -170,8 +203,8 @@ export function useDirectMessageActions() {
         queryClient.invalidateQueries({
           queryKey: ["messages", conversationId],
         });
-      } catch (error: any) {
-        toast.error(error.response?.data?.message || "Failed to react");
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "Failed to react"));
       }
     },
     [queryClient],

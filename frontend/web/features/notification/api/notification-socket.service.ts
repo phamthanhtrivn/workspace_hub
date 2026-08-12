@@ -10,7 +10,6 @@ class NotificationSocketService {
 
       this.socket = io(baseUrl, {
         path: "/notification.io",
-        transports: ["websocket"],
         auth: {
           token,
         },
@@ -18,7 +17,6 @@ class NotificationSocketService {
 
       this.socket.on("connect", () => {});
 
-      this.socket.on("disconnect", () => {});
     }
   }
 
