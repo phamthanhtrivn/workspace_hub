@@ -5,6 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   followDirectThread,
   followThread,
+  getFollowedChannelThreads,
+  getFollowedDirectThreads,
   markChannelThreadAsRead,
   markDirectThreadAsRead,
   unfollowDirectThread,
@@ -23,13 +25,16 @@ import {
   ChatContextType,
   ApiResponse,
   ChatMessageResponse,
+  FollowedThreadResponse,
   ThreadMessagesResponse,
 } from "../../types/chat.types";
 import {
   ChatSocketAckResponse,
   SendSocketMessageMedia,
 } from "../../types/chat-socket.types";
-import ThreadChatInput from "../input/thread-chat-input";
+import ThreadChatInput, {
+  ThreadChatInputRef,
+} from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
 import { toast } from "react-toastify";
 
@@ -37,6 +42,39 @@ interface ThreadDetailViewProps {
   rootMessage: ChatMessageResponse;
   isDirect?: boolean;
   onBack: () => void;
+}
+
+const EMPTY_FOLLOWED_THREADS: FollowedThreadResponse[] = [];
+
+async function fetchFollowedThreadsForState() {
+  const [channelThreadsResponse, directThreadsResponse] = await Promise.all([
+    getFollowedChannelThreads(),
+    getFollowedDirectThreads(),
+  ]);
+
+  const channelThreads = channelThreadsResponse.success
+    ? channelThreadsResponse.data
+    : EMPTY_FOLLOWED_THREADS;
+  const directThreads = directThreadsResponse.success
+    ? directThreadsResponse.data
+    : EMPTY_FOLLOWED_THREADS;
+
+  return [...channelThreads, ...directThreads];
+}
+
+function hasCurrentUserFollower(
+  message: ChatMessageResponse,
+  currentUserId?: string | null,
+) {
+  if (!currentUserId) return false;
+
+  return (
+    message.threadFollowers?.some((threadFollower) =>
+      typeof threadFollower === "string"
+        ? threadFollower === currentUserId
+        : threadFollower.userId === currentUserId,
+    ) || false
+  );
 }
 
 export default function ThreadDetailView({
@@ -48,15 +86,33 @@ export default function ThreadDetailView({
   const { sendMessage: sendDirectThreadReply } = useDirectMessageActions();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<any>(null);
+  const chatInputRef = useRef<ThreadChatInputRef>(null);
+  const [followOverride, setFollowOverride] = useState<{
+    threadId: string;
+    isFollowing: boolean;
+  } | null>(null);
+  const { data: followedThreads = EMPTY_FOLLOWED_THREADS } = useQuery({
+    queryKey: chatKeys.followedThreads(currentUserId),
+    queryFn: fetchFollowedThreadsForState,
+    enabled: !!currentUserId,
+    staleTime: 1000 * 30,
+  });
+  const computedIsFollowing = useMemo(() => {
+    const followedThread = followedThreads.find(
+      (thread) => thread.rootMessage.id === rootMessage.id,
+    );
 
-  const initialFollow = useMemo(() => {
-    return rootMessage.threadFollowers?.some(
-      (tf: any) => (typeof tf === "string" ? tf === currentUserId : tf.userId === currentUserId)
-    ) || false;
-  }, [rootMessage.threadFollowers, currentUserId]);
+    if (followedThread) {
+      return followedThread.isFollowing;
+    }
 
-  const [isFollowing, setIsFollowing] = useState(initialFollow);
+    return hasCurrentUserFollower(rootMessage, currentUserId);
+  }, [currentUserId, followedThreads, rootMessage]);
+
+  const isFollowing =
+    followOverride?.threadId === rootMessage.id
+      ? followOverride.isFollowing
+      : computedIsFollowing;
   const rootChatId = useMemo(() => {
     const chatId = rootMessage.chatId;
     return (
@@ -66,11 +122,13 @@ export default function ThreadDetailView({
     );
   }, [rootMessage]);
 
-  useEffect(() => {
-    setIsFollowing(initialFollow);
-  }, [initialFollow]);
-
   const handleToggleFollow = async () => {
+    const nextFollowingState = !isFollowing;
+    setFollowOverride({
+      threadId: rootMessage.id,
+      isFollowing: nextFollowingState,
+    });
+
     try {
       const res = isDirect
         ? isFollowing
@@ -80,7 +138,28 @@ export default function ThreadDetailView({
           ? await unfollowThread(rootMessage.id)
           : await followThread(rootMessage.id);
       const following = res.data.following;
-      setIsFollowing(following);
+      setFollowOverride({
+        threadId: rootMessage.id,
+        isFollowing: following,
+      });
+      queryClient.setQueryData<FollowedThreadResponse[]>(
+        chatKeys.followedThreads(currentUserId),
+        (oldThreads) => {
+          if (!Array.isArray(oldThreads)) return oldThreads;
+
+          if (!following) {
+            return oldThreads.filter(
+              (thread) => thread.rootMessage.id !== rootMessage.id,
+            );
+          }
+
+          return oldThreads.map((thread) =>
+            thread.rootMessage.id === rootMessage.id
+              ? { ...thread, isFollowing: true }
+              : thread,
+          );
+        },
+      );
       queryClient.invalidateQueries({
         queryKey: chatKeys.followedThreads(currentUserId),
       });
@@ -88,6 +167,10 @@ export default function ThreadDetailView({
         following ? "Following: you will receive notifications for this thread" : "Unfollowed this thread"
       );
     } catch {
+      setFollowOverride({
+        threadId: rootMessage.id,
+        isFollowing: !nextFollowingState,
+      });
       toast.error("Failed to change follow status");
     }
   };
