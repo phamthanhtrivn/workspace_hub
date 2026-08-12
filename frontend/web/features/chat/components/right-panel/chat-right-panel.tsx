@@ -24,7 +24,6 @@ import PinnedMessagesDetailView from "./pinned-messages-detail-view";
 import SearchMessagesSection from "./search-messages-section";
 import ChannelSettingsModal from "../modals/channel-settings-modal";
 import ManageMembersModal from "../modals/manage-members-modal";
-import ThreadDetailView from "./thread-detail-view";
 import ThreadsListView from "./threads-list-view";
 import {
   X,
@@ -50,7 +49,6 @@ import { ChatQueryKey } from "../../types/chat.constant";
 import { ChannelResponse, ChatContextType } from "../../types/chat.types";
 import {
   useActiveChat,
-  useActiveThreadRootMessage,
 } from "../../hooks/useChatQueries";
 
 interface ChatRightPanelProps {
@@ -59,7 +57,7 @@ interface ChatRightPanelProps {
 }
 
 function getMessageConversationId(message: any) {
-  return message?.channelId ?? message?.conversationId ?? null;
+  return message?.chatId ?? message?.channelId ?? message?.conversationId ?? null;
 }
 
 export default function ChatRightPanel({
@@ -74,7 +72,6 @@ export default function ChatRightPanel({
     | "files"
     | "polls"
     | "search"
-    | "thread"
     | "threads"
     | "pinned"
     | null
@@ -85,37 +82,17 @@ export default function ChatRightPanel({
   const [showMembersModal, setShowMembersModal] = useState(false);
   const lastFetchedConversationId = useRef<string | null>(null);
 
-  useEffect(() => {
-    if (initialDetailView !== undefined) {
-      setDetailView(initialDetailView);
-    }
-  }, [initialDetailView]);
-
   const { activeChat: activeConversation, activeChatType } = useActiveChat();
-  const activeThreadRootMessage = useActiveThreadRootMessage();
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!activeThreadRootMessage) {
-      if (detailView === "thread") {
-        setDetailView(null);
-      }
-      return;
+    if (initialDetailView !== undefined) {
+      setDetailView(initialDetailView);
     }
-
-    if (getMessageConversationId(activeThreadRootMessage) !== activeConversation?.id) {
-      dispatch(setActiveThreadRootMessage(null));
-      if (detailView === "thread") {
-        setDetailView(null);
-      }
-      return;
-    }
-
-    setDetailView("thread");
-  }, [activeConversation?.id, activeThreadRootMessage, detailView, dispatch]);
+  }, [initialDetailView]);
 
   const isDirect = activeChatType === ChatContextType.DIRECT_MESSAGE;
   const activeChannel: ChannelResponse | null =
@@ -288,7 +265,6 @@ export default function ChatRightPanel({
   const handleOpenThread = (message: any) => {
     if (getMessageConversationId(message) !== activeConversation?.id) return;
     dispatch(setActiveThreadRootMessage(message));
-    setDetailView("thread");
   };
 
   useEffect(() => {
@@ -361,7 +337,9 @@ export default function ChatRightPanel({
     }
   }, [activeConversation, dispatch]);
 
-  if (detailView === "files") {
+  const effectiveDetailView = detailView;
+
+  if (effectiveDetailView === "files") {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <MediaDetailView
@@ -373,7 +351,7 @@ export default function ChatRightPanel({
     );
   }
 
-  if (detailView === "polls" && !isDirect) {
+  if (effectiveDetailView === "polls" && !isDirect) {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PollDetailView
@@ -384,7 +362,7 @@ export default function ChatRightPanel({
     );
   }
 
-  if (detailView === "pinned") {
+  if (effectiveDetailView === "pinned") {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <PinnedMessagesDetailView
@@ -397,7 +375,7 @@ export default function ChatRightPanel({
     );
   }
 
-  if (detailView === "search") {
+  if (effectiveDetailView === "search") {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <SearchMessagesSection
@@ -408,32 +386,13 @@ export default function ChatRightPanel({
     );
   }
 
-  if (detailView === "threads") {
+  if (effectiveDetailView === "threads") {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
         <ThreadsListView
           conversationId={activeConversation!.id}
           isDirect={isDirect}
           onClose={() => setDetailView(null)}
-        />
-      </div>
-    );
-  }
-
-  if (
-    detailView === "thread" &&
-    activeThreadRootMessage &&
-    getMessageConversationId(activeThreadRootMessage) === activeConversation?.id
-  ) {
-    return (
-      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
-        <ThreadDetailView
-          rootMessage={activeThreadRootMessage}
-          isDirect={isDirect}
-          onBack={() => {
-            dispatch(setActiveThreadRootMessage(null));
-            setDetailView(null);
-          }}
         />
       </div>
     );

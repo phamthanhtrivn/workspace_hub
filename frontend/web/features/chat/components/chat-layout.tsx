@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import ChatSidebar from "./sidebar/chat-sidebar";
 import ChatArea from "./chat-area";
 import ChatRightPanel from "./right-panel/chat-right-panel";
-import { useAppSelector, useAppDispatch } from "@/store/store";
+import ThreadSidePanel from "./right-panel/thread-side-panel";
+import { useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import UserProfileModal from "./modals/user-profile-modal";
-import { setActiveThreadRootMessage } from "@/store/chat/chat-slice";
 import { useChatSocket } from "../hooks/useChatSocket";
 
 export default function ChatLayout() {
@@ -19,19 +19,12 @@ export default function ChatLayout() {
   const activeThreadRootMessageId = useAppSelector(
     (state) => state.chat.activeThreadRootMessageId,
   );
-  const dispatch = useAppDispatch();
 
   useEffect(() => {
     if (activeChatId) {
       setMobileView("chat");
     }
   }, [activeChatId]);
-
-  useEffect(() => {
-    if (activeThreadRootMessageId) {
-      setShowRightPanel(true);
-    }
-  }, [activeThreadRootMessageId]);
 
   const toggleRightPanel = () => {
     setShowRightPanel((prev) => !prev);
@@ -83,13 +76,19 @@ export default function ChatLayout() {
         )}
       </div>
 
-      {/* Right Panel - Togglable (Only show if active chat) */}
-      {showRightPanel && activeChatId && (
+      {/* Thread Panel - separate from conversation info */}
+      {activeThreadRootMessageId && activeChatId && (
+        <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
+          <ThreadSidePanel />
+        </div>
+      )}
+
+      {/* Right Panel - Togglable (Only show if active chat and no thread) */}
+      {showRightPanel && activeChatId && !activeThreadRootMessageId && (
         <div className="absolute inset-y-0 right-0 z-30 w-full md:w-[340px] md:static flex-shrink-0 shadow-[-4px_0_15px_-5px_rgba(0,0,0,0.05)]">
           <ChatRightPanel
             onClose={() => {
               setShowRightPanel(false);
-              dispatch(setActiveThreadRootMessage(null));
             }}
             initialDetailView={rightPanelTab}
           />

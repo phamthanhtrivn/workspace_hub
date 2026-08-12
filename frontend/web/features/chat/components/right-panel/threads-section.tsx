@@ -7,6 +7,7 @@ import {
   getDirectConversationThreads,
 } from "../../api/chat.api";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { ChatScope, chatKeys } from "../../types/chat.constant";
 import SeeAllButton from "./see-all-button";
 
 interface ThreadsSectionProps {
@@ -29,7 +30,10 @@ export default function ThreadsSection({
   const memberProfiles = useChatMemberProfiles() || {};
 
   const { data, isLoading } = useQuery({
-    queryKey: ["conversation-threads", isDirect ? "direct" : "channel", conversationId],
+    queryKey: chatKeys.threads(
+      isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
+      conversationId,
+    ),
     queryFn: async () => {
       const res = isDirect
         ? await getDirectConversationThreads(conversationId, undefined, 5)

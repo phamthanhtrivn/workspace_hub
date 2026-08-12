@@ -32,7 +32,7 @@ import {
   ChatSocketAckResponse,
   SendSocketMessageMedia,
 } from "../types/chat-socket.types";
-import { ChatQueryKey, chatKeys } from "../types/chat.constant";
+import { ChatQueryKey, ChatScope, chatKeys } from "../types/chat.constant";
 import { toast } from "sonner";
 
 import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
@@ -99,6 +99,9 @@ export default function ChatArea({
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ChatInputRef>(null);
+  const activeThreadRootMessageId = useAppSelector(
+    (state) => state.chat.activeThreadRootMessageId,
+  );
 
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
@@ -378,20 +381,18 @@ export default function ChatArea({
       const handleMessagePinned = (msg: any) => {
         if (getEventChannelId(msg) === activeConversation.id) {
           const conversationScope =
-            isDirectConversation ? "direct" : "channel";
+            isDirectConversation ? ChatScope.DIRECT : ChatScope.CHANNEL;
           queryClient.invalidateQueries({
-            queryKey: [
-              "pinnedMessagesPreview",
+            queryKey: chatKeys.pinnedMessagesPreview(
               conversationScope,
               activeConversation.id,
-            ],
+            ),
           });
           queryClient.invalidateQueries({
-            queryKey: [
-              "pinnedMessagesDetail",
+            queryKey: chatKeys.pinnedMessagesDetail(
               conversationScope,
               activeConversation.id,
-            ],
+            ),
           });
           updateMessageInState(msg.id, () => msg);
         }
@@ -400,20 +401,18 @@ export default function ChatArea({
       const handleMessageUnpinned = (msg: any) => {
         if (getEventChannelId(msg) === activeConversation.id) {
           const conversationScope =
-            isDirectConversation ? "direct" : "channel";
+            isDirectConversation ? ChatScope.DIRECT : ChatScope.CHANNEL;
           queryClient.invalidateQueries({
-            queryKey: [
-              "pinnedMessagesPreview",
+            queryKey: chatKeys.pinnedMessagesPreview(
               conversationScope,
               activeConversation.id,
-            ],
+            ),
           });
           queryClient.invalidateQueries({
-            queryKey: [
-              "pinnedMessagesDetail",
+            queryKey: chatKeys.pinnedMessagesDetail(
               conversationScope,
               activeConversation.id,
-            ],
+            ),
           });
           updateMessageInState(msg.id, () => msg);
         }
@@ -1174,6 +1173,7 @@ export default function ChatArea({
           onSendMessage={handleSendMessage}
           onTypingChange={handleTypingChange}
           placeholder="Message direct conversation..."
+          autoFocusOnConversationChange={!activeThreadRootMessageId}
         />
       ) : (
         <ConversationChatInput
@@ -1182,6 +1182,7 @@ export default function ChatArea({
           onCreatePoll={() => setIsPollModalOpen(true)}
           onCreateNote={() => setIsNoteModalOpen(true)}
           onTypingChange={handleTypingChange}
+          autoFocusOnConversationChange={!activeThreadRootMessageId}
         />
       )}
 

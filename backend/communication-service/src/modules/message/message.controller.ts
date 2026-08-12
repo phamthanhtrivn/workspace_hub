@@ -20,6 +20,18 @@ import {
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
 
+  @Get('threads/followed')
+  async getFollowedThreads(@Headers('x-user-id') userId: string) {
+    if (!userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+    const threads = await this.messageService.getFollowedThreads(userId);
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.THREADS_LISTED,
+      data: threads,
+    };
+  }
+
   @Get(':id/messages')
   async getConversationMessages(
     @Param('id') channelId: string,
@@ -150,7 +162,7 @@ export class MessageController {
     if (!messageId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
-    const result = await this.messageService.toggleFollowThread(
+    const result = await this.messageService.followThread(
       userId,
       messageId,
     );
@@ -173,7 +185,7 @@ export class MessageController {
     if (!messageId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
-    const result = await this.messageService.toggleFollowThread(
+    const result = await this.messageService.unfollowThread(
       userId,
       messageId,
     );
@@ -181,6 +193,24 @@ export class MessageController {
       message: result.following
         ? THREAD_FOLLOW_LABEL.FOLLOWING
         : THREAD_FOLLOW_LABEL.UN_FOLLOWING,
+      data: result,
+    };
+  }
+
+  @Post('messages/:id/thread/read')
+  async markThreadAsRead(
+    @Headers('x-user-id') userId: string,
+    @Param('id') messageId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+    if (!messageId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
+    }
+    const result = await this.messageService.markThreadAsRead(userId, messageId);
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
       data: result,
     };
   }

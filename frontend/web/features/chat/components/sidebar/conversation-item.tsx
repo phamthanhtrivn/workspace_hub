@@ -80,11 +80,6 @@ const ConversationItem = React.memo(function ConversationItem({
           >
             {conv.unreadCount > MAX_UNREAD_COUNT ? "99+" : conv.unreadCount}
           </div>
-        ) : conv.hasUnreadThread ? (
-          <div
-            className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-sm shadow-blue-500/50"
-            title="New replies in thread"
-          />
         ) : null}
       </div>
     </div>

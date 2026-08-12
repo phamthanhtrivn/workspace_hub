@@ -90,6 +90,11 @@ export function useChatSocket() {
           const isFollowingThread = message.threadFollowers?.some(
             (follower) => isThreadFollowerCurrentUser(follower, currentUserId),
           );
+          if (isThreadReply && isFollowingThread) {
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.followedThreads(currentUserId),
+            });
+          }
           const hasMention =
             message.mentions?.includes(currentUserId) ||
             message.mentions?.includes("all");
@@ -131,6 +136,11 @@ export function useChatSocket() {
             const isFollowing = message.threadFollowers?.some((threadFollower) =>
               isThreadFollowerCurrentUser(threadFollower, currentUserId),
             );
+            if (isFollowing) {
+              queryClient.invalidateQueries({
+                queryKey: chatKeys.followedThreads(currentUserId),
+              });
+            }
             return {
               ...directMessage,
               hasUnreadThread:

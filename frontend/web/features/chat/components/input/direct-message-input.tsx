@@ -33,6 +33,7 @@ export interface DirectMessageInputProps {
   onTypingChange?: (isTyping: boolean) => void;
   placeholder?: string;
   compact?: boolean;
+  autoFocusOnConversationChange?: boolean;
 }
 
 interface UploadingMedia {
@@ -68,6 +69,7 @@ const DirectMessageInput = React.memo(
         onTypingChange,
         placeholder = "Message...",
         compact = false,
+        autoFocusOnConversationChange = true,
       },
       ref,
     ) {
@@ -153,7 +155,9 @@ const DirectMessageInput = React.memo(
       }, [compact, interimMessage, message]);
 
       useEffect(() => {
-        textareaRef.current?.focus();
+        if (autoFocusOnConversationChange) {
+          textareaRef.current?.focus();
+        }
 
         return () => {
           if (typingTimeoutRef.current) {
@@ -163,7 +167,7 @@ const DirectMessageInput = React.memo(
             onTypingChange?.(false);
           }
         };
-      }, [activeConversationId, onTypingChange]);
+      }, [activeConversationId, autoFocusOnConversationChange, onTypingChange]);
 
       const handleTyping = useCallback(
         (text: string) => {

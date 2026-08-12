@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 import { MessageType, Prisma, SpaceRole } from '@prisma/client';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
@@ -571,7 +572,78 @@ export class MessageService {
     });
   }
 
-  async toggleFollowThread(userId: string, messageId: string) {
+  async getFollowedThreads(userId: string) {
+    const followers = await this.prisma.threadFollower.findMany({
+      where: {
+        userId,
+        message: {
+          threadReplyCount: { gt: 0 },
+          threadParentId: null,
+          channel: {
+            members: {
+              some: { userId },
+            },
+          },
+        },
+      },
+      include: {
+        message: {
+          include: {
+            reactions: true,
+            medias: true,
+            poll: { include: { options: { include: { votes: true } } } },
+            note: true,
+            threadFollowers: true,
+            channel: {
+              include: {
+                members: true,
+                setting: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        message: {
+          threadLastReplyAt: 'desc',
+        },
+      },
+    });
+
+    return Promise.all(
+      followers.map(async (follower) => {
+        const unreadSince = (follower as any).lastReadAt ?? follower.createdAt;
+        const unreadReplyCount = await this.prisma.message.count({
+          where: {
+            threadParentId: follower.messageId,
+            createdAt: { gt: unreadSince },
+            senderId: { not: userId },
+          },
+        });
+        const { channel, ...message } = follower.message as any;
+
+        return {
+          rootMessage: {
+            ...message,
+            chatId: channel.id,
+            chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+            channelId: channel.id,
+            medias: mapMediaWithUrl(message.medias),
+          },
+          chat: channel,
+          chatId: channel.id,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+          chatName: channel.name,
+          replyCount: message.threadReplyCount,
+          lastReplyAt: message.threadLastReplyAt,
+          unreadReplyCount,
+          isFollowing: true,
+        };
+      }),
+    );
+  }
+
+  async followThread(userId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
     });
@@ -590,24 +662,65 @@ export class MessageService {
     });
 
     if (existingFollow) {
-      await this.prisma.threadFollower.delete({
+      await this.prisma.threadFollower.update({
         where: {
           messageId_userId: {
             messageId,
             userId,
           },
         },
+        data: { lastReadAt: new Date() } as any,
       });
-      return { following: false };
+      return { following: true };
     }
 
     await this.prisma.threadFollower.create({
       data: {
         messageId,
         userId,
-      },
+        lastReadAt: new Date(),
+      } as any,
     });
     return { following: true };
+  }
+
+  async unfollowThread(userId: string, messageId: string) {
+    await this.prisma.threadFollower.deleteMany({
+      where: { messageId, userId },
+    });
+    return { following: false };
+  }
+
+  async markThreadAsRead(userId: string, messageId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { id: true, channelId: true },
+    });
+
+    if (!message) {
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
+    }
+
+    const member = await this.prisma.channelMember.findUnique({
+      where: {
+        channelId_userId: {
+          channelId: message.channelId,
+          userId,
+        },
+      },
+    });
+
+    if (!member) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+    }
+
+    const lastReadAt = new Date();
+    await this.prisma.threadFollower.updateMany({
+      where: { messageId, userId },
+      data: { lastReadAt } as any,
+    });
+
+    return { messageId, lastReadAt };
   }
 
   async getThreadMessages(messageId: string) {

@@ -15,6 +15,7 @@ import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { useActiveChat } from "../../hooks/useChatQueries";
+import { ChatScope, chatKeys } from "../../types/chat.constant";
 
 interface PinnedMessagesDetailViewProps {
   conversationId: string;
@@ -64,9 +65,10 @@ export default function PinnedMessagesDetailView({
     isLoading,
   } = useInfiniteQuery({
     queryKey: [
-      "pinnedMessagesDetail",
-      isDirect ? "direct" : "channel",
-      conversationId,
+      ...chatKeys.pinnedMessagesDetail(
+        isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
+        conversationId,
+      ),
       senderId || "all",
     ],
     queryFn: async ({ pageParam }) => {
@@ -148,7 +150,7 @@ export default function PinnedMessagesDetailView({
   const handleUnpin = async (messageId: string) => {
     if (isDirect) {
       await unpinDirectPinnedMessage(conversationId, messageId);
-      queryClient.setQueryData(["pinnedMessagesDetail", "direct", conversationId], (oldData: any) => {
+      queryClient.setQueryData(chatKeys.pinnedMessagesDetail(ChatScope.DIRECT, conversationId), (oldData: any) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
@@ -169,7 +171,7 @@ export default function PinnedMessagesDetailView({
       messageId,
     });
 
-    queryClient.setQueryData(["pinnedMessagesDetail", isDirect ? "direct" : "channel", conversationId], (oldData: any) => {
+    queryClient.setQueryData(chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId), (oldData: any) => {
       if (!oldData) return oldData;
       return {
         ...oldData,
@@ -179,7 +181,12 @@ export default function PinnedMessagesDetailView({
         })),
       };
     });
-    queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview", isDirect ? "direct" : "channel", conversationId] });
+    queryClient.invalidateQueries({
+      queryKey: chatKeys.pinnedMessagesPreview(
+        ChatScope.CHANNEL,
+        conversationId,
+      ),
+    });
   };
 
   return (

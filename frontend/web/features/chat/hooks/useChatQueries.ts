@@ -182,6 +182,7 @@ export function useActiveChat() {
 export function useActiveThreadRootMessage() {
   const queryClient = useQueryClient();
   const {
+    activeThreadRootMessage,
     activeThreadRootMessageId,
     activeThreadChatId,
     activeThreadChatType,
@@ -189,6 +190,9 @@ export function useActiveThreadRootMessage() {
 
   return useMemo(() => {
     if (!activeThreadRootMessageId || !activeThreadChatId) return null;
+    if (activeThreadRootMessage?.id === activeThreadRootMessageId) {
+      return activeThreadRootMessage;
+    }
 
     const messageQueries = queryClient.getQueriesData<{
       pages?: { messages?: ChatMessageResponse[] }[];
@@ -219,6 +223,7 @@ export function useActiveThreadRootMessage() {
   }, [
     activeThreadChatId,
     activeThreadChatType,
+    activeThreadRootMessage,
     activeThreadRootMessageId,
     queryClient,
   ]);

@@ -7,6 +7,7 @@ import {
   ConversationResponse,
   ConversationSetting,
   DirectConversationResponse,
+  FollowedThreadResponse,
   MuteConversationResponse,
   PaginatedMediaResponse,
   PaginatedMessagesResponse,
@@ -19,6 +20,15 @@ import {
 } from "../types/chat.types";
 
 type UnknownRecord = Record<string, unknown>;
+
+const CHAT_API_ROUTES = {
+  channelFollowedThreads: "/api/channels/threads/followed",
+  directFollowedThreads: "/api/direct-conversations/threads/followed",
+  channelThreadRead: (messageId: string) =>
+    `/api/channels/messages/${messageId}/thread/read`,
+  directThreadRead: (messageId: string) =>
+    `/api/direct-conversations/messages/${messageId}/thread/read`,
+} as const;
 
 type RawDirectConversation = Partial<DirectConversationResponse> &
   UnknownRecord & {
@@ -620,6 +630,38 @@ export const getDirectConversationThreads = async (
     params: { cursor, limit, senderId },
   });
   return normalizeApiResponse<PaginatedMessagesResponse>(response.data);
+};
+
+export const getFollowedChannelThreads = async (): Promise<
+  ApiResponse<FollowedThreadResponse[]>
+> => {
+  const response = await api.get(CHAT_API_ROUTES.channelFollowedThreads);
+  return normalizeApiResponse<FollowedThreadResponse[]>(response.data);
+};
+
+export const getFollowedDirectThreads = async (): Promise<
+  ApiResponse<FollowedThreadResponse[]>
+> => {
+  const response = await api.get(CHAT_API_ROUTES.directFollowedThreads);
+  return normalizeApiResponse<FollowedThreadResponse[]>(response.data);
+};
+
+export const markChannelThreadAsRead = async (
+  messageId: string,
+): Promise<ApiResponse<{ messageId: string; lastReadAt: string }>> => {
+  const response = await api.post(CHAT_API_ROUTES.channelThreadRead(messageId));
+  return normalizeApiResponse<{ messageId: string; lastReadAt: string }>(
+    response.data,
+  );
+};
+
+export const markDirectThreadAsRead = async (
+  messageId: string,
+): Promise<ApiResponse<{ messageId: string; lastReadAt: string }>> => {
+  const response = await api.post(CHAT_API_ROUTES.directThreadRead(messageId));
+  return normalizeApiResponse<{ messageId: string; lastReadAt: string }>(
+    response.data,
+  );
 };
 
 export const followThread = async (

@@ -29,6 +29,7 @@ interface ChatState {
   selectedProfileUserId: string | null;
   highlightMessageId: string | null;
   activeThreadRootMessageId: string | null;
+  activeThreadRootMessage: ChatMessageResponse | null;
   activeThreadChatId: string | null;
   activeThreadChatType: ChatUiType | null;
 }
@@ -41,6 +42,7 @@ const initialState: ChatState = {
   selectedProfileUserId: null,
   highlightMessageId: null,
   activeThreadRootMessageId: null,
+  activeThreadRootMessage: null,
   activeThreadChatId: null,
   activeThreadChatType: null,
 };
@@ -62,6 +64,7 @@ const chatSlice = createSlice({
         : null;
       state.highlightMessageId = null;
       state.activeThreadRootMessageId = null;
+      state.activeThreadRootMessage = null;
       state.activeThreadChatId = null;
       state.activeThreadChatType = null;
     },
@@ -73,6 +76,7 @@ const chatSlice = createSlice({
       state.activeChatType = action.payload ? state.activeChatType : null;
       state.highlightMessageId = null;
       state.activeThreadRootMessageId = null;
+      state.activeThreadRootMessage = null;
       state.activeThreadChatId = null;
       state.activeThreadChatType = null;
     },
@@ -81,6 +85,7 @@ const chatSlice = createSlice({
       state.activeChatType = action.payload ? ChatContextType.CHANNEL : null;
       state.highlightMessageId = null;
       state.activeThreadRootMessageId = null;
+      state.activeThreadRootMessage = null;
       state.activeThreadChatId = null;
       state.activeThreadChatType = null;
     },
@@ -94,6 +99,7 @@ const chatSlice = createSlice({
         : null;
       state.highlightMessageId = null;
       state.activeThreadRootMessageId = null;
+      state.activeThreadRootMessage = null;
       state.activeThreadChatId = null;
       state.activeThreadChatType = null;
     },
@@ -102,6 +108,7 @@ const chatSlice = createSlice({
       state.activeChatType = null;
       state.highlightMessageId = null;
       state.activeThreadRootMessageId = null;
+      state.activeThreadRootMessage = null;
       state.activeThreadChatId = null;
       state.activeThreadChatType = null;
     },
@@ -133,6 +140,8 @@ const chatSlice = createSlice({
             : null);
 
       state.activeThreadRootMessageId = messageId;
+      state.activeThreadRootMessage =
+        payload && "senderId" in payload ? payload : null;
       state.activeThreadChatId = messageId ? chatId ?? state.activeChatId : null;
       state.activeThreadChatType = messageId
         ? chatType ?? state.activeChatType

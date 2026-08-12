@@ -415,6 +415,7 @@ model ThreadFollower {
   id        String   @id @default(uuid()) @db.Uuid
   messageId String   @map("message_id") @db.Uuid
   userId    String   @map("user_id") @db.Uuid
+  lastReadAt DateTime? @map("last_read_at")
   createdAt DateTime @default(now()) @map("created_at")
 
   message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
@@ -427,6 +428,7 @@ model DirectThreadFollower {
   id        String   @id @default(uuid()) @db.Uuid
   messageId String   @map("message_id") @db.Uuid
   userId    String   @map("user_id") @db.Uuid
+  lastReadAt DateTime? @map("last_read_at")
   createdAt DateTime @default(now()) @map("created_at")
 
   message   DirectMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)

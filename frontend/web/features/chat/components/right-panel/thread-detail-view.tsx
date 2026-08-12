@@ -1,11 +1,14 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { X, User, FileText, Download, Bell } from "lucide-react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   followDirectThread,
   followThread,
+  markChannelThreadAsRead,
+  markDirectThreadAsRead,
   unfollowDirectThread,
+  unfollowThread,
   getDirectThreadMessages,
   getThreadMessages,
 } from "../../api/chat.api";
@@ -15,13 +18,17 @@ import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 import { formatDateTime } from "@/lib/date";
-import { chatKeys } from "../../types/chat.constant";
+import { ChatScope, chatKeys } from "../../types/chat.constant";
 import {
   ChatContextType,
+  ApiResponse,
   ChatMessageResponse,
+  ThreadMessagesResponse,
 } from "../../types/chat.types";
-import { SendSocketMessageMedia } from "../../types/chat-socket.types";
-import DirectMessageInput from "../input/direct-message-input";
+import {
+  ChatSocketAckResponse,
+  SendSocketMessageMedia,
+} from "../../types/chat-socket.types";
 import ThreadChatInput from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
 import { toast } from "react-toastify";
@@ -50,6 +57,14 @@ export default function ThreadDetailView({
   }, [rootMessage.threadFollowers, currentUserId]);
 
   const [isFollowing, setIsFollowing] = useState(initialFollow);
+  const rootChatId = useMemo(() => {
+    const chatId = rootMessage.chatId;
+    return (
+      rootMessage.conversationId ??
+      rootMessage.channelId ??
+      (typeof chatId === "string" ? chatId : null)
+    );
+  }, [rootMessage]);
 
   useEffect(() => {
     setIsFollowing(initialFollow);
@@ -61,9 +76,14 @@ export default function ThreadDetailView({
         ? isFollowing
           ? await unfollowDirectThread(rootMessage.id)
           : await followDirectThread(rootMessage.id)
-        : await followThread(rootMessage.id);
+        : isFollowing
+          ? await unfollowThread(rootMessage.id)
+          : await followThread(rootMessage.id);
       const following = res.data.following;
       setIsFollowing(following);
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.followedThreads(currentUserId),
+      });
       toast.success(
         following ? "Following: you will receive notifications for this thread" : "Unfollowed this thread"
       );
@@ -75,7 +95,7 @@ export default function ThreadDetailView({
   // Fetch thread messages (root message + replies)
   const { data: threadData, isLoading } = useQuery({
     queryKey: chatKeys.threadMessages(
-      isDirect ? "direct" : "channel",
+      isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
       rootMessage.id,
     ),
     queryFn: () =>
@@ -86,6 +106,61 @@ export default function ThreadDetailView({
   });
 
   const replies = threadData?.data?.replies || [];
+
+  const appendThreadReply = useCallback((reply: ChatMessageResponse) => {
+    queryClient.setQueryData<ApiResponse<ThreadMessagesResponse>>(
+      chatKeys.threadMessages(
+        isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
+        rootMessage.id,
+      ),
+      (oldData) => {
+        const currentReplies = oldData?.data?.replies || [];
+        if (currentReplies.some((item) => item.id === reply.id)) {
+          return oldData;
+        }
+
+        return {
+          success: oldData?.success ?? true,
+          message: oldData?.message,
+          data: {
+            rootMessage: oldData?.data?.rootMessage ?? rootMessage,
+            replies: [...currentReplies, reply],
+          },
+        };
+      },
+    );
+  }, [isDirect, queryClient, rootMessage]);
+
+  useEffect(() => {
+    if (!isFollowing) return;
+
+    queryClient.setQueryData(
+      chatKeys.followedThreads(currentUserId),
+      (oldThreads: any) =>
+        Array.isArray(oldThreads)
+          ? oldThreads.map((thread) =>
+              thread.rootMessage.id === rootMessage.id
+                ? { ...thread, unreadReplyCount: 0 }
+                : thread,
+            )
+          : oldThreads,
+    );
+
+    void (isDirect
+      ? markDirectThreadAsRead(rootMessage.id)
+      : markChannelThreadAsRead(rootMessage.id)
+    ).finally(() => {
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.followedThreads(currentUserId),
+      });
+    });
+  }, [
+    currentUserId,
+    isDirect,
+    isFollowing,
+    queryClient,
+    rootMessage.id,
+  ]);
   const threadSenderIds = useMemo(() => {
     const ids = new Set<string>();
     if (rootMessage.senderId) {
@@ -107,24 +182,17 @@ export default function ThreadDetailView({
 
     const handleNewMessage = (msg: any) => {
       if (msg.threadParentId === rootMessage.id) {
-        queryClient.setQueryData(
-          ["threadMessages", isDirect ? "direct" : "channel", rootMessage.id],
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            // Prevent duplicate insertion
-            const currentReplies = oldData.data?.replies || [];
-            if (currentReplies.some((r: any) => r.id === msg.id)) {
-              return oldData;
-            }
-            return {
-              ...oldData,
-              data: {
-                ...oldData.data,
-                replies: [...currentReplies, msg],
-              },
-            };
-          },
-        );
+        appendThreadReply(msg);
+        if (isFollowing) {
+          void (isDirect
+            ? markDirectThreadAsRead(rootMessage.id)
+            : markChannelThreadAsRead(rootMessage.id)
+          ).finally(() => {
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.followedThreads(currentUserId),
+            });
+          });
+        }
       }
     };
 
@@ -132,7 +200,14 @@ export default function ThreadDetailView({
     return () => {
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
     };
-  }, [isDirect, rootMessage.id, queryClient]);
+  }, [
+    appendThreadReply,
+    currentUserId,
+    isDirect,
+    isFollowing,
+    queryClient,
+    rootMessage.id,
+  ]);
 
   // Scroll to bottom on new replies
   useEffect(() => {
@@ -162,42 +237,55 @@ export default function ThreadDetailView({
     const socket = socketService.getSocket();
 
     if (isDirect) {
-      const directChatId = rootMessage.conversationId ?? rootMessage.channelId;
-      if (!directChatId) return;
+      if (!rootChatId) return;
 
       sendDirectThreadReply({
-        conversationId: directChatId,
+        conversationId: rootChatId,
         content,
         medias: media,
         threadParentId: rootMessage.id,
         onSent: () => {
           queryClient.invalidateQueries({
-          queryKey: chatKeys.threadMessages("direct", rootMessage.id),
+            queryKey: chatKeys.threadMessages(ChatScope.DIRECT, rootMessage.id),
           });
           queryClient.invalidateQueries({
-            queryKey: [
-              "conversation-threads",
-              "direct",
-              rootMessage.conversationId ?? rootMessage.channelId,
-            ],
+            queryKey: chatKeys.threads(ChatScope.DIRECT, rootChatId),
           });
         },
       })
+        .then((sentReply) => {
+          if (sentReply) {
+            appendThreadReply(sentReply);
+            chatInputRef.current?.focus();
+          }
+        })
         .catch(() => toast.error("Failed to send reply"));
       return;
     }
 
-    if (!socket || !rootMessage.channelId) return;
+    if (!socket || !rootChatId) return;
 
-    socket.emit(ChatEvent.SEND_MESSAGE, {
-      channelId: rootMessage.channelId,
-      chatId: rootMessage.channelId,
-      chatType: ChatContextType.CHANNEL,
-      content,
-      medias: media,
-      threadParentId: rootMessage.id,
-      mentions,
-    });
+    socket.emit(
+      ChatEvent.SEND_MESSAGE,
+      {
+        channelId: rootChatId,
+        chatId: rootChatId,
+        chatType: ChatContextType.CHANNEL,
+        content,
+        medias: media,
+        threadParentId: rootMessage.id,
+        mentions,
+      },
+      (response: ChatSocketAckResponse<ChatMessageResponse>) => {
+        if (response?.status === "success" && response.data) {
+          appendThreadReply(response.data);
+          chatInputRef.current?.focus();
+          return;
+        }
+
+        toast.error(response?.message || "Failed to send reply");
+      },
+    );
   };
 
   const getProfile = (userId: string) => {
@@ -432,16 +520,7 @@ export default function ThreadDetailView({
       </div>
 
       {/* Input bar */}
-      {isDirect ? (
-        <DirectMessageInput
-          ref={chatInputRef}
-          compact
-          onSendMessage={handleSendReply}
-          placeholder="Reply in thread..."
-        />
-      ) : (
-        <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
-      )}
+      <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
     </div>
   );
 }

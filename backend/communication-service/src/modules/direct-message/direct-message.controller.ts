@@ -188,6 +188,20 @@ export class DirectMessageController {
     };
   }
 
+  @Get('threads/followed')
+  async getFollowedDirectThreads(@Headers('x-user-id') userId: string) {
+    if (!userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const threads =
+      await this.directMessageService.getFollowedDirectThreads(userId);
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.THREADS_LISTED,
+      data: threads,
+    };
+  }
+
   @Get(':id/threads')
   async getDirectConversationThreads(
     @Param('id') conversationId: string,
@@ -471,6 +485,25 @@ export class DirectMessageController {
     );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_FOLLOW_UPDATED,
+      data: result,
+    };
+  }
+
+  @Post('messages/:id/thread/read')
+  async markDirectThreadAsRead(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result = await this.directMessageService.markDirectThreadAsRead(
+      messageId,
+      userId,
+    );
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
       data: result,
     };
   }

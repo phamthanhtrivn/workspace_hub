@@ -14,6 +14,7 @@ import { Filter, X, MessageSquare, User, MessageCircle } from "lucide-react";
 import Image from "next/image";
 import { formatDateTime } from "@/lib/date";
 import { useActiveChat } from "../../hooks/useChatQueries";
+import { ChatScope, chatKeys } from "../../types/chat.constant";
 
 interface ThreadsListViewProps {
   conversationId: string;
@@ -57,9 +58,10 @@ export default function ThreadsListView({
     isLoading,
   } = useInfiniteQuery({
     queryKey: [
-      "conversation-threads",
-      isDirect ? "direct" : "channel",
-      conversationId,
+      ...chatKeys.threads(
+        isDirect ? ChatScope.DIRECT : ChatScope.CHANNEL,
+        conversationId,
+      ),
       senderId || "all",
     ],
     queryFn: async ({ pageParam }) => {

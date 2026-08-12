@@ -425,6 +425,71 @@ export class DirectMessageService {
     };
   }
 
+  async getFollowedDirectThreads(userId: string) {
+    const followers = await this.prisma.directThreadFollower.findMany({
+      where: {
+        userId,
+        message: {
+          threadReplyCount: { gt: 0 },
+          threadParentId: null,
+          conversation: {
+            participants: {
+              some: { userId },
+            },
+          },
+        },
+      },
+      include: {
+        message: {
+          include: {
+            reactions: true,
+            medias: true,
+            threadFollowers: true,
+            conversation: {
+              include: {
+                participants: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        message: {
+          threadLastReplyAt: 'desc',
+        },
+      },
+    });
+
+    return Promise.all(
+      followers.map(async (follower) => {
+        const unreadSince = (follower as any).lastReadAt ?? follower.createdAt;
+        const unreadReplyCount = await this.prisma.directMessage.count({
+          where: {
+            threadParentId: follower.messageId,
+            createdAt: { gt: unreadSince },
+            senderId: { not: userId },
+          },
+        });
+        const { conversation, ...message } = follower.message as any;
+
+        return {
+          rootMessage: this.mapDirectMessage(message),
+          chat: {
+            ...conversation,
+            members: conversation.participants,
+          },
+          chatId: conversation.id,
+          chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
+          chatName: null,
+          replyCount: message.threadReplyCount,
+          lastReplyAt: message.threadLastReplyAt,
+          unreadReplyCount,
+          isFollowing: true,
+        };
+      }),
+    );
+  }
+
   async getDirectThreadMessages(messageId: string) {
     const includeQuery = {
       reactions: true,
@@ -652,8 +717,8 @@ export class DirectMessageService {
           userId,
         },
       },
-      update: {},
-      create: { messageId, userId },
+      update: { lastReadAt: new Date() } as any,
+      create: { messageId, userId, lastReadAt: new Date() } as any,
     });
     return { following: true };
   }
@@ -664,6 +729,16 @@ export class DirectMessageService {
       where: { messageId, userId },
     });
     return { following: false };
+  }
+
+  async markDirectThreadAsRead(messageId: string, userId: string) {
+    await this.assertDirectMessageMember(messageId, userId);
+    const lastReadAt = new Date();
+    await this.prisma.directThreadFollower.updateMany({
+      where: { messageId, userId },
+      data: { lastReadAt } as any,
+    });
+    return { messageId, lastReadAt };
   }
 
   private mapDirectMessage(message: any) {

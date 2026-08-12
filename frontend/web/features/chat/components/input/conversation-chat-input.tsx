@@ -52,6 +52,7 @@ interface ConversationChatInputProps {
   onCreatePoll?: () => void;
   onCreateNote?: () => void;
   onTypingChange?: (isTyping: boolean) => void;
+  autoFocusOnConversationChange?: boolean;
 }
 
 interface UploadingMedia {
@@ -72,7 +73,13 @@ export interface ConversationChatInputRef {
 const ConversationChatInput = React.memo(
   forwardRef<ConversationChatInputRef, ConversationChatInputProps>(
     function ConversationChatInput(
-      { onSendMessage, onCreatePoll, onCreateNote, onTypingChange },
+      {
+        onSendMessage,
+        onCreatePoll,
+        onCreateNote,
+        onTypingChange,
+        autoFocusOnConversationChange = true,
+      },
       ref,
     ) {
       const [message, setMessage] = useState("");
@@ -306,7 +313,11 @@ const ConversationChatInput = React.memo(
       }));
 
       useEffect(() => {
-        if (activeConversationId && textareaRef.current) {
+        if (
+          autoFocusOnConversationChange &&
+          activeConversationId &&
+          textareaRef.current
+        ) {
           textareaRef.current.focus();
         }
 
@@ -317,7 +328,7 @@ const ConversationChatInput = React.memo(
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-      }, [activeConversationId, onTypingChange]);
+      }, [activeConversationId, autoFocusOnConversationChange, onTypingChange]);
 
       const uploadFilesList = async (files: File[]) => {
         const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);

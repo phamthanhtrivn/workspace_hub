@@ -142,11 +142,6 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
               ? "99+"
               : unreadCount}
           </div>
-        ) : conversation.hasUnreadThread ? (
-          <div
-            className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-sm shadow-blue-500/50"
-            title="New replies in thread"
-          />
         ) : null}
 
         <div ref={menuRef} className="relative">

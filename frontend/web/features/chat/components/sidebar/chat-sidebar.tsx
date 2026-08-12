@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Search,
+  MessageSquareText,
   UserPlus,
-  RefreshCw,
   Plus,
   ChevronDown,
   PlusCircle,
@@ -19,23 +19,31 @@ import InviteSpaceMembersModal from "../modals/invite-space-members-modal";
 import BrowseChannelsModal from "../modals/browse-channels-modal";
 import ConversationItem from "./conversation-item";
 import DirectConversationsSection from "./direct-conversations-section";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   setActiveConversation,
   setActiveChannel,
   setActiveDirectMessage,
   setActiveSpaceId,
+  setActiveThreadRootMessage,
 } from "@/store/chat/chat-slice";
 import {
   ChatProfilesMap,
   ChatContextType,
+  ChannelResponse,
   ConversationResponse,
+  DirectConversationResponse,
+  FollowedThreadResponse,
   UserProfileResponse,
 } from "../../types/chat.types";
+import { ChatSidebarSection, MAX_UNREAD_COUNT, chatKeys } from "../../types/chat.constant";
 import { sortDirectConversations } from "../../utils/direct-conversation-utils";
-import { chatKeys } from "../../types/chat.constant";
 import { cn } from "@/lib/utils";
+import {
+  markChannelThreadAsRead,
+  markDirectThreadAsRead,
+} from "../../api/chat.api";
 import {
   useActiveChat,
   useSpaceChannelsQuery,
@@ -45,8 +53,12 @@ import {
   clearChatUnread,
   upsertChannelCache,
   upsertDirectMessageCache,
+  updateDirectMessagesCache,
   updateChannelsCache,
 } from "../../utils/chat-cache";
+import FollowedThreadsModal, {
+  fetchFollowedThreads,
+} from "./followed-threads-modal";
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
@@ -58,8 +70,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isFollowedThreadsModalOpen, setIsFollowedThreadsModalOpen] = useState(false);
   const [isSpaceDropdownOpen, setIsSpaceDropdownOpen] = useState(false);
-  const [isReloading, setIsReloading] = useState(false);
   const [isChannelsExpanded, setIsChannelsExpanded] = useState(true);
   const [isChannelsDropdownOpen, setIsChannelsDropdownOpen] = useState(false);
   const [isBrowseChannelsModalOpen, setIsBrowseChannelsModalOpen] = useState(false);
@@ -107,6 +119,20 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     refetch: refetchChannels,
   } = useSpaceChannelsQuery(activeSpaceId);
   const channels = channelsData?.channels || [];
+  const { data: followedThreads = [] } = useQuery({
+    queryKey: chatKeys.followedThreads(currentUserId),
+    queryFn: fetchFollowedThreads,
+    enabled: !!currentUserId,
+    staleTime: 1000 * 30,
+  });
+  const followedThreadsUnreadCount = useMemo(
+    () =>
+      followedThreads.reduce(
+        (count, thread) => count + (thread.unreadReplyCount > 0 ? 1 : 0),
+        0,
+      ),
+    [followedThreads],
+  );
 
   const hydrateDirectMessage = useCallback(
     (
@@ -292,31 +318,99 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     handleSelectConversation(newChannel, undefined, ChatContextType.CHANNEL);
   };
 
-  const handleReload = async () => {
-    if (isReloading) return;
-    setIsReloading(true);
-    dispatch(setActiveConversation(null));
+  const clearThreadUnreadForChat = useCallback(
+    (thread: FollowedThreadResponse) => {
+      const queryKey = chatKeys.followedThreads(currentUserId);
+      queryClient.setQueryData<FollowedThreadResponse[]>(
+        queryKey,
+        (oldThreads) => {
+          const nextThreads = (oldThreads || []).map((item) =>
+            item.rootMessage.id === thread.rootMessage.id
+              ? { ...item, unreadReplyCount: 0 }
+              : item,
+          );
+          const hasUnreadInSameChat = nextThreads.some(
+            (item) =>
+              item.chatId === thread.chatId && item.unreadReplyCount > 0,
+          );
 
-    try {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["spaces"] }),
-        queryClient.invalidateQueries({ queryKey: ["channels"] }),
-        queryClient.invalidateQueries({ queryKey: ["direct-messages"] }),
-        queryClient.invalidateQueries({ queryKey: ["chat-member-profiles"] }),
-        queryClient.invalidateQueries({ queryKey: ["messages"] }),
-        queryClient.invalidateQueries({ queryKey: ["media"] }),
-        queryClient.invalidateQueries({ queryKey: ["pinnedMessagesPreview"] }),
-        queryClient.invalidateQueries({ queryKey: ["pinnedMessagesDetail"] }),
-        queryClient.invalidateQueries({ queryKey: ["conversation-threads"] }),
-        queryClient.invalidateQueries({ queryKey: ["threadMessages"] }),
-        refetchSpaces(),
-        refetchChannels(),
-        
-      ]);
-    } finally {
-      setIsReloading(false);
-    }
-  };
+          if (!hasUnreadInSameChat) {
+            if (thread.chatType === ChatContextType.DIRECT_MESSAGE) {
+              updateDirectMessagesCache(
+                queryClient,
+                currentUserId,
+                (directMessage) => ({
+                  ...directMessage,
+                  hasUnreadThread: false,
+                }),
+                thread.chatId,
+              );
+            } else {
+              const channel = thread.chat as ChannelResponse;
+              updateChannelsCache(
+                queryClient,
+                thread.chatId,
+                (channel) => ({
+                  ...channel,
+                  hasUnreadThread: false,
+                }),
+                channel.spaceId,
+              );
+            }
+          }
+
+          return nextThreads;
+        },
+      );
+    },
+    [currentUserId, queryClient],
+  );
+
+  const handleSelectThread = useCallback(
+    async (thread: FollowedThreadResponse) => {
+      if (thread.chatType === ChatContextType.DIRECT_MESSAGE) {
+        upsertDirectMessageCache(
+          queryClient,
+          currentUserId,
+          thread.chat as DirectConversationResponse,
+        );
+        dispatch(setActiveDirectMessage(thread.chat));
+      } else {
+        const channel = thread.chat as ChannelResponse;
+        upsertChannelCache(queryClient, channel);
+        if (channel.spaceId) {
+          dispatch(setActiveSpaceId(channel.spaceId));
+        }
+        dispatch(setActiveChannel(thread.chat));
+      }
+
+      dispatch(
+        setActiveThreadRootMessage({
+          ...thread.rootMessage,
+          chatId: thread.chatId,
+          chatType: thread.chatType,
+        }),
+      );
+      clearThreadUnreadForChat(thread);
+      void (thread.chatType === ChatContextType.DIRECT_MESSAGE
+        ? markDirectThreadAsRead(thread.rootMessage.id)
+        : markChannelThreadAsRead(thread.rootMessage.id)
+      ).finally(() => {
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.followedThreads(currentUserId),
+        });
+      });
+
+      if (onSelectChat) onSelectChat();
+    },
+    [
+      clearThreadUnreadForChat,
+      currentUserId,
+      dispatch,
+      onSelectChat,
+      queryClient,
+    ],
+  );
 
   // Filtered lists based on search
   const joinedChannels = useMemo(() => {
@@ -349,20 +443,24 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               Workspace
             </span>
           </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleReload();
-            }}
-            disabled={isReloading}
-            className={cn(
-              "cursor-pointer p-1.5 hover:bg-slate-200/60 rounded-lg text-slate-500 hover:text-slate-700 transition disabled:cursor-wait disabled:opacity-70",
-              isReloading && "bg-slate-200/60 text-blue-600",
-            )}
-            title={isReloading ? "Reloading..." : "Reload"}
-          >
-            <RefreshCw size={14} className={isReloading ? "animate-spin" : ""} />
-          </button>
+         <button
+          onClick={() => setIsFollowedThreadsModalOpen(true)}
+          className="flex items-center justify-between px-3 py-2 mx-1 rounded-xl cursor-pointer transition-all duration-200 select-none group bg-slate-600 text-white hover:bg-slate-900 shadow-sm"
+        >
+          <span className="flex items-center min-w-0 gap-2.5">
+            <MessageSquareText size={15} className="shrink-0 text-slate-100" />
+            <span className="text-[13px] font-bold truncate">
+              {ChatSidebarSection.THREADS}
+            </span>
+          </span>
+          {followedThreadsUnreadCount > 0 && (
+            <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 ml-2.5">
+              {followedThreadsUnreadCount > MAX_UNREAD_COUNT
+                ? "99+"
+                : followedThreadsUnreadCount}
+            </span>
+          )}
+        </button>
         </div>
 
         {/* Dropdown Menu */}
@@ -441,6 +539,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       {/* Main Items Scrollable List */}
       <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+        
+
         {/* Channels Section */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
@@ -558,6 +658,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         isOpen={isSearchModalOpen}
         onClose={() => setIsSearchModalOpen(false)}
         onConversationCreated={handleNewConversation}
+      />
+      <FollowedThreadsModal
+        currentUserId={currentUserId}
+        isOpen={isFollowedThreadsModalOpen}
+        onClose={() => setIsFollowedThreadsModalOpen(false)}
+        onSelectThread={handleSelectThread}
       />
     </div>
   );

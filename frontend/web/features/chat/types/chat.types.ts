@@ -111,6 +111,7 @@ export type ThreadFollowerResponse =
   | string
   | {
       userId: string;
+      lastReadAt?: string | null;
     };
 
 export interface ChatMessageResponse {
@@ -129,6 +130,18 @@ export interface ChatMessageResponse {
   mentions?: string[];
   medias?: ChatMediaResponse[];
   [key: string]: unknown;
+}
+
+export interface FollowedThreadResponse {
+  rootMessage: ChatMessageResponse;
+  chat: ConversationResponse;
+  chatId: string;
+  chatType: ChatContextType;
+  chatName: string | null;
+  replyCount: number;
+  lastReplyAt: string | null;
+  unreadReplyCount: number;
+  isFollowing: boolean;
 }
 
 export interface PaginatedMessagesResponse {

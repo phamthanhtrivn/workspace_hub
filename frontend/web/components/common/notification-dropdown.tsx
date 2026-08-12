@@ -177,7 +177,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-[-48] mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2 z-[90]">
+        <div className="absolute right-[-48] z-90 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
             <h3 className="font-black text-slate-800 text-base">Thông báo</h3>
             {unreadCount > 0 && (

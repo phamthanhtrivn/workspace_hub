@@ -9,7 +9,7 @@ import {
   recallDirectMessage,
   unpinDirectMessage,
 } from "../api/chat.api";
-import { ChatQueryKey } from "../types/chat.constant";
+import { ChatQueryKey, ChatScope, chatKeys } from "../types/chat.constant";
 import { ChatMessageResponse } from "../types/chat.types";
 import { SendSocketMessageMedia } from "../types/chat-socket.types";
 import { useDirectMessageSocket } from "./useDirectMessageSocket";
@@ -167,10 +167,16 @@ export function useDirectMessageActions() {
           queryKey: ["messages", conversationId],
         });
         queryClient.invalidateQueries({
-          queryKey: ["pinnedMessagesPreview", "direct", conversationId],
+          queryKey: chatKeys.pinnedMessagesPreview(
+            ChatScope.DIRECT,
+            conversationId,
+          ),
         });
         queryClient.invalidateQueries({
-          queryKey: ["pinnedMessagesDetail", "direct", conversationId],
+          queryKey: chatKeys.pinnedMessagesDetail(
+            ChatScope.DIRECT,
+            conversationId,
+          ),
         });
       } catch (error: unknown) {
         toast.error(getErrorMessage(error, "Failed to update pin"));
@@ -184,10 +190,16 @@ export function useDirectMessageActions() {
       try {
         await unpinDirectMessage(messageId);
         queryClient.invalidateQueries({
-          queryKey: ["pinnedMessagesPreview", "direct", conversationId],
+          queryKey: chatKeys.pinnedMessagesPreview(
+            ChatScope.DIRECT,
+            conversationId,
+          ),
         });
         queryClient.invalidateQueries({
-          queryKey: ["pinnedMessagesDetail", "direct", conversationId],
+          queryKey: chatKeys.pinnedMessagesDetail(
+            ChatScope.DIRECT,
+            conversationId,
+          ),
         });
       } catch (error: unknown) {
         toast.error(getErrorMessage(error, "Failed to unpin message"));
