@@ -8,7 +8,7 @@ import {
   Users,
 } from "lucide-react";
 import {
-  searchConversationMessages,
+  searchChannelMessages,
   searchDirectConversationMessages,
 } from "../../api/chat.api";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -85,7 +85,7 @@ export default function SearchMessagesSection({
       const isDirectMessage = activeChatType === ChatContextType.DIRECT_MESSAGE;
       const searchMessages = isDirectMessage
         ? searchDirectConversationMessages
-        : searchConversationMessages;
+        : searchChannelMessages;
       const res = await searchMessages(
         conversationId,
         query,

@@ -1,4 +1,4 @@
-import ChannelConversationHeader from "./header/channel-conversation-header";
+import ChannelChatHeader from "./header/channel-chat-header";
 import DirectConversationHeader from "./header/direct-conversation-header";
 import { useActiveChat } from "../hooks/useChatQueries";
 import { ChatContextType } from "../types/chat.types";
@@ -16,5 +16,5 @@ export default function ChatHeader(props: ChatHeaderProps) {
     return <DirectConversationHeader {...props} />;
   }
 
-  return <ChannelConversationHeader {...props} />;
+  return <ChannelChatHeader {...props} />;
 }

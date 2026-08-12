@@ -9,30 +9,32 @@ import {
   FiEdit3,
 } from "react-icons/fi";
 import {
-  updateConversationSettings,
+  updateChannelSettings,
   updateChannelInfo,
 } from "../../api/chat.api";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { Hash } from "lucide-react";
+import { chatKeys } from "../../types/chat.constant";
+import { ChannelResponse } from "../../types/chat.types";
 
 interface ChannelSettingsModalProps {
-  conversation: any;
+  channel: ChannelResponse;
   onClose: () => void;
 }
 
 export default function ChannelSettingsModal({
-  conversation,
+  channel,
   onClose,
 }: ChannelSettingsModalProps) {
   const [settings, setSettings] = useState({
-    allowSendMessage: conversation.setting?.allowSendMessage ?? true,
-    allowPinMessage: conversation.setting?.allowPinMessage ?? true,
-    allowCreatePoll: conversation.setting?.allowCreatePoll ?? true,
-    allowCreateNote: conversation.setting?.allowCreateNote ?? true,
+    allowSendMessage: channel.setting?.allowSendMessage ?? true,
+    allowPinMessage: channel.setting?.allowPinMessage ?? true,
+    allowCreatePoll: channel.setting?.allowCreatePoll ?? true,
+    allowCreateNote: channel.setting?.allowCreateNote ?? true,
   });
-  const [channelName, setChannelName] = useState(conversation.name || "");
+  const [channelName, setChannelName] = useState(channel.name || "");
 
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
@@ -40,8 +42,8 @@ export default function ChannelSettingsModal({
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const activeSpaceId = useAppSelector((state) => state.chat.activeSpaceId);
-  const currentMember = conversation.members?.find(
-    (m: any) => m.userId === currentUserId,
+  const currentMember = channel.members?.find(
+    (member) => member.userId === currentUserId,
   );
   const isAdmin = currentMember?.role === "ADMIN";
 
@@ -56,25 +58,24 @@ export default function ChannelSettingsModal({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await updateConversationSettings(conversation.id, settings);
+      await updateChannelSettings(channel.id, settings);
 
       if (isAdmin) {
         const trimmedName = channelName.trim();
-        if (trimmedName !== (conversation.name || "")) {
+        if (trimmedName !== (channel.name || "")) {
           if (!trimmedName) {
             toast.error("Channel name cannot be empty");
             setIsSaving(false);
             return;
           }
-          await updateChannelInfo(conversation.id, trimmedName);
+          await updateChannelInfo(channel.id, trimmedName);
         }
       }
 
       toast.success("Settings updated successfully");
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["channels", activeSpaceId] });
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(activeSpaceId) });
       onClose();
-    } catch (error) {
+    } catch {
       toast.error("Failed to update channel settings");
     } finally {
       setIsSaving(false);

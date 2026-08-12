@@ -18,7 +18,7 @@ import { saveAs } from "file-saver";
 import { formatDateTime } from "@/lib/date";
 import { formatFileSize } from "@/lib/file";
 import {
-  getConversationMedia,
+  getChannelMedia,
   getDirectConversationMedia,
 } from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
@@ -143,7 +143,7 @@ export default function MediaDetailView({
       queryFn: async ({ pageParam }) => {
         const fetchMedia = isDirect
           ? getDirectConversationMedia
-          : getConversationMedia;
+          : getChannelMedia;
         const res = await fetchMedia(
           conversationId,
           pageParam as string | undefined,

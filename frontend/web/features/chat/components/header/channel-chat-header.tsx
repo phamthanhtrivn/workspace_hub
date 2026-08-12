@@ -1,24 +1,24 @@
 import { ArrowLeft, Globe, Hash, Info, Search, User } from "lucide-react";
 import { useActiveChat } from "../../hooks/useChatQueries";
 
-interface ChannelConversationHeaderProps {
+interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
   onOpenSearch?: () => void;
   onBack?: () => void;
 }
 
-export default function ChannelConversationHeader({
+export default function ChannelChatHeader({
   onToggleRightPanel,
   onOpenSearch,
   onBack,
-}: ChannelConversationHeaderProps) {
-  const { activeChat: activeConversation } = useActiveChat();
-  const displayName = activeConversation?.name || "Channel";
-  const memberCount = activeConversation?.members?.length || 0;
+}: ChannelChatHeaderProps) {
+  const { activeChat: activeChannel } = useActiveChat();
+  const displayName = activeChannel?.name || "Channel";
+  const memberCount = activeChannel?.members?.length || 0;
   const isDefaultChannel =
-    !!activeConversation &&
-    "isDefault" in activeConversation &&
-    activeConversation.isDefault;
+    !!activeChannel &&
+    "isDefault" in activeChannel &&
+    activeChannel.isDefault;
 
   return (
     <div className="py-2 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">

@@ -11,24 +11,49 @@ import {
 import {
   updateMemberRole,
   kickMember,
-  leaveConversation,
-  disbandConversation,
+  leaveChannel,
+  disbandChannel,
 } from "../../api/chat.api";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import { FaKey } from "react-icons/fa";
+import {
+  ChannelResponse,
+  ChatProfilesMap,
+  ConversationMember,
+} from "../../types/chat.types";
+import { chatKeys } from "../../types/chat.constant";
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (
+    typeof error === "object" &&
+    error !== null &&
+    "response" in error &&
+    typeof error.response === "object" &&
+    error.response !== null &&
+    "data" in error.response &&
+    typeof error.response.data === "object" &&
+    error.response.data !== null &&
+    "message" in error.response.data &&
+    typeof error.response.data.message === "string"
+  ) {
+    return error.response.data.message;
+  }
+
+  return fallback;
+}
 
 interface ManageMembersModalProps {
-  conversation: any;
-  memberProfiles: any;
+  channel: ChannelResponse;
+  memberProfiles: ChatProfilesMap;
   currentUserId: string;
   onClose: () => void;
 }
 
 export default function ManageMembersModal({
-  conversation,
+  channel,
   memberProfiles,
   currentUserId,
   onClose,
@@ -43,8 +68,8 @@ export default function ManageMembersModal({
     setMounted(true);
   }, []);
 
-  const currentUserMember = conversation.members?.find(
-    (m: any) => m.userId === currentUserId,
+  const currentUserMember = channel.members?.find(
+    (member) => member.userId === currentUserId,
   );
   const currentUserRole = currentUserMember?.role;
 
@@ -73,14 +98,11 @@ export default function ManageMembersModal({
 
     setIsProcessing(true);
     try {
-      await updateMemberRole(conversation.id, memberId, role);
+      await updateMemberRole(channel.id, memberId, role);
       toast.success("Role updated successfully");
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
-    } catch (error: any) {
-      toast.error(
-        error.response?.data?.message || "Failed to update role",
-      );
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to update role"));
     } finally {
       setIsProcessing(false);
     }
@@ -102,12 +124,11 @@ export default function ManageMembersModal({
     if (!result.isConfirmed) return;
     setIsProcessing(true);
     try {
-      await kickMember(conversation.id, memberId);
+      await kickMember(channel.id, memberId);
       toast.success("Member kicked successfully");
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to kick member");
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to kick member"));
     } finally {
       setIsProcessing(false);
     }
@@ -130,12 +151,11 @@ export default function ManageMembersModal({
     if (!result.isConfirmed) return;
     setIsProcessing(true);
     try {
-      await leaveConversation(conversation.id);
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
+      await leaveChannel(channel.id);
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
       onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to leave space");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to leave space"));
     } finally {
       setIsProcessing(false);
     }
@@ -157,19 +177,18 @@ export default function ManageMembersModal({
     if (!result.isConfirmed) return;
     setIsProcessing(true);
     try {
-      await disbandConversation(conversation.id);
+      await disbandChannel(channel.id);
       toast.success("Channel disbanded successfully");
-      queryClient.invalidateQueries({ queryKey: ["conversations"] });
-      queryClient.invalidateQueries({ queryKey: ["channels", conversation.spaceId] });
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
       onClose();
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to disband channel");
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to disband channel"));
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const filteredMembers = conversation.members?.filter((member: any) => {
+  const filteredMembers = channel.members?.filter((member) => {
     const profile = memberProfiles?.[member.userId];
     const name = profile?.fullName || "User";
     return name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -209,7 +228,7 @@ export default function ManageMembersModal({
         </div>
 
         <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
-          {filteredMembers?.map((member: any) => {
+          {filteredMembers?.map((member: ConversationMember) => {
             const profile = memberProfiles?.[member.userId];
             const name = profile?.fullName || "User";
             const isMe = member.userId === currentUserId;

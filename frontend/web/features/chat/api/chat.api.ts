@@ -203,7 +203,7 @@ export const getUserConversations = async (): Promise<
   };
 };
 
-export const getConversationMessages = async (
+export const getChannelMessages = async (
   channelId: string,
   cursor?: string,
   limit?: number,
@@ -265,7 +265,7 @@ export const markDirectConversationAsRead = async (
   return normalizeApiResponse<{ messageId: string }>(response.data);
 };
 
-export const getConversationMedia = async (
+export const getChannelMedia = async (
   channelId: string,
   cursor?: string,
   limit?: number,
@@ -389,7 +389,7 @@ export const unpinDirectMessage = async (
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
-export const searchConversationMessages = async (
+export const searchChannelMessages = async (
   channelId: string,
   q?: string,
   senderId?: string,
@@ -419,7 +419,7 @@ export const searchDirectConversationMessages = async (
   return normalizeApiResponse<ChatMessageResponse[]>(response.data);
 };
 
-export const updateConversationSettings = async (
+export const updateChannelSettings = async (
   channelId: string,
   settings: Partial<ConversationSetting>,
 ): Promise<ApiResponse<ConversationSetting>> => {
@@ -452,14 +452,14 @@ export const kickMember = async (
   return normalizeApiResponse<unknown>(response.data);
 };
 
-export const leaveConversation = async (
+export const leaveChannel = async (
   channelId: string,
 ): Promise<ApiResponse<unknown>> => {
   const response = await api.delete(`/api/channels/${channelId}/leave`);
   return normalizeApiResponse<unknown>(response.data);
 };
 
-export const disbandConversation = async (
+export const disbandChannel = async (
   channelId: string,
 ): Promise<ApiResponse<unknown>> => {
   const response = await api.delete(`/api/channels/${channelId}/disband`);
@@ -482,7 +482,7 @@ export const getChannelAvatarPresignedUrl = async (
   );
 };
 
-export const muteConversation = async (
+export const muteChannel = async (
   channelId: string,
   muted: boolean,
 ): Promise<ApiResponse<MuteConversationResponse>> => {
@@ -603,7 +603,7 @@ export const inviteSpaceMembers = async (
   return normalizeApiResponse<SpaceInvitation[]>(response.data);
 };
 
-export const getConversationThreads = async (
+export const getChannelThreads = async (
   channelId: string,
 ): Promise<ApiResponse<ChatMessageResponse[]>> => {
   const response = await api.get(`/api/channels/messages/${channelId}/threads`);

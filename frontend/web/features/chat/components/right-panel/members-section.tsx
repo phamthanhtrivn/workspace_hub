@@ -5,30 +5,35 @@ import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import InviteSpaceMembersModal from "../modals/invite-space-members-modal";
 import { FaKey } from "react-icons/fa";
+import {
+  ChannelResponse,
+  ChatProfilesMap,
+  ConversationMember,
+} from "../../types/chat.types";
 
 interface MembersSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
-  activeConversation: any;
-  memberProfiles: any;
+  activeChannel: ChannelResponse;
+  memberProfiles: ChatProfilesMap;
   currentUserId: string | null;
 }
 
 export default function MembersSection({
   isExpanded,
   onToggle,
-  activeConversation,
+  activeChannel,
   memberProfiles,
   currentUserId,
 }: MembersSectionProps) {
   const dispatch = useAppDispatch();
   const [showAddMembersModal, setShowAddMembersModal] = useState(false);
 
-  const currentMember = activeConversation?.members?.find(
-    (m: any) => m.userId === currentUserId,
+  const currentMember = activeChannel.members?.find(
+    (member) => member.userId === currentUserId,
   );
   const canInvite = currentMember?.role === "ADMIN";
-  const spaceId = activeConversation?.spaceId;
+  const spaceId = activeChannel.spaceId;
 
   return (
     <div>
@@ -39,7 +44,7 @@ export default function MembersSection({
         >
           <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
             <Users size={18} className="text-gray-500" />
-            Members ({activeConversation?.members?.length || 0})
+            Members ({activeChannel.members?.length || 0})
           </div>
           {isExpanded ? (
             <ChevronDown size={16} className="text-gray-400" />
@@ -51,7 +56,7 @@ export default function MembersSection({
         {isExpanded && (
           <div className="px-4 pb-2 space-y-2">
             <div className="max-h-[170px] overflow-y-auto pr-1 space-y-2">
-              {activeConversation?.members?.map((member: any) => {
+              {activeChannel.members?.map((member: ConversationMember) => {
                 const profile = memberProfiles?.[member.userId];
                 const name = profile?.fullName || "User";
                 const isMe = member.userId === currentUserId;

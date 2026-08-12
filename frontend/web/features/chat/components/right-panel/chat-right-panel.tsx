@@ -4,9 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import {
-  getConversationMedia,
+  getChannelMedia,
   getDirectConversationMedia,
-  muteConversation,
+  muteChannel,
   muteDirectConversation,
   pinDirectConversation,
 } from "../../api/chat.api";
@@ -47,7 +47,7 @@ import {
 } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { ChatQueryKey } from "../../types/chat.constant";
-import { ChatContextType } from "../../types/chat.types";
+import { ChannelResponse, ChatContextType } from "../../types/chat.types";
 import {
   useActiveChat,
   useActiveThreadRootMessage,
@@ -118,6 +118,10 @@ export default function ChatRightPanel({
   }, [activeConversation?.id, activeThreadRootMessage, detailView, dispatch]);
 
   const isDirect = activeChatType === ChatContextType.DIRECT_MESSAGE;
+  const activeChannel: ChannelResponse | null =
+    !isDirect && activeConversation && "spaceId" in activeConversation
+      ? activeConversation
+      : null;
 
   let displayName = "Channel";
   let displayAvatarUrl = null;
@@ -179,7 +183,7 @@ export default function ChatRightPanel({
     setIsMuted(targetMuted);
 
     try {
-      await (isDirect ? muteDirectConversation : muteConversation)(
+      await (isDirect ? muteDirectConversation : muteChannel)(
         activeConversation.id,
         targetMuted,
       );
@@ -296,7 +300,7 @@ export default function ChatRightPanel({
       const fetchMedia =
         isDirect
           ? getDirectConversationMedia
-          : getConversationMedia;
+          : getChannelMedia;
       fetchMedia(activeConversation.id)
         .then((res: any) => {
           if (res.data && res.data.medias) {
@@ -536,11 +540,11 @@ export default function ChatRightPanel({
 
         {/* Accordions */}
         <div className="py-2">
-          {!isDirect && (
+          {activeChannel && (
             <MembersSection
               isExpanded={expandedSection === "members"}
               onToggle={() => toggleSection("members")}
-              activeConversation={activeConversation}
+              activeChannel={activeChannel}
               memberProfiles={memberProfiles}
               currentUserId={currentUserId}
             />
@@ -616,16 +620,16 @@ export default function ChatRightPanel({
         />
       )}
 
-      {showSettingsModal && (
+      {showSettingsModal && activeChannel && (
         <ChannelSettingsModal
-          conversation={activeConversation}
+          channel={activeChannel}
           onClose={() => setShowSettingsModal(false)}
         />
       )}
 
-      {showMembersModal && currentUserId && (
+      {showMembersModal && currentUserId && activeChannel && (
         <ManageMembersModal
-          conversation={activeConversation}
+          channel={activeChannel}
           memberProfiles={memberProfiles}
           currentUserId={currentUserId}
           onClose={() => setShowMembersModal(false)}

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import { formatDateTime } from "@/lib/date";
 import {
-  getConversationThreads,
+  getChannelThreads,
   getDirectConversationThreads,
 } from "../../api/chat.api";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -33,7 +33,7 @@ export default function ThreadsSection({
     queryFn: async () => {
       const res = isDirect
         ? await getDirectConversationThreads(conversationId, undefined, 5)
-        : await getConversationThreads(conversationId);
+        : await getChannelThreads(conversationId);
       if (!res?.success) return { threads: [], nextCursor: undefined };
       if (Array.isArray(res.data)) {
         return {

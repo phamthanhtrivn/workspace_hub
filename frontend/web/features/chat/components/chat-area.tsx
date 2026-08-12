@@ -8,7 +8,7 @@ import DirectMessageInput, {
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { getConversationMessages } from "../api/chat.api";
+import { getChannelMessages } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -124,7 +124,7 @@ export default function ChatArea({
       const fetchMessages =
         activeChatType === ChatContextType.DIRECT_MESSAGE
           ? getDirectMessages
-          : getConversationMessages;
+          : getChannelMessages;
       const response = await fetchMessages(
         activeConversation!.id,
         pageParam?.cursor,

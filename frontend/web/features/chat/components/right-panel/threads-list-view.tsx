@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import {
-  getConversationThreads,
+  getChannelThreads,
   getDirectConversationThreads,
 } from "../../api/chat.api";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -73,7 +73,7 @@ export default function ThreadsListView({
         return res?.success ? res.data : { messages: [], nextCursor: undefined };
       }
 
-      const res = await getConversationThreads(conversationId);
+      const res = await getChannelThreads(conversationId);
       return {
         messages: res?.success && Array.isArray(res.data) ? res.data : [],
         nextCursor: undefined,
