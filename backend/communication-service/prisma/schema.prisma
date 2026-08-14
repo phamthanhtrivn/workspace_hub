@@ -132,6 +132,7 @@ model ChannelMember {
   lastReadMessageId String?   @map("last_read_message_id") @db.Uuid
   lastReadAt        DateTime? @map("last_read_at")
   muted             Boolean   @default(false)
+  pinned            Boolean   @default(false)
   nickname          String?
 
   channel           Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)

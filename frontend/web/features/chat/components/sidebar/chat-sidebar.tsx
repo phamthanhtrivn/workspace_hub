@@ -19,7 +19,7 @@ import InviteSpaceMembersModal from "../modals/invite-space-members-modal";
 import BrowseChannelsModal from "../modals/browse-channels-modal";
 import ChannelItem from "./channel-item";
 import DirectConversationsSection from "./direct-conversations-section";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
 import {
   setActiveConversation,
@@ -43,6 +43,8 @@ import { cn } from "@/lib/utils";
 import {
   markChannelThreadAsRead,
   markDirectThreadAsRead,
+  muteChannel,
+  pinChannel,
 } from "../../api/chat.api";
 import {
   useActiveChat,
@@ -51,6 +53,7 @@ import {
 } from "../../hooks/useChatQueries";
 import {
   clearChatUnread,
+  patchChatMember,
   upsertChannelCache,
   upsertDirectMessageCache,
   updateDirectMessagesCache,
@@ -62,6 +65,22 @@ import FollowedThreadsModal, {
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
+}
+
+function isChannelPinned(channel: ChannelResponse, userId?: string | null) {
+  return !!channel.members?.find((member) => member.userId === userId)?.pinned;
+}
+
+function sortChannelsByPin(
+  channels: ChannelResponse[],
+  userId?: string | null,
+) {
+  return [...channels].sort((a, b) => {
+    const aPinned = isChannelPinned(a, userId);
+    const bPinned = isChannelPinned(b, userId);
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
+    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+  });
 }
 
 export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
@@ -324,6 +343,84 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     handleSelectChannel(newChannel);
   };
 
+  const updateChannelMemberCache = useCallback(
+    (
+      channelId: string,
+      memberPatch: { pinned?: boolean; muted?: boolean },
+      spaceId?: string | null,
+    ) => {
+      updateChannelsCache(
+        queryClient,
+        channelId,
+        (channel) => patchChatMember(channel, currentUserId || "", memberPatch),
+        spaceId ?? activeSpaceId,
+      );
+    },
+    [activeSpaceId, currentUserId, queryClient],
+  );
+
+  const pinChannelMutation = useMutation({
+    mutationFn: ({
+      channelId,
+      pinned,
+    }: {
+      channelId: string;
+      pinned: boolean;
+    }) => pinChannel(channelId, pinned),
+    onMutate: async ({ channelId, pinned }) => {
+      const queryKey = chatKeys.channels(activeSpaceId);
+      await queryClient.cancelQueries({ queryKey });
+      const previousData = queryClient.getQueryData(queryKey);
+
+      updateChannelMemberCache(channelId, { pinned });
+      return { previousData };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          chatKeys.channels(activeSpaceId),
+          context.previousData,
+        );
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(activeSpaceId),
+      });
+    },
+  });
+
+  const muteChannelMutation = useMutation({
+    mutationFn: ({
+      channelId,
+      muted,
+    }: {
+      channelId: string;
+      muted: boolean;
+    }) => muteChannel(channelId, muted),
+    onMutate: async ({ channelId, muted }) => {
+      const queryKey = chatKeys.channels(activeSpaceId);
+      await queryClient.cancelQueries({ queryKey });
+      const previousData = queryClient.getQueryData(queryKey);
+
+      updateChannelMemberCache(channelId, { muted });
+      return { previousData };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(
+          chatKeys.channels(activeSpaceId),
+          context.previousData,
+        );
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(activeSpaceId),
+      });
+    },
+  });
+
   const clearThreadUnreadForChat = useCallback(
     (thread: FollowedThreadResponse) => {
       const queryKey = chatKeys.followedThreads(currentUserId);
@@ -420,8 +517,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
   // Filtered lists based on search
   const joinedChannels = useMemo(() => {
-    return channels.filter((channel: any) =>
-      channel.members?.some((m: any) => m.userId === currentUserId)
+    return sortChannelsByPin(
+      channels.filter((channel: any) =>
+        channel.members?.some((m: any) => m.userId === currentUserId),
+      ),
+      currentUserId,
     );
   }, [channels, currentUserId]);
 
@@ -612,6 +712,18 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     currentUserId={currentUserId}
                     isActive={activeChat?.id === channel.id}
                     onClick={handleSelectChannel}
+                    onTogglePin={(selectedChannel, pinned) =>
+                      pinChannelMutation.mutate({
+                        channelId: selectedChannel.id,
+                        pinned,
+                      })
+                    }
+                    onToggleMute={(selectedChannel, muted) =>
+                      muteChannelMutation.mutate({
+                        channelId: selectedChannel.id,
+                        muted,
+                      })
+                    }
                   />
                 ))
               ) : (

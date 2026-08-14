@@ -56,7 +56,7 @@ interface ChannelChatInputProps {
   onCreatePoll?: () => void;
   onCreateNote?: () => void;
   onTypingChange?: (isTyping: boolean) => void;
-  autoFocusOnConversationChange?: boolean;
+  autoFocusOnChannelChange?: boolean;
 }
 
 interface UploadingMedia {
@@ -82,7 +82,7 @@ const ChannelChatInput = React.memo(
         onCreatePoll,
         onCreateNote,
         onTypingChange,
-        autoFocusOnConversationChange = true,
+        autoFocusOnChannelChange = true,
       },
       ref,
     ) {
@@ -96,7 +96,7 @@ const ChannelChatInput = React.memo(
       );
 
       const {
-        activeChat: activeConversation,
+        activeChat: activeChannel,
         activeChatType,
       } = useActiveChat();
       const memberProfiles = useChatMemberProfiles();
@@ -114,10 +114,10 @@ const ChannelChatInput = React.memo(
       const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
       const isTypingRef = useRef(false);
       const voiceSessionIdRef = useRef(
-        `conversation-input-${Math.random().toString(36).slice(2)}`,
+        `channel-input-${Math.random().toString(36).slice(2)}`,
       );
 
-      const activeConversationId = activeConversation?.id;
+      const activeChannelId = activeChannel?.id;
       const isUploading = uploadingMedia.some((m) => m.status === "uploading");
 
       // Close options on outside click
@@ -167,7 +167,7 @@ const ChannelChatInput = React.memo(
         (file: File) => {
           uploadFilesList([file]);
         },
-        [activeConversationId],
+        [activeChannelId],
       );
 
       const {
@@ -259,12 +259,12 @@ const ChannelChatInput = React.memo(
       const filteredMembers = React.useMemo(() => {
         if (
           mentionQuery === null ||
-          !activeConversation?.members ||
+          !activeChannel?.members ||
           !memberProfiles
         )
           return [];
         const query = mentionQuery.toLowerCase();
-        const members = activeConversation.members
+        const members = activeChannel.members
           .map((m: any) => m.userId)
           .filter((id: string) => id !== authUserId)
           .map((id: string) => ({
@@ -292,7 +292,7 @@ const ChannelChatInput = React.memo(
         }
 
         return members.slice(0, 4);
-      }, [mentionQuery, activeConversation, memberProfiles, authUserId]);
+      }, [mentionQuery, activeChannel, memberProfiles, authUserId]);
 
       const handleEmojiSelect = useCallback(
         (emoji: string) => {
@@ -393,8 +393,8 @@ const ChannelChatInput = React.memo(
 
       useEffect(() => {
         if (
-          autoFocusOnConversationChange &&
-          activeConversationId &&
+          autoFocusOnChannelChange &&
+          activeChannelId &&
           textareaRef.current
         ) {
           textareaRef.current.focus();
@@ -407,7 +407,7 @@ const ChannelChatInput = React.memo(
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-      }, [activeConversationId, autoFocusOnConversationChange, onTypingChange]);
+      }, [activeChannelId, autoFocusOnChannelChange, onTypingChange]);
 
       const uploadFilesList = async (files: File[]) => {
         const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
@@ -429,7 +429,7 @@ const ChannelChatInput = React.memo(
         setShowOptions(false);
 
         try {
-          if (!activeConversationId) throw new Error("No active channel");
+          if (!activeChannelId) throw new Error("No active channel");
 
           const presignRequests = newUploads.map((u) => ({
             fileName: u.name,
@@ -440,7 +440,7 @@ const ChannelChatInput = React.memo(
           if (!activeChatType) throw new Error("No active chat type");
 
           const presignedUrls = await getPresignedUrls({
-            chatId: activeConversationId,
+            chatId: activeChannelId,
             chatType: activeChatType,
             files: presignRequests,
           });
@@ -495,7 +495,7 @@ const ChannelChatInput = React.memo(
             uploadFilesList(newFiles);
           }
         },
-        [activeConversationId],
+        [activeChannelId],
       );
 
       const formatTime = (seconds: number) => {
@@ -561,24 +561,24 @@ const ChannelChatInput = React.memo(
         clearInterim,
       ]);
 
-      const currentMember = activeConversation?.members?.find(
+      const currentMember = activeChannel?.members?.find(
         (m: any) => m.userId === authUserId,
       );
       const otherDirectMemberId =
-        activeConversation?.members?.find((m) => m.userId !== authUserId)
+        activeChannel?.members?.find((m) => m.userId !== authUserId)
           ?.userId ?? null;
       const isMember = currentMember?.role === "MEMBER";
       const allowSendMessage =
-        isMember && activeConversation?.setting
-          ? activeConversation.setting.allowSendMessage
+        isMember && activeChannel?.setting
+          ? activeChannel.setting.allowSendMessage
           : true;
       const allowCreatePoll =
-        isMember && activeConversation?.setting
-          ? activeConversation.setting.allowCreatePoll
+        isMember && activeChannel?.setting
+          ? activeChannel.setting.allowCreatePoll
           : true;
       const allowCreateNote =
-        isMember && activeConversation?.setting
-          ? activeConversation.setting.allowCreateNote
+        isMember && activeChannel?.setting
+          ? activeChannel.setting.allowCreateNote
           : true;
 
       if (!allowSendMessage) {
@@ -875,7 +875,7 @@ const ChannelChatInput = React.memo(
                               "user"
                             : "user"
                         }...`
-                      : "Type @ to mention, message " + activeConversation?.name
+                      : "Type @ to mention, message " + activeChannel?.name
                   }
                   disabled={isUploading}
                   className="w-full bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-2 py-2 text-sm min-h-[36px]"

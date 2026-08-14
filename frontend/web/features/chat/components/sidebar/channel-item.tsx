@@ -1,5 +1,5 @@
-import React from "react";
-import { BellOff, Globe, Hash } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { Bell, BellOff, Globe, Hash, MoreVertical, Pin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 import { ChannelResponse } from "../../types/chat.types";
@@ -9,6 +9,8 @@ interface ChannelItemProps {
   currentUserId: string | null;
   isActive?: boolean;
   onClick: (channel: ChannelResponse) => void;
+  onTogglePin?: (channel: ChannelResponse, pinned: boolean) => void;
+  onToggleMute?: (channel: ChannelResponse, muted: boolean) => void;
 }
 
 const ChannelItem = React.memo(function ChannelItem({
@@ -16,13 +18,32 @@ const ChannelItem = React.memo(function ChannelItem({
   currentUserId,
   isActive,
   onClick,
+  onTogglePin,
+  onToggleMute,
 }: ChannelItemProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const currentMember = channel.members?.find(
     (member: any) => member.userId === currentUserId,
   );
   const isMuted = currentMember?.muted || false;
+  const isPinned = currentMember?.pinned || false;
   const name = channel.name || "Channel";
   const unreadCount = channel.unreadCount ?? 0;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMenuOpen]);
 
   return (
     <div
@@ -67,7 +88,10 @@ const ChannelItem = React.memo(function ChannelItem({
         )}
       </div>
 
-      <div className="flex items-center justify-end shrink-0 pl-1">
+      <div className="flex items-center justify-end shrink-0 pl-1 gap-1">
+        {isPinned && (
+          <Pin size={11} className="shrink-0 fill-blue-600 text-blue-600" />
+        )}
         {channel.hasMention && (
           <span className="text-blue-600 font-bold text-xs mr-1 animate-bounce">
             @
@@ -83,6 +107,53 @@ const ChannelItem = React.memo(function ChannelItem({
             {unreadCount > MAX_UNREAD_COUNT ? "99+" : unreadCount}
           </div>
         ) : null}
+
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              setIsMenuOpen((value) => !value);
+            }}
+            className="rounded-md p-1 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+            title="Channel options"
+          >
+            <MoreVertical size={14} />
+          </button>
+
+          {isMenuOpen && (
+            <div
+              className="absolute right-0 top-full z-30 mt-1 min-w-[150px] rounded-xl border border-slate-200 bg-white py-1 text-xs text-slate-700 shadow-lg animate-in fade-in zoom-in-95 duration-100"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  onTogglePin?.(channel, !isPinned);
+                  setIsMenuOpen(false);
+                }}
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50"
+              >
+                <Pin
+                  size={14}
+                  className={isPinned ? "fill-blue-600 text-blue-600" : ""}
+                />
+                <span>{isPinned ? "Unpin" : "Pin"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onToggleMute?.(channel, !isMuted);
+                  setIsMenuOpen(false);
+                }}
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50"
+              >
+                {isMuted ? <Bell size={14} /> : <BellOff size={14} />}
+                <span>{isMuted ? "Unmute" : "Mute"}</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

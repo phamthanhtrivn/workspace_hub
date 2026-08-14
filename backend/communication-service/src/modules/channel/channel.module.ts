@@ -1,5 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { ConversationController } from './channel.controller';
+import { ChannelController } from './channel.controller';
 import { ChatModule } from '../chat/chat.module';
 import { MessageModule } from '../message/message.module';
 import { PrismaModule } from '../../prisma/prisma.module';
@@ -13,7 +13,7 @@ import { ChannelService } from './channel.service';
     PrismaModule,
     S3Module,
   ],
-  controllers: [ConversationController],
+  controllers: [ChannelController],
   providers: [ChannelService],
   exports: [ChannelService],
 })

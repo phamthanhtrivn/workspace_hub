@@ -128,7 +128,7 @@ export class ChannelService {
     });
   }
 
-  async updateConversationSettings(
+  async updateChannelSettings(
     channelId: string,
     userId: string,
     updateSettingDto: UpdateConversationSettingDto,
@@ -232,7 +232,7 @@ export class ChannelService {
     return updatedMember;
   }
 
-  async muteConversation(channelId: string, userId: string, muted: boolean) {
+  async muteChannel(channelId: string, userId: string, muted: boolean) {
     const member = await this.prisma.channelMember.findUnique({
       where: {
         channelId_userId: { channelId, userId },
@@ -263,6 +263,25 @@ export class ChannelService {
     }
 
     return updatedMember;
+  }
+
+  async pinChannel(channelId: string, userId: string, pinned: boolean) {
+    const member = await this.prisma.channelMember.findUnique({
+      where: {
+        channelId_userId: { channelId, userId },
+      },
+    });
+
+    if (!member) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+    }
+
+    return this.prisma.channelMember.update({
+      where: {
+        channelId_userId: { channelId, userId },
+      },
+      data: { pinned },
+    });
   }
 
   async kickMember(channelId: string, userId: string, memberId: string) {
@@ -383,7 +402,7 @@ export class ChannelService {
     return updatedChannel;
   }
 
-  async leaveConversation(channelId: string, userId: string) {
+  async leaveChannel(channelId: string, userId: string) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
     });
@@ -443,7 +462,7 @@ export class ChannelService {
     return { success: true };
   }
 
-  async disbandConversation(channelId: string, userId: string) {
+  async disbandChannel(channelId: string, userId: string) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },
     });

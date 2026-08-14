@@ -22,10 +22,10 @@ import {
 } from './types/channel.enums';
 
 @Controller('api/channels')
-export class ConversationController {
+export class ChannelController {
   constructor(
     @Inject(ChannelService)
-    private readonly conversationService: ChannelService,
+    private readonly channelService: ChannelService,
   ) {}
 
   @Get()
@@ -34,7 +34,7 @@ export class ConversationController {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_ID);
     }
 
-    const channels = await this.conversationService.getUserChannels(userId);
+    const channels = await this.channelService.getUserChannels(userId);
 
     return {
       message: CHANNEL_SUCCESS_MESSAGES.LISTED,
@@ -43,7 +43,7 @@ export class ConversationController {
   }
 
   @Patch(':id/settings')
-  async updateConversationSettings(
+  async updateChannelSettings(
     @Param('id') channelId: string,
     @Headers('x-user-id') userId: string,
     @Body() updateSettingDto: UpdateConversationSettingDto,
@@ -53,7 +53,7 @@ export class ConversationController {
         CHANNEL_ERROR_MESSAGES.MISSING_USER_OR_CHANNEL_ID,
       );
     }
-    const result = await this.conversationService.updateConversationSettings(
+    const result = await this.channelService.updateChannelSettings(
       channelId,
       userId,
       updateSettingDto,
@@ -76,7 +76,7 @@ export class ConversationController {
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
       );
     }
-    const result = await this.conversationService.updateMemberRole(
+    const result = await this.channelService.updateMemberRole(
       channelId,
       userId,
       memberId,
@@ -99,7 +99,7 @@ export class ConversationController {
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
       );
     }
-    await this.conversationService.kickMember(channelId, userId, memberId);
+    await this.channelService.kickMember(channelId, userId, memberId);
     return {
       message: CHANNEL_SUCCESS_MESSAGES.MEMBER_REMOVED,
     };
@@ -114,7 +114,7 @@ export class ConversationController {
   //   if (!userId || !channelId || !memberId) {
   //     throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
   //   }
-  //   await this.conversationService.kickMember(channelId, userId, memberId);
+  //   await this.channelService.kickMember(channelId, userId, memberId);
   //   return {
   //     message: 'Member removed successfully',
   //   };
@@ -132,7 +132,7 @@ export class ConversationController {
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
       );
     }
-    return this.conversationService.getAvatarUploadPresignedUrl(
+    return this.channelService.getAvatarUploadPresignedUrl(
       channelId,
       userId,
       fileName,
@@ -151,7 +151,7 @@ export class ConversationController {
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
       );
     }
-    const result = await this.conversationService.updateChannelInfo(
+    const result = await this.channelService.updateChannelInfo(
       channelId,
       userId,
       data,
@@ -163,7 +163,7 @@ export class ConversationController {
   }
 
   @Delete(':id/leave')
-  async leaveConversation(
+  async leaveChannel(
     @Param('id') channelId: string,
     @Headers('x-user-id') userId: string,
   ) {
@@ -172,14 +172,14 @@ export class ConversationController {
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
       );
     }
-    await this.conversationService.leaveConversation(channelId, userId);
+    await this.channelService.leaveChannel(channelId, userId);
     return {
       message: CHANNEL_SUCCESS_MESSAGES.LEFT,
     };
   }
 
   @Delete(':id/disband')
-  async disbandConversation(
+  async disbandChannel(
     @Param('id') channelId: string,
     @Headers('x-user-id') userId: string,
   ) {
@@ -188,14 +188,14 @@ export class ConversationController {
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
       );
     }
-    await this.conversationService.disbandConversation(channelId, userId);
+    await this.channelService.disbandChannel(channelId, userId);
     return {
       message: CHANNEL_SUCCESS_MESSAGES.DISBANDED,
     };
   }
 
   @Patch(':id/mute')
-  async muteConversation(
+  async muteChannel(
     @Param('id') channelId: string,
     @Headers('x-user-id') userId: string,
     @Body('muted') muted: boolean,
@@ -205,7 +205,7 @@ export class ConversationController {
         CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
       );
     }
-    const result = await this.conversationService.muteConversation(
+    const result = await this.channelService.muteChannel(
       channelId,
       userId,
       muted,
@@ -214,6 +214,28 @@ export class ConversationController {
       message: muted
         ? CHANNEL_SUCCESS_MESSAGES.MUTE_ON
         : CHANNEL_SUCCESS_MESSAGES.MUTE_OFF,
+      data: result,
+    };
+  }
+
+  @Patch(':id/pin')
+  async pinChannel(
+    @Param('id') channelId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('pinned') pinned: boolean,
+  ) {
+    if (!userId || !channelId || pinned === undefined) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
+    }
+    const result = await this.channelService.pinChannel(
+      channelId,
+      userId,
+      pinned,
+    );
+    return {
+      message: pinned ? 'Channel pinned' : 'Channel unpinned',
       data: result,
     };
   }
@@ -228,7 +250,7 @@ export class ConversationController {
       throw new BadRequestException('Missing channelId or userId');
     }
     const decodedUserName = decodeHeaderUtf8(userName);
-    const result = await this.conversationService.joinChannel(
+    const result = await this.channelService.joinChannel(
       channelId,
       userId,
       decodedUserName,

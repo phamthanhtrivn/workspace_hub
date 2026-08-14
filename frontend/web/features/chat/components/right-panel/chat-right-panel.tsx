@@ -57,7 +57,7 @@ interface ChatRightPanelProps {
   initialDetailView?: "files" | "polls" | "search" | "threads" | null;
 }
 
-function getMessageConversationId(message: any) {
+function getMessageChatId(message: any) {
   return message?.chatId ?? message?.channelId ?? message?.conversationId ?? null;
 }
 
@@ -81,7 +81,7 @@ export default function ChatRightPanel({
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showMembersModal, setShowMembersModal] = useState(false);
-  const lastFetchedConversationId = useRef<string | null>(null);
+  const lastFetchedChatId = useRef<string | null>(null);
 
   const { activeChat: activeConversation, activeChatType } = useActiveChat();
   const memberProfiles = useChatMemberProfiles();
@@ -264,7 +264,7 @@ export default function ChatRightPanel({
   };
 
   const handleOpenThread = (message: any) => {
-    if (getMessageConversationId(message) !== activeConversation?.id) return;
+    if (getMessageChatId(message) !== activeConversation?.id) return;
     dispatch(setActiveThreadRootMessage(message));
   };
 
@@ -272,7 +272,7 @@ export default function ChatRightPanel({
     if (
       activeConversation?.id &&
       expandedSection === "files" &&
-      lastFetchedConversationId.current !== activeConversation.id
+      lastFetchedChatId.current !== activeConversation.id
     ) {
       const fetchMedia =
         isDirect
@@ -282,7 +282,7 @@ export default function ChatRightPanel({
         .then((res: any) => {
           if (res.data && res.data.medias) {
             setMediaItems(res.data.medias);
-            lastFetchedConversationId.current = activeConversation.id;
+            lastFetchedChatId.current = activeConversation.id;
           }
         })
         .catch((err: unknown) =>
@@ -296,11 +296,11 @@ export default function ChatRightPanel({
     }
   }, [activeConversation?.id, expandedSection]);
 
-  // Reset fetch tracker when conversation changes so it can fetch again if expanded
+  // Reset fetch tracker when chat changes so it can fetch again if expanded
   useEffect(() => {
     if (
       activeConversation?.id &&
-      lastFetchedConversationId.current !== activeConversation.id
+      lastFetchedChatId.current !== activeConversation.id
     ) {
       // We don't fetch yet, but we clear mediaItems to avoid showing old ones
       setMediaItems([]);
@@ -420,7 +420,7 @@ export default function ChatRightPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* Info Area */}
+        {isDirect && (
         <div className="p-6 flex flex-col items-center border-b border-gray-100">
           <div
             className={`w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden ${
@@ -504,6 +504,7 @@ export default function ChatRightPanel({
             )}
           </div>
         </div>
+        )}
 
         {/* Accordions */}
         <div className="py-2">

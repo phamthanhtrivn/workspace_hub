@@ -503,6 +503,17 @@ export const muteChannel = async (
   return normalizeApiResponse<MuteConversationResponse>(response.data);
 };
 
+export const pinChannel = async (
+  channelId: string,
+  pinned: boolean,
+): Promise<ApiResponse<{ pinned: boolean }>> => {
+  const response = await api.patch(
+    `/api/channels/${channelId}/pin`,
+    { pinned },
+  );
+  return normalizeApiResponse<{ pinned: boolean }>(response.data);
+};
+
 export const muteDirectConversation = async (
   conversationId: string,
   muted: boolean,

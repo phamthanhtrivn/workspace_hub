@@ -1182,7 +1182,7 @@ export default function ChatArea({
           onCreatePoll={() => setIsPollModalOpen(true)}
           onCreateNote={() => setIsNoteModalOpen(true)}
           onTypingChange={handleTypingChange}
-          autoFocusOnConversationChange={!activeThreadRootMessageId}
+          autoFocusOnChannelChange={!activeThreadRootMessageId}
         />
       )}
 
