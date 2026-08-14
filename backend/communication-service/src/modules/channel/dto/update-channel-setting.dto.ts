@@ -1,6 +1,6 @@
 import { IsBoolean, IsOptional } from 'class-validator';
 
-export class UpdateConversationSettingDto {
+export class UpdateChannelSettingDto {
   @IsOptional()
   @IsBoolean()
   allowSendMessage?: boolean;

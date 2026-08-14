@@ -7,7 +7,7 @@ import { SpaceRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
-import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
+import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
 import { ChatEvent } from '../chat/chat.events';
 import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 import { getMediaUrl } from 'src/common/utils/file.util';
@@ -131,7 +131,7 @@ export class ChannelService {
   async updateChannelSettings(
     channelId: string,
     userId: string,
-    updateSettingDto: UpdateConversationSettingDto,
+    updateSettingDto: UpdateChannelSettingDto,
   ) {
     const channel = await this.prisma.channel.findUnique({
       where: { id: channelId },

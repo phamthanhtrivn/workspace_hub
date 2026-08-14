@@ -19,6 +19,7 @@ import { ChatEvent } from "../../api/chat.events";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
+import { useActiveChat } from "../../hooks/useChatQueries";
 import { formatDateTime } from "@/lib/date";
 import { ChatScope, chatKeys } from "../../types/chat.constant";
 import {
@@ -84,6 +85,7 @@ export default function ThreadDetailView({
 }: ThreadDetailViewProps) {
   const queryClient = useQueryClient();
   const { sendMessage: sendDirectThreadReply } = useDirectMessageActions();
+  const { activeChat, activeChatType } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ThreadChatInputRef>(null);
@@ -121,6 +123,14 @@ export default function ThreadDetailView({
       (typeof chatId === "string" ? chatId : null)
     );
   }, [rootMessage]);
+  const currentMember = activeChat?.members?.find(
+    (member) => member.userId === currentUserId,
+  );
+  const canReplyInThread =
+    isDirect ||
+    activeChatType !== ChatContextType.CHANNEL ||
+    currentMember?.role !== "MEMBER" ||
+    activeChat?.setting?.allowSendMessage !== false;
 
   const handleToggleFollow = async () => {
     const nextFollowingState = !isFollowing;
@@ -301,6 +311,7 @@ export default function ThreadDetailView({
 
   // Focus input when the thread details view opens or the active thread message changes
   useEffect(() => {
+    if (!canReplyInThread) return;
     if (chatInputRef.current) {
       chatInputRef.current.focus();
     }
@@ -310,7 +321,7 @@ export default function ThreadDetailView({
       }
     }, 100);
     return () => clearTimeout(timer);
-  }, [rootMessage.id]);
+  }, [canReplyInThread, rootMessage.id]);
 
   const handleSendReply = (
     content: string,
@@ -347,6 +358,10 @@ export default function ThreadDetailView({
     }
 
     if (!socket || !rootChatId) return;
+    if (!canReplyInThread) {
+      toast.error("Only administrators can reply in this thread");
+      return;
+    }
 
     socket.emit(
       ChatEvent.SEND_MESSAGE,
@@ -603,7 +618,15 @@ export default function ThreadDetailView({
       </div>
 
       {/* Input bar */}
-      <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
+      {canReplyInThread ? (
+        <ThreadChatInput ref={chatInputRef} onSendMessage={handleSendReply} />
+      ) : (
+        <div className="w-full border-t border-gray-200 bg-white p-3">
+          <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
+            Only administrators can reply in this thread
+          </div>
+        </div>
+      )}
     </div>
   );
 }

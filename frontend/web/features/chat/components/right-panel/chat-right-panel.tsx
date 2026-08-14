@@ -11,7 +11,7 @@ import {
   pinDirectConversation,
 } from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
-import MembersSection from "./members-section";
+import ChannelSettingsSection from "./channel-settings-section";
 import FilesSection from "./files-section";
 import PollsSection from "./polls-section";
 import NotesSection from "./notes-section";
@@ -23,7 +23,6 @@ import PollDetailView from "./poll-detail-view";
 import PinnedMessagesDetailView from "./pinned-messages-detail-view";
 import SearchMessagesSection from "./search-messages-section";
 import ChannelSettingsModal from "../modals/channel-settings-modal";
-import ManageMembersModal from "../modals/manage-members-modal";
 import ThreadsListView from "./threads-list-view";
 import {
   X,
@@ -31,8 +30,6 @@ import {
   BellOff,
   Pin,
   User,
-  Users,
-  Settings,
 } from "lucide-react";
 import Image from "next/image";
 import { useQueryClient } from "@tanstack/react-query";
@@ -67,7 +64,7 @@ export default function ChatRightPanel({
 }: ChatRightPanelProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
-    "members",
+    "pinned",
   );
   const [detailView, setDetailView] = useState<
     | "files"
@@ -80,7 +77,6 @@ export default function ChatRightPanel({
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showMembersModal, setShowMembersModal] = useState(false);
   const lastFetchedChatId = useRef<string | null>(null);
 
   const { activeChat: activeConversation, activeChatType } = useActiveChat();
@@ -218,8 +214,6 @@ export default function ChatRightPanel({
       console.error("Failed to update pin status:", error);
     }
   };
-  const isAdmin = currentMember?.role === "ADMIN";
-
   if (isDirect) {
     const otherMember = activeConversation?.members?.find(
       (m) => m.userId !== currentUserId,
@@ -421,36 +415,31 @@ export default function ChatRightPanel({
 
       <div className="flex-1 overflow-y-auto">
         {isDirect && (
-        <div className="p-6 flex flex-col items-center border-b border-gray-100">
-          <div
-            className={`w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden ${
-              isDirect ? "cursor-pointer" : ""
-            }`}
-            onClick={() => {
-              if (isDirect && otherMemberId) {
-                dispatch(setSelectedProfileUserId(otherMemberId));
-              }
-            }}
-          >
-            {displayAvatarUrl ? (
-              <Image
-                src={displayAvatarUrl}
-                alt="Avatar"
-                width={80}
-                height={80}
-                className="rounded-full"
-              />
-            ) : isDirect ? (
-              <User size={40} className="text-gray-400" />
-            ) : (
-              <Users size={40} className="text-gray-400" />
-            )}
-          </div>
-          <h3 className="font-bold text-gray-900 text-lg">{displayName}</h3>
-          <p className="text-sm text-gray-500 mb-4">{displayDescription}</p>
+          <div className="p-6 flex flex-col items-center border-b border-gray-100">
+            <div
+              className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center font-bold text-3xl mb-3 shadow-sm overflow-hidden cursor-pointer"
+              onClick={() => {
+                if (otherMemberId) {
+                  dispatch(setSelectedProfileUserId(otherMemberId));
+                }
+              }}
+            >
+              {displayAvatarUrl ? (
+                <Image
+                  src={displayAvatarUrl}
+                  alt="Avatar"
+                  width={80}
+                  height={80}
+                  className="rounded-full"
+                />
+              ) : (
+                <User size={40} className="text-gray-400" />
+              )}
+            </div>
+            <h3 className="font-bold text-gray-900 text-lg">{displayName}</h3>
+            <p className="text-sm text-gray-500 mb-4">{displayDescription}</p>
 
-          <div className="flex gap-4">
-            {isDirect && (
+            <div className="flex gap-4">
               <button
                 onClick={handleTogglePin}
                 className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
@@ -465,56 +454,29 @@ export default function ChatRightPanel({
                   {isPinned ? "Unpin" : "Pin"}
                 </span>
               </button>
-            )}
 
-            <button
-              onClick={handleToggleMute}
-              className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
-            >
-              <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
-              </div>
-              <span className="text-xs font-medium">
-                {isMuted ? "Unmute" : "Mute"}
-              </span>
-            </button>
-
-            {!isDirect && (
               <button
-                onClick={() => setShowMembersModal(true)}
+                onClick={handleToggleMute}
                 className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
               >
                 <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Users size={18} />
+                  {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
                 </div>
-                <span className="text-xs font-medium">Members</span>
+                <span className="text-xs font-medium">
+                  {isMuted ? "Unmute" : "Mute"}
+                </span>
               </button>
-            )}
-
-            {!isDirect && isAdmin && (
-              <button
-                onClick={() => setShowSettingsModal(true)}
-                className="cursor-pointer flex flex-col items-center gap-1 text-gray-600 hover:text-gray-900 transition"
-              >
-                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
-                  <Settings size={18} />
-                </div>
-                <span className="text-xs font-medium">Settings</span>
-              </button>
-            )}
+            </div>
           </div>
-        </div>
         )}
 
         {/* Accordions */}
         <div className="py-2">
           {activeChannel && (
-            <MembersSection
-              isExpanded={expandedSection === "members"}
-              onToggle={() => toggleSection("members")}
+            <ChannelSettingsSection
               activeChannel={activeChannel}
-              memberProfiles={memberProfiles}
               currentUserId={currentUserId}
+              onOpenSettings={() => setShowSettingsModal(true)}
             />
           )}
 
@@ -592,15 +554,6 @@ export default function ChatRightPanel({
         <ChannelSettingsModal
           channel={activeChannel}
           onClose={() => setShowSettingsModal(false)}
-        />
-      )}
-
-      {showMembersModal && currentUserId && activeChannel && (
-        <ManageMembersModal
-          channel={activeChannel}
-          memberProfiles={memberProfiles}
-          currentUserId={currentUserId}
-          onClose={() => setShowMembersModal(false)}
         />
       )}
     </div>

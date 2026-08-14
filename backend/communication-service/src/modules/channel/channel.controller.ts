@@ -12,7 +12,7 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { UpdateConversationSettingDto } from './dto/update-channel-setting.dto';
+import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ChannelService } from './channel.service';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
@@ -46,7 +46,7 @@ export class ChannelController {
   async updateChannelSettings(
     @Param('id') channelId: string,
     @Headers('x-user-id') userId: string,
-    @Body() updateSettingDto: UpdateConversationSettingDto,
+    @Body() updateSettingDto: UpdateChannelSettingDto,
   ) {
     if (!userId || !channelId) {
       throw new BadRequestException(

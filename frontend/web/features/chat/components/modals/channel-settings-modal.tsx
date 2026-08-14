@@ -8,10 +8,7 @@ import {
   FiBarChart2,
   FiEdit3,
 } from "react-icons/fi";
-import {
-  updateChannelSettings,
-  updateChannelInfo,
-} from "../../api/chat.api";
+import { updateChannelSettings, updateChannelInfo } from "../../api/chat.api";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
@@ -73,7 +70,9 @@ export default function ChannelSettingsModal({
       }
 
       toast.success("Settings updated successfully");
-      queryClient.invalidateQueries({ queryKey: chatKeys.channels(activeSpaceId) });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(activeSpaceId),
+      });
       onClose();
     } catch {
       toast.error("Failed to update channel settings");
@@ -105,11 +104,6 @@ export default function ChannelSettingsModal({
           <div className="p-5 bg-gray-50/50 flex flex-col gap-4 border-b border-gray-100">
             {isAdmin ? (
               <div className="flex flex-col items-center gap-4">
-                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center border border-gray-200 shadow-sm shrink-0">
-                  <Hash size={28} className="text-gray-400" />
-                </div>
-
-                {/* Channel Name input */}
                 <div className="w-full">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
                     Channel Name
@@ -125,9 +119,6 @@ export default function ChannelSettingsModal({
               </div>
             ) : (
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
-                  <Hash size={20} className="text-gray-400" />
-                </div>
                 <div>
                   <h3 className="font-bold text-gray-800 text-base">
                     {channelName}
