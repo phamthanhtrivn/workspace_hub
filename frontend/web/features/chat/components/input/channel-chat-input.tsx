@@ -46,8 +46,12 @@ import { useSpeechToText } from "../../hooks/useSpeechToText";
 import { useTextFormatting } from "../../hooks/useTextFormatting";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { ChatContextType } from "../../types/chat.types";
+import {
+  claimVoiceSession,
+  releaseVoiceSession,
+} from "../../utils/voice-session-coordinator";
 
-interface ConversationChatInputProps {
+interface ChannelChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
   onCreatePoll?: () => void;
   onCreateNote?: () => void;
@@ -65,14 +69,14 @@ interface UploadingMedia {
   sizeBytes: number;
 }
 
-export interface ConversationChatInputRef {
+export interface ChannelChatInputRef {
   focus: () => void;
   setMessage: (content: string) => void;
 }
 
-const ConversationChatInput = React.memo(
-  forwardRef<ConversationChatInputRef, ConversationChatInputProps>(
-    function ConversationChatInput(
+const ChannelChatInput = React.memo(
+  forwardRef<ChannelChatInputRef, ChannelChatInputProps>(
+    function ChannelChatInput(
       {
         onSendMessage,
         onCreatePoll,
@@ -109,6 +113,9 @@ const ConversationChatInput = React.memo(
       const mainOptionsRef = useRef<HTMLDivElement>(null);
       const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
       const isTypingRef = useRef(false);
+      const voiceSessionIdRef = useRef(
+        `conversation-input-${Math.random().toString(36).slice(2)}`,
+      );
 
       const activeConversationId = activeConversation?.id;
       const isUploading = uploadingMedia.some((m) => m.status === "uploading");
@@ -146,7 +153,13 @@ const ConversationChatInput = React.memo(
         );
       }, []);
 
-      const { isDictating, interimMessage, toggleDictation, clearInterim } =
+      const {
+        isDictating,
+        interimMessage,
+        startDictation,
+        stopDictation,
+        clearInterim,
+      } =
         useSpeechToText({ onTranscript: appendTranscript });
 
       // 3. Audio Recording Hook
@@ -164,6 +177,72 @@ const ConversationChatInput = React.memo(
         stopRecording,
         cancelRecording,
       } = useAudioRecorder({ onRecordComplete: handleRecordComplete });
+
+      const dictationSessionId = `${voiceSessionIdRef.current}:speech-to-text`;
+      const recordingSessionId = `${voiceSessionIdRef.current}:voice-message`;
+
+      const handleStartDictation = useCallback(() => {
+        cancelRecording();
+        releaseVoiceSession(recordingSessionId);
+        claimVoiceSession({
+          id: dictationSessionId,
+          type: "speech-to-text",
+          stop: stopDictation,
+        });
+
+        if (!startDictation()) {
+          releaseVoiceSession(dictationSessionId);
+        }
+      }, [
+        cancelRecording,
+        dictationSessionId,
+        recordingSessionId,
+        startDictation,
+        stopDictation,
+      ]);
+
+      const handleStartRecording = useCallback(async () => {
+        stopDictation();
+        releaseVoiceSession(dictationSessionId);
+        claimVoiceSession({
+          id: recordingSessionId,
+          type: "voice-message",
+          stop: cancelRecording,
+        });
+
+        const started = await startRecording();
+        if (!started) {
+          releaseVoiceSession(recordingSessionId);
+        }
+      }, [
+        cancelRecording,
+        dictationSessionId,
+        recordingSessionId,
+        startRecording,
+        stopDictation,
+      ]);
+
+      const handleStopRecording = useCallback(() => {
+        stopRecording();
+        releaseVoiceSession(recordingSessionId);
+      }, [recordingSessionId, stopRecording]);
+
+      const handleCancelRecording = useCallback(() => {
+        cancelRecording();
+        releaseVoiceSession(recordingSessionId);
+      }, [cancelRecording, recordingSessionId]);
+
+      useEffect(() => {
+        if (!isDictating) {
+          releaseVoiceSession(dictationSessionId);
+        }
+      }, [dictationSessionId, isDictating]);
+
+      useEffect(() => {
+        if (!isRecording) {
+          releaseVoiceSession(recordingSessionId);
+        }
+      }, [isRecording, recordingSessionId]);
 
       // Auto resize height according to content
       useEffect(() => {
@@ -350,7 +429,7 @@ const ConversationChatInput = React.memo(
         setShowOptions(false);
 
         try {
-          if (!activeConversationId) throw new Error("No active conversation");
+          if (!activeConversationId) throw new Error("No active channel");
 
           const presignRequests = newUploads.map((u) => ({
             fileName: u.name,
@@ -438,7 +517,7 @@ const ConversationChatInput = React.memo(
       };
 
       const handleSend = useCallback(() => {
-        if (!message.trim() && uploadingMedia.length === 0) return;
+        if (!message.trim() && !interimMessage.trim() && uploadingMedia.length === 0) return;
         if (isUploading) {
           toast.warning("Please wait for the file to upload.");
           return;
@@ -849,14 +928,14 @@ const ConversationChatInput = React.memo(
                       {formatTime(recordingTime)}
                     </span>
                     <button
-                      onClick={cancelRecording}
+                      onClick={handleCancelRecording}
                       className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
                       title="Cancel recording"
                     >
                       <Trash2 size={16} />
                     </button>
                     <button
-                      onClick={stopRecording}
+                      onClick={handleStopRecording}
                       className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
                       title="Send"
                     >
@@ -908,7 +987,7 @@ const ConversationChatInput = React.memo(
                       <button
                         onClick={() => {
                           if (isDictating) {
-                            toggleDictation();
+                            stopDictation();
                           } else {
                             setShowMicOptions(!showMicOptions);
                           }
@@ -931,7 +1010,7 @@ const ConversationChatInput = React.memo(
                           <button
                             onClick={() => {
                               setShowMicOptions(false);
-                              startRecording();
+                              void handleStartRecording();
                             }}
                             className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                           >
@@ -941,7 +1020,7 @@ const ConversationChatInput = React.memo(
                           <button
                             onClick={() => {
                               setShowMicOptions(false);
-                              toggleDictation();
+                              handleStartDictation();
                             }}
                             className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                           >
@@ -955,13 +1034,16 @@ const ConversationChatInput = React.memo(
                     <button
                       className={`p-2 rounded-full transition-colors flex items-center justify-center ${
                         (message.trim() ||
+                          interimMessage.trim() ||
                           uploadingMedia.some((m) => m.status === "success")) &&
                         !isUploading
                           ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
                           : "bg-gray-200 text-gray-400"
                       }`}
                       disabled={
-                        (!message.trim() && uploadingMedia.length === 0) ||
+                        (!message.trim() &&
+                          !interimMessage.trim() &&
+                          uploadingMedia.length === 0) ||
                         isUploading
                       }
                       onClick={handleSend}
@@ -979,5 +1061,5 @@ const ConversationChatInput = React.memo(
   ),
 );
 
-export default ConversationChatInput;
-export type { ConversationChatInputProps };
+export default ChannelChatInput;
+export type { ChannelChatInputProps };

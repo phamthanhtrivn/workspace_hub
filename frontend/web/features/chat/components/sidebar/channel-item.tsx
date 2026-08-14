@@ -2,25 +2,27 @@ import React from "react";
 import { BellOff, Globe, Hash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
+import { ChannelResponse } from "../../types/chat.types";
 
-interface ConversationItemProps {
-  conv: any;
+interface ChannelItemProps {
+  channel: ChannelResponse;
   currentUserId: string | null;
   isActive?: boolean;
-  onClick: (conv: any) => void;
+  onClick: (channel: ChannelResponse) => void;
 }
 
-const ConversationItem = React.memo(function ConversationItem({
-  conv,
+const ChannelItem = React.memo(function ChannelItem({
+  channel,
   currentUserId,
   isActive,
   onClick,
-}: ConversationItemProps) {
-  const currentMember = conv.members?.find(
+}: ChannelItemProps) {
+  const currentMember = channel.members?.find(
     (member: any) => member.userId === currentUserId,
   );
   const isMuted = currentMember?.muted || false;
-  const name = conv.name || "Channel";
+  const name = channel.name || "Channel";
+  const unreadCount = channel.unreadCount ?? 0;
 
   return (
     <div
@@ -30,7 +32,7 @@ const ConversationItem = React.memo(function ConversationItem({
           ? "bg-blue-50/75 border-l-4 border-blue-600 text-blue-900 font-bold pl-2 shadow-[0_2px_8px_-3px_rgba(37,99,235,0.12)]"
           : "hover:bg-slate-100 text-slate-600 hover:text-slate-900",
       )}
-      onClick={() => onClick(conv)}
+      onClick={() => onClick(channel)}
     >
       <div className="flex items-center min-w-0 gap-2.5 flex-1">
         <span
@@ -41,7 +43,7 @@ const ConversationItem = React.memo(function ConversationItem({
               : "bg-slate-200/50 text-slate-500 group-hover:text-slate-700 group-hover:bg-slate-200/80",
           )}
         >
-          {conv.isDefault ? (
+          {channel.isDefault ? (
             <Globe size={13} className="opacity-90" />
           ) : (
             <Hash size={13} />
@@ -54,7 +56,7 @@ const ConversationItem = React.memo(function ConversationItem({
             isActive
               ? "text-blue-900"
               : "text-slate-700 group-hover:text-slate-900",
-            conv.unreadCount > 0 && "font-black",
+            unreadCount > 0 && "font-black",
           )}
         >
           {name}
@@ -66,19 +68,19 @@ const ConversationItem = React.memo(function ConversationItem({
       </div>
 
       <div className="flex items-center justify-end shrink-0 pl-1">
-        {conv.hasMention && (
+        {channel.hasMention && (
           <span className="text-blue-600 font-bold text-xs mr-1 animate-bounce">
             @
           </span>
         )}
-        {conv.unreadCount > 0 ? (
+        {unreadCount > 0 ? (
           <div
             className={cn(
               "text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center flex items-center justify-center shadow-sm",
               isMuted ? "bg-slate-400" : "bg-red-500",
             )}
           >
-            {conv.unreadCount > MAX_UNREAD_COUNT ? "99+" : conv.unreadCount}
+            {unreadCount > MAX_UNREAD_COUNT ? "99+" : unreadCount}
           </div>
         ) : null}
       </div>
@@ -86,4 +88,4 @@ const ConversationItem = React.memo(function ConversationItem({
   );
 });
 
-export default ConversationItem;
+export default ChannelItem;

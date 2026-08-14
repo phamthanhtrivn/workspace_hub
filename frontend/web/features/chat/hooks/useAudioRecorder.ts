@@ -13,8 +13,32 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const shouldUploadRecordingRef = useRef(true);
+
+  const clearRecordingInterval = useCallback(() => {
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+  }, []);
+
+  const resetRecordingState = useCallback(() => {
+    setIsRecording(false);
+    setRecordingTime(0);
+    clearRecordingInterval();
+  }, [clearRecordingInterval]);
 
   const startRecording = useCallback(async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error("Your browser does not support microphone recording.");
+      return false;
+    }
+
+    if (typeof MediaRecorder === "undefined") {
+      toast.error("Your browser does not support voice messages.");
+      return false;
+    }
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
@@ -22,6 +46,7 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
+      shouldUploadRecordingRef.current = true;
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
@@ -30,7 +55,10 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
       };
 
       mediaRecorder.onstop = () => {
-        if (audioChunksRef.current.length > 0) {
+        if (
+          shouldUploadRecordingRef.current &&
+          audioChunksRef.current.length > 0
+        ) {
           const audioBlob = new Blob(audioChunksRef.current, {
             type: "audio/webm",
           });
@@ -41,7 +69,11 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
           );
           onRecordComplete(audioFile);
         }
+
+        audioChunksRef.current = [];
+        shouldUploadRecordingRef.current = true;
         stream.getTracks().forEach((track) => track.stop());
+        resetRecordingState();
       };
 
       mediaRecorder.start();
@@ -51,46 +83,51 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
       recordingIntervalRef.current = setInterval(() => {
         setRecordingTime((prev) => prev + 1);
       }, 1000);
+
+      return true;
     } catch (err) {
       console.error("Error accessing microphone:", err);
+      resetRecordingState();
       toast.error("Cannot access microphone. Please grant permission.");
+      return false;
     }
-  }, [onRecordComplete]);
+  }, [onRecordComplete, resetRecordingState]);
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
-    }
-  }, [isRecording]);
+    const mediaRecorder = mediaRecorderRef.current;
+    if (!mediaRecorder || mediaRecorder.state === "inactive") return;
+
+    shouldUploadRecordingRef.current = true;
+    mediaRecorder.stop();
+    resetRecordingState();
+  }, [resetRecordingState]);
 
   const cancelRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      audioChunksRef.current = []; // Clear chunks to prevent upload
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
+    const mediaRecorder = mediaRecorderRef.current;
+    if (!mediaRecorder || mediaRecorder.state === "inactive") {
+      audioChunksRef.current = [];
+      resetRecordingState();
+      return;
     }
-  }, [isRecording]);
+
+    shouldUploadRecordingRef.current = false;
+    audioChunksRef.current = [];
+    mediaRecorder.stop();
+    resetRecordingState();
+  }, [resetRecordingState]);
 
   useEffect(() => {
     return () => {
-      if (recordingIntervalRef.current) {
-        clearInterval(recordingIntervalRef.current);
-      }
+      clearRecordingInterval();
       if (
         mediaRecorderRef.current &&
         mediaRecorderRef.current.state === "recording"
       ) {
+        shouldUploadRecordingRef.current = false;
         mediaRecorderRef.current.stream.getTracks().forEach((t) => t.stop());
       }
     };
-  }, []);
+  }, [clearRecordingInterval]);
 
   return {
     isRecording,

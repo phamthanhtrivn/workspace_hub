@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import ConversationChatInput, { ConversationChatInputRef } from "./input/conversation-chat-input";
+import ChannelChatInput, { ChannelChatInputRef } from "./input/channel-chat-input";
 import DirectMessageInput, {
   DirectMessageInputRef,
 } from "./input/direct-message-input";
@@ -53,7 +53,7 @@ type PageParam = {
   direction: "older" | "newer" | "around";
 };
 
-type ChatInputRef = ConversationChatInputRef | DirectMessageInputRef;
+type ChatInputRef = ChannelChatInputRef | DirectMessageInputRef;
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
@@ -1176,7 +1176,7 @@ export default function ChatArea({
           autoFocusOnConversationChange={!activeThreadRootMessageId}
         />
       ) : (
-        <ConversationChatInput
+        <ChannelChatInput
           ref={chatInputRef}
           onSendMessage={handleSendMessage}
           onCreatePoll={() => setIsPollModalOpen(true)}

@@ -70,7 +70,7 @@ export default function ChatLayout() {
               Welcome to WorkspaceHub Chat
             </h2>
             <p className="text-gray-500 max-w-md text-center mb-6">
-              Select a conversation from the list or search for friends to start messaging.
+              Select a channel or direct message to start messaging.
             </p>
           </div>
         )}

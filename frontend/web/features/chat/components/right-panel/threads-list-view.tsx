@@ -202,7 +202,7 @@ export default function ThreadsListView({
             <MessageSquare size={32} className="text-slate-300 mb-2" />
             <p className="text-xs">No threads in this channel yet</p>
             <p className="text-[10px] text-slate-400 max-w-[180px] mt-1">
-              Reply to any message to start a threaded conversation.
+              Reply to any message to start a thread.
             </p>
           </div>
         )}

@@ -17,7 +17,7 @@ import CreateSpaceModal from "../modals/create-space-modal";
 import CreateChannelModal from "../modals/create-channel-modal";
 import InviteSpaceMembersModal from "../modals/invite-space-members-modal";
 import BrowseChannelsModal from "../modals/browse-channels-modal";
-import ConversationItem from "./conversation-item";
+import ChannelItem from "./channel-item";
 import DirectConversationsSection from "./direct-conversations-section";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector, useAppDispatch } from "@/store/store";
@@ -162,20 +162,31 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     setIsSpaceDropdownOpen(false);
   };
 
+  const handleSelectChannel = useCallback(
+    (channel: ChannelResponse) => {
+      dispatch(setActiveChannel(channel));
+
+      if (channel.spaceId) {
+        updateChannelsCache(
+          queryClient,
+          channel.id,
+          clearChatUnread,
+          channel.spaceId,
+        );
+      }
+
+      if (onSelectChat) onSelectChat();
+    },
+    [dispatch, onSelectChat, queryClient],
+  );
+
   const handleSelectConversation = useCallback(
     (
       conv: ConversationResponse,
       profiles?: ChatProfilesMap,
-      chatType?: ChatContextType,
     ) => {
       const hydratedConversation = hydrateDirectMessage(conv, profiles);
-      const nextChatType =
-        chatType ?? (profiles ? ChatContextType.DIRECT_MESSAGE : ChatContextType.CHANNEL);
-      dispatch(
-        nextChatType === ChatContextType.DIRECT_MESSAGE
-          ? setActiveDirectMessage(hydratedConversation)
-          : setActiveChannel(hydratedConversation),
-      );
+      dispatch(setActiveDirectMessage(hydratedConversation));
 
       // Optimistically clear unread count
       queryClient.setQueryData(
@@ -197,11 +208,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           };
         },
       );
-
-      // Invalidate channels query to keep counts in sync if necessary
-      if ("spaceId" in conv && conv.spaceId) {
-        updateChannelsCache(queryClient, conv.id, clearChatUnread, conv.spaceId);
-      }
 
       if (onSelectChat) onSelectChat();
     },
@@ -315,7 +321,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       upsertChannelCache(queryClient, newChannel);
     }
     refetchChannels();
-    handleSelectConversation(newChannel, undefined, ChatContextType.CHANNEL);
+    handleSelectChannel(newChannel);
   };
 
   const clearThreadUnreadForChat = useCallback(
@@ -599,13 +605,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   Loading channels...
                 </div>
               ) : filteredChannels.length > 0 ? (
-                filteredChannels.map((conv: any) => (
-                  <ConversationItem
-                    key={conv.id}
-                    conv={conv}
+                filteredChannels.map((channel: ChannelResponse) => (
+                  <ChannelItem
+                    key={channel.id}
+                    channel={channel}
                     currentUserId={currentUserId}
-                    isActive={activeChat?.id === conv.id}
-                    onClick={handleSelectConversation}
+                    isActive={activeChat?.id === channel.id}
+                    onClick={handleSelectChannel}
                   />
                 ))
               ) : (

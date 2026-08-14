@@ -27,6 +27,10 @@ import EmojiPickerPopover from "./emoji-picker-popover";
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
 import { useActiveChat } from "../../hooks/useChatQueries";
+import {
+  claimVoiceSession,
+  releaseVoiceSession,
+} from "../../utils/voice-session-coordinator";
 
 export interface DirectMessageInputProps {
   onSendMessage?: (content: string, media?: any[]) => void;
@@ -90,6 +94,9 @@ const DirectMessageInput = React.memo(
       const micOptionsRef = useRef<HTMLDivElement>(null);
       const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
       const isTypingRef = useRef(false);
+      const voiceSessionIdRef = useRef(
+        `direct-input-${Math.random().toString(36).slice(2)}`,
+      );
 
       const isUploading = uploadingMedia.some(
         (media) => media.status === "uploading",
@@ -104,7 +111,13 @@ const DirectMessageInput = React.memo(
         );
       }, []);
 
-      const { isDictating, interimMessage, toggleDictation, clearInterim } =
+      const {
+        isDictating,
+        interimMessage,
+        startDictation,
+        stopDictation,
+        clearInterim,
+      } =
         useSpeechToText({ onTranscript: appendTranscript });
 
       const handleRecordComplete = useCallback(
@@ -121,6 +134,72 @@ const DirectMessageInput = React.memo(
         stopRecording,
         cancelRecording,
       } = useAudioRecorder({ onRecordComplete: handleRecordComplete });
+
+      const dictationSessionId = `${voiceSessionIdRef.current}:speech-to-text`;
+      const recordingSessionId = `${voiceSessionIdRef.current}:voice-message`;
+
+      const handleStartDictation = useCallback(() => {
+        cancelRecording();
+        releaseVoiceSession(recordingSessionId);
+        claimVoiceSession({
+          id: dictationSessionId,
+          type: "speech-to-text",
+          stop: stopDictation,
+        });
+
+        if (!startDictation()) {
+          releaseVoiceSession(dictationSessionId);
+        }
+      }, [
+        cancelRecording,
+        dictationSessionId,
+        recordingSessionId,
+        startDictation,
+        stopDictation,
+      ]);
+
+      const handleStartRecording = useCallback(async () => {
+        stopDictation();
+        releaseVoiceSession(dictationSessionId);
+        claimVoiceSession({
+          id: recordingSessionId,
+          type: "voice-message",
+          stop: cancelRecording,
+        });
+
+        const started = await startRecording();
+        if (!started) {
+          releaseVoiceSession(recordingSessionId);
+        }
+      }, [
+        cancelRecording,
+        dictationSessionId,
+        recordingSessionId,
+        startRecording,
+        stopDictation,
+      ]);
+
+      const handleStopRecording = useCallback(() => {
+        stopRecording();
+        releaseVoiceSession(recordingSessionId);
+      }, [recordingSessionId, stopRecording]);
+
+      const handleCancelRecording = useCallback(() => {
+        cancelRecording();
+        releaseVoiceSession(recordingSessionId);
+      }, [cancelRecording, recordingSessionId]);
+
+      useEffect(() => {
+        if (!isDictating) {
+          releaseVoiceSession(dictationSessionId);
+        }
+      }, [dictationSessionId, isDictating]);
+
+      useEffect(() => {
+        if (!isRecording) {
+          releaseVoiceSession(recordingSessionId);
+        }
+      }, [isRecording, recordingSessionId]);
 
       useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -487,7 +566,7 @@ const DirectMessageInput = React.memo(
                   </span>
                   <button
                     type="button"
-                    onClick={cancelRecording}
+                    onClick={handleCancelRecording}
                     className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
                     title="Cancel recording"
                   >
@@ -495,7 +574,7 @@ const DirectMessageInput = React.memo(
                   </button>
                   <button
                     type="button"
-                    onClick={stopRecording}
+                    onClick={handleStopRecording}
                     className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
                     title="Send voice message"
                   >
@@ -532,7 +611,7 @@ const DirectMessageInput = React.memo(
                       type="button"
                       onClick={() => {
                         if (isDictating) {
-                          toggleDictation();
+                          stopDictation();
                         } else {
                           setShowMicOptions((value) => !value);
                         }
@@ -556,7 +635,7 @@ const DirectMessageInput = React.memo(
                           type="button"
                           onClick={() => {
                             setShowMicOptions(false);
-                            startRecording();
+                            void handleStartRecording();
                           }}
                           className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                         >
@@ -567,7 +646,7 @@ const DirectMessageInput = React.memo(
                           type="button"
                           onClick={() => {
                             setShowMicOptions(false);
-                            toggleDictation();
+                            handleStartDictation();
                           }}
                           className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                         >
