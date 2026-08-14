@@ -1,13 +1,13 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Controller, Logger } from "@nestjs/common";
 import { EventPattern, Payload } from "@nestjs/microservices";
 import { KAFKA_EVENTS, KAFKA_TOPICS } from "../../../common/constants/kafka.constants";
-import { SpaceInvitationNotificationHandler } from "./space-invitation-notification.handler";
+import { SpaceInvitationNotificationHandler } from "./space-invitation-notification.service";
 import type {
   KafkaNotificationMessage,
   KafkaNotificationPayload,
 } from "../types/notification.types";
 
-@Injectable()
+@Controller()
 export class SpaceNotificationEvent {
   private readonly logger = new Logger(SpaceNotificationEvent.name);
 
@@ -16,7 +16,7 @@ export class SpaceNotificationEvent {
   ) {}
 
   @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)
-  async handleIncomingNotification(
+  async handleSpaceInvitationNotificationEvent(
     @Payload() data: KafkaNotificationMessage,
   ): Promise<void> {
     const payload = this.toPayload(data);
