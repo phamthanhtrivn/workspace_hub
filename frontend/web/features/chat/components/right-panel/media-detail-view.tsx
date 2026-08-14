@@ -22,6 +22,7 @@ import {
   getDirectConversationMedia,
 } from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
+import { logApiError } from "@/lib/interceptors";
 
 const FILE_FILTERS = [
   { value: undefined, label: "All" },
@@ -141,20 +142,31 @@ export default function MediaDetailView({
     useInfiniteQuery({
       queryKey: ["media", isDirect ? "direct" : "channel", conversationId, activeFilter],
       queryFn: async ({ pageParam }) => {
-        const fetchMedia = isDirect
-          ? getDirectConversationMedia
-          : getChannelMedia;
-        const res = await fetchMedia(
-          conversationId,
-          pageParam as string | undefined,
-          20,
-          activeFilter,
-        );
-        return res.data;
+        try {
+          const fetchMedia = isDirect
+            ? getDirectConversationMedia
+            : getChannelMedia;
+          const res = await fetchMedia(
+            conversationId,
+            pageParam as string | undefined,
+            20,
+            activeFilter,
+          );
+          return res.data;
+        } catch (error) {
+          logApiError(
+            error,
+            isDirect
+              ? "Failed to fetch direct message media detail"
+              : "Failed to fetch channel media detail",
+          );
+          return { medias: [], nextCursor: undefined };
+        }
       },
       initialPageParam: undefined as string | undefined,
       getNextPageParam: (lastPage) => lastPage?.nextCursor,
       enabled: !!conversationId,
+      retry: false,
     });
 
   React.useEffect(() => {

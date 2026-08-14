@@ -50,6 +50,7 @@ import { ChannelResponse, ChatContextType } from "../../types/chat.types";
 import {
   useActiveChat,
 } from "../../hooks/useChatQueries";
+import { logApiError } from "@/lib/interceptors";
 
 interface ChatRightPanelProps {
   onClose: () => void;
@@ -284,7 +285,14 @@ export default function ChatRightPanel({
             lastFetchedConversationId.current = activeConversation.id;
           }
         })
-        .catch((err: any) => console.error("Failed to fetch media", err));
+        .catch((err: unknown) =>
+          logApiError(
+            err,
+            isDirect
+              ? "Failed to fetch direct message media"
+              : "Failed to fetch channel media",
+          ),
+        );
     }
   }, [activeConversation?.id, expandedSection]);
 

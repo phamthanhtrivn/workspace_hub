@@ -4,6 +4,41 @@ import { store } from "@/store/store";
 import { setCredentials, clearCredentials } from "@/store/auth/auth-slice";
 import { refreshApi } from "@/features/auth/api/auth.api";
 
+const API_ERROR_LOG_THROTTLE_MS = 10_000;
+const apiErrorLogTimes = new Map<string, number>();
+
+export function logApiError(error: unknown, context = "API request failed") {
+  if (!axios.isAxiosError(error)) {
+    console.error(context, error);
+    return;
+  }
+
+  const method = error.config?.method?.toUpperCase() || "UNKNOWN";
+  const url = error.config?.url || "unknown-url";
+  const status = error.response?.status || "NO_RESPONSE";
+  const responseData = error.response?.data as
+    | { message?: string; error?: string }
+    | string
+    | undefined;
+  const message =
+    typeof responseData === "string"
+      ? responseData
+      : responseData?.message || responseData?.error || error.message;
+  const logKey = `${context}:${method}:${url}:${status}:${message}`;
+  const now = Date.now();
+  const lastLoggedAt = apiErrorLogTimes.get(logKey) || 0;
+
+  if (now - lastLoggedAt < API_ERROR_LOG_THROTTLE_MS) return;
+  apiErrorLogTimes.set(logKey, now);
+
+  console.error(context, {
+    method,
+    url,
+    status,
+    message,
+  });
+}
+
 // ── Request Interceptor: attach accessToken from Redux ──
 api.interceptors.request.use(
   (config) => {
@@ -42,7 +77,8 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Only handle 401 errors and avoid infinite loop
-    if (error.response?.status !== 401 || originalRequest._retry) {
+    if (error.response?.status !== 401 || originalRequest?._retry) {
+      logApiError(error);
       return Promise.reject(error);
     }
 

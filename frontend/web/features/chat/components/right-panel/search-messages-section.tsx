@@ -17,6 +17,7 @@ import SearchResultItem from "./search-result-item";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { ChatContextType } from "../../types/chat.types";
+import { logApiError } from "@/lib/interceptors";
 
 interface SearchMessagesSectionProps {
   conversationId: string;
@@ -97,7 +98,7 @@ export default function SearchMessagesSection({
         setResults([]);
       }
     } catch (err) {
-      console.error(err);
+      logApiError(err, "Failed to search chat messages");
       setResults([]);
     } finally {
       setLoading(false);

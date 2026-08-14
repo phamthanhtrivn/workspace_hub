@@ -249,14 +249,9 @@ const ChatMessage = React.memo(function ChatMessage({
                   <div
                     className={cn(
                       "p-3 text-sm flex flex-col relative break-words w-full max-w-full overflow-hidden leading-relaxed transition-all duration-200 font-medium rounded-2xl rounded-tl-none",
-                      isMe &&
-                        (msg.threadReplyCount && msg.threadReplyCount > 0
-                          ? "bg-indigo-600 text-white shadow-[0_4px_12px_rgba(99,102,241,0.15)]"
-                          : "bg-blue-600 text-white shadow-[0_4px_12px_rgba(37,99,235,0.15)]"),
-                      !isMe &&
-                        (msg.threadReplyCount && msg.threadReplyCount > 0
-                          ? "bg-indigo-50 border border-indigo-100 text-indigo-950 shadow-sm"
-                          : "bg-white border border-slate-100 text-slate-800 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]"),
+                      msg.threadReplyCount && msg.threadReplyCount > 0
+                        ? "bg-indigo-50 border border-indigo-100 text-indigo-950 shadow-sm"
+                        : "bg-white border border-slate-100 text-slate-800 shadow-[0_2px_8px_-3px_rgba(0,0,0,0.06)]",
                     )}
                   >
                     {renderedMessageContent}

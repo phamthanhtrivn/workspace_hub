@@ -9,6 +9,7 @@ import {
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { ChatScope, chatKeys } from "../../types/chat.constant";
 import SeeAllButton from "./see-all-button";
+import { logApiError } from "@/lib/interceptors";
 
 interface ThreadsSectionProps {
   conversationId: string;
@@ -35,22 +36,33 @@ export default function ThreadsSection({
       conversationId,
     ),
     queryFn: async () => {
-      const res = isDirect
-        ? await getDirectConversationThreads(conversationId, undefined, 5)
-        : await getChannelThreads(conversationId);
-      if (!res?.success) return { threads: [], nextCursor: undefined };
-      if (Array.isArray(res.data)) {
+      try {
+        const res = isDirect
+          ? await getDirectConversationThreads(conversationId, undefined, 5)
+          : await getChannelThreads(conversationId);
+        if (!res?.success) return { threads: [], nextCursor: undefined };
+        if (Array.isArray(res.data)) {
+          return {
+            threads: res.data.slice(0, 5),
+            nextCursor: res.data.length > 5 ? res.data[5]?.id : undefined,
+          };
+        }
         return {
-          threads: res.data.slice(0, 5),
-          nextCursor: res.data.length > 5 ? res.data[5]?.id : undefined,
+          threads: res.data.messages || [],
+          nextCursor: res.data.nextCursor,
         };
+      } catch (error) {
+        logApiError(
+          error,
+          isDirect
+            ? "Failed to fetch direct message threads"
+            : "Failed to fetch channel threads",
+        );
+        return { threads: [], nextCursor: undefined };
       }
-      return {
-        threads: res.data.messages || [],
-        nextCursor: res.data.nextCursor,
-      };
     },
     enabled: isExpanded && !!conversationId,
+    retry: false,
     refetchInterval: 3000,
   });
 

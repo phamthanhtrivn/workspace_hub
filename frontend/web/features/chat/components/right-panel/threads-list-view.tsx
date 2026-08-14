@@ -15,6 +15,7 @@ import Image from "next/image";
 import { formatDateTime } from "@/lib/date";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../types/chat.constant";
+import { logApiError } from "@/lib/interceptors";
 
 interface ThreadsListViewProps {
   conversationId: string;
@@ -65,25 +66,38 @@ export default function ThreadsListView({
       senderId || "all",
     ],
     queryFn: async ({ pageParam }) => {
-      if (isDirect) {
-        const res = await getDirectConversationThreads(
-          conversationId,
-          pageParam,
-          20,
-          senderId || undefined,
-        );
-        return res?.success ? res.data : { messages: [], nextCursor: undefined };
-      }
+      try {
+        if (isDirect) {
+          const res = await getDirectConversationThreads(
+            conversationId,
+            pageParam,
+            20,
+            senderId || undefined,
+          );
+          return res?.success
+            ? res.data
+            : { messages: [], nextCursor: undefined };
+        }
 
-      const res = await getChannelThreads(conversationId);
-      return {
-        messages: res?.success && Array.isArray(res.data) ? res.data : [],
-        nextCursor: undefined,
-      };
+        const res = await getChannelThreads(conversationId);
+        return {
+          messages: res?.success && Array.isArray(res.data) ? res.data : [],
+          nextCursor: undefined,
+        };
+      } catch (error) {
+        logApiError(
+          error,
+          isDirect
+            ? "Failed to fetch direct message threads list"
+            : "Failed to fetch channel threads list",
+        );
+        return { messages: [], nextCursor: undefined };
+      }
     },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage?.nextCursor,
     enabled: !!conversationId,
+    retry: false,
     refetchInterval: 3000,
   });
 
