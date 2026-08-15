@@ -46,8 +46,9 @@ export default function ChannelMembersModal({
 
   const admins = membersResponse?.admins ?? [];
   const members = membersResponse?.members ?? [];
+  const memberList = useMemo(() => [...admins, ...members], [admins, members]);
   const memberCount = membersResponse?.total ?? fallbackMemberCount;
-  const hasMembers = admins.length > 0 || members.length > 0;
+  const hasMembers = memberList.length > 0;
 
   const modalTitle = useMemo(
     () => CHANNEL_MEMBERS_MODAL_LABELS.title(memberCount),
@@ -61,67 +62,63 @@ export default function ChannelMembersModal({
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-slate-950/60 px-4 py-6 backdrop-blur-sm">
-      <div className="flex h-[680px] max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-xl border border-slate-700 bg-slate-950 text-slate-100 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-          <h2 className="text-base font-bold text-slate-100">{modalTitle}</h2>
+    <div className="fixed inset-0 z-[9998] flex items-center justify-center bg-gray-900/40 px-4 py-6 backdrop-blur-sm transition-opacity duration-300">
+      <div className="flex h-[680px] max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white text-gray-800 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-100 bg-white/80 px-6 py-4 backdrop-blur-md">
+          <h2 className="text-xl font-bold tracking-tight text-gray-800">
+            {modalTitle}
+          </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-slate-400 transition hover:bg-slate-800 hover:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
+            className="cursor-pointer rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             aria-label="Close channel members"
           >
-            <X size={18} />
+            <X size={20} />
           </button>
         </div>
 
-        <div className="border-b border-slate-800 px-5 py-4">
-          <label className="relative block">
+        <div className="flex-shrink-0 border-b border-gray-100 bg-gray-50/50 px-6 py-5">
+          <label className="group relative block">
             <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+              size={20}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors group-focus-within:text-blue-500"
             />
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder={CHANNEL_MEMBERS_MODAL_LABELS.searchPlaceholder}
-              className="h-10 w-full rounded-md border border-slate-700 bg-slate-900 pl-10 pr-4 text-sm text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+              className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm font-medium text-gray-700 shadow-sm outline-none transition-all placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
             />
           </label>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 [scrollbar-color:#475569_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-600">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-white px-4 py-4 [scrollbar-color:#cbd5e1_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300">
           {isLoading ? (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-slate-400">
-              <Loader2 size={22} className="animate-spin text-sky-400" />
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-sm font-medium text-gray-500">
+              <Loader2 size={24} className="animate-spin text-blue-500" />
               <span>{CHANNEL_MEMBERS_MODAL_LABELS.loading}</span>
             </div>
           ) : isError ? (
-            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+            <div className="flex h-full items-center justify-center text-sm font-medium text-gray-500">
               {CHANNEL_MEMBERS_MODAL_LABELS.loadError}
             </div>
           ) : hasMembers ? (
-            <div className="space-y-7">
+            <div className="space-y-1">
               <ChannelMembersList
-                title={CHANNEL_MEMBERS_MODAL_LABELS.adminsSection}
-                members={admins}
-                onOpenProfile={handleOpenProfile}
-              />
-              <ChannelMembersList
-                title={CHANNEL_MEMBERS_MODAL_LABELS.membersSection}
-                members={members}
+                members={memberList}
                 onOpenProfile={handleOpenProfile}
               />
             </div>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm text-slate-400">
+            <div className="flex h-full items-center justify-center text-sm font-medium text-gray-500">
               {CHANNEL_MEMBERS_MODAL_LABELS.empty}
             </div>
           )}
         </div>
 
         {isFetching && !isLoading ? (
-          <div className="border-t border-slate-800 px-5 py-2 text-xs text-slate-500">
+          <div className="border-t border-gray-100 bg-white px-6 py-2 text-xs font-medium text-gray-400">
             {CHANNEL_MEMBERS_MODAL_LABELS.loading}
           </div>
         ) : null}

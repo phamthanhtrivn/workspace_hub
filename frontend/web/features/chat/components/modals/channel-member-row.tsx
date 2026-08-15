@@ -1,7 +1,10 @@
 "use client";
 
 import { User } from "lucide-react";
-import { ChannelMemberListItem } from "../../types/chat.types";
+import {
+  ChannelMemberListItem,
+  ConversationRoles,
+} from "../../types/chat.types";
 
 interface ChannelMemberRowProps {
   member: ChannelMemberListItem;
@@ -33,14 +36,15 @@ export default function ChannelMemberRow({
 }: ChannelMemberRowProps) {
   const displayName = getDisplayName(member);
   const handle = getHandle(member);
+  const isAdmin = member.role === ConversationRoles.ADMIN;
 
   return (
     <button
       type="button"
       onClick={() => onOpenProfile(member.userId)}
-      className="flex w-full min-w-0 items-center gap-3 rounded-md px-1 py-2 text-left text-slate-200 transition hover:bg-slate-800/80 focus:outline-none focus:ring-2 focus:ring-sky-400/60"
+      className="flex w-full min-w-0 cursor-pointer items-center gap-3 rounded-xl border border-transparent p-3 text-left transition-all duration-200 hover:border-blue-100 hover:bg-blue-50/50 focus:outline-none focus:ring-4 focus:ring-blue-500/10"
     >
-      <span className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-violet-600 text-sm font-semibold text-white">
+      <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-gray-100 bg-gradient-to-br from-gray-100 to-gray-200 text-sm font-semibold text-gray-500 shadow-sm">
         {member.profile?.avatarUrl ? (
           <img
             src={member.profile.avatarUrl}
@@ -50,14 +54,22 @@ export default function ChannelMemberRow({
         ) : (
           <span>{getInitial(member) || <User size={16} />}</span>
         )}
-        <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-slate-950 bg-slate-700" />
       </span>
 
       <span className="min-w-0">
-        <span className="block truncate text-sm font-medium text-slate-100">
-          {displayName}
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-semibold text-gray-800">
+            {displayName}
+          </span>
+          {isAdmin ? (
+            <span className="shrink-0 rounded-full border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-blue-600">
+              Admin
+            </span>
+          ) : null}
         </span>
-        <span className="block truncate text-xs text-slate-400">{handle}</span>
+        <span className="mt-0.5 block truncate text-xs text-gray-500">
+          {handle}
+        </span>
       </span>
     </button>
   );

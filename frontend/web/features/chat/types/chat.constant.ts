@@ -87,9 +87,7 @@ export enum ChatSidebarSection {
 
 export const CHANNEL_MEMBERS_MODAL_LABELS = {
   title: (count: number) => `${count} ${count === 1 ? "member" : "members"}`,
-  searchPlaceholder: "Search members",
-  adminsSection: "CHANNEL ADMINS",
-  membersSection: "MEMBERS",
+  searchPlaceholder: "Search members by name",
   loading: "Loading members...",
   empty: "No members found",
   loadError: "Failed to load channel members",
