@@ -841,11 +841,30 @@ export class SpaceService {
       throw new BadRequestException('Channel name cannot be empty');
     }
 
+    const trimmedName = name.trim();
+
+    // Check if channel already exists in this space (case-insensitive)
+    const existingChannel = await this.prisma.channel.findFirst({
+      where: {
+        spaceId,
+        name: {
+          equals: trimmedName,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (existingChannel) {
+      throw new BadRequestException(
+        SPACE_ERROR_MESSAGES.CHANNEL_NAME_EXISTS,
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const channel = await tx.channel.create({
         data: {
           spaceId,
-          name,
+          name: trimmedName,
           createdBy: userId,
           isDefault: false,
         },

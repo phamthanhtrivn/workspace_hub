@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   disbandChannel,
-  getSpaceChannels,
   joinChannel,
 } from "../../api/chat.api";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
 import { chatKeys } from "../../types/chat.constant";
 import { removeChannelFromCaches } from "../../utils/chat-cache";
+import { useSpaceChannelsQuery } from "../../hooks/useChatQueries";
 
 interface BrowseChannelsModalProps {
   isOpen: boolean;
@@ -59,25 +59,14 @@ export default function BrowseChannelsModal({
 
   // Fetch all channels in the space
   const {
-    data: channelsRes,
+    data: channelsData,
     isLoading,
     refetch,
-  } = useQuery({
-    queryKey: chatKeys.channels(spaceId, debouncedSearchQuery || undefined),
-    queryFn: () => getSpaceChannels(spaceId, debouncedSearchQuery),
+  } = useSpaceChannelsQuery(spaceId, debouncedSearchQuery, {
     enabled: isOpen && !!spaceId,
-    staleTime: 1000 * 10,
   });
 
-  const channels = useMemo(() => {
-    if (channelsRes?.success && Array.isArray(channelsRes.data)) {
-      return channelsRes.data;
-    }
-    if (Array.isArray(channelsRes)) {
-      return channelsRes;
-    }
-    return [];
-  }, [channelsRes]);
+  const channels = channelsData?.channels || [];
 
   const joinMutation = useMutation({
     mutationFn: (channelId: string) => joinChannel(channelId),

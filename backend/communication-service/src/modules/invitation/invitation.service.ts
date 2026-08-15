@@ -125,7 +125,9 @@ export class InvitationService {
         ? await prisma.spaceMember.findMany({
             where: {
               spaceId: invitation.spaceId,
-              userId: { in: defaultChannel.members.map((member) => member.userId) },
+              userId: {
+                in: defaultChannel.members.map((member) => member.userId),
+              },
             },
             select: { userId: true, role: true },
           })

@@ -39,6 +39,7 @@ export enum SPACE_ERROR_MESSAGES {
   SELF_REMOVE = 'You cannot remove yourself from the space',
   LAST_ADMIN = 'Space must have at least one admin',
   INVITATION_NOT_FOUND = 'Invitation not found',
+  CHANNEL_NAME_EXISTS = 'A channel with this name already exists in this space',
 }
 
 export const SPACE_MEMBER_SEARCH_DEFAULT_LIMIT = 500;

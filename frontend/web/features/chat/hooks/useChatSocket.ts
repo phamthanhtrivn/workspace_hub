@@ -511,6 +511,14 @@ export function useChatSocket() {
       );
     };
 
+    const handleInvitationProcessed = (data: any) => {
+      if (data?.spaceId) {
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.spaceInvitations(data.spaceId),
+        });
+      }
+    };
+
     socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
@@ -526,6 +534,8 @@ export function useChatSocket() {
       ChatEvent.CONVERSATION_MUTE_UPDATED,
       handleConversationMuteUpdated,
     );
+    socket.on(ChatEvent.INVITATION_ACCEPTED, handleInvitationProcessed);
+    socket.on(ChatEvent.INVITATION_DECLINED, handleInvitationProcessed);
 
     return () => {
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -543,6 +553,8 @@ export function useChatSocket() {
         ChatEvent.CONVERSATION_MUTE_UPDATED,
         handleConversationMuteUpdated,
       );
+      socket.off(ChatEvent.INVITATION_ACCEPTED, handleInvitationProcessed);
+      socket.off(ChatEvent.INVITATION_DECLINED, handleInvitationProcessed);
       socketService.disconnect();
     };
   }, [accessToken, currentUserId, dispatch, queryClient]);

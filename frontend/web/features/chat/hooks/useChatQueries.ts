@@ -41,6 +41,7 @@ export function useSpacesQuery(currentUserId?: string | null) {
 export function useSpaceChannelsQuery(
   spaceId?: string | null,
   search?: string,
+  options?: { enabled?: boolean },
 ) {
   const normalizedSearch = search?.trim() || undefined;
 
@@ -52,7 +53,7 @@ export function useSpaceChannelsQuery(
       const channels = res?.success ? res.data : [];
       return { channels };
     },
-    enabled: !!spaceId,
+    enabled: options?.enabled !== false && !!spaceId,
     staleTime: CHAT_DEFAULT_STALE_TIME_MS,
   });
 }

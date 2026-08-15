@@ -15,7 +15,6 @@ export function logApiError(error: unknown, context = "API request failed") {
 
   const method = error.config?.method?.toUpperCase() || "UNKNOWN";
   const url = error.config?.url || "unknown-url";
-  const status = error.response?.status || "NO_RESPONSE";
   const responseData = error.response?.data as
     | { message?: string; error?: string }
     | string
