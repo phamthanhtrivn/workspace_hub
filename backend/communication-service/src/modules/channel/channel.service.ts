@@ -207,6 +207,43 @@ export class ChannelService {
     });
   }
 
+  private async getSpaceSetting(spaceId: string) {
+    try {
+      const setting = await (this.prisma as any).spaceSetting.findUnique({
+        where: { spaceId },
+      });
+
+      return {
+        allowMemberCreateChannel: setting?.allowMemberCreateChannel ?? true,
+        allowMemberDeleteOwnChannel:
+          setting?.allowMemberDeleteOwnChannel ?? false,
+      };
+    } catch (error) {
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        (('code' in error && error.code === 'P2021') ||
+          ('message' in error &&
+            typeof error.message === 'string' &&
+            error.message.includes('space_settings')))
+      ) {
+        return {
+          allowMemberCreateChannel: true,
+          allowMemberDeleteOwnChannel: false,
+        };
+      }
+      throw error;
+    }
+  }
+
+  private async getUserDisplayName(userId: string) {
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds([
+      userId,
+    ]);
+    const profile = profiles.get(userId);
+    return profile?.fullName || profile?.email || userId;
+  }
+
   async getChannelMembers(
     channelId: string,
     userId: string,
@@ -560,40 +597,38 @@ export class ChannelService {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
-    const member = await this.prisma.spaceMember.findUnique({
+    const spaceMember = await this.prisma.spaceMember.findUnique({
       where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
     });
 
-    if (!member) {
+    if (!spaceMember) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE);
     }
 
-    const spaceChannels = await this.prisma.channel.findMany({
-      where: { spaceId: channel.spaceId },
-      select: { id: true },
+    if (channel.isDefault) {
+      return this.leaveSpaceFromDefaultChannel(
+        channelId,
+        channel.spaceId,
+        userId,
+      );
+    }
+
+    const channelMember = await this.prisma.channelMember.findUnique({
+      where: { channelId_userId: { channelId, userId } },
     });
+    if (!channelMember) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+    }
 
-    await this.prisma.$transaction(async (tx) => {
-      await tx.spaceMember.delete({
-        where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
-      });
-
-      for (const ch of spaceChannels) {
-        await tx.channelMember.deleteMany({
-          where: { channelId: ch.id, userId },
-        });
-      }
+    await this.prisma.channelMember.delete({
+      where: { channelId_userId: { channelId, userId } },
     });
 
     const remainingMembers = await this.prisma.channelMember.findMany({
       where: { channelId },
       select: { userId: true },
     });
-    const targetRooms = [
-      userId,
-      ...spaceChannels.map((spaceChannel) => spaceChannel.id),
-      ...remainingMembers.map((m) => m.userId),
-    ];
+    const targetRooms = [userId, channelId, ...remainingMembers.map((m) => m.userId)];
 
     this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEMBER_LEFT, {
       chatId: channelId,
@@ -601,13 +636,74 @@ export class ChannelService {
       channelId,
       spaceId: channel.spaceId,
       userId,
+      leftSpace: false,
     });
 
     await this.chatGateway.sendSystemMessage(
       channelId,
       userId,
-      `${userId} left the space`,
+      `${await this.getUserDisplayName(userId)} left the channel`,
     );
+
+    return { success: true };
+  }
+
+  private async leaveSpaceFromDefaultChannel(
+    channelId: string,
+    spaceId: string,
+    userId: string,
+  ) {
+    const spaceMember = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId } },
+    });
+    if (!spaceMember) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE);
+    }
+
+    if (spaceMember.role === SpaceRole.ADMIN) {
+      const adminCount = await this.prisma.spaceMember.count({
+        where: { spaceId, role: SpaceRole.ADMIN },
+      });
+      if (adminCount <= 1) {
+        throw new BadRequestException('Space must have at least one admin');
+      }
+    }
+
+    const spaceChannels = await this.prisma.channel.findMany({
+      where: { spaceId },
+      select: { id: true },
+    });
+
+    await this.chatGateway.sendSystemMessage(
+      channelId,
+      userId,
+      `${await this.getUserDisplayName(userId)} left the space`,
+    );
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.spaceMember.delete({
+        where: { spaceId_userId: { spaceId, userId } },
+      });
+      await tx.channelMember.deleteMany({
+        where: {
+          userId,
+          channelId: {
+            in: spaceChannels.map((spaceChannel) => spaceChannel.id),
+          },
+        },
+      });
+    });
+
+    this.chatGateway.server
+      .to([userId, ...spaceChannels.map((spaceChannel) => spaceChannel.id)])
+      .emit(ChatEvent.MEMBER_LEFT, {
+        chatId: channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId,
+        spaceId,
+        userId,
+        leftSpace: true,
+      });
 
     return { success: true };
   }
@@ -630,9 +726,15 @@ export class ChannelService {
       where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
     });
 
+    const setting = await this.getSpaceSetting(channel.spaceId);
+    const canMemberDeleteOwnChannel =
+      spaceMember?.role === SpaceRole.MEMBER &&
+      channel.createdBy === userId &&
+      setting.allowMemberDeleteOwnChannel;
+
     if (
       !spaceMember ||
-      (spaceMember.role !== SpaceRole.ADMIN && channel.createdBy !== userId)
+      (spaceMember.role !== SpaceRole.ADMIN && !canMemberDeleteOwnChannel)
     ) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.DISBAND_ACCESS_DENIED,

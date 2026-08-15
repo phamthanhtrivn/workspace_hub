@@ -497,11 +497,16 @@ export default function ChatArea({
         if (affectsActiveConversation) {
           if (data.userId === auth?.userId) {
             dispatch(setActiveConversation(null));
-            queryClient.invalidateQueries({
-              queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
-            });
             queryClient.invalidateQueries({ queryKey: ["channels"] });
-            toast.success("You are no longer in this space");
+            if (data.leftSpace) {
+              queryClient.invalidateQueries({ queryKey: ["spaces"] });
+              queryClient.invalidateQueries({
+                queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
+              });
+              toast.success("You are no longer in this space");
+            } else {
+              toast.success("You left the channel");
+            }
           } else {
             queryClient.invalidateQueries({ queryKey: ["channels"] });
           }

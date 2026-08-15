@@ -47,7 +47,7 @@ export default function MessageAvatar({
           )}
           {memberRole === "ADMIN" && (
             <span
-              className="absolute -bottom-1 -right-1 bg-gray-400 rounded-full p-0.5 border border-white"
+              className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white"
               title="Admin"
             >
               <Key size={10} className="text-white" />

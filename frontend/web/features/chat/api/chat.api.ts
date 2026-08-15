@@ -14,7 +14,9 @@ import {
   PaginatedMessagesResponse,
   PinnedMessagesResponse,
   SpaceInvitation,
+  SpaceMembersListResponse,
   SpaceResponse,
+  SpaceSettingResponse,
   ThreadMessagesResponse,
   UserSearchResponse,
   UserProfileResponse,
@@ -588,6 +590,74 @@ export const getUserSpaces = async (): Promise<ApiResponse<SpaceResponse[]>> => 
   };
 };
 
+export const getSpaceDetails = async (
+  spaceId: string,
+): Promise<ApiResponse<SpaceResponse>> => {
+  const response = await api.get(`/api/spaces/${spaceId}`);
+  return normalizeApiResponse<SpaceResponse>(response.data);
+};
+
+export const updateSpace = async (
+  spaceId: string,
+  name: string,
+): Promise<ApiResponse<SpaceResponse>> => {
+  const response = await api.patch(`/api/spaces/${spaceId}`, { name });
+  return normalizeApiResponse<SpaceResponse>(response.data);
+};
+
+export const updateSpaceSettings = async (
+  spaceId: string,
+  settings: Partial<SpaceSettingResponse>,
+): Promise<ApiResponse<SpaceSettingResponse>> => {
+  const response = await api.patch(`/api/spaces/${spaceId}/settings`, settings);
+  return normalizeApiResponse<SpaceSettingResponse>(response.data);
+};
+
+export const getSpaceMembers = async (
+  spaceId: string,
+  search?: string,
+  limit?: number,
+): Promise<ApiResponse<SpaceMembersListResponse>> => {
+  const response = await api.get(`/api/spaces/${spaceId}/members`, {
+    params: { search: search || undefined, limit },
+  });
+  return normalizeApiResponse<SpaceMembersListResponse>(response.data);
+};
+
+export const updateSpaceMemberRole = async (
+  spaceId: string,
+  memberId: string,
+  role: "ADMIN" | "MEMBER",
+): Promise<ApiResponse<ConversationMember>> => {
+  const response = await api.patch(
+    `/api/spaces/${spaceId}/members/${memberId}/role`,
+    { role },
+  );
+  return normalizeApiResponse<ConversationMember>(response.data);
+};
+
+export const removeSpaceMember = async (
+  spaceId: string,
+  memberId: string,
+): Promise<ApiResponse<unknown>> => {
+  const response = await api.delete(`/api/spaces/${spaceId}/members/${memberId}`);
+  return normalizeApiResponse<unknown>(response.data);
+};
+
+export const leaveSpace = async (
+  spaceId: string,
+): Promise<ApiResponse<unknown>> => {
+  const response = await api.delete(`/api/spaces/${spaceId}/leave`);
+  return normalizeApiResponse<unknown>(response.data);
+};
+
+export const deleteSpace = async (
+  spaceId: string,
+): Promise<ApiResponse<unknown>> => {
+  const response = await api.delete(`/api/spaces/${spaceId}`);
+  return normalizeApiResponse<unknown>(response.data);
+};
+
 export const createChannel = async (
   spaceId: string,
   name: string,
@@ -624,6 +694,33 @@ export const inviteSpaceMembers = async (
     })),
   });
   return normalizeApiResponse<SpaceInvitation[]>(response.data);
+};
+
+export const getSpaceInvitations = async (
+  spaceId: string,
+): Promise<ApiResponse<SpaceInvitation[]>> => {
+  const response = await api.get(`/api/spaces/${spaceId}/invitations`);
+  return normalizeApiResponse<SpaceInvitation[]>(response.data);
+};
+
+export const cancelSpaceInvitation = async (
+  spaceId: string,
+  invitationId: string,
+): Promise<ApiResponse<unknown>> => {
+  const response = await api.delete(
+    `/api/spaces/${spaceId}/invitations/${invitationId}`,
+  );
+  return normalizeApiResponse<unknown>(response.data);
+};
+
+export const resendSpaceInvitation = async (
+  spaceId: string,
+  invitationId: string,
+): Promise<ApiResponse<SpaceInvitation>> => {
+  const response = await api.post(
+    `/api/spaces/${spaceId}/invitations/${invitationId}/resend`,
+  );
+  return normalizeApiResponse<SpaceInvitation>(response.data);
 };
 
 export const getChannelThreads = async (

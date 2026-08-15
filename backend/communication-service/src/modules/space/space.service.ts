@@ -8,14 +8,183 @@ import {
 } from '../../common/constants/kafka.constants';
 import { DefaultSpaceChannelNames } from './types/space.types';
 import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
+import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { UserProfileSnapshot } from 'src/common/types/user.types';
+import { ChatGateway } from '../chat/chat.gateway';
+import { ChatEvent } from '../chat/chat.events';
+import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import {
+  SPACE_ERROR_MESSAGES,
+  SPACE_MEMBER_SEARCH_DEFAULT_LIMIT,
+  SPACE_MEMBER_SEARCH_MAX_LIMIT,
+} from './types/space.enums';
 
 @Injectable()
 export class SpaceService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
+    private readonly chatGateway: ChatGateway,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
+
+  private normalizeLimit(limit?: string | number) {
+    const parsedLimit = Number(limit);
+    if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
+      return SPACE_MEMBER_SEARCH_DEFAULT_LIMIT;
+    }
+    return Math.min(Math.floor(parsedLimit), SPACE_MEMBER_SEARCH_MAX_LIMIT);
+  }
+
+  private normalizeSearch(search?: string) {
+    return search?.trim().toLowerCase() ?? '';
+  }
+
+  private async assertSpaceMember(spaceId: string, userId: string) {
+    const member = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId } },
+    });
+    if (!member) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+    }
+    return member;
+  }
+
+  private async assertSpaceAdmin(spaceId: string, userId: string) {
+    const member = await this.assertSpaceMember(spaceId, userId);
+    if (member.role !== SpaceRole.ADMIN) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.ADMIN_REQUIRED);
+    }
+    return member;
+  }
+
+  private async getAdminCount(spaceId: string) {
+    return this.prisma.spaceMember.count({
+      where: { spaceId, role: SpaceRole.ADMIN },
+    });
+  }
+
+  private getDefaultSpaceSetting(spaceId: string) {
+    return {
+      id: null,
+      spaceId,
+      allowMemberCreateChannel: true,
+      allowMemberDeleteOwnChannel: false,
+    };
+  }
+
+  private isMissingSpaceSettingTableError(error: unknown) {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      (('code' in error && error.code === 'P2021') ||
+        ('message' in error &&
+          typeof error.message === 'string' &&
+          error.message.includes('space_settings')))
+    );
+  }
+
+  private async getSpaceSetting(spaceId: string) {
+    try {
+      const setting = await (this.prisma as any).spaceSetting.findUnique({
+        where: { spaceId },
+      });
+      return setting ?? this.getDefaultSpaceSetting(spaceId);
+    } catch (error) {
+      if (this.isMissingSpaceSettingTableError(error)) {
+        return this.getDefaultSpaceSetting(spaceId);
+      }
+      throw error;
+    }
+  }
+
+  private async createSpaceSettingIfAvailable(tx: any, spaceId: string) {
+    try {
+      await tx.spaceSetting.create({
+        data: {
+          spaceId,
+          allowMemberCreateChannel: true,
+          allowMemberDeleteOwnChannel: false,
+        },
+      });
+    } catch (error) {
+      if (!this.isMissingSpaceSettingTableError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  private async getUserDisplayName(userId: string) {
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds([
+      userId,
+    ]);
+    return profiles.get(userId)?.fullName || profiles.get(userId)?.email || userId;
+  }
+
+  private async getDefaultChannel(spaceId: string) {
+    return this.prisma.channel.findFirst({
+      where: { spaceId, isDefault: true },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  private matchesMemberSearch(member: any, search: string) {
+    if (!search) return true;
+    return [
+      member.userId,
+      member.profile?.fullName,
+      member.profile?.email,
+    ]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(search));
+  }
+
+  private async emitSpaceMemberRemoved(
+    spaceId: string,
+    channelIds: string[],
+    userId: string,
+    leftSpace: boolean,
+  ) {
+    this.chatGateway.server
+      .to([userId, ...channelIds])
+      .emit(ChatEvent.MEMBER_LEFT, {
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        spaceId,
+        channelId: channelIds[0] ?? null,
+        userId,
+        leftSpace,
+      });
+  }
+
+  private emitSpaceInvitation(invitation: {
+    invitedUserId: string;
+    invitedBy: string;
+    invitedByName?: string | null;
+    invitedByAvatar?: string | null;
+    id: string;
+    spaceId: string;
+  }, spaceName?: string | null) {
+    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+      key: invitation.invitedUserId,
+      value: {
+        recipientId: invitation.invitedUserId,
+        senderId: invitation.invitedBy,
+        senderName: invitation.invitedByName,
+        senderAvatar: invitation.invitedByAvatar,
+        type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION,
+        title: 'Space invitation',
+        content: `You were invited to ${spaceName}`,
+        link: '/chat',
+        metadata: {
+          invitationId: invitation.id,
+          spaceId: invitation.spaceId,
+          spaceName,
+        },
+      },
+    });
+  }
 
   private async mapChannelForClient(channel: any, userId?: string) {
     const roles = await this.prisma.spaceMember.findMany({
@@ -80,6 +249,8 @@ export class SpaceService {
         },
       });
 
+      await this.createSpaceSettingIfAvailable(tx, space.id);
+
       for (const channelName of DefaultSpaceChannelNames) {
         const channel = await tx.channel.create({
           data: {
@@ -127,6 +298,347 @@ export class SpaceService {
     });
   }
 
+  async getSpaceDetails(userId: string, spaceId: string) {
+    await this.assertSpaceMember(spaceId, userId);
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      include: {
+        _count: {
+          select: {
+            members: true,
+            channels: true,
+          },
+        },
+      },
+    });
+
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+
+    const { _count, ...spaceDetails } = space;
+    return {
+      ...spaceDetails,
+      setting: await this.getSpaceSetting(spaceId),
+      memberCount: _count.members,
+      channelCount: _count.channels,
+    };
+  }
+
+  async updateSpace(userId: string, spaceId: string, name: string) {
+    await this.assertSpaceAdmin(spaceId, userId);
+    if (!name || name.trim().length === 0) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
+    }
+
+    return this.prisma.space.update({
+      where: { id: spaceId },
+      data: { name: name.trim() },
+    });
+  }
+
+  async updateSpaceSettings(
+    userId: string,
+    spaceId: string,
+    settings: UpdateSpaceSettingDto,
+  ) {
+    await this.assertSpaceAdmin(spaceId, userId);
+    try {
+      return await (this.prisma as any).spaceSetting.upsert({
+        where: { spaceId },
+        create: {
+          spaceId,
+          allowMemberCreateChannel:
+            settings.allowMemberCreateChannel ?? true,
+          allowMemberDeleteOwnChannel:
+            settings.allowMemberDeleteOwnChannel ?? false,
+        },
+        update: {
+          allowMemberCreateChannel: settings.allowMemberCreateChannel,
+          allowMemberDeleteOwnChannel:
+            settings.allowMemberDeleteOwnChannel,
+        },
+      });
+    } catch (error) {
+      if (this.isMissingSpaceSettingTableError(error)) {
+        throw new BadRequestException(SPACE_ERROR_MESSAGES.SETTINGS_UNAVAILABLE);
+      }
+      throw error;
+    }
+  }
+
+  async getSpaceMembers(
+    userId: string,
+    spaceId: string,
+    search?: string,
+    limit?: string | number,
+  ) {
+    await this.assertSpaceMember(spaceId, userId);
+
+    const members = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      orderBy: { joinedAt: 'asc' },
+    });
+    const enrichedMembers =
+      await this.userProfileSnapshotService.attachProfilesToMembers(members);
+    const normalizedSearch = this.normalizeSearch(search);
+    const normalizedLimit = this.normalizeLimit(limit);
+    const filteredMembers = enrichedMembers
+      .filter((member) => this.matchesMemberSearch(member, normalizedSearch))
+      .sort((firstMember, secondMember) => {
+        const firstName =
+          firstMember.profile?.fullName ||
+          firstMember.profile?.email ||
+          firstMember.userId;
+        const secondName =
+          secondMember.profile?.fullName ||
+          secondMember.profile?.email ||
+          secondMember.userId;
+        return firstName.localeCompare(secondName);
+      });
+    const limitedMembers = filteredMembers.slice(0, normalizedLimit);
+
+    return {
+      total: members.length,
+      admins: limitedMembers.filter((member) => member.role === SpaceRole.ADMIN),
+      members: limitedMembers.filter(
+        (member) => member.role !== SpaceRole.ADMIN,
+      ),
+      nextCursor:
+        filteredMembers.length > normalizedLimit
+          ? limitedMembers[limitedMembers.length - 1]?.userId ?? null
+          : null,
+    };
+  }
+
+  async updateSpaceMemberRole(
+    userId: string,
+    spaceId: string,
+    targetUserId: string,
+    role: SpaceRole,
+  ) {
+    await this.assertSpaceAdmin(spaceId, userId);
+    if (userId === targetUserId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SELF_ROLE_CHANGE);
+    }
+
+    const target = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId: targetUserId } },
+    });
+    if (!target) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MEMBER_NOT_FOUND);
+    }
+    if (target.role === SpaceRole.ADMIN && role !== SpaceRole.ADMIN) {
+      const adminCount = await this.getAdminCount(spaceId);
+      if (adminCount <= 1) {
+        throw new BadRequestException(SPACE_ERROR_MESSAGES.LAST_ADMIN);
+      }
+    }
+
+    const updatedMember = await this.prisma.spaceMember.update({
+      where: { spaceId_userId: { spaceId, userId: targetUserId } },
+      data: { role },
+    });
+    const channels = await this.prisma.channel.findMany({
+      where: { spaceId },
+      select: { id: true },
+    });
+    this.chatGateway.server
+      .to(channels.map((channel) => channel.id))
+      .emit(ChatEvent.MEMBER_ROLE_UPDATED, {
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        spaceId,
+        member: {
+          userId: updatedMember.userId,
+          role: updatedMember.role,
+        },
+      });
+    return updatedMember;
+  }
+
+  async removeSpaceMember(
+    userId: string,
+    spaceId: string,
+    targetUserId: string,
+  ) {
+    await this.assertSpaceAdmin(spaceId, userId);
+    if (userId === targetUserId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SELF_REMOVE);
+    }
+    const target = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId: targetUserId } },
+    });
+    if (!target) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MEMBER_NOT_FOUND);
+    }
+    if (target.role === SpaceRole.ADMIN) {
+      const adminCount = await this.getAdminCount(spaceId);
+      if (adminCount <= 1) {
+        throw new BadRequestException(SPACE_ERROR_MESSAGES.LAST_ADMIN);
+      }
+    }
+
+    const channels = await this.prisma.channel.findMany({
+      where: { spaceId },
+      select: { id: true },
+    });
+    const defaultChannel = await this.getDefaultChannel(spaceId);
+    if (defaultChannel) {
+      const displayName = await this.getUserDisplayName(targetUserId);
+      await this.chatGateway.sendSystemMessage(
+        defaultChannel.id,
+        userId,
+        `${displayName} was removed from the space`,
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.spaceMember.delete({
+        where: { spaceId_userId: { spaceId, userId: targetUserId } },
+      });
+      await tx.channelMember.deleteMany({
+        where: {
+          userId: targetUserId,
+          channelId: { in: channels.map((channel) => channel.id) },
+        },
+      });
+    });
+
+    this.chatGateway.server
+      .to([targetUserId, ...channels.map((channel) => channel.id)])
+      .emit(ChatEvent.MEMBER_KICKED, {
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        spaceId,
+        userId: targetUserId,
+        leftSpace: true,
+      });
+
+    return { success: true };
+  }
+
+  async leaveSpace(userId: string, spaceId: string) {
+    const member = await this.assertSpaceMember(spaceId, userId);
+    if (member.role === SpaceRole.ADMIN) {
+      const adminCount = await this.getAdminCount(spaceId);
+      if (adminCount <= 1) {
+        throw new BadRequestException(SPACE_ERROR_MESSAGES.LAST_ADMIN);
+      }
+    }
+
+    const channels = await this.prisma.channel.findMany({
+      where: { spaceId },
+      select: { id: true },
+    });
+    const defaultChannel = await this.getDefaultChannel(spaceId);
+    if (defaultChannel) {
+      const displayName = await this.getUserDisplayName(userId);
+      await this.chatGateway.sendSystemMessage(
+        defaultChannel.id,
+        userId,
+        `${displayName} left the space`,
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.spaceMember.delete({
+        where: { spaceId_userId: { spaceId, userId } },
+      });
+      await tx.channelMember.deleteMany({
+        where: {
+          userId,
+          channelId: { in: channels.map((channel) => channel.id) },
+        },
+      });
+    });
+
+    await this.emitSpaceMemberRemoved(
+      spaceId,
+      channels.map((channel) => channel.id),
+      userId,
+      true,
+    );
+    return { success: true };
+  }
+
+  async deleteSpace(userId: string, spaceId: string) {
+    await this.assertSpaceAdmin(spaceId, userId);
+    const channels = await this.prisma.channel.findMany({
+      where: { spaceId },
+      select: { id: true },
+    });
+    const members = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: { userId: true },
+    });
+
+    await this.prisma.space.delete({ where: { id: spaceId } });
+
+    this.chatGateway.server
+      .to([...channels.map((channel) => channel.id), ...members.map((member) => member.userId)])
+      .emit(ChatEvent.CONVERSATION_DISBANDED, {
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        spaceId,
+        leftSpace: true,
+      });
+
+    return { success: true };
+  }
+
+  async getSpaceInvitations(userId: string, spaceId: string) {
+    await this.assertSpaceAdmin(spaceId, userId);
+    return this.prisma.spaceInvitation.findMany({
+      where: { spaceId, status: InvitationStatus.PENDING },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async cancelSpaceInvitation(
+    userId: string,
+    spaceId: string,
+    invitationId: string,
+  ) {
+    await this.assertSpaceAdmin(spaceId, userId);
+    const invitation = await this.prisma.spaceInvitation.findFirst({
+      where: { id: invitationId, spaceId },
+    });
+    if (!invitation) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.INVITATION_NOT_FOUND);
+    }
+
+    await this.prisma.spaceInvitation.delete({ where: { id: invitationId } });
+    return { success: true };
+  }
+
+  async resendSpaceInvitation(
+    userId: string,
+    spaceId: string,
+    invitationId: string,
+  ) {
+    await this.assertSpaceAdmin(spaceId, userId);
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { name: true },
+    });
+    const existingInvitation = await this.prisma.spaceInvitation.findFirst({
+      where: { id: invitationId, spaceId },
+    });
+    if (!existingInvitation) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.INVITATION_NOT_FOUND);
+    }
+    const invitation = await this.prisma.spaceInvitation.update({
+      where: { id: invitationId },
+      data: {
+        invitedBy: userId,
+        status: InvitationStatus.PENDING,
+        respondedAt: null,
+        createdAt: new Date(),
+      },
+    });
+
+    this.emitSpaceInvitation(invitation, space?.name);
+    return invitation;
+  }
+
   async createChannel(userId: string, spaceId: string, name: string) {
     const isMember = await this.prisma.spaceMember.findUnique({
       where: {
@@ -139,6 +651,15 @@ export class SpaceService {
 
     if (!isMember) {
       throw new BadRequestException('You are not a member of this space');
+    }
+
+    if (isMember.role === SpaceRole.MEMBER) {
+      const setting = await this.getSpaceSetting(spaceId);
+      if (!setting.allowMemberCreateChannel) {
+        throw new BadRequestException(
+          SPACE_ERROR_MESSAGES.CHANNEL_CREATE_DISABLED,
+        );
+      }
     }
 
     if (!name || name.trim().length === 0) {
@@ -373,24 +894,17 @@ export class SpaceService {
       })
       .then((result) => {
         for (const invitation of result.invitationsToNotify) {
-          this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-            key: invitation.userId,
-            value: {
-              recipientId: invitation.userId,
-              senderId: userId,
-              senderName: invitation.invitedByName,
-              senderAvatar: invitation.invitedByAvatar,
-              type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION,
-              title: 'Space invitation',
-              content: `You were invited to ${space?.name}`,
-              link: '/chat',
-              metadata: {
-                invitationId: invitation.invitationId,
-                spaceId,
-                spaceName: space?.name,
-              },
+          this.emitSpaceInvitation(
+            {
+              id: invitation.invitationId,
+              spaceId,
+              invitedUserId: invitation.userId,
+              invitedBy: userId,
+              invitedByName: invitation.invitedByName,
+              invitedByAvatar: invitation.invitedByAvatar,
             },
-          });
+            space?.name,
+          );
         }
 
         return result;

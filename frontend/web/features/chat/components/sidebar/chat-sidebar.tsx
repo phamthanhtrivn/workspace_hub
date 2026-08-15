@@ -10,6 +10,7 @@ import {
   PlusCircle,
   ChevronRight,
   Globe,
+  Settings,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import SearchUserModal from "../modals/search-user-modal";
@@ -17,6 +18,7 @@ import CreateSpaceModal from "../modals/create-space-modal";
 import CreateChannelModal from "../modals/create-channel-modal";
 import InviteSpaceMembersModal from "../modals/invite-space-members-modal";
 import BrowseChannelsModal from "../modals/browse-channels-modal";
+import SpaceSettingsModal from "../modals/space-settings-modal";
 import ChannelItem from "./channel-item";
 import DirectConversationsSection from "./direct-conversations-section";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -95,6 +97,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [isSpaceSettingsModalOpen, setIsSpaceSettingsModalOpen] = useState(false);
   const [isFollowedThreadsModalOpen, setIsFollowedThreadsModalOpen] = useState(false);
   const [isSpaceDropdownOpen, setIsSpaceDropdownOpen] = useState(false);
   const [isChannelsExpanded, setIsChannelsExpanded] = useState(true);
@@ -136,6 +139,14 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   useEffect(() => {
     if (spaces.length > 0 && !activeSpaceId) {
       dispatch(setActiveSpaceId(spaces[0].id));
+    }
+    if (
+      activeSpaceId &&
+      spaces.length > 0 &&
+      !spaces.some((space: any) => space.id === activeSpaceId)
+    ) {
+      dispatch(setActiveSpaceId(spaces[0].id));
+      dispatch(setActiveConversation(null));
     }
   }, [spaces, activeSpaceId, dispatch]);
 
@@ -311,6 +322,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     refetchSpaces();
     dispatch(setActiveSpaceId(newSpace.id));
   };
+
+  const handleSpaceDeletedOrLeft = useCallback(() => {
+    dispatch(setActiveConversation(null));
+    dispatch(setActiveSpaceId(null));
+    queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+    queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+  }, [dispatch, queryClient]);
 
   const handleNewChannel = (newChannel: any) => {
     if (newChannel?.spaceId) {
@@ -591,6 +609,19 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 <UserPlus size={14} className="text-slate-400" />
                 Invite members
               </button>
+              <button
+                onClick={() => {
+                  if (activeSpaceId) {
+                    setIsSpaceSettingsModalOpen(true);
+                  }
+                  setIsSpaceDropdownOpen(false);
+                }}
+                disabled={!activeSpaceId}
+                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center gap-2 cursor-pointer transition"
+              >
+                <Settings size={14} className="text-slate-400" />
+                Space settings
+              </button>
             </div>
           </div>
         )}
@@ -737,6 +768,15 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             onClose={() => setIsInviteModalOpen(false)}
             spaceId={activeSpaceId}
           />
+          {activeSpace && (
+            <SpaceSettingsModal
+              isOpen={isSpaceSettingsModalOpen}
+              onClose={() => setIsSpaceSettingsModalOpen(false)}
+              space={activeSpace}
+              currentUserId={currentUserId}
+              onSpaceDeletedOrLeft={handleSpaceDeletedOrLeft}
+            />
+          )}
           <BrowseChannelsModal
             isOpen={isBrowseChannelsModalOpen}
             onClose={() => setIsBrowseChannelsModalOpen(false)}

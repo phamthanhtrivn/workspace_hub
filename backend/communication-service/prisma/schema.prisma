@@ -66,8 +66,20 @@ model Space {
   channels    Channel[]
   members     SpaceMember[]
   invitations SpaceInvitation[]
+  setting     SpaceSetting?
 
   @@map("spaces")
+}
+
+model SpaceSetting {
+  id                          String  @id @default(uuid()) @db.Uuid
+  spaceId                     String  @unique @map("space_id") @db.Uuid
+  allowMemberCreateChannel    Boolean @default(true) @map("allow_member_create_channel")
+  allowMemberDeleteOwnChannel Boolean @default(false) @map("allow_member_delete_own_channel")
+
+  space                       Space   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@map("space_settings")
 }
 
 /* =========================================================

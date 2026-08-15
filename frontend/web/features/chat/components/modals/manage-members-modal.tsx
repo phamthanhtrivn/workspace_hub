@@ -72,6 +72,7 @@ export default function ManageMembersModal({
     (member) => member.userId === currentUserId,
   );
   const currentUserRole = currentUserMember?.role;
+  const leaveLabel = channel.isDefault ? "Leave space" : "Leave channel";
 
   const handleUpdateRole = async (
     memberId: string,
@@ -138,13 +139,15 @@ export default function ManageMembersModal({
     if (isProcessing) return;
 
     const result = await Swal.fire({
-      title: "Leave space?",
-      text: "Are you sure you want to leave this space?",
+      title: `${leaveLabel}?`,
+      text: channel.isDefault
+        ? "Leaving the default channel will remove you from this space."
+        : "Are you sure you want to leave this channel?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Leave space",
+      confirmButtonText: leaveLabel,
       cancelButtonText: "Cancel",
     });
 
@@ -153,6 +156,9 @@ export default function ManageMembersModal({
     try {
       await leaveChannel(channel.id);
       queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
+      if (channel.isDefault) {
+        queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+      }
       onClose();
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to leave space"));
@@ -325,7 +331,7 @@ export default function ManageMembersModal({
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-red-600 bg-white border border-red-200 hover:bg-red-50 hover:border-red-300 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <FiLogOut size={18} />
-            Leave space
+            {leaveLabel}
           </button>
 
           {currentUserRole === "ADMIN" && (

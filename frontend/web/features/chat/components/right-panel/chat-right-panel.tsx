@@ -12,6 +12,7 @@ import {
 } from "../../api/chat.api";
 import MediaLightbox from "../message/media-lightbox";
 import ChannelSettingsSection from "./channel-settings-section";
+import ChannelActionsSection from "./channel-actions-section";
 import FilesSection from "./files-section";
 import PollsSection from "./polls-section";
 import NotesSection from "./notes-section";
@@ -527,6 +528,14 @@ export default function ChatRightPanel({
           )}
         </div>
       </div>
+
+      {activeChannel && (
+        <ChannelActionsSection
+          activeChannel={activeChannel}
+          currentUserId={currentUserId}
+          onClose={onClose}
+        />
+      )}
 
       {/* Lightbox */}
       {lightboxIndex >= 0 && (

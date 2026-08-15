@@ -59,6 +59,13 @@ export interface ConversationMember {
   profile?: UserProfileSnapshotResponse | null;
 }
 
+export interface SpaceSettingResponse {
+  id?: string | null;
+  spaceId?: string | null;
+  allowMemberCreateChannel: boolean;
+  allowMemberDeleteOwnChannel: boolean;
+}
+
 export interface ChannelMemberListItem extends ConversationMember {
   profile: UserProfileSnapshotResponse | null;
 }
@@ -67,6 +74,22 @@ export interface ChannelMembersListResponse {
   total: number;
   admins: ChannelMemberListItem[];
   members: ChannelMemberListItem[];
+  nextCursor?: string | null;
+}
+
+export interface SpaceMemberListItem {
+  id: string;
+  spaceId: string;
+  userId: string;
+  role: ConversationRole;
+  joinedAt: string;
+  profile: UserProfileSnapshotResponse | null;
+}
+
+export interface SpaceMembersListResponse {
+  total: number;
+  admins: SpaceMemberListItem[];
+  members: SpaceMemberListItem[];
   nextCursor?: string | null;
 }
 
@@ -103,11 +126,15 @@ export type ConversationResponse = ChatEntity;
 export interface SpaceResponse {
   id: string;
   name: string;
+  createdBy?: string;
   avatarUrl?: string | null;
   ownerId?: string | null;
   createdAt?: string;
   updatedAt?: string;
   defaultChannelId?: string | null;
+  memberCount?: number;
+  channelCount?: number;
+  setting?: SpaceSettingResponse | null;
 }
 
 export interface ChatMediaResponse {

@@ -10,6 +10,9 @@ export enum ChatQueryRoot {
   DIRECT_MESSAGES = "direct-messages",
   MESSAGES = "messages",
   CHANNEL_MEMBERS = "channel-members",
+  SPACE_MEMBERS = "space-members",
+  SPACE_INVITATIONS = "space-invitations",
+  SPACE_DETAILS = "space-details",
   READ_RECEIPTS = "read-receipts",
   PINNED_MESSAGES_PREVIEW = "pinnedMessagesPreview",
   PINNED_MESSAGES_DETAIL = "pinnedMessagesDetail",
@@ -37,6 +40,8 @@ export const chatKeys = {
   allDirectMessages: () => [ChatQueryRoot.DIRECT_MESSAGES] as const,
   allMessages: () => [ChatQueryRoot.MESSAGES] as const,
   allChannelMembers: () => [ChatQueryRoot.CHANNEL_MEMBERS] as const,
+  allSpaceMembers: () => [ChatQueryRoot.SPACE_MEMBERS] as const,
+  allSpaceInvitations: () => [ChatQueryRoot.SPACE_INVITATIONS] as const,
   allMedia: () => [ChatQueryRoot.MEDIA] as const,
   allPinnedMessagesPreview: () => [ChatQueryRoot.PINNED_MESSAGES_PREVIEW] as const,
   allPinnedMessagesDetail: () => [ChatQueryRoot.PINNED_MESSAGES_DETAIL] as const,
@@ -44,6 +49,8 @@ export const chatKeys = {
   allFollowedThreads: () => [ChatQueryRoot.FOLLOWED_THREADS] as const,
   allThreadMessages: () => [ChatQueryRoot.THREAD_MESSAGES] as const,
   spaces: (userId?: string | null) => [ChatQueryRoot.SPACES, userId] as const,
+  spaceDetails: (spaceId?: string | null) =>
+    [ChatQueryRoot.SPACE_DETAILS, spaceId] as const,
   channels: (spaceId?: string | null, search?: string) =>
     search
       ? ([ChatQueryRoot.CHANNELS, spaceId, search] as const)
@@ -59,6 +66,10 @@ export const chatKeys = {
   ) => [ChatQueryRoot.MESSAGES, chatType, chatId, jumpTargetId ?? null] as const,
   channelMembers: (channelId?: string | null, search?: string) =>
     [ChatQueryRoot.CHANNEL_MEMBERS, channelId, search ?? ""] as const,
+  spaceMembers: (spaceId?: string | null, search?: string) =>
+    [ChatQueryRoot.SPACE_MEMBERS, spaceId, search ?? ""] as const,
+  spaceInvitations: (spaceId?: string | null) =>
+    [ChatQueryRoot.SPACE_INVITATIONS, spaceId] as const,
   readReceipts: (
     chatType?: ChatContextType | null,
     chatId?: string | null,
@@ -101,3 +112,5 @@ export const CHANNEL_MEMBERS_MODAL_LABELS = {
 export const CHANNEL_MEMBER_SEARCH_DEBOUNCE_MS = 300;
 export const CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS = 300;
 export const CHANNEL_MEMBER_SEARCH_PAGE_SIZE = 500;
+export const SPACE_MEMBER_SEARCH_DEBOUNCE_MS = 300;
+export const SPACE_MEMBER_SEARCH_PAGE_SIZE = 500;
