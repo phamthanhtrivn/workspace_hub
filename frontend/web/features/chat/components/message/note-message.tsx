@@ -7,6 +7,7 @@ import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { NoteResponse } from "../../types/chat.types";
+import { renderMessageContent } from "../../utils/message-formatter";
 
 interface NoteMessageProps {
   note: NoteResponse;
@@ -69,8 +70,8 @@ const NoteMessage = React.memo(function NoteMessage({
           </div>
         </div>
 
-        <div className="bg-white/80 rounded-xl p-4 text-slate-800 text-sm leading-relaxed border border-amber-100/50 relative z-10 shadow-[inset_0_2px_4px_rgba(245,158,11,0.02)] whitespace-pre-wrap">
-          {note.content}
+        <div className="bg-white/80 rounded-xl p-4 text-slate-800 text-sm leading-relaxed border border-amber-100/50 relative z-10 shadow-[inset_0_2px_4px_rgba(245,158,11,0.02)]">
+          {renderMessageContent(note.content, memberProfiles ?? undefined)}
         </div>
 
         {isMe && onEditNote && (

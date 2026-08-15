@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, FileText } from "lucide-react";
+import RichTextTextarea from "../input/rich-text-textarea";
 
 interface EditNoteModalProps {
   isOpen: boolean;
@@ -78,12 +79,11 @@ export default function EditNoteModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Content
             </label>
-            <textarea
+            <RichTextTextarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              setValue={setContent}
               placeholder="Enter note content..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all resize-none min-h-[120px]"
-              required
+              minHeightClassName="min-h-[150px]"
             />
           </div>
 

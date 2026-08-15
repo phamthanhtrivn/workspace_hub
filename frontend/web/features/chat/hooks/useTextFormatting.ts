@@ -48,7 +48,7 @@ export function useTextFormatting({
         const lineEnd = nextNewline === -1 ? text.length : end + nextNewline;
         const currentLine = text.substring(lineStart, lineEnd);
 
-        const headingRegex = /^###\s+/;
+        const headingRegex = /^#{1,6}\s+/;
         const quoteRegex = /^>\s+/;
         const bulletRegex = /^[\-\*]\s+/;
         const numberRegex = /^\d+\.\s+/;
@@ -89,8 +89,8 @@ export function useTextFormatting({
         } else {
           switch (formatType) {
             case "heading":
-              newLine = "### " + cleanLine;
-              newPrefixLength = 4;
+              newLine = "## " + cleanLine;
+              newPrefixLength = 3;
               break;
             case "quote":
               newLine = "> " + cleanLine;
