@@ -3,7 +3,6 @@ import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";
-import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 interface DirectConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -17,7 +16,6 @@ export default function DirectConversationHeader({
   onBack,
 }: DirectConversationHeaderProps) {
   const { activeChat: activeConversation } = useActiveChat();
-  const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
 
@@ -25,30 +23,11 @@ export default function DirectConversationHeader({
     (member) => member.userId !== currentUserId,
   );
   const otherMemberId = otherMember?.userId ?? null;
-  const profile = otherMemberId ? memberProfiles?.[otherMemberId] : null;
-  const memberProfile = otherMember as any;
-  const hasInlineProfile = !!(
-    profile ||
-    memberProfile?.profile?.fullName ||
-    memberProfile?.fullName ||
-    memberProfile?.profile?.avatarUrl ||
-    memberProfile?.avatarUrl
-  );
-  const isLoadingProfile =
-    !!otherMemberId &&
-    !memberProfiles?.[otherMemberId] &&
-    !hasInlineProfile &&
-    false;
+  const profile = otherMember?.profile ?? null;
+  const isLoadingProfile = false;
   const displayName =
-    profile?.fullName ||
-    memberProfile?.profile?.fullName ||
-    memberProfile?.fullName ||
-    "User";
-  const displayAvatarUrl =
-    profile?.avatarUrl ||
-    memberProfile?.profile?.avatarUrl ||
-    memberProfile?.avatarUrl ||
-    null;
+    profile?.fullName || profile?.email || otherMemberId || "User";
+  const displayAvatarUrl = profile?.avatarUrl || null;
 
   return (
     <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">

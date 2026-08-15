@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { ArrowLeft, Globe, Hash, Info, Search, User } from "lucide-react";
 import { useActiveChat } from "../../hooks/useChatQueries";
+import ChannelMembersModal from "../modals/channel-members-modal";
 
 interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -13,6 +15,7 @@ export default function ChannelChatHeader({
   onBack,
 }: ChannelChatHeaderProps) {
   const { activeChat: activeChannel } = useActiveChat();
+  const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const displayName = activeChannel?.name || "Channel";
   const memberCount = activeChannel?.members?.length || 0;
   const isDefaultChannel =
@@ -44,12 +47,18 @@ export default function ChannelChatHeader({
           <h2 className="font-semibold text-gray-800 truncate">
             {displayName}
           </h2>
-          <p className="text-xs cursor-pointer text-gray-600 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-200">
+          <button
+            type="button"
+            onClick={() => setIsMembersModalOpen(true)}
+            disabled={!activeChannel?.id}
+            className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1 text-xs text-gray-600 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-label={`Open ${memberCount} channel members`}
+          >
             <span>
               <User className="w-3 h-3" />
             </span>{" "}
             <span>{memberCount}</span>
-          </p>
+          </button>
         </div>
       </div>
 
@@ -70,6 +79,14 @@ export default function ChannelChatHeader({
           <Info size={20} />
         </button>
       </div>
+      {activeChannel?.id ? (
+        <ChannelMembersModal
+          channelId={activeChannel.id}
+          fallbackMemberCount={memberCount}
+          isOpen={isMembersModalOpen}
+          onClose={() => setIsMembersModalOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

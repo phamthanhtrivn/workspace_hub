@@ -28,4 +28,8 @@ export enum CHANNEL_SUCCESS_MESSAGES {
   MUTE_OFF = 'Conversation unmuted successfully',
   INFO_UPDATED = 'Channel information updated successfully',
   MEMBER_REMOVED = 'Member removed from the space successfully',
+  MEMBERS_LISTED = 'Channel members retrieved successfully',
 }
+
+export const CHANNEL_MEMBER_SEARCH_DEFAULT_LIMIT = 500;
+export const CHANNEL_MEMBER_SEARCH_MAX_LIMIT = 500;

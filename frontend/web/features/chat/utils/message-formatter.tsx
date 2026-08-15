@@ -1,5 +1,5 @@
 import React from "react";
-import { UserProfileResponse } from "../types/chat.types";
+import { UserProfileSnapshotResponse } from "../types/chat.types";
 
 // Helper to parse inline styles (Bold, Italic, Strikethrough, Inline Code)
 export const parseInlineStyles = (
@@ -105,7 +105,7 @@ export const parseInlineStyles = (
 
 export const formatMessageContent = (
   content: string | undefined | null,
-  memberProfiles?: Record<string, UserProfileResponse>,
+  memberProfiles?: Record<string, UserProfileSnapshotResponse>,
 ): (string | React.ReactNode)[] => {
   if (!content) return [content || ""];
 
@@ -245,7 +245,7 @@ export const formatMessageContent = (
 
 export const formatMessageContentAndStyles = (
   content: string | undefined | null,
-  memberProfiles?: Record<string, UserProfileResponse>,
+  memberProfiles?: Record<string, UserProfileSnapshotResponse>,
 ): React.ReactNode[] => {
   const parts = formatMessageContent(content, memberProfiles);
   const finalParts: React.ReactNode[] = [];
@@ -263,7 +263,7 @@ export const formatMessageContentAndStyles = (
 
 export const parseBlocks = (
   content: string | undefined | null,
-  memberProfiles?: Record<string, UserProfileResponse>,
+  memberProfiles?: Record<string, UserProfileSnapshotResponse>,
 ): React.ReactNode => {
   if (!content) return null;
 
@@ -466,7 +466,7 @@ export const parseBlocks = (
 
 export const renderMessageContent = (
   content: string | undefined | null,
-  memberProfiles?: Record<string, UserProfileResponse>,
+  memberProfiles?: Record<string, UserProfileSnapshotResponse>,
 ) => {
   if (!content) return <p className="whitespace-pre-wrap">{content}</p>;
   return (

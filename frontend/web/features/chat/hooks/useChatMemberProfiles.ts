@@ -1,20 +1,19 @@
 import { useMemo } from "react";
-import { useActiveChat, useChatProfiles } from "./useChatQueries";
+import { useActiveChat } from "./useChatQueries";
+import { ChatProfilesMap } from "../types/chat.types";
 
-export function useChatMemberProfiles(extraUserIds: string[] = []) {
+export function useChatMemberProfiles(_extraUserIds: string[] = []) {
   const { activeChat } = useActiveChat();
-  const userIds = useMemo(() => {
-    const ids = new Set<string>();
-    activeChat?.members?.forEach((member) => {
-      if (member.userId) ids.add(member.userId);
-    });
-    extraUserIds.forEach((userId) => {
-      if (userId) ids.add(userId);
-    });
-    return Array.from(ids);
-  }, [activeChat?.members, extraUserIds]);
 
-  return useChatProfiles(userIds);
+  return useMemo(() => {
+    const profiles: ChatProfilesMap = {};
+    activeChat?.members?.forEach((member) => {
+      if (member.userId && member.profile) {
+        profiles[member.userId] = member.profile;
+      }
+    });
+    return profiles;
+  }, [activeChat?.members]);
 }
 
 export function useChatMemberProfilesQuery(extraUserIds: string[] = []) {

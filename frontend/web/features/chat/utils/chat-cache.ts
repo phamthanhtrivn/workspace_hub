@@ -53,7 +53,6 @@ export function upsertChannelCache(
       const channels = oldData?.channels || [];
       const exists = channels.some((item: SpaceChannel) => item.id === channel.id);
       return {
-        profiles: oldData?.profiles || {},
         channels: exists
           ? channels.map((item: SpaceChannel) => (item.id === channel.id ? channel : item))
           : [...channels, channel],
@@ -105,7 +104,6 @@ export function upsertDirectMessageCache(
           )
         : [directMessage, ...directMessages];
       return {
-        profiles: oldData?.profiles || {},
         directMessages: sortDirectConversations(
           nextDirectMessages,
           currentUserId,
@@ -172,5 +170,4 @@ export function invalidateChatSidebarQueries(
       ? chatKeys.directMessages(currentUserId)
       : chatKeys.allDirectMessages(),
   });
-  void queryClient.invalidateQueries({ queryKey: chatKeys.allMemberProfiles() });
 }

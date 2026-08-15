@@ -64,6 +64,32 @@ export class ChannelController {
     };
   }
 
+  @Get(':id/members')
+  async getChannelMembers(
+    @Param('id') channelId: string,
+    @Headers('x-user-id') userId: string,
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    if (!userId || !channelId) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_USER_OR_CHANNEL_ID,
+      );
+    }
+
+    const result = await this.channelService.getChannelMembers(
+      channelId,
+      userId,
+      search,
+      limit,
+    );
+
+    return {
+      message: CHANNEL_SUCCESS_MESSAGES.MEMBERS_LISTED,
+      data: result,
+    };
+  }
+
   @Put(':id/members/:memberId/role')
   async updateMemberRole(
     @Param('id') channelId: string,

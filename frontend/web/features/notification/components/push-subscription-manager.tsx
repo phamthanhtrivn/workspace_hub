@@ -4,6 +4,8 @@ import { useEffect } from "react";
 import axios from "axios";
 import { useAppSelector } from "@/store/store";
 
+let hasLoggedPushSetupFailure = false;
+
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding)
@@ -83,7 +85,15 @@ export default function PushSubscriptionManager() {
           },
         );
       } catch (error) {
-        console.error("Error setting up Web Push notifications:", error);
+        if (!hasLoggedPushSetupFailure) {
+          hasLoggedPushSetupFailure = true;
+          const message = axios.isAxiosError(error)
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : "Unknown error";
+          console.warn(`Web Push setup skipped: ${message}`);
+        }
       }
     };
 

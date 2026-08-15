@@ -5,6 +5,7 @@ import { MessageModule } from '../message/message.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
 import { ChannelService } from './channel.service';
+import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { ChannelService } from './channel.service';
     forwardRef(() => MessageModule),
     PrismaModule,
     S3Module,
+    UserProfileSnapshotModule,
   ],
   controllers: [ChannelController],
   providers: [ChannelService],

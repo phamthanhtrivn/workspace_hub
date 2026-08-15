@@ -7,14 +7,15 @@ import {
   Video,
   BarChart2,
 } from "lucide-react";
-import { UserProfileResponse } from "../../types/chat.types";
+import { UserProfileSnapshotResponse } from "../../types/chat.types";
 import { formatDateTime } from "@/lib/date";
 import { formatMessageContent } from "../../utils/message-formatter";
+import { RenderableChatMessage } from "../message/chat-message.types";
 
 interface SearchResultItemProps {
-  message: any;
+  message: RenderableChatMessage;
   currentUserId: string | null;
-  memberProfiles: Record<string, UserProfileResponse>;
+  memberProfiles: Record<string, UserProfileSnapshotResponse>;
   isDirect: boolean;
   onClick: (messageId: string) => void;
 }
@@ -26,7 +27,7 @@ export default function SearchResultItem({
   isDirect,
   onClick,
 }: SearchResultItemProps) {
-  const profile = memberProfiles[message.senderId];
+  const profile = message.senderProfile || memberProfiles[message.senderId];
   const isMe = message.senderId === currentUserId;
   const fullName = isMe ? "You" : profile?.fullName || "User";
   const avatarUrl = profile?.avatarUrl;

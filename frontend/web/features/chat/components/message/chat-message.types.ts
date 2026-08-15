@@ -1,7 +1,7 @@
 import {
   ChatMediaResponse,
   ChatMessageResponse,
-  UserProfileResponse,
+  UserProfileSnapshotResponse,
 } from "../../types/chat.types";
 
 export type MessageMedia = ChatMediaResponse;
@@ -47,4 +47,4 @@ export interface RenderableChatMessage extends ChatMessageResponse {
   note?: NotePayload;
 }
 
-export type MemberProfilesMap = Record<string, UserProfileResponse>;
+export type MemberProfilesMap = Record<string, UserProfileSnapshotResponse>;

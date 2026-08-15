@@ -42,6 +42,12 @@ spring:
           starttls:
             enable: true
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKER}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+
 jwt:
   secret_key: ${JWT_SECRET_KEY}
   issuer: workspace-hub

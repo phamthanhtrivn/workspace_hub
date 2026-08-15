@@ -28,6 +28,14 @@ export interface UserProfileResponse {
   bio: string | null;
 }
 
+export interface UserProfileSnapshotResponse {
+  id?: string | null;
+  userId?: string | null;
+  email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
 export type ConversationRole = ConversationRoles.ADMIN | ConversationRoles.MEMBER;
 export type ChatUiType = ChatContextType.DIRECT_MESSAGE | ChatContextType.CHANNEL;
 
@@ -48,6 +56,18 @@ export interface ConversationMember {
   pinned?: boolean;
   nickname: string | null;
   role: ConversationRole;
+  profile?: UserProfileSnapshotResponse | null;
+}
+
+export interface ChannelMemberListItem extends ConversationMember {
+  profile: UserProfileSnapshotResponse | null;
+}
+
+export interface ChannelMembersListResponse {
+  total: number;
+  admins: ChannelMemberListItem[];
+  members: ChannelMemberListItem[];
+  nextCursor?: string | null;
 }
 
 interface ChatListEntityBase {
@@ -127,6 +147,7 @@ export interface ChatMessageResponse {
   threadReplyCount?: number;
   threadLastReplyAt?: string | null;
   threadFollowers?: ThreadFollowerResponse[];
+  senderProfile?: UserProfileSnapshotResponse | null;
   mentions?: string[];
   medias?: ChatMediaResponse[];
   [key: string]: unknown;
@@ -197,7 +218,7 @@ export interface SpaceInvitation {
   space?: SpaceResponse;
 }
 
-export type ChatProfilesMap = Record<string, UserProfileResponse>;
+export type ChatProfilesMap = Record<string, UserProfileSnapshotResponse>;
 
 export interface ApiResponse<T> {
   success: boolean;

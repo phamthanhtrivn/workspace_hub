@@ -7,6 +7,7 @@ import vn.workspacehub.user.dto.request.UpdateUserProfileRequest;
 import vn.workspacehub.user.dto.response.PresignedUrlResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
 import vn.workspacehub.user.entity.UserProfile;
+import vn.workspacehub.user.events.UserProfileEventPublisher;
 import vn.workspacehub.user.exception.BusinessException;
 import vn.workspacehub.user.mapper.UserProfileMapper;
 import vn.workspacehub.user.repository.UserProfileRepository;
@@ -20,6 +21,7 @@ public class UserProfileService {
     private final UserProfileRepository userProfileRepository;
     private final UserProfileMapper userProfileMapper;
     private final S3Service s3Service;
+    private final UserProfileEventPublisher userProfileEventPublisher;
 
     @Transactional(readOnly = true)
     public UserProfileResponse getMyProfile(UUID userId) {
@@ -37,6 +39,7 @@ public class UserProfileService {
         userProfileMapper.updateEntityFromRequest(request, userProfile);
 
         UserProfile savedProfile = userProfileRepository.save(userProfile);
+        userProfileEventPublisher.publishSnapshotUpsertedAfterCommit(savedProfile.getUser());
         return userProfileMapper.toResponse(savedProfile);
     }
 

@@ -43,8 +43,10 @@ type ChatReaction = {
   userId?: string;
 };
 
-type ChatMessageItem = {
-  senderId?: string;
+type ChatMessageItem = Pick<
+  ChatMessageResponse,
+  "senderId" | "senderProfile"
+> & {
   reactions?: ChatReaction[];
 };
 
@@ -177,7 +179,16 @@ export default function ChatArea({
     return Array.from(ids);
   }, [allMessages]);
 
-  const memberProfiles = useChatMemberProfiles(messageSenderIds);
+  const activeMemberProfiles = useChatMemberProfiles(messageSenderIds);
+  const memberProfiles = useMemo(() => {
+    const profiles = { ...activeMemberProfiles };
+    allMessages.forEach((message: ChatMessageItem) => {
+      if (message.senderId && message.senderProfile) {
+        profiles[message.senderId] = message.senderProfile;
+      }
+    });
+    return profiles;
+  }, [activeMemberProfiles, allMessages]);
   const isDirectConversation =
     activeChatType === ChatContextType.DIRECT_MESSAGE;
 
@@ -991,7 +1002,7 @@ export default function ChatArea({
           msg={msg}
           isMe={isMe}
           showAvatar={showAvatar}
-          memberProfile={memberProfiles?.[msg.senderId] || null}
+          memberProfile={msg.senderProfile || memberProfiles?.[msg.senderId] || null}
           memberProfiles={memberProfiles || {}}
           memberRole={
             activeConversation?.members?.find(

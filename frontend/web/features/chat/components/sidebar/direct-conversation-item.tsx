@@ -3,10 +3,7 @@ import Image from "next/image";
 import { Bell, BellOff, MoreVertical, Pin, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
-import {
-  ChatProfilesMap,
-  DirectConversationResponse,
-} from "../../types/chat.types";
+import { DirectConversationResponse } from "../../types/chat.types";
 
 type DirectConversationListItem = DirectConversationResponse & {
   unreadCount?: number;
@@ -17,7 +14,6 @@ type DirectConversationListItem = DirectConversationResponse & {
 interface DirectConversationItemProps {
   conversation: DirectConversationListItem;
   currentUserId: string | null;
-  memberProfiles: ChatProfilesMap;
   isLoadingProfile?: boolean;
   isActive?: boolean;
   onClick: (conversation: DirectConversationListItem) => void;
@@ -28,7 +24,6 @@ interface DirectConversationItemProps {
 const DirectConversationItem = React.memo(function DirectConversationItem({
   conversation,
   currentUserId,
-  memberProfiles,
   isLoadingProfile = false,
   isActive,
   onClick,
@@ -44,7 +39,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
     );
   }, [conversation.members, currentUserId]);
 
-  const profile = otherMember ? memberProfiles[otherMember.userId] : null;
+  const profile = otherMember?.profile ?? null;
   const currentMember = useMemo(() => {
     return conversation.members?.find(
       (member) => member.userId === currentUserId,

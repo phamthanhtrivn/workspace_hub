@@ -26,7 +26,6 @@ import {
   chatKeys,
   MAX_UNREAD_COUNT,
 } from "../../types/chat.constant";
-import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 
 const EMPTY_THREADS: FollowedThreadResponse[] = [];
 
@@ -101,37 +100,24 @@ export default function FollowedThreadsModal({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [handleClose, isOpen]);
 
-  const profileIds = useMemo(() => {
-    const ids = new Set<string>();
-    data.forEach((thread) => {
-      if (thread.rootMessage.senderId) ids.add(thread.rootMessage.senderId);
-      thread.chat.members?.forEach((member) => {
-        if (member.userId) ids.add(member.userId);
-      });
-    });
-    return Array.from(ids);
-  }, [data]);
-  const memberProfiles = useChatMemberProfiles(profileIds);
-
   const filteredThreads = useMemo(() => {
     const trimmedQuery = searchQuery.trim().toLowerCase();
     if (!trimmedQuery) return data;
 
     return data.filter((thread) => {
-      const senderName =
-        memberProfiles[thread.rootMessage.senderId]?.fullName || "";
+      const senderName = thread.rootMessage.senderProfile?.fullName || "";
       const chatName =
         thread.chatType === ChatContextType.CHANNEL
           ? thread.chatName || thread.chat.name || ""
           : thread.chat.members
-              ?.map((member) => memberProfiles[member.userId]?.fullName || "")
+              ?.map((member) => member.profile?.fullName || "")
               .join(" ") || "";
 
       return `${chatName} ${senderName} ${getThreadPreview(thread)}`
         .toLowerCase()
         .includes(trimmedQuery);
     });
-  }, [data, memberProfiles, searchQuery]);
+  }, [data, searchQuery]);
 
   const handleSelectThread = (thread: FollowedThreadResponse) => {
     onSelectThread(thread);
@@ -208,8 +194,7 @@ export default function FollowedThreadsModal({
           ) : filteredThreads.length > 0 ? (
             <div className="flex flex-col gap-1">
               {filteredThreads.map((thread) => {
-                const senderProfile =
-                  memberProfiles[thread.rootMessage.senderId];
+                const senderProfile = thread.rootMessage.senderProfile;
                 const senderName = senderProfile?.fullName || "User";
                 const lastReplyTime = thread.lastReplyAt
                   ? formatDateTime(thread.lastReplyAt)

@@ -4,12 +4,23 @@ dotenv.config();
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
-import { ValidationPipe, BadRequestException } from '@nestjs/common';
+import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { Transport } from '@nestjs/microservices';
+import { USER_PROFILE_SNAPSHOT_KAFKA } from './modules/user-profile-snapshot/types/user-profile-snapshot.constants';
 
 async function bootstrap() {
+  const logger = new Logger('CommunicationBootstrap');
   const app = await NestFactory.create(AppModule);
+  const port = process.env.PORT ?? '8083';
+  const kafkaBrokers = (
+    process.env[USER_PROFILE_SNAPSHOT_KAFKA.BROKER_ENV] ??
+    USER_PROFILE_SNAPSHOT_KAFKA.DEFAULT_BROKER
+  )
+    .split(',')
+    .map((broker) => broker.trim())
+    .filter(Boolean);
 
   // Enable CORS
   app.enableCors({
@@ -18,7 +29,18 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // Microservice initialization is no longer needed since this service only produces events
+  app.connectMicroservice({
+    transport: Transport.KAFKA,
+    options: {
+      client: {
+        clientId: USER_PROFILE_SNAPSHOT_KAFKA.CLIENT_ID,
+        brokers: kafkaBrokers,
+      },
+      consumer: {
+        groupId: USER_PROFILE_SNAPSHOT_KAFKA.GROUP_ID,
+      },
+    },
+  });
 
   // Setup Global Pipes, Interceptors, and Filters
   app.useGlobalPipes(
@@ -52,6 +74,19 @@ async function bootstrap() {
   await redisIoAdapter.connectToRedis();
   app.useWebSocketAdapter(redisIoAdapter);
 
-  await app.listen(process.env.PORT!);
+  await app.listen(port);
+  logger.log(`Communication service HTTP server started on ${port}`);
+
+  void app
+    .startAllMicroservices()
+    .then(() => {
+      logger.log(USER_PROFILE_SNAPSHOT_KAFKA.LOG_MESSAGES.CONSUMER_STARTED);
+    })
+    .catch((error) => {
+      logger.error(
+        USER_PROFILE_SNAPSHOT_KAFKA.LOG_MESSAGES.CONSUMER_START_FAILED,
+        error instanceof Error ? error.stack : String(error),
+      );
+    });
 }
 bootstrap();

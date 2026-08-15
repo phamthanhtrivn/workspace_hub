@@ -23,6 +23,7 @@ import vn.workspacehub.user.entity.UserProfile;
 import vn.workspacehub.user.enums.OAuthProvider;
 import vn.workspacehub.user.enums.UserRole;
 import vn.workspacehub.user.enums.UserStatus;
+import vn.workspacehub.user.events.UserProfileEventPublisher;
 import vn.workspacehub.user.exception.BusinessException;
 import vn.workspacehub.user.repository.AccountSettingRepository;
 import vn.workspacehub.user.repository.OAuthAccountRepository;
@@ -50,6 +51,7 @@ public class AuthService {
     private final UserProfileRepository userProfileRepository;
     private final OAuthAccountRepository oauthAccountRepository;
     private final AccountSettingRepository accountSettingRepository;
+    private final UserProfileEventPublisher userProfileEventPublisher;
 
     private static final String REFRESH_TOKEN_COOKIE = "refreshToken";
 
@@ -152,6 +154,7 @@ public class AuthService {
                         .build();
                 userProfile = userProfileRepository.save(userProfile);
                 user.setProfile(userProfile);
+                userProfileEventPublisher.publishSnapshotUpsertedAfterCommit(user);
 
                 AccountSetting accountSetting = AccountSetting.builder()
                         .user(user)
@@ -258,6 +261,8 @@ public class AuthService {
                 .build();
 
         userProfileRepository.save(userProfile);
+        savedUser.setProfile(userProfile);
+        userProfileEventPublisher.publishSnapshotUpsertedAfterCommit(savedUser);
 
         AccountSetting accountSetting = AccountSetting.builder()
                 .user(savedUser)

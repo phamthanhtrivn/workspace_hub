@@ -2,7 +2,6 @@ import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import {
-  getBulkProfilesByIds,
   getDirectConversations,
   getSpaceChannels,
   getUserSpaces,
@@ -12,47 +11,18 @@ import {
   chatKeys,
 } from "../types/chat.constant";
 import {
-  ChatEntity,
   ChatContextType,
   ChatMessageResponse,
-  ChatProfilesMap,
   DirectMessage,
   SpaceChannel,
 } from "../types/chat.types";
 
 export interface DirectMessagesQueryData {
   directMessages: DirectMessage[];
-  profiles: ChatProfilesMap;
 }
 
 export interface SpaceChannelsQueryData {
   channels: SpaceChannel[];
-  profiles: ChatProfilesMap;
-}
-
-export function getProfileIdsFromChats(chats: ChatEntity[]) {
-  const userIds = new Set<string>();
-  chats.forEach((chat) => {
-    chat.members?.forEach((member) => {
-      if (member.userId) userIds.add(member.userId);
-    });
-  });
-  return Array.from(userIds);
-}
-
-async function fetchProfilesByIds(userIds: string[]) {
-  const uniqueIds = Array.from(new Set(userIds.filter(Boolean)));
-  if (uniqueIds.length === 0) return {};
-
-  const profilesResponse = await getBulkProfilesByIds(uniqueIds);
-  if (!profilesResponse.success) return {};
-
-  return profilesResponse.data.reduce<ChatProfilesMap>((profiles, profile) => {
-    if (profile.id) {
-      profiles[profile.id] = profile;
-    }
-    return profiles;
-  }, {});
 }
 
 export function useSpacesQuery(currentUserId?: string | null) {
@@ -72,11 +42,10 @@ export function useSpaceChannelsQuery(spaceId?: string | null) {
   return useQuery({
     queryKey: chatKeys.channels(spaceId),
     queryFn: async (): Promise<SpaceChannelsQueryData> => {
-      if (!spaceId) return { channels: [], profiles: {} };
+      if (!spaceId) return { channels: [] };
       const res = await getSpaceChannels(spaceId);
       const channels = res?.success ? res.data : [];
-      const profiles = await fetchProfilesByIds(getProfileIdsFromChats(channels));
-      return { channels, profiles };
+      return { channels };
     },
     enabled: !!spaceId,
     staleTime: CHAT_DEFAULT_STALE_TIME_MS,
@@ -87,33 +56,14 @@ export function useDirectMessagesQuery(currentUserId?: string | null) {
   return useQuery({
     queryKey: chatKeys.directMessages(currentUserId),
     queryFn: async (): Promise<DirectMessagesQueryData> => {
-      if (!currentUserId) return { directMessages: [], profiles: {} };
+      if (!currentUserId) return { directMessages: [] };
       const response = await getDirectConversations();
       const directMessages = response.success ? response.data : [];
-      const profiles = await fetchProfilesByIds(
-        getProfileIdsFromChats(directMessages),
-      );
-      return { directMessages, profiles };
+      return { directMessages };
     },
     enabled: !!currentUserId,
     staleTime: CHAT_DEFAULT_STALE_TIME_MS,
   });
-}
-
-export function useChatProfiles(userIds: string[] = []) {
-  const userIdsKey = useMemo(
-    () => Array.from(new Set(userIds.filter(Boolean))).sort().join(","),
-    [userIds],
-  );
-
-  const { data } = useQuery({
-    queryKey: chatKeys.memberProfiles(userIdsKey),
-    queryFn: () => fetchProfilesByIds(userIdsKey ? userIdsKey.split(",") : []),
-    enabled: userIdsKey.length > 0,
-    staleTime: CHAT_DEFAULT_STALE_TIME_MS,
-  });
-
-  return data || {};
 }
 
 export function useActiveChat() {

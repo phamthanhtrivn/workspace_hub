@@ -158,7 +158,7 @@ export default function ThreadsListView({
           </div>
         ) : threads.length > 0 ? (
           threads.map((msg: any) => {
-            const sender = memberProfiles[msg.senderId];
+            const sender = msg.senderProfile || memberProfiles[msg.senderId];
             const senderName = sender?.fullName || "User";
             const avatarUrl = sender?.avatarUrl;
 

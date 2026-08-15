@@ -5,12 +5,14 @@ import { ChatEvent } from '../chat/chat.events';
 import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 import { CHANNEL_ERROR_MESSAGES } from '../channel/types/channel.enums';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
 export class DirectConversationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
   async createDirectConversation(userId: string, participantId: string) {
@@ -207,17 +209,26 @@ export class DirectConversationService {
     return updatedParticipant;
   }
 
-  private mapDirectConversation(
+  private async mapDirectConversation(
     conversation: any,
     _userId: string,
     unreadCount = 0,
   ) {
+    const members = conversation.participants.map((participant) => ({
+      ...participant,
+      role: SpaceRole.MEMBER,
+    }));
+    const enrichedMembers =
+      await this.userProfileSnapshotService.attachProfilesToMembers(members);
+    const enrichedMessages =
+      await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+        conversation.messages ?? [],
+      );
+
     return {
       ...conversation,
-      members: conversation.participants.map((participant) => ({
-        ...participant,
-        role: SpaceRole.MEMBER,
-      })),
+      members: enrichedMembers,
+      messages: enrichedMessages,
       setting: {
         allowSendMessage: true,
         allowCreateNote: true,

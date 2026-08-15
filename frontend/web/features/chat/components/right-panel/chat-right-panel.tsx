@@ -220,23 +220,14 @@ export default function ChatRightPanel({
     );
     if (otherMember) {
       otherMemberId = otherMember.userId;
-      const profile = memberProfiles?.[otherMember.userId];
-      const memberProfile = otherMember as any;
+      const profile = otherMember.profile || memberProfiles?.[otherMember.userId];
       displayName =
         profile?.fullName ||
-        memberProfile.profile?.fullName ||
-        memberProfile.fullName ||
-        "User";
-      displayAvatarUrl =
-        profile?.avatarUrl ||
-        memberProfile.profile?.avatarUrl ||
-        memberProfile.avatarUrl ||
-        null;
-      displayDescription =
         profile?.email ||
-        memberProfile.profile?.email ||
-        memberProfile.email ||
-        "";
+        otherMember.userId ||
+        "User";
+      displayAvatarUrl = profile?.avatarUrl || null;
+      displayDescription = profile?.email || "";
     }
   } else if (activeConversation) {
     displayName = activeConversation.name || "Channel";

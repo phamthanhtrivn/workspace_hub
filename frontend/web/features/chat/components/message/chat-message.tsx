@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { MoreHorizontal, Pin, MessageSquare, SmilePlus } from "lucide-react";
 import { MessageOptionsDropdown } from "./message-options-dropdown";
-import { QUICK_EMOJIS, UserProfileResponse } from "../../types/chat.types";
+import { QUICK_EMOJIS, UserProfileSnapshotResponse } from "../../types/chat.types";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import PollMessage from "./poll-message";
@@ -27,7 +27,7 @@ interface ChatMessageProps {
   msg: RenderableChatMessage;
   isMe: boolean;
   showAvatar: boolean;
-  memberProfile: UserProfileResponse | null;
+  memberProfile: UserProfileSnapshotResponse | null;
   memberProfiles: MemberProfilesMap;
   memberRole?: "ADMIN" | "MEMBER";
   readBy?: string[];

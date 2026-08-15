@@ -29,13 +29,13 @@ import {
   setActiveThreadRootMessage,
 } from "@/store/chat/chat-slice";
 import {
-  ChatProfilesMap,
   ChatContextType,
   ChannelResponse,
   ConversationResponse,
   DirectConversationResponse,
   FollowedThreadResponse,
   UserProfileResponse,
+  UserProfileSnapshotResponse,
 } from "../../types/chat.types";
 import { ChatSidebarSection, MAX_UNREAD_COUNT, chatKeys } from "../../types/chat.constant";
 import { sortDirectConversations } from "../../utils/direct-conversation-utils";
@@ -156,20 +156,18 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const hydrateDirectMessage = useCallback(
     (
       conversation: ConversationResponse,
-      profiles?: ChatProfilesMap,
+      selectedUserId?: string | null,
+      selectedProfile?: UserProfileSnapshotResponse | null,
     ): ConversationResponse => {
-      if (!profiles) return conversation;
+      if (!selectedUserId || !selectedProfile) return conversation;
 
       return {
         ...conversation,
-        members: conversation.members?.map((member) => ({
-          ...member,
-          profile: profiles[member.userId] || (member as any).profile,
-          fullName:
-            profiles[member.userId]?.fullName || (member as any).fullName,
-          avatarUrl:
-            profiles[member.userId]?.avatarUrl || (member as any).avatarUrl,
-        })),
+        members: conversation.members?.map((member) =>
+          member.userId === selectedUserId
+            ? { ...member, profile: selectedProfile }
+            : member,
+        ),
       };
     },
     [],
@@ -200,12 +198,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   );
 
   const handleSelectConversation = useCallback(
-    (
-      conv: ConversationResponse,
-      profiles?: ChatProfilesMap,
-    ) => {
-      const hydratedConversation = hydrateDirectMessage(conv, profiles);
-      dispatch(setActiveDirectMessage(hydratedConversation));
+    (conv: ConversationResponse) => {
+      dispatch(setActiveDirectMessage(conv));
 
       // Optimistically clear unread count
       queryClient.setQueryData(
@@ -233,7 +227,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     [
       currentUserId,
       dispatch,
-      hydrateDirectMessage,
       onSelectChat,
       queryClient,
     ],
@@ -262,24 +255,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 nextConversations,
                 currentUserId,
               ),
-              profiles: {
-                ...(oldData.profiles || {}),
-                [selectedUserId]: selectedProfile,
-              },
-            };
-          },
-        );
-
-        queryClient.setQueriesData(
-          { queryKey: ["chat-member-profiles"] },
-          (oldData: any) => {
-            if (!oldData) return oldData;
-            return {
-              ...oldData,
-              profiles: {
-                ...(oldData.profiles || {}),
-                [selectedUserId]: selectedProfile,
-              },
             };
           },
         );
@@ -290,8 +265,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       });
       const hydratedConversation =
         selectedUserId && selectedProfile
-          ? hydrateDirectMessage(newConversation, {
-              [selectedUserId]: selectedProfile,
+          ? hydrateDirectMessage(newConversation, selectedUserId, {
+              id: selectedUserId,
+              userId: selectedUserId,
+              email: selectedProfile.email,
+              fullName: selectedProfile.fullName,
+              avatarUrl: selectedProfile.avatarUrl,
             })
           : newConversation;
 

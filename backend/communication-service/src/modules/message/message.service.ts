@@ -9,12 +9,14 @@ import { MessageType, Prisma, SpaceRole } from '@prisma/client';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
 import { MESSAGE_DIRECTION, MESSAGE_CONSTANTS, MESSAGE_ERROR_MESSAGES } from './types/message.enums';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
 export class MessageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
   async createMessage(
@@ -41,7 +43,7 @@ export class MessageService {
     },
     threadParentId?: string,
   ): Promise<any> {
-    return this.prisma.$transaction(async (tx) => {
+    const createdMessage = await this.prisma.$transaction(async (tx) => {
       if (type !== MessageType.SYSTEM) {
         const member = (await tx.channelMember.findUnique({
           where: { channelId_userId: { channelId, userId: senderId } },
@@ -211,6 +213,10 @@ export class MessageService {
 
       return message;
     });
+
+    return this.userProfileSnapshotService.attachSenderProfileToMessage(
+      createdMessage,
+    );
   }
 
   async getConversationMessages(
@@ -243,11 +249,15 @@ export class MessageService {
         nextCursor = nextItem?.id;
       }
 
-      return {
-        messages: messages.reverse().map((message) => ({
+      const mappedMessages = messages.reverse().map((message) => ({
           ...message,
           medias: mapMediaWithUrl(message.medias),
-        })),
+        }));
+      return {
+        messages:
+          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+            mappedMessages,
+          ),
         nextCursor,
       };
     } else if (direction === MESSAGE_DIRECTION.NEWER) {
@@ -266,11 +276,15 @@ export class MessageService {
         prevCursor = prevItem?.id;
       }
 
-      return {
-        messages: messages.map((message) => ({
+      const mappedMessages = messages.map((message) => ({
           ...message,
           medias: mapMediaWithUrl(message.medias),
-        })),
+        }));
+      return {
+        messages:
+          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+            mappedMessages,
+          ),
         prevCursor,
       };
     } else if (direction === MESSAGE_DIRECTION.AROUND && cursor) {
@@ -322,11 +336,15 @@ export class MessageService {
         allMessages.push(...newerMessages);
       }
 
-      return {
-        messages: allMessages.map((message) => ({
+      const mappedMessages = allMessages.map((message) => ({
           ...message,
           medias: mapMediaWithUrl(message.medias),
-        })),
+        }));
+      return {
+        messages:
+          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+            mappedMessages,
+          ),
         nextCursor,
         prevCursor,
       };
@@ -543,10 +561,13 @@ export class MessageService {
       take: 10,
     });
 
-    return messages.map((message) => ({
+    const mappedMessages = messages.map((message) => ({
       ...message,
       medias: mapMediaWithUrl(message.medias),
     }));
+    return this.userProfileSnapshotService.attachSenderProfilesToMessages(
+      mappedMessages,
+    );
   }
 
   async getConversationThreads(channelId: string) {
@@ -557,7 +578,7 @@ export class MessageService {
       note: true,
     };
 
-    return this.prisma.message.findMany({
+    const messages = await this.prisma.message.findMany({
       where: {
         channelId,
         threadReplyCount: {
@@ -570,6 +591,13 @@ export class MessageService {
         threadLastReplyAt: 'desc',
       },
     });
+    const mappedMessages = messages.map((message) => ({
+      ...message,
+      medias: mapMediaWithUrl(message.medias),
+    }));
+    return this.userProfileSnapshotService.attachSenderProfilesToMessages(
+      mappedMessages,
+    );
   }
 
   async getFollowedThreads(userId: string) {
@@ -621,16 +649,25 @@ export class MessageService {
           },
         });
         const { channel, ...message } = follower.message as any;
-
-        return {
-          rootMessage: {
+        const rootMessage =
+          await this.userProfileSnapshotService.attachSenderProfileToMessage({
             ...message,
             chatId: channel.id,
             chatType: CHAT_CONTEXT_TYPE.CHANNEL,
             channelId: channel.id,
             medias: mapMediaWithUrl(message.medias),
+          });
+        const members =
+          await this.userProfileSnapshotService.attachProfilesToMembers(
+            channel.members ?? [],
+          );
+
+        return {
+          rootMessage,
+          chat: {
+            ...channel,
+            members,
           },
-          chat: channel,
           chatId: channel.id,
           chatType: CHAT_CONTEXT_TYPE.CHANNEL,
           chatName: channel.name,
@@ -749,15 +786,24 @@ export class MessageService {
       include: includeQuery,
     });
 
-    return {
-      rootMessage: {
+    const mappedRootMessage = {
         ...rootMessage,
         medias: mapMediaWithUrl(rootMessage.medias),
-      },
-      replies: replies.map((reply) => ({
+      };
+    const mappedReplies = replies.map((reply) => ({
         ...reply,
         medias: mapMediaWithUrl(reply.medias),
-      })),
+      }));
+
+    return {
+      rootMessage:
+        await this.userProfileSnapshotService.attachSenderProfileToMessage(
+          mappedRootMessage,
+        ),
+      replies:
+        await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+          mappedReplies,
+        ),
     };
   }
 
@@ -1074,11 +1120,15 @@ export class MessageService {
       nextCursor = nextItem?.id;
     }
 
-    return {
-      messages: messages.map((message) => ({
+    const mappedMessages = messages.map((message) => ({
         ...message,
         medias: mapMediaWithUrl(message.medias),
-      })),
+      }));
+    return {
+      messages:
+        await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+          mappedMessages,
+        ),
       nextCursor,
     };
   }

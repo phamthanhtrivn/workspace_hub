@@ -12,7 +12,16 @@ import { ChatEvent } from '../chat/chat.events';
 import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 import { getMediaUrl } from 'src/common/utils/file.util';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
-import { CHANNEL_ERROR_MESSAGES } from './types/channel.enums';
+import {
+  CHANNEL_ERROR_MESSAGES,
+  CHANNEL_MEMBER_SEARCH_DEFAULT_LIMIT,
+  CHANNEL_MEMBER_SEARCH_MAX_LIMIT,
+} from './types/channel.enums';
+import {
+  ChannelMemberListItem,
+  ChannelMembersListResponse,
+} from './types/channel-members.types';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
 export class ChannelService {
@@ -20,6 +29,7 @@ export class ChannelService {
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
     private readonly s3Service: S3Service,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
   async getUserChannels(userId: string) {
@@ -49,7 +59,7 @@ export class ChannelService {
       },
     });
 
-    return Promise.all(
+    const channelsWithUnread = await Promise.all(
       channels.map(async (channel) => {
         const member = channel.members.find((item) => item.userId === userId);
         let unreadCount = 0;
@@ -69,12 +79,14 @@ export class ChannelService {
           });
         }
 
-        return {
+        return this.enrichChannelForClient({
           ...channel,
           unreadCount,
-        };
+        });
       }),
     );
+
+    return channelsWithUnread;
   }
 
   private async getSpaceChannelIds(spaceId: string) {
@@ -101,13 +113,80 @@ export class ChannelService {
       roles.map((member) => [member.userId, member.role]),
     );
 
+    const membersWithRoles = channel.members.map((member) => ({
+      ...member,
+      role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
+    }));
+
+    return this.enrichChannelForClient({
+      ...channel,
+      members: membersWithRoles,
+    });
+  }
+
+  private async enrichChannelForClient(channel: any) {
+    const members = await this.userProfileSnapshotService.attachProfilesToMembers(
+      channel.members ?? [],
+    );
+    const messages = await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+      channel.messages ?? [],
+    );
+
     return {
       ...channel,
-      members: channel.members.map((member) => ({
-        ...member,
-        role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
-      })),
+      members,
+      messages,
     };
+  }
+
+  private normalizeLimit(limit?: string | number) {
+    const parsedLimit = Number(limit);
+
+    if (!Number.isFinite(parsedLimit) || parsedLimit <= 0) {
+      return CHANNEL_MEMBER_SEARCH_DEFAULT_LIMIT;
+    }
+
+    return Math.min(Math.floor(parsedLimit), CHANNEL_MEMBER_SEARCH_MAX_LIMIT);
+  }
+
+  private normalizeSearch(search?: string) {
+    return search?.trim().toLowerCase() ?? '';
+  }
+
+  private matchesChannelMemberSearch(
+    member: ChannelMemberListItem,
+    search: string,
+  ) {
+    if (!search) return true;
+
+    const searchableValues = [
+      member.userId,
+      member.nickname,
+      member.profile?.fullName,
+      member.profile?.email,
+    ].filter(Boolean);
+
+    return searchableValues.some((value) =>
+      String(value).toLowerCase().includes(search),
+    );
+  }
+
+  private sortChannelMembers(
+    firstMember: ChannelMemberListItem,
+    secondMember: ChannelMemberListItem,
+  ) {
+    const firstName =
+      firstMember.nickname ||
+      firstMember.profile?.fullName ||
+      firstMember.profile?.email ||
+      firstMember.userId;
+    const secondName =
+      secondMember.nickname ||
+      secondMember.profile?.fullName ||
+      secondMember.profile?.email ||
+      secondMember.userId;
+
+    return firstName.localeCompare(secondName);
   }
 
   private async emitRoleUpdateToSpaceChannels(
@@ -126,6 +205,77 @@ export class ChannelService {
           member,
         });
     });
+  }
+
+  async getChannelMembers(
+    channelId: string,
+    userId: string,
+    search?: string,
+    limit?: string | number,
+  ): Promise<ChannelMembersListResponse> {
+    const channel = await this.prisma.channel.findUnique({
+      where: { id: channelId },
+      include: { members: true },
+    });
+
+    if (!channel) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
+    }
+
+    const requester = channel.members.find((member) => member.userId === userId);
+    if (!requester) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+    }
+
+    const roleRows = await this.prisma.spaceMember.findMany({
+      where: {
+        spaceId: channel.spaceId,
+        userId: { in: channel.members.map((member) => member.userId) },
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+    });
+    const roleByUserId = new Map(
+      roleRows.map((member) => [member.userId, member.role]),
+    );
+    const normalizedSearch = this.normalizeSearch(search);
+    const normalizedLimit = this.normalizeLimit(limit);
+
+    const memberItems = channel.members.map((member) => ({
+        id: member.id,
+        userId: member.userId,
+        joinedAt: member.joinedAt,
+        muted: member.muted,
+        pinned: member.pinned,
+        nickname: member.nickname,
+        role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
+      }));
+    const enrichedMembers =
+      await this.userProfileSnapshotService.attachProfilesToMembers(memberItems);
+
+    const filteredMembers = enrichedMembers
+      .filter((member) =>
+        this.matchesChannelMemberSearch(member, normalizedSearch),
+      )
+      .sort((firstMember, secondMember) =>
+        this.sortChannelMembers(firstMember, secondMember),
+      );
+
+    const limitedMembers = filteredMembers.slice(0, normalizedLimit);
+
+    return {
+      total: channel.members.length,
+      admins: limitedMembers.filter((member) => member.role === SpaceRole.ADMIN),
+      members: limitedMembers.filter(
+        (member) => member.role !== SpaceRole.ADMIN,
+      ),
+      nextCursor:
+        filteredMembers.length > normalizedLimit
+          ? limitedMembers[limitedMembers.length - 1]?.userId ?? null
+          : null,
+    };
   }
 
   async updateChannelSettings(

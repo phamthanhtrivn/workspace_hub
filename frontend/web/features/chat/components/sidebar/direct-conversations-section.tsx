@@ -7,7 +7,7 @@ import {
   muteDirectConversation,
   pinDirectConversation,
 } from "../../api/chat.api";
-import { ChatProfilesMap, DirectMessage } from "../../types/chat.types";
+import { DirectMessage } from "../../types/chat.types";
 import { ChatSidebarSection, chatKeys } from "../../types/chat.constant";
 import DirectConversationItem from "./direct-conversation-item";
 import { sortDirectConversations } from "../../utils/direct-conversation-utils";
@@ -18,17 +18,13 @@ import {
 } from "../../hooks/useChatQueries";
 
 const EMPTY_DIRECT_MESSAGES: DirectMessage[] = [];
-const EMPTY_MEMBER_PROFILES: ChatProfilesMap = {};
 
 interface DirectMessagesSectionProps {
   activeConversationId?: string;
   currentUserId: string | null;
   searchQuery: string;
   onCreateDirectConversation: () => void;
-  onSelectConversation: (
-    directMessage: DirectMessage,
-    profiles?: ChatProfilesMap,
-  ) => void;
+  onSelectConversation: (directMessage: DirectMessage) => void;
 }
 
 export default function DirectConversationsSection({
@@ -50,7 +46,6 @@ export default function DirectConversationsSection({
       ),
     [currentUserId, data?.directMessages],
   );
-  const memberProfiles = data?.profiles ?? EMPTY_MEMBER_PROFILES;
   const isLoadingProfiles = isLoading || isFetching;
 
   const filteredDirectMessages = useMemo(() => {
@@ -61,11 +56,11 @@ export default function DirectConversationsSection({
       const otherMember = directMessage.members?.find(
         (member) => member.userId !== currentUserId,
       );
-      const profile = otherMember ? memberProfiles[otherMember.userId] : null;
+      const profile = otherMember?.profile ?? null;
       const name = profile?.fullName || "User";
       return name.toLowerCase().includes(trimmedQuery);
     });
-  }, [currentUserId, directMessages, memberProfiles, searchQuery]);
+  }, [currentUserId, directMessages, searchQuery]);
 
   const updateDirectMessageMemberCache = (
     directMessageId: string,
@@ -197,11 +192,10 @@ export default function DirectConversationsSection({
                 key={directMessage.id}
                 conversation={directMessage}
                 currentUserId={currentUserId}
-                memberProfiles={memberProfiles}
                 isLoadingProfile={isLoadingProfiles}
                 isActive={activeConversationId === directMessage.id}
                 onClick={(selectedDirectMessage) =>
-                  onSelectConversation(selectedDirectMessage, memberProfiles)
+                  onSelectConversation(selectedDirectMessage)
                 }
                 onTogglePin={(selectedDirectMessage, pinned) =>
                   pinMutation.mutate({

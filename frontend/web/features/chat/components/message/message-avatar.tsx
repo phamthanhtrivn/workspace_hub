@@ -1,12 +1,12 @@
 import Image from "next/image";
 import { Key, User } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { UserProfileResponse } from "../../types/chat.types";
+import { UserProfileSnapshotResponse } from "../../types/chat.types";
 
 interface MessageAvatarProps {
   showAvatar: boolean;
   senderName: string;
-  senderProfile: UserProfileResponse | null;
+  senderProfile: UserProfileSnapshotResponse | null;
   memberRole?: "ADMIN" | "MEMBER";
   onClick: () => void;
 }

@@ -21,6 +21,7 @@ import {
 import NotificationList from "@/features/notification/components/notification-list";
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
+import { logApiError } from "@/lib/interceptors";
 
 // Renderers
 import {
@@ -95,7 +96,9 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             }),
           ),
         )
-        .catch(console.error);
+        .catch((error) =>
+          logApiError(error, "Failed to fetch notification unread count"),
+        );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, dispatch]);
@@ -118,7 +121,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             }),
           );
         } catch (error) {
-          console.error("Failed to fetch notifications", error);
+          logApiError(error, "Failed to fetch notifications");
         } finally {
           dispatch(setLoading(false));
         }

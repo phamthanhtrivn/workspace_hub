@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
@@ -41,6 +41,19 @@ function isThreadFollowerCurrentUser(
   return typeof follower === "string"
     ? follower === currentUserId
     : follower.userId === currentUserId;
+}
+
+function hasCachedDirectConversation(
+  queryClient: QueryClient,
+  conversationId: string,
+) {
+  const directConversationQueries = queryClient.getQueriesData<{
+    directMessages?: { id: string }[];
+  }>({ queryKey: chatKeys.allDirectMessages() });
+
+  return directConversationQueries.some(([, data]) =>
+    data?.directMessages?.some((conversation) => conversation.id === conversationId),
+  );
 }
 
 export function useChatSocket() {
@@ -128,6 +141,11 @@ export function useChatSocket() {
         return;
       }
 
+      const hasConversationInCache = hasCachedDirectConversation(
+        queryClient,
+        chatId,
+      );
+
       updateDirectMessagesCache(
         queryClient,
         currentUserId,
@@ -175,6 +193,12 @@ export function useChatSocket() {
         },
         chatId,
       );
+
+      if (!hasConversationInCache) {
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.directMessages(currentUserId),
+        });
+      }
     };
 
     const handleMessageUpdated = (message: ChatSocketMessagePayload) => {

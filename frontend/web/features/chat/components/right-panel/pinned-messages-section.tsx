@@ -1,12 +1,9 @@
-import { useMemo } from "react";
 import { ChevronDown, ChevronRight, Pin } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  getBulkProfilesByIds,
   getDirectPinnedMessages,
   getPinnedMessages,
 } from "../../api/chat.api";
-import { UserProfileResponse } from "../../types/chat.types";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
@@ -62,36 +59,6 @@ export default function PinnedMessagesSection({
   });
 
   const pinnedMessages = data?.messages || [];
-  const senderIds = useMemo<string[]>(
-    () =>
-      [
-        ...new Set<string>(
-          pinnedMessages
-            .map((message: any) => message.senderId)
-            .filter((senderId: unknown): senderId is string => typeof senderId === "string" && senderId.length > 0),
-        ),
-      ].sort(),
-    [pinnedMessages],
-  );
-
-  const { data: profilesResponse } = useQuery({
-    queryKey: ["chat-pinned-message-profiles", senderIds],
-    queryFn: async () => getBulkProfilesByIds(senderIds),
-    enabled: isExpanded && senderIds.length > 0,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const profilesById = useMemo(() => {
-    const profiles: Record<string, UserProfileResponse> = {};
-    if (profilesResponse?.success && Array.isArray(profilesResponse.data)) {
-      profilesResponse.data.forEach((profile: UserProfileResponse) => {
-        if (profile.id) {
-          profiles[profile.id] = profile;
-        }
-      });
-    }
-    return profiles;
-  }, [profilesResponse]);
 
   const handleUnpin = async (messageId: string) => {
     if (isDirect) {
@@ -166,20 +133,20 @@ export default function PinnedMessagesSection({
                   onClick={() => onJumpToMessage(message.id)}
                   className="w-full cursor-pointer flex items-start gap-2 rounded-lg p-2 text-left hover:bg-gray-100 transition"
                 >
-                  {profilesById[message.senderId]?.avatarUrl ? (
+                  {message.senderProfile?.avatarUrl ? (
                     <img
-                      src={profilesById[message.senderId].avatarUrl || ""}
-                      alt={profilesById[message.senderId].fullName || "User"}
+                      src={message.senderProfile.avatarUrl || ""}
+                      alt={message.senderProfile.fullName || "User"}
                       className="h-7 w-7 shrink-0 rounded-full object-cover"
                     />
                   ) : (
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-600">
-                      {getInitial(profilesById[message.senderId]?.fullName)}
+                      {getInitial(message.senderProfile?.fullName)}
                     </span>
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-semibold text-gray-800">
-                      {profilesById[message.senderId]?.fullName || "User"}
+                      {message.senderProfile?.fullName || "User"}
                     </span>
                     <span className="block truncate text-xs text-gray-500">
                       {getPinnedPreviewText(message)}

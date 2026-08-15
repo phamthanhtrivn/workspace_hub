@@ -95,7 +95,8 @@ export default function ThreadsSection({
           ) : (
             <div className="space-y-1">
               {previewThreads.map((message: any) => {
-                const profile = memberProfiles[message.senderId];
+                const profile =
+                  message.senderProfile || memberProfiles[message.senderId];
                 const name = profile?.fullName || "User";
                 const lastReplyTime = message.threadLastReplyAt
                   ? formatDateTime(message.threadLastReplyAt)

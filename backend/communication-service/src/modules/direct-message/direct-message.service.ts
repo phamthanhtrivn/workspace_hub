@@ -9,12 +9,14 @@ import {
   MESSAGE_ERROR_MESSAGES,
 } from '../message/types/message.enums';
 import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
 export class DirectMessageService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
   async createDirectMessage(
@@ -30,7 +32,7 @@ export class DirectMessageService {
     }[],
     threadParentId?: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const createdMessage = await this.prisma.$transaction(async (tx) => {
       const participant = await tx.directConversationParticipant.findUnique({
         where: {
           conversationId_userId: {
@@ -138,6 +140,10 @@ export class DirectMessageService {
 
       return this.mapDirectMessage(message);
     });
+
+    return this.userProfileSnapshotService.attachSenderProfileToMessage(
+      createdMessage,
+    );
   }
 
   async getDirectConversationMessages(
@@ -168,10 +174,15 @@ export class DirectMessageService {
         nextCursor = nextItem?.id;
       }
 
+      const mappedMessages = messages
+        .reverse()
+        .map((message) => this.mapDirectMessage(message));
+
       return {
-        messages: messages.reverse().map((message) =>
-          this.mapDirectMessage(message),
-        ),
+        messages:
+          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+            mappedMessages,
+          ),
         nextCursor,
       };
     }
@@ -192,8 +203,15 @@ export class DirectMessageService {
         prevCursor = prevItem?.id;
       }
 
+      const mappedMessages = messages.map((message) =>
+        this.mapDirectMessage(message),
+      );
+
       return {
-        messages: messages.map((message) => this.mapDirectMessage(message)),
+        messages:
+          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+            mappedMessages,
+          ),
         prevCursor,
       };
     }
@@ -241,8 +259,15 @@ export class DirectMessageService {
         ...newerMessages,
       ];
 
+      const mappedMessages = messages.map((message) =>
+        this.mapDirectMessage(message),
+      );
+
       return {
-        messages: messages.map((message) => this.mapDirectMessage(message)),
+        messages:
+          await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+            mappedMessages,
+          ),
         nextCursor,
         prevCursor,
       };
@@ -336,8 +361,15 @@ export class DirectMessageService {
       nextCursor = nextItem?.id;
     }
 
+    const mappedMessages = messages.map((message) =>
+      this.mapDirectMessage(message),
+    );
+
     return {
-      messages: messages.map((message) => this.mapDirectMessage(message)),
+      messages:
+        await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+          mappedMessages,
+        ),
       nextCursor,
     };
   }
@@ -382,7 +414,12 @@ export class DirectMessageService {
       take: 10,
     });
 
-    return messages.map((message) => this.mapDirectMessage(message));
+    const mappedMessages = messages.map((message) =>
+      this.mapDirectMessage(message),
+    );
+    return this.userProfileSnapshotService.attachSenderProfilesToMessages(
+      mappedMessages,
+    );
   }
 
   async getDirectConversationThreads(
@@ -419,8 +456,15 @@ export class DirectMessageService {
       nextCursor = nextItem?.id;
     }
 
+    const mappedMessages = messages.map((message) =>
+      this.mapDirectMessage(message),
+    );
+
     return {
-      messages: messages.map((message) => this.mapDirectMessage(message)),
+      messages:
+        await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+          mappedMessages,
+        ),
       nextCursor,
     };
   }
@@ -471,12 +515,20 @@ export class DirectMessageService {
           },
         });
         const { conversation, ...message } = follower.message as any;
+        const rootMessage =
+          await this.userProfileSnapshotService.attachSenderProfileToMessage(
+            this.mapDirectMessage(message),
+          );
+        const members =
+          await this.userProfileSnapshotService.attachProfilesToMembers(
+            conversation.participants ?? [],
+          );
 
         return {
-          rootMessage: this.mapDirectMessage(message),
+          rootMessage,
           chat: {
             ...conversation,
-            members: conversation.participants,
+            members,
           },
           chatId: conversation.id,
           chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
@@ -512,9 +564,18 @@ export class DirectMessageService {
       include: includeQuery,
     });
 
+    const mappedRootMessage = this.mapDirectMessage(rootMessage);
+    const mappedReplies = replies.map((reply) => this.mapDirectMessage(reply));
+
     return {
-      rootMessage: this.mapDirectMessage(rootMessage),
-      replies: replies.map((reply) => this.mapDirectMessage(reply)),
+      rootMessage:
+        await this.userProfileSnapshotService.attachSenderProfileToMessage(
+          mappedRootMessage,
+        ),
+      replies:
+        await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+          mappedReplies,
+        ),
     };
   }
 

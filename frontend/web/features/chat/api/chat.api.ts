@@ -2,6 +2,7 @@ import { api } from "@/lib/axios";
 import {
   ApiResponse,
   ChatMessageResponse,
+  ChannelMembersListResponse,
   ChannelResponse,
   ConversationMember,
   ConversationResponse,
@@ -22,6 +23,7 @@ import {
 type UnknownRecord = Record<string, unknown>;
 
 const CHAT_API_ROUTES = {
+  channelMembers: (channelId: string) => `/api/channels/${channelId}/members`,
   channelFollowedThreads: "/api/channels/threads/followed",
   directFollowedThreads: "/api/direct-conversations/threads/followed",
   channelThreadRead: (messageId: string) =>
@@ -133,6 +135,17 @@ export const inviteMembers = async (
   return normalizeApiResponse<unknown>(response.data);
 };
 
+export const getChannelMembers = async (
+  channelId: string,
+  search?: string,
+  limit?: number,
+): Promise<ApiResponse<ChannelMembersListResponse>> => {
+  const response = await api.get(CHAT_API_ROUTES.channelMembers(channelId), {
+    params: { search, limit },
+  });
+  return normalizeApiResponse<ChannelMembersListResponse>(response.data);
+};
+
 export const updateChannelInfo = async (
   channelId: string,
   name: string,
@@ -153,21 +166,6 @@ export const getPublicProfile = async (
     ...payload,
     success: payload?.success ?? true,
     data: payload?.data ?? payload,
-  };
-};
-
-export const getBulkProfilesByIds = async (
-  ids: string[],
-): Promise<ApiResponse<UserProfileResponse[]>> => {
-  const response = await api.get("/api/users/profiles/bulk", {
-    params: { ids: ids.join(",") },
-  });
-  const payload = response.data;
-  const profiles = payload?.data ?? payload;
-  return {
-    ...payload,
-    success: payload?.success ?? true,
-    data: Array.isArray(profiles) ? profiles : [],
   };
 };
 

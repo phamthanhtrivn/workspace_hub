@@ -1,15 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Filter, Pin } from "lucide-react";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import {
-  getBulkProfilesByIds,
   getDirectPinnedMessages,
   getPinnedMessages,
 } from "../../api/chat.api";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
-import { UserProfileResponse } from "../../types/chat.types";
 import { formatDateTime } from "@/lib/date";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 import { useAppSelector } from "@/store/store";
@@ -94,42 +92,12 @@ export default function PinnedMessagesDetailView({
   }, [fetchNextPage, hasNextPage, inView, isFetchingNextPage]);
 
   const pinnedMessages = data?.pages.flatMap((page) => page?.messages || []) || [];
-  const senderIds = useMemo<string[]>(
-    () =>
-      [
-        ...new Set(
-          pinnedMessages
-            .map((message: any) => message.senderId)
-            .filter((senderId: unknown): senderId is string => typeof senderId === "string" && senderId.length > 0),
-        ),
-      ].sort(),
-    [pinnedMessages],
-  );
-
-  const { data: profilesResponse } = useQuery({
-    queryKey: ["chat-pinned-message-profiles", senderIds],
-    queryFn: async () => getBulkProfilesByIds(senderIds),
-    enabled: senderIds.length > 0,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const profilesById = useMemo(() => {
-    const profiles: Record<string, UserProfileResponse> = {};
-    if (profilesResponse?.success && Array.isArray(profilesResponse.data)) {
-      profilesResponse.data.forEach((profile: UserProfileResponse) => {
-        if (profile.id) {
-          profiles[profile.id] = profile;
-        }
-      });
-    }
-    return profiles;
-  }, [profilesResponse]);
 
   const senderOptions = useMemo(() => {
     if (!isDirect || !activeConversation?.members) return [];
     return activeConversation.members
       .map((member: any) => {
-        const profile = memberProfiles[member.userId] || profilesById[member.userId];
+        const profile = memberProfiles[member.userId] || member.profile;
         return {
           id: member.userId,
           label:
@@ -144,7 +112,6 @@ export default function PinnedMessagesDetailView({
     currentUserId,
     isDirect,
     memberProfiles,
-    profilesById,
   ]);
 
   const handleUnpin = async (messageId: string) => {
@@ -234,15 +201,15 @@ export default function PinnedMessagesDetailView({
                 key={message.id}
                 className="group flex items-start gap-3 rounded-lg border border-gray-100 bg-gray-50/60 p-3 hover:bg-gray-100 transition"
               >
-                {profilesById[message.senderId]?.avatarUrl ? (
+                {message.senderProfile?.avatarUrl ? (
                   <img
-                    src={profilesById[message.senderId].avatarUrl || ""}
-                    alt={profilesById[message.senderId].fullName || "User"}
+                    src={message.senderProfile.avatarUrl || ""}
+                    alt={message.senderProfile.fullName || "User"}
                     className="h-9 w-9 shrink-0 rounded-full object-cover"
                   />
                 ) : (
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-semibold text-blue-600">
-                    {getInitial(profilesById[message.senderId]?.fullName)}
+                    {getInitial(message.senderProfile?.fullName)}
                   </div>
                 )}
                 <button
@@ -251,7 +218,7 @@ export default function PinnedMessagesDetailView({
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="text-sm font-semibold text-gray-800">
-                      {profilesById[message.senderId]?.fullName || "User"}
+                      {message.senderProfile?.fullName || "User"}
                     </span>
                     
                   </div>

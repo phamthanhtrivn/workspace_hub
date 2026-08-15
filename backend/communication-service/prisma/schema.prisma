@@ -39,6 +39,20 @@ enum InvitationStatus {
 }
 
 /* =========================================================
+ * USER PROFILE SNAPSHOT
+ * ========================================================= */
+
+model UserProfileSnapshot {
+  userId   String   @id @map("user_id") @db.Uuid
+  email    String?
+  fullName String?  @map("full_name")
+  avatarUrl String? @map("avatar_url")
+  syncedAt DateTime @default(now()) @updatedAt @map("synced_at")
+
+  @@map("user_profile_snapshots")
+}
+
+/* =========================================================
  * SPACE
  * ========================================================= */
 

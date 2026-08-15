@@ -9,7 +9,7 @@ export enum ChatQueryRoot {
   CHANNELS = "channels",
   DIRECT_MESSAGES = "direct-messages",
   MESSAGES = "messages",
-  MEMBER_PROFILES = "chat-member-profiles",
+  CHANNEL_MEMBERS = "channel-members",
   READ_RECEIPTS = "read-receipts",
   PINNED_MESSAGES_PREVIEW = "pinnedMessagesPreview",
   PINNED_MESSAGES_DETAIL = "pinnedMessagesDetail",
@@ -36,7 +36,7 @@ export const chatKeys = {
   allChannels: () => [ChatQueryRoot.CHANNELS] as const,
   allDirectMessages: () => [ChatQueryRoot.DIRECT_MESSAGES] as const,
   allMessages: () => [ChatQueryRoot.MESSAGES] as const,
-  allMemberProfiles: () => [ChatQueryRoot.MEMBER_PROFILES] as const,
+  allChannelMembers: () => [ChatQueryRoot.CHANNEL_MEMBERS] as const,
   allMedia: () => [ChatQueryRoot.MEDIA] as const,
   allPinnedMessagesPreview: () => [ChatQueryRoot.PINNED_MESSAGES_PREVIEW] as const,
   allPinnedMessagesDetail: () => [ChatQueryRoot.PINNED_MESSAGES_DETAIL] as const,
@@ -52,8 +52,8 @@ export const chatKeys = {
     chatId?: string | null,
     jumpTargetId?: string | null,
   ) => [ChatQueryRoot.MESSAGES, chatType, chatId, jumpTargetId ?? null] as const,
-  memberProfiles: (userIdsKey?: string) =>
-    [ChatQueryRoot.MEMBER_PROFILES, userIdsKey ?? ""] as const,
+  channelMembers: (channelId?: string | null, search?: string) =>
+    [ChatQueryRoot.CHANNEL_MEMBERS, channelId, search ?? ""] as const,
   readReceipts: (
     chatType?: ChatContextType | null,
     chatId?: string | null,
@@ -84,3 +84,16 @@ export enum ChatSidebarSection {
   THREADS = "Threads",
   DIRECT_MESSAGES = "Direct Messages (DMs)",
 }
+
+export const CHANNEL_MEMBERS_MODAL_LABELS = {
+  title: (count: number) => `${count} ${count === 1 ? "member" : "members"}`,
+  searchPlaceholder: "Search members",
+  adminsSection: "CHANNEL ADMINS",
+  membersSection: "MEMBERS",
+  loading: "Loading members...",
+  empty: "No members found",
+  loadError: "Failed to load channel members",
+} as const;
+
+export const CHANNEL_MEMBER_SEARCH_DEBOUNCE_MS = 300;
+export const CHANNEL_MEMBER_SEARCH_PAGE_SIZE = 500;
