@@ -20,12 +20,6 @@ function getDisplayName(member: ChannelMemberListItem) {
   );
 }
 
-function getHandle(member: ChannelMemberListItem) {
-  const email = member.profile?.email;
-  if (!email) return member.userId;
-  return `@${email.split("@")[0]}`;
-}
-
 function getInitial(member: ChannelMemberListItem) {
   return getDisplayName(member).charAt(0).toUpperCase();
 }
@@ -35,7 +29,6 @@ export default function ChannelMemberRow({
   onOpenProfile,
 }: ChannelMemberRowProps) {
   const displayName = getDisplayName(member);
-  const handle = getHandle(member);
   const isAdmin = member.role === ConversationRoles.ADMIN;
 
   return (
@@ -68,7 +61,7 @@ export default function ChannelMemberRow({
           ) : null}
         </span>
         <span className="mt-0.5 block truncate text-xs text-gray-500">
-          {handle}
+          {member.profile?.email}
         </span>
       </span>
     </button>

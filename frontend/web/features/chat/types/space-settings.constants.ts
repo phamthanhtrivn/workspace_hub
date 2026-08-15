@@ -18,6 +18,10 @@ export const SPACE_SETTINGS_LABELS = {
   loadingInvitations: "Loading invitations...",
   noInvitations: "No pending invitations",
   lastAdminHelp: "Promote another member to Admin before leaving this space.",
+  permissionsTitle: "Channel permissions",
+  allowMemberCreateChannel: "Allow members to create channels",
+  allowMemberCreateChannelHelp:
+    "Admins can always create channels. Channel deletion stays admin-only.",
 } as const;
 
 export const SPACE_SETTINGS_TABS: SpaceSettingsTabConfig[] = [

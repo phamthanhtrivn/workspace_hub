@@ -13,12 +13,14 @@ interface InviteSpaceMembersModalProps {
   isOpen: boolean;
   onClose: () => void;
   spaceId: string;
+  onInvited?: () => void;
 }
 
 export default function InviteSpaceMembersModal({
   isOpen,
   onClose,
   spaceId,
+  onInvited,
 }: InviteSpaceMembersModalProps) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -108,6 +110,7 @@ export default function InviteSpaceMembersModal({
     try {
       await inviteSpaceMembers(spaceId, selectedUsers);
       toast.success("Space invitation sent successfully!");
+      onInvited?.();
       onClose();
     } catch (err: any) {
       toast.error(

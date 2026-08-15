@@ -1,6 +1,7 @@
 import { api } from "@/lib/axios";
 import {
   ApiResponse,
+  AcceptSpaceInvitationResponse,
   ChatMessageResponse,
   ChannelMembersListResponse,
   ChannelResponse,
@@ -17,10 +18,15 @@ import {
   SpaceMembersListResponse,
   SpaceResponse,
   SpaceSettingResponse,
+  SpaceRole,
   ThreadMessagesResponse,
   UserSearchResponse,
   UserProfileResponse,
 } from "../types/chat.types";
+import {
+  normalizeSpace,
+  normalizeSpaceSetting,
+} from "../utils/space-setting-utils";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -184,9 +190,9 @@ export const getPendingInvitations = async (): Promise<
 
 export const acceptInvitation = async (
   invitationId: string,
-): Promise<ApiResponse<SpaceInvitation | ChannelResponse>> => {
+): Promise<ApiResponse<AcceptSpaceInvitationResponse>> => {
   const response = await api.post(`/api/invitations/${invitationId}/accept`);
-  return normalizeApiResponse<SpaceInvitation | ChannelResponse>(
+  return normalizeApiResponse<AcceptSpaceInvitationResponse>(
     response.data,
   );
 };
@@ -576,7 +582,11 @@ export const createSpace = async (
   name: string,
 ): Promise<ApiResponse<SpaceResponse>> => {
   const response = await api.post("/api/spaces", { name });
-  return normalizeApiResponse<SpaceResponse>(response.data);
+  const payload = normalizeApiResponse<SpaceResponse>(response.data);
+  return {
+    ...payload,
+    data: normalizeSpace(payload.data),
+  };
 };
 
 export const getUserSpaces = async (): Promise<ApiResponse<SpaceResponse[]>> => {
@@ -586,7 +596,7 @@ export const getUserSpaces = async (): Promise<ApiResponse<SpaceResponse[]>> => 
   return {
     ...payload,
     success: payload?.success ?? true,
-    data: Array.isArray(spaces) ? spaces : [],
+    data: Array.isArray(spaces) ? spaces.map(normalizeSpace) : [],
   };
 };
 
@@ -594,7 +604,11 @@ export const getSpaceDetails = async (
   spaceId: string,
 ): Promise<ApiResponse<SpaceResponse>> => {
   const response = await api.get(`/api/spaces/${spaceId}`);
-  return normalizeApiResponse<SpaceResponse>(response.data);
+  const payload = normalizeApiResponse<SpaceResponse>(response.data);
+  return {
+    ...payload,
+    data: normalizeSpace(payload.data),
+  };
 };
 
 export const updateSpace = async (
@@ -602,7 +616,11 @@ export const updateSpace = async (
   name: string,
 ): Promise<ApiResponse<SpaceResponse>> => {
   const response = await api.patch(`/api/spaces/${spaceId}`, { name });
-  return normalizeApiResponse<SpaceResponse>(response.data);
+  const payload = normalizeApiResponse<SpaceResponse>(response.data);
+  return {
+    ...payload,
+    data: normalizeSpace(payload.data),
+  };
 };
 
 export const updateSpaceSettings = async (
@@ -610,7 +628,11 @@ export const updateSpaceSettings = async (
   settings: Partial<SpaceSettingResponse>,
 ): Promise<ApiResponse<SpaceSettingResponse>> => {
   const response = await api.patch(`/api/spaces/${spaceId}/settings`, settings);
-  return normalizeApiResponse<SpaceSettingResponse>(response.data);
+  const payload = normalizeApiResponse<SpaceSettingResponse>(response.data);
+  return {
+    ...payload,
+    data: normalizeSpaceSetting(payload.data, spaceId),
+  };
 };
 
 export const getSpaceMembers = async (
@@ -627,8 +649,11 @@ export const getSpaceMembers = async (
 export const updateSpaceMemberRole = async (
   spaceId: string,
   memberId: string,
-  role: "ADMIN" | "MEMBER",
+  role: SpaceRole,
 ): Promise<ApiResponse<ConversationMember>> => {
+  if (![SpaceRole.ADMIN, SpaceRole.MEMBER].includes(role)) {
+    throw new Error("Invalid space member role");
+  }
   const response = await api.patch(
     `/api/spaces/${spaceId}/members/${memberId}/role`,
     { role },

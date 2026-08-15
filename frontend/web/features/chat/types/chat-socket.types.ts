@@ -4,6 +4,8 @@ import {
   ChatMessageResponse,
   ConversationMember,
   ConversationSetting,
+  SpaceSettingResponse,
+  UserProfileSnapshotResponse,
 } from "./chat.types";
 
 export interface ChatContextPayload {
@@ -46,24 +48,52 @@ export interface JoinDirectSocketPayload extends ChatContextPayload {
 }
 
 export interface ChatSocketMemberPayload extends Partial<ChatContextPayload> {
+  eventType?: string;
   userId?: string;
   member?: ConversationMember;
   profile?: unknown;
   spaceId?: string;
+  spaceName?: string | null;
+  channelIds?: string[];
+  affectedUserIds?: string[];
+  leftSpace?: boolean;
+  actorProfile?: UserProfileSnapshotResponse | null;
+  targetProfile?: UserProfileSnapshotResponse | null;
 }
 
 export interface ChatSocketRoleUpdatedPayload extends Partial<ChatContextPayload> {
+  eventType?: string;
+  spaceId?: string;
+  spaceName?: string | null;
+  affectedUserIds?: string[];
+  actorProfile?: UserProfileSnapshotResponse | null;
+  targetProfile?: UserProfileSnapshotResponse | null;
   member: Pick<ConversationMember, "userId" | "role">;
 }
 
 export interface ChatSocketSettingUpdatedPayload extends Partial<ChatContextPayload> {
-  setting: ConversationSetting;
+  eventType?: string;
+  spaceId?: string;
+  spaceName?: string | null;
+  affectedUserIds?: string[];
+  setting: ConversationSetting | SpaceSettingResponse;
 }
 
 export interface ChatSocketUpdatedPayload extends Partial<ChatContextPayload> {
   id: string;
   name?: string;
   avatarUrl?: string;
+}
+
+export interface ChatSocketDisbandedPayload extends Partial<ChatContextPayload> {
+  eventType?: string;
+  spaceId?: string;
+  spaceName?: string | null;
+  channelName?: string | null;
+  channelIds?: string[];
+  affectedUserIds?: string[];
+  leftSpace?: boolean;
+  actorProfile?: UserProfileSnapshotResponse | null;
 }
 
 export interface ChatSocketMuteUpdatedPayload extends Partial<ChatContextPayload> {
@@ -142,7 +172,9 @@ export interface ServerToClientChatEvents {
   [ChatEvent.MEMBER_KICKED]: (payload: ChatSocketMemberPayload) => void;
   [ChatEvent.MEMBER_LEFT]: (payload: ChatSocketMemberPayload) => void;
   [ChatEvent.CONVERSATION_UPDATED]: (payload: ChatSocketUpdatedPayload) => void;
-  [ChatEvent.CONVERSATION_DISBANDED]: (payload: ChatContextPayload) => void;
+  [ChatEvent.CONVERSATION_DISBANDED]: (
+    payload: ChatSocketDisbandedPayload,
+  ) => void;
   [ChatEvent.CONVERSATION_MUTE_UPDATED]: (
     payload: ChatSocketMuteUpdatedPayload,
   ) => void;

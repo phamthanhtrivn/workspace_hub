@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Search,
   MessageSquareText,
-  UserPlus,
   Plus,
   ChevronDown,
   PlusCircle,
@@ -16,7 +15,6 @@ import { useRouter } from "next/navigation";
 import SearchUserModal from "../modals/search-user-modal";
 import CreateSpaceModal from "../modals/create-space-modal";
 import CreateChannelModal from "../modals/create-channel-modal";
-import InviteSpaceMembersModal from "../modals/invite-space-members-modal";
 import BrowseChannelsModal from "../modals/browse-channels-modal";
 import SpaceSettingsModal from "../modals/space-settings-modal";
 import ChannelItem from "./channel-item";
@@ -36,6 +34,7 @@ import {
   ConversationResponse,
   DirectConversationResponse,
   FollowedThreadResponse,
+  SpaceRole,
   UserProfileResponse,
   UserProfileSnapshotResponse,
 } from "../../types/chat.types";
@@ -50,6 +49,7 @@ import { cn } from "@/lib/utils";
 import {
   markChannelThreadAsRead,
   markDirectThreadAsRead,
+  getSpaceMembers,
   muteChannel,
   pinChannel,
 } from "../../api/chat.api";
@@ -60,6 +60,7 @@ import {
 } from "../../hooks/useChatQueries";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import {
+  cleanupRemovedSpaceCaches,
   clearChatUnread,
   patchChatMember,
   upsertChannelCache,
@@ -67,6 +68,7 @@ import {
   updateDirectMessagesCache,
   updateChannelsCache,
 } from "../../utils/chat-cache";
+import { canMembersCreateChannels } from "../../utils/space-setting-utils";
 import FollowedThreadsModal, {
   fetchFollowedThreads,
 } from "./followed-threads-modal";
@@ -96,7 +98,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isSpaceSettingsModalOpen, setIsSpaceSettingsModalOpen] = useState(false);
   const [isFollowedThreadsModalOpen, setIsFollowedThreadsModalOpen] = useState(false);
   const [isSpaceDropdownOpen, setIsSpaceDropdownOpen] = useState(false);
@@ -164,6 +165,14 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     queryKey: chatKeys.followedThreads(currentUserId),
     queryFn: fetchFollowedThreads,
     enabled: !!currentUserId,
+    staleTime: 1000 * 30,
+  });
+  const { data: currentSpaceMemberData } = useQuery({
+    queryKey: chatKeys.spaceMembers(activeSpaceId),
+    queryFn: async () =>
+      (await getSpaceMembers(activeSpaceId || "", undefined, 500))
+        .data,
+    enabled: !!activeSpace && !!activeSpaceId && !!currentUserId,
     staleTime: 1000 * 30,
   });
   const followedThreadsUnreadCount = useMemo(
@@ -323,11 +332,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     dispatch(setActiveSpaceId(newSpace.id));
   };
 
-  const handleSpaceDeletedOrLeft = useCallback(() => {
+  const handleSpaceDeletedOrLeft = useCallback((spaceId: string) => {
     dispatch(setActiveConversation(null));
     dispatch(setActiveSpaceId(null));
-    queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
-    queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+    void cleanupRemovedSpaceCaches(queryClient, spaceId).then(() => {
+      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+    });
   }, [dispatch, queryClient]);
 
   const handleNewChannel = (newChannel: any) => {
@@ -519,6 +529,37 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       currentUserId,
     );
   }, [channels, currentUserId]);
+  const isActiveSpaceAdmin = useMemo(
+    () =>
+      [
+        ...(currentSpaceMemberData?.admins || []),
+        ...(currentSpaceMemberData?.members || []),
+      ].some(
+        (member) =>
+          member.userId === currentUserId &&
+          member.role === SpaceRole.ADMIN,
+      ),
+    [currentSpaceMemberData, currentUserId],
+  );
+  const canCreateChannelInActiveSpace =
+    isActiveSpaceAdmin ||
+    canMembersCreateChannels(activeSpace);
+
+  useEffect(() => {
+    if (!canCreateChannelInActiveSpace && isCreateChannelModalOpen) {
+      setIsCreateChannelModalOpen(false);
+    }
+  }, [canCreateChannelInActiveSpace, isCreateChannelModalOpen]);
+
+  const handleChannelDeleted = useCallback(
+    (channelId: string) => {
+      if (activeChat?.id === channelId) {
+        dispatch(setActiveConversation(null));
+      }
+      refetchChannels();
+    },
+    [activeChat?.id, dispatch, refetchChannels],
+  );
 
   return (
     <div className="w-full h-full bg-white border-r border-slate-200/60 flex flex-col select-none">
@@ -534,7 +575,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-600 shrink-0 transition" />
             </h2>
             <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">
-              Workspace
+              Space
             </span>
           </div>
          <button
@@ -563,7 +604,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             <div className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               Spaces
             </div>
-            <div className="max-h-40 overflow-y-auto flex flex-col gap-0.5 px-1">
+            <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
               {spaces.map((space: any) => (
                 <div
                   key={space.id}
@@ -596,32 +637,21 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 <PlusCircle size={14} className="text-slate-400" />
                 Create new space
               </button>
-              <button
-                onClick={() => {
-                  if (activeSpaceId) {
-                    setIsInviteModalOpen(true);
-                  }
-                  setIsSpaceDropdownOpen(false);
-                }}
-                disabled={!activeSpaceId}
-                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center gap-2 cursor-pointer transition"
-              >
-                <UserPlus size={14} className="text-slate-400" />
-                Invite members
-              </button>
-              <button
-                onClick={() => {
-                  if (activeSpaceId) {
-                    setIsSpaceSettingsModalOpen(true);
-                  }
-                  setIsSpaceDropdownOpen(false);
-                }}
-                disabled={!activeSpaceId}
-                className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center gap-2 cursor-pointer transition"
-              >
-                <Settings size={14} className="text-slate-400" />
-                Space settings
-              </button>
+              {isActiveSpaceAdmin && (
+                <button
+                  onClick={() => {
+                    if (activeSpaceId) {
+                      setIsSpaceSettingsModalOpen(true);
+                    }
+                    setIsSpaceDropdownOpen(false);
+                  }}
+                  disabled={!activeSpaceId}
+                  className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center gap-2 cursor-pointer transition"
+                >
+                  <Settings size={14} className="text-slate-400" />
+                  Space settings
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -679,16 +709,18 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                       <Globe size={14} className="text-slate-400" />
                       Browse channels
                     </button>
-                    <button
-                      onClick={() => {
-                        setIsCreateChannelModalOpen(true);
-                        setIsChannelsDropdownOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <Plus size={14} className="text-slate-400" />
-                      Create new channel
-                    </button>
+                    {canCreateChannelInActiveSpace && (
+                      <button
+                        onClick={() => {
+                          setIsCreateChannelModalOpen(true);
+                          setIsChannelsDropdownOpen(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
+                      >
+                        <Plus size={14} className="text-slate-400" />
+                        Create new channel
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -763,11 +795,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             spaceId={activeSpaceId}
             onChannelCreated={handleNewChannel}
           />
-          <InviteSpaceMembersModal
-            isOpen={isInviteModalOpen}
-            onClose={() => setIsInviteModalOpen(false)}
-            spaceId={activeSpaceId}
-          />
           {activeSpace && (
             <SpaceSettingsModal
               isOpen={isSpaceSettingsModalOpen}
@@ -782,7 +809,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             onClose={() => setIsBrowseChannelsModalOpen(false)}
             spaceId={activeSpaceId}
             currentUserId={currentUserId}
+            isSpaceAdmin={isActiveSpaceAdmin}
             onJoinSuccess={handleNewChannel}
+            onDeleteSuccess={handleChannelDeleted}
           />
         </>
       )}

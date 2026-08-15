@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { Search, Shield, ShieldOff, Trash2, User } from "lucide-react";
 import {
-  ConversationRoles,
+  SpaceRole,
   SpaceMemberListItem,
 } from "../../../types/chat.types";
 import { SPACE_SETTINGS_LABELS } from "../../../types/space-settings.constants";
@@ -107,7 +107,7 @@ function MemberRow({
             <p className="truncate text-sm font-semibold text-slate-800">
               {isMe ? "You" : name}
             </p>
-            {member.role === ConversationRoles.ADMIN && (
+            {member.role === SpaceRole.ADMIN && (
               <span className="shrink-0 rounded-md border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
                 Admin
               </span>
@@ -124,7 +124,7 @@ function MemberRow({
           <button
             type="button"
             title={
-              member.role === ConversationRoles.ADMIN
+              member.role === SpaceRole.ADMIN
                 ? "Demote to Member"
                 : "Promote to Admin"
             }
@@ -132,7 +132,7 @@ function MemberRow({
             onClick={() => onRoleUpdate(member)}
             className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 cursor-pointer"
           >
-            {member.role === ConversationRoles.ADMIN ? (
+            {member.role === SpaceRole.ADMIN ? (
               <ShieldOff size={16} />
             ) : (
               <Shield size={16} />

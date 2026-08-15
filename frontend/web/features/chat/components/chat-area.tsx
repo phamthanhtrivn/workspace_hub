@@ -21,6 +21,7 @@ import TypingIndicator from "./message/typing-indicator";
 import {
   setHighlightMessageId,
   setActiveConversation,
+  setActiveSpaceId,
   setActiveThreadRootMessage,
 } from "@/store/chat/chat-slice";
 import {
@@ -29,6 +30,8 @@ import {
   CreateNotePayload,
   CreatePollPayload,
   NO_AVATAR_TYPES,
+  SpaceRole,
+  SpaceSettingResponse,
 } from "../types/chat.types";
 import {
   ChatSocketAckResponse,
@@ -40,6 +43,12 @@ import { toast } from "sonner";
 import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
 import { useDirectMessageActions } from "../hooks/useDirectMessageActions";
 import { useActiveChat } from "../hooks/useChatQueries";
+import {
+  cleanupRemovedSpaceCaches,
+  patchSpaceMemberRoleInCaches,
+  patchSpaceSettingInCaches,
+  removeChannelFromCaches,
+} from "../utils/chat-cache";
 
 type ChatReaction = {
   userId?: string;
@@ -58,6 +67,14 @@ type PageParam = {
 };
 
 type ChatInputRef = ChannelChatInputRef | DirectMessageInputRef;
+
+function isSpaceSetting(value: unknown): value is SpaceSettingResponse {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "allowMemberCreateChannel" in value
+  );
+}
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
@@ -478,48 +495,146 @@ export default function ChatArea({
       };
 
       const handleChannelSettingUpdated = (data: any) => {
-        if (getEventChannelId(data) === activeConversation.id) {
-          queryClient.invalidateQueries({ queryKey: ["channels"] });
+        if (
+          getEventChannelId(data) === activeConversation.id ||
+          data.spaceId === activeSpaceId
+        ) {
+          if (
+            data.eventType === "space_setting_updated" &&
+            data.spaceId &&
+            isSpaceSetting(data.setting)
+          ) {
+            patchSpaceSettingInCaches(queryClient, data.spaceId, data.setting);
+          }
+          queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+          if (data.spaceId) {
+            if (data.member?.userId && data.member?.role) {
+              patchSpaceMemberRoleInCaches(
+                queryClient,
+                data.spaceId,
+                data.member.userId,
+                String(data.member.role) === SpaceRole.ADMIN
+                  ? SpaceRole.ADMIN
+                  : SpaceRole.MEMBER,
+              );
+            }
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.channels(data.spaceId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.spaceDetails(data.spaceId),
+            });
+          }
         }
       };
 
       const handleMemberRoleUpdated = (data: any) => {
-        if (getEventChannelId(data) === activeConversation.id) {
-          queryClient.invalidateQueries({ queryKey: ["channels"] });
+        if (
+          getEventChannelId(data) === activeConversation.id ||
+          data.spaceId === activeSpaceId
+        ) {
+          queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+          if (data.spaceId) {
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.channels(data.spaceId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.spaceMembers(data.spaceId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.spaceDetails(data.spaceId),
+            });
+          }
         }
       };
 
       const handleMemberKickedOrLeft = (data: any) => {
+        const affectsCurrentUser =
+          data.userId === auth?.userId ||
+          data.affectedUserIds?.includes(auth?.userId);
         const affectsActiveConversation =
           getEventChannelId(data) === activeConversation.id ||
           (data.spaceId && data.spaceId === activeSpaceId);
 
         if (affectsActiveConversation) {
-          if (data.userId === auth?.userId) {
+          if (affectsCurrentUser) {
             dispatch(setActiveConversation(null));
-            queryClient.invalidateQueries({ queryKey: ["channels"] });
             if (data.leftSpace) {
-              queryClient.invalidateQueries({ queryKey: ["spaces"] });
+              dispatch(setActiveSpaceId(null));
+              if (data.spaceId) {
+                void cleanupRemovedSpaceCaches(queryClient, data.spaceId).then(
+                  () => {
+                    queryClient.invalidateQueries({
+                      queryKey: chatKeys.allSpaces(),
+                    });
+                  },
+                );
+              }
               queryClient.invalidateQueries({
                 queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
               });
               toast.success("You are no longer in this space");
             } else {
+              queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
               toast.success("You left the channel");
             }
           } else {
-            queryClient.invalidateQueries({ queryKey: ["channels"] });
+            queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+            if (data.spaceId) {
+              queryClient.invalidateQueries({
+                queryKey: chatKeys.spaceMembers(data.spaceId),
+              });
+            }
           }
         }
       };
 
       const handleConversationDisbanded = (data: any) => {
-        if (getEventChannelId(data) === activeConversation.id) {
+        const disbandedChannelId = getEventChannelId(data);
+        const affectsActiveConversation =
+          disbandedChannelId === activeConversation.id ||
+          data.spaceId === activeSpaceId;
+
+        if (affectsActiveConversation) {
+          if (data.leftSpace && data.spaceId) {
+            void cleanupRemovedSpaceCaches(queryClient, data.spaceId).then(
+              () => {
+                queryClient.invalidateQueries({
+                  queryKey: chatKeys.allSpaces(),
+                });
+              },
+            );
+          } else if (disbandedChannelId) {
+            removeChannelFromCaches(queryClient, disbandedChannelId);
+            queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+            queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+            if (data.spaceId) {
+              queryClient.invalidateQueries({
+                queryKey: chatKeys.channels(data.spaceId),
+              });
+              queryClient.invalidateQueries({
+                queryKey: chatKeys.spaceMembers(data.spaceId),
+              });
+            }
+          }
+        }
+
+        if (
+          disbandedChannelId === activeConversation.id ||
+          (data.leftSpace && data.spaceId === activeSpaceId)
+        ) {
           dispatch(setActiveConversation(null));
+          if (data.leftSpace) {
+            dispatch(setActiveSpaceId(null));
+          }
           queryClient.invalidateQueries({
             queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
           });
-          toast.info("This channel has been disbanded by the Owner");
+          toast.info(
+            data.leftSpace
+              ? "This space has been disbanded by an admin"
+              : "This channel has been disbanded by an admin",
+          );
         }
       };
 

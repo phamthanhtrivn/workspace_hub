@@ -1,13 +1,22 @@
 import { useEffect, useRef } from "react";
 import { QueryClient, useQueryClient } from "@tanstack/react-query";
-import { useAppSelector } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import {
+  setActiveConversation,
+  setActiveSpaceId,
+} from "@/store/chat/chat-slice";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
 import { chatKeys } from "../types/chat.constant";
-import { ChatContextType } from "../types/chat.types";
+import {
+  ChatContextType,
+  SpaceRole,
+  SpaceSettingResponse,
+} from "../types/chat.types";
 import {
   ChatSocketMemberPayload,
   ChatSocketMessagePayload,
+  ChatSocketDisbandedPayload,
   ChatSocketMuteUpdatedPayload,
   ChatSocketReadPayload,
   ChatSocketRoleUpdatedPayload,
@@ -16,9 +25,13 @@ import {
   ThreadFollowerPayload,
 } from "../types/chat-socket.types";
 import {
+  cleanupRemovedSpaceCaches,
   clearChatUnread,
   getMessageChatId,
   patchChatMember,
+  patchSpaceMemberRoleInCaches,
+  patchSpaceSettingInCaches,
+  removeChannelFromCaches,
   updateChannelsCache,
   updateDirectMessagesCache,
 } from "../utils/chat-cache";
@@ -56,11 +69,20 @@ function hasCachedDirectConversation(
   );
 }
 
+function isSpaceSetting(value: unknown): value is SpaceSettingResponse {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "allowMemberCreateChannel" in value
+  );
+}
+
 export function useChatSocket() {
   const { userId: currentUserId, accessToken } = useAppSelector(
     (state) => state.auth,
   );
   const activeChatId = useAppSelector((state) => state.chat.activeChatId);
+  const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const activeChatIdRef = useRef<string | null>(null);
 
@@ -307,13 +329,39 @@ export function useChatSocket() {
 
     const handleMemberKickedOrLeft = (data: ChatSocketMemberPayload) => {
       const chatId = getMessageChatId(data);
-      if (!chatId) return;
+      const affectsCurrentUser =
+        data.userId === currentUserId ||
+        data.affectedUserIds?.includes(currentUserId);
 
       if (isChannelPayload(data)) {
+        if (affectsCurrentUser && data.leftSpace && data.spaceId) {
+          dispatch(setActiveConversation(null));
+          dispatch(setActiveSpaceId(null));
+          void cleanupRemovedSpaceCaches(queryClient, data.spaceId).then(() => {
+            queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+          });
+          return;
+        }
+
         queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+        if (data.spaceId) {
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.channels(data.spaceId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.spaceMembers(data.spaceId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.spaceDetails(data.spaceId),
+          });
+        }
+        if (affectsCurrentUser) {
+          dispatch(setActiveConversation(null));
+        }
         return;
       }
 
+      if (!chatId) return;
       queryClient.invalidateQueries({
         queryKey: chatKeys.directMessages(currentUserId),
       });
@@ -321,7 +369,26 @@ export function useChatSocket() {
 
     const handleMemberRoleUpdated = (data: ChatSocketRoleUpdatedPayload) => {
       const chatId = getMessageChatId(data);
-      if (!chatId || !data.member) return;
+      if (data.spaceId) {
+        patchSpaceMemberRoleInCaches(
+          queryClient,
+          data.spaceId,
+          data.member.userId,
+          String(data.member.role) === SpaceRole.ADMIN
+            ? SpaceRole.ADMIN
+            : SpaceRole.MEMBER,
+        );
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.spaceMembers(data.spaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.spaceDetails(data.spaceId),
+        });
+      }
+      if (!chatId || !data.member) {
+        queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+        return;
+      }
 
       updateChannelsCache(queryClient, chatId, (channel) =>
         patchChatMember(channel, data.member.userId, {
@@ -332,11 +399,26 @@ export function useChatSocket() {
 
     const handleChannelSettingUpdated = (data: ChatSocketSettingUpdatedPayload) => {
       const chatId = getMessageChatId(data);
+      if (data.spaceId) {
+        if (
+          data.eventType === "space_setting_updated" &&
+          isSpaceSetting(data.setting)
+        ) {
+          patchSpaceSettingInCaches(queryClient, data.spaceId, data.setting);
+        }
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.spaceDetails(data.spaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.channels(data.spaceId),
+        });
+      }
       if (!chatId || !data.setting) return;
+      if (data.eventType === "space_setting_updated") return;
 
       updateChannelsCache(queryClient, chatId, (channel) => ({
         ...channel,
-        setting: data.setting,
+        setting: data.setting as typeof channel.setting,
       }));
     };
 
@@ -363,11 +445,48 @@ export function useChatSocket() {
       );
     };
 
-    const handleConversationDisbanded = () => {
+    const handleConversationDisbanded = (data: ChatSocketDisbandedPayload) => {
+      const chatId = getMessageChatId(data);
+      const affectsCurrentUser =
+        data.affectedUserIds?.includes(currentUserId) || data.leftSpace;
+
+      if (data.spaceId && data.leftSpace && affectsCurrentUser) {
+        void cleanupRemovedSpaceCaches(queryClient, data.spaceId).then(() => {
+          queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.directMessages(currentUserId),
+        });
+        dispatch(setActiveConversation(null));
+        dispatch(setActiveSpaceId(null));
+        return;
+      } else if (chatId) {
+        removeChannelFromCaches(queryClient, chatId);
+      }
+
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+      if (data.spaceId) {
+        queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.channels(data.spaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.spaceMembers(data.spaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.spaceDetails(data.spaceId),
+        });
+      }
       queryClient.invalidateQueries({
         queryKey: chatKeys.directMessages(currentUserId),
       });
+      if (chatId && chatId === activeChatIdRef.current) {
+        dispatch(setActiveConversation(null));
+      }
+      if (data.leftSpace && affectsCurrentUser) {
+        dispatch(setActiveConversation(null));
+        dispatch(setActiveSpaceId(null));
+      }
     };
 
     const handleConversationMuteUpdated = (data: ChatSocketMuteUpdatedPayload) => {
@@ -426,5 +545,5 @@ export function useChatSocket() {
       );
       socketService.disconnect();
     };
-  }, [accessToken, currentUserId, queryClient]);
+  }, [accessToken, currentUserId, dispatch, queryClient]);
 }

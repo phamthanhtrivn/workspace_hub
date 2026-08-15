@@ -12,6 +12,7 @@ import { InvitationsTab } from "./invitations-tab";
 import { MembersTab } from "./members-tab";
 import { OverviewTab } from "./overview-tab";
 import { PermissionsTab } from "./permissions-tab";
+import InviteSpaceMembersModal from "../invite-space-members-modal";
 import {
   SPACE_SETTINGS_LABELS,
   SPACE_SETTINGS_TABS,
@@ -24,7 +25,7 @@ interface SpaceSettingsModalProps {
   onClose: () => void;
   space: SpaceResponse;
   currentUserId: string | null;
-  onSpaceDeletedOrLeft: () => void;
+  onSpaceDeletedOrLeft: (spaceId: string) => void;
 }
 
 export default function SpaceSettingsModal({
@@ -39,6 +40,7 @@ export default function SpaceSettingsModal({
     SpaceSettingsTab.OVERVIEW,
   );
   const [memberSearch, setMemberSearch] = useState("");
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const debouncedMemberSearch = useDebouncedValue(
     memberSearch.trim(),
     SPACE_MEMBER_SEARCH_DEBOUNCE_MS,
@@ -63,6 +65,7 @@ export default function SpaceSettingsModal({
       settings.setSpaceName(space.name);
       setActiveTab(SpaceSettingsTab.OVERVIEW);
       setMemberSearch("");
+      setIsInviteModalOpen(false);
     }
   }, [isOpen, settings.setSpaceName, space.name]);
 
@@ -156,17 +159,19 @@ export default function SpaceSettingsModal({
                   settings.resendInvitationMutation.isPending
                 }
                 onCancel={settings.confirmCancelInvitation}
+                onInvite={() => setIsInviteModalOpen(true)}
                 onResend={settings.confirmResendInvitation}
               />
             )}
 
             {activeTab === SpaceSettingsTab.PERMISSIONS && settings.isAdmin && (
               <PermissionsTab
-                isAdmin={settings.isAdmin}
                 isSaving={settings.updateSettingsMutation.isPending}
-                setting={settings.setting}
-                onChange={(nextSetting) =>
-                  settings.updateSettingsMutation.mutate(nextSetting)
+                setting={settings.detail.setting}
+                onAllowMemberCreateChannelChange={(allowMemberCreateChannel) =>
+                  settings.updateSettingsMutation.mutate({
+                    allowMemberCreateChannel,
+                  })
                 }
               />
             )}
@@ -200,6 +205,15 @@ export default function SpaceSettingsModal({
             {SPACE_SETTINGS_LABELS.close}
           </button>
         </div>
+
+        {settings.isAdmin && (
+          <InviteSpaceMembersModal
+            isOpen={isInviteModalOpen}
+            onClose={() => setIsInviteModalOpen(false)}
+            onInvited={settings.invalidateSpaceData}
+            spaceId={space.id}
+          />
+        )}
       </div>
     </div>,
     document.body,

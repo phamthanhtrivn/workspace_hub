@@ -125,9 +125,26 @@ export class SpaceService {
   private async getDefaultChannel(spaceId: string) {
     return this.prisma.channel.findFirst({
       where: { spaceId, isDefault: true },
-      select: { id: true },
+      select: { id: true, name: true },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  private async getProfileMap(userIds: string[]) {
+    return this.userProfileSnapshotService.getProfilesByUserIds(userIds);
+  }
+
+  private getProfileDisplayName(
+    profile:
+      | {
+          fullName?: string | null;
+          email?: string | null;
+        }
+      | null
+      | undefined,
+    fallback: string,
+  ) {
+    return profile?.fullName || profile?.email || fallback;
   }
 
   private matchesMemberSearch(member: any, search: string) {
@@ -150,10 +167,12 @@ export class SpaceService {
     this.chatGateway.server
       .to([userId, ...channelIds])
       .emit(ChatEvent.MEMBER_LEFT, {
+        eventType: leftSpace ? 'space_left' : 'member_left',
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
         channelId: channelIds[0] ?? null,
         userId,
+        affectedUserIds: [userId],
         leftSpace,
       });
   }
@@ -184,6 +203,57 @@ export class SpaceService {
         },
       },
     });
+  }
+
+  private publishSpaceActionNotification(params: {
+    recipientId: string;
+    actorId: string;
+    actorName?: string | null;
+    actorAvatar?: string | null;
+    type: string;
+    title: string;
+    content: string;
+    metadata: Record<string, unknown>;
+  }) {
+    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+      key: params.recipientId,
+      value: {
+        recipientId: params.recipientId,
+        senderId: params.actorId,
+        senderName: params.actorName,
+        senderAvatar: params.actorAvatar,
+        type: params.type,
+        title: params.title,
+        content: params.content,
+        link: '/chat',
+        metadata: params.metadata,
+      },
+    });
+  }
+
+  private publishSpaceActionNotifications(params: {
+    recipientIds: string[];
+    actorId: string;
+    actorName?: string | null;
+    actorAvatar?: string | null;
+    type: string;
+    title: string;
+    content: string;
+    metadata: Record<string, unknown>;
+  }) {
+    for (const recipientId of new Set(params.recipientIds)) {
+      if (!recipientId || recipientId === params.actorId) continue;
+      this.publishSpaceActionNotification({
+        recipientId,
+        actorId: params.actorId,
+        actorName: params.actorName,
+        actorAvatar: params.actorAvatar,
+        type: params.type,
+        title: params.title,
+        content: params.content,
+        metadata: params.metadata,
+      });
+    }
   }
 
   private async mapChannelForClient(channel: any, userId?: string) {
@@ -292,6 +362,9 @@ export class SpaceService {
           },
         },
       },
+      include: {
+        setting: true,
+      },
       orderBy: {
         createdAt: 'desc',
       },
@@ -344,21 +417,45 @@ export class SpaceService {
   ) {
     await this.assertSpaceAdmin(spaceId, userId);
     try {
-      return await (this.prisma as any).spaceSetting.upsert({
+      const updatedSetting = await (this.prisma as any).spaceSetting.upsert({
         where: { spaceId },
         create: {
           spaceId,
           allowMemberCreateChannel:
             settings.allowMemberCreateChannel ?? true,
-          allowMemberDeleteOwnChannel:
-            settings.allowMemberDeleteOwnChannel ?? false,
+          allowMemberDeleteOwnChannel: false,
         },
         update: {
           allowMemberCreateChannel: settings.allowMemberCreateChannel,
-          allowMemberDeleteOwnChannel:
-            settings.allowMemberDeleteOwnChannel,
+          allowMemberDeleteOwnChannel: false,
         },
       });
+      const channels = await this.prisma.channel.findMany({
+        where: { spaceId },
+        select: { id: true },
+      });
+      const members = await this.prisma.spaceMember.findMany({
+        where: { spaceId },
+        select: { userId: true },
+      });
+      const space = await this.prisma.space.findUnique({
+        where: { id: spaceId },
+        select: { name: true },
+      });
+      this.chatGateway.server
+        .to([
+          ...channels.map((channel) => channel.id),
+          ...members.map((member) => member.userId),
+        ])
+        .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
+          eventType: 'space_setting_updated',
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+          spaceId,
+          spaceName: space?.name ?? null,
+          affectedUserIds: members.map((member) => member.userId),
+          setting: updatedSetting,
+        });
+      return updatedSetting;
     } catch (error) {
       if (this.isMissingSpaceSettingTableError(error)) {
         throw new BadRequestException(SPACE_ERROR_MESSAGES.SETTINGS_UNAVAILABLE);
@@ -443,11 +540,28 @@ export class SpaceService {
       where: { spaceId },
       select: { id: true },
     });
+    const members = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: { userId: true },
+    });
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { id: true, name: true },
+    });
+    const profileByUserId = await this.getProfileMap([userId, targetUserId]);
     this.chatGateway.server
-      .to(channels.map((channel) => channel.id))
+      .to([
+        ...channels.map((channel) => channel.id),
+        ...members.map((member) => member.userId),
+      ])
       .emit(ChatEvent.MEMBER_ROLE_UPDATED, {
+        eventType: 'space_member_role_updated',
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
+        spaceName: space?.name ?? null,
+        affectedUserIds: [updatedMember.userId],
+        actorProfile: profileByUserId.get(userId) ?? null,
+        targetProfile: profileByUserId.get(targetUserId) ?? null,
         member: {
           userId: updatedMember.userId,
           role: updatedMember.role,
@@ -462,6 +576,10 @@ export class SpaceService {
     targetUserId: string,
   ) {
     await this.assertSpaceAdmin(spaceId, userId);
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { name: true },
+    });
     if (userId === targetUserId) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SELF_REMOVE);
     }
@@ -480,15 +598,19 @@ export class SpaceService {
 
     const channels = await this.prisma.channel.findMany({
       where: { spaceId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     const defaultChannel = await this.getDefaultChannel(spaceId);
+    const profileByUserId = await this.getProfileMap([userId, targetUserId]);
+    const actorProfile = profileByUserId.get(userId) ?? null;
+    const targetProfile = profileByUserId.get(targetUserId) ?? null;
+    const actorName = this.getProfileDisplayName(actorProfile, userId);
+    const targetName = this.getProfileDisplayName(targetProfile, targetUserId);
     if (defaultChannel) {
-      const displayName = await this.getUserDisplayName(targetUserId);
       await this.chatGateway.sendSystemMessage(
         defaultChannel.id,
         userId,
-        `${displayName} was removed from the space`,
+        `${targetName} was removed from the space`,
       );
     }
 
@@ -507,11 +629,36 @@ export class SpaceService {
     this.chatGateway.server
       .to([targetUserId, ...channels.map((channel) => channel.id)])
       .emit(ChatEvent.MEMBER_KICKED, {
+        eventType: 'space_member_removed',
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
+        spaceName: space?.name ?? null,
+        channelId: defaultChannel?.id ?? channels[0]?.id ?? null,
+        channelIds: channels.map((channel) => channel.id),
         userId: targetUserId,
+        affectedUserIds: [targetUserId],
         leftSpace: true,
+        actorProfile,
+        targetProfile,
       });
+
+    this.publishSpaceActionNotification({
+      recipientId: targetUserId,
+      actorId: userId,
+      actorName,
+      actorAvatar: actorProfile?.avatarUrl,
+      type: KAFKA_EVENTS.NOTIFICATION.SPACE_MEMBER_REMOVED,
+      title: 'Removed from space',
+      content: `You were removed from ${space?.name ?? 'a space'}`,
+      metadata: {
+        spaceId,
+        spaceName: space?.name,
+        actorId: userId,
+        actorName,
+        targetUserId,
+        targetName,
+      },
+    });
 
     return { success: true };
   }
@@ -562,24 +709,52 @@ export class SpaceService {
 
   async deleteSpace(userId: string, spaceId: string) {
     await this.assertSpaceAdmin(spaceId, userId);
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { name: true },
+    });
     const channels = await this.prisma.channel.findMany({
       where: { spaceId },
-      select: { id: true },
+      select: { id: true, name: true },
     });
     const members = await this.prisma.spaceMember.findMany({
       where: { spaceId },
       select: { userId: true },
     });
+    const profileByUserId = await this.getProfileMap([userId]);
+    const actorProfile = profileByUserId.get(userId) ?? null;
+    const actorName = this.getProfileDisplayName(actorProfile, userId);
 
     await this.prisma.space.delete({ where: { id: spaceId } });
 
     this.chatGateway.server
       .to([...channels.map((channel) => channel.id), ...members.map((member) => member.userId)])
       .emit(ChatEvent.CONVERSATION_DISBANDED, {
+        eventType: 'space_disbanded',
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
+        spaceName: space?.name ?? null,
+        channelIds: channels.map((channel) => channel.id),
+        affectedUserIds: members.map((member) => member.userId),
         leftSpace: true,
+        actorProfile,
       });
+
+    this.publishSpaceActionNotifications({
+      recipientIds: members.map((member) => member.userId),
+      actorId: userId,
+      actorName,
+      actorAvatar: actorProfile?.avatarUrl,
+      type: KAFKA_EVENTS.NOTIFICATION.SPACE_DISBANDED,
+      title: 'Space disbanded',
+      content: `${space?.name ?? 'A space'} was disbanded`,
+      metadata: {
+        spaceId,
+        spaceName: space?.name,
+        actorId: userId,
+        actorName,
+      },
+    });
 
     return { success: true };
   }

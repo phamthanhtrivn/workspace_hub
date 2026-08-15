@@ -11,6 +11,11 @@ export enum ConversationRoles {
   MEMBER = "MEMBER",
 }
 
+export enum SpaceRole {
+  ADMIN = "ADMIN",
+  MEMBER = "MEMBER",
+}
+
 export interface UserSearchResponse {
   id: string;
   email: string;
@@ -37,6 +42,7 @@ export interface UserProfileSnapshotResponse {
 }
 
 export type ConversationRole = ConversationRoles.ADMIN | ConversationRoles.MEMBER;
+export type SpaceMemberRole = SpaceRole.ADMIN | SpaceRole.MEMBER;
 export type ChatUiType = ChatContextType.DIRECT_MESSAGE | ChatContextType.CHANNEL;
 
 export interface ConversationSetting {
@@ -81,7 +87,7 @@ export interface SpaceMemberListItem {
   id: string;
   spaceId: string;
   userId: string;
-  role: ConversationRole;
+  role: SpaceMemberRole;
   joinedAt: string;
   profile: UserProfileSnapshotResponse | null;
 }
@@ -296,6 +302,12 @@ export interface SpaceInvitation {
   createdAt: string;
   respondedAt?: string;
   space?: SpaceResponse;
+}
+
+export interface AcceptSpaceInvitationResponse {
+  invitation: SpaceInvitation;
+  space: SpaceResponse;
+  defaultChannel: ChannelResponse | null;
 }
 
 export type ChatProfilesMap = Record<string, UserProfileSnapshotResponse>;

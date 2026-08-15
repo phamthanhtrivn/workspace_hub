@@ -10,6 +10,9 @@ const SPACE_NOTIFICATION_TYPES = new Set<string>([
   NotificationType.SPACE_INVITATION,
   NotificationType.SPACE_INVITATION_ACCEPTED,
   NotificationType.SPACE_INVITATION_DECLINED,
+  NotificationType.SPACE_DISBANDED,
+  NotificationType.SPACE_MEMBER_REMOVED,
+  NotificationType.CHANNEL_DISBANDED,
 ]);
 
 export default function SpaceNotificationAlertManager() {

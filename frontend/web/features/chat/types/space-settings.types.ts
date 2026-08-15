@@ -1,5 +1,5 @@
 import {
-  ConversationRoles,
+  SpaceRole,
   SpaceMemberListItem,
 } from "./chat.types";
 
@@ -26,7 +26,7 @@ export function getSpaceMemberName(member: SpaceMemberListItem) {
 }
 
 export function isSpaceAdmin(member?: SpaceMemberListItem | null) {
-  return member?.role === ConversationRoles.ADMIN;
+  return member?.role === SpaceRole.ADMIN;
 }
 
 export function isLastSpaceAdmin(

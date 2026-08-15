@@ -27,6 +27,7 @@ export enum SPACE_ERROR_MESSAGES {
   MISSING_USER_ID = 'Missing userId',
   MISSING_SPACE_ID = 'Missing spaceId',
   MISSING_REQUIRED_INFO = 'Missing required information',
+  INVALID_SPACE_MEMBER_ROLE = 'Invalid space member role',
   SPACE_NOT_FOUND = 'Space not found',
   SPACE_NAME_EMPTY = 'Space name cannot be empty',
   CHANNEL_CREATE_DISABLED = 'Members are not allowed to create channels in this space',

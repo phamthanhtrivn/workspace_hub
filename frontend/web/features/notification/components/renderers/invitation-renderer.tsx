@@ -20,7 +20,6 @@ import {
   acceptInvitation,
   declineInvitation,
   getPendingInvitations,
-  getSpaceChannels,
 } from "@/features/chat/api/chat.api";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
@@ -176,6 +175,9 @@ export const InvitationModalRenderer: React.FC<{
 
       if (action === "accept") {
         await acceptInvitation(metadata.invitationId);
+        if (metadata?.spaceId) {
+          dispatch(setActiveSpaceId(metadata.spaceId));
+        }
       } else {
         await declineInvitation(metadata.invitationId);
       }
@@ -188,21 +190,6 @@ export const InvitationModalRenderer: React.FC<{
         queryClient.invalidateQueries({ queryKey: ["conversations"] });
         queryClient.invalidateQueries({ queryKey: ["spaces"] });
         queryClient.invalidateQueries({ queryKey: ["channels", metadata.spaceId] });
-        
-        if (metadata?.spaceId) {
-          dispatch(setActiveSpaceId(metadata.spaceId));
-          try {
-            const channelsRes = await getSpaceChannels(metadata.spaceId);
-            const channels = channelsRes?.success ? channelsRes.data : (Array.isArray(channelsRes) ? channelsRes : []);
-            const generalChannel = channels.find((c: any) => c.isDefault === true || c.name === "general");
-            if (generalChannel) {
-              dispatch(setActiveConversation(generalChannel));
-            }
-          } catch (e) {
-            console.error("Failed to pre-select general channel", e);
-          }
-        }
-        
         router.push("/chat");
       }
     } catch (error: any) {

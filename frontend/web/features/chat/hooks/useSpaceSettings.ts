@@ -14,15 +14,15 @@ import {
   removeSpaceMember,
   resendSpaceInvitation,
   updateSpace,
-  updateSpaceMemberRole,
   updateSpaceSettings,
+  updateSpaceMemberRole,
 } from "../api/chat.api";
 import {
   SPACE_MEMBER_SEARCH_PAGE_SIZE,
   chatKeys,
 } from "../types/chat.constant";
 import {
-  ConversationRoles,
+  SpaceRole,
   SpaceMemberListItem,
   SpaceResponse,
   SpaceSettingResponse,
@@ -34,6 +34,12 @@ import {
   isLastSpaceAdmin,
   isSpaceAdmin,
 } from "../types/space-settings.types";
+import {
+  cleanupRemovedSpaceCaches,
+  patchSpaceMemberRoleInCaches,
+  patchSpaceSettingInCaches,
+} from "../utils/chat-cache";
+import { normalizeSpaceSetting } from "../utils/space-setting-utils";
 
 interface UseSpaceSettingsParams {
   isOpen: boolean;
@@ -41,7 +47,7 @@ interface UseSpaceSettingsParams {
   currentUserId: string | null;
   memberSearch: string;
   onClose: () => void;
-  onSpaceDeletedOrLeft: () => void;
+  onSpaceDeletedOrLeft: (spaceId: string) => void;
 }
 
 export function useSpaceSettings({
@@ -106,11 +112,6 @@ export function useSpaceSettings({
   const isResolvingMembership =
     membersQuery.isLoading || roleMembersQuery.isLoading;
   const detail = detailsQuery.data || space;
-  const setting: SpaceSettingResponse = detail.setting || {
-    allowMemberCreateChannel: true,
-    allowMemberDeleteOwnChannel: false,
-  };
-
   const invitationsQuery = useQuery({
     queryKey: chatKeys.spaceInvitations(space.id),
     queryFn: async () => (await getSpaceInvitations(space.id)).data,
@@ -138,24 +139,52 @@ export function useSpaceSettings({
   });
 
   const updateSettingsMutation = useMutation({
-    mutationFn: (nextSetting: Partial<SpaceSettingResponse>) =>
-      updateSpaceSettings(space.id, nextSetting),
+    mutationFn: (settings: Pick<SpaceSettingResponse, "allowMemberCreateChannel">) =>
+      updateSpaceSettings(space.id, {
+        allowMemberCreateChannel: settings.allowMemberCreateChannel,
+      }),
+    onMutate: async (settings) => {
+      await Promise.all([
+        queryClient.cancelQueries({ queryKey: chatKeys.allSpaces() }),
+        queryClient.cancelQueries({ queryKey: chatKeys.spaceDetails(space.id) }),
+      ]);
+
+      const previousSpaces = queryClient.getQueriesData<SpaceResponse[]>({
+        queryKey: chatKeys.allSpaces(),
+      });
+      const previousDetails = queryClient.getQueryData<SpaceResponse>(
+        chatKeys.spaceDetails(space.id),
+      );
+      const nextSetting = normalizeSpaceSetting(
+        {
+          ...(detail.setting ?? {}),
+          allowMemberCreateChannel: settings.allowMemberCreateChannel,
+        },
+        space.id,
+      );
+
+      patchSpaceSettingInCaches(queryClient, space.id, nextSetting);
+
+      return { previousSpaces, previousDetails };
+    },
     onSuccess: (response) => {
       toast.success("Space permissions updated");
+      if (response.data) {
+        patchSpaceSettingInCaches(queryClient, space.id, response.data);
+      }
+      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+      queryClient.invalidateQueries({ queryKey: chatKeys.spaceDetails(space.id) });
+    },
+    onError: (error, _settings, context) => {
+      context?.previousSpaces.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
       queryClient.setQueryData(
         chatKeys.spaceDetails(space.id),
-        (oldSpace: SpaceResponse | undefined) =>
-          oldSpace
-            ? {
-                ...oldSpace,
-                setting: response.data,
-              }
-            : oldSpace,
+        context?.previousDetails,
       );
-      invalidateSpaceData();
+      toast.error(getErrorMessage(error, "Failed to update permissions"));
     },
-    onError: (error) =>
-      toast.error(getErrorMessage(error, "Failed to update permissions")),
   });
 
   const updateRoleMutation = useMutation({
@@ -164,10 +193,16 @@ export function useSpaceSettings({
       role,
     }: {
       memberId: string;
-      role: "ADMIN" | "MEMBER";
+      role: SpaceRole;
     }) => updateSpaceMemberRole(space.id, memberId, role),
-    onSuccess: () => {
+    onSuccess: (_response, variables) => {
       toast.success("Member role updated");
+      patchSpaceMemberRoleInCaches(
+        queryClient,
+        space.id,
+        variables.memberId,
+        variables.role,
+      );
       invalidateSpaceData();
     },
     onError: (error) =>
@@ -186,10 +221,10 @@ export function useSpaceSettings({
 
   const leaveSpaceMutation = useMutation({
     mutationFn: () => leaveSpace(space.id),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Left space");
-      invalidateSpaceData();
-      onSpaceDeletedOrLeft();
+      await cleanupRemovedSpaceCaches(queryClient, space.id);
+      onSpaceDeletedOrLeft(space.id);
       onClose();
     },
     onError: (error) =>
@@ -198,10 +233,10 @@ export function useSpaceSettings({
 
   const deleteSpaceMutation = useMutation({
     mutationFn: () => deleteSpace(space.id),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Space deleted");
-      invalidateSpaceData();
-      onSpaceDeletedOrLeft();
+      await cleanupRemovedSpaceCaches(queryClient, space.id);
+      onSpaceDeletedOrLeft(space.id);
       onClose();
     },
     onError: (error) =>
@@ -232,17 +267,21 @@ export function useSpaceSettings({
 
   const confirmRoleUpdate = async (member: SpaceMemberListItem) => {
     const nextRole =
-      member.role === ConversationRoles.ADMIN ? "MEMBER" : "ADMIN";
+      member.role === SpaceRole.ADMIN ? SpaceRole.MEMBER : SpaceRole.ADMIN;
+    if (![SpaceRole.ADMIN, SpaceRole.MEMBER].includes(nextRole)) {
+      toast.error("Missing required role");
+      return;
+    }
     const result = await Swal.fire({
       title: SPACE_SETTINGS_CONFIRM.roleTitle,
       text:
-        nextRole === "ADMIN"
+        nextRole === SpaceRole.ADMIN
           ? `Promote ${getSpaceMemberName(member)} to Admin?`
           : `Demote ${getSpaceMemberName(member)} to Member?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText:
-        nextRole === "ADMIN"
+        nextRole === SpaceRole.ADMIN
           ? SPACE_SETTINGS_CONFIRM.promote
           : SPACE_SETTINGS_CONFIRM.demote,
       cancelButtonText: SPACE_SETTINGS_CONFIRM.cancel,
@@ -339,7 +378,6 @@ export function useSpaceSettings({
     isLoadingInvitations: invitationsQuery.isLoading,
     isLoadingMembers: membersQuery.isLoading,
     isResolvingMembership,
-    setting,
     spaceName,
     setSpaceName,
     updateSpaceMutation,
@@ -356,5 +394,6 @@ export function useSpaceSettings({
     confirmResendInvitation,
     confirmLeaveSpace,
     confirmDeleteSpace,
+    invalidateSpaceData,
   };
 }

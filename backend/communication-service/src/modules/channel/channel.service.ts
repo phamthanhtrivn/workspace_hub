@@ -1,8 +1,10 @@
 import {
   Injectable,
   BadRequestException,
+  Inject,
   ForbiddenException,
 } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
 import { SpaceRole } from '@prisma/client';
 import { ChatGateway } from '../chat/chat.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -22,6 +24,10 @@ import {
   ChannelMembersListResponse,
 } from './types/channel-members.types';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import {
+  KAFKA_EVENTS,
+  KAFKA_TOPICS,
+} from '../../common/constants/kafka.constants';
 
 @Injectable()
 export class ChannelService {
@@ -30,6 +36,7 @@ export class ChannelService {
     private readonly chatGateway: ChatGateway,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
 
   async getUserChannels(userId: string) {
@@ -207,41 +214,65 @@ export class ChannelService {
     });
   }
 
-  private async getSpaceSetting(spaceId: string) {
-    try {
-      const setting = await (this.prisma as any).spaceSetting.findUnique({
-        where: { spaceId },
-      });
-
-      return {
-        allowMemberCreateChannel: setting?.allowMemberCreateChannel ?? true,
-        allowMemberDeleteOwnChannel:
-          setting?.allowMemberDeleteOwnChannel ?? false,
-      };
-    } catch (error) {
-      if (
-        typeof error === 'object' &&
-        error !== null &&
-        (('code' in error && error.code === 'P2021') ||
-          ('message' in error &&
-            typeof error.message === 'string' &&
-            error.message.includes('space_settings')))
-      ) {
-        return {
-          allowMemberCreateChannel: true,
-          allowMemberDeleteOwnChannel: false,
-        };
-      }
-      throw error;
-    }
-  }
-
   private async getUserDisplayName(userId: string) {
     const profiles = await this.userProfileSnapshotService.getProfilesByUserIds([
       userId,
     ]);
     const profile = profiles.get(userId);
     return profile?.fullName || profile?.email || userId;
+  }
+
+  private async getProfileMap(userIds: string[]) {
+    return this.userProfileSnapshotService.getProfilesByUserIds(userIds);
+  }
+
+  private getProfileDisplayName(
+    profile:
+      | {
+          fullName?: string | null;
+          email?: string | null;
+        }
+      | null
+      | undefined,
+    fallback: string,
+  ) {
+    return profile?.fullName || profile?.email || fallback;
+  }
+
+  private publishChannelDisbandedNotifications(params: {
+    recipientIds: string[];
+    actorId: string;
+    actorName?: string | null;
+    actorAvatar?: string | null;
+    spaceId: string;
+    spaceName?: string | null;
+    channelId: string;
+    channelName: string;
+  }) {
+    for (const recipientId of new Set(params.recipientIds)) {
+      if (!recipientId || recipientId === params.actorId) continue;
+      this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+        key: recipientId,
+        value: {
+          recipientId,
+          senderId: params.actorId,
+          senderName: params.actorName,
+          senderAvatar: params.actorAvatar,
+          type: KAFKA_EVENTS.NOTIFICATION.CHANNEL_DISBANDED,
+          title: 'Channel deleted',
+          content: `#${params.channelName} was deleted in ${params.spaceName ?? 'a space'}`,
+          link: '/chat',
+          metadata: {
+            spaceId: params.spaceId,
+            spaceName: params.spaceName,
+            channelId: params.channelId,
+            channelName: params.channelName,
+            actorId: params.actorId,
+            actorName: params.actorName,
+          },
+        },
+      });
+    }
   }
 
   async getChannelMembers(
@@ -726,16 +757,7 @@ export class ChannelService {
       where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
     });
 
-    const setting = await this.getSpaceSetting(channel.spaceId);
-    const canMemberDeleteOwnChannel =
-      spaceMember?.role === SpaceRole.MEMBER &&
-      channel.createdBy === userId &&
-      setting.allowMemberDeleteOwnChannel;
-
-    if (
-      !spaceMember ||
-      (spaceMember.role !== SpaceRole.ADMIN && !canMemberDeleteOwnChannel)
-    ) {
+    if (!spaceMember || spaceMember.role !== SpaceRole.ADMIN) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.DISBAND_ACCESS_DENIED,
       );
@@ -745,22 +767,56 @@ export class ChannelService {
       where: { channelId },
       select: { userId: true },
     });
+    const spaceMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId: channel.spaceId },
+      select: { userId: true },
+    });
+    const space = await this.prisma.space.findUnique({
+      where: { id: channel.spaceId },
+      select: { name: true },
+    });
+    const profileByUserId = await this.getProfileMap([userId]);
+    const actorProfile = profileByUserId.get(userId) ?? null;
+    const actorName = this.getProfileDisplayName(actorProfile, userId);
 
     await this.prisma.channel.delete({
       where: { id: channelId },
     });
 
-    const targetRooms = [channelId, ...members.map((m) => m.userId)];
+    const affectedUserIds = Array.from(
+      new Set([
+        ...members.map((member) => member.userId),
+        ...spaceMembers.map((member) => member.userId),
+      ]),
+    );
+    const targetRooms = [channelId, ...affectedUserIds];
 
     this.chatGateway.server
       .to(targetRooms)
       .emit(ChatEvent.CONVERSATION_DISBANDED, {
+        eventType: 'channel_disbanded',
         chatId: channelId,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         channelId,
+        channelName: channel.name,
+        spaceId: channel.spaceId,
+        spaceName: space?.name ?? null,
+        affectedUserIds,
+        leftSpace: false,
+        actorProfile,
       });
 
     this.chatGateway.server.in(channelId).socketsLeave(channelId);
+    this.publishChannelDisbandedNotifications({
+      recipientIds: affectedUserIds,
+      actorId: userId,
+      actorName,
+      actorAvatar: actorProfile?.avatarUrl,
+      spaceId: channel.spaceId,
+      spaceName: space?.name,
+      channelId,
+      channelName: channel.name,
+    });
 
     return { success: true };
   }

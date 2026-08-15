@@ -73,7 +73,7 @@ export class InvitationService {
       throw new BadRequestException('This invitation has already been handled');
     }
 
-    const updatedInvitation = await this.prisma.$transaction(async (prisma) => {
+    const invitationResult = await this.prisma.$transaction(async (prisma) => {
       const updated = await prisma.spaceInvitation.update({
         where: { id: invitationId },
         data: {
@@ -109,7 +109,44 @@ export class InvitationService {
         skipDuplicates: true,
       });
 
-      return updated;
+      const defaultChannel = await prisma.channel.findFirst({
+        where: { spaceId: invitation.spaceId, isDefault: true },
+        include: {
+          setting: true,
+          members: true,
+          messages: {
+            take: 1,
+            orderBy: { createdAt: 'desc' },
+            include: { medias: true },
+          },
+        },
+      });
+      const spaceMembers = defaultChannel
+        ? await prisma.spaceMember.findMany({
+            where: {
+              spaceId: invitation.spaceId,
+              userId: { in: defaultChannel.members.map((member) => member.userId) },
+            },
+            select: { userId: true, role: true },
+          })
+        : [];
+      const roleByUserId = new Map(
+        spaceMembers.map((member) => [member.userId, member.role]),
+      );
+
+      return {
+        invitation: updated,
+        space: invitation.space,
+        defaultChannel: defaultChannel
+          ? {
+              ...defaultChannel,
+              members: defaultChannel.members.map((member) => ({
+                ...member,
+                role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
+              })),
+            }
+          : null,
+      };
     });
 
     const spaceChannels = await this.prisma.channel.findMany({
@@ -147,7 +184,7 @@ export class InvitationService {
       invitation.space.name,
     );
 
-    return updatedInvitation;
+    return invitationResult;
   }
 
   async declineInvitation(

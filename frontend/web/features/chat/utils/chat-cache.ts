@@ -7,6 +7,11 @@ import {
   ConversationMember,
   DirectMessage,
   SpaceChannel,
+  SpaceMembersListResponse,
+  SpaceMemberRole,
+  SpaceRole,
+  SpaceResponse,
+  SpaceSettingResponse,
 } from "../types/chat.types";
 import { ChatContextPayload } from "../types/chat-socket.types";
 import {
@@ -14,6 +19,7 @@ import {
   SpaceChannelsQueryData,
 } from "../hooks/useChatQueries";
 import { sortDirectConversations } from "./direct-conversation-utils";
+import { normalizeSpaceSetting } from "./space-setting-utils";
 
 export function getMessageChatId(
   payload: Partial<ChatContextPayload> | null | undefined,
@@ -56,6 +62,113 @@ export function upsertChannelCache(
         channels: exists
           ? channels.map((item: SpaceChannel) => (item.id === channel.id ? channel : item))
           : [...channels, channel],
+      };
+    },
+  );
+}
+
+export function removeChannelFromCaches(
+  queryClient: QueryClient,
+  channelId: string,
+) {
+  queryClient.setQueriesData<SpaceChannelsQueryData>(
+    { queryKey: chatKeys.allChannels() },
+    (oldData: SpaceChannelsQueryData | undefined) => {
+      if (!oldData?.channels) return oldData;
+      return {
+        ...oldData,
+        channels: oldData.channels.filter(
+          (channel: SpaceChannel) => channel.id !== channelId,
+        ),
+      };
+    },
+  );
+}
+
+export function removeSpaceFromCaches(
+  queryClient: QueryClient,
+  spaceId: string,
+) {
+  queryClient.setQueriesData<SpaceResponse[]>(
+    { queryKey: chatKeys.allSpaces() },
+    (oldSpaces: SpaceResponse[] | undefined) =>
+      oldSpaces?.filter((space) => space.id !== spaceId) ?? oldSpaces,
+  );
+  queryClient.setQueriesData<SpaceChannelsQueryData>(
+    { queryKey: chatKeys.allChannels() },
+    (oldData: SpaceChannelsQueryData | undefined) => {
+      if (!oldData?.channels) return oldData;
+      return {
+        ...oldData,
+        channels: oldData.channels.filter(
+          (channel: SpaceChannel) => channel.spaceId !== spaceId,
+        ),
+      };
+    },
+  );
+  queryClient.removeQueries({ queryKey: chatKeys.channels(spaceId) });
+  queryClient.removeQueries({ queryKey: chatKeys.spaceDetails(spaceId) });
+  queryClient.removeQueries({ queryKey: chatKeys.spaceMembers(spaceId) });
+  queryClient.removeQueries({ queryKey: chatKeys.spaceInvitations(spaceId) });
+}
+
+export async function cleanupRemovedSpaceCaches(
+  queryClient: QueryClient,
+  spaceId: string,
+) {
+  const cancellations = [
+    queryClient.cancelQueries({ queryKey: chatKeys.channels(spaceId) }),
+    queryClient.cancelQueries({ queryKey: chatKeys.spaceDetails(spaceId) }),
+    queryClient.cancelQueries({ queryKey: chatKeys.spaceMembers(spaceId) }),
+    queryClient.cancelQueries({ queryKey: chatKeys.spaceInvitations(spaceId) }),
+  ];
+
+  removeSpaceFromCaches(queryClient, spaceId);
+  await Promise.all(cancellations);
+  removeSpaceFromCaches(queryClient, spaceId);
+}
+
+export function patchSpaceSettingInCaches(
+  queryClient: QueryClient,
+  spaceId: string,
+  setting: SpaceSettingResponse,
+) {
+  const normalizedSetting = normalizeSpaceSetting(setting, spaceId);
+
+  queryClient.setQueriesData<SpaceResponse[]>(
+    { queryKey: chatKeys.allSpaces() },
+    (oldSpaces: SpaceResponse[] | undefined) =>
+      oldSpaces?.map((space) =>
+        space.id === spaceId
+          ? { ...space, setting: normalizedSetting }
+          : space,
+      ) ?? oldSpaces,
+  );
+  queryClient.setQueryData<SpaceResponse>(
+    chatKeys.spaceDetails(spaceId),
+    (oldSpace: SpaceResponse | undefined) =>
+      oldSpace ? { ...oldSpace, setting: normalizedSetting } : oldSpace,
+  );
+}
+
+export function patchSpaceMemberRoleInCaches(
+  queryClient: QueryClient,
+  spaceId: string,
+  memberId: string,
+  role: SpaceMemberRole,
+) {
+  queryClient.setQueriesData<SpaceMembersListResponse>(
+    { queryKey: chatKeys.spaceMembers(spaceId) },
+    (oldData: SpaceMembersListResponse | undefined) => {
+      if (!oldData) return oldData;
+      const allMembers = [...(oldData.admins || []), ...(oldData.members || [])];
+      const nextMembers = allMembers.map((member) =>
+        member.userId === memberId ? { ...member, role } : member,
+      );
+      return {
+        ...oldData,
+        admins: nextMembers.filter((member) => member.role === SpaceRole.ADMIN),
+        members: nextMembers.filter((member) => member.role !== SpaceRole.ADMIN),
       };
     },
   );

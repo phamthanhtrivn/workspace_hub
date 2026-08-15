@@ -2,17 +2,26 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
-import { X, Loader2, Search, Hash, Check, Globe } from "lucide-react";
+import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { getSpaceChannels, joinChannel } from "../../api/chat.api";
+import {
+  disbandChannel,
+  getSpaceChannels,
+  joinChannel,
+} from "../../api/chat.api";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
+import { chatKeys } from "../../types/chat.constant";
+import { removeChannelFromCaches } from "../../utils/chat-cache";
 
 interface BrowseChannelsModalProps {
   isOpen: boolean;
   onClose: () => void;
   spaceId: string;
   currentUserId: string | null;
+  isSpaceAdmin?: boolean;
   onJoinSuccess?: (channel: any) => void;
+  onDeleteSuccess?: (channelId: string) => void;
 }
 
 export default function BrowseChannelsModal({
@@ -20,7 +29,9 @@ export default function BrowseChannelsModal({
   onClose,
   spaceId,
   currentUserId,
+  isSpaceAdmin = false,
   onJoinSuccess,
+  onDeleteSuccess,
 }: BrowseChannelsModalProps) {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
@@ -52,7 +63,7 @@ export default function BrowseChannelsModal({
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ["channels", spaceId, debouncedSearchQuery],
+    queryKey: chatKeys.channels(spaceId, debouncedSearchQuery || undefined),
     queryFn: () => getSpaceChannels(spaceId, debouncedSearchQuery),
     enabled: isOpen && !!spaceId,
     staleTime: 1000 * 10,
@@ -73,7 +84,7 @@ export default function BrowseChannelsModal({
     onSuccess: (response, channelId) => {
       toast.success("Joined channel successfully!");
       // Invalidate queries to refresh sidebar and modal lists
-      queryClient.invalidateQueries({ queryKey: ["channels", spaceId] });
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(spaceId) });
 
       const joinedChannel =
         response?.success && response.data
@@ -88,6 +99,38 @@ export default function BrowseChannelsModal({
       toast.error(err.response?.data?.message || "Failed to join channel");
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (channelId: string) => disbandChannel(channelId),
+    onSuccess: (_response, channelId) => {
+      toast.success("Channel deleted successfully");
+      removeChannelFromCaches(queryClient, channelId);
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(spaceId) });
+      queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+      onDeleteSuccess?.(channelId);
+      refetch();
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.message || "Failed to delete channel");
+    },
+  });
+
+  const handleDeleteChannel = async (channelId: string) => {
+    const result = await Swal.fire({
+      title: "Delete channel?",
+      text: "This channel and its messages will be permanently deleted.",
+      icon: "error",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      deleteMutation.mutate(channelId);
+    }
+  };
 
   const filteredChannels = channels;
 
@@ -165,7 +208,7 @@ export default function BrowseChannelsModal({
                     </div>
                   </div>
 
-                  <div>
+                  <div className="flex shrink-0 items-center gap-2">
                     {isJoined ? (
                       <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-100/50">
                         <Check size={14} />
@@ -182,6 +225,22 @@ export default function BrowseChannelsModal({
                           <Loader2 size={12} className="animate-spin" />
                         ) : null}
                         Join
+                      </button>
+                    )}
+                    {isSpaceAdmin && !channel.isDefault && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteChannel(channel.id)}
+                        disabled={deleteMutation.isPending}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition"
+                        title="Delete channel"
+                      >
+                        {deleteMutation.isPending &&
+                        deleteMutation.variables === channel.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={14} />
+                        )}
                       </button>
                     )}
                   </div>
