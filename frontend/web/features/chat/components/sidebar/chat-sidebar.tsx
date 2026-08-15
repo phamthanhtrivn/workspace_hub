@@ -37,7 +37,12 @@ import {
   UserProfileResponse,
   UserProfileSnapshotResponse,
 } from "../../types/chat.types";
-import { ChatSidebarSection, MAX_UNREAD_COUNT, chatKeys } from "../../types/chat.constant";
+import {
+  CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS,
+  ChatSidebarSection,
+  MAX_UNREAD_COUNT,
+  chatKeys,
+} from "../../types/chat.constant";
 import { sortDirectConversations } from "../../utils/direct-conversation-utils";
 import { cn } from "@/lib/utils";
 import {
@@ -51,6 +56,7 @@ import {
   useSpaceChannelsQuery,
   useSpacesQuery,
 } from "../../hooks/useChatQueries";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import {
   clearChatUnread,
   patchChatMember,
@@ -103,6 +109,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const queryClient = useQueryClient();
   const dropdownRef = useRef<HTMLDivElement>(null);
   const channelsDropdownRef = useRef<HTMLDivElement>(null);
+  const debouncedSearchQuery = useDebouncedValue(
+    searchQuery.trim(),
+    CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS,
+  );
+  const isSearchingSidebar = debouncedSearchQuery.length > 0;
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -136,7 +147,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     data: channelsData,
     isLoading: loadingChannels,
     refetch: refetchChannels,
-  } = useSpaceChannelsQuery(activeSpaceId);
+  } = useSpaceChannelsQuery(activeSpaceId, debouncedSearchQuery);
   const channels = channelsData?.channels || [];
   const { data: followedThreads = [] } = useQuery({
     queryKey: chatKeys.followedThreads(currentUserId),
@@ -202,24 +213,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       dispatch(setActiveDirectMessage(conv));
 
       // Optimistically clear unread count
-      queryClient.setQueryData(
-        chatKeys.directMessages(currentUserId),
-        (oldData: any) => {
-          if (!oldData) return oldData;
-          return {
-            ...oldData,
-            directMessages: (oldData.directMessages || oldData.conversations || []).map((c: any) =>
-              c.id === conv.id
-                ? {
-                    ...c,
-                    unreadCount: 0,
-                    hasMention: false,
-                    hasUnreadThread: false,
-                  }
-                : c,
-            ),
-          };
-        },
+      updateDirectMessagesCache(
+        queryClient,
+        currentUserId,
+        clearChatUnread,
+        conv.id,
       );
 
       if (onSelectChat) onSelectChat();
@@ -504,13 +502,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     );
   }, [channels, currentUserId]);
 
-  const filteredChannels = useMemo(() => {
-    if (!searchQuery.trim()) return joinedChannels;
-    return joinedChannels.filter((c: any) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [joinedChannels, searchQuery]);
-
   return (
     <div className="w-full h-full bg-white border-r border-slate-200/60 flex flex-col select-none">
       {/* Header with Space Selector Dropdown */}
@@ -676,15 +667,15 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             <div
               className={cn(
                 "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full",
-                filteredChannels.length > 10 && "max-h-80 overflow-y-auto",
+                joinedChannels.length > 10 && "max-h-80 overflow-y-auto",
               )}
             >
               {loadingChannels ? (
                 <div className="text-[11px] text-slate-400 italic px-3 py-1">
                   Loading channels...
                 </div>
-              ) : filteredChannels.length > 0 ? (
-                filteredChannels.map((channel: ChannelResponse) => (
+              ) : joinedChannels.length > 0 ? (
+                joinedChannels.map((channel: ChannelResponse) => (
                   <ChannelItem
                     key={channel.id}
                     channel={channel}
@@ -707,7 +698,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 ))
               ) : (
                 <div className="text-[11px] text-slate-400 italic px-3 py-1">
-                  {activeSpaceId ? "No channels yet" : "Select a space to view channels"}
+                  {isSearchingSidebar
+                    ? "No channels found"
+                    : activeSpaceId
+                      ? "No channels yet"
+                      : "Select a space to view channels"}
                 </div>
               )}
             </div>
@@ -717,7 +712,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         <DirectConversationsSection
           activeConversationId={activeChat?.id}
           currentUserId={currentUserId}
-          searchQuery={searchQuery}
+          searchQuery={debouncedSearchQuery}
           onCreateDirectConversation={() => setIsSearchModalOpen(true)}
           onSelectConversation={handleSelectConversation}
         />

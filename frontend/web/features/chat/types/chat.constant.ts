@@ -44,9 +44,14 @@ export const chatKeys = {
   allFollowedThreads: () => [ChatQueryRoot.FOLLOWED_THREADS] as const,
   allThreadMessages: () => [ChatQueryRoot.THREAD_MESSAGES] as const,
   spaces: (userId?: string | null) => [ChatQueryRoot.SPACES, userId] as const,
-  channels: (spaceId?: string | null) => [ChatQueryRoot.CHANNELS, spaceId] as const,
-  directMessages: (userId?: string | null) =>
-    [ChatQueryKey.DIRECT_MESSAGES, userId] as const,
+  channels: (spaceId?: string | null, search?: string) =>
+    search
+      ? ([ChatQueryRoot.CHANNELS, spaceId, search] as const)
+      : ([ChatQueryRoot.CHANNELS, spaceId] as const),
+  directMessages: (userId?: string | null, search?: string) =>
+    search
+      ? ([ChatQueryKey.DIRECT_MESSAGES, userId, search] as const)
+      : ([ChatQueryKey.DIRECT_MESSAGES, userId] as const),
   messages: (
     chatType?: ChatContextType | null,
     chatId?: string | null,
@@ -94,4 +99,5 @@ export const CHANNEL_MEMBERS_MODAL_LABELS = {
 } as const;
 
 export const CHANNEL_MEMBER_SEARCH_DEBOUNCE_MS = 300;
+export const CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS = 300;
 export const CHANNEL_MEMBER_SEARCH_PAGE_SIZE = 500;

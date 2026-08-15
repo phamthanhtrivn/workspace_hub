@@ -38,12 +38,17 @@ export function useSpacesQuery(currentUserId?: string | null) {
   });
 }
 
-export function useSpaceChannelsQuery(spaceId?: string | null) {
+export function useSpaceChannelsQuery(
+  spaceId?: string | null,
+  search?: string,
+) {
+  const normalizedSearch = search?.trim() || undefined;
+
   return useQuery({
-    queryKey: chatKeys.channels(spaceId),
+    queryKey: chatKeys.channels(spaceId, normalizedSearch),
     queryFn: async (): Promise<SpaceChannelsQueryData> => {
       if (!spaceId) return { channels: [] };
-      const res = await getSpaceChannels(spaceId);
+      const res = await getSpaceChannels(spaceId, normalizedSearch);
       const channels = res?.success ? res.data : [];
       return { channels };
     },
@@ -52,12 +57,17 @@ export function useSpaceChannelsQuery(spaceId?: string | null) {
   });
 }
 
-export function useDirectMessagesQuery(currentUserId?: string | null) {
+export function useDirectMessagesQuery(
+  currentUserId?: string | null,
+  search?: string,
+) {
+  const normalizedSearch = search?.trim() || undefined;
+
   return useQuery({
-    queryKey: chatKeys.directMessages(currentUserId),
+    queryKey: chatKeys.directMessages(currentUserId, normalizedSearch),
     queryFn: async (): Promise<DirectMessagesQueryData> => {
       if (!currentUserId) return { directMessages: [] };
-      const response = await getDirectConversations();
+      const response = await getDirectConversations(normalizedSearch);
       const directMessages = response.success ? response.data : [];
       return { directMessages };
     },
@@ -86,7 +96,23 @@ export function useActiveChat() {
           chatKeys.directMessages(currentUserId),
         )?.directMessages ||
         [];
-      return directMessages.find((chat) => chat.id === activeChatId) || null;
+      const activeDirectMessage = directMessages.find(
+        (chat) => chat.id === activeChatId,
+      );
+      if (activeDirectMessage) return activeDirectMessage;
+
+      const directMessageQueries =
+        queryClient.getQueriesData<DirectMessagesQueryData>({
+          queryKey: chatKeys.allDirectMessages(),
+        });
+      for (const [, data] of directMessageQueries) {
+        const directMessage = data?.directMessages?.find(
+          (chat) => chat.id === activeChatId,
+        );
+        if (directMessage) return directMessage;
+      }
+
+      return null;
     }
 
     const activeSpaceChannels =

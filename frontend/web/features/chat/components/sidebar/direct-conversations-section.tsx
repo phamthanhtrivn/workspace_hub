@@ -36,7 +36,11 @@ export default function DirectConversationsSection({
 }: DirectMessagesSectionProps) {
   const queryClient = useQueryClient();
   const [isDmExpanded, setIsDmExpanded] = useState(true);
-  const { data, isLoading, isFetching } = useDirectMessagesQuery(currentUserId);
+  const { data, isLoading, isFetching } = useDirectMessagesQuery(
+    currentUserId,
+    searchQuery,
+  );
+  const isSearching = searchQuery.trim().length > 0;
 
   const directMessages = useMemo(
     () =>
@@ -48,26 +52,12 @@ export default function DirectConversationsSection({
   );
   const isLoadingProfiles = isLoading || isFetching;
 
-  const filteredDirectMessages = useMemo(() => {
-    const trimmedQuery = searchQuery.trim().toLowerCase();
-    if (!trimmedQuery) return directMessages;
-
-    return directMessages.filter((directMessage) => {
-      const otherMember = directMessage.members?.find(
-        (member) => member.userId !== currentUserId,
-      );
-      const profile = otherMember?.profile ?? null;
-      const name = profile?.fullName || "User";
-      return name.toLowerCase().includes(trimmedQuery);
-    });
-  }, [currentUserId, directMessages, searchQuery]);
-
   const updateDirectMessageMemberCache = (
     directMessageId: string,
     memberPatch: { pinned?: boolean; muted?: boolean },
   ) => {
     const queryKey = chatKeys.directMessages(currentUserId);
-    queryClient.setQueryData<DirectMessagesQueryData>(queryKey, (oldData) => {
+    queryClient.setQueriesData<DirectMessagesQueryData>({ queryKey }, (oldData) => {
       if (!oldData) return oldData;
 
       const nextDirectMessages = sortDirectConversations(
@@ -179,15 +169,15 @@ export default function DirectConversationsSection({
         <div
           className={cn(
             "pr-1 flex flex-col gap-0.5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full",
-            filteredDirectMessages.length > 10 && "max-h-80 overflow-y-auto",
+            directMessages.length > 10 && "max-h-80 overflow-y-auto",
           )}
         >
           {isLoading ? (
             <div className="text-[11px] text-slate-400 italic px-3 py-1">
               Loading...
             </div>
-          ) : filteredDirectMessages.length > 0 ? (
-            filteredDirectMessages.map((directMessage) => (
+          ) : directMessages.length > 0 ? (
+            directMessages.map((directMessage) => (
               <DirectConversationItem
                 key={directMessage.id}
                 conversation={directMessage}
@@ -213,7 +203,7 @@ export default function DirectConversationsSection({
             ))
           ) : (
             <div className="text-[11px] text-slate-400 italic px-3 py-1">
-              No direct messages
+              {isSearching ? "No direct messages found" : "No direct messages"}
             </div>
           )}
         </div>

@@ -107,10 +107,14 @@ export const createDirectConversation = async (
   };
 };
 
-export const getDirectConversations = async (): Promise<
+export const getDirectConversations = async (
+  search?: string,
+): Promise<
   ApiResponse<DirectConversationResponse[]>
 > => {
-  const response = await api.get("/api/direct-conversations");
+  const response = await api.get("/api/direct-conversations", {
+    params: { search: search || undefined },
+  });
   const payload = response.data;
   const conversations = payload?.data ?? payload;
   return {
@@ -597,7 +601,7 @@ export const getSpaceChannels = async (
   search?: string,
 ): Promise<ApiResponse<ChannelResponse[]>> => {
   const response = await api.get(`/api/spaces/${spaceId}/channels`, {
-    params: { search },
+    params: { search: search || undefined },
   });
   const payload = response.data;
   const channels = payload?.data ?? payload;

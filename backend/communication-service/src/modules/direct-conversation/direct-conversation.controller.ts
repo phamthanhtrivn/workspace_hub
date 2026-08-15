@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Param,
+  Query,
 } from '@nestjs/common';
 import { CHANNEL_ERROR_MESSAGES, CHANNEL_SUCCESS_MESSAGES } from '../channel/types/channel.enums';
 import { CreateDirectConversationDto } from './dto/create-direct-conversation.dto';
@@ -40,13 +41,19 @@ export class DirectConversationController {
   }
 
   @Get()
-  async getDirectConversations(@Headers('x-user-id') userId: string) {
+  async getDirectConversations(
+    @Headers('x-user-id') userId: string,
+    @Query('search') search?: string,
+  ) {
     if (!userId) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_USER_ID);
     }
 
     const conversations =
-      await this.directConversationService.getUserDirectConversations(userId);
+      await this.directConversationService.getUserDirectConversations(
+        userId,
+        search,
+      );
     return {
       message: CHANNEL_SUCCESS_MESSAGES.LISTED,
       data: conversations,

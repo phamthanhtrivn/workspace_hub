@@ -69,7 +69,16 @@ export class DirectConversationService {
     return this.mapDirectConversation(conversation, userId);
   }
 
-  async getUserDirectConversations(userId: string) {
+  async getUserDirectConversations(userId: string, search?: string) {
+    const normalizedSearch = search?.trim();
+    const matchingUserIds = normalizedSearch
+      ? await this.getMatchingDirectParticipantIds(userId, normalizedSearch)
+      : null;
+
+    if (matchingUserIds && matchingUserIds.length === 0) {
+      return [];
+    }
+
     const conversations = await this.prisma.directConversation.findMany({
       where: {
         participants: {
@@ -77,6 +86,21 @@ export class DirectConversationService {
             userId,
           },
         },
+        ...(matchingUserIds
+          ? {
+              AND: [
+                {
+                  participants: {
+                    some: {
+                      userId: {
+                        in: matchingUserIds,
+                      },
+                    },
+                  },
+                },
+              ],
+            }
+          : {}),
       },
       include: {
         participants: true,
@@ -130,6 +154,38 @@ export class DirectConversationService {
         new Date(a.updatedAt).getTime()
       );
     });
+  }
+
+  private async getMatchingDirectParticipantIds(
+    currentUserId: string,
+    search: string,
+  ) {
+    const snapshots = await this.prisma.userProfileSnapshot.findMany({
+      where: {
+        userId: {
+          not: currentUserId,
+        },
+        OR: [
+          {
+            fullName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            email: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+    return snapshots.map((snapshot) => snapshot.userId);
   }
 
   async muteDirectConversation(
