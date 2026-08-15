@@ -5,17 +5,11 @@ import { FileText, Edit2 } from "lucide-react";
 import EditNoteModal from "../modals/edit-note-modal";
 import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
-import { useQuery } from "@tanstack/react-query";
-import { getPublicProfile } from "../../api/chat.api";
+import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { NoteResponse } from "../../types/chat.types";
 
 interface NoteMessageProps {
-  note: {
-    id: string;
-    title: string;
-    content: string;
-    createdBy: string;
-    createdAt: string;
-  };
+  note: NoteResponse;
   onUserClick?: (userId: string) => void;
   onEditNote?: (title: string, content: string) => void;
 }
@@ -26,6 +20,7 @@ const NoteMessage = React.memo(function NoteMessage({
   onEditNote,
 }: NoteMessageProps) {
   const currentUser = useAppSelector((state) => state.auth);
+  const memberProfiles = useChatMemberProfiles();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (!note) {
@@ -34,14 +29,9 @@ const NoteMessage = React.memo(function NoteMessage({
     );
   }
 
-  const { data: creatorProfile } = useQuery({
-    queryKey: ["userProfile", note.createdBy],
-    queryFn: () => getPublicProfile(note.createdBy),
-    enabled: !!note.createdBy,
-    staleTime: 5 * 60 * 1000,
-  });
-
   const isMe = note.createdBy === currentUser?.userId;
+  const creatorProfile =
+    note.creatorProfile || memberProfiles?.[note.createdBy] || null;
 
   return (
     <div className="flex flex-col items-center my-4 w-full">
@@ -68,10 +58,12 @@ const NoteMessage = React.memo(function NoteMessage({
                 >
                   {isMe
                     ? "You"
-                    : creatorProfile?.data?.fullName || "User"}
+                    : creatorProfile?.fullName ||
+                      creatorProfile?.email ||
+                      "User"}
                 </span>
               </span>
-              <span>•</span>
+              <span>-</span>
               <span>{formatDateTime(note.createdAt)}</span>
             </div>
           </div>

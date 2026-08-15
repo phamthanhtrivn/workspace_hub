@@ -8,10 +8,11 @@ import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
+import { NoteResponse } from "../../types/chat.types";
 interface ViewNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  note: any;
+  note?: NoteResponse | null;
   conversationId: string;
 }
 

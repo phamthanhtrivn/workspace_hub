@@ -106,26 +106,145 @@ export class UserProfileSnapshotService {
     }));
   }
 
-  async attachSenderProfilesToMessages<T extends { senderId: string }>(
+  async attachCreatorProfilesToPolls<T extends { createdBy: string }>(
+    polls: T[],
+  ): Promise<Array<T & { creatorProfile: UserProfileSnapshotResponse | null }>> {
+    const profileByUserId = await this.getProfilesByUserIds([
+      ...polls.map((poll) => poll.createdBy),
+      ...this.getPollVoteUserIds(polls),
+    ]);
+
+    return polls.map((poll) => ({
+      ...poll,
+      creatorProfile: profileByUserId.get(poll.createdBy) ?? null,
+      ...this.enrichPollVotes(poll, profileByUserId),
+    }));
+  }
+
+  async attachCreatorProfilesToNotes<T extends { createdBy: string }>(
+    notes: T[],
+  ): Promise<Array<T & { creatorProfile: UserProfileSnapshotResponse | null }>> {
+    const profileByUserId = await this.getProfilesByUserIds(
+      notes.map((note) => note.createdBy),
+    );
+
+    return notes.map((note) => ({
+      ...note,
+      creatorProfile: profileByUserId.get(note.createdBy) ?? null,
+    }));
+  }
+
+  async attachSenderProfilesToMessages<
+    T extends {
+      senderId: string;
+      poll?: ({ createdBy: string } & Record<string, unknown>) | null;
+      note?: ({ createdBy: string } & Record<string, unknown>) | null;
+    },
+  >(
     messages: T[],
   ): Promise<Array<T & { senderProfile: UserProfileSnapshotResponse | null }>> {
-    const profileByUserId = await this.getProfilesByUserIds(
-      messages.map((message) => message.senderId),
-    );
+    const profileByUserId = await this.getProfilesByUserIds([
+      ...messages.map((message) => message.senderId),
+      ...messages.flatMap((message) => [
+        message.poll?.createdBy,
+        message.note?.createdBy,
+      ]),
+      ...this.getPollVoteUserIds(
+        messages
+          .map((message) => message.poll)
+          .filter((poll): poll is NonNullable<T['poll']> => Boolean(poll)),
+      ),
+    ].filter((userId): userId is string => Boolean(userId)));
 
     return messages.map((message) => ({
       ...message,
       senderProfile: profileByUserId.get(message.senderId) ?? null,
+      poll: message.poll
+        ? {
+            ...message.poll,
+            creatorProfile: profileByUserId.get(message.poll.createdBy) ?? null,
+            ...this.enrichPollVotes(message.poll, profileByUserId),
+          }
+        : message.poll,
+      note: message.note
+        ? {
+            ...message.note,
+            creatorProfile: profileByUserId.get(message.note.createdBy) ?? null,
+          }
+        : message.note,
     }));
   }
 
-  async attachSenderProfileToMessage<T extends { senderId: string }>(
+  async attachSenderProfileToMessage<
+    T extends {
+      senderId: string;
+      poll?: ({ createdBy: string } & Record<string, unknown>) | null;
+      note?: ({ createdBy: string } & Record<string, unknown>) | null;
+    },
+  >(
     message: T,
   ): Promise<T & { senderProfile: UserProfileSnapshotResponse | null }> {
     const [enrichedMessage] = await this.attachSenderProfilesToMessages([
       message,
     ]);
     return enrichedMessage;
+  }
+
+  private getPollVoteUserIds(polls: unknown[]): string[] {
+    return polls.flatMap((poll) =>
+      this.getPollOptions(poll).flatMap((option) =>
+        this.getPollVotes(option)
+          .map((vote) => vote.userId)
+          .filter((userId): userId is string => Boolean(userId)),
+      ),
+    );
+  }
+
+  private enrichPollVotes(
+    poll: unknown,
+    profileByUserId: Map<string, UserProfileSnapshotResponse>,
+  ): { options?: Array<Record<string, unknown>> } {
+    const options = this.getPollOptions(poll);
+    if (options.length === 0) {
+      return {};
+    }
+
+    return {
+      options: options.map((option) => ({
+        ...option,
+        votes: this.getPollVotes(option).map((vote) => ({
+          ...vote,
+          voterProfile: vote.userId
+            ? profileByUserId.get(vote.userId) ?? null
+            : null,
+        })),
+      })),
+    };
+  }
+
+  private getPollOptions(poll: unknown): Array<Record<string, unknown>> {
+    if (!poll || typeof poll !== 'object') {
+      return [];
+    }
+
+    const options = (poll as { options?: unknown }).options;
+    return Array.isArray(options)
+      ? options.filter(
+          (option): option is Record<string, unknown> =>
+            Boolean(option) && typeof option === 'object',
+        )
+      : [];
+  }
+
+  private getPollVotes(
+    option: Record<string, unknown>,
+  ): Array<{ userId?: string | null } & Record<string, unknown>> {
+    return Array.isArray(option.votes)
+      ? option.votes.filter(
+          (vote): vote is { userId?: string | null } & Record<string, unknown> =>
+            Boolean(vote) && typeof vote === 'object',
+        )
+      : [];
   }
 
   private assertValidPayload(payload: UserProfileSnapshotPayload) {

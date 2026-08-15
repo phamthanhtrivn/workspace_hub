@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { ArrowLeft, BarChart2, Loader2 } from "lucide-react";
-import { pollApi } from "../../api/poll.api";
 import ViewPollModal from "../modals/view-poll-modal";
 import { usePolls } from "../../hooks/usePolls";
+import { PollOptionResponse, PollResponse } from "../../types/chat.types";
 
 interface PollDetailViewProps {
   conversationId: string;
@@ -17,7 +17,13 @@ export default function PollDetailView({
 
   const { polls, loading } = usePolls(conversationId);
 
-  const selectedPoll = polls.find((p: any) => p.id === selectedPollId);
+  const selectedPoll = polls.find((poll) => poll.id === selectedPollId);
+  const getVoteCount = (poll: PollResponse) =>
+    poll.options?.reduce(
+      (sum: number, option: PollOptionResponse) =>
+        sum + (option.votes?.length ?? 0),
+      0,
+    ) ?? 0;
 
   return (
     <div className="w-full h-full flex flex-col bg-white">
@@ -42,7 +48,7 @@ export default function PollDetailView({
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {polls.map((poll: any) => (
+            {polls.map((poll) => (
               <div
                 key={poll.id}
                 onClick={() => setSelectedPollId(poll.id)}
@@ -54,17 +60,12 @@ export default function PollDetailView({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-purple-900 mb-1">
-                      {poll.title}
+                      {poll.title || "Untitled poll"}
                     </p>
                     <div className="text-xs text-purple-600/70 space-y-1">
                       <p>{poll.options?.length || 0} options</p>
                       <p>
-                        {poll.options?.reduce(
-                          (sum: number, opt: any) =>
-                            sum + (opt.votes?.length || 0),
-                          0,
-                        )}{" "}
-                        votes
+                        {getVoteCount(poll)} votes
                       </p>
                       {poll.isLocked && (
                         <span className="inline-block mt-1 bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">

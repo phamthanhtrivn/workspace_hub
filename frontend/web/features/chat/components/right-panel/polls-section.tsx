@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { BarChart2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 import ViewPollModal from "../modals/view-poll-modal";
 import { formatDateTime } from "@/lib/date";
@@ -26,7 +26,7 @@ export default function PollsSection({
   const displayPolls = polls.slice(0, 3);
   const hasMore = polls.length > 3;
 
-  const selectedPoll = polls.find((p: any) => p.id === selectedPollId);
+  const selectedPoll = polls.find((poll) => poll.id === selectedPollId);
 
   return (
     <div>
@@ -57,14 +57,14 @@ export default function PollsSection({
           ) : (
             <>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {displayPolls.map((poll: any) => (
+                {displayPolls.map((poll) => (
                   <div
                     key={poll.id}
                     onClick={() => setSelectedPollId(poll.id)}
                     className="p-3 bg-purple-50 border border-purple-100 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors"
                   >
                     <p className="text-xs font-semibold text-purple-900 mb-1 truncate">
-                      {poll.title} - {formatDateTime(poll.createdAt)}
+                      {poll.title || "Untitled poll"} - {formatDateTime(poll.createdAt)}
                     </p>
                     <p className="text-[10px] text-purple-600/70">
                       {poll.options?.length || 0} options

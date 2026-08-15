@@ -134,6 +134,57 @@ export type ThreadFollowerResponse =
       lastReadAt?: string | null;
     };
 
+export interface PollVoteResponse {
+  id?: string;
+  userId: string;
+  pollOptionId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  voterProfile?: UserProfileSnapshotResponse | null;
+}
+
+export interface PollOptionResponse {
+  id: string;
+  text: string;
+  createdBy?: string | null;
+  votes?: PollVoteResponse[];
+}
+
+export interface PollResponse {
+  id: string;
+  messageId: string;
+  title: string;
+  multipleChoice: boolean;
+  allowAddOptions: boolean;
+  anonymous: boolean;
+  isLocked?: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+  options: PollOptionResponse[];
+  creatorProfile?: UserProfileSnapshotResponse | null;
+}
+
+export interface NoteResponse {
+  id: string;
+  messageId: string;
+  title: string;
+  content: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt?: string;
+  creatorProfile?: UserProfileSnapshotResponse | null;
+}
+
+export type CreatePollPayload = Pick<
+  PollResponse,
+  "title" | "multipleChoice" | "allowAddOptions" | "anonymous"
+> & {
+  options: string[];
+};
+
+export type CreateNotePayload = Pick<NoteResponse, "title" | "content">;
+
 export interface ChatMessageResponse {
   id: string;
   senderId: string;
@@ -150,6 +201,8 @@ export interface ChatMessageResponse {
   senderProfile?: UserProfileSnapshotResponse | null;
   mentions?: string[];
   medias?: ChatMediaResponse[];
+  poll?: PollResponse | null;
+  note?: NoteResponse | null;
   [key: string]: unknown;
 }
 

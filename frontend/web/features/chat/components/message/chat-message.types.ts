@@ -1,6 +1,8 @@
 import {
   ChatMediaResponse,
   ChatMessageResponse,
+  NoteResponse,
+  PollResponse,
   UserProfileSnapshotResponse,
 } from "../../types/chat.types";
 
@@ -12,30 +14,8 @@ export interface MessageReaction {
   [key: string]: unknown;
 }
 
-export interface PollPayload {
-  id: string;
-  title: string;
-  multipleChoice: boolean;
-  allowAddOptions: boolean;
-  anonymous: boolean;
-  isLocked?: boolean;
-  createdBy: string;
-  createdAt: string;
-  options: {
-    id: string;
-    text: string;
-    createdBy?: string;
-    votes?: { userId: string }[];
-  }[];
-}
-
-export interface NotePayload {
-  id: string;
-  title: string;
-  content: string;
-  createdBy: string;
-  createdAt: string;
-}
+export type PollPayload = PollResponse;
+export type NotePayload = NoteResponse;
 
 export interface RenderableChatMessage extends ChatMessageResponse {
   recalled?: boolean;
@@ -43,8 +23,8 @@ export interface RenderableChatMessage extends ChatMessageResponse {
   edited?: boolean;
   medias?: MessageMedia[];
   reactions?: MessageReaction[];
-  poll?: PollPayload;
-  note?: NotePayload;
+  poll?: PollPayload | null;
+  note?: NotePayload | null;
 }
 
 export type MemberProfilesMap = Record<string, UserProfileSnapshotResponse>;

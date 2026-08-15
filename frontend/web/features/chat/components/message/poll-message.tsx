@@ -8,33 +8,17 @@ import {
   User,
   Plus,
   Edit2,
+  ChevronRight,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
-import { useQuery } from "@tanstack/react-query";
-import { getPublicProfile } from "../../api/chat.api";
 import EditPollModal from "../modals/edit-poll-modal";
+import PollVotersModal from "../modals/poll-voters-modal";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
-
-interface PollOption {
-  id: string;
-  text: string;
-  createdBy?: string;
-  votes?: { userId: string }[];
-}
+import { PollResponse } from "../../types/chat.types";
 
 interface PollMessageProps {
-  poll: {
-    id: string;
-    title: string;
-    multipleChoice: boolean;
-    allowAddOptions: boolean;
-    anonymous: boolean;
-    isLocked?: boolean;
-    createdBy: string;
-    createdAt: string;
-    options: PollOption[];
-  };
+  poll: PollResponse;
   onVote?: (optionId: string) => void;
   onUserClick?: (userId: string) => void;
   onAddOption?: (text: string) => void;
@@ -56,6 +40,11 @@ const PollMessage = React.memo(function PollMessage({
 }: PollMessageProps) {
   const currentUser = useAppSelector((state) => state.auth);
   const memberProfiles = useChatMemberProfiles();
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [newOptionText, setNewOptionText] = useState("");
+  const [isAddingOption, setIsAddingOption] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isVotersModalOpen, setIsVotersModalOpen] = useState(false);
 
   if (!poll || !poll.options) {
     return (
@@ -63,23 +52,19 @@ const PollMessage = React.memo(function PollMessage({
     );
   }
 
-  const { data: creatorProfile } = useQuery({
-    queryKey: ["userProfile", poll.createdBy],
-    queryFn: () => getPublicProfile(poll.createdBy),
-    enabled: !!poll.createdBy,
-    staleTime: 5 * 60 * 1000,
-  });
-
   const isMe = poll.createdBy === currentUser?.userId;
+  const creatorProfile =
+    poll.creatorProfile || memberProfiles?.[poll.createdBy] || null;
 
   const totalVotes = poll.options.reduce(
     (sum, opt) => sum + (opt.votes?.length || 0),
     0,
   );
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
-  const [newOptionText, setNewOptionText] = useState("");
-  const [isAddingOption, setIsAddingOption] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const totalUniqueVoters = new Set(
+    poll.options.flatMap((option) =>
+      (option.votes ?? []).map((vote) => vote.userId),
+    ),
+  ).size;
 
   // Find if current user has voted
   const userHasVoted = poll.options.some((opt) =>
@@ -135,10 +120,12 @@ const PollMessage = React.memo(function PollMessage({
                   >
                     {isMe
                       ? "You"
-                      : creatorProfile?.data?.fullName || "User"}
+                      : creatorProfile?.fullName ||
+                        creatorProfile?.email ||
+                        "User"}
                   </span>
                 </span>
-                <span>•</span>
+                <span>-</span>
                 <span>{formatDateTime(poll.createdAt)}</span>
               </div>
             </div>
@@ -209,7 +196,10 @@ const PollMessage = React.memo(function PollMessage({
                       {!poll.anonymous && voteCount > 0 && (
                         <div className="flex -space-x-1 mr-1">
                           {option.votes?.slice(0, 3).map((vote, idx) => {
-                            const profile = memberProfiles?.[vote.userId];
+                            const profile =
+                              vote.voterProfile ||
+                              memberProfiles?.[vote.userId] ||
+                              null;
                             return (
                               <div
                                 key={idx}
@@ -240,10 +230,10 @@ const PollMessage = React.memo(function PollMessage({
                           })}
                         </div>
                       )}
-                      <span className="text-xs font-bold text-slate-600">
+                      <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-xs font-extrabold text-blue-700">
                         {percentage}%
                       </span>
-                      <span className="text-xs font-semibold text-slate-400 w-8 text-right">
+                      <span className="w-12 text-right text-xs font-extrabold text-slate-800">
                         {voteCount} {voteCount === 1 ? "vote" : "votes"}
                       </span>
                     </div>
@@ -300,9 +290,25 @@ const PollMessage = React.memo(function PollMessage({
 
         <div className="flex items-center justify-between text-xs text-slate-500 border-t border-slate-100 pt-3 mt-1.5">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-400">
-              {totalVotes} {totalVotes === 1 ? "vote" : "votes"} {poll.anonymous ? "(Anonymous)" : ""}
-            </span>
+            {!poll.anonymous && totalUniqueVoters > 0 ? (
+              <button
+                type="button"
+                onClick={() => setIsVotersModalOpen(true)}
+                className="flex cursor-pointer items-center gap-1 rounded-lg px-1.5 py-1 font-bold text-blue-600 transition hover:bg-blue-50 hover:text-blue-700"
+              >
+                <Users size={14} />
+                <span>
+                  {totalUniqueVoters}{" "}
+                  {totalUniqueVoters === 1 ? "voter" : "voters"}
+                </span>
+                <ChevronRight size={13} />
+              </button>
+            ) : (
+              <span className="font-bold text-slate-600">
+                {totalVotes} {totalVotes === 1 ? "vote" : "votes"}{" "}
+                {poll.anonymous ? "(Anonymous)" : ""}
+              </span>
+            )}
             {poll.isLocked && (
               <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                 Locked
@@ -332,6 +338,12 @@ const PollMessage = React.memo(function PollMessage({
             data.isLocked,
           );
         }}
+      />
+      <PollVotersModal
+        isOpen={isVotersModalOpen}
+        onClose={() => setIsVotersModalOpen(false)}
+        poll={poll}
+        onUserClick={onUserClick}
       />
     </div>
   );

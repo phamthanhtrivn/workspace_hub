@@ -26,6 +26,8 @@ import {
 import {
   ChatContextType,
   ChatMessageResponse,
+  CreateNotePayload,
+  CreatePollPayload,
   NO_AVATAR_TYPES,
 } from "../types/chat.types";
 import {
@@ -683,7 +685,7 @@ export default function ChatArea({
   );
 
   const handleCreatePoll = useCallback(
-    (data: any) => {
+    (data: CreatePollPayload) => {
       if (!activeConversation) return;
       const socket = socketService.getSocket();
       if (socket) {
@@ -772,7 +774,7 @@ export default function ChatArea({
   );
 
   const handleCreateNote = useCallback(
-    (data: any) => {
+    (data: CreateNotePayload) => {
       if (!activeConversation) return;
       const socket = socketService.getSocket();
       if (socket) {

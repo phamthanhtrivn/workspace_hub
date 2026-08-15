@@ -400,6 +400,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const updatedMessage = await this.pollService.votePoll(
+        data.channelId,
         data.messageId,
         data.pollOptionId,
         userId,
@@ -410,7 +411,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       const targetRooms = [data.channelId, ...memberUserIds];
 
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
+        ...updatedMessage,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -432,6 +438,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const updatedMessage = await this.pollService.addPollOption(
+        data.channelId,
         data.messageId,
         data.text,
         userId,
@@ -442,7 +449,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       const targetRooms = [data.channelId, ...memberUserIds];
 
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
+        ...updatedMessage,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -472,10 +484,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const updatedMessage = await this.pollService.updatePoll(
+        data.channelId,
         data.messageId,
         data.title,
         data.multipleChoice,
         data.allowAddOptions,
+        userId,
         data.anonymous,
         data.isLocked,
       );
@@ -485,7 +499,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       const targetRooms = [data.channelId, ...memberUserIds];
 
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
+        ...updatedMessage,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -519,6 +538,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const updatedMessage = await this.noteService.updateNote(
+        data.channelId,
         data.messageId,
         data.title,
         data.content,
@@ -530,7 +550,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
       const targetRooms = [data.channelId, ...memberUserIds];
 
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
+        ...updatedMessage,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);

@@ -4,6 +4,7 @@ import { useNotes } from "../../hooks/useNotes";
 import ViewNoteModal from "../modals/view-note-modal";
 import { useState } from "react";
 import { useActiveChat } from "../../hooks/useChatQueries";
+import { NoteResponse } from "../../types/chat.types";
 
 interface NotesSectionProps {
   isExpanded: boolean;
@@ -16,7 +17,7 @@ export default function NotesSection({
 }: NotesSectionProps) {
   const { activeChat: activeConversation } = useActiveChat();
 
-  const [selectedNote, setSelectedNote] = useState<any | null>(null);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
 
   const { notes, loading } = useNotes(activeConversation?.id);
 
@@ -47,14 +48,14 @@ export default function NotesSection({
               No notes yet
             </div>
           ) : (
-            notes.map((note: any) => (
+            notes.map((note: NoteResponse) => (
               <div
                 key={note.id}
-                onClick={() => setSelectedNote(note)}
+                onClick={() => setSelectedNoteId(note.id)}
                 className="p-3 bg-amber-50 border border-amber-100 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors"
               >
                 <p className="text-xs font-semibold text-amber-900 mb-1 truncate">
-                  {note.title} - {formatDateTime(note.createdAt)}
+                  {note.title || "Untitled note"} - {formatDateTime(note.createdAt)}
                 </p>
                 <p className="text-[10px] text-amber-700/80 line-clamp-2">
                   {note.content}
@@ -67,9 +68,9 @@ export default function NotesSection({
       <div className="h-px bg-gray-100 mx-4 my-1"></div>
 
       <ViewNoteModal
-        isOpen={!!selectedNote}
-        onClose={() => setSelectedNote(null)}
-        note={notes.find((n: any) => n.id === selectedNote?.id) || selectedNote}
+        isOpen={!!selectedNoteId}
+        onClose={() => setSelectedNoteId(null)}
+        note={notes.find((note) => note.id === selectedNoteId)}
         conversationId={activeConversation?.id || ""}
       />
     </div>
