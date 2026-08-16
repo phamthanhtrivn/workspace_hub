@@ -149,6 +149,13 @@ const chatSlice = createSlice({
     },
     setActiveSpaceId: (state, action: PayloadAction<string | null>) => {
       state.activeSpaceId = action.payload;
+      if (typeof window !== "undefined") {
+        if (action.payload) {
+          localStorage.setItem("selectedSpaceId", action.payload);
+        } else {
+          localStorage.removeItem("selectedSpaceId");
+        }
+      }
     },
     updateMuteStatus: (_state, _action: PayloadAction<unknown>) => {},
     updatePinStatus: (_state, _action: PayloadAction<unknown>) => {},

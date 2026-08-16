@@ -139,7 +139,12 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   // Automatically select first space if none active
   useEffect(() => {
     if (spaces.length > 0 && !activeSpaceId) {
-      dispatch(setActiveSpaceId(spaces[0].id));
+      const storedSpaceId = localStorage.getItem("selectedSpaceId");
+      if (storedSpaceId && spaces.some((space: any) => space.id === storedSpaceId)) {
+        dispatch(setActiveSpaceId(storedSpaceId));
+      } else {
+        dispatch(setActiveSpaceId(spaces[0].id));
+      }
     }
     if (
       activeSpaceId &&

@@ -104,6 +104,21 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const storedState = localStorage.getItem("isSidebarCollapsed");
+    if (storedState !== null) {
+      setIsSidebarCollapsed(storedState === "true");
+    }
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed((prev) => {
+      const nextState = !prev;
+      localStorage.setItem("isSidebarCollapsed", String(nextState));
+      return nextState;
+    });
+  }, []);
+
   const handleMenuClick = useCallback(() => {
     setIsMobileMenuOpen(true);
   }, []);
@@ -137,7 +152,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
         )}
       >
         <button
-          onClick={() => setIsSidebarCollapsed((prev) => !prev)}
+          onClick={toggleSidebar}
           className="absolute -right-3 top-8 z-100 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600 hover:shadow lg:flex cursor-pointer"
         >
           {isSidebarCollapsed ? (
