@@ -423,11 +423,12 @@ export class SpaceService {
           spaceId,
           allowMemberCreateChannel:
             settings.allowMemberCreateChannel ?? true,
-          allowMemberDeleteOwnChannel: false,
+          allowMemberDeleteOwnChannel:
+            settings.allowMemberDeleteOwnChannel ?? false,
         },
         update: {
           allowMemberCreateChannel: settings.allowMemberCreateChannel,
-          allowMemberDeleteOwnChannel: false,
+          allowMemberDeleteOwnChannel: settings.allowMemberDeleteOwnChannel,
         },
       });
       const channels = await this.prisma.channel.findMany({

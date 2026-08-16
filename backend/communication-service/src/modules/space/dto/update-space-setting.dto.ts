@@ -4,4 +4,8 @@ export class UpdateSpaceSettingDto {
   @IsBoolean()
   @IsOptional()
   allowMemberCreateChannel?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  allowMemberDeleteOwnChannel?: boolean;
 }

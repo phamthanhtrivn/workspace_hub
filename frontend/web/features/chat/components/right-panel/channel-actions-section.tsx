@@ -1,7 +1,7 @@
 "use client";
 
 import { LogOut, Trash2 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { useAppDispatch } from "@/store/store";
@@ -9,7 +9,7 @@ import {
   setActiveConversation,
   setActiveSpaceId,
 } from "@/store/chat/chat-slice";
-import { disbandChannel, leaveChannel } from "../../api/chat.api";
+import { disbandChannel, leaveChannel, getSpaceDetails } from "../../api/chat.api";
 import { chatKeys } from "../../types/chat.constant";
 import { ChannelResponse, ConversationRoles } from "../../types/chat.types";
 import { getErrorMessage } from "../../types/space-settings.types";
@@ -45,11 +45,21 @@ export default function ChannelActionsSection({
 }: ChannelActionsSectionProps) {
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(activeChannel.spaceId),
+    queryFn: async () => (await getSpaceDetails(activeChannel.spaceId)).data,
+    enabled: !!activeChannel.spaceId,
+  });
+
   const currentMember = activeChannel.members?.find(
     (member) => member.userId === currentUserId,
   );
   const isAdmin = currentMember?.role === ConversationRoles.ADMIN;
-  const canDeleteChannel = !activeChannel.isDefault && isAdmin;
+  const isCreator = activeChannel.createdBy === currentUserId;
+  const allowMemberDeleteOwnChannel = spaceDetail?.setting?.allowMemberDeleteOwnChannel ?? false;
+
+  const canDeleteChannel =
+    !activeChannel.isDefault && (isAdmin || (isCreator && allowMemberDeleteOwnChannel));
   const canLeaveChannel = !activeChannel.isDefault || !isAdmin;
   const actionLabel = activeChannel.isDefault
     ? CHANNEL_ACTION_LABELS.leaveDefault

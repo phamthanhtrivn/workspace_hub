@@ -20,8 +20,9 @@ export const SPACE_SETTINGS_LABELS = {
   lastAdminHelp: "Promote another member to Admin before leaving this space.",
   permissionsTitle: "Channel permissions",
   allowMemberCreateChannel: "Allow members to create channels",
+  allowMemberDeleteOwnChannel: "Allow members to delete channels they created",
   allowMemberCreateChannelHelp:
-    "Admins can always create channels. Channel deletion stays admin-only.",
+    "Admins can always create and delete channels.",
 } as const;
 
 export const SPACE_SETTINGS_TABS: SpaceSettingsTabConfig[] = [

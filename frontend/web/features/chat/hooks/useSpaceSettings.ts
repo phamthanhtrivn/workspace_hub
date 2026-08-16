@@ -139,9 +139,10 @@ export function useSpaceSettings({
   });
 
   const updateSettingsMutation = useMutation({
-    mutationFn: (settings: Pick<SpaceSettingResponse, "allowMemberCreateChannel">) =>
+    mutationFn: (settings: Partial<SpaceSettingResponse>) =>
       updateSpaceSettings(space.id, {
         allowMemberCreateChannel: settings.allowMemberCreateChannel,
+        allowMemberDeleteOwnChannel: settings.allowMemberDeleteOwnChannel,
       }),
     onMutate: async (settings) => {
       await Promise.all([
@@ -158,7 +159,7 @@ export function useSpaceSettings({
       const nextSetting = normalizeSpaceSetting(
         {
           ...(detail.setting ?? {}),
-          allowMemberCreateChannel: settings.allowMemberCreateChannel,
+          ...settings,
         },
         space.id,
       );

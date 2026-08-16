@@ -757,7 +757,15 @@ export class ChannelService {
       where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
     });
 
-    if (!spaceMember || spaceMember.role !== SpaceRole.ADMIN) {
+    const spaceSetting = await (this.prisma as any).spaceSetting.findUnique({
+      where: { spaceId: channel.spaceId },
+    });
+    const allowMemberDeleteOwnChannel = spaceSetting?.allowMemberDeleteOwnChannel ?? false;
+
+    const isSpaceAdmin = spaceMember?.role === SpaceRole.ADMIN;
+    const isChannelCreator = channel.createdBy === userId;
+
+    if (!isSpaceAdmin && !(isChannelCreator && allowMemberDeleteOwnChannel)) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.DISBAND_ACCESS_DENIED,
       );

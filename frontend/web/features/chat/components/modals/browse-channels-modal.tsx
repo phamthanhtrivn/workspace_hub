@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Loader2, Search, Hash, Check, Globe, Trash2 } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   disbandChannel,
   joinChannel,
+  getSpaceDetails,
 } from "../../api/chat.api";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
@@ -36,6 +37,13 @@ export default function BrowseChannelsModal({
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
+
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(spaceId),
+    queryFn: async () => (await getSpaceDetails(spaceId)).data,
+    enabled: isOpen && !!spaceId,
+  });
+  const allowMemberDeleteOwnChannel = spaceDetail?.setting?.allowMemberDeleteOwnChannel ?? false;
 
   useEffect(() => {
     setMounted(true);
@@ -216,7 +224,7 @@ export default function BrowseChannelsModal({
                         Join
                       </button>
                     )}
-                    {isSpaceAdmin && !channel.isDefault && (
+                    {(isSpaceAdmin || (channel.createdBy === currentUserId && allowMemberDeleteOwnChannel)) && !channel.isDefault && (
                       <button
                         type="button"
                         onClick={() => handleDeleteChannel(channel.id)}

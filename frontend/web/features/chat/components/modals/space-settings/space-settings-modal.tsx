@@ -173,6 +173,11 @@ export default function SpaceSettingsModal({
                     allowMemberCreateChannel,
                   })
                 }
+                onAllowMemberDeleteOwnChannelChange={(allowMemberDeleteOwnChannel) =>
+                  settings.updateSettingsMutation.mutate({
+                    allowMemberDeleteOwnChannel,
+                  })
+                }
               />
             )}
 
