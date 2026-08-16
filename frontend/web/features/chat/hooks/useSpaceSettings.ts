@@ -15,14 +15,13 @@ import {
   resendSpaceInvitation,
   updateSpace,
   updateSpaceSettings,
-  updateSpaceMemberRole,
+  transferSpaceOwnership,
 } from "../api/chat.api";
 import {
   SPACE_MEMBER_SEARCH_PAGE_SIZE,
   chatKeys,
 } from "../types/chat.constant";
 import {
-  SpaceRole,
   SpaceMemberListItem,
   SpaceResponse,
   SpaceSettingResponse,
@@ -36,7 +35,6 @@ import {
 } from "../types/space-settings.types";
 import {
   cleanupRemovedSpaceCaches,
-  patchSpaceMemberRoleInCaches,
   patchSpaceSettingInCaches,
 } from "../utils/chat-cache";
 import { normalizeSpaceSetting } from "../utils/space-setting-utils";
@@ -188,26 +186,14 @@ export function useSpaceSettings({
     },
   });
 
-  const updateRoleMutation = useMutation({
-    mutationFn: ({
-      memberId,
-      role,
-    }: {
-      memberId: string;
-      role: SpaceRole;
-    }) => updateSpaceMemberRole(space.id, memberId, role),
-    onSuccess: (_response, variables) => {
-      toast.success("Member role updated");
-      patchSpaceMemberRoleInCaches(
-        queryClient,
-        space.id,
-        variables.memberId,
-        variables.role,
-      );
+  const transferOwnershipMutation = useMutation({
+    mutationFn: (targetUserId: string) => transferSpaceOwnership(space.id, targetUserId),
+    onSuccess: () => {
+      toast.success("Space admin transferred successfully");
       invalidateSpaceData();
     },
     onError: (error) =>
-      toast.error(getErrorMessage(error, "Failed to update member role")),
+      toast.error(getErrorMessage(error, "Failed to transfer admin")),
   });
 
   const removeMemberMutation = useMutation({
@@ -266,29 +252,17 @@ export function useSpaceSettings({
       toast.error(getErrorMessage(error, "Failed to resend invitation")),
   });
 
-  const confirmRoleUpdate = async (member: SpaceMemberListItem) => {
-    const nextRole =
-      member.role === SpaceRole.ADMIN ? SpaceRole.MEMBER : SpaceRole.ADMIN;
-    if (![SpaceRole.ADMIN, SpaceRole.MEMBER].includes(nextRole)) {
-      toast.error("Missing required role");
-      return;
-    }
+  const confirmOwnershipTransfer = async (member: SpaceMemberListItem) => {
     const result = await Swal.fire({
-      title: SPACE_SETTINGS_CONFIRM.roleTitle,
-      text:
-        nextRole === SpaceRole.ADMIN
-          ? `Promote ${getSpaceMemberName(member)} to Admin?`
-          : `Demote ${getSpaceMemberName(member)} to Member?`,
+      title: "Transfer admin?",
+      text: `Transfer admin of this space to ${getSpaceMemberName(member)}? You will remain as an Admin.`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText:
-        nextRole === SpaceRole.ADMIN
-          ? SPACE_SETTINGS_CONFIRM.promote
-          : SPACE_SETTINGS_CONFIRM.demote,
-      cancelButtonText: SPACE_SETTINGS_CONFIRM.cancel,
+      confirmButtonText: "Transfer",
+      cancelButtonText: "Cancel",
     });
     if (result.isConfirmed) {
-      updateRoleMutation.mutate({ memberId: member.userId, role: nextRole });
+      transferOwnershipMutation.mutate(member.userId);
     }
   };
 
@@ -383,13 +357,13 @@ export function useSpaceSettings({
     setSpaceName,
     updateSpaceMutation,
     updateSettingsMutation,
-    updateRoleMutation,
+    transferOwnershipMutation,
     removeMemberMutation,
     leaveSpaceMutation,
     deleteSpaceMutation,
     cancelInvitationMutation,
     resendInvitationMutation,
-    confirmRoleUpdate,
+    confirmOwnershipTransfer,
     confirmRemoveMember,
     confirmCancelInvitation,
     confirmResendInvitation,

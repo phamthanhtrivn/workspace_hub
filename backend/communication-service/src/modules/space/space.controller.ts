@@ -15,23 +15,13 @@ import {
   SPACE_ERROR_MESSAGES,
   SPACE_SUCCESS_MESSAGES_LABEL,
 } from './types/space.enums';
-import { SpaceRole } from '@prisma/client';
 import { InviteSpaceMembersDto } from './dto/invite-space-members.dto';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
-import { UpdateSpaceMemberRoleDto } from './dto/update-space-member-role.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 
 @Controller('api/spaces')
 export class SpaceController {
   constructor(private readonly spaceService: SpaceService) {}
-
-  private getValidSpaceRole(body: UpdateSpaceMemberRoleDto | string) {
-    const role = typeof body === 'string' ? body : body?.role;
-    if (!Object.values(SpaceRole).includes(role as SpaceRole)) {
-      return null;
-    }
-    return role as SpaceRole;
-  }
 
   @Post()
   async createSpace(
@@ -137,31 +127,23 @@ export class SpaceController {
     };
   }
 
-  @Patch(':spaceId/members/:memberId/role')
-  async updateSpaceMemberRole(
+  @Patch(':spaceId/transfer-ownership')
+  async transferSpaceOwnership(
     @Headers('x-user-id') userId: string,
     @Param('spaceId') spaceId: string,
-    @Param('memberId') memberId: string,
-    @Body() body: UpdateSpaceMemberRoleDto | string,
+    @Body('targetUserId') targetUserId: string,
   ) {
-    if (!userId || !spaceId || !memberId) {
+    if (!userId || !spaceId || !targetUserId) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
     }
-    const role = this.getValidSpaceRole(body);
-    if (!role) {
-      throw new BadRequestException(
-        SPACE_ERROR_MESSAGES.INVALID_SPACE_MEMBER_ROLE,
-      );
-    }
-    const member = await this.spaceService.updateSpaceMemberRole(
+    const result = await this.spaceService.transferSpaceOwnership(
       userId,
       spaceId,
-      memberId,
-      role,
+      targetUserId,
     );
     return {
-      message: SPACE_SUCCESS_MESSAGES_LABEL.MEMBER_ROLE_UPDATED,
-      data: member,
+      message: 'Space ownership transferred successfully',
+      data: result,
     };
   }
 

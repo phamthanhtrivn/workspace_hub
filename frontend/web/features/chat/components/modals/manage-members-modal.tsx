@@ -101,7 +101,9 @@ export default function ManageMembersModal({
     try {
       await updateMemberRole(channel.id, memberId, role);
       toast.success("Role updated successfully");
-      queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(channel.spaceId),
+      });
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to update role"));
     } finally {
@@ -127,7 +129,9 @@ export default function ManageMembersModal({
     try {
       await kickMember(channel.id, memberId);
       toast.success("Member kicked successfully");
-      queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(channel.spaceId),
+      });
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to kick member"));
     } finally {
@@ -155,7 +159,9 @@ export default function ManageMembersModal({
     setIsProcessing(true);
     try {
       await leaveChannel(channel.id);
-      queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(channel.spaceId),
+      });
       if (channel.isDefault) {
         queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
       }
@@ -185,7 +191,9 @@ export default function ManageMembersModal({
     try {
       await disbandChannel(channel.id);
       toast.success("Channel disbanded successfully");
-      queryClient.invalidateQueries({ queryKey: chatKeys.channels(channel.spaceId) });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(channel.spaceId),
+      });
       onClose();
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to disband channel"));
@@ -309,14 +317,14 @@ export default function ManageMembersModal({
 
                     {currentUserRole === "ADMIN" &&
                       member.role === "MEMBER" && (
-                      <button
-                        onClick={() => handleKickMember(member.userId)}
-                        title="Remove from space"
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                      >
-                        <FiTrash2 size={18} />
-                      </button>
-                    )}
+                        <button
+                          onClick={() => handleKickMember(member.userId)}
+                          title="Remove from space"
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <FiTrash2 size={18} />
+                        </button>
+                      )}
                   </div>
                 )}
               </div>

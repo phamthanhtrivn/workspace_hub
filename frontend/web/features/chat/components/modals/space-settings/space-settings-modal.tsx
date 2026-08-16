@@ -139,14 +139,15 @@ export default function SpaceSettingsModal({
                 currentUserId={currentUserId}
                 isLoading={settings.isLoadingMembers}
                 isMutating={
-                  settings.updateRoleMutation.isPending ||
+                  settings.transferOwnershipMutation.isPending ||
                   settings.removeMemberMutation.isPending
                 }
                 members={settings.allMembers}
                 search={memberSearch}
                 onSearchChange={setMemberSearch}
-                onRoleUpdate={settings.confirmRoleUpdate}
+                onTransferOwnership={settings.confirmOwnershipTransfer}
                 onRemove={settings.confirmRemoveMember}
+                spaceCreatorId={space.createdBy}
               />
             )}
 

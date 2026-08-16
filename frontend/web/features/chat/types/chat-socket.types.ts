@@ -69,6 +69,7 @@ export interface ChatSocketRoleUpdatedPayload extends Partial<ChatContextPayload
   actorProfile?: UserProfileSnapshotResponse | null;
   targetProfile?: UserProfileSnapshotResponse | null;
   member: Pick<ConversationMember, "userId" | "role">;
+  members?: Pick<ConversationMember, "userId" | "role">[];
 }
 
 export interface ChatSocketSettingUpdatedPayload extends Partial<ChatContextPayload> {

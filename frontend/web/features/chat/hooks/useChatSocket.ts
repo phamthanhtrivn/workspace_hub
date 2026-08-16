@@ -373,14 +373,16 @@ export function useChatSocket() {
     const handleMemberRoleUpdated = (data: ChatSocketRoleUpdatedPayload) => {
       const chatId = getMessageChatId(data);
       if (data.spaceId) {
-        patchSpaceMemberRoleInCaches(
-          queryClient,
-          data.spaceId,
-          data.member.userId,
-          String(data.member.role) === SpaceRole.ADMIN
-            ? SpaceRole.ADMIN
-            : SpaceRole.MEMBER,
-        );
+        // Support multi-member role patch (e.g. ownership transfer affects both old and new owner)
+        const membersToUpdate = data.members ?? [data.member];
+        membersToUpdate.forEach((m) => {
+          patchSpaceMemberRoleInCaches(
+            queryClient,
+            data.spaceId!,
+            m.userId,
+            String(m.role) === SpaceRole.ADMIN ? SpaceRole.ADMIN : SpaceRole.MEMBER,
+          );
+        });
         queryClient.invalidateQueries({
           queryKey: chatKeys.spaceMembers(data.spaceId),
         });

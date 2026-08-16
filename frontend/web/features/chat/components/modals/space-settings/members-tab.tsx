@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Search, Shield, ShieldOff, Trash2, User } from "lucide-react";
+import { Search, Crown, Trash2, User } from "lucide-react";
 import {
   SpaceRole,
   SpaceMemberListItem,
@@ -14,8 +14,9 @@ interface MembersTabProps {
   members: SpaceMemberListItem[];
   search: string;
   onSearchChange: (search: string) => void;
-  onRoleUpdate: (member: SpaceMemberListItem) => void;
+  onTransferOwnership?: (member: SpaceMemberListItem) => void;
   onRemove: (member: SpaceMemberListItem) => void;
+  spaceCreatorId?: string | null;
 }
 
 export function MembersTab({
@@ -25,8 +26,9 @@ export function MembersTab({
   members,
   search,
   onSearchChange,
-  onRoleUpdate,
+  onTransferOwnership,
   onRemove,
+  spaceCreatorId,
 }: MembersTabProps) {
   return (
     <div className="space-y-4">
@@ -60,8 +62,9 @@ export function MembersTab({
               currentUserId={currentUserId}
               disabled={isMutating}
               member={member}
-              onRoleUpdate={onRoleUpdate}
+              onTransferOwnership={onTransferOwnership}
               onRemove={onRemove}
+              spaceCreatorId={spaceCreatorId}
             />
           ))
         )}
@@ -74,17 +77,21 @@ function MemberRow({
   currentUserId,
   disabled,
   member,
-  onRoleUpdate,
+  onTransferOwnership,
   onRemove,
+  spaceCreatorId,
 }: {
   currentUserId: string | null;
   disabled: boolean;
   member: SpaceMemberListItem;
-  onRoleUpdate: (member: SpaceMemberListItem) => void;
+  onTransferOwnership?: (member: SpaceMemberListItem) => void;
   onRemove: (member: SpaceMemberListItem) => void;
+  spaceCreatorId?: string | null;
 }) {
   const name = getSpaceMemberName(member);
   const isMe = member.userId === currentUserId;
+  const isCreator = member.userId === spaceCreatorId;
+  const isCurrentUserCreator = currentUserId === spaceCreatorId;
 
   return (
     <div className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-slate-50">
@@ -107,11 +114,15 @@ function MemberRow({
             <p className="truncate text-sm font-semibold text-slate-800">
               {isMe ? "You" : name}
             </p>
-            {member.role === SpaceRole.ADMIN && (
+            {isCreator ? (
+              <span className="shrink-0 rounded-md border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                Admin (Owner)
+              </span>
+            ) : member.role === SpaceRole.ADMIN ? (
               <span className="shrink-0 rounded-md border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
                 Admin
               </span>
-            )}
+            ) : null}
           </div>
           <p className="truncate text-xs text-slate-400">
             {member.profile?.email || member.userId}
@@ -121,29 +132,23 @@ function MemberRow({
 
       {!isMe && (
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            title={
-              member.role === SpaceRole.ADMIN
-                ? "Demote to Member"
-                : "Promote to Admin"
-            }
-            disabled={disabled}
-            onClick={() => onRoleUpdate(member)}
-            className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 cursor-pointer"
-          >
-            {member.role === SpaceRole.ADMIN ? (
-              <ShieldOff size={16} />
-            ) : (
-              <Shield size={16} />
-            )}
-          </button>
+          {isCurrentUserCreator && !isCreator && (
+            <button
+              type="button"
+              title="Transfer Admin"
+              disabled={disabled}
+              onClick={() => onTransferOwnership?.(member)}
+              className="p-2 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-50 cursor-pointer transition-colors"
+            >
+              <Crown size={16} className="fill-amber-400 text-amber-500" />
+            </button>
+          )}
           <button
             type="button"
             title="Remove from space"
             disabled={disabled}
             onClick={() => onRemove(member)}
-            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer"
+            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer transition-colors"
           >
             <Trash2 size={16} />
           </button>

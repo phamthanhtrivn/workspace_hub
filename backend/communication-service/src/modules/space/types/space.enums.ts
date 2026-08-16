@@ -43,5 +43,13 @@ export enum SPACE_ERROR_MESSAGES {
   CHANNEL_NAME_EXISTS = 'A channel with this name already exists in this space',
 }
 
+export enum SPACE_SOCKET_EVENT_TYPE {
+  MEMBER_ROLE_UPDATED = 'space_member_role_updated',
+  MEMBER_REMOVED = 'space_member_removed',
+  MEMBER_LEFT = 'space_left',
+  SETTING_UPDATED = 'space_setting_updated',
+  DISBANDED = 'space_disbanded',
+}
+
 export const SPACE_MEMBER_SEARCH_DEFAULT_LIMIT = 500;
 export const SPACE_MEMBER_SEARCH_MAX_LIMIT = 500;

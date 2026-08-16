@@ -661,6 +661,17 @@ export const updateSpaceMemberRole = async (
   return normalizeApiResponse<ConversationMember>(response.data);
 };
 
+export const transferSpaceOwnership = async (
+  spaceId: string,
+  targetUserId: string,
+): Promise<ApiResponse<any>> => {
+  const response = await api.patch(
+    `/api/spaces/${spaceId}/transfer-ownership`,
+    { targetUserId },
+  );
+  return normalizeApiResponse<any>(response.data);
+};
+
 export const removeSpaceMember = async (
   spaceId: string,
   memberId: string,
