@@ -69,9 +69,17 @@ export default function SpaceSettingsModal({
     }
   }, [isOpen, settings.setSpaceName, space.name]);
 
+  const isOwner = (settings.detail?.createdBy || space.createdBy) === currentUserId;
+
   const visibleTabs = useMemo(
-    () => SPACE_SETTINGS_TABS.filter((tab) => !tab.adminOnly || settings.isAdmin),
-    [settings.isAdmin],
+    () =>
+      SPACE_SETTINGS_TABS.filter((tab) => {
+        if (tab.id === SpaceSettingsTab.PERMISSIONS) {
+          return isOwner;
+        }
+        return !tab.adminOnly || settings.isAdmin;
+      }),
+    [settings.isAdmin, isOwner],
   );
 
   useEffect(() => {
@@ -140,14 +148,16 @@ export default function SpaceSettingsModal({
                 isLoading={settings.isLoadingMembers}
                 isMutating={
                   settings.transferOwnershipMutation.isPending ||
-                  settings.removeMemberMutation.isPending
+                  settings.removeMemberMutation.isPending ||
+                  settings.updateMemberRoleMutation.isPending
                 }
                 members={settings.allMembers}
                 search={memberSearch}
                 onSearchChange={setMemberSearch}
                 onTransferOwnership={settings.confirmOwnershipTransfer}
                 onRemove={settings.confirmRemoveMember}
-                spaceCreatorId={space.createdBy}
+                onUpdateRole={settings.confirmUpdateMemberRole}
+                spaceCreatorId={settings.detail?.createdBy || space.createdBy}
               />
             )}
 
@@ -165,7 +175,7 @@ export default function SpaceSettingsModal({
               />
             )}
 
-            {activeTab === SpaceSettingsTab.PERMISSIONS && settings.isAdmin && (
+            {activeTab === SpaceSettingsTab.PERMISSIONS && isOwner && (
               <PermissionsTab
                 isSaving={settings.updateSettingsMutation.isPending}
                 setting={settings.detail.setting}
@@ -185,6 +195,7 @@ export default function SpaceSettingsModal({
             {activeTab === SpaceSettingsTab.DANGER && (
               <DangerZoneTab
                 isAdmin={settings.isAdmin}
+                isOwner={isOwner}
                 isDeleting={settings.deleteSpaceMutation.isPending}
                 isLastAdmin={settings.isLastAdmin}
                 isLeaving={settings.leaveSpaceMutation.isPending}

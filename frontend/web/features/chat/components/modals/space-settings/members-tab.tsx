@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { Search, Crown, Trash2, User } from "lucide-react";
+import { Search, Crown, Trash2, User, Shield, ShieldOff } from "lucide-react";
+import { FaKey } from "react-icons/fa";
 import {
   SpaceRole,
   SpaceMemberListItem,
@@ -16,6 +17,7 @@ interface MembersTabProps {
   onSearchChange: (search: string) => void;
   onTransferOwnership?: (member: SpaceMemberListItem) => void;
   onRemove: (member: SpaceMemberListItem) => void;
+  onUpdateRole?: (member: SpaceMemberListItem, role: SpaceRole) => void;
   spaceCreatorId?: string | null;
 }
 
@@ -28,6 +30,7 @@ export function MembersTab({
   onSearchChange,
   onTransferOwnership,
   onRemove,
+  onUpdateRole,
   spaceCreatorId,
 }: MembersTabProps) {
   return (
@@ -64,6 +67,7 @@ export function MembersTab({
               member={member}
               onTransferOwnership={onTransferOwnership}
               onRemove={onRemove}
+              onUpdateRole={onUpdateRole}
               spaceCreatorId={spaceCreatorId}
             />
           ))
@@ -79,6 +83,7 @@ function MemberRow({
   member,
   onTransferOwnership,
   onRemove,
+  onUpdateRole,
   spaceCreatorId,
 }: {
   currentUserId: string | null;
@@ -86,6 +91,7 @@ function MemberRow({
   member: SpaceMemberListItem;
   onTransferOwnership?: (member: SpaceMemberListItem) => void;
   onRemove: (member: SpaceMemberListItem) => void;
+  onUpdateRole?: (member: SpaceMemberListItem, role: SpaceRole) => void;
   spaceCreatorId?: string | null;
 }) {
   const name = getSpaceMemberName(member);
@@ -96,18 +102,29 @@ function MemberRow({
   return (
     <div className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-slate-50">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-100 flex items-center justify-center">
-          {member.profile?.avatarUrl ? (
-            <Image
-              src={member.profile.avatarUrl}
-              alt={name}
-              width={36}
-              height={36}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <User size={16} className="text-slate-400" />
-          )}
+        <div className="relative h-9 w-9 shrink-0">
+          <div className="h-full w-full overflow-hidden rounded-full bg-slate-100 flex items-center justify-center">
+            {member.profile?.avatarUrl ? (
+              <Image
+                src={member.profile.avatarUrl}
+                alt={name}
+                width={36}
+                height={36}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <User size={16} className="text-slate-400" />
+            )}
+          </div>
+          {isCreator ? (
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm" title="Owner">
+              <FaKey size={8} />
+            </span>
+          ) : member.role === SpaceRole.ADMIN ? (
+            <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm" title="Admin">
+              <FaKey size={8} />
+            </span>
+          ) : null}
         </div>
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
@@ -133,25 +150,51 @@ function MemberRow({
       {!isMe && (
         <div className="flex shrink-0 items-center gap-1">
           {isCurrentUserCreator && !isCreator && (
+            <>
+              {member.role === SpaceRole.MEMBER && (
+                <button
+                  type="button"
+                  title="Promote to Admin"
+                  disabled={disabled}
+                  onClick={() => onUpdateRole?.(member, SpaceRole.ADMIN)}
+                  className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  <Shield size={16} />
+                </button>
+              )}
+              {member.role === SpaceRole.ADMIN && (
+                <button
+                  type="button"
+                  title="Demote to Member"
+                  disabled={disabled}
+                  onClick={() => onUpdateRole?.(member, SpaceRole.MEMBER)}
+                  className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 disabled:opacity-50 cursor-pointer transition-colors"
+                >
+                  <ShieldOff size={16} />
+                </button>
+              )}
+              <button
+                type="button"
+                title="Transfer Admin"
+                disabled={disabled}
+                onClick={() => onTransferOwnership?.(member)}
+                className="p-2 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-50 cursor-pointer transition-colors"
+              >
+                <Crown size={16} className="fill-amber-400 text-amber-500" />
+              </button>
+            </>
+          )}
+          {isCurrentUserCreator && !isCreator && (
             <button
               type="button"
-              title="Transfer Admin"
+              title="Remove from space"
               disabled={disabled}
-              onClick={() => onTransferOwnership?.(member)}
-              className="p-2 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-50 cursor-pointer transition-colors"
+              onClick={() => onRemove(member)}
+              className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer transition-colors"
             >
-              <Crown size={16} className="fill-amber-400 text-amber-500" />
+              <Trash2 size={16} />
             </button>
           )}
-          <button
-            type="button"
-            title="Remove from space"
-            disabled={disabled}
-            onClick={() => onRemove(member)}
-            className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer transition-colors"
-          >
-            <Trash2 size={16} />
-          </button>
         </div>
       )}
     </div>

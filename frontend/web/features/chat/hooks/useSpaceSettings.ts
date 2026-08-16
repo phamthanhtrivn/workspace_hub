@@ -16,6 +16,7 @@ import {
   updateSpace,
   updateSpaceSettings,
   transferSpaceOwnership,
+  updateSpaceMemberRole,
 } from "../api/chat.api";
 import {
   SPACE_MEMBER_SEARCH_PAGE_SIZE,
@@ -25,6 +26,7 @@ import {
   SpaceMemberListItem,
   SpaceResponse,
   SpaceSettingResponse,
+  SpaceRole,
 } from "../types/chat.types";
 import { SPACE_SETTINGS_CONFIRM } from "../types/space-settings.constants";
 import {
@@ -206,6 +208,17 @@ export function useSpaceSettings({
       toast.error(getErrorMessage(error, "Failed to remove member")),
   });
 
+  const updateMemberRoleMutation = useMutation({
+    mutationFn: ({ memberId, role }: { memberId: string; role: SpaceRole }) =>
+      updateSpaceMemberRole(space.id, memberId, role),
+    onSuccess: () => {
+      toast.success("Member role updated");
+      invalidateSpaceData();
+    },
+    onError: (error) =>
+      toast.error(getErrorMessage(error, "Failed to update member role")),
+  });
+
   const leaveSpaceMutation = useMutation({
     mutationFn: () => leaveSpace(space.id),
     onSuccess: async () => {
@@ -278,6 +291,27 @@ export function useSpaceSettings({
     });
     if (result.isConfirmed) {
       removeMemberMutation.mutate(member.userId);
+    }
+  };
+
+  const confirmUpdateMemberRole = async (member: SpaceMemberListItem, role: SpaceRole) => {
+    const actionText =
+      role === SpaceRole.ADMIN
+        ? "promote this user to Admin"
+        : "demote this user to Member";
+    const result = await Swal.fire({
+      title: "Update role?",
+      text: `Are you sure you want to ${actionText}?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes",
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      updateMemberRoleMutation.mutate({ memberId: member.userId, role });
     }
   };
 
@@ -359,6 +393,7 @@ export function useSpaceSettings({
     updateSettingsMutation,
     transferOwnershipMutation,
     removeMemberMutation,
+    updateMemberRoleMutation,
     leaveSpaceMutation,
     deleteSpaceMutation,
     cancelInvitationMutation,
@@ -369,6 +404,7 @@ export function useSpaceSettings({
     confirmResendInvitation,
     confirmLeaveSpace,
     confirmDeleteSpace,
+    confirmUpdateMemberRole,
     invalidateSpaceData,
   };
 }

@@ -131,7 +131,6 @@ model Channel {
   id          String          @id @default(uuid()) @db.Uuid
   spaceId     String          @map("space_id") @db.Uuid
   name        String
-  avatarUrl   String?         @map("avatar_url")
   createdBy   String          @map("created_by") @db.Uuid
   isDefault   Boolean         @default(false) @map("is_default")
   createdAt   DateTime        @default(now()) @map("created_at")

@@ -411,7 +411,12 @@ export class ChannelService {
       where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
     });
 
-    if (!requester || requester.role !== SpaceRole.ADMIN) {
+    const space = await this.prisma.space.findUnique({
+      where: { id: channel.spaceId },
+      select: { createdBy: true },
+    });
+
+    if (!requester || !space || space.createdBy !== userId) {
       throw new BadRequestException(
         CHANNEL_ERROR_MESSAGES.ROLE_CHANGE_ACCESS_DENIED,
       );
@@ -524,10 +529,11 @@ export class ChannelService {
     if (!requester || !target) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MEMBER_NOT_IN_SPACE);
     }
-    if (
-      requester.role === SpaceRole.MEMBER ||
-      (requester.role === SpaceRole.ADMIN && target.role !== SpaceRole.MEMBER)
-    ) {
+    const space = await this.prisma.space.findUnique({
+      where: { id: channel.spaceId },
+      select: { createdBy: true },
+    });
+    if (!space || space.createdBy !== userId) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.KICK_ACCESS_DENIED);
     }
 

@@ -30,6 +30,7 @@ interface ChatMessageProps {
   memberProfile: UserProfileSnapshotResponse | null;
   memberProfiles: MemberProfilesMap;
   memberRole?: "ADMIN" | "MEMBER";
+  spaceCreatorId?: string | null;
   readBy?: string[];
   showTime?: boolean;
   showSenderName?: boolean;
@@ -64,6 +65,7 @@ const ChatMessage = React.memo(function ChatMessage({
   memberProfile,
   memberProfiles,
   memberRole,
+  spaceCreatorId,
   readBy = [],
   showTime = true,
   showSenderName = false,
@@ -204,6 +206,7 @@ const ChatMessage = React.memo(function ChatMessage({
           senderName={senderName}
           senderProfile={memberProfile}
           memberRole={memberRole}
+          spaceCreatorId={spaceCreatorId}
           onClick={openSenderProfile}
         />
 

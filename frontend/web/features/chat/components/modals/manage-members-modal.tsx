@@ -13,9 +13,11 @@ import {
   kickMember,
   leaveChannel,
   disbandChannel,
+  getSpaceDetails,
+  transferSpaceOwnership,
 } from "../../api/chat.api";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Swal from "sweetalert2";
 import { FaKey } from "react-icons/fa";
@@ -62,6 +64,15 @@ export default function ManageMembersModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
 
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(channel.spaceId),
+    queryFn: async () => (await getSpaceDetails(channel.spaceId)).data,
+    enabled: !!channel.spaceId,
+  });
+
+  const spaceCreatorId = spaceDetail?.createdBy;
+  const isCurrentUserOwner = spaceCreatorId === currentUserId;
+
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -106,6 +117,40 @@ export default function ManageMembersModal({
       });
     } catch (error: unknown) {
       toast.error(getErrorMessage(error, "Failed to update role"));
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleTransferOwnership = async (memberId: string) => {
+    if (isProcessing) return;
+
+    const memberName = memberProfiles?.[memberId]?.fullName || "this user";
+    const result = await Swal.fire({
+      title: "Transfer ownership?",
+      text: `Are you sure you want to transfer ownership of this space to ${memberName}? You will remain as an Admin.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Transfer",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!result.isConfirmed) return;
+
+    setIsProcessing(true);
+    try {
+      await transferSpaceOwnership(channel.spaceId, memberId);
+      toast.success("Space ownership transferred successfully");
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(channel.spaceId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.spaceDetails(channel.spaceId),
+      });
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error, "Failed to transfer ownership"));
     } finally {
       setIsProcessing(false);
     }
@@ -254,31 +299,53 @@ export default function ManageMembersModal({
                 className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-600 overflow-hidden">
-                    {profile?.avatarUrl ? (
-                      <Image
-                        src={profile.avatarUrl}
-                        alt="Avatar"
-                        width={40}
-                        height={40}
-                        className="rounded-full"
-                      />
-                    ) : (
-                      <span className="font-bold text-sm">
-                        {name.charAt(0).toUpperCase()}
+                  <div className="relative w-10 h-10 shrink-0">
+                    <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-gray-600 overflow-hidden">
+                      {profile?.avatarUrl ? (
+                        <Image
+                          src={profile.avatarUrl}
+                          alt="Avatar"
+                          width={40}
+                          height={40}
+                          className="rounded-full"
+                        />
+                      ) : (
+                        <span className="font-bold text-sm">
+                          {name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    {member.userId === spaceCreatorId ? (
+                      <span
+                        className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
+                        title="Owner"
+                      >
+                        <FaKey size={8} />
                       </span>
-                    )}
+                    ) : member.role === "ADMIN" ? (
+                      <span
+                        className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
+                        title="Admin"
+                      >
+                        <FaKey size={8} />
+                      </span>
+                    ) : null}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-800">
                         {displayName}
                       </span>
-                      {member.role === "ADMIN" && (
-                        <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1 border border-gray-200">
-                          <FaKey size={10} className="text-gray-400" /> Admin
+                      {member.userId === spaceCreatorId ? (
+                        <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border border-amber-100">
+                          <FaKey size={10} className="text-amber-500" /> Admin
+                          (Owner)
                         </span>
-                      )}
+                      ) : member.role === "ADMIN" ? (
+                        <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border border-blue-100">
+                          <FiShield size={10} className="text-blue-500" /> Admin
+                        </span>
+                      ) : null}
                     </div>
                     <span className="text-xs text-gray-500">
                       {profile?.email}
@@ -288,7 +355,7 @@ export default function ManageMembersModal({
 
                 {!isMe && (
                   <div className="flex items-center gap-2">
-                    {currentUserRole === "ADMIN" && (
+                    {isCurrentUserOwner && (
                       <>
                         {member.role === "MEMBER" && (
                           <button
@@ -301,30 +368,37 @@ export default function ManageMembersModal({
                             <FiShield size={18} />
                           </button>
                         )}
-                        {member.role === "ADMIN" && (
-                          <button
-                            onClick={() =>
-                              handleUpdateRole(member.userId, "MEMBER")
-                            }
-                            title="Demote to Member"
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          >
-                            <FiShieldOff size={18} />
-                          </button>
-                        )}
+                        {member.role === "ADMIN" &&
+                          member.userId !== spaceCreatorId && (
+                            <button
+                              onClick={() =>
+                                handleUpdateRole(member.userId, "MEMBER")
+                              }
+                              title="Demote to Member"
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <FiShieldOff size={18} />
+                            </button>
+                          )}
+                        <button
+                          onClick={() => handleTransferOwnership(member.userId)}
+                          title="Promote to Owner"
+                          className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <FaKey size={16} className="text-amber-500" />
+                        </button>
                       </>
                     )}
 
-                    {currentUserRole === "ADMIN" &&
-                      member.role === "MEMBER" && (
-                        <button
-                          onClick={() => handleKickMember(member.userId)}
-                          title="Remove from space"
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <FiTrash2 size={18} />
-                        </button>
-                      )}
+                    {isCurrentUserOwner && member.userId !== spaceCreatorId && (
+                      <button
+                        onClick={() => handleKickMember(member.userId)}
+                        title="Remove from space"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

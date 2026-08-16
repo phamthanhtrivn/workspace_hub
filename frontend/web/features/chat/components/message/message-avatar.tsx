@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { Key, User } from "lucide-react";
+import { User } from "lucide-react";
+import { FaKey } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { UserProfileSnapshotResponse } from "../../types/chat.types";
 
@@ -8,6 +9,7 @@ interface MessageAvatarProps {
   senderName: string;
   senderProfile: UserProfileSnapshotResponse | null;
   memberRole?: "ADMIN" | "MEMBER";
+  spaceCreatorId?: string | null;
   onClick: () => void;
 }
 
@@ -16,8 +18,11 @@ export default function MessageAvatar({
   senderName,
   senderProfile,
   memberRole,
+  spaceCreatorId,
   onClick,
 }: MessageAvatarProps) {
+  const isCreator = senderProfile?.userId && senderProfile.userId === spaceCreatorId;
+
   return (
     <button
       type="button"
@@ -45,14 +50,21 @@ export default function MessageAvatar({
               <User size={15} className="text-slate-400" />
             </span>
           )}
-          {memberRole === "ADMIN" && (
+          {isCreator ? (
             <span
-              className="absolute -bottom-1 -right-1 bg-yellow-400 rounded-full p-0.5 border border-white"
+              className="absolute -bottom-1 -right-1 bg-amber-500 text-white rounded-full p-0.5 border border-white flex items-center justify-center h-4 w-4 shadow-sm"
+              title="Owner"
+            >
+              <FaKey size={8} />
+            </span>
+          ) : memberRole === "ADMIN" ? (
+            <span
+              className="absolute -bottom-1 -right-1 bg-slate-400 text-white rounded-full p-0.5 border border-white flex items-center justify-center h-4 w-4 shadow-sm"
               title="Admin"
             >
-              <Key size={10} className="text-white" />
+              <FaKey size={8} />
             </span>
-          )}
+          ) : null}
         </span>
       ) : null}
     </button>

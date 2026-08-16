@@ -9,6 +9,7 @@ import {
   BadRequestException,
   Patch,
   Query,
+  Put,
 } from '@nestjs/common';
 import { SpaceService } from './space.service';
 import {
@@ -18,11 +19,11 @@ import {
 import { InviteSpaceMembersDto } from './dto/invite-space-members.dto';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
+import { UpdateSpaceMemberRoleDto } from './dto/update-space-member-role.dto';
 
 @Controller('api/spaces')
 export class SpaceController {
   constructor(private readonly spaceService: SpaceService) {}
-
   @Post()
   async createSpace(
     @Headers('x-user-id') userId: string,
@@ -143,6 +144,28 @@ export class SpaceController {
     );
     return {
       message: 'Space ownership transferred successfully',
+      data: result,
+    };
+  }
+
+  @Patch(':spaceId/members/:memberId/role')
+  async updateSpaceMemberRole(
+    @Headers('x-user-id') userId: string,
+    @Param('spaceId') spaceId: string,
+    @Param('memberId') memberId: string,
+    @Body() body: UpdateSpaceMemberRoleDto,
+  ) {
+    if (!userId || !spaceId || !memberId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    }
+    const result = await this.spaceService.updateSpaceMemberRole(
+      spaceId,
+      userId,
+      memberId,
+      body.role,
+    );
+    return {
+      message: 'Space member role updated successfully',
       data: result,
     };
   }

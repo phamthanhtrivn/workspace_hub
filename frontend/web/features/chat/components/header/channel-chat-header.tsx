@@ -2,6 +2,9 @@ import { useState } from "react";
 import { ArrowLeft, Globe, Hash, Info, Search, User } from "lucide-react";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import ChannelMembersModal from "../modals/channel-members-modal";
+import { useQuery } from "@tanstack/react-query";
+import { getSpaceDetails } from "../../api/chat.api";
+import { chatKeys } from "../../types/chat.constant";
 
 interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -16,6 +19,18 @@ export default function ChannelChatHeader({
 }: ChannelChatHeaderProps) {
   const { activeChat: activeChannel } = useActiveChat();
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+
+  const spaceId =
+    activeChannel && "spaceId" in activeChannel
+      ? activeChannel.spaceId
+      : undefined;
+
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(spaceId || ""),
+    queryFn: async () => (await getSpaceDetails(spaceId!)).data,
+    enabled: !!spaceId,
+  });
+
   const displayName = activeChannel?.name || "Channel";
   const memberCount = activeChannel?.members?.length || 0;
   const isDefaultChannel =
@@ -85,6 +100,7 @@ export default function ChannelChatHeader({
           fallbackMemberCount={memberCount}
           isOpen={isMembersModalOpen}
           onClose={() => setIsMembersModalOpen(false)}
+          spaceCreatorId={spaceDetail?.createdBy}
         />
       ) : null}
     </div>

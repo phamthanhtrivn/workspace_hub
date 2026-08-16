@@ -389,6 +389,12 @@ export function useChatSocket() {
         queryClient.invalidateQueries({
           queryKey: chatKeys.spaceDetails(data.spaceId),
         });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.allSpaces(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.allChannels(),
+        });
       }
       if (!chatId || !data.member) {
         queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });

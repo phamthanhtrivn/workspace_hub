@@ -60,6 +60,20 @@ export class SpaceService {
     return member;
   }
 
+  private async assertSpaceOwner(spaceId: string, userId: string) {
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { createdBy: true },
+    });
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (space.createdBy !== userId) {
+      throw new ForbiddenException('Only the space owner can perform this action');
+    }
+    return space;
+  }
+
   private async getAdminCount(spaceId: string) {
     return this.prisma.spaceMember.count({
       where: { spaceId, role: SpaceRole.ADMIN },
@@ -442,7 +456,7 @@ export class SpaceService {
     spaceId: string,
     settings: UpdateSpaceSettingDto,
   ) {
-    await this.assertSpaceAdmin(spaceId, userId);
+    await this.assertSpaceOwner(spaceId, userId);
     try {
       const updatedSetting = await (this.prisma as any).spaceSetting.upsert({
         where: { spaceId },
@@ -599,7 +613,7 @@ export class SpaceService {
       where: { spaceId, isDefault: true },
     });
     if (defaultChannel) {
-      const content = `${targetProfile?.fullName || 'Someone'} is now the Admin of this space (transferred by ${actorProfile?.fullName || 'an admin'})`;
+      const content = `${targetProfile?.fullName || 'Someone'} is now the Owner of this space (transferred by ${actorProfile?.fullName || 'an admin'})`;
       await this.chatGateway.sendSystemMessage(defaultChannel.id, userId, content);
     }
 
@@ -650,12 +664,83 @@ export class SpaceService {
     return updatedSpace;
   }
 
+  async updateSpaceMemberRole(
+    spaceId: string,
+    userId: string,
+    targetUserId: string,
+    newRole: SpaceRole,
+  ) {
+    if (userId === targetUserId) {
+      throw new BadRequestException('You cannot change your own role');
+    }
+
+    await this.assertSpaceOwner(spaceId, userId);
+
+    const targetMember = await this.prisma.spaceMember.findUnique({
+      where: { spaceId_userId: { spaceId, userId: targetUserId } },
+    });
+    if (!targetMember) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MEMBER_NOT_FOUND);
+    }
+
+    const updatedMember = await this.prisma.spaceMember.update({
+      where: { spaceId_userId: { spaceId, userId: targetUserId } },
+      data: { role: newRole },
+    });
+
+    const channels = await this.prisma.channel.findMany({
+      where: { spaceId },
+      select: { id: true },
+    });
+    const members = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: { userId: true },
+    });
+
+    const profileByUserId = await this.getProfileMap([userId, targetUserId]);
+    const actorProfile = profileByUserId.get(userId);
+    const targetProfile = profileByUserId.get(targetUserId);
+
+    const defaultChannel = await this.prisma.channel.findFirst({
+      where: { spaceId, isDefault: true },
+    });
+    if (defaultChannel) {
+      const roleName = newRole === SpaceRole.ADMIN ? 'Admin' : 'Member';
+      const content = `${targetProfile?.fullName || 'Someone'} is now the ${roleName} of this space (set by ${actorProfile?.fullName || 'an admin'})`;
+      await this.chatGateway.sendSystemMessage(defaultChannel.id, userId, content);
+    }
+
+    this.chatGateway.server
+      .to([
+        ...channels.map((channel) => channel.id),
+        ...members.map((member) => member.userId),
+      ])
+      .emit(ChatEvent.MEMBER_ROLE_UPDATED, {
+        eventType: SPACE_SOCKET_EVENT_TYPE.MEMBER_ROLE_UPDATED,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        spaceId,
+        spaceName: null,
+        affectedUserIds: [targetUserId, userId],
+        actorProfile: actorProfile ?? null,
+        targetProfile: targetProfile ?? null,
+        members: [
+          { userId: targetUserId, role: newRole },
+        ],
+        member: {
+          userId: targetUserId,
+          role: newRole,
+        },
+      });
+
+    return updatedMember;
+  }
+
   async removeSpaceMember(
     userId: string,
     spaceId: string,
     targetUserId: string,
   ) {
-    await this.assertSpaceAdmin(spaceId, userId);
+    await this.assertSpaceOwner(spaceId, userId);
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
       select: { name: true },
@@ -788,7 +873,7 @@ export class SpaceService {
   }
 
   async deleteSpace(userId: string, spaceId: string) {
-    await this.assertSpaceAdmin(spaceId, userId);
+    await this.assertSpaceOwner(spaceId, userId);
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
       select: { name: true },

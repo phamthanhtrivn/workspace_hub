@@ -14,6 +14,7 @@ interface ChannelMembersModalProps {
   fallbackMemberCount: number;
   isOpen: boolean;
   onClose: () => void;
+  spaceCreatorId?: string | null;
 }
 
 export default function ChannelMembersModal({
@@ -21,6 +22,7 @@ export default function ChannelMembersModal({
   fallbackMemberCount,
   isOpen,
   onClose,
+  spaceCreatorId,
 }: ChannelMembersModalProps) {
   const dispatch = useAppDispatch();
   const [mounted, setMounted] = useState(false);
@@ -108,6 +110,7 @@ export default function ChannelMembersModal({
               <ChannelMembersList
                 members={memberList}
                 onOpenProfile={handleOpenProfile}
+                spaceCreatorId={spaceCreatorId}
               />
             </div>
           ) : (

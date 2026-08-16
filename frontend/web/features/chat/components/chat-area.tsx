@@ -8,10 +8,10 @@ import DirectMessageInput, {
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { getChannelMessages } from "../api/chat.api";
+import { getChannelMessages, getSpaceDetails } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import TimeDivider from "./message/time-divider";
 import { ChevronDown, X } from "lucide-react";
@@ -98,6 +98,18 @@ export default function ChatArea({
   );
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
+
+  const spaceId =
+    activeConversation && "spaceId" in activeConversation
+      ? activeConversation.spaceId
+      : undefined;
+
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(spaceId || ""),
+    queryFn: async () => (await getSpaceDetails(spaceId!)).data,
+    enabled: !!spaceId,
+  });
+
   const {
     editMessage: editDirectChatMessage,
     getMessages: getDirectMessages,
@@ -1131,6 +1143,7 @@ export default function ChatArea({
               (m: any) => m.userId === msg.senderId,
             )?.role
           }
+          spaceCreatorId={spaceDetail?.createdBy}
           readBy={Object.keys(readReceipts || {}).filter(
             (uid) => readReceipts[uid] === msg.id && uid !== auth.userId,
           )}

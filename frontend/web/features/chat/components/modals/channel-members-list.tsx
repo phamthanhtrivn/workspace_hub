@@ -6,11 +6,13 @@ import ChannelMemberRow from "./channel-member-row";
 interface ChannelMembersListProps {
   members: ChannelMemberListItem[];
   onOpenProfile: (userId: string) => void;
+  spaceCreatorId?: string | null;
 }
 
 export default function ChannelMembersList({
   members,
   onOpenProfile,
+  spaceCreatorId,
 }: ChannelMembersListProps) {
   if (members.length === 0) return null;
 
@@ -22,6 +24,7 @@ export default function ChannelMembersList({
             key={member.userId}
             member={member}
             onOpenProfile={onOpenProfile}
+            spaceCreatorId={spaceCreatorId}
           />
         ))}
       </div>
