@@ -30,6 +30,7 @@ import {
   List,
   ListOrdered,
   FileText,
+  UploadCloud,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -77,11 +78,10 @@ const ThreadChatInput = React.memo(
     const [showFormatting, setShowFormatting] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
+    const dragCounter = useRef(0);
 
-    const {
-      activeChat: activeConversation,
-      activeChatType,
-    } = useActiveChat();
+    const { activeChat: activeConversation, activeChatType } = useActiveChat();
     const memberProfiles = useChatMemberProfiles();
     const authUserId = useAppSelector((state: any) => state.auth.userId);
 
@@ -140,8 +140,7 @@ const ThreadChatInput = React.memo(
       startDictation,
       stopDictation,
       clearInterim,
-    } =
-      useSpeechToText({ onTranscript: appendTranscript });
+    } = useSpeechToText({ onTranscript: appendTranscript });
 
     // 3. Audio Recording Hook
     const handleRecordComplete = useCallback(
@@ -437,6 +436,56 @@ const ThreadChatInput = React.memo(
       [activeConversationId],
     );
 
+    const handleDragEnter = useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current++;
+      if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        setIsDraggingOver(true);
+      }
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current--;
+      if (dragCounter.current === 0) {
+        setIsDraggingOver(false);
+      }
+    }, []);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, []);
+
+    const handleDrop = useCallback(
+      async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingOver(false);
+        dragCounter.current = 0;
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          const files = Array.from(e.dataTransfer.files);
+          await uploadFilesList(files);
+          e.dataTransfer.clearData();
+        }
+      },
+      [uploadFilesList],
+    );
+
+    const handlePaste = useCallback(
+      async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+          e.preventDefault();
+          const files = Array.from(e.clipboardData.files);
+          await uploadFilesList(files);
+        }
+      },
+      [uploadFilesList],
+    );
+
     const formatTime = (seconds: number) => {
       const m = Math.floor(seconds / 60);
       const s = seconds % 60;
@@ -494,7 +543,24 @@ const ThreadChatInput = React.memo(
     ]);
 
     return (
-      <div className="w-full bg-white border-t border-gray-200 flex justify-center">
+      <div
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        className="w-full bg-white border-t border-gray-200 flex justify-center relative"
+      >
+        {isDraggingOver && (
+          <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-2xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+            <UploadCloud
+              className="text-blue-500 animate-bounce mb-2"
+              size={28}
+            />
+            <p className="text-xs font-black text-blue-600">
+              Drop files here to upload
+            </p>
+          </div>
+        )}
         <div className="w-full p-2">
           {/* File Previews */}
           {uploadingMedia.length > 0 && (
@@ -508,10 +574,17 @@ const ThreadChatInput = React.memo(
                       : "bg-gray-100"
                   }`}
                 >
-                  <ImageIcon
-                    size={16}
-                    className="text-blue-500 flex-shrink-0"
-                  />
+                  {media.mimeType.startsWith("image/") ? (
+                    <ImageIcon
+                      size={16}
+                      className="text-blue-500 flex-shrink-0"
+                    />
+                  ) : (
+                    <FileText
+                      size={16}
+                      className="text-gray-500 flex-shrink-0"
+                    />
+                  )}
                   <div className="flex flex-col flex-1 min-w-0">
                     <span className="text-xs truncate text-gray-700">
                       {media.name}
@@ -623,7 +696,8 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Voicemail size={14} className="text-red-500" /> Voice Message
+                    <Voicemail size={14} className="text-red-500" /> Voice
+                    Message
                   </button>
                 </div>
               )}
@@ -730,6 +804,7 @@ const ThreadChatInput = React.memo(
               <textarea
                 id="thread-chat-input-textarea"
                 ref={textareaRef}
+                onPaste={handlePaste}
                 value={
                   message +
                   (interimMessage ? (message ? " " : "") + interimMessage : "")

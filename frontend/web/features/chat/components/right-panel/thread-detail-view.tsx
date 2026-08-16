@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
-import { X, User, FileText, Download, Bell } from "lucide-react";
+import { X, User, FileText, Download, Bell, Play } from "lucide-react";
 import Image from "next/image";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -13,10 +13,12 @@ import {
   unfollowThread,
   getDirectThreadMessages,
   getThreadMessages,
+  getSpaceDetails,
 } from "../../api/chat.api";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
-import { useAppSelector } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/store/store";
+import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
 import { useActiveChat } from "../../hooks/useChatQueries";
@@ -37,6 +39,8 @@ import ThreadChatInput, {
   ThreadChatInputRef,
 } from "../input/thread-chat-input";
 import { renderMessageContent } from "../../utils/message-formatter";
+import MediaLightbox from "../message/media-lightbox";
+import MessageAvatar from "../message/message-avatar";
 import { toast } from "sonner";
 
 interface ThreadDetailViewProps {
@@ -84,15 +88,31 @@ export default function ThreadDetailView({
   onBack,
 }: ThreadDetailViewProps) {
   const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
   const { sendMessage: sendDirectThreadReply } = useDirectMessageActions();
   const { activeChat, activeChatType } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
+
+  const spaceId =
+    activeChat && "spaceId" in activeChat
+      ? activeChat.spaceId
+      : undefined;
+
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(spaceId || ""),
+    queryFn: async () => (await getSpaceDetails(spaceId!)).data,
+    enabled: !!spaceId,
+  });
+
+  const spaceCreatorId = spaceDetail?.createdBy || null;
   const scrollRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<ThreadChatInputRef>(null);
   const [followOverride, setFollowOverride] = useState<{
     threadId: string;
     isFollowing: boolean;
   } | null>(null);
+  const [lightboxMedias, setLightboxMedias] = useState<any[] | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
   const { data: followedThreads = EMPTY_FOLLOWED_THREADS } = useQuery({
     queryKey: chatKeys.followedThreads(currentUserId),
     queryFn: fetchFollowedThreadsForState,
@@ -389,7 +409,7 @@ export default function ThreadDetailView({
   const getProfile = (userId: string) => {
     return memberProfiles[userId] || null;
   };
-  const rootProfile = getProfile(rootMessage.senderId);
+  const rootProfile = rootMessage.senderProfile || getProfile(rootMessage.senderId);
   const rootAvatarUrl = rootProfile?.avatarUrl || undefined;
 
   const renderThreadMessageMedias = (messageItem: any) => {
@@ -407,35 +427,46 @@ export default function ThreadDetailView({
         {/* Render images/videos */}
         {visualMedias.length > 0 && (
           <div className="grid gap-1 grid-cols-1 max-w-[240px]">
-            {visualMedias.map((media: any) => {
+            {visualMedias.map((media: any, index: number) => {
               if (media.type === "IMAGE") {
                 return (
-                  <a
+                  <button
+                    type="button"
                     key={media.id}
-                    href={media.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="cursor-pointer overflow-hidden rounded-lg block border border-gray-100 shadow-sm"
+                    onClick={() => {
+                      setLightboxMedias(visualMedias);
+                      setLightboxIndex(index);
+                    }}
+                    className="cursor-pointer overflow-hidden rounded-lg block border border-gray-100 shadow-sm text-left w-full focus:outline-none"
                   >
                     <img
                       src={media.fileUrl}
                       alt={media.name}
                       className="w-full max-h-[160px] object-cover hover:opacity-90 transition"
                     />
-                  </a>
+                  </button>
                 );
               } else {
                 return (
-                  <div
+                  <button
+                    type="button"
                     key={media.id}
-                    className="relative w-full rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-black/5"
+                    onClick={() => {
+                      setLightboxMedias(visualMedias);
+                      setLightboxIndex(index);
+                    }}
+                    className="relative w-full rounded-lg overflow-hidden border border-gray-100 shadow-sm bg-black/5 block text-left focus:outline-none cursor-pointer"
                   >
                     <video
                       src={media.fileUrl}
-                      controls
                       className="w-full max-h-[160px] object-cover"
                     />
-                  </div>
+                    <span className="absolute inset-0 flex items-center justify-center bg-black/10 hover:bg-black/25 transition">
+                      <span className="w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white backdrop-blur-sm shadow-lg animate-in fade-in duration-150">
+                        <Play size={16} fill="currentColor" className="ml-0.5" />
+                      </span>
+                    </span>
+                  </button>
                 );
               }
             })}
@@ -524,26 +555,26 @@ export default function ThreadDetailView({
         {/* Root parent message */}
         <div className="border-b border-gray-100 pb-4">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center font-bold text-sm text-blue-600 overflow-hidden">
-              {rootAvatarUrl ? (
-                <Image
-                  src={rootAvatarUrl}
-                  alt="Avatar"
-                  width={32}
-                  height={32}
-                  className="rounded-full"
-                />
-              ) : (
-                <User size={16} className="text-gray-400" />
-              )}
-            </div>
+            <MessageAvatar
+              showAvatar={true}
+              senderName={rootProfile?.fullName || "User"}
+              senderProfile={rootProfile}
+              memberRole={
+                activeChat?.members?.find(
+                  (m: any) => m.userId === rootMessage.senderId,
+                )?.role
+              }
+              spaceCreatorId={spaceCreatorId}
+              onClick={() => {
+                if (rootMessage.senderId) {
+                  dispatch(setSelectedProfileUserId(rootMessage.senderId));
+                }
+              }}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="font-bold text-xs text-gray-900 truncate">
-                  {rootMessage.senderId === currentUserId
-                    ? "You"
-                    : getProfile(rootMessage.senderId)?.fullName ||
-                      "User"}
+                  {rootProfile?.fullName || "User"}
                 </span>
                 <span className="text-[10px] text-gray-400">
                   {formatDateTime(rootMessage.createdAt)}
@@ -575,28 +606,29 @@ export default function ThreadDetailView({
         ) : (
           <div className="space-y-4">
             {replies.map((reply: any) => {
-              const profile = getProfile(reply.senderId);
+              const profile = reply.senderProfile || getProfile(reply.senderId);
               return (
                 <div key={reply.id} className="flex items-start gap-3">
-                  <div className="w-7 h-7 rounded-full bg-gray-100 flex-shrink-0 flex items-center justify-center font-bold text-xs overflow-hidden">
-                    {profile?.avatarUrl ? (
-                      <Image
-                        src={profile.avatarUrl}
-                        alt="Avatar"
-                        width={28}
-                        height={28}
-                        className="rounded-full"
-                      />
-                    ) : (
-                      <User size={14} className="text-gray-400" />
-                    )}
-                  </div>
+                  <MessageAvatar
+                    showAvatar={true}
+                    senderName={profile?.fullName || "User"}
+                    senderProfile={profile}
+                    memberRole={
+                      activeChat?.members?.find(
+                        (m: any) => m.userId === reply.senderId,
+                      )?.role
+                    }
+                    spaceCreatorId={spaceCreatorId}
+                    onClick={() => {
+                      if (reply.senderId) {
+                        dispatch(setSelectedProfileUserId(reply.senderId));
+                      }
+                    }}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between mb-0.5">
                       <span className="font-bold text-xs text-gray-700 truncate">
-                        {reply.senderId === currentUserId
-                          ? "You"
-                          : profile?.fullName || "User"}
+                        {profile?.fullName || "User"}
                       </span>
                       <span className="text-[9px] text-gray-400">
                         {formatDateTime(reply.createdAt)}
@@ -626,6 +658,13 @@ export default function ThreadDetailView({
             Only administrators can reply in this thread
           </div>
         </div>
+      )}
+      {lightboxMedias && lightboxMedias.length > 0 && (
+        <MediaLightbox
+          medias={lightboxMedias}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxMedias(null)}
+        />
       )}
     </div>
   );
