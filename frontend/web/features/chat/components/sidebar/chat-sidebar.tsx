@@ -27,6 +27,7 @@ import {
   setActiveDirectMessage,
   setActiveSpaceId,
   setActiveThreadRootMessage,
+  setSelectedProfileUserId,
 } from "@/store/chat/chat-slice";
 import {
   ChatContextType,
@@ -37,6 +38,8 @@ import {
   SpaceRole,
   UserProfileResponse,
   UserProfileSnapshotResponse,
+  SpaceResponse,
+  ConversationRoles,
 } from "../../types/chat.types";
 import {
   CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS,
@@ -44,18 +47,25 @@ import {
   MAX_UNREAD_COUNT,
   chatKeys,
 } from "../../types/chat.constant";
-import { sortDirectConversations } from "../../utils/direct-conversation-utils";
+import { sortDirectConversations, sortChannelsByPin } from "../../utils/direct-conversation-utils";
 import { cn } from "@/lib/utils";
+import Swal from "sweetalert2";
+import { toast } from "sonner";
+import { getErrorMessage } from "../../types/space-settings.types";
 import {
   markChannelThreadAsRead,
   markDirectThreadAsRead,
   getSpaceMembers,
   muteChannel,
   pinChannel,
+  getSpaceDetails,
+  leaveChannel,
+  disbandChannel,
 } from "../../api/chat.api";
 import {
   useActiveChat,
   useSpaceChannelsQuery,
+  DirectMessagesQueryData,
   useSpacesQuery,
 } from "../../hooks/useChatQueries";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
@@ -77,33 +87,23 @@ interface ChatSidebarProps {
   onSelectChat?: () => void;
 }
 
-function isChannelPinned(channel: ChannelResponse, userId?: string | null) {
-  return !!channel.members?.find((member) => member.userId === userId)?.pinned;
-}
 
-function sortChannelsByPin(
-  channels: ChannelResponse[],
-  userId?: string | null,
-) {
-  return [...channels].sort((a, b) => {
-    const aPinned = isChannelPinned(a, userId);
-    const bPinned = isChannelPinned(b, userId);
-    if (aPinned !== bPinned) return aPinned ? -1 : 1;
-    return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
-  });
-}
 
 export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
-  const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
-  const [isSpaceSettingsModalOpen, setIsSpaceSettingsModalOpen] = useState(false);
-  const [isFollowedThreadsModalOpen, setIsFollowedThreadsModalOpen] = useState(false);
+  const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] =
+    useState(false);
+  const [isSpaceSettingsModalOpen, setIsSpaceSettingsModalOpen] =
+    useState(false);
+  const [isFollowedThreadsModalOpen, setIsFollowedThreadsModalOpen] =
+    useState(false);
   const [isSpaceDropdownOpen, setIsSpaceDropdownOpen] = useState(false);
   const [isChannelsExpanded, setIsChannelsExpanded] = useState(true);
   const [isChannelsDropdownOpen, setIsChannelsDropdownOpen] = useState(false);
-  const [isBrowseChannelsModalOpen, setIsBrowseChannelsModalOpen] = useState(false);
+  const [isBrowseChannelsModalOpen, setIsBrowseChannelsModalOpen] =
+    useState(false);
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const activeSpaceId = useAppSelector((state) => state.chat.activeSpaceId);
@@ -122,10 +122,16 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsSpaceDropdownOpen(false);
       }
-      if (channelsDropdownRef.current && !channelsDropdownRef.current.contains(event.target as Node)) {
+      if (
+        channelsDropdownRef.current &&
+        !channelsDropdownRef.current.contains(event.target as Node)
+      ) {
         setIsChannelsDropdownOpen(false);
       }
     }
@@ -133,14 +139,15 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const { data: spacesData, refetch: refetchSpaces } = useSpacesQuery(currentUserId);
+  const { data: spacesData, refetch: refetchSpaces } =
+    useSpacesQuery(currentUserId);
   const spaces = spacesData || [];
 
   // Automatically select first space if none active
   useEffect(() => {
     if (spaces.length > 0 && !activeSpaceId) {
       const storedSpaceId = localStorage.getItem("selectedSpaceId");
-      if (storedSpaceId && spaces.some((space: any) => space.id === storedSpaceId)) {
+      if (storedSpaceId && spaces.some((space) => space.id === storedSpaceId)) {
         dispatch(setActiveSpaceId(storedSpaceId));
       } else {
         dispatch(setActiveSpaceId(spaces[0].id));
@@ -149,7 +156,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
     if (
       activeSpaceId &&
       spaces.length > 0 &&
-      !spaces.some((space: any) => space.id === activeSpaceId)
+      !spaces.some((space) => space.id === activeSpaceId)
     ) {
       dispatch(setActiveSpaceId(spaces[0].id));
       dispatch(setActiveConversation(null));
@@ -157,7 +164,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   }, [spaces, activeSpaceId, dispatch]);
 
   const activeSpace = useMemo(() => {
-    return spaces.find((g: any) => g.id === activeSpaceId) || null;
+    return spaces.find((g) => g.id === activeSpaceId) || null;
   }, [spaces, activeSpaceId]);
 
   const {
@@ -175,11 +182,86 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const { data: currentSpaceMemberData } = useQuery({
     queryKey: chatKeys.spaceMembers(activeSpaceId),
     queryFn: async () =>
-      (await getSpaceMembers(activeSpaceId || "", undefined, 500))
-        .data,
+      (await getSpaceMembers(activeSpaceId || "", undefined, 500)).data,
     enabled: !!activeSpace && !!activeSpaceId && !!currentUserId,
     staleTime: 1000 * 30,
   });
+
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(activeSpaceId),
+    queryFn: async () => {
+      if (!activeSpaceId) throw new Error("No active space");
+      return (await getSpaceDetails(activeSpaceId)).data;
+    },
+    enabled: !!activeSpaceId,
+  });
+
+  const leaveChannelMutation = useMutation({
+    mutationFn: (channelId: string) => leaveChannel(channelId),
+    onSuccess: (_, channelId) => {
+      toast.success("Left channel");
+      if (activeChat?.id === channelId) {
+        dispatch(setActiveConversation(null));
+      }
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(activeSpaceId) });
+      queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+      if (spaces.some((space) => space.id === activeSpaceId && space.defaultChannelId === channelId)) {
+        dispatch(setActiveSpaceId(null));
+      }
+    },
+    onError: (error) => toast.error(getErrorMessage(error, "Failed to leave channel")),
+  });
+
+  const deleteChannelMutation = useMutation({
+    mutationFn: (channelId: string) => disbandChannel(channelId),
+    onSuccess: (_, channelId) => {
+      toast.success("Channel deleted");
+      if (activeChat?.id === channelId) {
+        dispatch(setActiveConversation(null));
+      }
+      queryClient.invalidateQueries({ queryKey: chatKeys.channels(activeSpaceId) });
+      queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+    },
+    onError: (error) => toast.error(getErrorMessage(error, "Failed to delete channel")),
+  });
+
+  const handleLeaveChannel = async (channel: ChannelResponse) => {
+    const isDefault = channel.isDefault;
+    const actionLabel = isDefault ? "Leave space" : "Leave channel";
+    const result = await Swal.fire({
+      title: `${actionLabel}?`,
+      text: isDefault
+        ? "Leaving the default channel will remove you from this space."
+        : "Are you sure you want to leave this channel?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: actionLabel,
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      leaveChannelMutation.mutate(channel.id);
+    }
+  };
+
+  const handleDeleteChannel = async (channel: ChannelResponse) => {
+    const result = await Swal.fire({
+      title: "Delete channel?",
+      text: "This channel and its messages will be permanently deleted.",
+      icon: "error",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+    });
+
+    if (result.isConfirmed) {
+      deleteChannelMutation.mutate(channel.id);
+    }
+  };
   const followedThreadsUnreadCount = useMemo(
     () =>
       followedThreads.reduce(
@@ -247,27 +329,27 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       if (onSelectChat) onSelectChat();
     },
-    [
-      currentUserId,
-      dispatch,
-      onSelectChat,
-      queryClient,
-    ],
+    [currentUserId, dispatch, onSelectChat, queryClient],
   );
 
   const handleNewConversation = useCallback(
-    async (newConversation: any, selectedProfile?: UserProfileResponse & { id?: string | null }) => {
+    async (
+      newConversation: DirectConversationResponse,
+      selectedProfile?: UserProfileResponse & { id?: string | null },
+    ) => {
       const selectedUserId = selectedProfile?.id;
 
       if (selectedUserId) {
-        queryClient.setQueryData(
+        queryClient.setQueryData<DirectMessagesQueryData>(
           chatKeys.directMessages(currentUserId),
-          (oldData: any) => {
+          (oldData) => {
             if (!oldData) return oldData;
-            const conversations = oldData.directMessages || oldData.conversations || [];
-            const exists = conversations.some((conv: any) => conv.id === newConversation.id);
+            const conversations = oldData.directMessages || [];
+            const exists = conversations.some(
+              (conv) => conv.id === newConversation.id,
+            );
             const nextConversations = exists
-              ? conversations.map((conv: any) =>
+              ? conversations.map((conv) =>
                   conv.id === newConversation.id ? newConversation : conv,
                 )
               : [newConversation, ...conversations];
@@ -297,7 +379,11 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             })
           : newConversation;
 
-      upsertDirectMessageCache(queryClient, currentUserId, hydratedConversation);
+      upsertDirectMessageCache(
+        queryClient,
+        currentUserId,
+        hydratedConversation,
+      );
       dispatch(setActiveDirectMessage(hydratedConversation));
       router.push(`/chat?id=${newConversation.id}`);
       if (onSelectChat) onSelectChat();
@@ -326,26 +412,35 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       }
     };
 
-    window.addEventListener("REFRESH_CONVERSATIONS", handleRefreshConversations);
+    window.addEventListener(
+      "REFRESH_CONVERSATIONS",
+      handleRefreshConversations,
+    );
     return () => {
-      window.removeEventListener("REFRESH_CONVERSATIONS", handleRefreshConversations);
+      window.removeEventListener(
+        "REFRESH_CONVERSATIONS",
+        handleRefreshConversations,
+      );
     };
   }, [currentUserId, handleNewConversation, queryClient]);
 
-  const handleNewSpace = (newSpace: any) => {
+  const handleNewSpace = (newSpace: SpaceResponse) => {
     refetchSpaces();
     dispatch(setActiveSpaceId(newSpace.id));
   };
 
-  const handleSpaceDeletedOrLeft = useCallback((spaceId: string) => {
-    dispatch(setActiveConversation(null));
-    dispatch(setActiveSpaceId(null));
-    void cleanupRemovedSpaceCaches(queryClient, spaceId).then(() => {
-      queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
-    });
-  }, [dispatch, queryClient]);
+  const handleSpaceDeletedOrLeft = useCallback(
+    (spaceId: string) => {
+      dispatch(setActiveConversation(null));
+      dispatch(setActiveSpaceId(null));
+      void cleanupRemovedSpaceCaches(queryClient, spaceId).then(() => {
+        queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+      });
+    },
+    [dispatch, queryClient],
+  );
 
-  const handleNewChannel = (newChannel: any) => {
+  const handleNewChannel = (newChannel: ChannelResponse) => {
     if (newChannel?.spaceId) {
       upsertChannelCache(queryClient, newChannel);
     }
@@ -401,13 +496,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   });
 
   const muteChannelMutation = useMutation({
-    mutationFn: ({
-      channelId,
-      muted,
-    }: {
-      channelId: string;
-      muted: boolean;
-    }) => muteChannel(channelId, muted),
+    mutationFn: ({ channelId, muted }: { channelId: string; muted: boolean }) =>
+      muteChannel(channelId, muted),
     onMutate: async ({ channelId, muted }) => {
       const queryKey = chatKeys.channels(activeSpaceId);
       await queryClient.cancelQueries({ queryKey });
@@ -505,9 +595,10 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         }),
       );
       clearThreadUnreadForChat(thread);
-      void (thread.chatType === ChatContextType.DIRECT_MESSAGE
-        ? markDirectThreadAsRead(thread.rootMessage.id)
-        : markChannelThreadAsRead(thread.rootMessage.id)
+      void (
+        thread.chatType === ChatContextType.DIRECT_MESSAGE
+          ? markDirectThreadAsRead(thread.rootMessage.id)
+          : markChannelThreadAsRead(thread.rootMessage.id)
       ).finally(() => {
         queryClient.invalidateQueries({
           queryKey: chatKeys.followedThreads(currentUserId),
@@ -528,8 +619,8 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   // Filtered lists based on search
   const joinedChannels = useMemo(() => {
     return sortChannelsByPin(
-      channels.filter((channel: any) =>
-        channel.members?.some((m: any) => m.userId === currentUserId),
+      channels.filter((channel) =>
+        channel.members?.some((m) => m.userId === currentUserId),
       ),
       currentUserId,
     );
@@ -541,14 +632,22 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
         ...(currentSpaceMemberData?.members || []),
       ].some(
         (member) =>
-          member.userId === currentUserId &&
-          member.role === SpaceRole.ADMIN,
+          member.userId === currentUserId && member.role === SpaceRole.ADMIN,
       ),
     [currentSpaceMemberData, currentUserId],
   );
+  const spaceNameCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    spaces.forEach((s) => {
+      if (s?.name) {
+        counts[s.name] = (counts[s.name] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [spaces]);
+
   const canCreateChannelInActiveSpace =
-    isActiveSpaceAdmin ||
-    canMembersCreateChannels(activeSpace);
+    isActiveSpaceAdmin || canMembersCreateChannels(activeSpace);
 
   useEffect(() => {
     if (!canCreateChannelInActiveSpace && isCreateChannelModalOpen) {
@@ -577,30 +676,56 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           <div className="flex flex-col min-w-0">
             <h2 className="text-sm font-bold text-slate-800 truncate flex items-center gap-1.5">
               <span>{activeSpace ? activeSpace.name : "Select Space"}</span>
-              <ChevronDown size={14} className="text-slate-400 group-hover:text-slate-600 shrink-0 transition" />
+              <ChevronDown
+                size={14}
+                className="text-slate-400 group-hover:text-slate-600 shrink-0 transition"
+              />
             </h2>
-            <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">
-              Space
+            <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase flex items-center gap-1 select-none">
+              <span>Space</span>
+              {activeSpace &&
+                spaceNameCounts[activeSpace.name] > 1 &&
+                activeSpace.creatorProfile?.fullName && (
+                  <>
+                    <span>&bull;</span>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch(
+                          setSelectedProfileUserId(
+                            activeSpace.createdBy || null,
+                          ),
+                        );
+                      }}
+                      className="hover:text-blue-600 hover:underline cursor-pointer normal-case"
+                    >
+                      {activeSpace.creatorProfile.fullName}
+                    </span>
+                  </>
+                )}
             </span>
           </div>
-         <button
-          onClick={() => setIsFollowedThreadsModalOpen(true)}
-          className="flex items-center justify-between px-3 py-2 mx-1 rounded-xl cursor-pointer transition-all duration-200 select-none group bg-slate-600 text-white hover:bg-slate-900 shadow-sm"
-        >
-          <span className="flex items-center min-w-0 gap-2.5">
-            <MessageSquareText size={15} className="shrink-0 text-slate-100" />
-            <span className="text-[13px] font-bold truncate">
-              {ChatSidebarSection.THREADS}
+          <button
+            onClick={() => setIsFollowedThreadsModalOpen(true)}
+            className="flex items-center justify-between px-3 py-2 mx-1 rounded-xl cursor-pointer transition-all duration-200 select-none group bg-slate-600 text-white hover:bg-slate-900 shadow-sm"
+          >
+            <span className="flex items-center min-w-0 gap-2.5">
+              <MessageSquareText
+                size={15}
+                className="shrink-0 text-slate-100"
+              />
+              <span className="text-[13px] font-bold truncate">
+                {ChatSidebarSection.THREADS}
+              </span>
             </span>
-          </span>
-          {followedThreadsUnreadCount > 0 && (
-            <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 ml-2.5">
-              {followedThreadsUnreadCount > MAX_UNREAD_COUNT
-                ? "99+"
-                : followedThreadsUnreadCount}
-            </span>
-          )}
-        </button>
+            {followedThreadsUnreadCount > 0 && (
+              <span className="bg-red-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center shrink-0 ml-2.5">
+                {followedThreadsUnreadCount > MAX_UNREAD_COUNT
+                  ? "99+"
+                  : followedThreadsUnreadCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Dropdown Menu */}
@@ -610,20 +735,44 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               Spaces
             </div>
             <div className="max-h-[min(18rem,55vh)] overflow-y-auto flex flex-col gap-0.5 px-1 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-              {spaces.map((space: any) => (
-                <div
-                  key={space.id}
-                  onClick={() => handleSelectSpace(space.id)}
-                  className={cn(
-                    "px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors flex items-center justify-between",
-                    space.id === activeSpaceId
-                      ? "bg-blue-50 text-blue-700 font-bold"
-                      : "text-slate-600 hover:bg-slate-50"
-                  )}
-                >
-                  <span className="truncate">{space.name}</span>
-                </div>
-              ))}
+              {spaces.map((space) => {
+                const hasCollision = spaceNameCounts[space.name] > 1;
+                return (
+                  <div
+                    key={space.id}
+                    onClick={() => handleSelectSpace(space.id)}
+                    className={cn(
+                      "px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-2",
+                      space.id === activeSpaceId
+                        ? "bg-blue-50 text-blue-700 font-bold"
+                        : "text-slate-600 hover:bg-slate-50",
+                    )}
+                  >
+                    <div className="flex gap-2 min-w-0 items-center">
+                      <span className="truncate">{space.name}</span>
+                      {hasCollision && space.creatorProfile?.fullName && (
+                        <div className="flex gap-1 text-[10px] text-slate-400 font-normal truncate">
+                          <span>created by</span>
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsSpaceDropdownOpen(false);
+                              dispatch(
+                                setSelectedProfileUserId(
+                                  space.createdBy || null,
+                                ),
+                              );
+                            }}
+                            className="hover:text-blue-600 hover:underline cursor-pointer"
+                          >
+                            {space.creatorProfile.email}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
               {spaces.length === 0 && (
                 <div className="px-3 py-2 text-xs text-slate-400 italic">
                   No spaces joined
@@ -681,8 +830,6 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
 
       {/* Main Items Scrollable List */}
       <div className="flex-1 overflow-y-auto px-2 py-3 flex flex-col gap-5 [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-        
-
         {/* Channels Section */}
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between px-3 mb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest select-none">
@@ -690,13 +837,19 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               onClick={() => setIsChannelsExpanded(!isChannelsExpanded)}
               className="flex items-center gap-1 hover:text-slate-600 transition cursor-pointer text-left"
             >
-              {isChannelsExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              {isChannelsExpanded ? (
+                <ChevronDown size={12} />
+              ) : (
+                <ChevronRight size={12} />
+              )}
               <span>Channels</span>
             </button>
             {activeSpaceId && (
               <div className="relative" ref={channelsDropdownRef}>
                 <button
-                  onClick={() => setIsChannelsDropdownOpen(!isChannelsDropdownOpen)}
+                  onClick={() =>
+                    setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
+                  }
                   className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition cursor-pointer"
                   title="Channel options"
                 >
@@ -743,27 +896,46 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   Loading channels...
                 </div>
               ) : joinedChannels.length > 0 ? (
-                joinedChannels.map((channel: ChannelResponse) => (
-                  <ChannelItem
-                    key={channel.id}
-                    channel={channel}
-                    currentUserId={currentUserId}
-                    isActive={activeChat?.id === channel.id}
-                    onClick={handleSelectChannel}
-                    onTogglePin={(selectedChannel, pinned) =>
-                      pinChannelMutation.mutate({
-                        channelId: selectedChannel.id,
-                        pinned,
-                      })
-                    }
-                    onToggleMute={(selectedChannel, muted) =>
-                      muteChannelMutation.mutate({
-                        channelId: selectedChannel.id,
-                        muted,
-                      })
-                    }
-                  />
-                ))
+                joinedChannels.map((channel: ChannelResponse) => {
+                  const channelMember = channel.members?.find(
+                    (m) => m.userId === currentUserId,
+                  );
+                  const isChannelAdmin = channelMember?.role === ConversationRoles.ADMIN;
+                  const isCreator = channel.createdBy === currentUserId;
+                  const allowMemberDeleteOwnChannel = spaceDetail?.setting?.allowMemberDeleteOwnChannel ?? false;
+
+                  const canDelete =
+                    !channel.isDefault &&
+                    (isActiveSpaceAdmin || (isCreator && allowMemberDeleteOwnChannel));
+
+                  const canLeave = !channel.isDefault || !isChannelAdmin;
+
+                  return (
+                    <ChannelItem
+                      key={channel.id}
+                      channel={channel}
+                      currentUserId={currentUserId}
+                      isActive={activeChat?.id === channel.id}
+                      onClick={handleSelectChannel}
+                      onTogglePin={(selectedChannel, pinned) =>
+                        pinChannelMutation.mutate({
+                          channelId: selectedChannel.id,
+                          pinned,
+                        })
+                      }
+                      onToggleMute={(selectedChannel, muted) =>
+                        muteChannelMutation.mutate({
+                          channelId: selectedChannel.id,
+                          muted,
+                        })
+                      }
+                      onLeave={handleLeaveChannel}
+                      onDelete={handleDeleteChannel}
+                      canLeave={canLeave}
+                      canDelete={canDelete}
+                    />
+                  );
+                })
               ) : (
                 <div className="text-[11px] text-slate-400 italic px-3 py-1">
                   {isSearchingSidebar

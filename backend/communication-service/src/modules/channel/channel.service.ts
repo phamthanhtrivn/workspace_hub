@@ -260,7 +260,7 @@ export class ChannelService {
           senderAvatar: params.actorAvatar,
           type: KAFKA_EVENTS.NOTIFICATION.CHANNEL_DISBANDED,
           title: 'Channel deleted',
-          content: `#${params.channelName} was deleted in ${params.spaceName ?? 'a space'}`,
+          content: `#${params.channelName} was deleted in ${params.spaceName ?? 'a space'} by ${params.actorName ?? 'an admin'}`,
           link: '/chat',
           metadata: {
             spaceId: params.spaceId,

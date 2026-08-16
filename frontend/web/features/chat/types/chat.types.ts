@@ -141,6 +141,7 @@ export interface SpaceResponse {
   memberCount?: number;
   channelCount?: number;
   setting?: SpaceSettingResponse | null;
+  creatorProfile?: UserProfileSnapshotResponse | null;
 }
 
 export interface ChatMediaResponse {

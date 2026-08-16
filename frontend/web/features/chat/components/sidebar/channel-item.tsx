@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, Globe, Hash, MoreVertical, Pin } from "lucide-react";
+import { Bell, BellOff, Globe, Hash, MoreVertical, Pin, LogOut, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 import { ChannelResponse } from "../../types/chat.types";
@@ -11,6 +11,10 @@ interface ChannelItemProps {
   onClick: (channel: ChannelResponse) => void;
   onTogglePin?: (channel: ChannelResponse, pinned: boolean) => void;
   onToggleMute?: (channel: ChannelResponse, muted: boolean) => void;
+  onLeave?: (channel: ChannelResponse) => void;
+  onDelete?: (channel: ChannelResponse) => void;
+  canLeave?: boolean;
+  canDelete?: boolean;
 }
 
 const ChannelItem = React.memo(function ChannelItem({
@@ -20,6 +24,10 @@ const ChannelItem = React.memo(function ChannelItem({
   onClick,
   onTogglePin,
   onToggleMute,
+  onLeave,
+  onDelete,
+  canLeave,
+  canDelete,
 }: ChannelItemProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -151,6 +159,33 @@ const ChannelItem = React.memo(function ChannelItem({
                 {isMuted ? <Bell size={14} /> : <BellOff size={14} />}
                 <span>{isMuted ? "Unmute" : "Mute"}</span>
               </button>
+              {(canLeave || canDelete) && <div className="h-[1px] bg-slate-100 my-1" />}
+              {canLeave && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onLeave?.(channel);
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-red-600 transition hover:bg-red-50/50 font-semibold"
+                >
+                  <LogOut size={14} />
+                  <span>Leave</span>
+                </button>
+              )}
+              {canDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDelete?.(channel);
+                    setIsMenuOpen(false);
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-red-600 transition hover:bg-red-50/50 font-semibold"
+                >
+                  <Trash2 size={14} />
+                  <span>Delete</span>
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -30,6 +30,7 @@ export enum SPACE_ERROR_MESSAGES {
   INVALID_SPACE_MEMBER_ROLE = 'Invalid space member role',
   SPACE_NOT_FOUND = 'Space not found',
   SPACE_NAME_EMPTY = 'Space name cannot be empty',
+  SPACE_NAME_EXISTS = 'You have already created a space with this name',
   CHANNEL_CREATE_DISABLED = 'Members are not allowed to create channels in this space',
   SETTINGS_UNAVAILABLE = 'Space settings table is not available. Run Prisma generate and db push for communication-service.',
   NOT_MEMBER = 'You are not a member of this space',

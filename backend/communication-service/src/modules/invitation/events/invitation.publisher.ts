@@ -31,7 +31,7 @@ export class InvitationPublisher {
           senderAvatar: senderAvatar ?? '',
           type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION_ACCEPTED,
           title: 'Invitation accepted',
-          content: 'Accepted the space invitation',
+          content: `${senderName ?? 'Someone'} accepted the invitation to join ${spaceName}`,
           link: '/chat',
           metadata: {
             spaceId,
@@ -66,7 +66,7 @@ export class InvitationPublisher {
           senderAvatar: senderAvatar ?? '',
           type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION_DECLINED,
           title: 'Invitation declined',
-          content: 'Declined the space invitation',
+          content: `${senderName ?? 'Someone'} declined the invitation to join ${spaceName}`,
           link: '/chat',
           metadata: {
             spaceId,

@@ -194,7 +194,7 @@ export class SpaceService {
         senderAvatar: invitation.invitedByAvatar,
         type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION,
         title: 'Space invitation',
-        content: `You were invited to ${spaceName}`,
+        content: `You were invited to join ${spaceName} by ${invitation.invitedByName ?? 'Someone'}`,
         link: '/chat',
         metadata: {
           invitationId: invitation.id,
@@ -300,7 +300,22 @@ export class SpaceService {
 
   async createSpace(userId: string, name: string) {
     if (!name || name.trim().length === 0) {
-      throw new BadRequestException('Space name cannot be empty');
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
+    }
+
+    const trimmedName = name.trim();
+    const existingSpace = await this.prisma.space.findFirst({
+      where: {
+        createdBy: userId,
+        name: {
+          equals: trimmedName,
+          mode: 'insensitive',
+        },
+      },
+    });
+
+    if (existingSpace) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EXISTS);
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -354,7 +369,7 @@ export class SpaceService {
   }
 
   async getUserSpaces(userId: string) {
-    return this.prisma.space.findMany({
+    const spaces = await this.prisma.space.findMany({
       where: {
         members: {
           some: {
@@ -369,6 +384,14 @@ export class SpaceService {
         createdAt: 'desc',
       },
     });
+
+    const creatorIds = Array.from(new Set(spaces.map((s) => s.createdBy)));
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds(creatorIds);
+
+    return spaces.map((space) => ({
+      ...space,
+      creatorProfile: profiles.get(space.createdBy) ?? null,
+    }));
   }
 
   async getSpaceDetails(userId: string, spaceId: string) {
@@ -390,9 +413,12 @@ export class SpaceService {
     }
 
     const { _count, ...spaceDetails } = space;
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds([space.createdBy]);
+
     return {
       ...spaceDetails,
       setting: await this.getSpaceSetting(spaceId),
+      creatorProfile: profiles.get(space.createdBy) ?? null,
       memberCount: _count.members,
       channelCount: _count.channels,
     };
@@ -650,7 +676,7 @@ export class SpaceService {
       actorAvatar: actorProfile?.avatarUrl,
       type: KAFKA_EVENTS.NOTIFICATION.SPACE_MEMBER_REMOVED,
       title: 'Removed from space',
-      content: `You were removed from ${space?.name ?? 'a space'}`,
+      content: `You were removed from ${space?.name ?? 'a space'} by ${actorName ?? 'an admin'}`,
       metadata: {
         spaceId,
         spaceName: space?.name,
@@ -748,7 +774,7 @@ export class SpaceService {
       actorAvatar: actorProfile?.avatarUrl,
       type: KAFKA_EVENTS.NOTIFICATION.SPACE_DISBANDED,
       title: 'Space disbanded',
-      content: `${space?.name ?? 'A space'} was disbanded`,
+      content: `${space?.name ?? 'A space'} was disbanded by ${actorName ?? 'an admin'}`,
       metadata: {
         spaceId,
         spaceName: space?.name,
