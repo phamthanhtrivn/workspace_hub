@@ -31,6 +31,11 @@ export const DefaultListItemRenderer: React.FC<{
         <p className="text-sm font-semibold text-slate-800 line-clamp-2">
           {notification.title}
         </p>
+        {notification.content && (
+          <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
+            {notification.content}
+          </p>
+        )}
         <p className="text-[10px] font-medium text-slate-400 mt-1">
           {formatTimeAgo(new Date(notification.createdAt))}
         </p>
