@@ -65,7 +65,9 @@ function hasCachedDirectConversation(
   }>({ queryKey: chatKeys.allDirectMessages() });
 
   return directConversationQueries.some(([, data]) =>
-    data?.directMessages?.some((conversation) => conversation.id === conversationId),
+    data?.directMessages?.some(
+      (conversation) => conversation.id === conversationId,
+    ),
   );
 }
 
@@ -122,8 +124,8 @@ export function useChatSocket() {
           const shouldMarkUnread =
             message.senderId !== currentUserId &&
             chatId !== activeChatIdRef.current;
-          const isFollowingThread = message.threadFollowers?.some(
-            (follower) => isThreadFollowerCurrentUser(follower, currentUserId),
+          const isFollowingThread = message.threadFollowers?.some((follower) =>
+            isThreadFollowerCurrentUser(follower, currentUserId),
           );
           if (isThreadReply && isFollowingThread) {
             queryClient.invalidateQueries({
@@ -173,8 +175,9 @@ export function useChatSocket() {
         currentUserId,
         (directMessage) => {
           if (message.threadParentId) {
-            const isFollowing = message.threadFollowers?.some((threadFollower) =>
-              isThreadFollowerCurrentUser(threadFollower, currentUserId),
+            const isFollowing = message.threadFollowers?.some(
+              (threadFollower) =>
+                isThreadFollowerCurrentUser(threadFollower, currentUserId),
             );
             if (isFollowing) {
               queryClient.invalidateQueries({
@@ -397,7 +400,9 @@ export function useChatSocket() {
       );
     };
 
-    const handleChannelSettingUpdated = (data: ChatSocketSettingUpdatedPayload) => {
+    const handleChannelSettingUpdated = (
+      data: ChatSocketSettingUpdatedPayload,
+    ) => {
       const chatId = getMessageChatId(data);
       if (data.spaceId) {
         if (
@@ -489,7 +494,9 @@ export function useChatSocket() {
       }
     };
 
-    const handleConversationMuteUpdated = (data: ChatSocketMuteUpdatedPayload) => {
+    const handleConversationMuteUpdated = (
+      data: ChatSocketMuteUpdatedPayload,
+    ) => {
       const chatId = getMessageChatId(data);
       if (!chatId) return;
 
@@ -511,14 +518,6 @@ export function useChatSocket() {
       );
     };
 
-    const handleInvitationProcessed = (data: any) => {
-      if (data?.spaceId) {
-        queryClient.invalidateQueries({
-          queryKey: chatKeys.spaceInvitations(data.spaceId),
-        });
-      }
-    };
-
     socket.on(ChatEvent.NEW_MESSAGE, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_MOVED, handleNewMessage);
     socket.on(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
@@ -534,8 +533,6 @@ export function useChatSocket() {
       ChatEvent.CONVERSATION_MUTE_UPDATED,
       handleConversationMuteUpdated,
     );
-    socket.on(ChatEvent.INVITATION_ACCEPTED, handleInvitationProcessed);
-    socket.on(ChatEvent.INVITATION_DECLINED, handleInvitationProcessed);
 
     return () => {
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
@@ -543,7 +540,10 @@ export function useChatSocket() {
       socket.off(ChatEvent.MESSAGE_UPDATED, handleMessageUpdated);
       socket.off(ChatEvent.MESSAGE_READ, handleMessageRead);
       socket.off(ChatEvent.JOIN_CONVERSATION, handleMemberJoin);
-      socket.off(ChatEvent.CHANNEL_SETTING_UPDATED, handleChannelSettingUpdated);
+      socket.off(
+        ChatEvent.CHANNEL_SETTING_UPDATED,
+        handleChannelSettingUpdated,
+      );
       socket.off(ChatEvent.MEMBER_ROLE_UPDATED, handleMemberRoleUpdated);
       socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
       socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
@@ -553,8 +553,6 @@ export function useChatSocket() {
         ChatEvent.CONVERSATION_MUTE_UPDATED,
         handleConversationMuteUpdated,
       );
-      socket.off(ChatEvent.INVITATION_ACCEPTED, handleInvitationProcessed);
-      socket.off(ChatEvent.INVITATION_DECLINED, handleInvitationProcessed);
       socketService.disconnect();
     };
   }, [accessToken, currentUserId, dispatch, queryClient]);

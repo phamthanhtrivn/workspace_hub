@@ -30,7 +30,7 @@ export interface Notification {
   senderId?: string;
   senderName?: string;
   senderAvatar?: string;
-  type: string; // use string or NotificationType
+  type: NotificationType;
   title: string;
   content: string;
   isRead: boolean;

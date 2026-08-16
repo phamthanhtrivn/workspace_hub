@@ -92,7 +92,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   const currentTitle = pageTitles.get(pathname) ?? "Workspace";
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = useState<UserSettingTab>(
     UserSettingTab.PROFILE,
@@ -309,7 +309,9 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
         <main
           className={cn(
             "flex-1",
-            pathname.startsWith("/chat") ? "overflow-hidden" : "overflow-y-auto",
+            pathname.startsWith("/chat")
+              ? "overflow-hidden"
+              : "overflow-y-auto",
             "relative flex flex-col",
           )}
         >
