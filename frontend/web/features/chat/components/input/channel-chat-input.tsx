@@ -34,6 +34,7 @@ import {
   List,
   ListOrdered,
   UploadCloud,
+  Folder,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -41,6 +42,7 @@ import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import { toast } from "sonner";
 import MentionDropdown from "./mention-dropdown";
 import EmojiPickerPopover from "./emoji-picker-popover";
+import MyFilesSelectModal from "../modals/my-files-select-modal";
 
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
@@ -97,11 +99,9 @@ const ChannelChatInput = React.memo(
       );
       const [isDraggingOver, setIsDraggingOver] = useState(false);
       const dragCounter = useRef(0);
+      const [isMyFilesModalOpen, setIsMyFilesModalOpen] = useState(false);
 
-      const {
-        activeChat: activeChannel,
-        activeChatType,
-      } = useActiveChat();
+      const { activeChat: activeChannel, activeChatType } = useActiveChat();
       const memberProfiles = useChatMemberProfiles();
       const authUserId = useAppSelector((state: any) => state.auth.userId);
 
@@ -162,8 +162,7 @@ const ChannelChatInput = React.memo(
         startDictation,
         stopDictation,
         clearInterim,
-      } =
-        useSpeechToText({ onTranscript: appendTranscript });
+      } = useSpeechToText({ onTranscript: appendTranscript });
 
       // 3. Audio Recording Hook
       const handleRecordComplete = useCallback(
@@ -260,11 +259,7 @@ const ChannelChatInput = React.memo(
 
       // Handle members filter for mentions
       const filteredMembers = React.useMemo(() => {
-        if (
-          mentionQuery === null ||
-          !activeChannel?.members ||
-          !memberProfiles
-        )
+        if (mentionQuery === null || !activeChannel?.members || !memberProfiles)
           return [];
         const query = mentionQuery.toLowerCase();
         const members = activeChannel.members
@@ -279,9 +274,7 @@ const ChannelChatInput = React.memo(
 
         if (
           activeChatType === ChatContextType.CHANNEL &&
-          ("all".includes(query) ||
-            "everyone".includes(query) ||
-            query === "")
+          ("all".includes(query) || "everyone".includes(query) || query === "")
         ) {
           return [
             {
@@ -501,6 +494,22 @@ const ChannelChatInput = React.memo(
         [activeChannelId],
       );
 
+      const handleSelectMyFiles = useCallback(
+        (files: Array<{ name: string; s3Key: string; mimeType: string; sizeBytes: number }>) => {
+          const newUploads: UploadingMedia[] = files.map((f) => ({
+            id: Math.random().toString(36).substring(7) + Date.now(),
+            status: "success",
+            name: f.name,
+            mimeType: f.mimeType,
+            sizeBytes: f.sizeBytes,
+            s3Key: f.s3Key,
+            file: new File([], f.name, { type: f.mimeType }),
+          }));
+          setUploadingMedia((prev) => [...prev, ...newUploads]);
+        },
+        [],
+      );
+
       const handleDragEnter = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -570,7 +579,12 @@ const ChannelChatInput = React.memo(
       };
 
       const handleSend = useCallback(() => {
-        if (!message.trim() && !interimMessage.trim() && uploadingMedia.length === 0) return;
+        if (
+          !message.trim() &&
+          !interimMessage.trim() &&
+          uploadingMedia.length === 0
+        )
+          return;
         if (isUploading) {
           toast.warning("Please wait for the file to upload.");
           return;
@@ -618,8 +632,8 @@ const ChannelChatInput = React.memo(
         (m: any) => m.userId === authUserId,
       );
       const otherDirectMemberId =
-        activeChannel?.members?.find((m) => m.userId !== authUserId)
-          ?.userId ?? null;
+        activeChannel?.members?.find((m) => m.userId !== authUserId)?.userId ??
+        null;
       const isMember = currentMember?.role === "MEMBER";
       const allowSendMessage =
         isMember && activeChannel?.setting
@@ -781,6 +795,17 @@ const ChannelChatInput = React.memo(
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
                       <Paperclip size={16} className="text-gray-500" /> Files
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setShowOptions(false);
+                        setIsMyFilesModalOpen(true);
+                      }}
+                      disabled={isUploading}
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                    >
+                      <Folder size={16} className="text-blue-500" /> My Files
                     </button>
 
                     <div className="h-px bg-gray-100 my-1"></div>
@@ -1095,7 +1120,8 @@ const ChannelChatInput = React.memo(
                             }}
                             className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                           >
-                            <Type size={16} className="text-green-500" /> Speech to text
+                            <Type size={16} className="text-green-500" /> Speech
+                            to text
                           </button>
                         </div>
                       )}
@@ -1126,6 +1152,11 @@ const ChannelChatInput = React.memo(
               </div>
             </div>
           </div>
+          <MyFilesSelectModal
+            isOpen={isMyFilesModalOpen}
+            onClose={() => setIsMyFilesModalOpen(false)}
+            onSelect={handleSelectMyFiles}
+          />
         </div>
       );
     },

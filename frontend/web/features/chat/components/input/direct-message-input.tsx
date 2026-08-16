@@ -21,10 +21,13 @@ import {
   Voicemail,
   X,
   UploadCloud,
+  Plus,
+  Folder,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import EmojiPickerPopover from "./emoji-picker-popover";
+import MyFilesSelectModal from "../modals/my-files-select-modal";
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
 import { useActiveChat } from "../../hooks/useChatQueries";
@@ -78,10 +81,8 @@ const DirectMessageInput = React.memo(
       },
       ref,
     ) {
-      const {
-        activeChatId: activeConversationId,
-        activeChatType,
-      } = useActiveChat();
+      const { activeChatId: activeConversationId, activeChatType } =
+        useActiveChat();
       const [message, setMessage] = useState("");
       const [showEmojiPicker, setShowEmojiPicker] = useState(false);
       const [showMicOptions, setShowMicOptions] = useState(false);
@@ -90,13 +91,32 @@ const DirectMessageInput = React.memo(
       );
       const [isDraggingOver, setIsDraggingOver] = useState(false);
       const dragCounter = useRef(0);
+      const [showDMOptions, setShowDMOptions] = useState(false);
+      const [isMyFilesModalOpen, setIsMyFilesModalOpen] = useState(false);
 
       const textareaRef = useRef<HTMLTextAreaElement>(null);
       const fileInputRef = useRef<HTMLInputElement>(null);
       const emojiButtonRef = useRef<HTMLButtonElement>(null);
       const micOptionsRef = useRef<HTMLDivElement>(null);
+      const dmOptionsRef = useRef<HTMLDivElement>(null);
       const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
       const isTypingRef = useRef(false);
+
+      // Close DM options on click outside
+      useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+          if (
+            dmOptionsRef.current &&
+            !dmOptionsRef.current.contains(event.target as Node)
+          ) {
+            setShowDMOptions(false);
+          }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+          document.removeEventListener("mousedown", handleClickOutside);
+        };
+      }, []);
       const voiceSessionIdRef = useRef(
         `direct-input-${Math.random().toString(36).slice(2)}`,
       );
@@ -120,8 +140,7 @@ const DirectMessageInput = React.memo(
         startDictation,
         stopDictation,
         clearInterim,
-      } =
-        useSpeechToText({ onTranscript: appendTranscript });
+      } = useSpeechToText({ onTranscript: appendTranscript });
 
       const handleRecordComplete = useCallback(
         (file: File) => {
@@ -215,7 +234,8 @@ const DirectMessageInput = React.memo(
         };
 
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        return () =>
+          document.removeEventListener("mousedown", handleClickOutside);
       }, []);
 
       useImperativeHandle(ref, () => ({
@@ -399,6 +419,29 @@ const DirectMessageInput = React.memo(
         [uploadFilesList],
       );
 
+      const handleSelectMyFiles = useCallback(
+        (
+          files: Array<{
+            name: string;
+            s3Key: string;
+            mimeType: string;
+            sizeBytes: number;
+          }>,
+        ) => {
+          const newUploads: UploadingMedia[] = files.map((f) => ({
+            id: Math.random().toString(36).substring(7) + Date.now(),
+            status: "success",
+            name: f.name,
+            mimeType: f.mimeType,
+            sizeBytes: f.sizeBytes,
+            s3Key: f.s3Key,
+            file: new File([], f.name, { type: f.mimeType }),
+          }));
+          setUploadingMedia((prev) => [...prev, ...newUploads]);
+        },
+        [],
+      );
+
       const handleDragEnter = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -473,7 +516,10 @@ const DirectMessageInput = React.memo(
         const finalMessage =
           message.trim() + (interimMessage ? ` ${interimMessage.trim()}` : "");
 
-        onSendMessage(finalMessage.trim(), mediaList.length ? mediaList : undefined);
+        onSendMessage(
+          finalMessage.trim(),
+          mediaList.length ? mediaList : undefined,
+        );
         setMessage("");
         clearInterim();
         setUploadingMedia([]);
@@ -591,17 +637,46 @@ const DirectMessageInput = React.memo(
                 disabled={isUploading}
               />
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-                className={`cursor-pointer rounded-full transition-colors text-gray-500 hover:bg-gray-200 disabled:opacity-50 ${
-                  compact ? "p-1.5" : "p-2"
-                }`}
-                title="Attach files"
-              >
-                <Paperclip size={compact ? 18 : 20} />
-              </button>
+              {/* Actions Trigger Dropdown */}
+              <div ref={dmOptionsRef} className="relative flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowDMOptions(!showDMOptions)}
+                  disabled={isUploading}
+                  className={`cursor-pointer rounded-full transition-colors text-gray-500 hover:bg-gray-200 disabled:opacity-50 ${
+                    compact ? "p-1.5" : "p-2"
+                  }`}
+                  title="Attach Options"
+                >
+                  <Paperclip size={compact ? 18 : 20} />
+                </button>
+
+                {showDMOptions && (
+                  <div className="absolute bottom-full left-0 mb-2 bg-white border border-gray-200 shadow-xl rounded-xl p-2 flex flex-col gap-1 min-w-[165px] animate-in fade-in zoom-in-95 duration-200 z-50">
+                    <button
+                      onClick={() => {
+                        setShowDMOptions(false);
+                        fileInputRef.current?.click();
+                      }}
+                      disabled={isUploading}
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                    >
+                      <Paperclip size={16} className="text-gray-500" /> Upload
+                      File
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDMOptions(false);
+                        setIsMyFilesModalOpen(true);
+                      }}
+                      disabled={isUploading}
+                      className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                    >
+                      <Folder size={16} className="text-blue-500" /> My Files
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <textarea
                 ref={textareaRef}
@@ -747,6 +822,11 @@ const DirectMessageInput = React.memo(
               )}
             </div>
           </div>
+          <MyFilesSelectModal
+            isOpen={isMyFilesModalOpen}
+            onClose={() => setIsMyFilesModalOpen(false)}
+            onSelect={handleSelectMyFiles}
+          />
         </div>
       );
     },

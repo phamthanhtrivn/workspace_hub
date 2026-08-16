@@ -1,9 +1,6 @@
 import { ChevronDown, ChevronRight, Pin } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getDirectPinnedMessages,
-  getPinnedMessages,
-} from "../../api/chat.api";
+import { getDirectPinnedMessages, getPinnedMessages } from "../../api/chat.api";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useDirectMessageActions } from "../../hooks/useDirectMessageActions";
@@ -63,44 +60,54 @@ export default function PinnedMessagesSection({
   const handleUnpin = async (messageId: string) => {
     if (isDirect) {
       await unpinDirectPinnedMessage(conversationId, messageId);
-      queryClient.setQueryData(chatKeys.pinnedMessagesDetail(ChatScope.DIRECT, conversationId), (oldData: any) => {
-        if (!oldData) return oldData;
-        return {
-          ...oldData,
-          pages: oldData.pages.map((page: any) => ({
-            ...page,
-            messages: page.messages.filter((message: any) => message.id !== messageId),
-          })),
-        };
-      });
+      queryClient.setQueryData(
+        chatKeys.pinnedMessagesDetail(ChatScope.DIRECT, conversationId),
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => ({
+              ...page,
+              messages: page.messages.filter(
+                (message: any) => message.id !== messageId,
+              ),
+            })),
+          };
+        },
+      );
       return;
     }
 
-      const socket = socketService.getSocket();
-      if (!socket) return;
-  
-      socket.emit(ChatEvent.UNPIN_MESSAGE, {
-        channelId: conversationId,
-        messageId,
-      });
-  
-      queryClient.setQueryData(chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId), (oldData: any) => {
+    const socket = socketService.getSocket();
+    if (!socket) return;
+
+    socket.emit(ChatEvent.UNPIN_MESSAGE, {
+      channelId: conversationId,
+      messageId,
+    });
+
+    queryClient.setQueryData(
+      chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),
+      (oldData: any) => {
         if (!oldData) return oldData;
         return {
           ...oldData,
           pages: oldData.pages.map((page: any) => ({
             ...page,
-            messages: page.messages.filter((message: any) => message.id !== messageId),
+            messages: page.messages.filter(
+              (message: any) => message.id !== messageId,
+            ),
           })),
         };
-      });
-      queryClient.invalidateQueries({
-        queryKey: chatKeys.pinnedMessagesPreview(
-          ChatScope.CHANNEL,
-          conversationId,
-        ),
-      });
-    };
+      },
+    );
+    queryClient.invalidateQueries({
+      queryKey: chatKeys.pinnedMessagesPreview(
+        ChatScope.CHANNEL,
+        conversationId,
+      ),
+    });
+  };
 
   return (
     <div>
@@ -110,7 +117,7 @@ export default function PinnedMessagesSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <Pin size={18} className="text-gray-500" />
-          Pinned messages
+          Pinned Messages
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -122,7 +129,9 @@ export default function PinnedMessagesSection({
       {isExpanded && (
         <div className="px-4 pb-3">
           {isLoading ? (
-            <div className="text-xs text-gray-400 py-2">Loading pinned messages...</div>
+            <div className="text-xs text-gray-400 py-2">
+              Loading pinned messages...
+            </div>
           ) : pinnedMessages.length === 0 ? (
             <div className="text-xs text-gray-400 py-2">No pinned messages</div>
           ) : (

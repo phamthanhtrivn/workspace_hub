@@ -31,6 +31,7 @@ import {
   ListOrdered,
   FileText,
   UploadCloud,
+  Folder,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -38,6 +39,7 @@ import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import { toast } from "sonner";
 import MentionDropdown from "./mention-dropdown";
 import EmojiPickerPopover from "./emoji-picker-popover";
+import MyFilesSelectModal from "../modals/my-files-select-modal";
 
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
@@ -77,6 +79,7 @@ const ThreadChatInput = React.memo(
     const [showThreadOptions, setShowThreadOptions] = useState(false);
     const [showFormatting, setShowFormatting] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [isMyFilesModalOpen, setIsMyFilesModalOpen] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
     const [isDraggingOver, setIsDraggingOver] = useState(false);
     const dragCounter = useRef(0);
@@ -436,6 +439,29 @@ const ThreadChatInput = React.memo(
       [activeConversationId],
     );
 
+    const handleSelectMyFiles = useCallback(
+      (
+        files: Array<{
+          name: string;
+          s3Key: string;
+          mimeType: string;
+          sizeBytes: number;
+        }>,
+      ) => {
+        const newUploads: UploadingMedia[] = files.map((f) => ({
+          id: Math.random().toString(36).substring(7) + Date.now(),
+          status: "success",
+          name: f.name,
+          mimeType: f.mimeType,
+          sizeBytes: f.sizeBytes,
+          s3Key: f.s3Key,
+          file: new File([], f.name, { type: f.mimeType }),
+        }));
+        setUploadingMedia((prev) => [...prev, ...newUploads]);
+      },
+      [],
+    );
+
     const handleDragEnter = useCallback((e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -660,7 +686,17 @@ const ThreadChatInput = React.memo(
                     disabled={isUploading}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <Paperclip size={14} className="text-gray-500" /> Document
+                    <Paperclip size={14} className="text-gray-500" /> Files
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowThreadOptions(false);
+                      setIsMyFilesModalOpen(true);
+                    }}
+                    disabled={isUploading}
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                  >
+                    <Folder size={14} className="text-blue-500" /> My Files
                   </button>
                   <button
                     onClick={() => {
@@ -918,6 +954,11 @@ const ThreadChatInput = React.memo(
               )}
             </div>
           </div>
+          <MyFilesSelectModal
+            isOpen={isMyFilesModalOpen}
+            onClose={() => setIsMyFilesModalOpen(false)}
+            onSelect={handleSelectMyFiles}
+          />
         </div>
       </div>
     );
