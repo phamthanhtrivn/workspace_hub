@@ -8,9 +8,9 @@ import {
   FiBarChart2,
   FiEdit3,
 } from "react-icons/fi";
-import { updateChannelSettings, updateChannelInfo } from "../../api/chat.api";
+import { updateChannelSettings, updateChannelInfo, getSpaceDetails } from "../../api/chat.api";
 import { toast } from "sonner";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { Hash } from "lucide-react";
 import { chatKeys } from "../../types/chat.constant";
@@ -39,10 +39,23 @@ export default function ChannelSettingsModal({
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const activeSpaceId = useAppSelector((state) => state.chat.activeSpaceId);
+
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(activeSpaceId || ""),
+    queryFn: async () => (await getSpaceDetails(activeSpaceId!)).data,
+    enabled: !!activeSpaceId,
+  });
+
+  const spaceCreatorId = spaceDetail?.createdBy;
+  const isOwner = spaceCreatorId === currentUserId;
+  const isChannelCreator = channel.createdBy === currentUserId;
+
   const currentMember = channel.members?.find(
     (member) => member.userId === currentUserId,
   );
-  const isAdmin = currentMember?.role === "ADMIN";
+  const isSpaceAdmin = currentMember?.role === "ADMIN";
+  const canEditName = isSpaceAdmin || isChannelCreator || isOwner;
+  const canEditSettings = isSpaceAdmin || isOwner;
 
   useEffect(() => {
     setMounted(true);
@@ -55,9 +68,11 @@ export default function ChannelSettingsModal({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await updateChannelSettings(channel.id, settings);
+      if (canEditSettings) {
+        await updateChannelSettings(channel.id, settings);
+      }
 
-      if (isAdmin) {
+      if (canEditName) {
         const trimmedName = channelName.trim();
         if (trimmedName !== (channel.name || "")) {
           if (!trimmedName) {
@@ -102,7 +117,7 @@ export default function ChannelSettingsModal({
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           {/* Channel Info Section */}
           <div className="p-5 bg-gray-50/50 flex flex-col gap-4 border-b border-gray-100">
-            {isAdmin ? (
+            {canEditName ? (
               <div className="flex flex-col items-center gap-4">
                 <div className="w-full">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
@@ -124,45 +139,51 @@ export default function ChannelSettingsModal({
                     {channelName}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Only space admins can update channel settings
+                    Only channel creators, space admins, or the space owner can update channel settings
                   </p>
                 </div>
               </div>
             )}
           </div>
 
-          <div className="p-5 bg-gray-50/50">
-            <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
-              <SettingItem
-                title="Allow sending messages"
-                description="Members can send messages in the channel"
-                checked={settings.allowSendMessage}
-                onChange={() => handleToggle("allowSendMessage")}
-                icon={<FiMessageSquare size={18} />}
-              />
-              <SettingItem
-                title="Allow pinning messages"
-                description="Members can pin/unpin messages"
-                checked={settings.allowPinMessage}
-                onChange={() => handleToggle("allowPinMessage")}
-                icon={<FiPaperclip size={18} />}
-              />
-              <SettingItem
-                title="Allow creating polls"
-                description="Members can create new polls"
-                checked={settings.allowCreatePoll}
-                onChange={() => handleToggle("allowCreatePoll")}
-                icon={<FiBarChart2 size={18} />}
-              />
-              <SettingItem
-                title="Allow creating notes"
-                description="Members can create new notes"
-                checked={settings.allowCreateNote}
-                onChange={() => handleToggle("allowCreateNote")}
-                icon={<FiEdit3 size={18} />}
-              />
+          {canEditSettings && (
+            <div className="p-5 bg-gray-50/50">
+              <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
+                <SettingItem
+                  title="Allow sending messages"
+                  description="Members can send messages in the channel"
+                  checked={settings.allowSendMessage}
+                  disabled={!canEditSettings}
+                  onChange={() => handleToggle("allowSendMessage")}
+                  icon={<FiMessageSquare size={18} />}
+                />
+                <SettingItem
+                  title="Allow pinning messages"
+                  description="Members can pin/unpin messages"
+                  checked={settings.allowPinMessage}
+                  disabled={!canEditSettings}
+                  onChange={() => handleToggle("allowPinMessage")}
+                  icon={<FiPaperclip size={18} />}
+                />
+                <SettingItem
+                  title="Allow creating polls"
+                  description="Members can create new polls"
+                  checked={settings.allowCreatePoll}
+                  disabled={!canEditSettings}
+                  onChange={() => handleToggle("allowCreatePoll")}
+                  icon={<FiBarChart2 size={18} />}
+                />
+                <SettingItem
+                  title="Allow creating notes"
+                  description="Members can create new notes"
+                  checked={settings.allowCreateNote}
+                  disabled={!canEditSettings}
+                  onChange={() => handleToggle("allowCreateNote")}
+                  icon={<FiEdit3 size={18} />}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="flex justify-end p-5 border-t border-gray-100 gap-3 bg-gray-50/80 shrink-0">
@@ -172,20 +193,22 @@ export default function ChannelSettingsModal({
           >
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
-          >
-            {isSaving ? (
-              "Saving..."
-            ) : (
-              <>
-                <FiCheck size={18} />
-                Save changes
-              </>
-            )}
-          </button>
+          {canEditName && (
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
+            >
+              {isSaving ? (
+                "Saving..."
+              ) : (
+                <>
+                  <FiCheck size={18} />
+                  Save changes
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>,
@@ -197,12 +220,14 @@ function SettingItem({
   title,
   description,
   checked,
+  disabled = false,
   onChange,
   icon,
 }: {
   title: string;
   description: string;
   checked: boolean;
+  disabled?: boolean;
   onChange: () => void;
   icon: React.ReactNode;
 }) {
@@ -219,9 +244,10 @@ function SettingItem({
       </div>
       <button
         onClick={onChange}
+        disabled={disabled}
         className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
           checked ? "bg-blue-600" : "bg-gray-200"
-        }`}
+        } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
       >
         <span
           className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${

@@ -10,6 +10,9 @@ import {
 } from "lucide-react";
 import { ChannelResponse } from "../../types/chat.types";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { getSpaceDetails } from "../../api/chat.api";
+import { chatKeys } from "../../types/chat.constant";
 
 interface ChannelSettingsSectionProps {
   activeChannel: ChannelResponse;
@@ -45,21 +48,29 @@ export default function ChannelSettingsSection({
   currentUserId,
   onOpenSettings,
 }: ChannelSettingsSectionProps) {
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(activeChannel.spaceId || ""),
+    queryFn: async () => (await getSpaceDetails(activeChannel.spaceId!)).data,
+    enabled: !!activeChannel.spaceId,
+  });
+
+  const spaceCreatorId = spaceDetail?.createdBy;
+  const isOwner = spaceCreatorId === currentUserId;
+  const isChannelCreator = activeChannel.createdBy === currentUserId;
+
   const currentMember = activeChannel.members?.find(
     (member) => member.userId === currentUserId,
   );
-  const isAdmin = currentMember?.role === "ADMIN";
+  const isSpaceAdmin = currentMember?.role === "ADMIN";
+  const canOpenSettings = isSpaceAdmin || isChannelCreator || isOwner;
   
   return (
-    isAdmin && (
+    canOpenSettings ? (
       <div>
         <button
           type="button"
-          onClick={isAdmin ? onOpenSettings : undefined}
-          className={cn(
-            "w-full px-4 py-3 flex items-center justify-between transition",
-            isAdmin ? "cursor-pointer hover:bg-gray-50" : "cursor-default",
-          )}
+          onClick={onOpenSettings}
+          className="w-full px-4 py-3 flex items-center justify-between transition cursor-pointer hover:bg-gray-50"
         >
           <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
             <Settings size={18} className="text-gray-500" />
@@ -68,6 +79,6 @@ export default function ChannelSettingsSection({
         </button>
         <div className="h-px bg-gray-100 mx-4 my-1" />
       </div>
-    )
+    ) : null
   );
 }

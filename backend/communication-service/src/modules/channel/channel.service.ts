@@ -591,10 +591,16 @@ export class ChannelService {
       where: { spaceId_userId: { spaceId: channel.spaceId, userId } },
     });
 
-    if (
-      !spaceMember ||
-      (spaceMember.role !== SpaceRole.ADMIN && channel.createdBy !== userId)
-    ) {
+    const space = await this.prisma.space.findUnique({
+      where: { id: channel.spaceId },
+      select: { createdBy: true },
+    });
+
+    const isOwner = space && space.createdBy === userId;
+    const isChannelCreator = channel.createdBy === userId;
+    const isAdmin = spaceMember && spaceMember.role === SpaceRole.ADMIN;
+
+    if (!spaceMember || (!isAdmin && !isChannelCreator && !isOwner)) {
       throw new ForbiddenException(CHANNEL_ERROR_MESSAGES.UPDATE_ACCESS_DENIED);
     }
 
@@ -610,6 +616,11 @@ export class ChannelService {
         name: data.name.trim(),
       },
     });
+
+    const profileMap = await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
+    const actorProfile = profileMap.get(userId);
+    const content = `Channel name was updated to "${updatedChannel.name}" by ${actorProfile?.fullName || 'an admin'}`;
+    await this.chatGateway.sendSystemMessage(channelId, userId, content);
 
     const payload = {
       id: channelId,

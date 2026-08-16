@@ -3,7 +3,7 @@ import { SPACE_SETTINGS_LABELS } from "../../../types/space-settings.constants";
 
 interface OverviewTabProps {
   detail: SpaceResponse;
-  isAdmin: boolean;
+  isOwner: boolean;
   isLoadingDetails: boolean;
   isSaving: boolean;
   originalName: string;
@@ -14,7 +14,7 @@ interface OverviewTabProps {
 
 export function OverviewTab({
   detail,
-  isAdmin,
+  isOwner,
   isLoadingDetails,
   isSaving,
   originalName,
@@ -50,12 +50,12 @@ export function OverviewTab({
           <input
             type="text"
             value={spaceName}
-            disabled={!isAdmin || isSaving}
+            disabled={!isOwner || isSaving}
             onChange={(event) => onSpaceNameChange(event.target.value)}
             className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:bg-slate-50 disabled:text-slate-500"
             maxLength={50}
           />
-          {isAdmin && (
+          {isOwner && (
             <button
               type="button"
               disabled={isSaving || !spaceName.trim() || spaceName.trim() === originalName}

@@ -440,15 +440,41 @@ export class SpaceService {
   }
 
   async updateSpace(userId: string, spaceId: string, name: string) {
-    await this.assertSpaceAdmin(spaceId, userId);
+    await this.assertSpaceOwner(spaceId, userId);
     if (!name || name.trim().length === 0) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
     }
 
-    return this.prisma.space.update({
+    const updatedSpace = await this.prisma.space.update({
       where: { id: spaceId },
       data: { name: name.trim() },
     });
+
+    const defaultChannel = await this.prisma.channel.findFirst({
+      where: { spaceId, isDefault: true },
+    });
+
+    if (defaultChannel) {
+      const profileMap = await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
+      const actorProfile = profileMap.get(userId);
+      const content = `Space name was updated to "${updatedSpace.name}" by ${actorProfile?.fullName || 'an admin'}`;
+      await this.chatGateway.sendSystemMessage(defaultChannel.id, userId, content);
+    }
+
+    const members = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: { userId: true },
+    });
+
+    this.chatGateway.server
+      .to(members.map((member) => member.userId))
+      .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
+        eventType: 'space_updated',
+        spaceId,
+        name: updatedSpace.name,
+      });
+
+    return updatedSpace;
   }
 
   async updateSpaceSettings(
@@ -1025,7 +1051,7 @@ export class SpaceService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const channel = await tx.channel.create({
         data: {
           spaceId,
@@ -1081,6 +1107,20 @@ export class SpaceService {
         })),
       };
     });
+
+    const spaceMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: { userId: true },
+    });
+
+    this.chatGateway.server
+      .to(spaceMembers.map((m) => m.userId))
+      .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
+        eventType: 'channel_created',
+        spaceId,
+      });
+
+    return result;
   }
 
   async getSpaceChannels(userId: string, spaceId: string, search?: string) {

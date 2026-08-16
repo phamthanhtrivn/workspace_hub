@@ -132,7 +132,7 @@ export default function SpaceSettingsModal({
             {activeTab === SpaceSettingsTab.OVERVIEW && (
               <OverviewTab
                 detail={settings.detail}
-                isAdmin={settings.isAdmin}
+                isOwner={isOwner}
                 isLoadingDetails={settings.isLoadingDetails}
                 isSaving={settings.updateSpaceMutation.isPending}
                 originalName={space.name}

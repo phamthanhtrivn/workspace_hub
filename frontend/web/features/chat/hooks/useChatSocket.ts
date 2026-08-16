@@ -425,6 +425,12 @@ export function useChatSocket() {
         queryClient.invalidateQueries({
           queryKey: chatKeys.channels(data.spaceId),
         });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.allSpaces(),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.allChannels(),
+        });
       }
       if (!chatId || !data.setting) return;
       if (data.eventType === "space_setting_updated") return;
