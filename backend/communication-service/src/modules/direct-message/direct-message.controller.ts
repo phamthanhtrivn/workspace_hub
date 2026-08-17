@@ -116,6 +116,7 @@ export class DirectMessageController {
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('mediaType') mediaType?: string,
+    @Query('q') q?: string,
   ) {
     if (!conversationId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
@@ -129,6 +130,7 @@ export class DirectMessageController {
       cursor,
       parsedLimit,
       mediaType,
+      q,
     );
 
     return {
@@ -143,6 +145,7 @@ export class DirectMessageController {
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('senderId') senderId?: string,
+    @Query('q') q?: string,
   ) {
     if (!conversationId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
@@ -156,6 +159,7 @@ export class DirectMessageController {
       cursor,
       parsedLimit,
       senderId,
+      q,
     );
 
     return {

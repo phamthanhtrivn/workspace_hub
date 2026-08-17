@@ -11,7 +11,7 @@ export class PollService {
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
-  async getPollsInConversation(channelId: string, userId: string) {
+  async getPollsInConversation(channelId: string, userId: string, q?: string) {
     await this.assertChannelMember(channelId, userId);
 
     const polls = await this.prisma.poll.findMany({
@@ -19,6 +19,12 @@ export class PollService {
         message: {
           channelId,
         },
+        ...(q && {
+          title: {
+            contains: q,
+            mode: 'insensitive' as const,
+          },
+        }),
       },
       include: {
         options: { include: { votes: true } },

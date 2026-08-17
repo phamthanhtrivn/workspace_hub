@@ -14,6 +14,7 @@ import TasksSection from "./tasks-section";
 import PinnedMessagesSection from "./pinned-messages-section";
 import MediaDetailView from "./media-detail-view";
 import PollDetailView from "./poll-detail-view";
+import NoteDetailView from "./note-detail-view";
 import PinnedMessagesDetailView from "./pinned-messages-detail-view";
 import SearchMessagesSection from "./search-messages-section";
 import ChannelSettingsModal from "../modals/channel-settings-modal";
@@ -35,7 +36,7 @@ import { sortChannelsByPin } from "../../utils/direct-conversation-utils";
 
 interface ChannelRightPanelProps {
   onClose: () => void;
-  initialDetailView?: "files" | "polls" | "search" | "threads" | null;
+  initialDetailView?: "files" | "polls" | "notes" | "search" | "threads" | null;
 }
 
 export default function ChannelRightPanel({
@@ -47,7 +48,7 @@ export default function ChannelRightPanel({
     "pinned",
   );
   const [detailView, setDetailView] = useState<
-    "files" | "polls" | "search" | "threads" | "pinned" | null
+    "files" | "polls" | "notes" | "search" | "threads" | "pinned" | null
   >(initialDetailView || null);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
@@ -254,6 +255,17 @@ export default function ChannelRightPanel({
     );
   }
 
+  if (detailView === "notes") {
+    return (
+      <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
+        <NoteDetailView
+          conversationId={activeChannel.id}
+          onBack={() => setDetailView(null)}
+        />
+      </div>
+    );
+  }
+
   if (detailView === "pinned") {
     return (
       <div className="w-full border-l border-gray-200 bg-white flex flex-col h-full animate-in slide-in-from-right-10 duration-200">
@@ -387,6 +399,7 @@ export default function ChannelRightPanel({
           <NotesSection
             isExpanded={expandedSection === "notes"}
             onToggle={() => toggleSection("notes")}
+            onSeeAll={() => setDetailView("notes")}
           />
 
           <TasksSection

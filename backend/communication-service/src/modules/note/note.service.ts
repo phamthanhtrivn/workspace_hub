@@ -11,7 +11,7 @@ export class NoteService {
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
-  async getNotesInConversation(channelId: string, userId: string) {
+  async getNotesInConversation(channelId: string, userId: string, q?: string) {
     await this.assertChannelMember(channelId, userId);
 
     const notes = await this.prisma.note.findMany({
@@ -19,6 +19,22 @@ export class NoteService {
         message: {
           channelId,
         },
+        ...(q && {
+          OR: [
+            {
+              title: {
+                contains: q,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              content: {
+                contains: q,
+                mode: 'insensitive' as const,
+              },
+            },
+          ],
+        }),
       },
       orderBy: {
         createdAt: 'desc',

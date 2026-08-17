@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Headers, Param } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Headers, Param, Query } from '@nestjs/common';
 import { NoteService } from './note.service';
 import { NOTE_ERROR_MESSAGES } from './types/note.enums';
 
@@ -10,11 +10,12 @@ export class NoteController {
   async getNotesInConversation(
     @Param('channelId') channelId: string,
     @Headers('x-user-id') userId: string,
+    @Query('q') q?: string,
   ) {
     if (!userId || !channelId) {
       throw new BadRequestException(NOTE_ERROR_MESSAGES.MISSING_USER_OR_CHANNEL_ID);
     }
 
-    return this.noteService.getNotesInConversation(channelId, userId);
+    return this.noteService.getNotesInConversation(channelId, userId, q);
   }
 }

@@ -290,9 +290,10 @@ export const getChannelMedia = async (
   cursor?: string,
   limit?: number,
   mediaType?: string,
+  q?: string,
 ): Promise<ApiResponse<PaginatedMediaResponse>> => {
   const response = await api.get(`/api/channels/${channelId}/media`, {
-    params: { cursor, limit, mediaType },
+    params: { cursor, limit, mediaType, q },
   });
   return normalizeApiResponse<PaginatedMediaResponse>(response.data);
 };
@@ -302,9 +303,10 @@ export const getDirectConversationMedia = async (
   cursor?: string,
   limit?: number,
   mediaType?: string,
+  q?: string,
 ): Promise<ApiResponse<PaginatedMediaResponse>> => {
   const response = await api.get(`/api/direct-conversations/${conversationId}/media`, {
-    params: { cursor, limit, mediaType },
+    params: { cursor, limit, mediaType, q },
   });
   return normalizeApiResponse<PaginatedMediaResponse>(response.data);
 };
@@ -313,11 +315,12 @@ export const getPinnedMessages = async (
   channelId: string,
   cursor?: string,
   limit?: number,
+  q?: string,
 ): Promise<ApiResponse<PinnedMessagesResponse>> => {
   const response = await api.get(
     `/api/channels/${channelId}/pinned-messages`,
     {
-      params: { cursor, limit },
+      params: { cursor, limit, q },
     },
   );
   return normalizeApiResponse<PinnedMessagesResponse>(response.data);
@@ -328,11 +331,12 @@ export const getDirectPinnedMessages = async (
   cursor?: string,
   limit?: number,
   senderId?: string,
+  q?: string,
 ): Promise<ApiResponse<PinnedMessagesResponse>> => {
   const response = await api.get(
     `/api/direct-conversations/${conversationId}/pinned-messages`,
     {
-      params: { cursor, limit, senderId },
+      params: { cursor, limit, senderId, q },
     },
   );
   return normalizeApiResponse<PinnedMessagesResponse>(response.data);

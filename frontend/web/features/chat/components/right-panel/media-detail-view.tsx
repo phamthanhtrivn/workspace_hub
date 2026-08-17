@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   ArrowLeft,
   Archive,
@@ -11,6 +11,7 @@ import {
   FileText,
   FileVideo,
   Presentation,
+  Search,
 } from "lucide-react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
@@ -136,11 +137,20 @@ export default function MediaDetailView({
 }: MediaDetailViewProps) {
   const [activeFilter, setActiveFilter] = useState<FileFilter>(undefined);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
   const { ref: loadMoreRef, inView } = useInView();
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery({
-      queryKey: ["media", isDirect ? "direct" : "channel", conversationId, activeFilter],
+      queryKey: ["media", isDirect ? "direct" : "channel", conversationId, activeFilter, debouncedSearchQuery],
       queryFn: async ({ pageParam }) => {
         try {
           const fetchMedia = isDirect
@@ -151,6 +161,7 @@ export default function MediaDetailView({
             pageParam as string | undefined,
             20,
             activeFilter,
+            debouncedSearchQuery,
           );
           return res.data;
         } catch (error) {
@@ -222,23 +233,39 @@ export default function MediaDetailView({
         <h2 className="font-semibold text-gray-800">Files</h2>
       </div>
 
-      <div className="border-b border-gray-100 px-4 py-3">
-        <label className="mb-1.5 block text-[11px] font-semibold text-gray-500">
-          File type
-        </label>
-        <select
-          value={activeFilter || ""}
-          onChange={(event) =>
-            setActiveFilter((event.target.value || undefined) as FileFilter)
-          }
-          className="w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-        >
-          {FILE_FILTERS.map((filter) => (
-            <option key={filter.label} value={filter.value || ""}>
-              {filter.label}
-            </option>
-          ))}
-        </select>
+      <div className="border-b border-gray-100 px-4 py-3 flex flex-col gap-3 shrink-0">
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={16}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search files by name..."
+            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+          />
+        </div>
+
+        <div>
+          <label className="mb-1.5 block text-[11px] font-semibold text-gray-500">
+            File type
+          </label>
+          <select
+            value={activeFilter || ""}
+            onChange={(event) =>
+              setActiveFilter((event.target.value || undefined) as FileFilter)
+            }
+            className="w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+          >
+            {FILE_FILTERS.map((filter) => (
+              <option key={filter.label} value={filter.value || ""}>
+                {filter.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3">

@@ -192,8 +192,11 @@ export default function ChatArea({
     const pagesMessages = messagePages.flatMap((page) =>
       [...page.messages].reverse(),
     );
+    if (hasPreviousPage) {
+      return pagesMessages;
+    }
     return [...[...newSocketMessages].reverse(), ...pagesMessages];
-  }, [messagePages, newSocketMessages]);
+  }, [messagePages, newSocketMessages, hasPreviousPage]);
 
   const messageSenderIds = useMemo(() => {
     const ids = new Set<string>();
@@ -1278,7 +1281,28 @@ export default function ChatArea({
         {renderMessages()}
       </div>
 
-      {!isBottomInView && allMessages.length > 0 && (
+      {/* Floating Jump to Recent Banner */}
+      {hasPreviousPage && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+          <button
+            onClick={() => {
+              setJumpTargetId(null);
+              setNewSocketMessages([]);
+              setTimeout(() => {
+                scrollToBottom();
+              }, 100);
+            }}
+            className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 text-xs font-semibold whitespace-nowrap"
+          >
+            <span>You are viewing older messages</span>
+            <span className="bg-blue-500 hover:bg-blue-600 px-2 py-0.5 rounded-full text-[10px] transition-colors">
+              Jump to Recent
+            </span>
+          </button>
+        </div>
+      )}
+
+      {!isBottomInView && allMessages.length > 0 && !hasPreviousPage && (
         <button
           onClick={scrollToBottom}
           className="absolute bottom-30 cursor-pointer shadow-2xl right-6 w-10 h-10 border border-gray-200 rounded-full flex items-center justify-center bg-blue-500 text-white hover:text-gray-50 hover:bg-blue-700 transition z-10"

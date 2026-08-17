@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from "react";
 import { MoreHorizontal, Pin, MessageSquare, SmilePlus } from "lucide-react";
 import { MessageOptionsDropdown } from "./message-options-dropdown";
-import { QUICK_EMOJIS, UserProfileSnapshotResponse } from "../../types/chat.types";
+import {
+  QUICK_EMOJIS,
+  UserProfileSnapshotResponse,
+} from "../../types/chat.types";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import PollMessage from "./poll-message";
@@ -12,16 +15,10 @@ import { renderMessageContent } from "../../utils/message-formatter";
 import { formatDateTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import MessageAvatar from "./message-avatar";
-import {
-  MessageFileMedias,
-  MessageVisualMedias,
-} from "./message-attachments";
+import { MessageFileMedias, MessageVisualMedias } from "./message-attachments";
 import MessageReactions from "./message-reactions";
 import MessageReadReceipts from "./message-read-receipts";
-import {
-  MemberProfilesMap,
-  RenderableChatMessage,
-} from "./chat-message.types";
+import { MemberProfilesMap, RenderableChatMessage } from "./chat-message.types";
 
 interface ChatMessageProps {
   msg: RenderableChatMessage;
@@ -288,7 +285,12 @@ const ChatMessage = React.memo(function ChatMessage({
           )}
 
           {showTime && !showSenderName && (
-            <div className={cn("flex flex-col", isMe ? "items-end" : "items-start")}>
+            <div
+              className={cn(
+                "flex flex-col",
+                isMe ? "items-end" : "items-start",
+              )}
+            >
               <span className="text-[9px] text-slate-400 px-1 mt-0.5 flex gap-1 items-center font-bold tracking-tight">
                 {time}
                 {msg.edited && (

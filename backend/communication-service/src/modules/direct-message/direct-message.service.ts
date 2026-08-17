@@ -281,10 +281,13 @@ export class DirectMessageService {
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     mediaType?: string,
+    q?: string,
   ) {
+    const nameWhere = q ? { name: { contains: q, mode: 'insensitive' as const } } : {};
     const medias = await this.prisma.directMedia.findMany({
       where: {
         ...this.getMediaTypeWhere(mediaType),
+        ...nameWhere,
         message: {
           conversationId,
           deletedAt: null,
@@ -336,13 +339,42 @@ export class DirectMessageService {
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     senderId?: string,
+    q?: string,
   ) {
+    const matchedUsers = q ? await this.prisma.userProfileSnapshot.findMany({
+      where: {
+        fullName: {
+          contains: q,
+          mode: 'insensitive' as const,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    }) : [];
+    const matchedUserIds = matchedUsers.map((u) => u.userId);
+
     const messages = await this.prisma.directMessage.findMany({
       where: {
         conversationId,
         pinned: true,
         threadParentId: null,
         senderId: senderId || undefined,
+        ...(q && {
+          OR: [
+            {
+              content: {
+                contains: q,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              senderId: {
+                in: matchedUserIds,
+              },
+            },
+          ],
+        }),
       },
       take: limit + 1,
       skip: cursor ? 1 : 0,

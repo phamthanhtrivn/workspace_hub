@@ -358,12 +358,15 @@ export class MessageService {
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     mediaType?: string,
+    q?: string,
   ) {
     const mediaTypeWhere = this.getMediaTypeWhere(mediaType);
+    const nameWhere = q ? { name: { contains: q, mode: 'insensitive' as const } } : {};
 
     const medias = await this.prisma.media.findMany({
       where: {
         ...mediaTypeWhere,
+        ...nameWhere,
         message: {
           channelId,
           deletedAt: null,
@@ -545,7 +548,11 @@ export class MessageService {
     }
 
     if (type) {
-      whereClause.type = type;
+      whereClause.type = type as MessageType;
+    } else {
+      whereClause.type = {
+        notIn: [MessageType.POLL, MessageType.NOTE],
+      };
     }
 
     const messages = await this.prisma.message.findMany({
@@ -1096,12 +1103,41 @@ export class MessageService {
     channelId: string,
     cursor?: string,
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
+    q?: string,
   ) {
+    const matchedUsers = q ? await this.prisma.userProfileSnapshot.findMany({
+      where: {
+        fullName: {
+          contains: q,
+          mode: 'insensitive' as const,
+        },
+      },
+      select: {
+        userId: true,
+      },
+    }) : [];
+    const matchedUserIds = matchedUsers.map((u) => u.userId);
+
     const messages = await this.prisma.message.findMany({
       where: {
         channelId,
         pinned: true,
         threadParentId: null,
+        ...(q && {
+          OR: [
+            {
+              content: {
+                contains: q,
+                mode: 'insensitive' as const,
+              },
+            },
+            {
+              senderId: {
+                in: matchedUserIds,
+              },
+            },
+          ],
+        }),
       },
       take: limit + 1,
       skip: cursor ? 1 : 0,

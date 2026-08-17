@@ -21,15 +21,15 @@ function getPayloadConversationId(payload: NoteUpdatePayload | ChatMessageRespon
   return payload.channelId ?? payload.conversationId ?? null;
 }
 
-export function useNotes(conversationId: string | undefined) {
+export function useNotes(conversationId: string | undefined, q?: string) {
   const queryClient = useQueryClient();
 
-  const queryKey = chatKeys.notes(conversationId);
+  const queryKey = [...chatKeys.notes(conversationId), q || ""];
 
   const { data: notes = [], isLoading: loading } = useQuery<NoteResponse[]>({
     queryKey,
     queryFn: async () => {
-      const res = await noteApi.getNotesInConversation(conversationId!);
+      const res = await noteApi.getNotesInConversation(conversationId!, q);
       return res.success ? res.data : [];
     },
     enabled: !!conversationId,
@@ -41,19 +41,11 @@ export function useNotes(conversationId: string | undefined) {
     if (!socket || !conversationId) return;
 
     const handleNoteUpdated = (data: NoteUpdatePayload | ChatMessageResponse) => {
-      const noteData = getUpdatedNote(data);
       const convId = getPayloadConversationId(data);
 
-      if (convId === conversationId && noteData) {
-        queryClient.setQueryData<NoteResponse[]>(queryKey, (prev) => {
-          if (!prev) return [noteData];
-          const exists = prev.findIndex((n) => n.id === noteData.id);
-          if (exists !== -1) {
-            const newNotes = [...prev];
-            newNotes[exists] = noteData;
-            return newNotes;
-          }
-          return [noteData, ...prev];
+      if (convId === conversationId) {
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.notes(conversationId),
         });
       }
     };

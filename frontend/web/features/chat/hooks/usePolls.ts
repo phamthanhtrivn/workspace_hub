@@ -21,15 +21,15 @@ function getPayloadConversationId(payload: PollUpdatePayload | ChatMessageRespon
   return payload.channelId ?? payload.conversationId ?? null;
 }
 
-export function usePolls(conversationId: string | undefined) {
+export function usePolls(conversationId: string | undefined, q?: string) {
   const queryClient = useQueryClient();
 
-  const queryKey = chatKeys.polls(conversationId);
+  const queryKey = [...chatKeys.polls(conversationId), q || ""];
 
   const { data: polls = [], isLoading: loading } = useQuery<PollResponse[]>({
     queryKey,
     queryFn: async () => {
-      const res = await pollApi.getPollsInConversation(conversationId!);
+      const res = await pollApi.getPollsInConversation(conversationId!, q);
       return res.success ? res.data : [];
     },
     enabled: !!conversationId,
@@ -41,19 +41,11 @@ export function usePolls(conversationId: string | undefined) {
     if (!socket || !conversationId) return;
 
     const handlePollUpdated = (data: PollUpdatePayload | ChatMessageResponse) => {
-      const pollData = getUpdatedPoll(data);
       const convId = getPayloadConversationId(data);
 
-      if (convId === conversationId && pollData) {
-        queryClient.setQueryData<PollResponse[]>(queryKey, (prev) => {
-          if (!prev) return [pollData];
-          const exists = prev.findIndex((p) => p.id === pollData.id);
-          if (exists !== -1) {
-            const newPolls = [...prev];
-            newPolls[exists] = pollData;
-            return newPolls;
-          }
-          return [pollData, ...prev];
+      if (convId === conversationId) {
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.polls(conversationId),
         });
       }
     };

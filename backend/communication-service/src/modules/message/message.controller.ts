@@ -63,6 +63,7 @@ export class MessageController {
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
     @Query('mediaType') mediaType?: string,
+    @Query('q') q?: string,
   ) {
     if (!channelId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
@@ -75,6 +76,7 @@ export class MessageController {
       cursor,
       parsedLimit,
       mediaType,
+      q,
     );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.MEDIA_RETRIEVED,
@@ -87,6 +89,7 @@ export class MessageController {
     @Param('id') channelId: string,
     @Query('cursor') cursor?: string,
     @Query('limit') limit?: string,
+    @Query('q') q?: string,
   ) {
     if (!channelId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_CHANNEL_ID);
@@ -98,6 +101,7 @@ export class MessageController {
       channelId,
       cursor,
       parsedLimit,
+      q,
     );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.PINNED_RETRIEVED,

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ArrowLeft, BarChart2, Loader2 } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { ArrowLeft, BarChart2, Loader2, Search } from "lucide-react";
 import ViewPollModal from "../modals/view-poll-modal";
 import { usePolls } from "../../hooks/usePolls";
 import { PollOptionResponse, PollResponse } from "../../types/chat.types";
@@ -14,8 +14,17 @@ export default function PollDetailView({
   onBack,
 }: PollDetailViewProps) {
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
-  const { polls, loading } = usePolls(conversationId);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
+  const { polls, loading } = usePolls(conversationId, debouncedSearchQuery);
 
   const selectedPoll = polls.find((poll) => poll.id === selectedPollId);
   const getVoteCount = (poll: PollResponse) =>
@@ -37,6 +46,22 @@ export default function PollDetailView({
         <h2 className="font-semibold text-gray-800">Polls</h2>
       </div>
 
+      <div className="border-b border-gray-100 px-4 py-3 flex-shrink-0">
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={16}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search polls by title..."
+            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+          />
+        </div>
+      </div>
+
       <div className="flex-1 overflow-y-auto p-4">
         {loading ? (
           <div className="text-center py-4 flex justify-center">
@@ -44,7 +69,7 @@ export default function PollDetailView({
           </div>
         ) : polls.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-4">
-            No polls available
+            {searchQuery ? "No matching polls found" : "No polls available"}
           </div>
         ) : (
           <div className="flex flex-col gap-3">

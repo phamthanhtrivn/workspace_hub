@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Filter, Pin } from "lucide-react";
+import { ArrowLeft, Filter, Pin, Search } from "lucide-react";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import {
@@ -46,6 +46,16 @@ export default function PinnedMessagesDetailView({
   const { unpinMessage: unpinDirectPinnedMessage } = useDirectMessageActions();
   const { ref: loadMoreRef, inView } = useInView();
   const [senderId, setSenderId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
+
   const conversationMemberIds = useMemo(
     () =>
       activeConversation?.members
@@ -68,6 +78,7 @@ export default function PinnedMessagesDetailView({
         conversationId,
       ),
       senderId || "all",
+      debouncedSearchQuery || "",
     ],
     queryFn: async ({ pageParam }) => {
       const response = isDirect
@@ -76,8 +87,14 @@ export default function PinnedMessagesDetailView({
             pageParam,
             20,
             senderId || undefined,
+            debouncedSearchQuery,
           )
-        : await getPinnedMessages(conversationId, pageParam, 20);
+        : await getPinnedMessages(
+            conversationId,
+            pageParam,
+            20,
+            debouncedSearchQuery,
+          );
       return response.data;
     },
     initialPageParam: undefined as string | undefined,
@@ -168,32 +185,50 @@ export default function PinnedMessagesDetailView({
         <h2 className="font-semibold text-gray-800">Pinned messages</h2>
       </div>
 
-      {isDirect && (
-        <div className="px-4 py-3 border-b border-gray-100 shrink-0">
-          <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 mb-1.5">
-            <Filter size={13} />
-            Sender
-          </label>
-          <select
-            value={senderId}
-            onChange={(event) => setSenderId(event.target.value)}
-            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          >
-            <option value="">All senders</option>
-            {senderOptions.map((sender) => (
-              <option key={sender.id} value={sender.id}>
-                {sender.label}
-              </option>
-            ))}
-          </select>
+      <div className="px-4 py-3 border-b border-gray-100 flex flex-col gap-3 shrink-0">
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={16}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search pinned messages..."
+            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+          />
         </div>
-      )}
+
+        {isDirect && (
+          <div>
+            <label className="flex items-center gap-2 text-[11px] font-semibold text-gray-500 mb-1.5">
+              <Filter size={13} />
+              Sender
+            </label>
+            <select
+              value={senderId}
+              onChange={(event) => setSenderId(event.target.value)}
+              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            >
+              <option value="">All senders</option>
+              {senderOptions.map((sender) => (
+                <option key={sender.id} value={sender.id}>
+                  {sender.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
 
       <div className="flex-1 overflow-y-auto p-4">
         {isLoading ? (
           <div className="text-center text-xs text-gray-400 py-6">Loading pinned messages...</div>
         ) : pinnedMessages.length === 0 ? (
-          <div className="text-center text-xs text-gray-400 py-6">No pinned messages</div>
+          <div className="text-center text-xs text-gray-400 py-6">
+            {searchQuery ? "No matching pinned messages found" : "No pinned messages"}
+          </div>
         ) : (
           <div className="space-y-2">
             {pinnedMessages.map((message: any) => (

@@ -34,9 +34,7 @@ export default function SearchResultItem({
 
   const renderSnippet = () => {
     if (message.recalled) {
-      return (
-        <span className="italic text-gray-500">Message recalled</span>
-      );
+      return <span className="italic text-gray-500">Message recalled</span>;
     }
     if (message.type === "SYSTEM") {
       return <span className="italic text-gray-500">{message.content}</span>;
@@ -68,7 +66,7 @@ export default function SearchResultItem({
       const firstMedia = medias[0];
       const mimeType = firstMedia.mimeType || "";
       const fileName = firstMedia.name || "";
-      
+
       if (mimeType.startsWith("image/")) {
         return (
           <span className="flex items-center gap-1">
@@ -85,7 +83,7 @@ export default function SearchResultItem({
           </span>
         );
       }
-      
+
       return (
         <span className="flex items-center gap-1">
           <FileText size={14} className="inline-block shrink-0" />
