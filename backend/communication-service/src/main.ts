@@ -3,43 +3,21 @@ dotenv.config();
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
-import { ValidationPipe, BadRequestException, Logger } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
-import { Transport } from '@nestjs/microservices';
-import { USER_PROFILE_SNAPSHOT_KAFKA } from './modules/user-profile-snapshot/types/user-profile-snapshot.constants';
+import { logger } from './infrastructure/logger/bootstrap-logger';
+import { setupMicroservices } from './infrastructure/bootstrap/microservices.bootstrap';
 
 async function bootstrap() {
-  const logger = new Logger('CommunicationBootstrap');
   const app = await NestFactory.create(AppModule);
   const port = process.env.PORT ?? '8083';
-  const kafkaBrokers = (
-    process.env[USER_PROFILE_SNAPSHOT_KAFKA.BROKER_ENV] ??
-    USER_PROFILE_SNAPSHOT_KAFKA.DEFAULT_BROKER
-  )
-    .split(',')
-    .map((broker) => broker.trim())
-    .filter(Boolean);
 
   // Enable CORS
   app.enableCors({
     origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
-  });
-
-  app.connectMicroservice({
-    transport: Transport.KAFKA,
-    options: {
-      client: {
-        clientId: USER_PROFILE_SNAPSHOT_KAFKA.CLIENT_ID,
-        brokers: kafkaBrokers,
-      },
-      consumer: {
-        groupId: USER_PROFILE_SNAPSHOT_KAFKA.GROUP_ID,
-      },
-    },
   });
 
   // Setup Global Pipes, Interceptors, and Filters
@@ -69,24 +47,10 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  // Setup Redis WebSocket Adapter
-  const redisIoAdapter = new RedisIoAdapter(app);
-  await redisIoAdapter.connectToRedis();
-  app.useWebSocketAdapter(redisIoAdapter);
+  // Setup Redis WebSocket Adapter and Kafka Microservice
+  await setupMicroservices(app);
 
   await app.listen(port);
   logger.log(`Communication service HTTP server started on ${port}`);
-
-  void app
-    .startAllMicroservices()
-    .then(() => {
-      logger.log(USER_PROFILE_SNAPSHOT_KAFKA.LOG_MESSAGES.CONSUMER_STARTED);
-    })
-    .catch((error) => {
-      logger.error(
-        USER_PROFILE_SNAPSHOT_KAFKA.LOG_MESSAGES.CONSUMER_START_FAILED,
-        error instanceof Error ? error.stack : String(error),
-      );
-    });
 }
 bootstrap();

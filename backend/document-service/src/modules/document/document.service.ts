@@ -25,6 +25,8 @@ import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
 import { QuotaService } from '../quota/quota.service';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
 
 @Injectable()
 export class DocumentService {
@@ -32,6 +34,7 @@ export class DocumentService {
     private readonly prisma: PrismaService,
     private readonly quotaService: QuotaService,
     private readonly s3Service: S3Service,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
   async initiateUpload(
@@ -132,7 +135,7 @@ export class DocumentService {
     // Update storage quota (add to usedBytes)
     await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
 
-    return item;
+    return this.enrichDocumentItem(item);
   }
 
   /**
@@ -272,7 +275,7 @@ export class DocumentService {
     // Inherit project ID from parent if not specified
     const projectId = dto.projectId || parentFolder?.projectId || null;
 
-    return this.prisma.documentItem.create({
+    const folder = await this.prisma.documentItem.create({
       data: {
         name: dto.name,
         type: ItemType.FOLDER,
@@ -283,6 +286,8 @@ export class DocumentService {
         sizeBytes: BigInt(0),
       },
     });
+
+    return this.enrichDocumentItem(folder);
   }
 
   /**
@@ -418,7 +423,8 @@ export class DocumentService {
       }),
     );
 
-    return { items: mappedItems, totalCount };
+    const enrichedItems = await this.userProfileSnapshotService.attachProfilesToDocumentItems(mappedItems);
+    return { items: enrichedItems, totalCount };
   }
 
   /**
@@ -461,10 +467,11 @@ export class DocumentService {
   ): Promise<DocumentItem> {
     await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
 
-    return this.prisma.documentItem.update({
+    const updated = await this.prisma.documentItem.update({
       where: { id },
       data: { name: dto.name },
     });
+    return this.enrichDocumentItem(updated);
   }
 
   /**
@@ -513,13 +520,14 @@ export class DocumentService {
       destProjectId = destFolder.projectId;
     }
 
-    return this.prisma.documentItem.update({
+    const updated = await this.prisma.documentItem.update({
       where: { id },
       data: {
         parentFolderId: dto.parentFolderId || null,
         projectId: destProjectId,
       },
     });
+    return this.enrichDocumentItem(updated);
   }
 
   /**
@@ -533,13 +541,14 @@ export class DocumentService {
   ): Promise<DocumentItem> {
     await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
 
-    return this.prisma.documentItem.update({
+    const updated = await this.prisma.documentItem.update({
       where: { id },
       data: {
         isArchived: archive,
         archivedAt: archive ? new Date() : null,
       },
     });
+    return this.enrichDocumentItem(updated);
   }
 
   /**
@@ -801,7 +810,7 @@ export class DocumentService {
     userId: string,
     userEmail: string,
     id: string,
-  ): Promise<any[]> {
+  ): Promise<Array<DocumentVersion & { uploadedByEmail: string; uploaderProfile: UserProfileSnapshotResponse | null }>> {
     const item = (await this.checkPermission(
       id,
       userId,
@@ -818,38 +827,47 @@ export class DocumentService {
       orderBy: { versionNumber: 'desc' },
     });
 
-    if (versions.length === 0) {
-      return [
-        {
-          id: DOCUMENT_CONSTANTS.ORIGINAL_VERSION_ID,
-          documentItemId: item.id,
-          versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
-          s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
-          sizeBytes: item.sizeBytes,
-          uploadedBy: item.ownerUserId,
-          uploadedByEmail: item.ownerEmail,
-          createdAt: item.createdAt,
-        },
-      ];
-    }
+    const mappedVersions: Array<DocumentVersion & { uploadedByEmail: string }> =
+      versions.length === 0
+        ? [
+            {
+              id: DOCUMENT_CONSTANTS.ORIGINAL_VERSION_ID,
+              documentItemId: item.id,
+              versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+              s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
+              sizeBytes: item.sizeBytes,
+              uploadedBy: item.ownerUserId,
+              uploadedByEmail: item.ownerEmail,
+              createdAt: item.createdAt,
+            },
+          ]
+        : versions.map((v) => {
+            let email = DOCUMENT_CONSTANTS.FALLBACK_UPLOADER_EMAIL_PRIVATE;
+            if (v.uploadedBy === item.ownerUserId) {
+              email = item.ownerEmail;
+            } else {
+              const share = item.shares?.find(
+                (s) => s.shareWithUserId === v.uploadedBy,
+              );
+              if (share) {
+                email = share.shareWithEmail;
+              }
+            }
+            return {
+              id: v.id,
+              documentItemId: v.documentItemId,
+              versionNumber: v.versionNumber,
+              s3Key: v.s3Key,
+              sizeBytes: v.sizeBytes,
+              uploadedBy: v.uploadedBy,
+              createdAt: v.createdAt,
+              uploadedByEmail: email,
+            };
+          });
 
-    return versions.map((v) => {
-      let email = DOCUMENT_CONSTANTS.FALLBACK_UPLOADER_EMAIL_PRIVATE;
-      if (v.uploadedBy === item.ownerUserId) {
-        email = item.ownerEmail;
-      } else {
-        const share = item.shares?.find(
-          (s) => s.shareWithUserId === v.uploadedBy,
-        );
-        if (share) {
-          email = share.shareWithEmail;
-        }
-      }
-      return {
-        ...v,
-        uploadedByEmail: email,
-      };
-    });
+    return this.userProfileSnapshotService.attachProfilesToDocumentVersions(
+      mappedVersions,
+    );
   }
 
   /**
@@ -860,7 +878,7 @@ export class DocumentService {
     userEmail: string,
     id: string,
     dto: CreateVersionDto,
-  ): Promise<DocumentVersion> {
+  ): Promise<DocumentVersion & { uploaderProfile: UserProfileSnapshotResponse | null }> {
     const item = await this.checkPermission(
       id,
       userId,
@@ -927,7 +945,8 @@ export class DocumentService {
     // Update uploader storage quota
     await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
 
-    return newVersion;
+    const [enrichedVersion] = await this.userProfileSnapshotService.attachProfilesToDocumentVersions([newVersion]);
+    return enrichedVersion;
   }
 
   /**
@@ -937,7 +956,10 @@ export class DocumentService {
     userId: string,
     userEmail: string,
     id: string,
-  ): Promise<{ linkAccess: LinkAccess; shares: DocumentShare[] }> {
+  ): Promise<{
+    linkAccess: LinkAccess;
+    shares: Array<DocumentShare & { shareWithProfile: UserProfileSnapshotResponse | null }>;
+  }> {
     const item = await this.checkPermission(
       id,
       userId,
@@ -949,9 +971,11 @@ export class DocumentService {
       orderBy: { createdAt: 'asc' },
     });
 
+    const enrichedShares = await this.userProfileSnapshotService.attachProfilesToDocumentShares(shares);
+
     return {
       linkAccess: item.linkAccess,
-      shares,
+      shares: enrichedShares,
     };
   }
 
@@ -1408,5 +1432,12 @@ export class DocumentService {
         };
       }),
     ) as any;
+  }
+
+  private async enrichDocumentItem<T extends { ownerUserId: string }>(
+    item: T,
+  ): Promise<T & { ownerProfile: UserProfileSnapshotResponse | null }> {
+    const [enriched] = await this.userProfileSnapshotService.attachProfilesToDocumentItems([item]);
+    return enriched;
   }
 }

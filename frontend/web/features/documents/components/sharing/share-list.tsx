@@ -163,7 +163,10 @@ export function ShareModalList({
           </div>
         ) : (
           shares.map((share) => {
-            const profile = profilesMap.get(share.shareWithEmail.toLowerCase());
+            const profile = profilesMap.get(share.shareWithEmail.toLowerCase()) || {
+              fullName: share.shareWithProfile?.fullName || undefined,
+              avatarUrl: share.shareWithProfile?.avatarUrl || undefined,
+            };
             return (
               <div
                 key={share.id}

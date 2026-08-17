@@ -77,7 +77,7 @@ export function VersionHistoryTable({
                   className="px-5 py-4 text-slate-600 truncate max-w-[120px]"
                   title={version.uploadedByEmail}
                 >
-                  {version.uploadedByEmail}
+                  {version.uploaderProfile?.fullName || version.uploadedByEmail}
                 </td>
                 <td className="px-5 py-4 text-right">
                   <div className="flex items-center justify-end gap-1.5">
