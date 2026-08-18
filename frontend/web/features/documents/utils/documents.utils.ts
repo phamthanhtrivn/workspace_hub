@@ -151,7 +151,7 @@ export const calculateQuotaStats = (
 export const getDocumentRoleMetadata = (
   userRole: DocumentRole | "NONE",
 ): DocumentRoleMetadata => {
-  let badgeText = "Người xem";
+  let badgeText = "Viewer";
   let badgeColor = "text-blue-600 bg-blue-50 border-blue-100/50";
   let Icon = Eye;
 
@@ -160,7 +160,7 @@ export const getDocumentRoleMetadata = (
     badgeColor = "text-purple-600 bg-purple-50 border-purple-100/50";
     Icon = ShieldCheck;
   } else if (userRole === DocumentRole.EDITOR) {
-    badgeText = "Quyền chỉnh sửa";
+    badgeText = "Editor";
     badgeColor = "text-green-600 bg-green-50 border-green-100/50";
     Icon = Edit;
   }

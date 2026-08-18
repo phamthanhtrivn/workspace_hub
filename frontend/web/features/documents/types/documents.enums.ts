@@ -41,49 +41,49 @@ export enum UploadState {
 }
 
 export enum ResourceTypeLabel {
-  FOLDER = "Thư mục hệ thống",
-  FILE = "Tập tin tài liệu",
+  FOLDER = "Folder",
+  FILE = "File",
 }
 
 export enum ResourceTypeName {
-  FOLDER = "Thư mục",
-  FILE = "Tập tin",
+  FOLDER = "Folder",
+  FILE = "File",
 }
 
 export enum StarActionLabel {
-  REMOVE = "Bỏ sao",
-  ADD = "Sao",
+  REMOVE = "Unstar",
+  ADD = "Star",
 }
 
 export enum ArchiveActionLabel {
-  DELETE = "Xóa tài nguyên",
-  RESTORE = "Khôi phục tài nguyên",
+  DELETE = "Delete",
+  RESTORE = "Restore",
 }
 
 export enum DocumentTypeDescription {
-  PDF = "Tài liệu PDF",
-  WORD = "Tài liệu Word",
-  EXCEL = "Bảng tính Excel",
-  POWERPOINT = "Bài thuyết trình PowerPoint",
-  TEXT = "Tệp văn bản thuần (TXT)",
-  ZIP = "Tệp nén ZIP",
-  RAR = "Tệp nén RAR",
-  SEVENZIP = "Tệp nén 7z",
-  AUDIO_MP3 = "Tệp âm thanh MP3",
-  VIDEO_MP4 = "Tệp video MP4",
-  IMAGE_BASE = "Hình ảnh",
-  VIDEO_BASE = "Tệp video",
-  AUDIO_BASE = "Tệp âm thanh",
-  FILE_BASE = "Tệp tin",
-  UNKNOWN_FILE = "Tập tin tài liệu",
+  PDF = "PDF Document",
+  WORD = "Word Document",
+  EXCEL = "Excel Spreadsheet",
+  POWERPOINT = "PowerPoint Presentation",
+  TEXT = "Plain Text File (TXT)",
+  ZIP = "ZIP Archive",
+  RAR = "RAR Archive",
+  SEVENZIP = "7z Archive",
+  AUDIO_MP3 = "MP3 Audio File",
+  VIDEO_MP4 = "MP4 Video File",
+  IMAGE_BASE = "Image",
+  VIDEO_BASE = "Video File",
+  AUDIO_BASE = "Audio File",
+  FILE_BASE = "File",
+  UNKNOWN_FILE = "Document File",
 }
 
 export enum NavigationLabel {
-  ROOT = "Tài liệu của tui",
-  CURRENT_FOLDER = "Thư mục hiện tại",
-  STARRED = "Đã đánh dấu sao",
-  SHARED = "Được chia sẻ",
-  TRASH = "Thùng rác",
+  ROOT = "My Files",
+  CURRENT_FOLDER = "Current Folder",
+  STARRED = "Starred",
+  SHARED = "Shared",
+  TRASH = "Trash",
 }
 
 export enum PreviewFileType {
@@ -108,4 +108,9 @@ export enum DownloadStatus {
   DOWNLOADING = "downloading",
   DONE = "done",
   ERROR = "error",
+}
+
+export enum ShareTabType {
+  CHANNEL = "channel",
+  DM = "dm",
 }

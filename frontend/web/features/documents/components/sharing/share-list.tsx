@@ -72,7 +72,7 @@ export function ShareModalList({
     mutationFn: ({ shareId }: { shareId: string; email: string }) =>
       documentsApi.removeShare(documentItemId, shareId),
     onSuccess: (_, variables) => {
-      toast.success(`Đã thu hồi quyền truy cập của ${variables.email}`);
+      toast.success(`Revoked access for ${variables.email}`);
       queryClient.invalidateQueries({
         queryKey: ["document-sharing", documentItemId],
       });
@@ -80,7 +80,7 @@ export function ShareModalList({
     },
     onError: (err) => {
       console.error("Failed to remove share", err);
-      toast.error("Không thể thu hồi quyền truy cập");
+      toast.error("Failed to revoke access");
     },
   });
 
@@ -93,7 +93,7 @@ export function ShareModalList({
       permission: SharePermission;
     }) => documentsApi.addShare(documentItemId, email, permission),
     onSuccess: (_, variables) => {
-      toast.success(`Đã cập nhật quyền cho ${variables.email}`);
+      toast.success(`Updated permission for ${variables.email}`);
       queryClient.invalidateQueries({
         queryKey: ["document-sharing", documentItemId],
       });
@@ -101,7 +101,7 @@ export function ShareModalList({
     },
     onError: (err) => {
       console.error("Failed to update permission", err);
-      toast.error("Không thể cập nhật quyền truy cập");
+      toast.error("Failed to update access permission");
     },
   });
 
@@ -124,7 +124,7 @@ export function ShareModalList({
   return (
     <div className="space-y-3">
       <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-        Những người có quyền truy cập
+        People with access
       </h4>
       <div className="divide-y divide-slate-50 border border-slate-100 rounded-2xl p-2 max-h-64 overflow-y-auto bg-white">
         {/* Owner Item */}

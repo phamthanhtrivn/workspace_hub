@@ -147,6 +147,7 @@ export interface SendDirectSocketMessagePayload {
   chatId: string;
   chatType: ChatContextType.DIRECT_MESSAGE;
   content: string;
+  type?: string;
   medias?: SendSocketMessageMedia[];
   threadParentId?: string;
   mentions?: string[];

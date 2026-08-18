@@ -96,4 +96,16 @@ export interface DocumentRoleMetadata {
   showOpenInWorkspace: boolean;
 }
 
+export interface ChatMetadataResponse {
+  id: string;
+  name: string;
+  type: DocumentItemType;
+  sizeBytes: number;
+  mimeType: string | null;
+  ownerEmail: string;
+  ownerName: string | null;
+  createdAt: string;
+  hasPermission: boolean;
+}
+
 export { ViewLayout, DocumentSortBy };

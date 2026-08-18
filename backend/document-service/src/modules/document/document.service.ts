@@ -1434,6 +1434,199 @@ export class DocumentService {
     ) as any;
   }
 
+  async getChatMetadata(
+    id: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<{
+    id: string;
+    name: string;
+    type: ItemType;
+    sizeBytes: number;
+    mimeType: string | null;
+    ownerEmail: string;
+    ownerName: string | null;
+    createdAt: Date;
+    hasPermission: boolean;
+  }> {
+    const item = await this.prisma.documentItem.findUnique({
+      where: { id },
+    });
+
+    if (!item) {
+      throw new NotFoundException('Document or folder not found');
+    }
+
+    // Check if user has permission
+    let hasPermission = false;
+    try {
+      await this.checkPermission(id, userId, userEmail, DocumentRole.VIEWER);
+      hasPermission = true;
+    } catch (e) {
+      hasPermission = false;
+    }
+
+    // Get folder/file size
+    let sizeBytes = Number(item.sizeBytes);
+    if (item.type === ItemType.FOLDER) {
+      sizeBytes = await this.getFolderSize(item.id);
+    }
+
+    // Enrich with owner profile info
+    const enriched = await this.enrichDocumentItem(item);
+    const ownerName = enriched.ownerProfile?.fullName ?? null;
+
+    return {
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      sizeBytes,
+      mimeType: item.mimeType,
+      ownerEmail: item.ownerEmail,
+      ownerName,
+      createdAt: item.createdAt,
+      hasPermission,
+    };
+  }
+
+  private async checkEmailAccessRecursively(
+    itemId: string,
+    email: string,
+  ): Promise<boolean> {
+    const item = await this.prisma.documentItem.findUnique({
+      where: { id: itemId },
+      include: { shares: true },
+    });
+
+    if (!item) return false;
+
+    // 1. Owner always has access
+    if (item.ownerEmail.toLowerCase() === email.toLowerCase()) {
+      return true;
+    }
+
+    // 2. Explicit share
+    const share = item.shares.find(
+      (s) => s.shareWithEmail.toLowerCase() === email.toLowerCase(),
+    );
+    if (share) return true;
+
+    // 3. Public link access
+    if (item.linkAccess !== LinkAccess.NONE) {
+      if (!item.shareExpiresAt || new Date() <= item.shareExpiresAt) {
+        return true;
+      }
+    }
+
+    // 4. Inherited from parent folder
+    if (item.parentFolderId) {
+      return this.checkEmailAccessRecursively(item.parentFolderId, email);
+    }
+
+    return false;
+  }
+
+  async checkEmailsPermissions(
+    id: string,
+    emails: string[],
+  ): Promise<string[]> {
+    const item = await this.prisma.documentItem.findUnique({
+      where: { id },
+    });
+
+    if (!item) {
+      throw new NotFoundException('Document or folder not found');
+    }
+
+    // If public sharing is enabled, everyone has access
+    if (item.linkAccess !== LinkAccess.NONE) {
+      if (!item.shareExpiresAt || new Date() <= item.shareExpiresAt) {
+        return [];
+      }
+    }
+
+    const unauthorizedEmails: string[] = [];
+    for (const email of emails) {
+      const hasAccess = await this.checkEmailAccessRecursively(id, email);
+      if (!hasAccess) {
+        unauthorizedEmails.push(email);
+      }
+    }
+
+    return unauthorizedEmails;
+  }
+
+  async addSharesBatch(
+    userId: string,
+    userEmail: string,
+    id: string,
+    emails: string[],
+    permission: SharePermission,
+  ): Promise<DocumentShare[]> {
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.OWNER,
+    );
+
+    const shares: DocumentShare[] = [];
+    for (const email of emails) {
+      const normalizedEmail = email.toLowerCase();
+      if (normalizedEmail === item.ownerEmail.toLowerCase()) {
+        continue; // Cannot share with owner
+      }
+
+      const share = await this.prisma.documentShare.upsert({
+        where: {
+          documentItemId_shareWithEmail: {
+            documentItemId: id,
+            shareWithEmail: normalizedEmail,
+          },
+        },
+        update: { permission },
+        create: {
+          documentItemId: id,
+          shareWithEmail: normalizedEmail,
+          permission,
+        },
+      });
+      shares.push(share);
+    }
+
+    return shares;
+  }
+
+  async getFolderAncestors(
+    userId: string,
+    userEmail: string,
+    id: string,
+  ): Promise<{ id: string; name: string }[]> {
+    await this.checkPermission(id, userId, userEmail, DocumentRole.VIEWER);
+
+    const breadcrumbs: { id: string; name: string }[] = [];
+    let currentId: string | null = id;
+    let iterations = 0;
+    const maxIterations = 50;
+
+    while (currentId && iterations < maxIterations) {
+      const item = await this.prisma.documentItem.findUnique({
+        where: { id: currentId },
+        select: { id: true, name: true, parentFolderId: true },
+      });
+
+      if (!item) {
+        break;
+      }
+
+      breadcrumbs.unshift({ id: item.id, name: item.name });
+      currentId = item.parentFolderId;
+      iterations++;
+    }
+
+    return breadcrumbs;
+  }
+
   private async enrichDocumentItem<T extends { ownerUserId: string }>(
     item: T,
   ): Promise<T & { ownerProfile: UserProfileSnapshotResponse | null }> {

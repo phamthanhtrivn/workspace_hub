@@ -161,8 +161,8 @@ export function DownloadQueueProvider({
             <Download size={15} className="text-blue-400 shrink-0" />
             <span className="text-sm font-bold text-white">
               {activeCount > 0
-                ? `Đang tải xuống ${activeCount} mục...`
-                : `Đã hoàn tất`}
+                ? `Downloading ${activeCount} items...`
+                : `Completed`}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -178,7 +178,7 @@ export function DownloadQueueProvider({
                 }}
                 className="text-[10px] font-bold text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded hover:bg-slate-700 transition-colors cursor-pointer"
               >
-                Xóa tất cả
+                Clear all
               </button>
             )}
             <button

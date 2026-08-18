@@ -42,6 +42,7 @@ import ListView from "./views/list-view";
 import FilePreviewModal from "./preview/file-preview-modal";
 import VersionManagementModal from "./versions/version-management-modal";
 import ShareModal from "./sharing/share-modal";
+import ShareToChatModal from "./sharing/share-to-chat-modal";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { cn } from "@/lib/utils";
 import { useDownloadQueue } from "./download/download-queue-provider";
@@ -85,6 +86,8 @@ function DocumentExplorer({
   const [previewVersionId, setPreviewVersionId] = useState<string>("");
   const [sharingItem, setSharingItem] = useState<DocumentItem | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareToChatItem, setShareToChatItem] = useState<DocumentItem | null>(null);
+  const [isShareToChatOpen, setIsShareToChatOpen] = useState(false);
 
   // Uploading state
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
@@ -188,11 +191,11 @@ function DocumentExplorer({
   const createFolderMutation = useMutation({
     mutationFn: documentsApi.createFolder,
     onSuccess: () => {
-      toast.success("Đã tạo thư mục mới");
+      toast.success("New folder created successfully");
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Lỗi tạo thư mục");
+      toast.error(err.response?.data?.message || "Failed to create folder");
     },
   });
 
@@ -200,11 +203,11 @@ function DocumentExplorer({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       documentsApi.renameItem(id, name),
     onSuccess: () => {
-      toast.success("Đã đổi tên");
+      toast.success("Renamed successfully");
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Lỗi đổi tên");
+      toast.error(err.response?.data?.message || "Failed to rename");
     },
   });
 
@@ -212,13 +215,13 @@ function DocumentExplorer({
     mutationFn: ({ id, destId }: { id: string; destId: string | null }) =>
       documentsApi.moveItem(id, destId),
     onSuccess: () => {
-      toast.success("Đã di chuyển tài nguyên");
+      toast.success("Resource moved successfully");
       setIsMoveModalOpen(false);
       setSelectedItemId(null);
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Lỗi di chuyển");
+      toast.error(err.response?.data?.message || "Failed to move resource");
     },
   });
 
@@ -235,7 +238,7 @@ function DocumentExplorer({
       archive ? documentsApi.archiveItem(id) : documentsApi.restoreItem(id),
     onSuccess: (data, variables) => {
       toast.success(
-        variables.archive ? "Đã chuyển vào thùng rác" : "Đã khôi phục",
+        variables.archive ? "Moved to trash" : "Restored successfully",
       );
       setSelectedItemId(null);
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
@@ -246,13 +249,13 @@ function DocumentExplorer({
   const deletePermanentlyMutation = useMutation({
     mutationFn: (id: string) => documentsApi.deleteItemPermanently(id),
     onSuccess: () => {
-      toast.success("Đã xóa tài nguyên vĩnh viễn");
+      toast.success("Permanently deleted resource");
       setSelectedItemId(null);
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
       void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Lỗi xóa vĩnh viễn");
+      toast.error(err.response?.data?.message || "Failed to delete permanently");
     },
   });
 
@@ -275,7 +278,7 @@ function DocumentExplorer({
         );
 
         setUploadState(UploadState.SUCCESS);
-        toast.success(`Đã tải lên tệp ${file.name} thành công!`);
+        toast.success(`Successfully uploaded file ${file.name}!`);
 
         void queryClient.invalidateQueries({ queryKey: ["documents"] });
         void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
@@ -289,7 +292,7 @@ function DocumentExplorer({
         console.error(err);
         setUploadState(UploadState.ERROR);
         const errMsg =
-          err.response?.data?.message || err.message || "Lỗi tải lên tệp";
+          err.response?.data?.message || err.message || "Failed to upload file";
         toast.error(errMsg);
         setTimeout(() => {
           setUploadState(UploadState.IDLE);
@@ -367,16 +370,16 @@ function DocumentExplorer({
   // Folder creation trigger
   const handleCreateFolder = useCallback(() => {
     void Swal.fire({
-      title: "Thư mục mới",
+      title: "New Folder",
       input: "text",
-      inputPlaceholder: "Nhập tên thư mục...",
+      inputPlaceholder: "Enter folder name...",
       showCancelButton: true,
-      confirmButtonText: "Tạo mới",
-      cancelButtonText: "Hủy bỏ",
+      confirmButtonText: "Create",
+      cancelButtonText: "Cancel",
       confirmButtonColor: "var(--color-primary, #3b82f6)",
       inputValidator: (value) => {
         if (!value) {
-          return "Tên thư mục không được để trống!";
+          return "Folder name cannot be empty!";
         }
         return null;
       },
@@ -394,16 +397,16 @@ function DocumentExplorer({
   const handleRename = useCallback(
     (id: string, currentName: string) => {
       void Swal.fire({
-        title: "Đổi tên tài nguyên",
+        title: "Rename Resource",
         input: "text",
         inputValue: currentName,
         showCancelButton: true,
-        confirmButtonText: "Lưu lại",
-        cancelButtonText: "Hủy bỏ",
+        confirmButtonText: "Save",
+        cancelButtonText: "Cancel",
         confirmButtonColor: "var(--color-primary, #3b82f6)",
         inputValidator: (value) => {
           if (!value) {
-            return "Tên không được để trống!";
+            return "Name cannot be empty!";
           }
           return null;
         },
@@ -435,12 +438,12 @@ function DocumentExplorer({
     (id: string, archive: boolean) => {
       if (archive) {
         void Swal.fire({
-          title: "Xóa tạm tài nguyên?",
-          text: "Tập tin/Thư mục sẽ được chuyển vào thùng rác và lưu giữ trong 30 ngày.",
+          title: "Move to Trash?",
+          text: "Files/Folders will be moved to Trash and kept for 30 days.",
           icon: "warning",
           showCancelButton: true,
-          confirmButtonText: "Đồng ý",
-          cancelButtonText: "Hủy bỏ",
+          confirmButtonText: "Yes",
+          cancelButtonText: "Cancel",
           confirmButtonColor: "#ef4444",
         }).then((result) => {
           if (result.isConfirmed) {
@@ -514,6 +517,11 @@ function DocumentExplorer({
     setIsShareModalOpen(true);
   }, []);
 
+  const handleShareToChat = useCallback((item: DocumentItem) => {
+    setShareToChatItem(item);
+    setIsShareToChatOpen(true);
+  }, []);
+
   const handleDownload = useCallback(async (item: DocumentItem) => {
     try {
       const downloadUrl = await documentsApi.getDownloadUrl(item.id);
@@ -524,7 +532,7 @@ function DocumentExplorer({
       document.body.removeChild(link);
     } catch (err) {
       console.error("Failed to generate download URL", err);
-      toast.error("Lỗi tạo liên kết tải xuống");
+      toast.error("Failed to generate download link");
     }
   }, []);
 
@@ -540,14 +548,14 @@ function DocumentExplorer({
   const handleDeletePermanently = useCallback(
     (id: string) => {
       Swal.fire({
-        title: "Xóa vĩnh viễn?",
-        text: "Tài nguyên sẽ bị xóa vĩnh viễn và không thể khôi phục!",
+        title: "Delete Permanently?",
+        text: "Resource will be permanently deleted and cannot be recovered!",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#d33",
         cancelButtonColor: "#3085d6",
-        confirmButtonText: "Đồng ý xóa",
-        cancelButtonText: "Hủy",
+        confirmButtonText: "Delete",
+        cancelButtonText: "Cancel",
       }).then((result) => {
         if (result.isConfirmed) {
           deletePermanentlyMutation.mutate(id);
@@ -603,7 +611,7 @@ function DocumentExplorer({
                   size={48}
                 />
                 <p className="text-sm font-black text-blue-600">
-                  Thả tệp vào đây để tải lên
+                  Drop files here to upload
                 </p>
               </div>
             )}
@@ -613,10 +621,10 @@ function DocumentExplorer({
               <div className="flex h-full flex-col items-center justify-center text-slate-400 py-20 animate-in fade-in duration-300">
                 <Folder size={64} className="text-slate-200 mb-4" />
                 <span className="text-base font-semibold text-slate-700">
-                  Thư mục trống
+                  Folder is empty
                 </span>
                 <span className="text-xs text-slate-400 font-semibold mt-1">
-                  Chưa có tập tin hay thư mục nào ở đây.
+                  No files or folders here yet.
                 </span>
               </div>
             ) : viewLayout === ViewLayout.GRID ? (
@@ -639,6 +647,7 @@ function DocumentExplorer({
                 onDownloadFolder={handleDownloadFolder}
                 onManageVersions={handleManageVersions}
                 onShare={handleShare}
+                onShareToChat={handleShareToChat}
               />
             ) : (
               <ListView
@@ -660,6 +669,7 @@ function DocumentExplorer({
                 onDownloadFolder={handleDownloadFolder}
                 onManageVersions={handleManageVersions}
                 onShare={handleShare}
+                onShareToChat={handleShareToChat}
               />
             )}
 
@@ -667,9 +677,9 @@ function DocumentExplorer({
             {totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-6">
                 <span className="text-xs font-semibold text-slate-400">
-                  Hiển thị {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
-                  {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)} trên
-                  tổng số {totalItems} tài nguyên
+                  Showing {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
+                  {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)} of{" "}
+                  {totalItems} items
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -679,7 +689,7 @@ function DocumentExplorer({
                     }
                     className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    Trang trước
+                    Previous
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                     (page) => (
@@ -704,7 +714,7 @@ function DocumentExplorer({
                     }
                     className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    Trang sau
+                    Next
                   </button>
                 </div>
               </div>
@@ -791,6 +801,18 @@ function DocumentExplorer({
             setSharingItem(null);
           }}
           item={sharingItem}
+        />
+      )}
+
+      {/* Share To Chat Modal */}
+      {isShareToChatOpen && shareToChatItem && (
+        <ShareToChatModal
+          isOpen={isShareToChatOpen}
+          onClose={() => {
+            setIsShareToChatOpen(false);
+            setShareToChatItem(null);
+          }}
+          item={shareToChatItem}
         />
       )}
     </div>

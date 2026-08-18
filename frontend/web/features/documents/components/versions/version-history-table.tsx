@@ -32,7 +32,7 @@ export function VersionHistoryTable({
   if (versions.length === 0) {
     return (
       <div className="text-center py-8 text-slate-400 font-semibold text-sm">
-        Không có dữ liệu phiên bản.
+        No version history available.
       </div>
     );
   }
@@ -42,11 +42,11 @@ export function VersionHistoryTable({
       <table className="w-full text-left border-collapse text-xs">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
-            <th className="px-5 py-3">Phiên bản</th>
-            <th className="px-5 py-3">Thời gian</th>
-            <th className="px-5 py-3">Dung lượng</th>
-            <th className="px-5 py-3">Người tải</th>
-            <th className="px-5 py-3 text-right">Hành động</th>
+            <th className="px-5 py-3">Version</th>
+            <th className="px-5 py-3">Date</th>
+            <th className="px-5 py-3">Size</th>
+            <th className="px-5 py-3">Uploaded By</th>
+            <th className="px-5 py-3 text-right">Actions</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
@@ -63,7 +63,7 @@ export function VersionHistoryTable({
                   <span>v{version.versionNumber}</span>
                   {isLatest && (
                     <span className="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold border border-blue-100">
-                      Hiện tại
+                      Current
                     </span>
                   )}
                 </td>
@@ -88,14 +88,14 @@ export function VersionHistoryTable({
                           version.id === ORIGINAL_VERSION_ID ? "" : version.id,
                         )
                       }
-                      title="Xem trước phiên bản"
+                      title="Preview Version"
                       className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-500 rounded-lg cursor-pointer transition-colors"
                     >
                       <Eye size={15} />
                     </button>
                     <button
                       onClick={() => onDownload(version.id)}
-                      title="Tải xuống phiên bản"
+                      title="Download Version"
                       className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-500 rounded-lg cursor-pointer transition-colors"
                     >
                       <Download size={15} />

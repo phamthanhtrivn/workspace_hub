@@ -54,7 +54,7 @@ function ShareModal({ isOpen, onClose, item }: ShareModalProps) {
             </div>
             <div>
               <h3 className="text-base font-black text-slate-800 leading-tight">
-                Chia sẻ tài nguyên
+                Share Resource
               </h3>
               <p className="text-xs text-slate-400 font-bold mt-0.5 truncate max-w-[280px]">
                 {item.name}
