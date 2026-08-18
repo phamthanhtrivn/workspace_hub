@@ -45,7 +45,7 @@ export const PreviewContent = React.memo(function PreviewContent({
           className="animate-spin text-[var(--color-primary)]"
           size={36}
         />
-        <span className="text-sm font-semibold">Đang tải bản xem trước...</span>
+        <span className="text-sm font-semibold">Loading preview...</span>
       </div>
     );
   }
@@ -57,10 +57,9 @@ export const PreviewContent = React.memo(function PreviewContent({
           <X size={32} />
         </div>
         <div>
-          <h4 className="font-black text-slate-800">Không thể tải tệp tin</h4>
+          <h4 className="font-black text-slate-800">Failed to load file</h4>
           <p className="text-xs text-slate-400 font-semibold mt-1">
-            Đã có lỗi xảy ra khi tạo liên kết xem trước. Vui lòng tải xuống trực
-            tiếp.
+            An error occurred while generating the preview link. Please download the file directly.
           </p>
         </div>
         <button
@@ -68,7 +67,7 @@ export const PreviewContent = React.memo(function PreviewContent({
           className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] hover:opacity-90 px-4 py-2.5 text-xs font-black text-white shadow-xs cursor-pointer transition-opacity"
         >
           <Download size={14} />
-          <span>Tải xuống tệp tin</span>
+          <span>Download File</span>
         </button>
       </div>
     );
@@ -158,7 +157,7 @@ export const PreviewContent = React.memo(function PreviewContent({
             className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-xl bg-white border border-slate-200/80 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-md hover:bg-slate-50 transition-all cursor-pointer animate-in fade-in"
           >
             <ExternalLink size={12} />
-            <span>Mở trực tiếp</span>
+            <span>Open Directly</span>
           </a>
         </div>
       );
@@ -174,19 +173,18 @@ export const PreviewContent = React.memo(function PreviewContent({
             {item.name}
           </h4>
           <p className="text-xs text-slate-400 font-semibold mb-6">
-            Loại tệp: {item.mimeType} • Dung lượng:{" "}
+            File Type: {item.mimeType} • Size:{" "}
             {formatBytes(item.sizeBytes)}
           </p>
           <p className="text-xs text-slate-500 font-bold mb-6 max-w-sm">
-            Định dạng tệp tin này không hỗ trợ xem trực tiếp. Vui lòng tải xuống
-            máy cá nhân để mở.
+            This file format is not supported for direct preview. Please download the file to your device to open it.
           </p>
           <button
             onClick={handleDownload}
             className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] hover:opacity-90 px-5 py-3 text-xs font-black text-white shadow-xs cursor-pointer transition-opacity"
           >
             <Download size={14} />
-            <span>Tải xuống thiết bị</span>
+            <span>Download to Device</span>
           </button>
         </div>
       );

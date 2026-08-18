@@ -38,10 +38,10 @@ export function VersionUploader({
             <UploadCloud size={24} />
           </div>
           <span className="text-sm font-black text-slate-700">
-            Tải lên phiên bản mới
+            Upload a new version
           </span>
           <span className="text-xs text-slate-400 font-bold mt-1">
-            Các phiên bản cũ sẽ được lưu giữ an toàn
+            Old versions will be kept safely
           </span>
         </div>
       ) : (
@@ -75,15 +75,15 @@ export function VersionUploader({
           </div>
           <p className="text-[10px] text-slate-400 font-bold mt-2">
             {uploadState === UploadState.INITIATING &&
-              "Đang khởi tạo tải lên..."}
+              "Initiating upload..."}
             {uploadState === UploadState.UPLOADING &&
-              "Đang tải tệp lên máy chủ lưu trữ..."}
+              "Uploading file to storage..."}
             {uploadState === UploadState.CONFIRMING &&
-              "Đang xác nhận phiên bản mới..."}
+              "Confirming new version..."}
             {uploadState === UploadState.SUCCESS &&
-              "Tải lên phiên bản thành công!"}
+              "Version uploaded successfully!"}
             {uploadState === UploadState.ERROR &&
-              "Gặp lỗi trong quá trình tải lên."}
+              "Error occurred during upload."}
           </p>
         </div>
       )}

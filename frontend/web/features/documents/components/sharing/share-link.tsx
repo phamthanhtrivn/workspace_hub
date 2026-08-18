@@ -41,7 +41,7 @@ export function ShareModalLink({
       const newAccess = updatedItem.linkAccess as LinkAccess;
       setLinkAccess(newAccess);
       onLinkAccessChanged?.(newAccess);
-      toast.success("Đã cập nhật quyền truy cập chung");
+      toast.success("General access updated");
       queryClient.invalidateQueries({
         queryKey: ["document-sharing", documentItemId],
       });
@@ -51,7 +51,7 @@ export function ShareModalLink({
     },
     onError: (err) => {
       console.error("Failed to update link access", err);
-      toast.error("Không thể cập nhật cấu hình liên kết");
+      toast.error("Failed to update link configurations");
     },
   });
 
@@ -66,14 +66,14 @@ export function ShareModalLink({
     const shareUrl = `${window.location.origin}/documents/shared/${documentItemId}`;
     void navigator.clipboard.writeText(shareUrl);
     setIsCopied(true);
-    toast.success("Đã sao chép liên kết vào bộ nhớ tạm");
+    toast.success("Link copied to clipboard");
     setTimeout(() => setIsCopied(false), 2000);
   }, [documentItemId]);
 
   return (
     <div className="space-y-3 pt-4 border-t border-slate-100">
       <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-        Quyền truy cập chung
+        General Access
       </h4>
       <div className="flex items-start gap-3 bg-slate-50/70 border border-slate-100 rounded-2xl p-4">
         <div
@@ -126,12 +126,12 @@ export function ShareModalLink({
         {isCopied ? (
           <>
             <Check size={14} className="text-green-600" />
-            <span className="text-green-600">Đã sao chép liên kết</span>
+            <span className="text-green-600">Link copied</span>
           </>
         ) : (
           <>
             <Copy size={14} />
-            <span>Sao chép đường liên kết</span>
+            <span>Copy share link</span>
           </>
         )}
       </button>

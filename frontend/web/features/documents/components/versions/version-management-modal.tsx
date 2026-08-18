@@ -74,10 +74,10 @@ function VersionManagementModal({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        toast.success("Khởi tạo tải xuống phiên bản thành công");
+        toast.success("Version download initiated successfully");
       } catch (err) {
         console.error("Failed to download version", err);
-        toast.error("Lỗi tạo liên kết tải xuống phiên bản");
+        toast.error("Error creating version download link");
       }
     },
     [item, isPublic],
@@ -106,7 +106,7 @@ function VersionManagementModal({
     },
     onSuccess: () => {
       setUploadState(UploadState.SUCCESS);
-      toast.success(`Đã tải lên phiên bản mới thành công!`);
+      toast.success(`New version uploaded successfully!`);
 
       // Invalidate queries to refresh lists and quota
       void queryClient.invalidateQueries({
@@ -131,7 +131,7 @@ function VersionManagementModal({
       const errMsg =
         err.response?.data?.message ||
         err.message ||
-        "Lỗi tải lên phiên bản mới";
+        "Failed to upload new version";
       toast.error(errMsg);
       setTimeout(() => {
         setUploadState(UploadState.IDLE);
@@ -165,7 +165,7 @@ function VersionManagementModal({
             </div>
             <div>
               <h3 className="text-base font-black text-slate-800 leading-tight">
-                Quản lý phiên bản
+                Version Management
               </h3>
               <p className="text-xs text-slate-400 font-bold mt-0.5 truncate max-w-lg">
                 {item.name}

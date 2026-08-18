@@ -21,11 +21,11 @@ function UploadProgress({
     <div className="absolute bottom-6 right-6 z-50 bg-white/90 backdrop-blur-md border border-slate-200/50 shadow-2xl p-5 rounded-2xl w-80 animate-in slide-in-from-bottom-5 duration-300">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs font-black uppercase tracking-wider text-slate-400">
-          {uploadState === UploadState.INITIATING && "Đang chuẩn bị..."}
-          {uploadState === UploadState.UPLOADING && "Đang tải lên..."}
-          {uploadState === UploadState.CONFIRMING && "Đang xử lý..."}
-          {uploadState === UploadState.SUCCESS && "Tải lên hoàn tất!"}
-          {uploadState === UploadState.ERROR && "Lỗi tải lên"}
+          {uploadState === UploadState.INITIATING && "Preparing..."}
+          {uploadState === UploadState.UPLOADING && "Uploading..."}
+          {uploadState === UploadState.CONFIRMING && "Processing..."}
+          {uploadState === UploadState.SUCCESS && "Upload complete!"}
+          {uploadState === UploadState.ERROR && "Upload failed"}
         </span>
         <span className="text-xs font-extrabold text-[var(--color-primary)]">
           {uploadProgress}%

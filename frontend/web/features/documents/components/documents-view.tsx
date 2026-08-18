@@ -61,7 +61,7 @@ function DocumentsView() {
           console.error("Failed to load breadcrumbs", err);
           setPath([
             { id: null, name: rootLabel },
-            { id: folderIdParam, name: "Thư mục" },
+            { id: folderIdParam, name: "Folder" },
           ]);
         });
     }
@@ -127,7 +127,7 @@ function DocumentsView() {
                     : "text-slate-400 group-hover:text-slate-600",
                 )}
               />
-              <span>Tài liệu của tôi</span>
+              <span>My Files</span>
             </button>
 
             <button
@@ -148,7 +148,7 @@ function DocumentsView() {
                     : "text-slate-400 group-hover:text-slate-600",
                 )}
               />
-              <span>Được chia sẻ</span>
+              <span>Shared</span>
             </button>
 
             <button
@@ -169,7 +169,7 @@ function DocumentsView() {
                     : "text-slate-400 group-hover:text-slate-600",
                 )}
               />
-              <span>Đã đánh dấu sao</span>
+              <span>Starred</span>
             </button>
 
             <button
@@ -190,7 +190,7 @@ function DocumentsView() {
                     : "text-slate-400 group-hover:text-slate-600",
                 )}
               />
-              <span>Thùng rác</span>
+              <span>Trash</span>
             </button>
           </div>
 

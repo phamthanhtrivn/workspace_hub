@@ -81,7 +81,7 @@ function FolderPickerModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 p-5">
           <h3 className="text-lg font-bold text-slate-800">
-            Di chuyển tài nguyên
+            Move Resource
           </h3>
           <button
             onClick={onClose}
@@ -117,13 +117,13 @@ function FolderPickerModal({
                 className="animate-spin text-[var(--color-primary)] mb-2"
                 size={24}
               />
-              <span>Đang tải danh mục...</span>
+              <span>Loading folders...</span>
             </div>
           ) : folders.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center py-10 text-slate-400">
               <Folder size={32} className="text-slate-200 mb-2" />
               <span className="text-sm font-medium">
-                Không có thư mục con nào ở đây
+                No subfolders here
               </span>
             </div>
           ) : (
@@ -151,13 +151,13 @@ function FolderPickerModal({
             onClick={onClose}
             className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 transition-colors"
           >
-            Hủy bỏ
+            Cancel
           </button>
           <button
             onClick={() => onSelect(currentFolderId)}
             className="cursor-pointer rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] px-5 py-2 text-sm font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-lg transition-all"
           >
-            Di chuyển đến đây
+            Move here
           </button>
         </div>
       </div>

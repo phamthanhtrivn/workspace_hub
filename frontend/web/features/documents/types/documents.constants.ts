@@ -270,14 +270,14 @@ export const OFFICE_VIEWER_BASE_URL =
 // ─── Permission role labels ────────────────────────────────────────────────────
 
 export const PERMISSION_ROLE_SHARE: Record<string, string> = {
-  VIEWER: "Người xem",
-  EDITOR: "Người chỉnh sửa",
+  VIEWER: "Viewer",
+  EDITOR: "Editor",
 };
 
 export const PERMISSION_ROLE_LABELS: Record<string, string> = {
-  VIEWER: "Người xem",
-  EDITOR: "Người chỉnh sửa",
-  OWNER: "Chủ sở hữu",
+  VIEWER: "Viewer",
+  EDITOR: "Editor",
+  OWNER: "Owner",
 };
 
 // ─── Version ───────────────────────────────────────────────────────────────────
@@ -286,21 +286,21 @@ export const ORIGINAL_VERSION_ID = "original";
 
 // ─── User ─────────────────────────────────────────────────────────────────────
 
-export const USER_FALLBACK_NAME = "Người dùng ẩn danh";
+export const USER_FALLBACK_NAME = "Anonymous User";
 
 // ─── Link access labels ────────────────────────────────────────────────────────
 
 export const LINK_ACCESS_LABELS: Record<string, string> = {
-  NONE: "Hạn chế",
-  VIEWER: "Bất kỳ ai có liên kết (Xem)",
-  EDITOR: "Bất kỳ ai có liên kết (Sửa)",
+  NONE: "Restricted",
+  VIEWER: "Anyone with link (Viewer)",
+  EDITOR: "Anyone with link (Editor)",
 };
 
 export const LINK_ACCESS_DESCRIPTIONS: Record<string, string> = {
-  NONE: "Chỉ những người được thêm ở trên mới có thể truy cập bằng liên kết này.",
-  VIEWER: "Bất kỳ ai có liên kết này đều có thể xem và tải xuống tài nguyên.",
+  NONE: "Only people added above can access using this link.",
+  VIEWER: "Anyone with this link can view and download the resource.",
   EDITOR:
-    "Bất kỳ ai có liên kết này đều có quyền chỉnh sửa, di chuyển và xóa tài nguyên.",
+    "Anyone with this link can edit, move, and delete the resource.",
 };
 
 // ─── Drag & Drop ───────────────────────────────────────────────────────────────

@@ -124,14 +124,14 @@ export function ShareModalForm({
 
       if (!userExists) {
         throw new Error(
-          "Email này không tồn tại trong hệ thống. Vui lòng chọn người dùng trong hệ thống.",
+          "This email does not exist in the system. Please select a registered user.",
         );
       }
 
       return documentsApi.addShare(documentItemId, email, permission);
     },
     onSuccess: (_, variables) => {
-      toast.success(`Đã chia sẻ quyền truy cập với ${variables.email}`);
+      toast.success(`Successfully shared access with ${variables.email}`);
       setEmailInput("");
       setSearchResults([]);
       queryClient.invalidateQueries({
@@ -141,7 +141,7 @@ export function ShareModalForm({
     },
     onError: (err: any) => {
       console.error("Failed to add share", err);
-      const errMsg = err.message || "Không thể thực hiện chia sẻ";
+      const errMsg = err.message || "Failed to share access";
       toast.error(errMsg);
     },
   });
@@ -163,7 +163,7 @@ export function ShareModalForm({
   return (
     <form onSubmit={handleAddShare} className="space-y-2">
       <label className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-        Chia sẻ với người khác
+        Share with others
       </label>
       <div className="flex items-center gap-2">
         <div ref={containerRef} className="relative flex-1">
@@ -180,7 +180,7 @@ export function ShareModalForm({
           )}
           <input
             type="text"
-            placeholder="Nhập địa chỉ email..."
+            placeholder="Enter email address..."
             required
             value={emailInput}
             onChange={(e) => setEmailInput(e.target.value)}
@@ -206,8 +206,8 @@ export function ShareModalForm({
           }
           className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-700 outline-hidden transition-all cursor-pointer"
         >
-          <option value={SharePermission.VIEWER}>Người xem</option>
-          <option value={SharePermission.EDITOR}>Người chỉnh sửa</option>
+          <option value={SharePermission.VIEWER}>Viewer</option>
+          <option value={SharePermission.EDITOR}>Editor</option>
         </select>
         <button
           type="submit"
