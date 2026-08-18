@@ -30,17 +30,26 @@ import {
   List,
   ListOrdered,
   FileText,
+  UploadCloud,
+  Folder,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import MentionDropdown from "./mention-dropdown";
 import EmojiPickerPopover from "./emoji-picker-popover";
+import MyFilesSelectModal from "../modals/my-files-select-modal";
 
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
 import { useTextFormatting } from "../../hooks/useTextFormatting";
+import { useActiveChat } from "../../hooks/useChatQueries";
+import {
+  claimVoiceSession,
+  releaseVoiceSession,
+} from "../../utils/voice-session-coordinator";
+import { ChatContextType } from "../../types/chat.types";
 
 interface ThreadChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -70,11 +79,12 @@ const ThreadChatInput = React.memo(
     const [showThreadOptions, setShowThreadOptions] = useState(false);
     const [showFormatting, setShowFormatting] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+    const [isMyFilesModalOpen, setIsMyFilesModalOpen] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState<UploadingMedia[]>([]);
+    const [isDraggingOver, setIsDraggingOver] = useState(false);
+    const dragCounter = useRef(0);
 
-    const activeConversation = useAppSelector(
-      (state: any) => state.chat.activeConversation,
-    );
+    const { activeChat: activeConversation, activeChatType } = useActiveChat();
     const memberProfiles = useChatMemberProfiles();
     const authUserId = useAppSelector((state: any) => state.auth.userId);
 
@@ -87,6 +97,9 @@ const ThreadChatInput = React.memo(
     const fileInputRef = useRef<HTMLInputElement>(null);
     const plusButtonRef = useRef<HTMLButtonElement>(null);
     const threadOptionsRef = useRef<HTMLDivElement>(null);
+    const voiceSessionIdRef = useRef(
+      `thread-input-${Math.random().toString(36).slice(2)}`,
+    );
 
     const activeConversationId = activeConversation?.id;
     const isUploading = uploadingMedia.some((m) => m.status === "uploading");
@@ -124,8 +137,13 @@ const ThreadChatInput = React.memo(
       );
     }, []);
 
-    const { isDictating, interimMessage, toggleDictation, clearInterim } =
-      useSpeechToText({ onTranscript: appendTranscript });
+    const {
+      isDictating,
+      interimMessage,
+      startDictation,
+      stopDictation,
+      clearInterim,
+    } = useSpeechToText({ onTranscript: appendTranscript });
 
     // 3. Audio Recording Hook
     const handleRecordComplete = useCallback(
@@ -142,6 +160,77 @@ const ThreadChatInput = React.memo(
       stopRecording,
       cancelRecording,
     } = useAudioRecorder({ onRecordComplete: handleRecordComplete });
+
+    const dictationSessionId = `${voiceSessionIdRef.current}:speech-to-text`;
+    const recordingSessionId = `${voiceSessionIdRef.current}:voice-message`;
+
+    const handleStartDictation = useCallback(() => {
+      cancelRecording();
+      releaseVoiceSession(recordingSessionId);
+      claimVoiceSession({
+        id: dictationSessionId,
+        type: "speech-to-text",
+        stop: stopDictation,
+      });
+
+      if (!startDictation()) {
+        releaseVoiceSession(dictationSessionId);
+      }
+    }, [
+      cancelRecording,
+      dictationSessionId,
+      recordingSessionId,
+      startDictation,
+      stopDictation,
+    ]);
+
+    const handleStopDictation = useCallback(() => {
+      stopDictation();
+      releaseVoiceSession(dictationSessionId);
+    }, [dictationSessionId, stopDictation]);
+
+    const handleStartRecording = useCallback(async () => {
+      stopDictation();
+      releaseVoiceSession(dictationSessionId);
+      claimVoiceSession({
+        id: recordingSessionId,
+        type: "voice-message",
+        stop: cancelRecording,
+      });
+
+      const started = await startRecording();
+      if (!started) {
+        releaseVoiceSession(recordingSessionId);
+      }
+    }, [
+      cancelRecording,
+      dictationSessionId,
+      recordingSessionId,
+      startRecording,
+      stopDictation,
+    ]);
+
+    const handleStopRecording = useCallback(() => {
+      stopRecording();
+      releaseVoiceSession(recordingSessionId);
+    }, [recordingSessionId, stopRecording]);
+
+    const handleCancelRecording = useCallback(() => {
+      cancelRecording();
+      releaseVoiceSession(recordingSessionId);
+    }, [cancelRecording, recordingSessionId]);
+
+    useEffect(() => {
+      if (!isDictating) {
+        releaseVoiceSession(dictationSessionId);
+      }
+    }, [dictationSessionId, isDictating]);
+
+    useEffect(() => {
+      if (!isRecording) {
+        releaseVoiceSession(recordingSessionId);
+      }
+    }, [isRecording, recordingSessionId]);
 
     // Auto resize height according to content
     useEffect(() => {
@@ -168,7 +257,7 @@ const ThreadChatInput = React.memo(
         .filter((id: string) => id !== authUserId)
         .map((id: string) => ({
           id,
-          name: memberProfiles[id]?.fullName || "Ai đó",
+          name: memberProfiles[id]?.fullName || "Someone",
           avatarUrl: memberProfiles[id]?.avatarUrl,
         }))
         .filter((m: any) => m.name.toLowerCase().includes(query));
@@ -258,7 +347,7 @@ const ThreadChatInput = React.memo(
     const uploadFilesList = async (files: File[]) => {
       const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
       if (validFiles.length < files.length) {
-        toast.error("Không được upload file vượt quá 100MB.");
+        toast.error("File size cannot exceed 100MB.");
       }
       if (validFiles.length === 0) return;
 
@@ -275,7 +364,13 @@ const ThreadChatInput = React.memo(
       setShowThreadOptions(false);
 
       try {
-        if (!activeConversationId) throw new Error("No active conversation");
+        if (!activeConversationId) {
+          throw new Error(
+            activeChatType === ChatContextType.CHANNEL
+              ? "No active channel"
+              : "No active direct message",
+          );
+        }
 
         const presignRequests = newUploads.map((u) => ({
           fileName: u.name,
@@ -283,10 +378,13 @@ const ThreadChatInput = React.memo(
           sizeBytes: u.sizeBytes,
         }));
 
-        const presignedUrls = await getPresignedUrls(
-          activeConversationId,
-          presignRequests,
-        );
+        if (!activeChatType) throw new Error("No active chat type");
+
+        const presignedUrls = await getPresignedUrls({
+          chatId: activeConversationId,
+          chatType: activeChatType,
+          files: presignRequests,
+        });
 
         newUploads.forEach(async (upload, idx) => {
           const presignedInfo = presignedUrls[idx];
@@ -341,6 +439,79 @@ const ThreadChatInput = React.memo(
       [activeConversationId],
     );
 
+    const handleSelectMyFiles = useCallback(
+      (
+        files: Array<{
+          name: string;
+          s3Key: string;
+          mimeType: string;
+          sizeBytes: number;
+        }>,
+      ) => {
+        const newUploads: UploadingMedia[] = files.map((f) => ({
+          id: Math.random().toString(36).substring(7) + Date.now(),
+          status: "success",
+          name: f.name,
+          mimeType: f.mimeType,
+          sizeBytes: f.sizeBytes,
+          s3Key: f.s3Key,
+          file: new File([], f.name, { type: f.mimeType }),
+        }));
+        setUploadingMedia((prev) => [...prev, ...newUploads]);
+      },
+      [],
+    );
+
+    const handleDragEnter = useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current++;
+      if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+        setIsDraggingOver(true);
+      }
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dragCounter.current--;
+      if (dragCounter.current === 0) {
+        setIsDraggingOver(false);
+      }
+    }, []);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+    }, []);
+
+    const handleDrop = useCallback(
+      async (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDraggingOver(false);
+        dragCounter.current = 0;
+
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          const files = Array.from(e.dataTransfer.files);
+          await uploadFilesList(files);
+          e.dataTransfer.clearData();
+        }
+      },
+      [uploadFilesList],
+    );
+
+    const handlePaste = useCallback(
+      async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        if (e.clipboardData.files && e.clipboardData.files.length > 0) {
+          e.preventDefault();
+          const files = Array.from(e.clipboardData.files);
+          await uploadFilesList(files);
+        }
+      },
+      [uploadFilesList],
+    );
+
     const formatTime = (seconds: number) => {
       const m = Math.floor(seconds / 60);
       const s = seconds % 60;
@@ -362,7 +533,7 @@ const ThreadChatInput = React.memo(
     const handleSend = useCallback(() => {
       if (!message.trim() && uploadingMedia.length === 0) return;
       if (isUploading) {
-        toast.warning("Vui lòng đợi file tải lên hoàn tất.");
+        toast.warning("Please wait for the file to upload.");
         return;
       }
       if (!onSendMessage) return;
@@ -398,7 +569,24 @@ const ThreadChatInput = React.memo(
     ]);
 
     return (
-      <div className="w-full bg-white border-t border-gray-200 flex justify-center">
+      <div
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        className="w-full bg-white border-t border-gray-200 flex justify-center relative"
+      >
+        {isDraggingOver && (
+          <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-2xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
+            <UploadCloud
+              className="text-blue-500 animate-bounce mb-2"
+              size={28}
+            />
+            <p className="text-xs font-black text-blue-600">
+              Drop files here to upload
+            </p>
+          </div>
+        )}
         <div className="w-full p-2">
           {/* File Previews */}
           {uploadingMedia.length > 0 && (
@@ -412,10 +600,17 @@ const ThreadChatInput = React.memo(
                       : "bg-gray-100"
                   }`}
                 >
-                  <ImageIcon
-                    size={16}
-                    className="text-blue-500 flex-shrink-0"
-                  />
+                  {media.mimeType.startsWith("image/") ? (
+                    <ImageIcon
+                      size={16}
+                      className="text-blue-500 flex-shrink-0"
+                    />
+                  ) : (
+                    <FileText
+                      size={16}
+                      className="text-gray-500 flex-shrink-0"
+                    />
+                  )}
                   <div className="flex flex-col flex-1 min-w-0">
                     <span className="text-xs truncate text-gray-700">
                       {media.name}
@@ -432,14 +627,18 @@ const ThreadChatInput = React.memo(
                     />
                   )}
 
-                  {media.status !== "uploading" && (
-                    <button
-                      onClick={() => removeFile(media.id)}
-                      className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
-                    >
-                      <X size={14} />
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeFile(media.id)}
+                    className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
+                    title={
+                      media.status === "uploading"
+                        ? "Remove uploading file"
+                        : "Remove file"
+                    }
+                  >
+                    <X size={14} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -469,7 +668,7 @@ const ThreadChatInput = React.memo(
                     ? "bg-blue-100 text-blue-600"
                     : "text-gray-400 hover:bg-gray-200"
                 }`}
-                title="Tùy chọn"
+                title="Options"
               >
                 <Plus
                   size={18}
@@ -487,7 +686,17 @@ const ThreadChatInput = React.memo(
                     disabled={isUploading}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <Paperclip size={14} className="text-gray-500" /> Tài liệu
+                    <Paperclip size={14} className="text-gray-500" /> Files
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowThreadOptions(false);
+                      setIsMyFilesModalOpen(true);
+                    }}
+                    disabled={isUploading}
+                    className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
+                  >
+                    <Folder size={14} className="text-blue-500" /> My Files
                   </button>
                   <button
                     onClick={() => {
@@ -496,7 +705,7 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Type size={14} className="text-blue-500" /> Định dạng
+                    <Type size={14} className="text-blue-500" /> Formatting
                   </button>
                   <button
                     onClick={() => {
@@ -505,26 +714,26 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Smile size={14} className="text-yellow-500" /> Cảm xúc
+                    <Smile size={14} className="text-yellow-500" /> Emoji
                   </button>
                   <button
                     onClick={() => {
                       setShowThreadOptions(false);
-                      toggleDictation();
+                      handleStartDictation();
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Mic size={14} className="text-green-500" /> Nhập giọng nói
+                    <Mic size={14} className="text-green-500" /> Voice Input
                   </button>
                   <button
                     onClick={() => {
                       setShowThreadOptions(false);
-                      startRecording();
+                      void handleStartRecording();
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Voicemail size={14} className="text-red-500" /> Ghi âm
-                    thoại
+                    <Voicemail size={14} className="text-red-500" /> Voice
+                    Message
                   </button>
                 </div>
               )}
@@ -555,7 +764,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("bold")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Đậm (Bold)"
+                    title="Bold"
                   >
                     <Bold size={13} />
                   </button>
@@ -563,7 +772,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("italic")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Nghiêng (Italic)"
+                    title="Italic"
                   >
                     <Italic size={13} />
                   </button>
@@ -571,7 +780,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("strikethrough")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Gạch ngang (Strikethrough)"
+                    title="Strikethrough"
                   >
                     <Strikethrough size={13} />
                   </button>
@@ -580,7 +789,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("heading")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Tiêu đề (Heading)"
+                    title="Heading"
                   >
                     <Heading size={13} />
                   </button>
@@ -588,7 +797,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("link")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Liên kết (Link)"
+                    title="Link"
                   >
                     <Link size={13} />
                   </button>
@@ -596,7 +805,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("code")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Đoạn mã (Code block)"
+                    title="Code block"
                   >
                     <Code size={13} />
                   </button>
@@ -604,7 +813,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("quote")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Trích dẫn (Quote)"
+                    title="Quote"
                   >
                     <Quote size={13} />
                   </button>
@@ -612,7 +821,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("bullet")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Danh sách dấu chấm"
+                    title="Bulleted list"
                   >
                     <List size={13} />
                   </button>
@@ -620,7 +829,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("number")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Danh sách số"
+                    title="Numbered list"
                   >
                     <ListOrdered size={13} />
                   </button>
@@ -631,6 +840,7 @@ const ThreadChatInput = React.memo(
               <textarea
                 id="thread-chat-input-textarea"
                 ref={textareaRef}
+                onPaste={handlePaste}
                 value={
                   message +
                   (interimMessage ? (message ? " " : "") + interimMessage : "")
@@ -643,7 +853,7 @@ const ThreadChatInput = React.memo(
                     handleTyping(e.target.value, e.target.selectionStart);
                   }
                 }}
-                placeholder="Phản hồi trong chủ đề..."
+                placeholder="Reply in thread..."
                 disabled={isUploading}
                 className="w-full bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
                 rows={1}
@@ -695,40 +905,60 @@ const ThreadChatInput = React.memo(
                     {formatTime(recordingTime)}
                   </span>
                   <button
-                    onClick={cancelRecording}
+                    onClick={handleCancelRecording}
                     className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
-                    title="Hủy ghi âm"
+                    title="Cancel recording"
                   >
                     <Trash2 size={16} />
                   </button>
                   <button
-                    onClick={stopRecording}
+                    onClick={handleStopRecording}
                     className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
-                    title="Gửi"
+                    title="Send"
                   >
                     <Send size={14} />
                   </button>
                 </div>
               ) : (
-                <button
-                  className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
-                    (message.trim() ||
-                      uploadingMedia.some((m) => m.status === "success")) &&
-                    !isUploading
-                      ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
-                      : "bg-gray-200 text-gray-400"
-                  }`}
-                  disabled={
-                    (!message.trim() && uploadingMedia.length === 0) ||
-                    isUploading
-                  }
-                  onClick={handleSend}
-                >
-                  <Send size={15} />
-                </button>
+                <>
+                  {isDictating && (
+                    <button
+                      type="button"
+                      onClick={handleStopDictation}
+                      className="p-1.5 rounded-full bg-red-100 text-red-600 animate-pulse hover:bg-red-200 transition-colors cursor-pointer"
+                      title="Stop speech to text"
+                    >
+                      <Mic size={15} />
+                    </button>
+                  )}
+                  <button
+                    className={`p-1.5 rounded-full transition-colors flex items-center justify-center ${
+                      (message.trim() ||
+                        interimMessage.trim() ||
+                        uploadingMedia.some((m) => m.status === "success")) &&
+                      !isUploading
+                        ? "bg-blue-600 text-white hover:bg-blue-700 cursor-pointer"
+                        : "bg-gray-200 text-gray-400"
+                    }`}
+                    disabled={
+                      (!message.trim() &&
+                        !interimMessage.trim() &&
+                        uploadingMedia.length === 0) ||
+                      isUploading
+                    }
+                    onClick={handleSend}
+                  >
+                    <Send size={15} />
+                  </button>
+                </>
               )}
             </div>
           </div>
+          <MyFilesSelectModal
+            isOpen={isMyFilesModalOpen}
+            onClose={() => setIsMyFilesModalOpen(false)}
+            onSelect={handleSelectMyFiles}
+          />
         </div>
       </div>
     );

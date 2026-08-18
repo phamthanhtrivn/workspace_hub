@@ -1,7 +1,10 @@
 export enum NotificationType {
-  CHAT_GROUP_INVITATION = 'CHAT_GROUP_INVITATION',
-  CHAT_INVITATION_ACCEPTED = 'CHAT_INVITATION_ACCEPTED',
-  CHAT_INVITATION_DECLINED = 'CHAT_INVITATION_DECLINED',
+  SPACE_INVITATION = 'SPACE_INVITATION',
+  SPACE_INVITATION_ACCEPTED = 'SPACE_INVITATION_ACCEPTED',
+  SPACE_INVITATION_DECLINED = 'SPACE_INVITATION_DECLINED',
+  SPACE_DISBANDED = 'SPACE_DISBANDED',
+  SPACE_MEMBER_REMOVED = 'SPACE_MEMBER_REMOVED',
+  CHANNEL_DISBANDED = 'CHANNEL_DISBANDED',
   PROJECT_TASK_ASSIGNED = 'PROJECT_TASK_ASSIGNED',
   PROJECT_TASK_UPDATED = 'PROJECT_TASK_UPDATED',
   PROJECT_SPRINT_STARTED = 'PROJECT_SPRINT_STARTED',
@@ -9,13 +12,15 @@ export enum NotificationType {
 
 export interface InvitationMetadata {
   invitationId: string;
-  conversationId: string;
+  spaceId: string;
+  spaceName?: string;
   conversationName?: string;
   conversationAvatarUrl?: string;
 }
 
 export interface InvitationResponseMetadata {
-  conversationId: string;
+  spaceId: string;
+  spaceName?: string;
   conversationName?: string;
 }
 
@@ -25,7 +30,7 @@ export interface Notification {
   senderId?: string;
   senderName?: string;
   senderAvatar?: string;
-  type: string; // use string or NotificationType
+  type: NotificationType;
   title: string;
   content: string;
   isRead: boolean;

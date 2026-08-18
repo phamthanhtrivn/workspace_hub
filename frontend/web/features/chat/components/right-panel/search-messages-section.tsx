@@ -7,11 +7,17 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { searchConversationMessages } from "../../api/chat.api";
+import {
+  searchChannelMessages,
+  searchDirectConversationMessages,
+} from "../../api/chat.api";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setHighlightMessageId } from "@/store/chat/chat-slice";
 import SearchResultItem from "./search-result-item";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { useActiveChat } from "../../hooks/useChatQueries";
+import { ChatContextType } from "../../types/chat.types";
+import { logApiError } from "@/lib/interceptors";
 
 interface SearchMessagesSectionProps {
   conversationId: string;
@@ -27,7 +33,7 @@ export default function SearchMessagesSection({
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const { activeConversation } = useAppSelector((state) => state.chat);
+  const { activeChat: activeConversation, activeChatType } = useActiveChat();
   const memberProfiles = useChatMemberProfiles();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
@@ -55,7 +61,7 @@ export default function SearchMessagesSection({
       activeConversation?.members?.filter((m: any) => {
         const name =
           m.userId === currentUserId
-            ? "bạn"
+            ? "you"
             : (memberProfiles?.[m.userId]?.fullName || "user").toLowerCase();
         return name.includes(term);
       }) || []
@@ -68,8 +74,8 @@ export default function SearchMessagesSection({
   ]);
 
   const getSelectedSenderName = () => {
-    if (!senderId) return "Người gửi";
-    if (senderId === currentUserId) return "Bạn";
+    if (!senderId) return "Sender";
+    if (senderId === currentUserId) return "You";
     return memberProfiles?.[senderId]?.fullName || "User";
   };
 
@@ -77,7 +83,11 @@ export default function SearchMessagesSection({
     e?.preventDefault();
     setLoading(true);
     try {
-      const res = await searchConversationMessages(
+      const isDirectMessage = activeChatType === ChatContextType.DIRECT_MESSAGE;
+      const searchMessages = isDirectMessage
+        ? searchDirectConversationMessages
+        : searchChannelMessages;
+      const res = await searchMessages(
         conversationId,
         query,
         senderId,
@@ -88,14 +98,12 @@ export default function SearchMessagesSection({
         setResults([]);
       }
     } catch (err) {
-      console.error(err);
+      logApiError(err, "Failed to search chat messages");
       setResults([]);
     } finally {
       setLoading(false);
     }
   };
-
-  console.log(results);
 
   const handleResultClick = (messageId: string) => {
     dispatch(setHighlightMessageId(messageId));
@@ -111,7 +119,7 @@ export default function SearchMessagesSection({
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-semibold text-gray-800">Tìm kiếm tin nhắn</h2>
+        <h2 className="font-semibold text-gray-800">Search Messages</h2>
       </div>
 
       {/* Search Form */}
@@ -126,7 +134,7 @@ export default function SearchMessagesSection({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Tìm theo nội dung hoặc tên tệp..."
+              placeholder="Search by content or file name..."
               className="w-full pl-9 pr-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-200 outline-none transition"
             />
           </form>
@@ -149,7 +157,7 @@ export default function SearchMessagesSection({
                   type="text"
                   value={senderSearch}
                   onChange={(e) => setSenderSearch(e.target.value)}
-                  placeholder="Tìm người gửi..."
+                  placeholder="Search sender..."
                   className="w-full p-1.5 text-sm bg-white border border-gray-200 rounded-md outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
                 />
               </div>
@@ -165,7 +173,7 @@ export default function SearchMessagesSection({
                     <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                       <Users size={12} className="text-gray-500" />
                     </div>
-                    <span>Tất cả người gửi</span>
+                    <span>All senders</span>
                   </div>
                   {!senderId && <Check size={14} className="shrink-0" />}
                 </div>
@@ -174,7 +182,7 @@ export default function SearchMessagesSection({
                   const profile = memberProfiles?.[m.userId];
                   const avatarUrl = profile?.avatarUrl;
                   const isMe = m.userId === currentUserId;
-                  const name = isMe ? "Bạn" : profile?.fullName || "Người dùng";
+                  const name = isMe ? "You" : profile?.fullName || "User";
 
                   return (
                     <div
@@ -207,7 +215,7 @@ export default function SearchMessagesSection({
                 })}
                 {filteredMembers.length === 0 && (
                   <div className="p-4 text-sm text-gray-500 text-center">
-                    Không tìm thấy thành viên
+                    Member not found
                   </div>
                 )}
               </div>
@@ -220,7 +228,7 @@ export default function SearchMessagesSection({
       <div className="flex-1 overflow-y-auto p-2">
         {loading ? (
           <div className="p-4 text-center text-sm text-gray-500">
-            Đang tìm kiếm...
+            Searching...
           </div>
         ) : results.length > 0 ? (
           <div className="flex flex-col gap-1">
@@ -230,14 +238,14 @@ export default function SearchMessagesSection({
                 message={msg}
                 currentUserId={currentUserId}
                 memberProfiles={memberProfiles || {}}
-                isDirect={activeConversation?.type === "DIRECT"}
+                isDirect={activeChatType === ChatContextType.DIRECT_MESSAGE}
                 onClick={handleResultClick}
               />
             ))}
           </div>
         ) : (
           <div className="p-8 text-center text-gray-500 text-sm">
-            Không tìm thấy kết quả nào.
+            No results found.
           </div>
         )}
       </div>

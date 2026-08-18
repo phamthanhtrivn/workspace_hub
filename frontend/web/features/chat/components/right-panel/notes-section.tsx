@@ -1,26 +1,33 @@
 import { FileText, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
-import { useAppSelector } from "@/store/store";
-import { formatDividerTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { useNotes } from "../../hooks/useNotes";
 import ViewNoteModal from "../modals/view-note-modal";
 import { useState } from "react";
+import { useActiveChat } from "../../hooks/useChatQueries";
+import { NoteResponse } from "../../types/chat.types";
+import SeeAllButton from "./see-all-button";
 
 interface NotesSectionProps {
   isExpanded: boolean;
   onToggle: () => void;
+  onSeeAll?: () => void;
 }
 
 export default function NotesSection({
   isExpanded,
   onToggle,
+  onSeeAll,
 }: NotesSectionProps) {
-  const activeConversation = useAppSelector(
-    (state) => state.chat.activeConversation,
-  );
+  const { activeChat: activeConversation } = useActiveChat();
 
-  const [selectedNote, setSelectedNote] = useState<any | null>(null);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
 
   const { notes, loading } = useNotes(activeConversation?.id);
+
+  const displayNotes = notes.slice(0, 3);
+  const hasMore = notes.length > 3;
+
+  const selectedNote = notes.find((note) => note.id === selectedNoteId);
 
   return (
     <div>
@@ -39,39 +46,48 @@ export default function NotesSection({
         )}
       </button>
       {isExpanded && (
-        <div className="px-4 pb-4 space-y-2 max-h-48 overflow-y-auto">
+        <div className="px-4 pb-4">
           {loading ? (
-            <div className="text-center py-4 flex justify-center">
-              <Loader2 className="animate-spin text-gray-400" size={24} />
+            <div className="flex justify-center py-4">
+              <Loader2 size={16} className="text-gray-400 animate-spin" />
             </div>
           ) : notes.length === 0 ? (
-            <div className="text-center text-sm text-gray-500 py-4">
+            <p className="text-xs text-gray-400 text-center py-2">
               No notes yet
-            </div>
+            </p>
           ) : (
-            notes.map((note: any) => (
-              <div
-                key={note.id}
-                onClick={() => setSelectedNote(note)}
-                className="p-3 bg-amber-50 border border-amber-100 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors"
-              >
-                <p className="text-xs font-semibold text-amber-900 mb-1 truncate">
-                  {note.title} - {formatDividerTime(note.createdAt)}
-                </p>
-                <p className="text-[10px] text-amber-700/80 line-clamp-2">
-                  {note.content}
-                </p>
+            <>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {displayNotes.map((note: NoteResponse) => (
+                  <div
+                    key={note.id}
+                    onClick={() => setSelectedNoteId(note.id)}
+                    className="p-3 bg-amber-50 border border-amber-100 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors"
+                  >
+                    <p className="text-xs font-semibold text-amber-900 mb-1 truncate">
+                      {note.title || "Untitled note"} - {formatDateTime(note.createdAt)}
+                    </p>
+                    <p className="text-[10px] text-amber-700/80 line-clamp-2">
+                      {note.content}
+                    </p>
+                  </div>
+                ))}
               </div>
-            ))
+              {hasMore && (
+                <SeeAllButton onClick={onSeeAll}>
+                  See all
+                </SeeAllButton>
+              )}
+            </>
           )}
         </div>
       )}
       <div className="h-px bg-gray-100 mx-4 my-1"></div>
 
       <ViewNoteModal
-        isOpen={!!selectedNote}
-        onClose={() => setSelectedNote(null)}
-        note={notes.find((n: any) => n.id === selectedNote?.id) || selectedNote}
+        isOpen={!!selectedNoteId}
+        onClose={() => setSelectedNoteId(null)}
+        note={selectedNote}
         conversationId={activeConversation?.id || ""}
       />
     </div>

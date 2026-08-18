@@ -39,6 +39,23 @@ export function formatConversationTime(dateInput: string | number | Date): strin
 
 export const formatTimeAgo = formatConversationTime;
 
+export function formatDateTime(dateInput?: string | number | Date | null): string {
+  if (!dateInput) return "";
+
+  const date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const day = date.getDate().toString().padStart(2, "0");
+  const month = (date.getMonth() + 1).toString().padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = date.getHours();
+  const displayHour = (hours % 12 || 12).toString().padStart(2, "0");
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const period = hours >= 12 ? "PM" : "AM";
+
+  return `${day}/${month}/${year} ${displayHour}:${minutes} ${period}`;
+}
+
 export function formatDividerTime(dateInput: string | number | Date): string {
   const date = new Date(dateInput);
   const now = new Date();

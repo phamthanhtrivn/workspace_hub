@@ -1,7 +1,10 @@
 import { useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/store";
+import { useQueryClient } from "@tanstack/react-query";
+import { RootState, useAppDispatch, useAppSelector } from "@/store/store";
 import { notificationSocketService } from "../api/notification-socket.service";
 import { addNotification } from "@/store/notification/notification.slice";
+import { chatKeys } from "@/features/chat/types/chat.constant";
+import { NotificationType, Notification as AppNotification } from "../types/notification.types";
 
 /**
  * Global hook that owns the notification WebSocket connection lifecycle.
@@ -11,8 +14,9 @@ import { addNotification } from "@/store/notification/notification.slice";
  * Mount this once at the WorkspaceShell / WorkspaceHeader level.
  */
 export function useNotificationSocket() {
-  const { accessToken } = useAppSelector((state: any) => state.auth);
+  const { accessToken } = useAppSelector((state: RootState) => state.auth);
   const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!accessToken) return;
@@ -20,18 +24,33 @@ export function useNotificationSocket() {
     notificationSocketService.connect(accessToken);
 
     const socket = notificationSocketService.getSocket();
-    if (socket) {
-      const handleNewNotification = (noti: any) => {
-        dispatch(addNotification(noti));
-      };
 
-      socket.off("new_notification", handleNewNotification);
-      socket.on("new_notification", handleNewNotification);
-    }
+    if (!socket) return;
+
+    const handleNewNotification = (noti: AppNotification) => {
+      dispatch(addNotification(noti));
+
+      if (
+        noti.type === NotificationType.SPACE_INVITATION_ACCEPTED ||
+        noti.type === NotificationType.SPACE_INVITATION_DECLINED
+      ) {
+        const spaceId = noti.metadata?.spaceId;
+        if (spaceId) {
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.spaceInvitations(spaceId),
+          });
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.spaceMembers(spaceId),
+          });
+        }
+      }
+    };
+
+    socket.on("new_notification", handleNewNotification);
 
     return () => {
-      socket?.off("new_notification");
+      socket.off("new_notification", handleNewNotification);
       notificationSocketService.disconnect();
     };
-  }, [accessToken, dispatch]);
+  }, [accessToken, dispatch, queryClient]);
 }

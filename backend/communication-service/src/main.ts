@@ -3,13 +3,15 @@ dotenv.config();
 
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { RedisIoAdapter } from './common/adapters/redis-io.adapter';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { logger } from './infrastructure/logger/bootstrap-logger';
+import { setupMicroservices } from './infrastructure/bootstrap/microservices.bootstrap';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const port = process.env.PORT ?? '8083';
 
   // Enable CORS
   app.enableCors({
@@ -17,8 +19,6 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
-
-  // Microservice initialization is no longer needed since this service only produces events
 
   // Setup Global Pipes, Interceptors, and Filters
   app.useGlobalPipes(
@@ -47,11 +47,10 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
 
-  // Setup Redis WebSocket Adapter
-  const redisIoAdapter = new RedisIoAdapter(app);
-  await redisIoAdapter.connectToRedis();
-  app.useWebSocketAdapter(redisIoAdapter);
+  // Setup Redis WebSocket Adapter and Kafka Microservice
+  await setupMicroservices(app);
 
-  await app.listen(process.env.PORT!);
+  await app.listen(port);
+  logger.log(`Communication service HTTP server started on ${port}`);
 }
 bootstrap();

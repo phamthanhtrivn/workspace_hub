@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Calendar,
   Eye,
@@ -10,14 +11,18 @@ import {
   User,
   UserPlus,
 } from "lucide-react";
-import { registerApi } from "../api/auth.api";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
-import { useRouter } from "next/navigation";
+import { useRegisterMutation } from "../hooks/useAuthMutations";
+import { AuthRouteTarget } from "../types/auth.constants";
+import {
+  getAuthErrorMessage,
+  getAuthValidationErrors,
+} from "../utils/auth-error";
 
 const RegisterForm = React.memo(function RegisterForm() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const registerMutation = useRegisterMutation();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -44,66 +49,63 @@ const RegisterForm = React.memo(function RegisterForm() {
     }));
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (formData.password !== formData.confirmPassword) {
       setErrors({
-        confirmPassword: "Xác nhận mật khẩu không khớp",
+        confirmPassword: "Password confirmation does not match",
       });
       return;
     }
 
-    try {
-      setLoading(true);
-      setErrors({});
-
-      const response = await registerApi({
+    setErrors({});
+    registerMutation.mutate(
+      {
         fullName: formData.fullName,
         dob: formData.dob,
         email: formData.email,
         password: formData.password,
-      });
+      },
+      {
+        onSuccess: (response) => {
+          toast.success(response.message);
+          router.replace(AuthRouteTarget.LOGIN);
 
-      toast.success(response.message);
-      router.replace("/login");
+          setFormData({
+            fullName: "",
+            dob: "",
+            email: "",
+            password: "",
+            confirmPassword: "",
+          });
+        },
+        onError: (error) => {
+          const validationErrors = getAuthValidationErrors(error);
+          if (Object.keys(validationErrors).length > 0) {
+            setErrors(validationErrors);
+            return;
+          }
 
-      setFormData({
-        fullName: "",
-        dob: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-      });
-    } catch (error: any) {
-      const response = error?.response?.data;
-      console.log(response);
-
-      if (response?.errors && Object.keys(response.errors).length > 0) {
-        setErrors(response.errors);
-        return;
-      }
-
-      toast.error(response?.message ?? "Đăng ký thất bại");
-    } finally {
-      setLoading(false);
-    }
+          toast.error(getAuthErrorMessage(error, "Registration failed"));
+        },
+      },
+    );
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      {/* FULL NAME + DOB */}
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-700">
-            Họ và tên <span className="text-red-500">*</span>
+            Full name <span className="text-red-500">*</span>
           </label>
 
           <InputField
             id="fullName"
             type="text"
             icon={User}
-            placeholder="Nguyễn Văn A"
+            placeholder="John Doe"
             value={formData.fullName}
             error={errors.fullName}
             onChange={handleChange}
@@ -112,7 +114,7 @@ const RegisterForm = React.memo(function RegisterForm() {
 
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-700">
-            Ngày sinh <span className="text-red-500">*</span>
+            Date of birth <span className="text-red-500">*</span>
           </label>
 
           <InputField
@@ -127,7 +129,6 @@ const RegisterForm = React.memo(function RegisterForm() {
         </div>
       </div>
 
-      {/* EMAIL */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-700">
           Email <span className="text-red-500">*</span>
@@ -144,17 +145,16 @@ const RegisterForm = React.memo(function RegisterForm() {
         />
       </div>
 
-      {/* PASSWORD */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-700">
-          Mật khẩu <span className="text-red-500">*</span>
+          Password <span className="text-red-500">*</span>
         </label>
 
         <InputField
           id="password"
           type={showPassword ? "text" : "password"}
           icon={Lock}
-          placeholder="Nhập mật khẩu"
+          placeholder="Enter your password"
           value={formData.password}
           error={errors.password}
           onChange={handleChange}
@@ -169,17 +169,16 @@ const RegisterForm = React.memo(function RegisterForm() {
         />
       </div>
 
-      {/* CONFIRM PASSWORD */}
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-700">
-          Xác nhận mật khẩu <span className="text-red-500">*</span>
+          Confirm password <span className="text-red-500">*</span>
         </label>
 
         <InputField
           id="confirmPassword"
           type={showConfirmPassword ? "text" : "password"}
           icon={Lock}
-          placeholder="Nhập lại mật khẩu"
+          placeholder="Re-enter your password"
           value={formData.confirmPassword}
           error={errors.confirmPassword}
           onChange={handleChange}
@@ -194,14 +193,13 @@ const RegisterForm = React.memo(function RegisterForm() {
         />
       </div>
 
-      {/* SUBMIT */}
       <button
         type="submit"
-        disabled={loading}
+        disabled={registerMutation.isPending}
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] disabled:opacity-70"
       >
         <UserPlus className="h-4 w-4" />
-        {loading ? "Đang đăng kí..." : "Đăng kí"}
+        {registerMutation.isPending ? "Creating account..." : "Create account"}
       </button>
     </form>
   );

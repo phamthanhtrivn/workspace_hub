@@ -7,10 +7,10 @@ import lombok.Getter;
 @Getter
 public class LoginRequestDto {
 
-    @NotBlank(message = "Email không được để trống")
-    @Email(message = "Email không hợp lệ")
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email is invalid")
     private String email;
 
-    @NotBlank(message = "Mật khẩu không được để trống")
+    @NotBlank(message = "Password is required")
     private String password;
 }

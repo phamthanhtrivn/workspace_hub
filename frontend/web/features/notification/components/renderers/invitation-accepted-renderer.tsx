@@ -33,7 +33,7 @@ export const InvitationAcceptedListItemRenderer: React.FC<{
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-            <CheckCircle2 size={10} /> Đã tham gia
+            <CheckCircle2 size={10} /> Joined
           </span>
         </div>
         <p className="text-sm font-semibold text-slate-800 line-clamp-2">
@@ -41,9 +41,9 @@ export const InvitationAcceptedListItemRenderer: React.FC<{
         </p>
         <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">
           <span className="font-semibold text-slate-700">
-            {notification.senderName || "Thành viên mới"}
+            {notification.senderName || "New member"}
           </span>{" "}
-          đã chấp nhận gia nhập nhóm
+          accepted the invitation to join the space
         </p>
         <p className="text-[10px] font-medium text-slate-400 mt-1">
           {formatTimeAgo(new Date(notification.createdAt))}
@@ -84,18 +84,18 @@ export const InvitationAcceptedModalRenderer: React.FC<{
           </div>
         </div>
         <h3 className="text-lg font-bold text-slate-800 mb-1">
-          {notification.senderName || "Thành viên mới"}
+          {notification.senderName || "New member"}
         </h3>
         <p className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full inline-block">
-          Đã chấp nhận lời mời
+          Accepted invitation
         </p>
       </div>
 
       <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mb-6 text-sm text-slate-600 text-center">
         <span className="font-semibold">
-          {notification.senderName || "Người này"}
+          {notification.senderName || "This user"}
         </span>{" "}
-        hiện đã là thành viên của nhóm{" "}
+        is now a member of the space{" "}
         <span className="font-semibold text-slate-800">
           {metadata?.conversationName || "chat"}
         </span>
@@ -107,7 +107,7 @@ export const InvitationAcceptedModalRenderer: React.FC<{
           onClick={onClose}
           className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition cursor-pointer"
         >
-          Đóng
+          Close
         </button>
       </div>
     </div>

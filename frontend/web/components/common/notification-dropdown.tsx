@@ -21,6 +21,7 @@ import {
 import NotificationList from "@/features/notification/components/notification-list";
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
+import { logApiError } from "@/lib/interceptors";
 
 // Renderers
 import {
@@ -49,17 +50,17 @@ if (!isRegistryInitialized) {
     DefaultListItemRenderer,
   );
   registerNotificationRenderer(
-    NotificationType.CHAT_GROUP_INVITATION,
+    NotificationType.SPACE_INVITATION,
     InvitationModalRenderer,
     InvitationListItemRenderer,
   );
   registerNotificationRenderer(
-    NotificationType.CHAT_INVITATION_ACCEPTED,
+    NotificationType.SPACE_INVITATION_ACCEPTED,
     InvitationAcceptedModalRenderer,
     InvitationAcceptedListItemRenderer,
   );
   registerNotificationRenderer(
-    NotificationType.CHAT_INVITATION_DECLINED,
+    NotificationType.SPACE_INVITATION_DECLINED,
     InvitationDeclinedModalRenderer,
     InvitationDeclinedListItemRenderer,
   );
@@ -79,6 +80,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const [tab, setTab] = useState<"ALL" | "UNREAD">("ALL");
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
+    
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -94,7 +96,9 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             }),
           ),
         )
-        .catch(console.error);
+        .catch((error) =>
+          logApiError(error, "Failed to fetch notification unread count"),
+        );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, dispatch]);
@@ -117,7 +121,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             }),
           );
         } catch (error) {
-          console.error("Failed to fetch notifications", error);
+          logApiError(error, "Failed to fetch notifications");
         } finally {
           dispatch(setLoading(false));
         }
@@ -176,7 +180,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-[-48] mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2 z-[90]">
+        <div className="absolute right-[-48] z-90 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
             <h3 className="font-black text-slate-800 text-base">Thông báo</h3>
             {unreadCount > 0 && (

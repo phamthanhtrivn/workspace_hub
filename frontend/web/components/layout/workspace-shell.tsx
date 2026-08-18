@@ -1,87 +1,82 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Bot,
   CalendarDays,
   CheckSquare,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Files,
   FolderKanban,
   LayoutDashboard,
   Mail,
   MessageSquareText,
-  Search,
   Settings,
-  Menu,
   X,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import UserSettingsModal from "@/features/user-setting/components/user-settings-modal";
-import WorkspaceHeader from "./workspace-header";
-import { useQuery } from "@tanstack/react-query";
-import { getUserConversations } from "@/features/chat/api/chat.api";
-import { useChatSocket } from "@/features/chat/hooks/useChatSocket";
-import { SETTING_TABS } from "@/features/user-setting/types/settings.enums";
+import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { cn } from "@/lib/utils";
+import WorkspaceHeader from "./workspace-header";
 
 const menuItems = [
   {
     href: "/dashboard",
     label: "Dashboard",
-    description: "Tổng quan",
+    description: "Overview",
     icon: LayoutDashboard,
   },
   {
     href: "/projects",
     label: "Projects",
-    description: "Dự án",
+    description: "Projects",
     icon: FolderKanban,
   },
   {
     href: "/invitations",
     label: "Invitations",
-    description: "Lời mời",
+    description: "Invites",
     icon: Mail,
   },
   {
     href: "/tasks",
     label: "Tasks",
-    description: "Công việc",
+    description: "Work",
     icon: CheckSquare,
   },
   {
     href: "/chat",
     label: "Chat",
-    description: "Trao đổi",
+    description: "Messages",
     icon: MessageSquareText,
   },
   {
     href: "/calendar",
     label: "Calendar",
-    description: "Lịch trình",
+    description: "Schedule",
     icon: CalendarDays,
   },
   {
     href: "/documents",
     label: "Documents",
-    description: "Tài liệu",
+    description: "Files",
     icon: Files,
   },
   {
     href: "/pomodoro",
     label: "Pomodoro",
-    description: "Tập trung",
+    description: "Focus",
     icon: Clock3,
   },
   {
     href: "/ai",
     label: "AI",
-    description: "Trợ lý",
+    description: "Assistant",
     icon: Bot,
   },
 ];
@@ -97,45 +92,38 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
   const currentTitle = pageTitles.get(pathname) ?? "Workspace";
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [activeSettingsTab, setActiveSettingsTab] = useState<SETTING_TABS>(
-    SETTING_TABS.PROFILE,
+  const [activeSettingsTab, setActiveSettingsTab] = useState<UserSettingTab>(
+    UserSettingTab.PROFILE,
   );
 
-  useChatSocket();
-
-  const { email, userId } = useAppSelector((state: any) => state.auth);
-
-  const { data } = useQuery({
-    queryKey: ["conversations", userId],
-    queryFn: async () => {
-      const response = await getUserConversations();
-      return response?.success
-        ? { conversations: response.data }
-        : { conversations: [] };
-    },
-    enabled: !!userId,
-    staleTime: 1000 * 60,
-  });
-
-  const totalUnreadChat = React.useMemo(() => {
-    const conversations = data?.conversations || [];
-    return conversations.reduce(
-      (sum: number, conv: any) => sum + (conv.unreadCount || 0),
-      0,
-    );
-  }, [data]);
+  const { email } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const storedState = localStorage.getItem("isSidebarCollapsed");
+    if (storedState !== null) {
+      setIsSidebarCollapsed(storedState === "true");
+    }
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarCollapsed((prev) => {
+      const nextState = !prev;
+      localStorage.setItem("isSidebarCollapsed", String(nextState));
+      return nextState;
+    });
+  }, []);
+
   const handleMenuClick = useCallback(() => {
     setIsMobileMenuOpen(true);
   }, []);
 
-  const handleOpenSettings = useCallback((tab: SETTING_TABS) => {
+  const handleOpenSettings = useCallback((tab: UserSettingTab) => {
     setActiveSettingsTab(tab);
     setIsSettingsModalOpen(true);
   }, []);
@@ -146,14 +134,13 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
   return (
     <div className="flex h-dvh overflow-hidden bg-[#f5f9fb] text-[var(--color-primary-dark)]">
-      {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
         <div
           className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-sm lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
-      {/* Sidebar */}
+
       <aside
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200/80 bg-white/90 px-4 py-5 shadow-[18px_0_48px_rgba(15,40,84,0.06)] backdrop-blur-xl transition-all duration-300 ease-in-out lg:relative lg:flex",
@@ -161,11 +148,11 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0",
           isSidebarCollapsed ? "lg:w-24" : "lg:w-72",
-          "w-72 shrink-0", // Mobile width is always 72, shrink-0 prevents it from shrinking
+          "w-72 shrink-0",
         )}
       >
         <button
-          onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          onClick={toggleSidebar}
           className="absolute -right-3 top-8 z-100 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:text-slate-600 hover:shadow lg:flex cursor-pointer"
         >
           {isSidebarCollapsed ? (
@@ -199,7 +186,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                   WorkspaceHub
                 </span>
                 <span className="block text-xs font-semibold text-slate-500">
-                  Intelligent workspace Hheh
+                  Intelligent workspace
                 </span>
               </div>
             </div>
@@ -244,13 +231,6 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                   )}
                 >
                   <Icon className="h-4 w-4" strokeWidth={2} />
-                  {item.href === "/chat" &&
-                    pathname !== "/chat" &&
-                    totalUnreadChat > 0 && (
-                      <span className="absolute -top-1 -right-2 bg-red-500 text-white text-[10px] font-black h-5 min-w-5 px-1 rounded-full flex items-center justify-center border border-white">
-                        {totalUnreadChat > 99 ? "99+" : totalUnreadChat}
-                      </span>
-                    )}
                 </span>
                 <div
                   className={cn(
@@ -279,7 +259,10 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
         <div className="mt-auto mb-2 pt-4">
           <div
-            onClick={() => setIsSettingsModalOpen(true)}
+            onClick={() => {
+              setActiveSettingsTab(UserSettingTab.GENERAL);
+              setIsSettingsModalOpen(true);
+            }}
             className={cn(
               "rounded-2xl border border-slate-200 bg-slate-50 p-4 transition-all duration-300 cursor-pointer hover:bg-slate-100",
               isSidebarCollapsed ? "lg:px-2 lg:flex lg:justify-center" : "",
@@ -304,7 +287,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
               >
                 <div className="pl-3 whitespace-nowrap">
                   <p className="text-sm font-black text-slate-800 hover:text-[var(--color-primary-dark)]">
-                    Cài đặt chung
+                    General settings
                   </p>
                   <p className="truncate text-[0.7rem] font-semibold text-slate-500">
                     {email}
@@ -315,7 +298,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           </div>
         </div>
       </aside>
-      {/* Main Content Area */}
+
       <div className="flex flex-1 flex-col min-w-0 bg-background text-foreground">
         <WorkspaceHeader
           currentTitle={currentTitle}
@@ -335,6 +318,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           <div className="flex-1 w-full h-full flex flex-col">{children}</div>
         </main>
       </div>
+
       <UserSettingsModal
         isOpen={isSettingsModalOpen}
         onClose={handleCloseSettings}

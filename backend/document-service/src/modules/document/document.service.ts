@@ -25,6 +25,8 @@ import { DocumentRole, DocumentSortBy } from '../../common/enums/document.enum';
 import { QuotaService } from '../quota/quota.service';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
 
 @Injectable()
 export class DocumentService {
@@ -32,6 +34,7 @@ export class DocumentService {
     private readonly prisma: PrismaService,
     private readonly quotaService: QuotaService,
     private readonly s3Service: S3Service,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
   async initiateUpload(
@@ -49,11 +52,11 @@ export class DocumentService {
         DocumentRole.EDITOR,
       );
       if (parentFolder.type !== ItemType.FOLDER) {
-        throw new BadRequestException('Mục cha phải là thư mục');
+        throw new BadRequestException('Parent item must be a folder');
       }
       if (parentFolder.isArchived) {
         throw new BadRequestException(
-          'Không thể tải lên tệp tin trong một thư mục đã lưu trữ/xóa tạm',
+          'Cannot upload files into an archived or trashed folder',
         );
       }
     }
@@ -86,11 +89,11 @@ export class DocumentService {
         DocumentRole.EDITOR,
       );
       if (parentFolder.type !== ItemType.FOLDER) {
-        throw new BadRequestException('Mục cha phải là thư mục');
+        throw new BadRequestException('Parent item must be a folder');
       }
       if (parentFolder.isArchived) {
         throw new BadRequestException(
-          'Không thể lưu tài liệu trong một thư mục đã lưu trữ/xóa tạm',
+          'Cannot save documents into an archived or trashed folder',
         );
       }
     }
@@ -132,7 +135,7 @@ export class DocumentService {
     // Update storage quota (add to usedBytes)
     await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
 
-    return item;
+    return this.enrichDocumentItem(item);
   }
 
   /**
@@ -153,7 +156,7 @@ export class DocumentService {
     });
 
     if (!item) {
-      throw new NotFoundException('Không tìm thấy tài liệu hoặc thư mục');
+      throw new NotFoundException('Document or folder not found');
     }
 
     // 1. Owner always has full access
@@ -172,7 +175,7 @@ export class DocumentService {
     if (share) {
       if (requiredRole === DocumentRole.OWNER) {
         throw new ForbiddenException(
-          'Chỉ chủ sở hữu mới có quyền thực hiện hành động này',
+          'Only the owner can perform this action',
         );
       }
       if (
@@ -180,7 +183,7 @@ export class DocumentService {
         share.permission !== SharePermission.EDITOR
       ) {
         throw new ForbiddenException(
-          'Bạn không có quyền chỉnh sửa tài liệu này',
+          'You are not allowed to edit this document',
         );
       }
       return item;
@@ -190,7 +193,7 @@ export class DocumentService {
     if (item.linkAccess !== LinkAccess.NONE) {
       if (requiredRole === DocumentRole.OWNER) {
         throw new ForbiddenException(
-          'Chỉ chủ sở hữu mới có quyền thực hiện hành động này',
+          'Only the owner can perform this action',
         );
       }
       if (
@@ -198,12 +201,12 @@ export class DocumentService {
         item.linkAccess !== LinkAccess.EDITOR
       ) {
         throw new ForbiddenException(
-          'Tài liệu chỉ cho phép xem thông qua liên kết',
+          'This document can only be viewed through a link',
         );
       }
       // Check link expiration
       if (item.shareExpiresAt && new Date() > item.shareExpiresAt) {
-        throw new ForbiddenException('Liên kết chia sẻ đã hết hạn');
+        throw new ForbiddenException('Share link has expired');
       }
       return item;
     }
@@ -218,7 +221,7 @@ export class DocumentService {
       );
     }
 
-    throw new ForbiddenException('Bạn không có quyền truy cập tài nguyên này');
+    throw new ForbiddenException('You are not allowed to access this item');
   }
 
   /**
@@ -260,11 +263,11 @@ export class DocumentService {
         DocumentRole.EDITOR,
       );
       if (parentFolder.type !== ItemType.FOLDER) {
-        throw new BadRequestException('Mục cha phải là thư mục');
+        throw new BadRequestException('Parent item must be a folder');
       }
       if (parentFolder.isArchived) {
         throw new BadRequestException(
-          'Không thể tạo thư mục trong một thư mục đã lưu trữ/xóa tạm',
+          'Cannot create folders inside an archived or trashed folder',
         );
       }
     }
@@ -272,7 +275,7 @@ export class DocumentService {
     // Inherit project ID from parent if not specified
     const projectId = dto.projectId || parentFolder?.projectId || null;
 
-    return this.prisma.documentItem.create({
+    const folder = await this.prisma.documentItem.create({
       data: {
         name: dto.name,
         type: ItemType.FOLDER,
@@ -283,6 +286,8 @@ export class DocumentService {
         sizeBytes: BigInt(0),
       },
     });
+
+    return this.enrichDocumentItem(folder);
   }
 
   /**
@@ -347,7 +352,7 @@ export class DocumentService {
         DocumentRole.VIEWER,
       );
       if (folder.type !== ItemType.FOLDER) {
-        throw new BadRequestException('ID cung cấp không phải là thư mục');
+        throw new BadRequestException('The provided ID is not a folder');
       }
       where.parentFolderId = options.folderId;
     } else {
@@ -418,7 +423,8 @@ export class DocumentService {
       }),
     );
 
-    return { items: mappedItems, totalCount };
+    const enrichedItems = await this.userProfileSnapshotService.attachProfilesToDocumentItems(mappedItems);
+    return { items: enrichedItems, totalCount };
   }
 
   /**
@@ -461,10 +467,11 @@ export class DocumentService {
   ): Promise<DocumentItem> {
     await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
 
-    return this.prisma.documentItem.update({
+    const updated = await this.prisma.documentItem.update({
       where: { id },
       data: { name: dto.name },
     });
+    return this.enrichDocumentItem(updated);
   }
 
   /**
@@ -491,7 +498,7 @@ export class DocumentService {
         const circular = await this.isDescendant(dto.parentFolderId, id);
         if (circular) {
           throw new BadRequestException(
-            'Không thể di chuyển thư mục vào chính nó hoặc thư mục con của nó',
+            'Cannot move a folder into itself or one of its descendants',
           );
         }
       }
@@ -503,23 +510,24 @@ export class DocumentService {
         DocumentRole.EDITOR,
       );
       if (destFolder.type !== ItemType.FOLDER) {
-        throw new BadRequestException('Thư mục đích phải là thư mục');
+        throw new BadRequestException('Destination must be a folder');
       }
       if (destFolder.isArchived) {
         throw new BadRequestException(
-          'Không thể di chuyển vào thư mục đã lưu trữ/xóa tạm',
+          'Cannot move into an archived or trashed folder',
         );
       }
       destProjectId = destFolder.projectId;
     }
 
-    return this.prisma.documentItem.update({
+    const updated = await this.prisma.documentItem.update({
       where: { id },
       data: {
         parentFolderId: dto.parentFolderId || null,
         projectId: destProjectId,
       },
     });
+    return this.enrichDocumentItem(updated);
   }
 
   /**
@@ -533,13 +541,14 @@ export class DocumentService {
   ): Promise<DocumentItem> {
     await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
 
-    return this.prisma.documentItem.update({
+    const updated = await this.prisma.documentItem.update({
       where: { id },
       data: {
         isArchived: archive,
         archivedAt: archive ? new Date() : null,
       },
     });
+    return this.enrichDocumentItem(updated);
   }
 
   /**
@@ -726,7 +735,7 @@ export class DocumentService {
     );
 
     if (item.type === ItemType.FOLDER) {
-      throw new BadRequestException('Không thể xem trước thư mục');
+      throw new BadRequestException('Folders cannot be previewed');
     }
 
     let s3Key = item.s3Key;
@@ -736,13 +745,13 @@ export class DocumentService {
         where: { id: versionId, documentItemId: id },
       });
       if (!version) {
-        throw new NotFoundException('Không tìm thấy phiên bản tài liệu');
+        throw new NotFoundException('Document version not found');
       }
       s3Key = version.s3Key;
     }
 
     if (!s3Key) {
-      throw new BadRequestException('Tài liệu không có tệp tin đính kèm');
+      throw new BadRequestException('Document has no attached file');
     }
 
     return this.s3Service.generatePresignedDownloadUrl(s3Key);
@@ -765,7 +774,7 @@ export class DocumentService {
     );
 
     if (item.type === ItemType.FOLDER) {
-      throw new BadRequestException('Không thể tải thư mục trực tiếp');
+      throw new BadRequestException('Folders cannot be downloaded directly');
     }
 
     let s3Key = item.s3Key;
@@ -776,7 +785,7 @@ export class DocumentService {
         where: { id: versionId, documentItemId: id },
       });
       if (!version) {
-        throw new NotFoundException('Không tìm thấy phiên bản tài liệu');
+        throw new NotFoundException('Document version not found');
       }
       s3Key = version.s3Key;
       const dotIndex = fileName.lastIndexOf('.');
@@ -788,7 +797,7 @@ export class DocumentService {
     }
 
     if (!s3Key) {
-      throw new BadRequestException('Tài liệu không có tệp tin đính kèm');
+      throw new BadRequestException('Document has no attached file');
     }
 
     return this.s3Service.generatePresignedDownloadUrl(s3Key, fileName);
@@ -801,7 +810,7 @@ export class DocumentService {
     userId: string,
     userEmail: string,
     id: string,
-  ): Promise<any[]> {
+  ): Promise<Array<DocumentVersion & { uploadedByEmail: string; uploaderProfile: UserProfileSnapshotResponse | null }>> {
     const item = (await this.checkPermission(
       id,
       userId,
@@ -810,7 +819,7 @@ export class DocumentService {
     )) as any;
 
     if (item.type === ItemType.FOLDER) {
-      throw new BadRequestException('Thư mục không có phiên bản');
+      throw new BadRequestException('Folder has no versions');
     }
 
     const versions = await this.prisma.documentVersion.findMany({
@@ -818,38 +827,47 @@ export class DocumentService {
       orderBy: { versionNumber: 'desc' },
     });
 
-    if (versions.length === 0) {
-      return [
-        {
-          id: DOCUMENT_CONSTANTS.ORIGINAL_VERSION_ID,
-          documentItemId: item.id,
-          versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
-          s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
-          sizeBytes: item.sizeBytes,
-          uploadedBy: item.ownerUserId,
-          uploadedByEmail: item.ownerEmail,
-          createdAt: item.createdAt,
-        },
-      ];
-    }
+    const mappedVersions: Array<DocumentVersion & { uploadedByEmail: string }> =
+      versions.length === 0
+        ? [
+            {
+              id: DOCUMENT_CONSTANTS.ORIGINAL_VERSION_ID,
+              documentItemId: item.id,
+              versionNumber: DOCUMENT_CONSTANTS.INITIAL_VERSION_NUMBER,
+              s3Key: item.s3Key || DOCUMENT_CONSTANTS.FALLBACK_S3_KEY,
+              sizeBytes: item.sizeBytes,
+              uploadedBy: item.ownerUserId,
+              uploadedByEmail: item.ownerEmail,
+              createdAt: item.createdAt,
+            },
+          ]
+        : versions.map((v) => {
+            let email = DOCUMENT_CONSTANTS.FALLBACK_UPLOADER_EMAIL_PRIVATE;
+            if (v.uploadedBy === item.ownerUserId) {
+              email = item.ownerEmail;
+            } else {
+              const share = item.shares?.find(
+                (s) => s.shareWithUserId === v.uploadedBy,
+              );
+              if (share) {
+                email = share.shareWithEmail;
+              }
+            }
+            return {
+              id: v.id,
+              documentItemId: v.documentItemId,
+              versionNumber: v.versionNumber,
+              s3Key: v.s3Key,
+              sizeBytes: v.sizeBytes,
+              uploadedBy: v.uploadedBy,
+              createdAt: v.createdAt,
+              uploadedByEmail: email,
+            };
+          });
 
-    return versions.map((v) => {
-      let email = DOCUMENT_CONSTANTS.FALLBACK_UPLOADER_EMAIL_PRIVATE;
-      if (v.uploadedBy === item.ownerUserId) {
-        email = item.ownerEmail;
-      } else {
-        const share = item.shares?.find(
-          (s) => s.shareWithUserId === v.uploadedBy,
-        );
-        if (share) {
-          email = share.shareWithEmail;
-        }
-      }
-      return {
-        ...v,
-        uploadedByEmail: email,
-      };
-    });
+    return this.userProfileSnapshotService.attachProfilesToDocumentVersions(
+      mappedVersions,
+    );
   }
 
   /**
@@ -860,7 +878,7 @@ export class DocumentService {
     userEmail: string,
     id: string,
     dto: CreateVersionDto,
-  ): Promise<DocumentVersion> {
+  ): Promise<DocumentVersion & { uploaderProfile: UserProfileSnapshotResponse | null }> {
     const item = await this.checkPermission(
       id,
       userId,
@@ -869,7 +887,7 @@ export class DocumentService {
     );
 
     if (item.type === ItemType.FOLDER) {
-      throw new BadRequestException('Không thể tạo phiên bản mới cho thư mục');
+      throw new BadRequestException('Cannot create a new version for a folder');
     }
 
     // Check storage quota
@@ -927,7 +945,8 @@ export class DocumentService {
     // Update uploader storage quota
     await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
 
-    return newVersion;
+    const [enrichedVersion] = await this.userProfileSnapshotService.attachProfilesToDocumentVersions([newVersion]);
+    return enrichedVersion;
   }
 
   /**
@@ -937,7 +956,10 @@ export class DocumentService {
     userId: string,
     userEmail: string,
     id: string,
-  ): Promise<{ linkAccess: LinkAccess; shares: DocumentShare[] }> {
+  ): Promise<{
+    linkAccess: LinkAccess;
+    shares: Array<DocumentShare & { shareWithProfile: UserProfileSnapshotResponse | null }>;
+  }> {
     const item = await this.checkPermission(
       id,
       userId,
@@ -949,9 +971,11 @@ export class DocumentService {
       orderBy: { createdAt: 'asc' },
     });
 
+    const enrichedShares = await this.userProfileSnapshotService.attachProfilesToDocumentShares(shares);
+
     return {
       linkAccess: item.linkAccess,
-      shares,
+      shares: enrichedShares,
     };
   }
 
@@ -991,7 +1015,7 @@ export class DocumentService {
 
     if (shareEmail.toLowerCase() === item.ownerEmail.toLowerCase()) {
       throw new BadRequestException(
-        'Không thể chia sẻ với chủ sở hữu tài nguyên',
+        'Cannot share an item with its owner',
       );
     }
 
@@ -1029,7 +1053,7 @@ export class DocumentService {
     });
 
     if (!share || share.documentItemId !== id) {
-      throw new NotFoundException('Không tìm thấy cấu hình chia sẻ');
+      throw new NotFoundException('Share configuration not found');
     }
 
     await this.prisma.documentShare.delete({
@@ -1110,7 +1134,7 @@ export class DocumentService {
     )) as any;
 
     if (item.type === ItemType.FOLDER) {
-      throw new BadRequestException('Thư mục không có phiên bản');
+      throw new BadRequestException('Folder has no versions');
     }
 
     const versions = await this.prisma.documentVersion.findMany({
@@ -1169,7 +1193,7 @@ export class DocumentService {
     );
 
     if (item.type === ItemType.FOLDER) {
-      throw new BadRequestException('Không thể tạo phiên bản mới cho thư mục');
+      throw new BadRequestException('Cannot create a new version for a folder');
     }
 
     // Check storage quota of the Owner
@@ -1257,7 +1281,7 @@ export class DocumentService {
     );
 
     if (item.type === ItemType.FOLDER) {
-      throw new BadRequestException('Không thể tải lên tệp tin cho thư mục');
+      throw new BadRequestException('Cannot upload a file for a folder');
     }
 
     await this.quotaService.checkQuota(item.ownerUserId, dto.sizeBytes);
@@ -1274,7 +1298,7 @@ export class DocumentService {
 
   /**
    * Streams all files in a folder (recursively) as a ZIP archive to the HTTP response.
-   * Uses archiver library to pipe S3 streams directly into the ZIP — no disk writes.
+   * Uses archiver library to pipe S3 streams directly into the ZIP without disk writes.
    */
   async downloadFolderAsZip(
     userId: string | undefined,
@@ -1290,7 +1314,7 @@ export class DocumentService {
     );
 
     if (folder.type !== ItemType.FOLDER) {
-      throw new BadRequestException('Mục này không phải thư mục');
+      throw new BadRequestException('This item is not a folder');
     }
 
     const { files, pathMap } = await this.getFolderDescendantsWithPaths(
@@ -1387,7 +1411,7 @@ export class DocumentService {
     const isSelf = folderId === rootId;
     if (!isChild && !isSelf) {
       throw new ForbiddenException(
-        'Thư mục không thuộc tài nguyên được chia sẻ',
+        'Folder does not belong to the shared item',
       );
     }
 
@@ -1408,5 +1432,12 @@ export class DocumentService {
         };
       }),
     ) as any;
+  }
+
+  private async enrichDocumentItem<T extends { ownerUserId: string }>(
+    item: T,
+  ): Promise<T & { ownerProfile: UserProfileSnapshotResponse | null }> {
+    const [enriched] = await this.userProfileSnapshotService.attachProfilesToDocumentItems([item]);
+    return enriched;
   }
 }

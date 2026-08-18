@@ -9,9 +9,11 @@ import vn.workspacehub.user.entity.UserProfile;
 @Mapper(componentModel = "spring")
 public interface UserProfileMapper {
 
+    @Mapping(target = "id", source = "user.id")
     @Mapping(target = "email", source = "user.email")
     UserProfileResponse toResponse(UserProfile userProfile);
 
+    @Mapping(target = "id", source = "id")
     @Mapping(target = ".", source = "profile")
     UserProfileResponse toResponse(User user);
 

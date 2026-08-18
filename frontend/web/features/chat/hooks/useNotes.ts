@@ -3,48 +3,49 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { noteApi } from '../api/note.api';
 import { ChatEvent } from '../api/chat.events';
 import { socketService } from '../api/chat-socket.service';
+import { chatKeys, CHAT_DEFAULT_STALE_TIME_MS } from '../types/chat.constant';
+import { ChatMessageResponse, NoteResponse } from '../types/chat.types';
 
-export function useNotes(conversationId: string | undefined) {
+interface NoteUpdatePayload {
+  channelId?: string;
+  conversationId?: string;
+  note?: NoteResponse | null;
+  type?: string;
+}
+
+function getUpdatedNote(payload: NoteUpdatePayload | ChatMessageResponse) {
+  return (payload as ChatMessageResponse).note ?? (payload as NoteUpdatePayload).note ?? null;
+}
+
+function getPayloadConversationId(payload: NoteUpdatePayload | ChatMessageResponse) {
+  return payload.channelId ?? payload.conversationId ?? null;
+}
+
+export function useNotes(conversationId: string | undefined, q?: string) {
   const queryClient = useQueryClient();
 
-  const { data: notes = [], isLoading: loading } = useQuery({
-    queryKey: ["notes", conversationId],
+  const queryKey = [...chatKeys.notes(conversationId), q || ""];
+
+  const { data: notes = [], isLoading: loading } = useQuery<NoteResponse[]>({
+    queryKey,
     queryFn: async () => {
-      const res = await noteApi.getNotesInConversation(conversationId!);
+      const res = await noteApi.getNotesInConversation(conversationId!, q);
       return res.success ? res.data : [];
     },
     enabled: !!conversationId,
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    staleTime: CHAT_DEFAULT_STALE_TIME_MS,
   });
 
   useEffect(() => {
     const socket = socketService.getSocket();
     if (!socket || !conversationId) return;
 
-    const handleNoteUpdated = (data: any) => {
-      let noteData = null;
-      let convId = null;
+    const handleNoteUpdated = (data: NoteUpdatePayload | ChatMessageResponse) => {
+      const convId = getPayloadConversationId(data);
 
-      if (data.type === 'NOTE' && data.note) {
-        // From MESSAGE_MOVED
-        noteData = data.note;
-        convId = data.conversationId;
-      } else if (data.note) {
-        // From NOTE_UPDATED
-        noteData = data.note;
-        convId = data.conversationId;
-      }
-
-      if (convId === conversationId && noteData) {
-        queryClient.setQueryData<any[]>(["notes", conversationId], (prev) => {
-          if (!prev) return [noteData];
-          const exists = prev.findIndex((n) => n.id === noteData.id);
-          if (exists !== -1) {
-            const newNotes = [...prev];
-            newNotes[exists] = noteData;
-            return newNotes;
-          }
-          return [noteData, ...prev];
+      if (convId === conversationId) {
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.notes(conversationId),
         });
       }
     };

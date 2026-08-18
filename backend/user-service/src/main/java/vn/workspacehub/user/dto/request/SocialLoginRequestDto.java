@@ -9,6 +9,6 @@ public class SocialLoginRequestDto {
 
     private OAuthProvider provider;
 
-    @NotBlank(message = "Token/Code không được để trống")
+    @NotBlank(message = "Token/code is required")
     private String credential;
 }

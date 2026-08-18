@@ -72,7 +72,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">
-            Chỉnh sửa bình chọn
+            Edit Poll
           </h2>
           <button
             onClick={onClose}
@@ -85,13 +85,13 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Câu hỏi bình chọn
+              Poll Question
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Đặt câu hỏi..."
+              placeholder="Ask a question..."
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               required
             />
@@ -106,7 +106,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">
-                Chọn nhiều phương án
+                Allow multiple choices
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -117,7 +117,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
               />
               <span className="text-sm text-gray-700">
-                Cho phép người khác thêm phương án
+                Allow others to add options
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -127,7 +127,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 onChange={(e) => setAnonymous(e.target.checked)}
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
               />
-              <span className="text-sm text-gray-700">Bình chọn ẩn danh</span>
+              <span className="text-sm text-gray-700">Anonymous poll</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
@@ -137,7 +137,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
               />
               <span className="text-sm text-gray-700 font-medium">
-                Khóa bình chọn (Không nhận thêm kết quả)
+                Lock poll (Stop accepting votes)
               </span>
             </label>
           </div>
@@ -148,7 +148,7 @@ const EditPollModal: React.FC<EditPollModalProps> = ({
               disabled={!title.trim()}
               className="flex-1 w-full py-2 px-4 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Lưu thay đổi
+              Save changes
             </button>
           </div>
         </form>

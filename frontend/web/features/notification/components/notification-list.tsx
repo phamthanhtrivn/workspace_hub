@@ -15,7 +15,7 @@ const NotificationList = React.memo(function NotificationList({ notifications, o
     return (
       <div className="p-8 text-center text-slate-500">
         <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-[var(--color-primary)]"></div>
-        <p className="text-sm mt-2 font-medium">Đang tải...</p>
+        <p className="text-sm mt-2 font-medium">Loading...</p>
       </div>
     );
   }
@@ -23,7 +23,7 @@ const NotificationList = React.memo(function NotificationList({ notifications, o
   if (notifications.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500">
-        <p className="text-sm font-medium">Không có thông báo nào</p>
+        <p className="text-sm font-medium">No notifications</p>
       </div>
     );
   }

@@ -1,4 +1,4 @@
-  generator client {
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -7,8 +7,11 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ConversationRole {
-  OWNER
+/* =========================================================
+ * ENUMS
+ * ========================================================= */
+
+enum SpaceRole {
   ADMIN
   MEMBER
 }
@@ -17,11 +20,6 @@ enum MediaType {
   FILE
   IMAGE
   VIDEO
-}
-
-enum ConversationType {
-  DIRECT
-  GROUP
 }
 
 enum MessageType {
@@ -34,111 +32,336 @@ enum MessageType {
   AI
 }
 
-model ConversationSetting {
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+/* =========================================================
+ * USER PROFILE SNAPSHOT
+ * ========================================================= */
+
+model UserProfileSnapshot {
+  userId   String   @id @map("user_id") @db.Uuid
+  email    String?
+  fullName String?  @map("full_name")
+  avatarUrl String? @map("avatar_url")
+  syncedAt DateTime @default(now()) @updatedAt @map("synced_at")
+
+  @@map("user_profile_snapshots")
+}
+
+/* =========================================================
+ * SPACE
+ * ========================================================= */
+
+model Space {
+  id          String            @id @default(uuid()) @db.Uuid
+  name        String
+  createdBy   String            @map("created_by") @db.Uuid
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  channels    Channel[]
+  members     SpaceMember[]
+  invitations SpaceInvitation[]
+  setting     SpaceSetting?
+
+  @@map("spaces")
+}
+
+model SpaceSetting {
+  id                          String  @id @default(uuid()) @db.Uuid
+  spaceId                     String  @unique @map("space_id") @db.Uuid
+  allowMemberCreateChannel    Boolean @default(true) @map("allow_member_create_channel")
+  allowMemberDeleteOwnChannel Boolean @default(false) @map("allow_member_delete_own_channel")
+
+  space                       Space   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@map("space_settings")
+}
+
+/* =========================================================
+ * SPACE MEMBER
+ * ========================================================= */
+
+model SpaceMember {
+  id        String    @id @default(uuid()) @db.Uuid
+  spaceId   String    @map("space_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  role      SpaceRole
+  joinedAt  DateTime  @default(now()) @map("joined_at")
+
+  space     Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([userId])
+  @@map("space_members")
+}
+
+/* =========================================================
+ * SPACE INVITATION
+ * ========================================================= */
+
+model SpaceInvitation {
+  id            String           @id @default(uuid()) @db.Uuid
+  spaceId       String           @map("space_id") @db.Uuid
+  invitedUserId String           @map("invited_user_id") @db.Uuid
+  invitedBy     String           @map("invited_by") @db.Uuid
+  invitedByName String?          @map("invited_by_name")
+  invitedByAvatar String?        @map("invited_by_avatar")
+  invitedUserName String?        @map("invited_user_name")
+  invitedUserAvatar String?      @map("invited_user_avatar")
+  status        InvitationStatus @default(PENDING)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  respondedAt   DateTime?        @map("responded_at")
+
+  space         Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, invitedUserId])
+  @@map("space_invitations")
+}
+
+/* =========================================================
+ * CHANNEL
+ * ========================================================= */
+
+model Channel {
+  id          String          @id @default(uuid()) @db.Uuid
+  spaceId     String          @map("space_id") @db.Uuid
+  name        String
+  createdBy   String          @map("created_by") @db.Uuid
+  isDefault   Boolean         @default(false) @map("is_default")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  space       Space           @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  setting     ChannelSetting?
+  members     ChannelMember[]
+  messages    Message[]
+
+  @@index([spaceId])
+  @@map("channels")
+}
+
+/* =========================================================
+ * CHANNEL MEMBER (FOR READ STATE & MUTE STATUS)
+ * ========================================================= */
+
+model ChannelMember {
+  id                String    @id @default(uuid()) @db.Uuid
+  channelId         String    @map("channel_id") @db.Uuid
+  userId            String    @map("user_id") @db.Uuid
+  joinedAt          DateTime  @default(now()) @map("joined_at")
+  lastReadMessageId String?   @map("last_read_message_id") @db.Uuid
+  lastReadAt        DateTime? @map("last_read_at")
+  muted             Boolean   @default(false)
+  pinned            Boolean   @default(false)
+  nickname          String?
+
+  channel           Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@unique([channelId, userId])
+  @@map("channel_members")
+}
+
+/* =========================================================
+ * CHANNEL SETTING
+ * ========================================================= */
+
+model ChannelSetting {
   id                String  @id @default(uuid()) @db.Uuid
-  conversationId    String  @unique @map("conversation_id") @db.Uuid
+  channelId         String  @unique @map("channel_id") @db.Uuid
   allowSendMessage  Boolean @default(true) @map("allow_send_message")
   allowCreatePoll   Boolean @default(true) @map("allow_create_poll")
   allowCreateNote   Boolean @default(true) @map("allow_create_note")
   allowPinMessage   Boolean @default(true) @map("allow_pin_message")
 
-  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  channel           Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
-  @@map("conversation_settings")
+  @@map("channel_settings")
 }
 
-model Conversation {
-  id          String   @id @default(uuid()) @db.Uuid
-  type        ConversationType
-  name        String?
-  avatarUrl   String?  @map("avatar_url")
-  createdBy   String   @map("created_by") @db.Uuid
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  projectId   String?  @map("project_id") @db.Uuid
-
-  setting     ConversationSetting?
-  members     ConversationMember[]
-  messages    Message[]
-  invitations GroupInvitation[]
-
-  @@map("conversations")
-}
-
-model ConversationMember {
-  id                String   @id @default(uuid()) @db.Uuid
-  conversationId    String   @map("conversation_id") @db.Uuid
-  userId            String   @map("user_id") @db.Uuid
-  joinedAt          DateTime @default(now()) @map("joined_at")
-  lastReadMessageId String?  @map("last_read_message_id") @db.Uuid
-  lastReadAt        DateTime? @map("last_read_at")
-  muted             Boolean  @default(false)
-  nickname          String?
-  role              ConversationRole
-
-  conversation      Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  
-  @@unique([conversationId, userId])
-  @@map("conversation_members")
-}
+/* =========================================================
+ * MESSAGE (GROUP CHANNEL MESSAGE)
+ * ========================================================= */
 
 model Message {
-  id               String   @id @default(uuid()) @db.Uuid
-  conversationId   String   @map("conversation_id") @db.Uuid
-  senderId         String   @map("sender_id") @db.Uuid
-  content          String?
-  type             MessageType
-  replyToMessageId String?  @map("reply_to_message_id") @db.Uuid
-  edited           Boolean  @default(false)
-  pinned           Boolean  @default(false)
-  recalled         Boolean  @default(false)
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-  deletedAt        DateTime? @map("deleted_at")
-  
-  threadParentId   String?   @map("thread_parent_id") @db.Uuid
-  threadReplyCount Int       @default(0) @map("thread_reply_count")
-  threadLastReplyAt DateTime? @map("thread_last_reply_at")
+  id                String           @id @default(uuid()) @db.Uuid
+  channelId         String           @map("channel_id") @db.Uuid
+  senderId          String           @map("sender_id") @db.Uuid
+  content           String?
+  type              MessageType
+  edited            Boolean          @default(false)
+  pinned            Boolean          @default(false)
+  recalled          Boolean          @default(false)
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  deletedAt         DateTime?        @map("deleted_at")
 
-  conversation     Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  replyTo          Message?  @relation("MessageReplies", fields: [replyToMessageId], references: [id], onDelete: SetNull)
-  replies          Message[] @relation("MessageReplies")
-  
-  threadParent     Message?  @relation("ThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
-  threadReplies    Message[] @relation("ThreadReplies")
-  
-  reactions        Reaction[]
-  medias           Media[]
-  note             Note?
-  poll             Poll?
+  /* Thread */
+  threadParentId    String?          @map("thread_parent_id") @db.Uuid
+  threadReplyCount  Int              @default(0) @map("thread_reply_count")
+  threadLastReplyAt DateTime?        @map("thread_last_reply_at")
 
+  channel           Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  threadParent      Message?         @relation("ThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
+  threadReplies     Message[]        @relation("ThreadReplies")
+
+  reactions         Reaction[]
+  medias            Media[]
+  note              Note?
+  poll              Poll?
+  threadFollowers   ThreadFollower[]
+
+  @@index([channelId, createdAt])
+  @@index([senderId])
   @@map("messages")
 }
 
+/* =========================================================
+ * DIRECT CONVERSATION
+ * ========================================================= */
+
+model DirectConversation {
+  id           String                          @id @default(uuid()) @db.Uuid
+  createdAt    DateTime                        @default(now()) @map("created_at")
+  updatedAt    DateTime                        @updatedAt @map("updated_at")
+
+  participants DirectConversationParticipant[]
+  messages     DirectMessage[]
+
+  @@map("direct_conversations")
+}
+
+/* =========================================================
+ * DIRECT CONVERSATION PARTICIPANT
+ * ========================================================= */
+
+model DirectConversationParticipant {
+  id                String             @id @default(uuid()) @db.Uuid
+  conversationId    String             @map("conversation_id") @db.Uuid
+  userId            String             @map("user_id") @db.Uuid
+  joinedAt          DateTime           @default(now()) @map("joined_at")
+  lastReadMessageId String?            @map("last_read_message_id") @db.Uuid
+  lastReadAt        DateTime?          @map("last_read_at")
+  muted             Boolean            @default(false)
+  pinned            Boolean            @default(false)
+
+  conversation      DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("direct_conversation_participants")
+}
+
+/* =========================================================
+ * DIRECT MESSAGE
+ * ========================================================= */
+
+model DirectMessage {
+  id               String           @id @default(uuid()) @db.Uuid
+  conversationId   String           @map("conversation_id") @db.Uuid
+  senderId         String           @map("sender_id") @db.Uuid
+  content          String?
+  type             MessageType
+  edited           Boolean          @default(false)
+  pinned           Boolean          @default(false)
+  recalled         Boolean          @default(false)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+  deletedAt        DateTime?        @map("deleted_at")
+
+  /* Thread */
+  threadParentId    String?          @map("thread_parent_id") @db.Uuid
+  threadReplyCount  Int              @default(0) @map("thread_reply_count")
+  threadLastReplyAt DateTime?        @map("thread_last_reply_at")
+
+  conversation     DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  threadParent      DirectMessage?   @relation("DirectThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
+  threadReplies     DirectMessage[]  @relation("DirectThreadReplies")
+
+  reactions        DirectReaction[]
+  medias           DirectMedia[]
+  threadFollowers  DirectThreadFollower[]
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("direct_messages")
+}
+
+/* =========================================================
+ * MEDIA
+ * ========================================================= */
+
 model Media {
-  id        String @id @default(uuid()) @db.Uuid
-  messageId String @map("message_id") @db.Uuid
+  id        String    @id @default(uuid()) @db.Uuid
+  messageId String    @map("message_id") @db.Uuid
   name      String
-  s3Key     String @map("s3_key")
-  mimeType  String @map("mime_type")
-  sizeBytes Int @map("size_bytes")
+  s3Key     String    @map("s3_key")
+  mimeType  String    @map("mime_type")
+  sizeBytes Int       @map("size_bytes")
   type      MediaType
 
-  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message   Message   @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("medias")
 }
 
+/* =========================================================
+ * DIRECT MEDIA
+ * ========================================================= */
+
+model DirectMedia {
+  id        String        @id @default(uuid()) @db.Uuid
+  messageId String        @map("message_id") @db.Uuid
+  name      String
+  s3Key     String        @map("s3_key")
+  mimeType  String        @map("mime_type")
+  sizeBytes Int           @map("size_bytes")
+  type      MediaType
+
+  message   DirectMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("direct_medias")
+}
+
+/* =========================================================
+ * REACTION
+ * ========================================================= */
+
 model Reaction {
-  id        String @id @default(uuid()) @db.Uuid
-  messageId String @map("message_id") @db.Uuid
-  userId    String @map("user_id") @db.Uuid
+  id        String  @id @default(uuid()) @db.Uuid
+  messageId String  @map("message_id") @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
   emoji     String
 
   message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
+  @@unique([messageId, userId, emoji])
   @@map("reactions")
 }
+
+/* =========================================================
+ * DIRECT REACTION
+ * ========================================================= */
+
+model DirectReaction {
+  id        String        @id @default(uuid()) @db.Uuid
+  messageId String        @map("message_id") @db.Uuid
+  userId    String        @map("user_id") @db.Uuid
+  emoji     String
+
+  message   DirectMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@map("direct_reactions")
+}
+
+/* =========================================================
+ * NOTE
+ * ========================================================= */
 
 model Note {
   id        String   @id @default(uuid()) @db.Uuid
@@ -149,72 +372,93 @@ model Note {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("notes")
 }
 
-model Poll {
-  id              String   @id @default(uuid()) @db.Uuid
-  messageId       String   @unique @map("message_id") @db.Uuid
-  title           String
-  multipleChoice  Boolean  @map("multiple_choice")
-  allowAddOptions Boolean  @map("allow_add_options")
-  anonymous       Boolean
-  isLocked        Boolean  @default(false) @map("is_locked")
-  expiresAt       DateTime? @map("expires_at")
-  createdBy       String   @map("created_by") @db.Uuid
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+/* =========================================================
+ * POLL
+ * ========================================================= */
 
-  message         Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+model Poll {
+  id              String       @id @default(uuid()) @db.Uuid
+  messageId       String       @unique @map("message_id") @db.Uuid
+  title           String
+  multipleChoice  Boolean      @map("multiple_choice")
+  allowAddOptions Boolean      @map("allow_add_options")
+  anonymous       Boolean
+  isLocked        Boolean      @default(false) @map("is_locked")
+  expiresAt       DateTime?    @map("expires_at")
+  createdBy       String       @map("created_by") @db.Uuid
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  message         Message      @relation(fields: [messageId], references: [id], onDelete: Cascade)
   options         PollOption[]
 
   @@map("polls")
 }
 
-model PollOption {
-  id     String @id @default(uuid()) @db.Uuid
-  pollId    String @map("poll_id") @db.Uuid
-  text      String
-  createdBy String? @map("created_by") @db.Uuid
+/* =========================================================
+ * POLL OPTION
+ * ========================================================= */
 
-  poll   Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
-  votes  PollVote[]
+model PollOption {
+  id        String     @id @default(uuid()) @db.Uuid
+  pollId    String     @map("poll_id") @db.Uuid
+  text      String
+  createdBy String?    @map("created_by") @db.Uuid
+
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes     PollVote[]
 
   @@map("poll_options")
 }
 
+/* =========================================================
+ * POLL VOTE
+ * ========================================================= */
+
 model PollVote {
-  id           String   @id @default(uuid()) @db.Uuid
-  pollOptionId String   @map("poll_option_id") @db.Uuid
-  userId       String   @map("user_id") @db.Uuid
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id           String     @id @default(uuid()) @db.Uuid
+  pollOptionId String     @map("poll_option_id") @db.Uuid
+  userId       String     @map("user_id") @db.Uuid
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
   option       PollOption @relation(fields: [pollOptionId], references: [id], onDelete: Cascade)
 
+  @@unique([pollOptionId, userId])
   @@map("poll_votes")
 }
 
-enum InvitationStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
+/* =========================================================
+ * THREAD FOLLOWER
+ * ========================================================= */
+
+model ThreadFollower {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  lastReadAt DateTime? @map("last_read_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@map("thread_followers")
 }
 
-model GroupInvitation {
-  id               String           @id @default(uuid()) @db.Uuid
-  conversationId   String           @map("conversation_id") @db.Uuid
-  invitedUserId    String           @map("invited_user_id") @db.Uuid
-  invitedBy        String           @map("invited_by") @db.Uuid
-  status           InvitationStatus @default(PENDING)
-  createdAt        DateTime         @default(now()) @map("created_at")
-  respondedAt      DateTime?        @map("responded_at")
+model DirectThreadFollower {
+  id        String   @id @default(uuid()) @db.Uuid
+  messageId String   @map("message_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  lastReadAt DateTime? @map("last_read_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
-  conversation     Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message   DirectMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
-  @@unique([conversationId, invitedUserId])
-  @@map("group_invitations")
+  @@unique([messageId, userId])
+  @@map("direct_thread_followers")
 }
-

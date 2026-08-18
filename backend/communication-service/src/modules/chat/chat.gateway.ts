@@ -7,20 +7,20 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { Inject, Logger } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
 import { Server, Socket } from 'socket.io';
-import { ChatEvent } from './chat.events';
-import { MessageService } from '../message/services/message.service';
+import {
+  ChatEvent,
+  CHAT_CONTEXT_TYPE,
+  CHAT_RESPONSE_STATUS,
+  CHAT_REACTION_ACTION,
+  CHAT_ERROR_MESSAGES,
+} from './types/chat.enums';
+import { MessageService } from '../message/message.service';
 import { MessageType } from '@prisma/client';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
-import { PollService } from '../message/services/poll.service';
-import { NoteService } from '../message/services/note.service';
-import {
-  KAFKA_TOPICS,
-  KAFKA_EVENTS,
-} from '../../common/constants/kafka.constants';
-import { getSenderProfile } from '../../common/utils/user.util';
+import { PollService } from '../poll/poll.service';
+import { NoteService } from '../note/note.service';
+import { DirectMessageService } from '../direct-message/direct-message.service';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -33,13 +33,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  private readonly logger = new Logger(ChatGateway.name);
-
   constructor(
     private readonly messageService: MessageService,
+    private readonly directMessageService: DirectMessageService,
     private readonly pollService: PollService,
     private readonly noteService: NoteService,
-    @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -66,12 +64,33 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
   handleJoinConversation(
+    @MessageBody() data: { channelId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (data.channelId) {
+      client.join(data.channelId);
+      return {
+        status: CHAT_RESPONSE_STATUS.JOINED,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.JOIN_DIRECT_CONVERSATION)
+  handleJoinDirectConversation(
     @MessageBody() data: { conversationId: string },
     @ConnectedSocket() client: Socket,
   ) {
     if (data.conversationId) {
       client.join(data.conversationId);
-      return { status: 'joined', conversationId: data.conversationId };
+      return {
+        status: CHAT_RESPONSE_STATUS.JOINED,
+        chatId: data.conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
+        conversationId: data.conversationId,
+      };
     }
   }
 
@@ -79,7 +98,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleSendMessage(
     @MessageBody()
     data: {
-      conversationId: string;
+      channelId: string;
       content: string;
       type?: MessageType;
       medias?: {
@@ -99,7 +118,114 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         title: string;
         content: string;
       };
-      replyToMessageId?: string;
+      threadParentId?: string;
+      mentions?: string[];
+    },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (
+      !userId ||
+      !data.channelId ||
+      (data.content === undefined &&
+        (!data.medias || data.medias.length === 0) &&
+        !data.pollData &&
+        !data.noteData)
+    ) {
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.INVALID_DATA,
+      };
+    }
+
+    try {
+      const message = await this.messageService.createMessage(
+        data.channelId,
+        userId,
+        data.content || '',
+        data.type || MessageType.TEXT,
+        data.medias,
+        data.pollData,
+        data.noteData,
+        data.threadParentId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.channelId,
+      );
+
+      let threadFollowers: string[] = [];
+      if (data.threadParentId) {
+        threadFollowers = await this.messageService.getThreadFollowers(
+          data.threadParentId,
+        );
+      }
+
+      const messageWithUrls = {
+        ...message,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        medias: mapMediaWithUrl(message.medias),
+        mentions: data.mentions,
+        threadFollowers: data.threadParentId ? threadFollowers : undefined,
+      };
+
+      const targetRooms = [data.channelId, ...memberUserIds];
+      this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
+
+      if (data.medias && data.medias.length > 0) {
+        this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
+          chatId: data.channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+          channelId: data.channelId,
+          messageId: message.id,
+          media: messageWithUrls.medias,
+        });
+      }
+
+      if (data.pollData && messageWithUrls.poll) {
+        this.server.to(targetRooms).emit(ChatEvent.POLL_UPDATED, {
+          chatId: data.channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+          channelId: data.channelId,
+          messageId: message.id,
+          poll: messageWithUrls.poll,
+        });
+      }
+
+      if (data.noteData && messageWithUrls.note) {
+        this.server.to(targetRooms).emit(ChatEvent.NOTE_UPDATED, {
+          chatId: data.channelId,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+          channelId: data.channelId,
+          messageId: message.id,
+          note: messageWithUrls.note,
+        });
+      }
+
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
+    } catch (error) {
+      console.error(error);
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.SEND_FAILED,
+      };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.SEND_DIRECT_MESSAGE)
+  async handleSendDirectMessage(
+    @MessageBody()
+    data: {
+      conversationId: string;
+      content: string;
+      type?: MessageType;
+      medias?: {
+        name: string;
+        s3Key: string;
+        mimeType: string;
+        sizeBytes: number;
+      }[];
       threadParentId?: string;
       mentions?: string[];
     },
@@ -109,154 +235,97 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (
       !userId ||
       !data.conversationId ||
-      (data.content === undefined &&
-        (!data.medias || data.medias.length === 0) &&
-        !data.pollData &&
-        !data.noteData)
+      (data.content === undefined && (!data.medias || data.medias.length === 0))
     ) {
-      return { status: 'error', message: 'Invalid data' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.INVALID_DATA,
+      };
     }
 
     try {
-      const message = await this.messageService.createMessage(
+      const message = await this.directMessageService.createDirectMessage(
         data.conversationId,
         userId,
         data.content || '',
         data.type || MessageType.TEXT,
         data.medias,
-        data.pollData,
-        data.noteData,
-        data.replyToMessageId,
         data.threadParentId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
-      );
+      const memberUserIds =
+        await this.directMessageService.getDirectConversationMemberIds(
+          data.conversationId,
+        );
+
+      let threadFollowers: string[] = [];
+      if (data.threadParentId) {
+        threadFollowers =
+          await this.directMessageService.getDirectThreadFollowers(
+            data.threadParentId,
+          );
+      }
 
       const messageWithUrls = {
         ...message,
+        chatId: data.conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         medias: mapMediaWithUrl(message.medias),
         mentions: data.mentions,
+        threadFollowers: data.threadParentId ? threadFollowers : undefined,
       };
 
       const targetRooms = [data.conversationId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
 
-      // Publish new message notification event to Kafka for offline/background push delivery
-      this.messageService
-        .getConversationMembersInfo(data.conversationId)
-        .then(async (membersInfo) => {
-          const mentions = data.mentions || [];
-          const isMentionedAll = mentions.includes('all');
-          const recipientIds = membersInfo
-            .filter((m) => m.userId !== userId) // exclude sender
-            .filter(
-              (m) => !m.muted || isMentionedAll || mentions.includes(m.userId),
-            ) // unmuted OR tagged OR @All
-            .map((m) => m.userId);
-
-          if (recipientIds.length > 0) {
-            const { senderName, senderAvatar } = await getSenderProfile(userId);
-
-            let previewContent = data.content || '';
-            if (data.type === MessageType.POLL) {
-              previewContent = `Đã tạo một bình chọn: ${data.pollData?.title || ''}`;
-            } else if (data.type === MessageType.NOTE) {
-              previewContent = `Đã tạo một ghi chú: ${data.noteData?.title || ''}`;
-            } else if (data.medias && data.medias.length > 0) {
-              const type = data.medias[0].mimeType.startsWith('image/')
-                ? 'hình ảnh'
-                : data.medias[0].mimeType.startsWith('video/')
-                  ? 'video'
-                  : 'tệp đính kèm';
-              previewContent = `Đã gửi một ${type}`;
-            }
-
-            this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
-              key: data.conversationId,
-              value: {
-                recipientIds,
-                senderId: userId,
-                senderName,
-                senderAvatar,
-                type: KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE,
-                title: senderName,
-                content: previewContent,
-                link: `/chat?id=${data.conversationId}`,
-                metadata: {
-                  conversationId: data.conversationId,
-                  messageId: message.id,
-                },
-              },
-            });
-          }
-        })
-        .catch((err) => {
-          this.logger.error(
-            `Failed to handle Kafka notification for new message: ${err.message}`,
-            err.stack,
-          );
-        });
-
       if (data.medias && data.medias.length > 0) {
         this.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
+          chatId: data.conversationId,
+          chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
           conversationId: data.conversationId,
           messageId: message.id,
           media: messageWithUrls.medias,
         });
       }
 
-      if (data.pollData && messageWithUrls.poll) {
-        this.server.to(targetRooms).emit(ChatEvent.POLL_UPDATED, {
-          conversationId: data.conversationId,
-          messageId: message.id,
-          poll: messageWithUrls.poll,
-        });
-      }
-
-      if (data.noteData && messageWithUrls.note) {
-        this.server.to(targetRooms).emit(ChatEvent.NOTE_UPDATED, {
-          conversationId: data.conversationId,
-          messageId: message.id,
-          note: messageWithUrls.note,
-        });
-      }
-
-      return { status: 'success', data: messageWithUrls };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to send message' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.SEND_FAILED,
+      };
     }
   }
 
-  async sendSystemMessage(
-    conversationId: string,
-    userId: string,
-    content: string,
-  ) {
+  async sendSystemMessage(channelId: string, userId: string, content: string) {
     try {
       const message = await this.messageService.createMessage(
-        conversationId,
+        channelId,
         userId,
         content,
         MessageType.SYSTEM,
       );
 
       const memberUserIds =
-        await this.messageService.getConversationMemberIds(conversationId);
+        await this.messageService.getConversationMemberIds(channelId);
 
       const messageWithUrls = {
         ...message,
+        chatId: channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         medias: [],
       };
 
-      const targetRooms = [conversationId, ...memberUserIds];
+      const targetRooms = [channelId, ...memberUserIds];
       this.server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
-      return { status: 'success', data: messageWithUrls };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to send system message' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.SYSTEM_SEND_FAILED,
+      };
     }
   }
 
@@ -264,22 +333,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleReactMessage(
     @MessageBody()
     data: {
-      conversationId: string;
+      channelId: string;
       messageId: string;
       emoji: string;
-      action: 'add' | 'remove';
+      action: CHAT_REACTION_ACTION.ADD | CHAT_REACTION_ACTION.REMOVE;
     },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.emoji)
-      return;
+    if (!userId || !data.messageId || !data.channelId || !data.emoji) return;
 
     try {
       let finalAction = data.action;
       let finalEmoji = data.emoji;
 
-      if (data.action === 'add') {
+      if (data.action === CHAT_REACTION_ACTION.ADD) {
         const result = await this.messageService.addReaction(
           data.messageId,
           userId,
@@ -296,86 +364,103 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
-        conversationId: data.conversationId,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
         messageId: data.messageId,
         userId,
         emoji: finalEmoji,
         action: finalAction,
       });
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to update reaction' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.REACTION_FAILED,
+      };
     }
   }
 
   @SubscribeMessage(ChatEvent.VOTE_POLL)
   async handleVotePoll(
     @MessageBody()
-    data: { conversationId: string; messageId: string; pollOptionId: string },
+    data: { channelId: string; messageId: string; pollOptionId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (
-      !userId ||
-      !data.messageId ||
-      !data.conversationId ||
-      !data.pollOptionId
-    )
+    if (!userId || !data.messageId || !data.channelId || !data.pollOptionId)
       return;
 
     try {
       const updatedMessage = await this.pollService.votePoll(
+        data.channelId,
         data.messageId,
         data.pollOptionId,
         userId,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
-      return { status: 'success' };
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
+        ...updatedMessage,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      });
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to vote poll' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.POLL_VOTE_FAILED,
+      };
     }
   }
 
   @SubscribeMessage(ChatEvent.ADD_POLL_OPTION)
   async handleAddPollOption(
     @MessageBody()
-    data: { conversationId: string; messageId: string; text: string },
+    data: { channelId: string; messageId: string; text: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.text)
-      return;
+    if (!userId || !data.messageId || !data.channelId || !data.text) return;
 
     try {
       const updatedMessage = await this.pollService.addPollOption(
+        data.channelId,
         data.messageId,
         data.text,
         userId,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
-      return { status: 'success' };
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
+        ...updatedMessage,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      });
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to add poll option' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.POLL_ADD_OPTION_FAILED,
+      };
     }
   }
 
@@ -383,7 +468,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleEditPoll(
     @MessageBody()
     data: {
-      conversationId: string;
+      channelId: string;
       messageId: string;
       title: string;
       multipleChoice: boolean;
@@ -394,29 +479,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId || !data.title)
-      return;
+    if (!userId || !data.messageId || !data.channelId || !data.title) return;
 
     try {
       const updatedMessage = await this.pollService.updatePoll(
+        data.channelId,
         data.messageId,
         data.title,
         data.multipleChoice,
         data.allowAddOptions,
+        userId,
         data.anonymous,
         data.isLocked,
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
-      return { status: 'success' };
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
+        ...updatedMessage,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      });
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to edit poll' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.POLL_EDIT_FAILED,
+      };
     }
   }
 
@@ -424,7 +518,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleEditNote(
     @MessageBody()
     data: {
-      conversationId: string;
+      channelId: string;
       messageId: string;
       title: string;
       content: string;
@@ -435,7 +529,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (
       !userId ||
       !data.messageId ||
-      !data.conversationId ||
+      !data.channelId ||
       !data.title ||
       !data.content
     )
@@ -443,6 +537,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     try {
       const updatedMessage = await this.noteService.updateNote(
+        data.channelId,
         data.messageId,
         data.title,
         data.content,
@@ -450,29 +545,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
-      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, updatedMessage);
-      return { status: 'success' };
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
+        ...updatedMessage,
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+      });
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to edit note' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.NOTE_EDIT_FAILED,
+      };
     }
   }
 
   @SubscribeMessage(ChatEvent.EDIT_MESSAGE)
   async handleEditMessage(
     @MessageBody()
-    data: { conversationId: string; messageId: string; content: string },
+    data: { channelId: string; messageId: string; content: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
     if (
       !userId ||
       !data.messageId ||
-      !data.conversationId ||
+      !data.channelId ||
       data.content === undefined
     )
       return;
@@ -485,27 +588,30 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server
         .to(targetRooms)
         .emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to edit message' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.MESSAGE_EDIT_FAILED,
+      };
     }
   }
 
   @SubscribeMessage(ChatEvent.RECALL_MESSAGE)
   async handleRecallMessage(
-    @MessageBody() data: { conversationId: string; messageId: string },
+    @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId) return;
+    if (!userId || !data.messageId || !data.channelId) return;
 
     try {
       const updatedMessage = await this.messageService.recallMessage(
@@ -514,55 +620,130 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       this.server
         .to(targetRooms)
         .emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to recall message' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.MESSAGE_RECALL_FAILED,
+      };
     }
   }
 
   @SubscribeMessage(ChatEvent.READ_MESSAGE)
   async handleReadMessage(
-    @MessageBody() data: { conversationId: string; messageId: string },
+    @MessageBody() data: { channelId: string; messageId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.messageId || !data.channelId) return;
+
+    try {
+      const readReceipt = await this.messageService.markConversationAsRead(
+        data.channelId,
+        userId,
+        data.messageId,
+      );
+
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.channelId,
+      );
+      const targetRooms = [data.channelId, ...memberUserIds];
+
+      this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+        messageId: data.messageId,
+        userId,
+        readAt: readReceipt.lastReadAt,
+      });
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
+    } catch (error) {
+      console.error(error);
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.READ_RECEIPT_FAILED,
+      };
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.READ_DIRECT_MESSAGE)
+  async handleReadDirectMessage(
+    @MessageBody()
+    data: { conversationId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.conversationId) return;
 
     try {
-      const readReceipt = await this.messageService.markConversationAsRead(
-        data.conversationId,
-        userId,
-        data.messageId,
-      );
+      const readReceipt =
+        await this.directMessageService.markDirectConversationAsRead(
+          data.conversationId,
+          userId,
+          data.messageId,
+        );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
-      );
+      const memberUserIds =
+        await this.directMessageService.getDirectConversationMemberIds(
+          data.conversationId,
+        );
       const targetRooms = [data.conversationId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
+        chatId: data.conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         conversationId: data.conversationId,
         messageId: data.messageId,
         userId,
         readAt: readReceipt.lastReadAt,
       });
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
-      return { status: 'error', message: 'Failed to mark as read' };
+      return {
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: CHAT_ERROR_MESSAGES.READ_RECEIPT_FAILED,
+      };
     }
   }
 
   @SubscribeMessage(ChatEvent.TYPING)
   async handleTyping(
+    @MessageBody() data: { channelId: string; isTyping: boolean },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.channelId) return;
+
+    try {
+      const memberUserIds = await this.messageService.getConversationMemberIds(
+        data.channelId,
+      );
+      const targetRooms = [data.channelId, ...memberUserIds];
+
+      this.server.to(targetRooms).emit(ChatEvent.TYPING, {
+        chatId: data.channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: data.channelId,
+        userId,
+        isTyping: data.isTyping,
+      });
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  @SubscribeMessage(ChatEvent.TYPING_DIRECT)
+  async handleDirectTyping(
     @MessageBody() data: { conversationId: string; isTyping: boolean },
     @ConnectedSocket() client: Socket,
   ) {
@@ -570,12 +751,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!userId || !data.conversationId) return;
 
     try {
-      const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
-      );
+      const memberUserIds =
+        await this.directMessageService.getDirectConversationMemberIds(
+          data.conversationId,
+        );
       const targetRooms = [data.conversationId, ...memberUserIds];
 
       this.server.to(targetRooms).emit(ChatEvent.TYPING, {
+        chatId: data.conversationId,
+        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
         conversationId: data.conversationId,
         userId,
         isTyping: data.isTyping,
@@ -591,11 +775,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage(ChatEvent.PIN_MESSAGE)
   async handlePinMessage(
-    @MessageBody() data: { conversationId: string; messageId: string },
+    @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId) return;
+    if (!userId || !data.messageId || !data.channelId) return;
 
     try {
       const updatedMessage = await this.messageService.pinMessage(
@@ -604,9 +788,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       const messageWithUrls = {
         ...updatedMessage,
@@ -616,23 +800,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server
         .to(targetRooms)
         .emit(ChatEvent.MESSAGE_PINNED, messageWithUrls);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
       return {
-        status: 'error',
-        message: error.message || 'Failed to pin message',
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: error.message || CHAT_ERROR_MESSAGES.PIN_FAILED,
       };
     }
   }
 
   @SubscribeMessage(ChatEvent.UNPIN_MESSAGE)
   async handleUnpinMessage(
-    @MessageBody() data: { conversationId: string; messageId: string },
+    @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
     const userId = client.data.userId;
-    if (!userId || !data.messageId || !data.conversationId) return;
+    if (!userId || !data.messageId || !data.channelId) return;
 
     try {
       const updatedMessage = await this.messageService.unpinMessage(
@@ -641,9 +825,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       );
 
       const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.conversationId,
+        data.channelId,
       );
-      const targetRooms = [data.conversationId, ...memberUserIds];
+      const targetRooms = [data.channelId, ...memberUserIds];
 
       const messageWithUrls = {
         ...updatedMessage,
@@ -653,12 +837,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server
         .to(targetRooms)
         .emit(ChatEvent.MESSAGE_UNPINNED, messageWithUrls);
-      return { status: 'success' };
+      return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
       return {
-        status: 'error',
-        message: error.message || 'Failed to unpin message',
+        status: CHAT_RESPONSE_STATUS.ERROR,
+        message: error.message || CHAT_ERROR_MESSAGES.UNPIN_FAILED,
       };
     }
   }

@@ -1,16 +1,14 @@
 import React, { useEffect, useRef } from "react";
-import { MessageSquare, Edit2, Pin, Trash2, Eye } from "lucide-react";
+import { Edit2, Pin, Trash2 } from "lucide-react";
 
 interface MessageOptionsDropdownProps {
   isOpen: boolean;
   onClose: () => void;
   buttonRect: DOMRect | null;
   isMe: boolean;
-  onReply?: () => void;
   onEdit?: () => void;
   onPin?: () => void;
   onRecall?: () => void;
-  onViewReadReceipts?: () => void;
   canEdit?: boolean;
   canRecall?: boolean;
   isPinned?: boolean;
@@ -21,7 +19,6 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   onClose,
   buttonRect,
   isMe,
-  onReply,
   onEdit,
   onPin,
   onRecall,
@@ -50,8 +47,8 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
 
   const getStyle = (): React.CSSProperties => {
     const style: React.CSSProperties = {
-      left: isMe ? buttonRect.right : buttonRect.left,
-      transform: isMe ? "translateX(-100%)" : "none",
+      left: isMe ? buttonRect.right + 10 : buttonRect.left,
+      transform: "none",
     };
 
     if (buttonRect.bottom > window.innerHeight / 2) {
@@ -70,17 +67,6 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
       className="fixed z-50 min-w-[180px] bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm text-gray-700 animate-in fade-in zoom-in-95 duration-100"
       style={getStyle()}
     >
-      <button
-        onClick={() => {
-          onReply?.();
-          onClose();
-        }}
-        className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
-      >
-        <MessageSquare size={16} />
-        <span>Phản hồi</span>
-      </button>
-
       {isMe && canEdit && (
         <button
           onClick={() => {
@@ -90,7 +76,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
           className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
         >
           <Edit2 size={16} />
-          <span>Chỉnh sửa</span>
+          <span>Edit</span>
         </button>
       )}
 
@@ -102,7 +88,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
         className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
       >
         <Pin size={16} />
-        <span>{isPinned ? "Bỏ ghim tin nhắn" : "Ghim tin nhắn"}</span>
+        <span>{isPinned ? "Unpin message" : "Pin message"}</span>
       </button>
 
       {isMe && canRecall && (
@@ -116,7 +102,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Trash2 size={16} />
-            <span>Thu hồi</span>
+            <span>Recall</span>
           </button>
         </>
       )}

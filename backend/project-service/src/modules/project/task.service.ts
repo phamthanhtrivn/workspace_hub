@@ -156,8 +156,8 @@ export class TaskService {
           recipientId: dto.assigneeUserId,
           senderId: userId,
           type: 'PROJECT_TASK_ASSIGNED',
-          title: 'Bạn được giao một task',
-          content: `Task “${current.title}” đã được giao cho bạn.`,
+          title: 'You were assigned a task',
+          content: `Task "${current.title}" was assigned to you.`,
           link: `/projects/${current.projectId}`,
           metadata: { taskId: current.id, projectId: current.projectId },
         });
@@ -171,8 +171,8 @@ export class TaskService {
           recipientId: assignee.userId,
           senderId: userId,
           type: 'PROJECT_TASK_UPDATED',
-          title: 'Task đã được cập nhật',
-          content: `Task “${task.title}” vừa được cập nhật.`,
+          title: 'Task updated',
+          content: `Task "${task.title}" was just updated.`,
           link: `/projects/${current.projectId}`,
           metadata: { taskId: current.id, projectId: current.projectId },
         });

@@ -156,7 +156,7 @@ export default function MediaLightbox({
           <button
             onClick={handleDownload}
             className="cursor-pointer p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition"
-            title="Tải xuống"
+            title="Download"
           >
             <Download size={24} />
           </button>
@@ -166,7 +166,7 @@ export default function MediaLightbox({
               onClose();
             }}
             className="cursor-pointer p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition"
-            title="Đóng"
+            title="Close"
           >
             <X size={24} />
           </button>
@@ -247,7 +247,7 @@ export default function MediaLightbox({
           <button
             onClick={handleZoomOut}
             className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-            title="Thu nhỏ"
+            title="Zoom out"
           >
             <ZoomOut size={20} />
           </button>
@@ -257,7 +257,7 @@ export default function MediaLightbox({
           <button
             onClick={handleZoomIn}
             className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-            title="Phóng to"
+            title="Zoom in"
           >
             <ZoomIn size={20} />
           </button>
@@ -265,14 +265,14 @@ export default function MediaLightbox({
           <button
             onClick={handleRotate}
             className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-            title="Xoay ảnh"
+            title="Rotate"
           >
             <RotateCcw size={18} style={{ transform: "scaleX(-1)" }} />
           </button>
           <button
             onClick={handleReset}
             className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-            title="Đặt lại"
+            title="Reset"
           >
             <RotateCcw size={18} />
           </button>

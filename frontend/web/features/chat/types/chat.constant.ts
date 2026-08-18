@@ -1,0 +1,116 @@
+import { ChatContextType } from "./chat.types";
+
+export const MAX_UNREAD_COUNT = 99;
+export const CHAT_DEFAULT_STALE_TIME_MS = 1000 * 60 * 5;
+export const CHAT_DEFAULT_MESSAGE_PAGE_SIZE = 20;
+
+export enum ChatQueryRoot {
+  SPACES = "spaces",
+  CHANNELS = "channels",
+  DIRECT_MESSAGES = "direct-messages",
+  MESSAGES = "messages",
+  CHANNEL_MEMBERS = "channel-members",
+  SPACE_MEMBERS = "space-members",
+  SPACE_INVITATIONS = "space-invitations",
+  SPACE_DETAILS = "space-details",
+  READ_RECEIPTS = "read-receipts",
+  PINNED_MESSAGES_PREVIEW = "pinnedMessagesPreview",
+  PINNED_MESSAGES_DETAIL = "pinnedMessagesDetail",
+  MEDIA = "media",
+  THREADS = "conversation-threads",
+  FOLLOWED_THREADS = "followed-threads",
+  THREAD_MESSAGES = "threadMessages",
+  NOTES = "notes",
+  POLLS = "polls",
+}
+
+export enum ChatQueryKey {
+  DIRECT_MESSAGES = ChatQueryRoot.DIRECT_MESSAGES,
+  DIRECT_CONVERSATIONS = ChatQueryRoot.DIRECT_MESSAGES,
+}
+
+export enum ChatScope {
+  DIRECT = "direct",
+  CHANNEL = "channel",
+}
+
+export const chatKeys = {
+  allSpaces: () => [ChatQueryRoot.SPACES] as const,
+  allChannels: () => [ChatQueryRoot.CHANNELS] as const,
+  allDirectMessages: () => [ChatQueryRoot.DIRECT_MESSAGES] as const,
+  allMessages: () => [ChatQueryRoot.MESSAGES] as const,
+  allChannelMembers: () => [ChatQueryRoot.CHANNEL_MEMBERS] as const,
+  allSpaceMembers: () => [ChatQueryRoot.SPACE_MEMBERS] as const,
+  allSpaceInvitations: () => [ChatQueryRoot.SPACE_INVITATIONS] as const,
+  allMedia: () => [ChatQueryRoot.MEDIA] as const,
+  allPinnedMessagesPreview: () => [ChatQueryRoot.PINNED_MESSAGES_PREVIEW] as const,
+  allPinnedMessagesDetail: () => [ChatQueryRoot.PINNED_MESSAGES_DETAIL] as const,
+  allThreads: () => [ChatQueryRoot.THREADS] as const,
+  allFollowedThreads: () => [ChatQueryRoot.FOLLOWED_THREADS] as const,
+  allThreadMessages: () => [ChatQueryRoot.THREAD_MESSAGES] as const,
+  spaces: (userId?: string | null) => [ChatQueryRoot.SPACES, userId] as const,
+  spaceDetails: (spaceId?: string | null) =>
+    [ChatQueryRoot.SPACE_DETAILS, spaceId] as const,
+  channels: (spaceId?: string | null, search?: string) =>
+    search
+      ? ([ChatQueryRoot.CHANNELS, spaceId, search] as const)
+      : ([ChatQueryRoot.CHANNELS, spaceId] as const),
+  directMessages: (userId?: string | null, search?: string) =>
+    search
+      ? ([ChatQueryKey.DIRECT_MESSAGES, userId, search] as const)
+      : ([ChatQueryKey.DIRECT_MESSAGES, userId] as const),
+  messages: (
+    chatType?: ChatContextType | null,
+    chatId?: string | null,
+    jumpTargetId?: string | null,
+  ) => [ChatQueryRoot.MESSAGES, chatType, chatId, jumpTargetId ?? null] as const,
+  channelMembers: (channelId?: string | null, search?: string) =>
+    [ChatQueryRoot.CHANNEL_MEMBERS, channelId, search ?? ""] as const,
+  spaceMembers: (spaceId?: string | null, search?: string) =>
+    [ChatQueryRoot.SPACE_MEMBERS, spaceId, search ?? ""] as const,
+  spaceInvitations: (spaceId?: string | null) =>
+    [ChatQueryRoot.SPACE_INVITATIONS, spaceId] as const,
+  readReceipts: (
+    chatType?: ChatContextType | null,
+    chatId?: string | null,
+  ) => [ChatQueryRoot.READ_RECEIPTS, chatType, chatId] as const,
+  pinnedMessagesPreview: (
+    scope: ChatScope,
+    chatId?: string | null,
+  ) => [ChatQueryRoot.PINNED_MESSAGES_PREVIEW, scope, chatId] as const,
+  pinnedMessagesDetail: (
+    scope: ChatScope,
+    chatId?: string | null,
+  ) => [ChatQueryRoot.PINNED_MESSAGES_DETAIL, scope, chatId] as const,
+  media: (scope: ChatScope, chatId?: string | null) =>
+    [ChatQueryRoot.MEDIA, scope, chatId] as const,
+  threads: (scope: ChatScope, chatId?: string | null) =>
+    [ChatQueryRoot.THREADS, scope, chatId] as const,
+  followedThreads: (userId?: string | null) =>
+    [ChatQueryRoot.FOLLOWED_THREADS, userId] as const,
+  threadMessages: (
+    scope: ChatScope,
+    messageId?: string | null,
+  ) => [ChatQueryRoot.THREAD_MESSAGES, scope, messageId] as const,
+  notes: (chatId?: string | null) => [ChatQueryRoot.NOTES, chatId] as const,
+  polls: (chatId?: string | null) => [ChatQueryRoot.POLLS, chatId] as const,
+};
+
+export enum ChatSidebarSection {
+  THREADS = "Threads",
+  DIRECT_MESSAGES = "Direct Messages (DMs)",
+}
+
+export const CHANNEL_MEMBERS_MODAL_LABELS = {
+  title: (count: number) => `${count} ${count === 1 ? "member" : "members"}`,
+  searchPlaceholder: "Search members by name",
+  loading: "Loading members...",
+  empty: "No members found",
+  loadError: "Failed to load channel members",
+} as const;
+
+export const CHANNEL_MEMBER_SEARCH_DEBOUNCE_MS = 300;
+export const CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS = 300;
+export const CHANNEL_MEMBER_SEARCH_PAGE_SIZE = 500;
+export const SPACE_MEMBER_SEARCH_DEBOUNCE_MS = 300;
+export const SPACE_MEMBER_SEARCH_PAGE_SIZE = 500;

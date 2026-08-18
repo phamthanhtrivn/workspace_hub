@@ -8,6 +8,14 @@ import {
   DocumentRole,
 } from "./documents.enums";
 
+export interface UserProfileSnapshotResponse {
+  id: string;
+  userId: string;
+  email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
 export interface DocumentItem {
   id: string;
   ownerUserId: string;
@@ -26,6 +34,7 @@ export interface DocumentItem {
   updatedAt: string;
   linkAccess?: LinkAccess;
   userRole?: DocumentRole;
+  ownerProfile?: UserProfileSnapshotResponse | null;
 }
 
 export interface UserStorageQuota {
@@ -55,6 +64,7 @@ export interface DocumentVersion {
   uploadedBy: string;
   uploadedByEmail?: string;
   createdAt: string;
+  uploaderProfile?: UserProfileSnapshotResponse | null;
 }
 
 export interface DocumentShare {
@@ -65,6 +75,7 @@ export interface DocumentShare {
   permission: SharePermission;
   createdAt: string;
   updatedAt: string;
+  shareWithProfile?: UserProfileSnapshotResponse | null;
 }
 
 export interface SharingSettings {

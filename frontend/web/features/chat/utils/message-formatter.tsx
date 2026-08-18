@@ -1,5 +1,5 @@
 import React from "react";
-import { UserProfileResponse } from "../types/chat.types";
+import { UserProfileSnapshotResponse } from "../types/chat.types";
 
 // Helper to parse inline styles (Bold, Italic, Strikethrough, Inline Code)
 export const parseInlineStyles = (
@@ -105,7 +105,7 @@ export const parseInlineStyles = (
 
 export const formatMessageContent = (
   content: string | undefined | null,
-  memberProfiles?: Record<string, UserProfileResponse>,
+  memberProfiles?: Record<string, UserProfileSnapshotResponse>,
 ): (string | React.ReactNode)[] => {
   if (!content) return [content || ""];
 
@@ -141,7 +141,7 @@ export const formatMessageContent = (
   const allProfiles = Object.values(memberProfiles || {})
     .map((profile: any) => ({
       userId: profile.userId,
-      name: profile.fullName || "Ai đó",
+      name: profile.fullName || "Someone",
     }))
     .sort((a: any, b: any) => b.name.length - a.name.length);
 
@@ -245,7 +245,7 @@ export const formatMessageContent = (
 
 export const formatMessageContentAndStyles = (
   content: string | undefined | null,
-  memberProfiles?: Record<string, UserProfileResponse>,
+  memberProfiles?: Record<string, UserProfileSnapshotResponse>,
 ): React.ReactNode[] => {
   const parts = formatMessageContent(content, memberProfiles);
   const finalParts: React.ReactNode[] = [];
@@ -263,7 +263,7 @@ export const formatMessageContentAndStyles = (
 
 export const parseBlocks = (
   content: string | undefined | null,
-  memberProfiles?: Record<string, UserProfileResponse>,
+  memberProfiles?: Record<string, UserProfileSnapshotResponse>,
 ): React.ReactNode => {
   if (!content) return null;
 
@@ -386,13 +386,13 @@ export const parseBlocks = (
               if (node.type === "heading") {
                 const HeadingTag = `h${node.level}` as any;
                 const classMap: Record<number, string> = {
-                  1: "text-lg font-bold text-gray-950 mt-2 mb-1",
-                  2: "text-base font-bold text-gray-950 mt-1.5 mb-1",
-                  3: "text-sm font-semibold text-gray-950 mt-1 mb-0.5",
+                  1: "text-xl font-black text-gray-950 mt-3 mb-1.5 leading-tight tracking-tight",
+                  2: "text-lg font-extrabold text-gray-950 mt-2.5 mb-1.5 leading-tight tracking-tight",
+                  3: "text-base font-extrabold text-gray-950 mt-2 mb-1 leading-snug",
                 };
                 const className =
                   classMap[node.level!] ||
-                  "text-xs font-semibold text-gray-950";
+                  "text-sm font-bold text-gray-950 mt-1.5 mb-0.5 leading-snug";
                 return (
                   <HeadingTag key={`h-${nodeIdx}`} className={className}>
                     {formatMessageContentAndStyles(node.text!, memberProfiles)}
@@ -466,7 +466,7 @@ export const parseBlocks = (
 
 export const renderMessageContent = (
   content: string | undefined | null,
-  memberProfiles?: Record<string, UserProfileResponse>,
+  memberProfiles?: Record<string, UserProfileSnapshotResponse>,
 ) => {
   if (!content) return <p className="whitespace-pre-wrap">{content}</p>;
   return (

@@ -45,6 +45,8 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
             userId: data.userId,
             email: data.email,
             role: data.role,
+            fullName: data.fullName,
+            avatarUrl: data.avatarUrl,
           }),
         );
 

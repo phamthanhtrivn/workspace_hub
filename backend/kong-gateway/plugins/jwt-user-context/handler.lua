@@ -26,6 +26,8 @@ function JwtUserContextHandler:access(config)
   kong.service.request.clear_header(config.header_user_id)
   kong.service.request.clear_header(config.header_user_email)
   kong.service.request.clear_header(config.header_user_role)
+  kong.service.request.clear_header(config.header_user_name)
+  kong.service.request.clear_header(config.header_user_avatar)
 
   -- 2. Extract JWT from Authorization header
   local auth_header = kong.request.get_header("Authorization")
@@ -73,6 +75,8 @@ function JwtUserContextHandler:access(config)
   local sub = payload.sub
   local email = payload.email
   local role = payload.role
+  local full_name = payload.fullName
+  local avatar_url = payload.avatarUrl
 
   if sub then
     kong.service.request.set_header(config.header_user_id, tostring(sub))
@@ -82,6 +86,12 @@ function JwtUserContextHandler:access(config)
   end
   if role then
     kong.service.request.set_header(config.header_user_role, tostring(role))
+  end
+  if full_name then
+    kong.service.request.set_header(config.header_user_name, tostring(full_name))
+  end
+  if avatar_url then
+    kong.service.request.set_header(config.header_user_avatar, tostring(avatar_url))
   end
 end
 

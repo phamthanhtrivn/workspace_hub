@@ -161,7 +161,7 @@ export class ProjectService {
     for (const [rootIndex, root] of roots.entries()) {
       const parent = await this.prisma.task.create({
         data: {
-          id: crypto.randomUUID(), projectId, title: root[0] as string, description: 'Task mẫu từ Project Template.',
+          id: crypto.randomUUID(), projectId, title: root[0] as string, description: 'Sample task from project template.',
           priority: rootIndex === 0 ? 'HIGH' : 'MEDIUM', status: 'TODO', createdBy: userId, reporterId: userId,
           allDay: false, estimatedMinutes: 180, rank: String((rootIndex + 1) * 1000), archived: false,
           isParentTask: true, autoCompleteSprint: false, createdAt: now, updatedAt: now,
@@ -171,19 +171,19 @@ export class ProjectService {
         const child = await this.prisma.task.create({
           data: {
             id: crypto.randomUUID(), projectId, parentTaskId: parent.id, title: childTitle,
-            description: 'Subtask mẫu từ Project Template.', priority: 'MEDIUM', status: 'TODO', createdBy: userId,
+            description: 'Sample subtask from project template.', priority: 'MEDIUM', status: 'TODO', createdBy: userId,
             reporterId: userId, allDay: false, estimatedMinutes: 60, rank: String((childIndex + 1) * 100), archived: false,
             isParentTask: false, autoCompleteSprint: false, createdAt: now, updatedAt: now,
           },
         });
         await this.prisma.taskChecklist.createMany({ data: [
-          { id: crypto.randomUUID(), taskId: child.id, title: 'Xác định phạm vi công việc', completed: false, createdAt: now, rank: '001' },
-          { id: crypto.randomUUID(), taskId: child.id, title: 'Cập nhật kết quả thực hiện', completed: false, createdAt: now, rank: '002' },
+          { id: crypto.randomUUID(), taskId: child.id, title: 'Define work scope', completed: false, createdAt: now, rank: '001' },
+          { id: crypto.randomUUID(), taskId: child.id, title: 'Update execution result', completed: false, createdAt: now, rank: '002' },
         ] });
       }
       await this.prisma.taskChecklist.createMany({ data: [
-        { id: crypto.randomUUID(), taskId: parent.id, title: 'Review mục tiêu task', completed: false, createdAt: now, rank: '001' },
-        { id: crypto.randomUUID(), taskId: parent.id, title: 'Xác nhận hoàn thành', completed: false, createdAt: now, rank: '002' },
+        { id: crypto.randomUUID(), taskId: parent.id, title: 'Review task objective', completed: false, createdAt: now, rank: '001' },
+        { id: crypto.randomUUID(), taskId: parent.id, title: 'Confirm completion', completed: false, createdAt: now, rank: '002' },
       ] });
     }
   }

@@ -2,119 +2,157 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, KeyRound } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
+import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
 import { OtpInput } from "@/components/common/otp-input";
-import { toast } from "react-toastify";
-import { api } from "@/lib/axios";
-
-type Step = "EMAIL" | "OTP" | "PASSWORD";
+import {
+  useResetPasswordMutation,
+  useSendResetOtpMutation,
+  useVerifyResetOtpMutation,
+} from "../hooks/useForgotPasswordMutations";
+import {
+  AuthRouteTarget,
+  ForgotPasswordStep,
+} from "../types/auth.constants";
+import {
+  getAuthErrorMessage,
+  getAuthValidationErrors,
+} from "../utils/auth-error";
 
 const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
-  const [step, setStep] = useState<Step>("EMAIL");
+  const sendResetOtpMutation = useSendResetOtpMutation();
+  const verifyResetOtpMutation = useVerifyResetOtpMutation();
+  const resetPasswordMutation = useResetPasswordMutation();
+
+  const [step, setStep] = useState<ForgotPasswordStep>(
+    ForgotPasswordStep.EMAIL,
+  );
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [resetToken, setResetToken] = useState("");
 
-  const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleApiError = (err: any) => {
-    const data = err?.response?.data;
-    if (data?.errors) {
-      setErrors(data.errors);
-    } else {
-      toast.error(data?.message || "Đã có lỗi xảy ra, vui lòng thử lại sau.");
+  const isLoading =
+    sendResetOtpMutation.isPending ||
+    verifyResetOtpMutation.isPending ||
+    resetPasswordMutation.isPending;
+
+  const handleApiError = (error: unknown) => {
+    const validationErrors = getAuthValidationErrors(error);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
     }
+
+    toast.error(
+      getAuthErrorMessage(error, "Something went wrong. Please try again."),
+    );
   };
 
-  const handleSendEmail = async (e?: React.FormEvent) => {
+  const handleSendEmail = (e?: React.FormEvent) => {
     e?.preventDefault();
     setErrors({});
-    setIsLoading(true);
 
-    try {
-      await api.post("/api/auth/forgot-password", { email });
-
-      toast.success("Mã xác nhận đã được gửi vào email của bạn!");
-      setStep("OTP");
-    } catch (err: any) {
-      handleApiError(err);
-    } finally {
-      setIsLoading(false);
-    }
+    sendResetOtpMutation.mutate(
+      { email },
+      {
+        onSuccess: () => {
+          toast.success("A verification code has been sent to your email.");
+          setStep(ForgotPasswordStep.OTP);
+        },
+        onError: handleApiError,
+      },
+    );
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
-    setIsLoading(true);
 
-    try {
-      const response = await api.post("/api/auth/verify-reset-otp", {
-        email,
-        otp,
-      });
-      const token = response.data.data.resetToken;
-      setResetToken(token);
-
-      toast.success("Xác thực thành công!");
-      setStep("PASSWORD");
-    } catch (err: any) {
-      handleApiError(err);
-    } finally {
-      setIsLoading(false);
-    }
+    verifyResetOtpMutation.mutate(
+      { email, otp },
+      {
+        onSuccess: (response) => {
+          setResetToken(response.data.resetToken);
+          toast.success("Verification successful.");
+          setStep(ForgotPasswordStep.PASSWORD);
+        },
+        onError: handleApiError,
+      },
+    );
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleResetPassword = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
     if (newPassword !== confirmPassword) {
-      setErrors({ confirmPassword: "Mật khẩu xác nhận không khớp" });
+      setErrors({ confirmPassword: "Password confirmation does not match" });
       return;
     }
 
-    setIsLoading(true);
+    resetPasswordMutation.mutate(
+      { email, resetToken, newPassword },
+      {
+        onSuccess: () => {
+          toast.success("Password updated successfully.");
+          window.location.href = AuthRouteTarget.LOGIN;
+        },
+        onError: handleApiError,
+      },
+    );
+  };
 
-    try {
-      await api.post("/api/auth/reset-password", {
-        email,
-        resetToken,
-        newPassword,
-      });
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
+  };
 
-      toast.success("Cập nhật mật khẩu thành công!");
-      window.location.href = "/login";
-    } catch (err: any) {
-      handleApiError(err);
-    } finally {
-      setIsLoading(false);
+  const handleNewPasswordChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setNewPassword(e.target.value);
+    if (errors.newPassword) {
+      setErrors((prev) => ({ ...prev, newPassword: "" }));
+    }
+  };
+
+  const handleConfirmPasswordChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    setConfirmPassword(e.target.value);
+    if (errors.confirmPassword) {
+      setErrors((prev) => ({ ...prev, confirmPassword: "" }));
     }
   };
 
   return (
     <div className="space-y-6">
-      {step !== "EMAIL" && (
+      {step !== ForgotPasswordStep.EMAIL && (
         <button
           type="button"
           onClick={() => {
-            if (step === "OTP") setStep("EMAIL");
-            if (step === "PASSWORD") setStep("OTP");
+            if (step === ForgotPasswordStep.OTP) {
+              setStep(ForgotPasswordStep.EMAIL);
+            }
+            if (step === ForgotPasswordStep.PASSWORD) {
+              setStep(ForgotPasswordStep.OTP);
+            }
           }}
           className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          Quay lại
+          Back
         </button>
       )}
 
-      {step === "EMAIL" && (
+      {step === ForgotPasswordStep.EMAIL && (
         <form
           onSubmit={handleSendEmail}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
@@ -130,13 +168,10 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               id="email"
               type="email"
               icon={Mail}
-              placeholder="Nhập email của bạn"
+              placeholder="Enter your email"
               value={email}
               error={errors.email}
-              onChange={(e: any) => {
-                setEmail(e.target.value);
-                if (errors.email) setErrors((prev) => ({ ...prev, email: "" }));
-              }}
+              onChange={handleEmailChange}
             />
           </div>
           <button
@@ -144,12 +179,12 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {isLoading ? "Đang gửi..." : "Gửi mã khôi phục"}
+            {sendResetOtpMutation.isPending ? "Sending..." : "Send reset code"}
           </button>
         </form>
       )}
 
-      {step === "OTP" && (
+      {step === ForgotPasswordStep.OTP && (
         <form
           onSubmit={handleVerifyOtp}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
@@ -160,10 +195,10 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                 <KeyRound className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-slate-800">
-                Nhập mã xác nhận
+                Enter verification code
               </h3>
               <p className="text-sm text-slate-500 mt-1">
-                Mã gồm 6 chữ số đã được gửi đến
+                The 6-digit code was sent to
                 <br />
                 <span className="font-semibold text-slate-800">{email}</span>
               </p>
@@ -173,8 +208,8 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               <OtpInput
                 length={6}
                 value={otp}
-                onChange={(val) => {
-                  setOtp(val);
+                onChange={(value) => {
+                  setOtp(value);
                   if (errors.otp) setErrors((prev) => ({ ...prev, otp: "" }));
                 }}
               />
@@ -184,14 +219,16 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             </div>
 
             <div className="text-center text-sm">
-              <span className="text-slate-500">Chưa nhận được mã? </span>
+              <span className="text-slate-500">
+                Did not receive the code?{" "}
+              </span>
               <button
                 type="button"
                 onClick={() => handleSendEmail()}
                 className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] cursor-pointer"
                 disabled={isLoading}
               >
-                Gửi lại
+                Resend
               </button>
             </div>
           </div>
@@ -200,12 +237,12 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             disabled={isLoading || otp.length < 6}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {isLoading ? "Đang xác thực..." : "Xác thực"}
+            {verifyResetOtpMutation.isPending ? "Verifying..." : "Verify"}
           </button>
         </form>
       )}
 
-      {step === "PASSWORD" && (
+      {step === ForgotPasswordStep.PASSWORD && (
         <form
           onSubmit={handleResetPassword}
           className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500"
@@ -215,20 +252,16 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="newPassword"
               className="text-sm font-semibold text-slate-700"
             >
-              Mật khẩu mới <span className="text-red-500">*</span>
+              New password <span className="text-red-500">*</span>
             </label>
             <InputField
               id="newPassword"
               type={showPassword ? "text" : "password"}
               icon={Lock}
-              placeholder="Nhập mật khẩu mới"
+              placeholder="Enter a new password"
               value={newPassword}
               error={errors.newPassword}
-              onChange={(e: any) => {
-                setNewPassword(e.target.value);
-                if (errors.newPassword)
-                  setErrors((prev) => ({ ...prev, newPassword: "" }));
-              }}
+              onChange={handleNewPasswordChange}
               rightIcon={
                 showPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -236,7 +269,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                   <Eye className="w-5 h-5" />
                 )
               }
-              onRightClick={() => setShowPassword(!showPassword)}
+              onRightClick={() => setShowPassword((prev) => !prev)}
             />
           </div>
 
@@ -245,20 +278,16 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="confirmPassword"
               className="text-sm font-semibold text-slate-700"
             >
-              Xác nhận mật khẩu <span className="text-red-500">*</span>
+              Confirm password <span className="text-red-500">*</span>
             </label>
             <InputField
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               icon={Lock}
-              placeholder="Nhập lại mật khẩu mới"
+              placeholder="Re-enter your new password"
               value={confirmPassword}
               error={errors.confirmPassword}
-              onChange={(e: any) => {
-                setConfirmPassword(e.target.value);
-                if (errors.confirmPassword)
-                  setErrors((prev) => ({ ...prev, confirmPassword: "" }));
-              }}
+              onChange={handleConfirmPasswordChange}
               rightIcon={
                 showConfirmPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -266,7 +295,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                   <Eye className="w-5 h-5" />
                 )
               }
-              onRightClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              onRightClick={() => setShowConfirmPassword((prev) => !prev)}
             />
           </div>
           <button
@@ -274,19 +303,19 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {isLoading ? "Đang cập nhật..." : "Cập nhật mật khẩu"}
+            {resetPasswordMutation.isPending ? "Updating..." : "Update password"}
           </button>
         </form>
       )}
 
-      {step === "EMAIL" && (
+      {step === ForgotPasswordStep.EMAIL && (
         <p className="mt-8 text-center text-sm text-slate-500">
-          Đã nhớ ra mật khẩu?{" "}
+          Remembered your password?{" "}
           <Link
-            href="/login"
+            href={AuthRouteTarget.LOGIN}
             className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] underline"
           >
-            Quay lại Đăng nhập
+            Back to sign in
           </Link>
         </p>
       )}

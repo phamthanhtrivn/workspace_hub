@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import { BarChart2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
-import { useAppSelector } from "@/store/store";
 import ViewPollModal from "../modals/view-poll-modal";
-import { formatDividerTime } from "@/lib/date";
+import { formatDateTime } from "@/lib/date";
 import { usePolls } from "../../hooks/usePolls";
+import SeeAllButton from "./see-all-button";
+import { useActiveChat } from "../../hooks/useChatQueries";
 
 interface PollsSectionProps {
   isExpanded: boolean;
@@ -16,9 +17,7 @@ export default function PollsSection({
   onToggle,
   onSeeAll,
 }: PollsSectionProps) {
-  const activeConversation = useAppSelector(
-    (state) => state.chat.activeConversation,
-  );
+  const { activeChat: activeConversation } = useActiveChat();
   
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
 
@@ -27,7 +26,7 @@ export default function PollsSection({
   const displayPolls = polls.slice(0, 3);
   const hasMore = polls.length > 3;
 
-  const selectedPoll = polls.find((p: any) => p.id === selectedPollId);
+  const selectedPoll = polls.find((poll) => poll.id === selectedPollId);
 
   return (
     <div>
@@ -53,33 +52,30 @@ export default function PollsSection({
             </div>
           ) : polls.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              Chưa có bình chọn nào
+              No polls available
             </p>
           ) : (
             <>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {displayPolls.map((poll: any) => (
+                {displayPolls.map((poll) => (
                   <div
                     key={poll.id}
                     onClick={() => setSelectedPollId(poll.id)}
                     className="p-3 bg-purple-50 border border-purple-100 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors"
                   >
                     <p className="text-xs font-semibold text-purple-900 mb-1 truncate">
-                      {poll.title} - {formatDividerTime(poll.createdAt)}
+                      {poll.title || "Untitled poll"} - {formatDateTime(poll.createdAt)}
                     </p>
                     <p className="text-[10px] text-purple-600/70">
-                      {poll.options?.length || 0} lựa chọn
+                      {poll.options?.length || 0} options
                     </p>
                   </div>
                 ))}
               </div>
               {hasMore && (
-                <button
-                  onClick={onSeeAll}
-                  className="cursor-pointer w-full mt-3 py-2 text-sm text-blue-600 font-medium hover:bg-blue-100 bg-blue-50 rounded-lg transition"
-                >
-                  Xem tất cả
-                </button>
+                <SeeAllButton onClick={onSeeAll}>
+                  See all
+                </SeeAllButton>
               )}
             </>
           )}

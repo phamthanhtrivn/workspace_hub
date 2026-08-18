@@ -1,5 +1,23 @@
 import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import * as webpush from "web-push";
+import {
+  PushNotificationPayload,
+  WebPushSubscriptionRecord,
+} from "./types/notification.types";
+
+interface WebPushError {
+  message?: string;
+  stack?: string;
+  statusCode?: number;
+  body?: string;
+  response?: {
+    body?: string;
+  };
+}
+
+function isWebPushError(error: unknown): error is WebPushError {
+  return typeof error === "object" && error !== null;
+}
 
 @Injectable()
 export class PushService implements OnModuleInit {
@@ -25,14 +43,8 @@ export class PushService implements OnModuleInit {
   }
 
   async sendPushNotification(
-    subscription: { endpoint: string; p256dh: string; auth: string },
-    payload: {
-      title: string;
-      content: string;
-      link?: string;
-      senderName?: string;
-      senderAvatar?: string;
-    },
+    subscription: WebPushSubscriptionRecord,
+    payload: PushNotificationPayload,
   ): Promise<boolean> {
     try {
       const pushSubscription = {
@@ -47,12 +59,16 @@ export class PushService implements OnModuleInit {
 
       await webpush.sendNotification(pushSubscription, payloadString);
       return true;
-    } catch (error: any) {
-      const statusCode = error.statusCode;
-      const responseBody = error.body || error.response?.body;
+    } catch (error: unknown) {
+      const webPushError = isWebPushError(error) ? error : {};
+      const statusCode = webPushError.statusCode;
+      const responseBody = webPushError.body || webPushError.response?.body;
 
       // These statuses mean the subscription is invalid, expired, denied, or mismatched with VAPID details.
-      if ([400, 403, 404, 410].includes(statusCode)) {
+      if (
+        typeof statusCode === "number" &&
+        [400, 403, 404, 410].includes(statusCode)
+      ) {
         this.logger.warn(
           `Invalid push subscription (Status ${statusCode}). Endpoint: ${subscription.endpoint}. Body: ${responseBody || "N/A"}`,
         );
@@ -60,8 +76,8 @@ export class PushService implements OnModuleInit {
       }
 
       this.logger.error(
-        `Failed to send web push notification: ${error.message || error}. Status: ${statusCode || "N/A"}. Body: ${responseBody || "N/A"}`,
-        error.stack,
+        `Failed to send web push notification: ${webPushError.message || String(error)}. Status: ${statusCode || "N/A"}. Body: ${responseBody || "N/A"}`,
+        webPushError.stack,
       );
       return true; // Keep subscription for general errors (e.g. network timeout)
     }

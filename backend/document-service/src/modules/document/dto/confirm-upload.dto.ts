@@ -2,26 +2,26 @@ import { IsString, IsNotEmpty, IsNumber, IsOptional, IsUUID } from 'class-valida
 
 export class ConfirmUploadDto {
   @IsString()
-  @IsNotEmpty({ message: 'Tên tệp không được trống' })
+  @IsNotEmpty({ message: 'File name cannot be empty' })
   name: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Mime type không được trống' })
+  @IsNotEmpty({ message: 'Mime type cannot be empty' })
   mimeType: string;
 
   @IsNumber()
-  @IsNotEmpty({ message: 'Dung lượng tệp không được trống' })
+  @IsNotEmpty({ message: 'File size cannot be empty' })
   sizeBytes: number;
 
   @IsString()
-  @IsNotEmpty({ message: 'S3 key không được trống' })
+  @IsNotEmpty({ message: 'S3 key cannot be empty' })
   s3Key: string;
 
-  @IsUUID(4, { message: 'ID thư mục cha không hợp lệ' })
+  @IsUUID(4, { message: 'Invalid parent folder ID' })
   @IsOptional()
   parentFolderId?: string;
 
-  @IsUUID(4, { message: 'ID dự án không hợp lệ' })
+  @IsUUID(4, { message: 'Invalid project ID' })
   @IsOptional()
   projectId?: string;
 }

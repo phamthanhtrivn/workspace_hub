@@ -28,7 +28,7 @@ public class JwtService {
         this.issuer = issuer;
     }
 
-    public String generateAccessToken(UUID userId, String email, String role) {
+    public String generateAccessToken(UUID userId, String email, String role, String fullName, String avatarUrl) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + accessTokenExpiration);
 
@@ -37,6 +37,8 @@ public class JwtService {
                 .subject(userId.toString())
                 .claim("email", email)
                 .claim("role", role)
+                .claim("fullName", fullName)
+                .claim("avatarUrl", avatarUrl)
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey, Jwts.SIG.HS256)

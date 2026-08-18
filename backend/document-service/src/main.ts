@@ -7,6 +7,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { logger } from './infrastructure/logger/bootstrap-logger';
+import { setupMicroservices } from './infrastructure/bootstrap/microservices.bootstrap';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -45,7 +47,10 @@ async function bootstrap() {
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new GlobalExceptionFilter());
 
+  await setupMicroservices(app);
+
   const port = process.env.PORT!;
   await app.listen(port);
+  logger.log(`Document service HTTP server started on ${port}`);
 }
 void bootstrap();

@@ -22,21 +22,29 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       const exceptionResponse: any = exception.getResponse();
 
       // If it comes from our custom ValidationPipe exceptionFactory
-      if (status === HttpStatus.BAD_REQUEST && typeof exceptionResponse === 'object' && exceptionResponse.errors) {
+      if (
+        status === HttpStatus.BAD_REQUEST &&
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse.errors
+      ) {
         message = 'Validation failed';
         errors = exceptionResponse.errors;
       }
       // Fallback for default NestJS ValidationPipe behavior
-      else if (status === HttpStatus.BAD_REQUEST && typeof exceptionResponse === 'object' && Array.isArray(exceptionResponse.message)) {
+      else if (
+        status === HttpStatus.BAD_REQUEST &&
+        typeof exceptionResponse === 'object' &&
+        Array.isArray(exceptionResponse.message)
+      ) {
         message = 'Validation failed';
         errors = {};
         exceptionResponse.message.forEach((msg: string) => {
-            const field = msg.split(' ')[0]; // simple heuristic
-            errors[field] = msg;
+          const field = msg.split(' ')[0]; // simple heuristic
+          errors[field] = msg;
         });
-      }
-      else {
-        message = typeof exceptionResponse === 'string'
+      } else {
+        message =
+          typeof exceptionResponse === 'string'
             ? exceptionResponse
             : exceptionResponse.message || exception.message;
       }

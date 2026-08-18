@@ -16,23 +16,23 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class UpdateUserProfileRequest {
-    
-    @NotBlank(message = "Họ Tên không được trống")
+
+    @NotBlank(message = "Full name is required")
     @Pattern(
             regexp = "^[\\p{L}\\s]+$",
-            message = "Họ tên không hợp lệ. Chỉ được chứa chữ cái và khoảng trắng"
+            message = "Full name is invalid. Only letters and spaces are allowed"
     )
-    @Size(max = 100, message = "Họ tên không được vượt quá 100 ký tự")
+    @Size(max = 100, message = "Full name must not exceed 100 characters")
     private String fullName;
 
     private String avatarUrl;
 
-    @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Số điện thoại không hợp lệ")
+    @Pattern(regexp = "^(0[3|5|7|8|9])+([0-9]{8})$", message = "Phone number is invalid")
     private String phoneNumber;
 
-    @Past(message = "Ngày sinh phải trong quá khứ")
+    @Past(message = "Date of birth must be in the past")
     private LocalDate dob;
 
-    @Size(max = 1000, message = "Tiểu sử không được vượt quá 1000 ký tự")
+    @Size(max = 1000, message = "Bio must not exceed 1000 characters")
     private String bio;
 }

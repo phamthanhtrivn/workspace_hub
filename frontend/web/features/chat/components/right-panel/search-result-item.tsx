@@ -7,14 +7,15 @@ import {
   Video,
   BarChart2,
 } from "lucide-react";
-import { UserProfileResponse } from "../../types/chat.types";
-import { formatTimeAgo } from "@/lib/date";
+import { UserProfileSnapshotResponse } from "../../types/chat.types";
+import { formatDateTime } from "@/lib/date";
 import { formatMessageContent } from "../../utils/message-formatter";
+import { RenderableChatMessage } from "../message/chat-message.types";
 
 interface SearchResultItemProps {
-  message: any;
+  message: RenderableChatMessage;
   currentUserId: string | null;
-  memberProfiles: Record<string, UserProfileResponse>;
+  memberProfiles: Record<string, UserProfileSnapshotResponse>;
   isDirect: boolean;
   onClick: (messageId: string) => void;
 }
@@ -26,16 +27,14 @@ export default function SearchResultItem({
   isDirect,
   onClick,
 }: SearchResultItemProps) {
-  const profile = memberProfiles[message.senderId];
+  const profile = message.senderProfile || memberProfiles[message.senderId];
   const isMe = message.senderId === currentUserId;
-  const fullName = isMe ? "Bạn" : profile?.fullName || "Người dùng";
+  const fullName = isMe ? "You" : profile?.fullName || "User";
   const avatarUrl = profile?.avatarUrl;
 
   const renderSnippet = () => {
     if (message.recalled) {
-      return (
-        <span className="italic text-gray-500">Tin nhắn đã bị thu hồi</span>
-      );
+      return <span className="italic text-gray-500">Message recalled</span>;
     }
     if (message.type === "SYSTEM") {
       return <span className="italic text-gray-500">{message.content}</span>;
@@ -44,7 +43,7 @@ export default function SearchResultItem({
       return (
         <span className="flex items-center gap-1">
           <BarChart2 size={14} className="inline-block" />
-          <span>Bình chọn {message.poll?.title}</span>
+          <span>Poll: {message.poll?.title}</span>
         </span>
       );
     }
@@ -52,7 +51,7 @@ export default function SearchResultItem({
       return (
         <span className="flex items-center gap-1">
           <FileText size={14} className="inline-block" />
-          <span>Đã tạo ghi chú</span>
+          <span>Created a note</span>
         </span>
       );
     }
@@ -67,12 +66,12 @@ export default function SearchResultItem({
       const firstMedia = medias[0];
       const mimeType = firstMedia.mimeType || "";
       const fileName = firstMedia.name || "";
-      
+
       if (mimeType.startsWith("image/")) {
         return (
           <span className="flex items-center gap-1">
             <ImageIcon size={14} className="inline-block shrink-0" />
-            <span className="truncate">Hình ảnh: {fileName || "Không có tên"}</span>
+            <span className="truncate">Image: {fileName || "Unnamed"}</span>
           </span>
         );
       }
@@ -80,15 +79,15 @@ export default function SearchResultItem({
         return (
           <span className="flex items-center gap-1">
             <Video size={14} className="inline-block shrink-0" />
-            <span className="truncate">Video: {fileName || "Không có tên"}</span>
+            <span className="truncate">Video: {fileName || "Unnamed"}</span>
           </span>
         );
       }
-      
+
       return (
         <span className="flex items-center gap-1">
           <FileText size={14} className="inline-block shrink-0" />
-          <span className="truncate">Tệp: {fileName || "Không có tên"}</span>
+          <span className="truncate">File: {fileName || "Unnamed"}</span>
         </span>
       );
     }
@@ -119,7 +118,7 @@ export default function SearchResultItem({
             {fullName}
           </span>
           <span className="text-[11px] text-gray-400 whitespace-nowrap flex-shrink-0">
-            {formatTimeAgo(message.createdAt)}
+            {formatDateTime(message.createdAt)}
           </span>
         </div>
 

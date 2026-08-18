@@ -6,17 +6,20 @@ self.addEventListener("push", function (event) {
 
   try {
     const data = event.data.json();
-    const title = data.title || "Tin nhắn mới";
-    
+    const title = data.title || "WorkspaceHub";
+
     const options = {
-      body: data.content || "Bạn có tin nhắn mới.",
-      icon: data.senderAvatar || "/vercel.svg", // Fallback icon
-      badge: "/next.svg", // Fallback badge
+      body: data.content || "You have a new notification.",
+      icon: data.senderAvatar || "/vercel.svg",
+      badge: "/next.svg",
       vibrate: [100, 50, 100],
       data: {
         link: data.link || "/chat",
       },
-      tag: data.metadata?.conversationId || "workspace-hub-chat-msg", // collapse notifications from the same room
+      tag:
+        data.metadata?.invitationId ||
+        data.metadata?.spaceId ||
+        "workspace-hub-space-notification",
       renotify: true,
     };
 
@@ -32,19 +35,20 @@ self.addEventListener("notificationclick", function (event) {
   const targetLink = event.notification.data?.link || "/chat";
 
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then(function (clientList) {
-      // If a window is already open, focus it and redirect
-      for (let i = 0; i < clientList.length; i++) {
-        const client = clientList[i];
-        if (client.url.includes(self.location.origin) && "focus" in client) {
-          client.postMessage({ type: "NAVIGATE", url: targetLink });
-          return client.focus();
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then(function (clientList) {
+        for (let i = 0; i < clientList.length; i++) {
+          const client = clientList[i];
+          if (client.url.includes(self.location.origin) && "focus" in client) {
+            client.postMessage({ type: "NAVIGATE", url: targetLink });
+            return client.focus();
+          }
         }
-      }
-      // If no window is open, open a new one
-      if (clients.openWindow) {
-        return clients.openWindow(targetLink);
-      }
-    }),
+
+        if (clients.openWindow) {
+          return clients.openWindow(targetLink);
+        }
+      }),
   );
 });

@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RevokeSessionRequest {
-    @NotBlank(message = "Mật khẩu không được để trống")
+    @NotBlank(message = "Password is required")
     private String password;
 }

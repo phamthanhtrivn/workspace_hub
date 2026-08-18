@@ -4,7 +4,11 @@ import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { NotificationGateway } from "./notification.gateway";
 import { PushService } from "./push.service";
-import { Notification } from "@prisma/client";
+import { Notification, Prisma, PushSubscription } from "@prisma/client";
+import {
+  NotificationWhereInput,
+  PushNotificationPayload,
+} from "./types/notification.types";
 
 @Injectable()
 export class NotificationService {
@@ -27,7 +31,9 @@ export class NotificationService {
         title: createDto.title,
         content: createDto.content,
         link: createDto.link,
-        metadata: createDto.metadata ? (createDto.metadata as any) : null,
+        metadata: createDto.metadata
+          ? (createDto.metadata as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
       },
     });
 
@@ -55,7 +61,9 @@ export class NotificationService {
     limit = 10,
     isRead?: boolean,
   ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
-    const where: any = { recipientId };
+    const where: NotificationWhereInput = {
+      recipientId,
+    };
     if (isRead !== undefined) {
       where.isRead = isRead;
     }
@@ -70,7 +78,12 @@ export class NotificationService {
         take: limit,
       }),
       this.prisma.notification.count({ where }),
-      this.prisma.notification.count({ where: { recipientId, isRead: false } }),
+      this.prisma.notification.count({
+        where: {
+          recipientId,
+          isRead: false,
+        },
+      }),
     ]);
 
     return { list, total, unreadCount };
@@ -78,7 +91,10 @@ export class NotificationService {
 
   async getUnreadCount(recipientId: string): Promise<number> {
     return this.prisma.notification.count({
-      where: { recipientId, isRead: false },
+      where: {
+        recipientId,
+        isRead: false,
+      },
     });
   }
 
@@ -102,7 +118,10 @@ export class NotificationService {
 
   async markAllAsRead(recipientId: string): Promise<number> {
     const result = await this.prisma.notification.updateMany({
-      where: { recipientId, isRead: false },
+      where: {
+        recipientId,
+        isRead: false,
+      },
       data: { isRead: true },
     });
     return result.count;
@@ -126,7 +145,7 @@ export class NotificationService {
   async saveSubscription(
     userId: string,
     dto: SaveSubscriptionDto,
-  ): Promise<any> {
+  ): Promise<PushSubscription> {
     const existing = await this.prisma.pushSubscription.findUnique({
       where: { endpoint: dto.endpoint },
     });
@@ -168,7 +187,10 @@ export class NotificationService {
     return true;
   }
 
-  async sendPushToUser(userId: string, payload: any): Promise<void> {
+  async sendPushToUser(
+    userId: string,
+    payload: PushNotificationPayload,
+  ): Promise<void> {
     const subscriptions = await this.prisma.pushSubscription.findMany({
       where: { userId },
     });

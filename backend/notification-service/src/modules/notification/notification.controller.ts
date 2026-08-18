@@ -15,14 +15,12 @@ import {
   BadRequestException,
   NotFoundException,
 } from "@nestjs/common";
-import { EventPattern, Payload } from "@nestjs/microservices";
 import { NotificationService } from "./notification.service";
 import { EmailService } from "./email.service";
 import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-email.dto";
 import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
-import { KAFKA_TOPICS, KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 
 @Controller("api/notifications")
 export class NotificationController {
@@ -63,44 +61,6 @@ export class NotificationController {
     const notification = await this.notificationService.createNotification(dto);
     return { message: "Notification created successfully", data: notification };
   }
-  @EventPattern(KAFKA_TOPICS.NOTIFICATION_TOPIC)
-  async handleIncomingNotification(@Payload() data: any) {
-    try {
-      const payload = data.value || data;
-
-      // Handle message push alerts separately without saving them as database notifications
-      if (payload.type === KAFKA_EVENTS.NOTIFICATION.CHAT_NEW_MESSAGE) {
-        const recipientIds = payload.recipientIds || [];
-        await Promise.all(
-          recipientIds.map((recipientId: string) =>
-            this.notificationService.sendPushToUser(recipientId, {
-              title: payload.title,
-              content: payload.content,
-              link: payload.link,
-              senderName: payload.senderName,
-              senderAvatar: payload.senderAvatar,
-            }),
-          ),
-        );
-        return;
-      }
-
-      await this.notificationService.createNotification({
-        recipientId: payload.recipientId,
-        senderId: payload.senderId,
-        senderName: payload.senderName,
-        senderAvatar: payload.senderAvatar,
-        type: payload.type,
-        title: payload.title,
-        content: payload.content,
-        link: payload.link,
-        metadata: payload.metadata,
-      });
-    } catch (error) {
-      console.error("Failed to process Kafka notification event:", error);
-    }
-  }
-
 
   @Get()
   async getNotifications(
@@ -128,7 +88,7 @@ export class NotificationController {
     );
 
     return {
-      message: "Lấy danh sách thông báo thành công",
+      message: "Notifications retrieved successfully",
       data: result.list,
       pagination: {
         page: pageNum,
@@ -147,7 +107,7 @@ export class NotificationController {
 
     const unreadCount = await this.notificationService.getUnreadCount(userId);
     return {
-      message: "Lấy số lượng thông báo chưa đọc thành công",
+      message: "Unread notification count retrieved successfully",
       data: { unreadCount },
     };
   }
@@ -171,7 +131,7 @@ export class NotificationController {
     }
 
     return {
-      message: "Đánh dấu đã đọc thành công",
+      message: "Marked as read successfully",
       data: notification,
     };
   }
@@ -184,7 +144,7 @@ export class NotificationController {
 
     const count = await this.notificationService.markAllAsRead(userId);
     return {
-      message: "Đánh dấu tất cả đã đọc thành công",
+      message: "Marked all as read successfully",
       data: { modifiedCount: count },
     };
   }
@@ -208,7 +168,7 @@ export class NotificationController {
     }
 
     return {
-      message: "Xóa thông báo thành công",
+      message: "Notification deleted successfully",
       data: { success },
     };
   }
@@ -217,7 +177,7 @@ export class NotificationController {
   getVapidPublicKey() {
     const publicKey = this.pushService.getPublicKey();
     return {
-      message: "Lấy VAPID public key thành công",
+      message: "VAPID public key retrieved successfully",
       data: { publicKey },
     };
   }
@@ -238,7 +198,7 @@ export class NotificationController {
     );
 
     return {
-      message: "Đăng ký nhận thông báo đẩy thành công",
+      message: "Push notification subscription registered successfully",
       data: subscription,
     };
   }
@@ -259,7 +219,7 @@ export class NotificationController {
     const success = await this.notificationService.unsubscribe(userId, endpoint);
 
     return {
-      message: "Hủy đăng ký nhận thông báo đẩy thành công",
+      message: "Push notification subscription removed successfully",
       data: { success },
     };
   }

@@ -1,0 +1,84 @@
+import React from "react";
+import {
+  CheckCircle2,
+  MessageSquare,
+  Pin,
+  Settings,
+  StickyNote,
+  BarChart2,
+  XCircle,
+} from "lucide-react";
+import { ChannelResponse } from "../../types/chat.types";
+import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { getSpaceDetails } from "../../api/chat.api";
+import { chatKeys } from "../../types/chat.constant";
+
+interface ChannelSettingsSectionProps {
+  activeChannel: ChannelResponse;
+  currentUserId: string | null;
+  onOpenSettings: () => void;
+}
+
+const permissionItems = [
+  {
+    key: "allowSendMessage",
+    label: "Send messages",
+    icon: MessageSquare,
+  },
+  {
+    key: "allowPinMessage",
+    label: "Pin messages",
+    icon: Pin,
+  },
+  {
+    key: "allowCreatePoll",
+    label: "Create polls",
+    icon: BarChart2,
+  },
+  {
+    key: "allowCreateNote",
+    label: "Create notes",
+    icon: StickyNote,
+  },
+] as const;
+
+export default function ChannelSettingsSection({
+  activeChannel,
+  currentUserId,
+  onOpenSettings,
+}: ChannelSettingsSectionProps) {
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(activeChannel.spaceId || ""),
+    queryFn: async () => (await getSpaceDetails(activeChannel.spaceId!)).data,
+    enabled: !!activeChannel.spaceId,
+  });
+
+  const spaceCreatorId = spaceDetail?.createdBy;
+  const isOwner = spaceCreatorId === currentUserId;
+  const isChannelCreator = activeChannel.createdBy === currentUserId;
+
+  const currentMember = activeChannel.members?.find(
+    (member) => member.userId === currentUserId,
+  );
+  const isSpaceAdmin = currentMember?.role === "ADMIN";
+  const canOpenSettings = isSpaceAdmin || isChannelCreator || isOwner;
+  
+  return (
+    canOpenSettings ? (
+      <div>
+        <button
+          type="button"
+          onClick={onOpenSettings}
+          className="w-full px-4 py-3 flex items-center justify-between transition cursor-pointer hover:bg-gray-50"
+        >
+          <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
+            <Settings size={18} className="text-gray-500" />
+            Channel Settings
+          </div>
+        </button>
+        <div className="h-px bg-gray-100 mx-4 my-1" />
+      </div>
+    ) : null
+  );
+}

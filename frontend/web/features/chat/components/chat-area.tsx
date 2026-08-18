@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import ConversationChatInput, { ConversationChatInputRef } from "./input/conversation-chat-input";
+import ChannelChatInput, { ChannelChatInputRef } from "./input/channel-chat-input";
+import DirectMessageInput, {
+  DirectMessageInputRef,
+} from "./input/direct-message-input";
 import ChatHeader from "./chat-header";
 import ChatMessage from "./message/chat-message";
-import { PinnedMessagesBar } from "./message/pinned-messages-bar";
 import { useAppDispatch, useAppSelector } from "@/store/store";
-import { getConversationMessages, getPinnedMessages } from "../api/chat.api";
+import { getChannelMessages, getSpaceDetails } from "../api/chat.api";
 import { socketService } from "../api/chat-socket.service";
 import { ChatEvent } from "../api/chat.events";
-import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
 import TimeDivider from "./message/time-divider";
 import { ChevronDown, X } from "lucide-react";
@@ -17,25 +19,62 @@ import CreatePollModal from "./modals/create-poll-modal";
 import CreateNoteModal from "./modals/create-note-modal";
 import TypingIndicator from "./message/typing-indicator";
 import {
-  updateWatermark,
-  setWatermarks,
   setHighlightMessageId,
-  updateGroupSettings,
-  updateMemberRole,
-  removeMember,
   setActiveConversation,
-  updateConversationInfo,
+  setActiveSpaceId,
   setActiveThreadRootMessage,
 } from "@/store/chat/chat-slice";
-import { NO_AVATAR_TYPES } from "../types/chat.types";
+import {
+  ChatContextType,
+  ChatMessageResponse,
+  CreateNotePayload,
+  CreatePollPayload,
+  NO_AVATAR_TYPES,
+  SpaceRole,
+  SpaceSettingResponse,
+} from "../types/chat.types";
+import {
+  ChatSocketAckResponse,
+  SendSocketMessageMedia,
+} from "../types/chat-socket.types";
+import { ChatQueryKey, ChatScope, chatKeys } from "../types/chat.constant";
 import { toast } from "sonner";
 
 import { useChatMemberProfiles } from "../hooks/useChatMemberProfiles";
+import { useDirectMessageActions } from "../hooks/useDirectMessageActions";
+import { useActiveChat } from "../hooks/useChatQueries";
+import {
+  cleanupRemovedSpaceCaches,
+  patchSpaceMemberRoleInCaches,
+  patchSpaceSettingInCaches,
+  removeChannelFromCaches,
+} from "../utils/chat-cache";
+
+type ChatReaction = {
+  userId?: string;
+};
+
+type ChatMessageItem = Pick<
+  ChatMessageResponse,
+  "senderId" | "senderProfile"
+> & {
+  reactions?: ChatReaction[];
+};
 
 type PageParam = {
   cursor?: string;
   direction: "older" | "newer" | "around";
 };
+
+type ChatInputRef = ChannelChatInputRef | DirectMessageInputRef;
+
+function isSpaceSetting(value: unknown): value is SpaceSettingResponse {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "allowMemberCreateChannel" in value
+  );
+}
 
 interface ChatAreaProps {
   onToggleRightPanel: () => void;
@@ -48,10 +87,11 @@ export default function ChatArea({
   onOpenSearch,
   onBack,
 }: ChatAreaProps) {
-  const { activeConversation, watermarks } = useAppSelector(
-    (state) => state.chat,
-  );
-  const memberProfiles = useChatMemberProfiles();
+  const {
+    activeChat: activeConversation,
+    activeChatType,
+    activeSpaceId,
+  } = useActiveChat();
   const auth = useAppSelector((state) => state.auth);
   const highlightMessageId = useAppSelector(
     (state) => state.chat.highlightMessageId,
@@ -59,31 +99,47 @@ export default function ChatArea({
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
 
-  const [newSocketMessages, setNewSocketMessages] = useState<any[]>([]);
+  const spaceId =
+    activeConversation && "spaceId" in activeConversation
+      ? activeConversation.spaceId
+      : undefined;
+
+  const { data: spaceDetail } = useQuery({
+    queryKey: chatKeys.spaceDetails(spaceId || ""),
+    queryFn: async () => (await getSpaceDetails(spaceId!)).data,
+    enabled: !!spaceId,
+  });
+
+  const {
+    editMessage: editDirectChatMessage,
+    getMessages: getDirectMessages,
+    markAsRead: markDirectMessageAsRead,
+    reactToMessage: reactToDirectMessage,
+    recallMessage: recallDirectChatMessage,
+    sendTyping: sendDirectTyping,
+    sendMessage: sendDirectChatMessage,
+    togglePinMessage: toggleDirectPinMessage,
+  } = useDirectMessageActions();
+
+  const [newSocketMessages, setNewSocketMessages] = useState<
+    ChatMessageResponse[]
+  >([]);
+  const [readReceipts, setReadReceipts] = useState<Record<string, string>>({});
   const [typingUsers, setTypingUsers] = useState<
     { id: string; name: string }[]
   >([]);
   const typingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const chatInputRef = useRef<ConversationChatInputRef>(null);
+  const chatInputRef = useRef<ChatInputRef>(null);
+  const activeThreadRootMessageId = useAppSelector(
+    (state) => state.chat.activeThreadRootMessageId,
+  );
 
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isPollModalOpen, setIsPollModalOpen] = useState(false);
-  const [replyingTo, setReplyingTo] = useState<any | null>(null);
   const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const [jumpTargetId, setJumpTargetId] = useState<string | null>(null);
-
-  // Fetch pinned messages
-  const { data: pinnedMessages = [] } = useQuery({
-    queryKey: ["pinnedMessages", activeConversation?.id],
-    queryFn: async () => {
-      const res = await getPinnedMessages(activeConversation!.id);
-      return res.data || [];
-    },
-    enabled: !!activeConversation?.id,
-    staleTime: 1000 * 60 * 5, // 5 minutes cache
-  });
 
   const {
     data,
@@ -95,9 +151,17 @@ export default function ChatArea({
     isFetchingPreviousPage,
     isLoading,
   } = useInfiniteQuery({
-    queryKey: ["messages", activeConversation?.id, jumpTargetId],
+    queryKey: chatKeys.messages(
+      activeChatType,
+      activeConversation?.id,
+      jumpTargetId,
+    ),
     queryFn: async ({ pageParam }) => {
-      const response = await getConversationMessages(
+      const fetchMessages =
+        activeChatType === ChatContextType.DIRECT_MESSAGE
+          ? getDirectMessages
+          : getChannelMessages;
+      const response = await fetchMessages(
         activeConversation!.id,
         pageParam?.cursor,
         20,
@@ -122,6 +186,76 @@ export default function ChatArea({
   const { ref: loadMoreRef, inView } = useInView();
   const { ref: bottomBoundaryRef, inView: isBottomInView } = useInView();
 
+  const messagePages = data?.pages;
+  const allMessages = useMemo(() => {
+    if (!messagePages) return [...newSocketMessages].reverse();
+    const pagesMessages = messagePages.flatMap((page) =>
+      [...page.messages].reverse(),
+    );
+    if (hasPreviousPage) {
+      return pagesMessages;
+    }
+    return [...[...newSocketMessages].reverse(), ...pagesMessages];
+  }, [messagePages, newSocketMessages, hasPreviousPage]);
+
+  const messageSenderIds = useMemo(() => {
+    const ids = new Set<string>();
+    allMessages.forEach((message: ChatMessageItem) => {
+      if (message.senderId) {
+        ids.add(message.senderId);
+      }
+      message.reactions?.forEach((reaction) => {
+        if (reaction.userId) {
+          ids.add(reaction.userId);
+        }
+      });
+    });
+    return Array.from(ids);
+  }, [allMessages]);
+
+  const activeMemberProfiles = useChatMemberProfiles(messageSenderIds);
+  const memberProfiles = useMemo(() => {
+    const profiles = { ...activeMemberProfiles };
+    allMessages.forEach((message: ChatMessageItem) => {
+      if (message.senderId && message.senderProfile) {
+        profiles[message.senderId] = message.senderProfile;
+      }
+    });
+    return profiles;
+  }, [activeMemberProfiles, allMessages]);
+  const isDirectConversation =
+    activeChatType === ChatContextType.DIRECT_MESSAGE;
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const appendRealtimeMessage = useCallback(
+    (message: any) => {
+      if (!message || !activeConversation?.id) return;
+
+      setNewSocketMessages((prev) => {
+        const exists = prev.some((item) => item.id === message.id);
+        if (exists) return prev;
+        return [...prev, message];
+      });
+
+      setReadReceipts((prev) => ({
+        ...prev,
+        [message.senderId]: message.id,
+      }));
+
+      if (isBottomInView || message.senderId === auth.userId) {
+        setTimeout(() => scrollToBottom(), 100);
+      }
+    },
+    [activeConversation?.id, auth.userId, isBottomInView, scrollToBottom],
+  );
+
+  useEffect(() => {
+    setJumpTargetId(null);
+  }, [activeConversation?.id]);
+
   // Load more when scrolled to the top
   useEffect(() => {
     if (inView && hasNextPage && !isFetchingNextPage) {
@@ -141,20 +275,14 @@ export default function ChatArea({
     fetchPreviousPage,
   ]);
 
-  // Reset jump target when conversation changes
-  useEffect(() => {
-    setJumpTargetId(null);
-  }, [activeConversation?.id]);
-
-  // (Moved jump target to below handleJumpToMessage)
-
-  // Handle socket messages
   useEffect(() => {
     setNewSocketMessages([]); // Reset on conversation change
     setTypingUsers([]);
     Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
     typingTimeoutsRef.current = {};
+  }, [activeConversation?.id]);
 
+  useEffect(() => {
     if (activeConversation?.members) {
       const initialWatermarks: Record<string, string> = {};
       activeConversation.members.forEach((m: any) => {
@@ -162,36 +290,34 @@ export default function ChatArea({
           initialWatermarks[m.userId] = m.lastReadMessageId;
         }
       });
-      dispatch(setWatermarks(initialWatermarks));
+      setReadReceipts(initialWatermarks);
     }
-  }, [activeConversation, dispatch]);
+  }, [activeConversation?.members]);
+
+  // Handle socket messages
 
   useEffect(() => {
-    const socket = socketService.getSocket();
+    const socket =
+      socketService.getSocket() ||
+      (auth.accessToken ? socketService.connect(auth.accessToken) : null);
 
     if (socket && activeConversation?.id) {
-      socket.emit(ChatEvent.JOIN_CONVERSATION, {
-        conversationId: activeConversation.id,
-      });
+      if (isDirectConversation) {
+        socket.emit(ChatEvent.JOIN_DIRECT_CONVERSATION, {
+          conversationId: activeConversation.id,
+          chatId: activeConversation.id,
+          chatType: ChatContextType.DIRECT_MESSAGE,
+        });
+      } else {
+        socket.emit(ChatEvent.JOIN_CONVERSATION, {
+          channelId: activeConversation.id,
+          chatId: activeConversation.id,
+          chatType: ChatContextType.CHANNEL,
+        });
+      }
 
-      const handleNewMessage = (message: any) => {
-        if (message.conversationId === activeConversation?.id) {
-          setNewSocketMessages((prev) => [...prev, message]);
-
-          // Update watermark for the sender implicitly
-          dispatch(
-            updateWatermark({
-              userId: message.senderId,
-              messageId: message.id,
-            }),
-          );
-
-          // Auto scroll to bottom if we are already near bottom, else show badge
-          if (isBottomInView || message.senderId === auth.userId) {
-            setTimeout(() => scrollToBottom(), 100);
-          }
-        }
-      };
+      const getEventChannelId = (payload: any) =>
+        payload?.channelId ?? payload?.conversationId;
 
       const updateMessageInState = (
         messageId: string,
@@ -204,7 +330,7 @@ export default function ChatArea({
 
         // Update react-query cache
         queryClient.setQueryData(
-          ["messages", activeConversation.id, jumpTargetId],
+          chatKeys.messages(activeChatType, activeConversation.id, jumpTargetId),
           (oldData: any) => {
             if (!oldData) return oldData;
             return {
@@ -220,8 +346,24 @@ export default function ChatArea({
         );
       };
 
+      const handleNewMessage = (message: any) => {
+        if (getEventChannelId(message) === activeConversation?.id) {
+          if (message.threadParentId) {
+            // It's a thread reply. Update parent message's thread info in state/cache.
+            updateMessageInState(message.threadParentId, (parentMsg) => ({
+              ...parentMsg,
+              threadReplyCount: (parentMsg.threadReplyCount || 0) + 1,
+              threadLastReplyAt: message.createdAt,
+            }));
+            return;
+          }
+
+          appendRealtimeMessage(message);
+        }
+      };
+
       const handleReactionUpdated = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        if (getEventChannelId(data) === activeConversation.id) {
           updateMessageInState(data.messageId, (msg) => {
             let reactions = msg.reactions ? [...msg.reactions] : [];
             // Remove any existing reaction from this user
@@ -236,19 +378,21 @@ export default function ChatArea({
       };
 
       const handleMessageRead = (data: {
-        conversationId: string;
+        channelId?: string;
+        conversationId?: string;
         userId: string;
         messageId: string;
       }) => {
-        if (data.conversationId === activeConversation.id) {
-          dispatch(
-            updateWatermark({ userId: data.userId, messageId: data.messageId }),
-          );
+        if (getEventChannelId(data) === activeConversation.id) {
+          setReadReceipts((prev) => ({
+            ...prev,
+            [data.userId]: data.messageId,
+          }));
         }
       };
 
       const handlePollUpdated = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        if (getEventChannelId(data) === activeConversation.id) {
           updateMessageInState(data.messageId, (msg) => {
             return { ...msg, poll: data.poll };
           });
@@ -256,7 +400,7 @@ export default function ChatArea({
       };
 
       const handleMessageMoved = (msg: any) => {
-        if (msg.conversationId === activeConversation.id) {
+        if (getEventChannelId(msg) === activeConversation.id) {
           // Xoá tin nhắn cũ
           setNewSocketMessages((prev) => {
             const filtered = prev.filter((m) => m.id !== msg.id);
@@ -264,7 +408,7 @@ export default function ChatArea({
           });
 
           queryClient.setQueryData(
-            ["messages", activeConversation.id, jumpTargetId],
+            chatKeys.messages(activeChatType, activeConversation.id, jumpTargetId),
             (oldData: any) => {
               if (!oldData) return oldData;
               return {
@@ -280,114 +424,239 @@ export default function ChatArea({
       };
 
       const handleMessagePinned = (msg: any) => {
-        if (msg.conversationId === activeConversation.id) {
-          queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
-            const currentList = prev || [];
-            const exists = currentList.some((p) => p.id === msg.id);
-            if (exists) return currentList;
-            // Add to top
-            return [msg, ...currentList].sort(
-              (a, b) =>
-                new Date(b.updatedAt).getTime() -
-                new Date(a.updatedAt).getTime(),
-            );
+        if (getEventChannelId(msg) === activeConversation.id) {
+          const conversationScope =
+            isDirectConversation ? ChatScope.DIRECT : ChatScope.CHANNEL;
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.pinnedMessagesPreview(
+              conversationScope,
+              activeConversation.id,
+            ),
+          });
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.pinnedMessagesDetail(
+              conversationScope,
+              activeConversation.id,
+            ),
           });
           updateMessageInState(msg.id, () => msg);
         }
       };
 
       const handleMessageUnpinned = (msg: any) => {
-        if (msg.conversationId === activeConversation.id) {
-          queryClient.setQueryData<any[]>(["pinnedMessages", activeConversation.id], (prev) => {
-            const currentList = prev || [];
-            return currentList.filter((p) => p.id !== msg.id);
+        if (getEventChannelId(msg) === activeConversation.id) {
+          const conversationScope =
+            isDirectConversation ? ChatScope.DIRECT : ChatScope.CHANNEL;
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.pinnedMessagesPreview(
+              conversationScope,
+              activeConversation.id,
+            ),
+          });
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.pinnedMessagesDetail(
+              conversationScope,
+              activeConversation.id,
+            ),
           });
           updateMessageInState(msg.id, () => msg);
         }
       };
 
       const handleMessageUpdated = (msg: any) => {
-        if (msg.conversationId === activeConversation.id) {
+        if (getEventChannelId(msg) === activeConversation.id) {
           updateMessageInState(msg.id, () => msg);
         }
       };
 
       const handleTyping = (data: {
-        conversationId: string;
-        userId: string;
+        channelId?: string;
+        conversationId?: string;
+        userId?: string;
         isTyping: boolean;
       }) => {
         if (
-          data.conversationId === activeConversation.id &&
+          data.userId &&
+          getEventChannelId(data) === activeConversation.id &&
           data.userId !== auth.userId
         ) {
+          const typingUserId = data.userId;
           if (data.isTyping) {
             setTypingUsers((prev) => {
-              if (prev.find((u) => u.id === data.userId)) return prev;
-              const name = memberProfiles?.[data.userId]?.fullName || "Ai đó";
-              return [...prev, { id: data.userId, name }];
+              if (prev.find((u) => u.id === typingUserId)) return prev;
+              const name =
+                memberProfiles?.[typingUserId]?.fullName || "Someone";
+              return [...prev, { id: typingUserId, name }];
             });
 
-            if (typingTimeoutsRef.current[data.userId]) {
-              clearTimeout(typingTimeoutsRef.current[data.userId]);
+            if (typingTimeoutsRef.current[typingUserId]) {
+              clearTimeout(typingTimeoutsRef.current[typingUserId]);
             }
             // Auto remove after 5 seconds just in case
-            typingTimeoutsRef.current[data.userId] = setTimeout(() => {
+            typingTimeoutsRef.current[typingUserId] = setTimeout(() => {
               setTypingUsers((prev) =>
-                prev.filter((u) => u.id !== data.userId),
+                prev.filter((u) => u.id !== typingUserId),
               );
-              delete typingTimeoutsRef.current[data.userId];
+              delete typingTimeoutsRef.current[typingUserId];
             }, 5000);
           } else {
-            setTypingUsers((prev) => prev.filter((u) => u.id !== data.userId));
-            if (typingTimeoutsRef.current[data.userId]) {
-              clearTimeout(typingTimeoutsRef.current[data.userId]);
-              delete typingTimeoutsRef.current[data.userId];
+            setTypingUsers((prev) => prev.filter((u) => u.id !== typingUserId));
+            if (typingTimeoutsRef.current[typingUserId]) {
+              clearTimeout(typingTimeoutsRef.current[typingUserId]);
+              delete typingTimeoutsRef.current[typingUserId];
             }
           }
         }
       };
 
-      const handleGroupSettingUpdated = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
-          dispatch(updateGroupSettings(data.setting));
+      const handleChannelSettingUpdated = (data: any) => {
+        if (
+          getEventChannelId(data) === activeConversation.id ||
+          data.spaceId === activeSpaceId
+        ) {
+          if (
+            data.eventType === "space_setting_updated" &&
+            data.spaceId &&
+            isSpaceSetting(data.setting)
+          ) {
+            patchSpaceSettingInCaches(queryClient, data.spaceId, data.setting);
+          }
+          queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+          if (data.spaceId) {
+            if (data.member?.userId && data.member?.role) {
+              patchSpaceMemberRoleInCaches(
+                queryClient,
+                data.spaceId,
+                data.member.userId,
+                String(data.member.role) === SpaceRole.ADMIN
+                  ? SpaceRole.ADMIN
+                  : SpaceRole.MEMBER,
+              );
+            }
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.channels(data.spaceId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.spaceDetails(data.spaceId),
+            });
+          }
         }
       };
 
       const handleMemberRoleUpdated = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
-          dispatch(
-            updateMemberRole({
-              userId: data.member.userId,
-              role: data.member.role,
-            }),
-          );
+        if (
+          getEventChannelId(data) === activeConversation.id ||
+          data.spaceId === activeSpaceId
+        ) {
+          queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+          if (data.spaceId) {
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.channels(data.spaceId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.spaceMembers(data.spaceId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: chatKeys.spaceDetails(data.spaceId),
+            });
+          }
         }
       };
 
       const handleMemberKickedOrLeft = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
-          if (data.userId === auth?.userId) {
+        const affectsCurrentUser =
+          data.userId === auth?.userId ||
+          data.affectedUserIds?.includes(auth?.userId);
+        const affectsActiveConversation =
+          getEventChannelId(data) === activeConversation.id ||
+          (data.spaceId && data.spaceId === activeSpaceId);
+
+        if (affectsActiveConversation) {
+          if (affectsCurrentUser) {
             dispatch(setActiveConversation(null));
-            queryClient.invalidateQueries({ queryKey: ["conversations"] });
-            toast.success("Bạn đã không còn ở trong nhóm này");
+            if (data.leftSpace) {
+              dispatch(setActiveSpaceId(null));
+              if (data.spaceId) {
+                void cleanupRemovedSpaceCaches(queryClient, data.spaceId).then(
+                  () => {
+                    queryClient.invalidateQueries({
+                      queryKey: chatKeys.allSpaces(),
+                    });
+                  },
+                );
+              }
+              queryClient.invalidateQueries({
+                queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
+              });
+              toast.success("You are no longer in this space");
+            } else {
+              queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+              toast.success("You left the channel");
+            }
           } else {
-            dispatch(removeMember(data.userId));
+            queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+            if (data.spaceId) {
+              queryClient.invalidateQueries({
+                queryKey: chatKeys.spaceMembers(data.spaceId),
+              });
+            }
           }
         }
       };
 
       const handleConversationDisbanded = (data: any) => {
-        if (data.conversationId === activeConversation.id) {
+        const disbandedChannelId = getEventChannelId(data);
+        const affectsActiveConversation =
+          disbandedChannelId === activeConversation.id ||
+          data.spaceId === activeSpaceId;
+
+        if (affectsActiveConversation) {
+          if (data.leftSpace && data.spaceId) {
+            void cleanupRemovedSpaceCaches(queryClient, data.spaceId).then(
+              () => {
+                queryClient.invalidateQueries({
+                  queryKey: chatKeys.allSpaces(),
+                });
+              },
+            );
+          } else if (disbandedChannelId) {
+            removeChannelFromCaches(queryClient, disbandedChannelId);
+            queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+            queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+            if (data.spaceId) {
+              queryClient.invalidateQueries({
+                queryKey: chatKeys.channels(data.spaceId),
+              });
+              queryClient.invalidateQueries({
+                queryKey: chatKeys.spaceMembers(data.spaceId),
+              });
+            }
+          }
+        }
+
+        if (
+          disbandedChannelId === activeConversation.id ||
+          (data.leftSpace && data.spaceId === activeSpaceId)
+        ) {
           dispatch(setActiveConversation(null));
-          queryClient.invalidateQueries({ queryKey: ["conversations"] });
-          toast.info("Nhóm này đã bị giải tán bởi Trưởng nhóm");
+          if (data.leftSpace) {
+            dispatch(setActiveSpaceId(null));
+          }
+          queryClient.invalidateQueries({
+            queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
+          });
+          toast.info(
+            data.leftSpace
+              ? "This space has been disbanded by an admin"
+              : "This channel has been disbanded by an admin",
+          );
         }
       };
 
       const handleConversationUpdated = (data: any) => {
         if (data.id === activeConversation.id) {
-          dispatch(updateConversationInfo(data));
+          queryClient.invalidateQueries({ queryKey: ["channels"] });
+          queryClient.invalidateQueries({ queryKey: ["direct-messages"] });
         }
       };
 
@@ -400,7 +669,7 @@ export default function ChatArea({
       socket.on(ChatEvent.TYPING, handleTyping);
       socket.on(ChatEvent.MESSAGE_PINNED, handleMessagePinned);
       socket.on(ChatEvent.MESSAGE_UNPINNED, handleMessageUnpinned);
-      socket.on(ChatEvent.GROUP_SETTING_UPDATED, handleGroupSettingUpdated);
+      socket.on(ChatEvent.CHANNEL_SETTING_UPDATED, handleChannelSettingUpdated);
       socket.on(ChatEvent.MEMBER_ROLE_UPDATED, handleMemberRoleUpdated);
       socket.on(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
       socket.on(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
@@ -417,7 +686,7 @@ export default function ChatArea({
         socket.off(ChatEvent.TYPING, handleTyping);
         socket.off(ChatEvent.MESSAGE_PINNED, handleMessagePinned);
         socket.off(ChatEvent.MESSAGE_UNPINNED, handleMessageUnpinned);
-        socket.off(ChatEvent.GROUP_SETTING_UPDATED, handleGroupSettingUpdated);
+        socket.off(ChatEvent.CHANNEL_SETTING_UPDATED, handleChannelSettingUpdated);
         socket.off(ChatEvent.MEMBER_ROLE_UPDATED, handleMemberRoleUpdated);
         socket.off(ChatEvent.MEMBER_KICKED, handleMemberKickedOrLeft);
         socket.off(ChatEvent.MEMBER_LEFT, handleMemberKickedOrLeft);
@@ -430,70 +699,135 @@ export default function ChatArea({
     }
   }, [
     activeConversation?.id,
+    activeSpaceId,
+    activeChatType,
+    appendRealtimeMessage,
+    isDirectConversation,
+    auth.accessToken,
     auth.userId,
     memberProfiles,
     dispatch,
     queryClient,
   ]);
 
-  const allMessages = useMemo(() => {
-    if (!data?.pages) return [...newSocketMessages].reverse();
-    const pagesMessages = data.pages.flatMap((page: any) =>
-      [...page.messages].reverse(),
-    );
-    return [...[...newSocketMessages].reverse(), ...pagesMessages];
-  }, [data?.pages, newSocketMessages]);
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
-
   const handleSendMessage = useCallback(
-    (content: string, medias?: any[], mentions?: string[]) => {
+    async (
+      content: string,
+      medias?: SendSocketMessageMedia[],
+      mentions?: string[],
+    ) => {
       const socket = socketService.getSocket();
-      if (socket && activeConversation?.id) {
+      if (activeConversation?.id) {
         if (editingMessage) {
+          if (isDirectConversation) {
+            try {
+              const edited = await editDirectChatMessage(
+                activeConversation.id,
+                editingMessage.id,
+                content,
+              );
+              if (edited) {
+                setEditingMessage(null);
+              }
+              return;
+            } catch {
+              return;
+            }
+          }
+          if (!socket) {
+            toast.error("Chat connection is not ready. Please try again.");
+            return;
+          }
           socket.emit(ChatEvent.EDIT_MESSAGE, {
-            conversationId: activeConversation.id,
+            channelId: activeConversation.id,
             messageId: editingMessage.id,
             content,
           });
           setEditingMessage(null);
         } else {
-          socket.emit(ChatEvent.SEND_MESSAGE, {
-            conversationId: activeConversation?.id,
-            content,
-            medias,
-            replyToMessageId: replyingTo?.id,
-            mentions,
-          });
-          setReplyingTo(null);
+          if (isDirectConversation) {
+            const sentMessage = await sendDirectChatMessage({
+              conversationId: activeConversation.id,
+              content,
+              medias,
+              mentions,
+              onSent: () => {
+                setTimeout(() => scrollToBottom(), 100);
+              },
+            });
+            if (sentMessage) {
+              appendRealtimeMessage(sentMessage);
+            }
+            return;
+          }
+          if (!socket) {
+            toast.error("Chat connection is not ready. Please try again.");
+            return;
+          }
+          socket.emit(
+            ChatEvent.SEND_MESSAGE,
+            {
+              channelId: activeConversation.id,
+              chatId: activeConversation.id,
+              chatType: ChatContextType.CHANNEL,
+              content,
+              medias,
+              mentions,
+            },
+            (response: ChatSocketAckResponse) => {
+              if (response?.status === "success" && response.data) {
+                appendRealtimeMessage(response.data);
+              } else if (response?.message) {
+                toast.error(response.message);
+              }
+            },
+          );
         }
       }
     },
-    [activeConversation?.id, replyingTo, editingMessage],
+    [
+      activeConversation,
+      editingMessage,
+      editDirectChatMessage,
+      appendRealtimeMessage,
+      scrollToBottom,
+      sendDirectChatMessage,
+    ],
   );
 
   const handleTypingChange = useCallback(
     (isTyping: boolean) => {
       const socket = socketService.getSocket();
+      if (activeConversation?.id && isDirectConversation) {
+        sendDirectTyping(activeConversation.id, isTyping);
+        return;
+      }
+
       if (socket && activeConversation?.id) {
-        socket.emit(ChatEvent.TYPING, {
-          conversationId: activeConversation.id,
-          isTyping,
-        });
+        socket.emit(
+          ChatEvent.TYPING,
+          {
+            channelId: activeConversation.id,
+            chatId: activeConversation.id,
+            chatType: ChatContextType.CHANNEL,
+            userId: auth.userId || "",
+            isTyping,
+          },
+        );
       }
     },
-    [activeConversation?.id],
+    [activeConversation, sendDirectTyping],
   );
 
   const handleCreatePoll = useCallback(
-    (data: any) => {
+    (data: CreatePollPayload) => {
       if (!activeConversation) return;
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.SEND_MESSAGE, {
-          conversationId: activeConversation.id,
+          channelId: activeConversation.id,
+          chatId: activeConversation.id,
+          chatType: ChatContextType.CHANNEL,
           content: "",
           type: "POLL",
           pollData: data,
@@ -504,30 +838,54 @@ export default function ChatArea({
   );
 
   const handleRecallMessage = useCallback(
-    (msg: any) => {
+    async (msg: any) => {
       const socket = socketService.getSocket();
-      if (socket && activeConversation?.id) {
+      if (activeConversation?.id) {
+        if (isDirectConversation) {
+          try {
+            await recallDirectChatMessage(
+              activeConversation.id,
+              msg.id,
+            );
+          } catch {
+          }
+          return;
+        }
+        if (!socket) return;
         socket.emit(ChatEvent.RECALL_MESSAGE, {
-          conversationId: activeConversation.id,
+          channelId: activeConversation.id,
           messageId: msg.id,
         });
       }
     },
-    [activeConversation?.id],
+    [activeConversation, recallDirectChatMessage],
   );
 
   const handlePinMessage = useCallback(
-    (msg: any) => {
+    async (msg: any) => {
       const socket = socketService.getSocket();
-      if (socket && activeConversation?.id) {
+      if (activeConversation?.id) {
+        if (isDirectConversation) {
+          try {
+            await toggleDirectPinMessage(
+              activeConversation.id,
+              msg,
+            );
+          } catch {
+          }
+          return;
+        }
+        if (!socket) return;
         if (msg.pinned) {
           socket.emit(
             ChatEvent.UNPIN_MESSAGE,
             {
-              conversationId: activeConversation.id,
+              channelId: activeConversation.id,
+              chatId: activeConversation.id,
+              chatType: ChatContextType.CHANNEL,
               messageId: msg.id,
             },
-            (response: any) => {
+            (response: ChatSocketAckResponse) => {
               if (response?.status === "error") toast.error(response.message);
             },
           );
@@ -535,26 +893,30 @@ export default function ChatArea({
           socket.emit(
             ChatEvent.PIN_MESSAGE,
             {
-              conversationId: activeConversation.id,
+              channelId: activeConversation.id,
+              chatId: activeConversation.id,
+              chatType: ChatContextType.CHANNEL,
               messageId: msg.id,
             },
-            (response: any) => {
+            (response: ChatSocketAckResponse) => {
               if (response?.status === "error") toast.error(response.message);
             },
           );
         }
       }
     },
-    [activeConversation?.id],
+    [activeConversation, toggleDirectPinMessage],
   );
 
   const handleCreateNote = useCallback(
-    (data: any) => {
+    (data: CreateNotePayload) => {
       if (!activeConversation) return;
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.SEND_MESSAGE, {
-          conversationId: activeConversation.id,
+          channelId: activeConversation.id,
+          chatId: activeConversation.id,
+          chatType: ChatContextType.CHANNEL,
           content: "",
           type: "NOTE",
           noteData: data,
@@ -565,18 +927,29 @@ export default function ChatArea({
   );
 
   const handleReactMessage = useCallback(
-    (messageId: string, emoji: string, action: "add" | "remove") => {
+    async (messageId: string, emoji: string, action: "add" | "remove") => {
       const socket = socketService.getSocket();
+      if (activeConversation?.id && isDirectConversation) {
+        try {
+          await reactToDirectMessage(
+            activeConversation.id,
+            messageId,
+            emoji,
+          );
+        } catch {
+        }
+        return;
+      }
       if (socket) {
         socket.emit(ChatEvent.REACT_MESSAGE, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           emoji,
           action,
         });
       }
     },
-    [activeConversation?.id],
+    [activeConversation, reactToDirectMessage],
   );
 
   const handlePollVoteMessage = useCallback(
@@ -584,7 +957,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.VOTE_POLL, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           pollOptionId,
         });
@@ -598,7 +971,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.ADD_POLL_OPTION, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           text,
         });
@@ -619,7 +992,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.EDIT_POLL, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           title,
           multipleChoice,
@@ -637,7 +1010,7 @@ export default function ChatArea({
       const socket = socketService.getSocket();
       if (socket) {
         socket.emit(ChatEvent.EDIT_NOTE, {
-          conversationId: activeConversation?.id,
+          channelId: activeConversation?.id,
           messageId,
           title,
           content,
@@ -678,7 +1051,7 @@ export default function ChatArea({
     if (isLoading) {
       return (
         <div className="flex justify-center items-center h-full text-gray-400">
-          Đang tải...
+          Loading...
         </div>
       );
     }
@@ -686,7 +1059,7 @@ export default function ChatArea({
     if (allMessages.length === 0) {
       return (
         <div className="flex justify-center items-center h-full text-gray-400">
-          Chưa có tin nhắn nào. Hãy gửi lời chào!
+          No messages here yet. Say hello!
         </div>
       );
     }
@@ -720,7 +1093,7 @@ export default function ChatArea({
       }
 
       let showAvatar = false;
-      if (!isMe && !NO_AVATAR_TYPES.includes(msg.type)) {
+      if (!NO_AVATAR_TYPES.includes(msg.type)) {
         if (
           i === 0 ||
           allMessages[i - 1].senderId !== msg.senderId ||
@@ -744,7 +1117,7 @@ export default function ChatArea({
       }
 
       let showSenderName = false;
-      if (activeConversation?.type === "GROUP" && !isMe) {
+      if (!isMe || activeChatType === ChatContextType.CHANNEL) {
         if (!nextMsg) {
           showSenderName = true;
         } else {
@@ -766,14 +1139,16 @@ export default function ChatArea({
           msg={msg}
           isMe={isMe}
           showAvatar={showAvatar}
-          memberProfile={!isMe ? memberProfiles?.[msg.senderId] || null : null}
+          memberProfile={msg.senderProfile || memberProfiles?.[msg.senderId] || null}
+          memberProfiles={memberProfiles || {}}
           memberRole={
             activeConversation?.members?.find(
               (m: any) => m.userId === msg.senderId,
             )?.role
           }
-          readBy={Object.keys(watermarks || {}).filter(
-            (uid) => watermarks[uid] === msg.id && uid !== auth.userId,
+          spaceCreatorId={spaceDetail?.createdBy}
+          readBy={Object.keys(readReceipts || {}).filter(
+            (uid) => readReceipts[uid] === msg.id && uid !== auth.userId,
           )}
           showTime={showTime}
           showSenderName={showSenderName}
@@ -782,16 +1157,8 @@ export default function ChatArea({
           onPollAddOption={handlePollAddOptionMessage}
           onPollEdit={handlePollEditMessage}
           onNoteEdit={handleNoteEditMessage}
-          onReply={(msgToReply) => {
-            setReplyingTo(msgToReply);
-            setEditingMessage(null);
-            setTimeout(() => {
-              chatInputRef.current?.focus();
-            }, 50);
-          }}
           onEditMessage={(msgToEdit) => {
             setEditingMessage(msgToEdit);
-            setReplyingTo(null);
             setTimeout(() => {
               chatInputRef.current?.setMessage(msgToEdit.content || "");
               chatInputRef.current?.focus();
@@ -809,14 +1176,21 @@ export default function ChatArea({
       // Trigger read message if it's the newest message and not read yet
       if (!isMe && msg.id && activeConversation?.id && i === 0) {
         // i === 0 means it's the newest message because we iterate in reverse
-        const myWatermark = watermarks?.[auth.userId || ""];
+        const myWatermark = readReceipts?.[auth.userId || ""];
         if (myWatermark !== msg.id) {
           const socket = socketService.getSocket();
-          if (socket) {
-            socket.emit(ChatEvent.READ_MESSAGE, {
-              conversationId: activeConversation.id,
-              messageId: msg.id,
-            });
+          if (isDirectConversation) {
+            void markDirectMessageAsRead(activeConversation.id, msg.id);
+          } else if (socket) {
+            socket.emit(
+              ChatEvent.READ_MESSAGE,
+              {
+                channelId: activeConversation.id,
+                chatId: activeConversation.id,
+                chatType: ChatContextType.CHANNEL,
+                messageId: msg.id,
+              },
+            );
           }
         }
       }
@@ -859,7 +1233,7 @@ export default function ChatArea({
           className="h-6 w-full flex justify-center items-center my-2"
         >
           {isFetchingNextPage && (
-            <span className="text-xs text-gray-400">Đang tải thêm...</span>
+            <span className="text-xs text-gray-400">Loading more...</span>
           )}
         </div>,
       );
@@ -873,7 +1247,7 @@ export default function ChatArea({
         >
           {isFetchingPreviousPage && (
             <span className="text-xs text-gray-400">
-              Đang tải tin nhắn mới...
+              Loading new messages...
             </span>
           )}
         </div>,
@@ -892,32 +1266,10 @@ export default function ChatArea({
         onBack={onBack}
       />
 
-      <PinnedMessagesBar
-        pinnedMessages={pinnedMessages}
-        onJumpToMessage={handleJumpToMessage}
-        onUnpin={(messageId) =>
-          handlePinMessage({ id: messageId, pinned: true })
-        }
-        currentUserId={auth.userId!}
-      />
-
-      {jumpTargetId && (
-        <button
-          onClick={() => {
-            setJumpTargetId(null);
-            setTimeout(scrollToBottom, 100);
-          }}
-          className="absolute top-20 cursor-pointer shadow-xl left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-700 transition z-20 flex items-center gap-2"
-        >
-          <ChevronDown size={16} />
-          Trở về hiện tại
-        </button>
-      )}
-
       {/* Message List Area */}
       <div
         ref={chatContainerRef}
-        className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#e8e8e8] space-y-1 relative flex flex-col-reverse"
+        className="flex-1 min-h-0 overflow-y-auto p-4 bg-[#f8fafc] space-y-1 relative flex flex-col-reverse [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full"
       >
         <div
           ref={(el) => {
@@ -929,43 +1281,34 @@ export default function ChatArea({
         {renderMessages()}
       </div>
 
-      {!isBottomInView && allMessages.length > 0 && (
+      {/* Floating Jump to Recent Banner */}
+      {hasPreviousPage && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 animate-bounce">
+          <button
+            onClick={() => {
+              setJumpTargetId(null);
+              setNewSocketMessages([]);
+              setTimeout(() => {
+                scrollToBottom();
+              }, 100);
+            }}
+            className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 text-xs font-semibold whitespace-nowrap"
+          >
+            <span>You are viewing older messages</span>
+            <span className="bg-blue-500 hover:bg-blue-600 px-2 py-0.5 rounded-full text-[10px] transition-colors">
+              Jump to Recent
+            </span>
+          </button>
+        </div>
+      )}
+
+      {!isBottomInView && allMessages.length > 0 && !hasPreviousPage && (
         <button
           onClick={scrollToBottom}
-          className={`absolute ${replyingTo ? "bottom-40" : "bottom-25"} cursor-pointer shadow-2xl right-6 w-10 h-10 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-blue-500 hover:bg-gray-50 transition z-10`}
+          className="absolute bottom-30 cursor-pointer shadow-2xl right-6 w-10 h-10 border border-gray-200 rounded-full flex items-center justify-center bg-blue-500 text-white hover:text-gray-50 hover:bg-blue-700 transition z-10"
         >
           <ChevronDown size={24} />
         </button>
-      )}
-
-      {/* Replying To UI */}
-      {replyingTo && (
-        <div className="bg-blue-50 border-t border-blue-100 p-2 px-4 flex items-center justify-between">
-          <div className="flex flex-col min-w-0 flex-1 border-l-4 border-blue-500 pl-3">
-            <span className="text-xs font-semibold text-blue-600">
-              Đang trả lời{" "}
-              {replyingTo.senderId === auth.userId
-                ? "Bạn"
-                : memberProfiles?.[replyingTo.senderId]?.fullName || "Ai đó"}
-            </span>
-            <span className="text-sm text-gray-600 truncate">
-              {replyingTo.content ||
-                (replyingTo.medias?.length
-                  ? "[Đính kèm]"
-                  : replyingTo.poll
-                    ? "[Bình chọn]"
-                    : replyingTo.note
-                      ? "[Ghi chú]"
-                      : "")}
-            </span>
-          </div>
-          <button
-            onClick={() => setReplyingTo(null)}
-            className="p-1 text-gray-400 hover:text-gray-600 hover:bg-blue-100 rounded-full cursor-pointer ml-2 transition-colors"
-          >
-            <X size={16} />
-          </button>
-        </div>
       )}
 
       {/* Editing UI */}
@@ -973,7 +1316,7 @@ export default function ChatArea({
         <div className="bg-orange-50 border-t border-orange-100 p-2 px-4 flex items-center justify-between">
           <div className="flex flex-col min-w-0 flex-1 border-l-4 border-orange-500 pl-3">
             <span className="text-xs font-semibold text-orange-600">
-              Chỉnh sửa tin nhắn
+              Edit message
             </span>
             <span className="text-sm text-gray-600 truncate">
               {editingMessage.content}
@@ -994,25 +1337,40 @@ export default function ChatArea({
       {typingUsers.length > 0 && <TypingIndicator typingUsers={typingUsers} />}
 
       {/* Input Area */}
-      <ConversationChatInput
-        ref={chatInputRef}
-        onSendMessage={handleSendMessage}
-        onCreatePoll={() => setIsPollModalOpen(true)}
-        onCreateNote={() => setIsNoteModalOpen(true)}
-        onTypingChange={handleTypingChange}
-      />
+      {isDirectConversation ? (
+        <DirectMessageInput
+          ref={chatInputRef}
+          onSendMessage={handleSendMessage}
+          onTypingChange={handleTypingChange}
+          placeholder="Message direct conversation..."
+          autoFocusOnConversationChange={!activeThreadRootMessageId}
+        />
+      ) : (
+        <ChannelChatInput
+          ref={chatInputRef}
+          onSendMessage={handleSendMessage}
+          onCreatePoll={() => setIsPollModalOpen(true)}
+          onCreateNote={() => setIsNoteModalOpen(true)}
+          onTypingChange={handleTypingChange}
+          autoFocusOnChannelChange={!activeThreadRootMessageId}
+        />
+      )}
 
-      <CreatePollModal
-        isOpen={isPollModalOpen}
-        onClose={() => setIsPollModalOpen(false)}
-        onSubmit={handleCreatePoll}
-      />
+      {!isDirectConversation && (
+        <>
+          <CreatePollModal
+            isOpen={isPollModalOpen}
+            onClose={() => setIsPollModalOpen(false)}
+            onSubmit={handleCreatePoll}
+          />
 
-      <CreateNoteModal
-        isOpen={isNoteModalOpen}
-        onClose={() => setIsNoteModalOpen(false)}
-        onSubmit={handleCreateNote}
-      />
+          <CreateNoteModal
+            isOpen={isNoteModalOpen}
+            onClose={() => setIsNoteModalOpen(false)}
+            onSubmit={handleCreateNote}
+          />
+        </>
+      )}
     </div>
   );
 }

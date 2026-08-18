@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { ArrowLeft, BarChart2, Loader2 } from "lucide-react";
-import { pollApi } from "../../api/poll.api";
+import { useState, useMemo, useEffect } from "react";
+import { ArrowLeft, BarChart2, Loader2, Search } from "lucide-react";
 import ViewPollModal from "../modals/view-poll-modal";
 import { usePolls } from "../../hooks/usePolls";
+import { PollOptionResponse, PollResponse } from "../../types/chat.types";
 
 interface PollDetailViewProps {
   conversationId: string;
@@ -14,10 +14,25 @@ export default function PollDetailView({
   onBack,
 }: PollDetailViewProps) {
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
 
-  const { polls, loading } = usePolls(conversationId);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
-  const selectedPoll = polls.find((p: any) => p.id === selectedPollId);
+  const { polls, loading } = usePolls(conversationId, debouncedSearchQuery);
+
+  const selectedPoll = polls.find((poll) => poll.id === selectedPollId);
+  const getVoteCount = (poll: PollResponse) =>
+    poll.options?.reduce(
+      (sum: number, option: PollOptionResponse) =>
+        sum + (option.votes?.length ?? 0),
+      0,
+    ) ?? 0;
 
   return (
     <div className="w-full h-full flex flex-col bg-white">
@@ -28,7 +43,23 @@ export default function PollDetailView({
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-semibold text-gray-800">Bình chọn</h2>
+        <h2 className="font-semibold text-gray-800">Polls</h2>
+      </div>
+
+      <div className="border-b border-gray-100 px-4 py-3 flex-shrink-0">
+        <div className="relative">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={16}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search polls by title..."
+            className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+          />
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -38,11 +69,11 @@ export default function PollDetailView({
           </div>
         ) : polls.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-4">
-            Không có bình chọn nào
+            {searchQuery ? "No matching polls found" : "No polls available"}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            {polls.map((poll: any) => (
+            {polls.map((poll) => (
               <div
                 key={poll.id}
                 onClick={() => setSelectedPollId(poll.id)}
@@ -54,21 +85,16 @@ export default function PollDetailView({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-purple-900 mb-1">
-                      {poll.title}
+                      {poll.title || "Untitled poll"}
                     </p>
                     <div className="text-xs text-purple-600/70 space-y-1">
-                      <p>{poll.options?.length || 0} lựa chọn</p>
+                      <p>{poll.options?.length || 0} options</p>
                       <p>
-                        {poll.options?.reduce(
-                          (sum: number, opt: any) =>
-                            sum + (opt.votes?.length || 0),
-                          0,
-                        )}{" "}
-                        lượt bình chọn
+                        {getVoteCount(poll)} votes
                       </p>
                       {poll.isLocked && (
                         <span className="inline-block mt-1 bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">
-                          Đã khóa
+                          Locked
                         </span>
                       )}
                     </div>

@@ -14,11 +14,11 @@ export default React.memo(function TypingIndicator({
   const names = typingUsers.map((u) => u.name);
   let text = "";
   if (names.length === 1) {
-    text = `${names[0]} đang soạn tin nhắn`;
+    text = `${names[0]} is typing...`;
   } else if (names.length === 2) {
-    text = `${names[0]} và ${names[1]} đang soạn tin nhắn`;
+    text = `${names[0]} and ${names[1]} are typing...`;
   } else if (names.length > 2) {
-    text = `${names[0]}, ${names[1]} và ${names.length - 2} người khác đang soạn tin nhắn`;
+    text = `${names[0]}, ${names[1]} and ${names.length - 2} others are typing...`;
   }
 
   return (

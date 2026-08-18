@@ -1,0 +1,35 @@
+export enum CHANNEL_ERROR_MESSAGES {
+  SELF_CONVERSATION = 'Cannot create a conversation with yourself',
+  CHANNEL_NOT_FOUND = 'Channel not found',
+  SETTINGS_ACCESS_DENIED = 'You are not allowed to change channel settings',
+  SELF_ROLE_CHANGE = 'You cannot change your own role',
+  ROLE_CHANGE_ACCESS_DENIED = 'Only space admins can change member roles',
+  MEMBER_NOT_IN_SPACE = 'Member does not exist in this space',
+  NOT_MEMBER_OF_CHANNEL = 'You are not a member of this channel',
+  NOT_MEMBER_OF_SPACE = 'You are not a member of this space',
+  DEFAULT_CHANNEL_DELETE_PREVENTED = 'Default channels cannot be deleted',
+  DISBAND_ACCESS_DENIED = 'You are not allowed to disband this channel',
+  UPDATE_ACCESS_DENIED = 'You are not allowed to update this channel',
+  KICK_ACCESS_DENIED = 'You are not allowed to remove this member',
+  SELF_KICK = 'You cannot remove yourself from the space',
+  MISSING_USER_ID = 'Missing userId',
+  MISSING_USER_OR_CHANNEL_ID = 'Missing userId or channelId',
+  MISSING_REQUIRED_INFO = 'Missing required information',
+}
+
+export enum CHANNEL_SUCCESS_MESSAGES {
+  CREATED = 'Conversation created successfully',
+  LISTED = 'Conversations retrieved successfully',
+  SETTINGS_UPDATED = 'Channel settings updated successfully',
+  ROLE_UPDATED = 'Role updated successfully',
+  LEFT = 'Left the space successfully',
+  DISBANDED = 'Channel disbanded successfully',
+  MUTE_ON = 'Conversation muted successfully',
+  MUTE_OFF = 'Conversation unmuted successfully',
+  INFO_UPDATED = 'Channel information updated successfully',
+  MEMBER_REMOVED = 'Member removed from the space successfully',
+  MEMBERS_LISTED = 'Channel members retrieved successfully',
+}
+
+export const CHANNEL_MEMBER_SEARCH_DEFAULT_LIMIT = 500;
+export const CHANNEL_MEMBER_SEARCH_MAX_LIMIT = 500;

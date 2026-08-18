@@ -7,7 +7,7 @@ describe('project mapper', () => {
       id: 'project-id',
       name: 'WorkspaceHub',
       color: '#6366f1',
-      icon: '📁',
+      icon: 'folder',
       description: 'Project description',
       ownerId: 'owner-id',
       status: ProjectStatus.ACTIVE,
