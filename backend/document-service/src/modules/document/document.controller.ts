@@ -21,6 +21,8 @@ import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
 import { UpdateLinkAccessDto } from './dto/update-link-access.dto';
 import { AddShareDto } from './dto/add-share.dto';
+import { CheckPermissionsDto } from './dto/check-permissions.dto';
+import { AddShareBatchDto } from './dto/add-share-batch.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
 
@@ -437,6 +439,77 @@ export class DocumentController {
     return {
       message: 'Share added successfully',
       data: result,
+    };
+  }
+
+  @Get(':id/chat-metadata')
+  async getChatMetadata(
+    @Param('id') id: string,
+    @Headers('x-user-id') userId?: string,
+    @Headers('x-user-email') userEmail?: string,
+  ) {
+    const result = await this.documentService.getChatMetadata(
+      id,
+      userId,
+      userEmail,
+    );
+    return {
+      message: 'Chat metadata retrieved successfully',
+      data: result,
+    };
+  }
+
+  @Post(':id/sharing/check-permissions')
+  async checkPermissions(
+    @Param('id') id: string,
+    @Body() dto: CheckPermissionsDto,
+  ) {
+    const result = await this.documentService.checkEmailsPermissions(
+      id,
+      dto.emails,
+    );
+    return {
+      message: 'Permissions checked successfully',
+      data: result,
+    };
+  }
+
+  @Post(':id/sharing/shares/batch')
+  async addSharesBatch(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+    @Body() dto: AddShareBatchDto,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const result = await this.documentService.addSharesBatch(
+      userId,
+      userEmail,
+      id,
+      dto.emails,
+      dto.permission,
+    );
+    return {
+      message: 'Batch shares added successfully',
+      data: result,
+    };
+  }
+
+  @Get(':id/breadcrumbs')
+  async getBreadcrumbs(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const breadcrumbs = await this.documentService.getFolderAncestors(
+      userId,
+      userEmail,
+      id,
+    );
+    return {
+      message: 'Breadcrumbs retrieved successfully',
+      data: breadcrumbs,
     };
   }
 

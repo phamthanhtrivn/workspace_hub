@@ -306,3 +306,10 @@ export const LINK_ACCESS_DESCRIPTIONS: Record<string, string> = {
 // ─── Drag & Drop ───────────────────────────────────────────────────────────────
 
 export const DND_ROOT_ID = "root";
+
+// ─── Query Parameters ─────────────────────────────────────────────────────────
+
+export const DOCUMENT_QUERY_PARAMS = {
+  VIEW: "view",
+  FOLDER_ID: "folderId",
+} as const;

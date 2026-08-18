@@ -42,6 +42,7 @@ import ListView from "./views/list-view";
 import FilePreviewModal from "./preview/file-preview-modal";
 import VersionManagementModal from "./versions/version-management-modal";
 import ShareModal from "./sharing/share-modal";
+import ShareToChatModal from "./sharing/share-to-chat-modal";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { cn } from "@/lib/utils";
 import { useDownloadQueue } from "./download/download-queue-provider";
@@ -85,6 +86,8 @@ function DocumentExplorer({
   const [previewVersionId, setPreviewVersionId] = useState<string>("");
   const [sharingItem, setSharingItem] = useState<DocumentItem | null>(null);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareToChatItem, setShareToChatItem] = useState<DocumentItem | null>(null);
+  const [isShareToChatOpen, setIsShareToChatOpen] = useState(false);
 
   // Uploading state
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
@@ -514,6 +517,11 @@ function DocumentExplorer({
     setIsShareModalOpen(true);
   }, []);
 
+  const handleShareToChat = useCallback((item: DocumentItem) => {
+    setShareToChatItem(item);
+    setIsShareToChatOpen(true);
+  }, []);
+
   const handleDownload = useCallback(async (item: DocumentItem) => {
     try {
       const downloadUrl = await documentsApi.getDownloadUrl(item.id);
@@ -639,6 +647,7 @@ function DocumentExplorer({
                 onDownloadFolder={handleDownloadFolder}
                 onManageVersions={handleManageVersions}
                 onShare={handleShare}
+                onShareToChat={handleShareToChat}
               />
             ) : (
               <ListView
@@ -660,6 +669,7 @@ function DocumentExplorer({
                 onDownloadFolder={handleDownloadFolder}
                 onManageVersions={handleManageVersions}
                 onShare={handleShare}
+                onShareToChat={handleShareToChat}
               />
             )}
 
@@ -791,6 +801,18 @@ function DocumentExplorer({
             setSharingItem(null);
           }}
           item={sharingItem}
+        />
+      )}
+
+      {/* Share To Chat Modal */}
+      {isShareToChatOpen && shareToChatItem && (
+        <ShareToChatModal
+          isOpen={isShareToChatOpen}
+          onClose={() => {
+            setIsShareToChatOpen(false);
+            setShareToChatItem(null);
+          }}
+          item={shareToChatItem}
         />
       )}
     </div>

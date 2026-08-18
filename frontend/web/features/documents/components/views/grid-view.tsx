@@ -24,6 +24,7 @@ interface GridViewProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onDownloadFolder?: (item: DocumentItem) => void;
+  onShareToChat?: (item: DocumentItem) => void;
 }
 
 function GridView({
@@ -45,6 +46,7 @@ function GridView({
   onManageVersions,
   onShare,
   onDownloadFolder,
+  onShareToChat,
 }: GridViewProps) {
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return "0 B";
@@ -77,6 +79,7 @@ function GridView({
           onDownloadFolder={onDownloadFolder}
           onManageVersions={onManageVersions}
           onShare={onShare}
+          onShareToChat={onShareToChat}
           formatBytes={formatBytes}
         />
       ))}

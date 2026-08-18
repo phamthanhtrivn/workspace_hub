@@ -30,6 +30,7 @@ enum MessageType {
   NOTE
   EVENT
   AI
+  DOCUMENT
 }
 
 enum InvitationStatus {

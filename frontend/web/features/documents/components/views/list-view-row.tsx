@@ -32,6 +32,7 @@ export interface ListViewRowProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onDownloadFolder?: (item: DocumentItem) => void;
+  onShareToChat?: (item: DocumentItem) => void;
 }
 
 export function ListViewRow({
@@ -53,6 +54,7 @@ export function ListViewRow({
   onManageVersions,
   onShare,
   onDownloadFolder,
+  onShareToChat,
 }: ListViewRowProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
   const isSelected = item.id === selectedItemId;
@@ -144,6 +146,7 @@ export function ListViewRow({
           onDownloadFolder={() => onDownloadFolder?.(item)}
           onManageVersions={() => onManageVersions?.(item)}
           onShare={() => onShare?.(item)}
+          onShareToChat={() => onShareToChat?.(item)}
         />
       </td>
     </tr>

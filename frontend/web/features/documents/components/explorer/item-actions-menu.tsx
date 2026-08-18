@@ -22,6 +22,7 @@ import {
   FaTrashAlt,
   FaUndo,
   FaTrash,
+  FaPaperPlane,
 } from "react-icons/fa";
 
 interface ItemActionsMenuProps {
@@ -40,6 +41,7 @@ interface ItemActionsMenuProps {
   onManageVersions?: () => void;
   onShare?: () => void;
   onDownloadFolder?: () => void;
+  onShareToChat?: () => void;
 }
 
 function ItemActionsMenu({
@@ -58,6 +60,7 @@ function ItemActionsMenu({
   onManageVersions,
   onShare,
   onDownloadFolder,
+  onShareToChat,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.OWNER;
@@ -168,6 +171,20 @@ function ItemActionsMenu({
                 >
                   <FaShareAlt className="text-blue-500 shrink-0" size={14} />
                   <span>Chia sẻ</span>
+                </button>
+              )}
+
+              {isOwner && onShareToChat && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onShareToChat();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-violet-600 hover:text-violet-700"
+                >
+                  <FaPaperPlane className="text-violet-500 shrink-0" size={12} />
+                  <span>Chia sẻ vào Chat</span>
                 </button>
               )}
 

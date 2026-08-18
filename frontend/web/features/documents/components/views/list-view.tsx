@@ -24,6 +24,7 @@ interface ListViewProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onDownloadFolder?: (item: DocumentItem) => void;
+  onShareToChat?: (item: DocumentItem) => void;
 }
 
 function ListView({
@@ -45,6 +46,7 @@ function ListView({
   onManageVersions,
   onShare,
   onDownloadFolder,
+  onShareToChat,
 }: ListViewProps) {
   return (
     <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
@@ -79,6 +81,7 @@ function ListView({
               onManageVersions={onManageVersions}
               onShare={onShare}
               onDownloadFolder={onDownloadFolder}
+              onShareToChat={onShareToChat}
             />
           ))}
         </tbody>

@@ -109,3 +109,8 @@ export enum DownloadStatus {
   DONE = "done",
   ERROR = "error",
 }
+
+export enum ShareTabType {
+  CHANNEL = "channel",
+  DM = "dm",
+}

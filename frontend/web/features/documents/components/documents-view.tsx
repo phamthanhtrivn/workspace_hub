@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DocumentExplorer from "./document-explorer";
 import QuotaWidget from "./common/quota-widget";
 import { Folder, Share2, Star, Trash2 } from "lucide-react";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
 import { cn } from "@/lib/utils";
 import { DownloadQueueProvider } from "./download/download-queue-provider";
+import { useSearchParams } from "next/navigation";
+import { DOCUMENT_QUERY_PARAMS } from "../types/documents.constants";
+import { documentsApi } from "../api/documents.api";
 
 function DocumentsView() {
   const [activeView, setActiveView] = useState<DocumentViewType>(
@@ -18,6 +21,51 @@ function DocumentsView() {
   const [path, setPath] = useState<{ id: string | null; name: string }[]>([
     { id: null, name: NavigationLabel.ROOT },
   ]);
+
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const viewParam = searchParams.get(DOCUMENT_QUERY_PARAMS.VIEW);
+    const folderIdParam = searchParams.get(DOCUMENT_QUERY_PARAMS.FOLDER_ID);
+
+    let activeV = DocumentViewType.MY_FILES;
+    if (viewParam === DocumentViewType.SHARED) {
+      activeV = DocumentViewType.SHARED;
+    } else if (viewParam === DocumentViewType.STARRED) {
+      activeV = DocumentViewType.STARRED;
+    } else if (viewParam === DocumentViewType.TRASH) {
+      activeV = DocumentViewType.TRASH;
+    }
+
+    if (viewParam) {
+      setActiveView(activeV);
+    }
+
+    if (folderIdParam) {
+      setCurrentFolderId(folderIdParam);
+      const rootLabel =
+        activeV === DocumentViewType.STARRED
+          ? NavigationLabel.STARRED
+          : activeV === DocumentViewType.SHARED
+            ? NavigationLabel.SHARED
+            : activeV === DocumentViewType.TRASH
+              ? NavigationLabel.TRASH
+              : NavigationLabel.ROOT;
+
+      documentsApi
+        .getBreadcrumbs(folderIdParam)
+        .then((breadcrumbs) => {
+          setPath([{ id: null, name: rootLabel }, ...breadcrumbs]);
+        })
+        .catch((err) => {
+          console.error("Failed to load breadcrumbs", err);
+          setPath([
+            { id: null, name: rootLabel },
+            { id: folderIdParam, name: "Thư mục" },
+          ]);
+        });
+    }
+  }, [searchParams]);
 
   const handleNavigate = (
     folderId: string | null,
