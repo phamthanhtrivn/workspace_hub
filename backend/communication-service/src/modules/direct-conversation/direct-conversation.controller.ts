@@ -9,7 +9,10 @@ import {
   Param,
   Query,
 } from '@nestjs/common';
-import { CHANNEL_ERROR_MESSAGES, CHANNEL_SUCCESS_MESSAGES } from '../channel/types/channel.enums';
+import {
+  CHANNEL_ERROR_MESSAGES,
+  CHANNEL_SUCCESS_MESSAGES,
+} from '../channel/types/channel.enums';
 import { CreateDirectConversationDto } from './dto/create-direct-conversation.dto';
 import { DirectConversationService } from './direct-conversation.service';
 
@@ -67,7 +70,9 @@ export class DirectConversationController {
     @Body('muted') muted: boolean,
   ) {
     if (!userId || !conversationId || muted === undefined) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
 
     const result = await this.directConversationService.muteDirectConversation(
@@ -91,7 +96,9 @@ export class DirectConversationController {
     @Body('pinned') pinned: boolean,
   ) {
     if (!userId || !conversationId || pinned === undefined) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.MISSING_REQUIRED_INFO,
+      );
     }
 
     const result = await this.directConversationService.pinDirectConversation(
@@ -101,7 +108,9 @@ export class DirectConversationController {
     );
 
     return {
-      message: pinned ? 'Direct conversation pinned' : 'Direct conversation unpinned',
+      message: pinned
+        ? 'Direct conversation pinned'
+        : 'Direct conversation unpinned',
       data: result,
     };
   }

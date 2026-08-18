@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { MessageType } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
@@ -54,7 +58,9 @@ export class DirectMessageService {
         });
 
         if (!parentMessage || parentMessage.conversationId !== conversationId) {
-          throw new BadRequestException(MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND);
+          throw new BadRequestException(
+            MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND,
+          );
         }
 
         await tx.directMessage.update({
@@ -283,7 +289,9 @@ export class DirectMessageService {
     mediaType?: string,
     q?: string,
   ) {
-    const nameWhere = q ? { name: { contains: q, mode: 'insensitive' as const } } : {};
+    const nameWhere = q
+      ? { name: { contains: q, mode: 'insensitive' as const } }
+      : {};
     const medias = await this.prisma.directMedia.findMany({
       where: {
         ...this.getMediaTypeWhere(mediaType),
@@ -341,17 +349,19 @@ export class DirectMessageService {
     senderId?: string,
     q?: string,
   ) {
-    const matchedUsers = q ? await this.prisma.userProfileSnapshot.findMany({
-      where: {
-        fullName: {
-          contains: q,
-          mode: 'insensitive' as const,
-        },
-      },
-      select: {
-        userId: true,
-      },
-    }) : [];
+    const matchedUsers = q
+      ? await this.prisma.userProfileSnapshot.findMany({
+          where: {
+            fullName: {
+              contains: q,
+              mode: 'insensitive' as const,
+            },
+          },
+          select: {
+            userId: true,
+          },
+        })
+      : [];
     const matchedUserIds = matchedUsers.map((u) => u.userId);
 
     const messages = await this.prisma.directMessage.findMany({
@@ -707,7 +717,10 @@ export class DirectMessageService {
     if (content.trim().length === 0) {
       throw new BadRequestException('Message content cannot be empty');
     }
-    this.assertWithin24Hours(message.createdAt, 'Messages can only be edited within 24 hours');
+    this.assertWithin24Hours(
+      message.createdAt,
+      'Messages can only be edited within 24 hours',
+    );
 
     const updatedMessage = await this.prisma.directMessage.update({
       where: { id: messageId },
@@ -739,9 +752,15 @@ export class DirectMessageService {
       await this.prisma.directMedia.deleteMany({ where: { messageId } });
     }
 
+    // Delete direct reactions and direct thread followers
+    await Promise.all([
+      this.prisma.directReaction.deleteMany({ where: { messageId } }),
+      this.prisma.directThreadFollower.deleteMany({ where: { messageId } }),
+    ]);
+
     const updatedMessage = await this.prisma.directMessage.update({
       where: { id: messageId },
-      data: { recalled: true, content: null },
+      data: { recalled: true, content: null, pinned: false },
       include: {
         reactions: true,
         medias: true,
@@ -888,8 +907,7 @@ export class DirectMessageService {
 
   private assertWithin24Hours(createdAt: Date, errorMessage: string) {
     const hoursDifference =
-      (new Date().getTime() - new Date(createdAt).getTime()) /
-      (1000 * 60 * 60);
+      (new Date().getTime() - new Date(createdAt).getTime()) / (1000 * 60 * 60);
     if (hoursDifference > 24) {
       throw new BadRequestException(errorMessage);
     }
@@ -914,7 +932,9 @@ export class DirectMessageService {
         return {
           OR: [
             { mimeType: { contains: 'word', mode: 'insensitive' } },
-            { mimeType: { contains: 'opendocument.text', mode: 'insensitive' } },
+            {
+              mimeType: { contains: 'opendocument.text', mode: 'insensitive' },
+            },
             { name: { endsWith: '.doc', mode: 'insensitive' } },
             { name: { endsWith: '.docx', mode: 'insensitive' } },
             { name: { endsWith: '.txt', mode: 'insensitive' } },

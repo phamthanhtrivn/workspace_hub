@@ -3,7 +3,10 @@ import { MAX_FILE_SIZE } from 'src/common/utils/file.util';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { PresignRequestDto } from './dto/presign-request.dto';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
-import { MEDIA_SUCCESS_MESSAGES, MEDIA_ERROR_MESSAGES } from './types/media.enums';
+import {
+  MEDIA_SUCCESS_MESSAGES,
+  MEDIA_ERROR_MESSAGES,
+} from './types/media.enums';
 
 @Injectable()
 export class MediaService {
@@ -55,9 +58,7 @@ export class MediaService {
     }
 
     if (!body.files || body.files.length === 0) {
-      throw new BadRequestException(
-        MEDIA_ERROR_MESSAGES.EMPTY_FILES,
-      );
+      throw new BadRequestException(MEDIA_ERROR_MESSAGES.EMPTY_FILES);
     }
   }
 

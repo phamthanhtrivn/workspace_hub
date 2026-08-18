@@ -239,9 +239,8 @@ export class DirectMessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
 
-    const result = await this.directMessageService.getDirectThreadMessages(
-      messageId,
-    );
+    const result =
+      await this.directMessageService.getDirectThreadMessages(messageId);
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_RETRIEVED,
       data: result,
@@ -258,12 +257,11 @@ export class DirectMessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
     }
 
-    const result =
-      await this.directMessageService.markDirectConversationAsRead(
-        conversationId,
-        userId,
-        messageId,
-      );
+    const result = await this.directMessageService.markDirectConversationAsRead(
+      conversationId,
+      userId,
+      messageId,
+    );
     const targetRooms = await this.getDirectTargetRooms(conversationId);
     this.chatGateway.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
       chatId: conversationId,
@@ -447,7 +445,10 @@ export class DirectMessageController {
       messageId,
       userId,
     );
-    await this.broadcastDirectMessageUpdate(ChatEvent.MESSAGE_UNPINNED, message);
+    await this.broadcastDirectMessageUpdate(
+      ChatEvent.MESSAGE_UNPINNED,
+      message,
+    );
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.UNPINNED,
@@ -580,6 +581,5 @@ export class DirectMessageController {
         media: messagePayload.medias,
       });
     }
-
   }
 }

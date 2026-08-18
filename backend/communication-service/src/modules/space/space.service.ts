@@ -1,4 +1,10 @@
-import { Injectable, BadRequestException, Inject, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { PrismaService } from '../../prisma/prisma.service';
 import { InvitationStatus, SpaceRole } from '@prisma/client';
@@ -69,7 +75,9 @@ export class SpaceService {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
     }
     if (space.createdBy !== userId) {
-      throw new ForbiddenException('Only the space owner can perform this action');
+      throw new ForbiddenException(
+        'Only the space owner can perform this action',
+      );
     }
     return space;
   }
@@ -131,10 +139,12 @@ export class SpaceService {
   }
 
   private async getUserDisplayName(userId: string) {
-    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds([
-      userId,
-    ]);
-    return profiles.get(userId)?.fullName || profiles.get(userId)?.email || userId;
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds(
+      [userId],
+    );
+    return (
+      profiles.get(userId)?.fullName || profiles.get(userId)?.email || userId
+    );
   }
 
   private async getDefaultChannel(spaceId: string) {
@@ -164,11 +174,7 @@ export class SpaceService {
 
   private matchesMemberSearch(member: any, search: string) {
     if (!search) return true;
-    return [
-      member.userId,
-      member.profile?.fullName,
-      member.profile?.email,
-    ]
+    return [member.userId, member.profile?.fullName, member.profile?.email]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(search));
   }
@@ -182,7 +188,9 @@ export class SpaceService {
     this.chatGateway.server
       .to([userId, ...channelIds])
       .emit(ChatEvent.MEMBER_LEFT, {
-        eventType: leftSpace ? SPACE_SOCKET_EVENT_TYPE.MEMBER_LEFT : 'member_left',
+        eventType: leftSpace
+          ? SPACE_SOCKET_EVENT_TYPE.MEMBER_LEFT
+          : 'member_left',
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
         channelId: channelIds[0] ?? null,
@@ -192,14 +200,17 @@ export class SpaceService {
       });
   }
 
-  private emitSpaceInvitation(invitation: {
-    invitedUserId: string;
-    invitedBy: string;
-    invitedByName?: string | null;
-    invitedByAvatar?: string | null;
-    id: string;
-    spaceId: string;
-  }, spaceName?: string | null) {
+  private emitSpaceInvitation(
+    invitation: {
+      invitedUserId: string;
+      invitedBy: string;
+      invitedByName?: string | null;
+      invitedByAvatar?: string | null;
+      id: string;
+      spaceId: string;
+    },
+    spaceName?: string | null,
+  ) {
     this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
       key: invitation.invitedUserId,
       value: {
@@ -292,7 +303,8 @@ export class SpaceService {
         (member) => member.userId === userId,
       );
       if (currentMember) {
-        const referenceDate = currentMember.lastReadAt || currentMember.joinedAt;
+        const referenceDate =
+          currentMember.lastReadAt || currentMember.joinedAt;
         unreadCount = await this.prisma.message.count({
           where: {
             channelId: channel.id,
@@ -401,7 +413,8 @@ export class SpaceService {
     });
 
     const creatorIds = Array.from(new Set(spaces.map((s) => s.createdBy)));
-    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds(creatorIds);
+    const profiles =
+      await this.userProfileSnapshotService.getProfilesByUserIds(creatorIds);
 
     return spaces.map((space) => ({
       ...space,
@@ -428,7 +441,9 @@ export class SpaceService {
     }
 
     const { _count, ...spaceDetails } = space;
-    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds([space.createdBy]);
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds(
+      [space.createdBy],
+    );
 
     return {
       ...spaceDetails,
@@ -455,10 +470,15 @@ export class SpaceService {
     });
 
     if (defaultChannel) {
-      const profileMap = await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
+      const profileMap =
+        await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
       const actorProfile = profileMap.get(userId);
       const content = `Space name was updated to "${updatedSpace.name}" by ${actorProfile?.fullName || 'an admin'}`;
-      await this.chatGateway.sendSystemMessage(defaultChannel.id, userId, content);
+      await this.chatGateway.sendSystemMessage(
+        defaultChannel.id,
+        userId,
+        content,
+      );
     }
 
     const members = await this.prisma.spaceMember.findMany({
@@ -488,8 +508,7 @@ export class SpaceService {
         where: { spaceId },
         create: {
           spaceId,
-          allowMemberCreateChannel:
-            settings.allowMemberCreateChannel ?? true,
+          allowMemberCreateChannel: settings.allowMemberCreateChannel ?? true,
           allowMemberDeleteOwnChannel:
             settings.allowMemberDeleteOwnChannel ?? false,
         },
@@ -526,7 +545,9 @@ export class SpaceService {
       return updatedSetting;
     } catch (error) {
       if (this.isMissingSpaceSettingTableError(error)) {
-        throw new BadRequestException(SPACE_ERROR_MESSAGES.SETTINGS_UNAVAILABLE);
+        throw new BadRequestException(
+          SPACE_ERROR_MESSAGES.SETTINGS_UNAVAILABLE,
+        );
       }
       throw error;
     }
@@ -565,13 +586,15 @@ export class SpaceService {
 
     return {
       total: members.length,
-      admins: limitedMembers.filter((member) => member.role === SpaceRole.ADMIN),
+      admins: limitedMembers.filter(
+        (member) => member.role === SpaceRole.ADMIN,
+      ),
       members: limitedMembers.filter(
         (member) => member.role !== SpaceRole.ADMIN,
       ),
       nextCursor:
         filteredMembers.length > normalizedLimit
-          ? limitedMembers[limitedMembers.length - 1]?.userId ?? null
+          ? (limitedMembers[limitedMembers.length - 1]?.userId ?? null)
           : null,
     };
   }
@@ -588,10 +611,14 @@ export class SpaceService {
       throw new NotFoundException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
     }
     if (space.createdBy !== userId) {
-      throw new ForbiddenException('Only the space creator can transfer ownership');
+      throw new ForbiddenException(
+        'Only the space creator can transfer ownership',
+      );
     }
     if (userId === targetUserId) {
-      throw new BadRequestException('You cannot transfer ownership to yourself');
+      throw new BadRequestException(
+        'You cannot transfer ownership to yourself',
+      );
     }
 
     const targetMember = await this.prisma.spaceMember.findUnique({
@@ -640,7 +667,11 @@ export class SpaceService {
     });
     if (defaultChannel) {
       const content = `${targetProfile?.fullName || 'Someone'} is now the Owner of this space (transferred by ${actorProfile?.fullName || 'an admin'})`;
-      await this.chatGateway.sendSystemMessage(defaultChannel.id, userId, content);
+      await this.chatGateway.sendSystemMessage(
+        defaultChannel.id,
+        userId,
+        content,
+      );
     }
 
     this.chatGateway.server
@@ -733,7 +764,11 @@ export class SpaceService {
     if (defaultChannel) {
       const roleName = newRole === SpaceRole.ADMIN ? 'Admin' : 'Member';
       const content = `${targetProfile?.fullName || 'Someone'} is now the ${roleName} of this space (set by ${actorProfile?.fullName || 'an admin'})`;
-      await this.chatGateway.sendSystemMessage(defaultChannel.id, userId, content);
+      await this.chatGateway.sendSystemMessage(
+        defaultChannel.id,
+        userId,
+        content,
+      );
     }
 
     this.chatGateway.server
@@ -749,9 +784,7 @@ export class SpaceService {
         affectedUserIds: [targetUserId, userId],
         actorProfile: actorProfile ?? null,
         targetProfile: targetProfile ?? null,
-        members: [
-          { userId: targetUserId, role: newRole },
-        ],
+        members: [{ userId: targetUserId, role: newRole }],
         member: {
           userId: targetUserId,
           role: newRole,
@@ -919,7 +952,10 @@ export class SpaceService {
     await this.prisma.space.delete({ where: { id: spaceId } });
 
     this.chatGateway.server
-      .to([...channels.map((channel) => channel.id), ...members.map((member) => member.userId)])
+      .to([
+        ...channels.map((channel) => channel.id),
+        ...members.map((member) => member.userId),
+      ])
       .emit(ChatEvent.CONVERSATION_DISBANDED, {
         eventType: SPACE_SOCKET_EVENT_TYPE.DISBANDED,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
@@ -1046,9 +1082,7 @@ export class SpaceService {
     });
 
     if (existingChannel) {
-      throw new BadRequestException(
-        SPACE_ERROR_MESSAGES.CHANNEL_NAME_EXISTS,
-      );
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.CHANNEL_NAME_EXISTS);
     }
 
     const result = await this.prisma.$transaction(async (tx) => {

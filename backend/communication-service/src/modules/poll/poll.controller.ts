@@ -1,4 +1,11 @@
-import { BadRequestException, Controller, Get, Headers, Param, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Headers,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { PollService } from './poll.service';
 import { POLL_ERROR_MESSAGES } from './types/poll.enums';
 
@@ -13,7 +20,9 @@ export class PollController {
     @Query('q') q?: string,
   ) {
     if (!userId || !channelId) {
-      throw new BadRequestException(POLL_ERROR_MESSAGES.MISSING_USER_OR_CHANNEL_ID);
+      throw new BadRequestException(
+        POLL_ERROR_MESSAGES.MISSING_USER_OR_CHANNEL_ID,
+      );
     }
 
     return this.pollService.getPollsInConversation(channelId, userId, q);

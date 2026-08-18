@@ -59,7 +59,11 @@ export class NoteService {
     if (!note) {
       throw new Error(NOTE_ERROR_MESSAGES.NOT_FOUND);
     }
-    await this.assertNoteChannelMember(note.message.channelId, channelId, userId);
+    await this.assertNoteChannelMember(
+      note.message.channelId,
+      channelId,
+      userId,
+    );
 
     if (note.createdBy !== userId) {
       throw new Error(NOTE_ERROR_MESSAGES.EDIT_ACCESS_DENIED);
@@ -73,16 +77,18 @@ export class NoteService {
       },
     });
 
-    return this.prisma.message.update({
-      where: { id: messageId },
-      data: { createdAt: new Date() },
-      include: {
-        note: true,
-        poll: { include: { options: { include: { votes: true } } } },
-        medias: true,
-        reactions: true,
-      },
-    }).then((message) => this.enrichMessage(message));
+    return this.prisma.message
+      .update({
+        where: { id: messageId },
+        data: { createdAt: new Date() },
+        include: {
+          note: true,
+          poll: { include: { options: { include: { votes: true } } } },
+          medias: true,
+          reactions: true,
+        },
+      })
+      .then((message) => this.enrichMessage(message));
   }
 
   private async assertNoteChannelMember(
@@ -107,9 +113,9 @@ export class NoteService {
     }
   }
 
-  private async enrichMessage<T extends { senderId: string; medias?: unknown[] }>(
-    message: T,
-  ) {
+  private async enrichMessage<
+    T extends { senderId: string; medias?: unknown[] },
+  >(message: T) {
     return this.userProfileSnapshotService.attachSenderProfileToMessage({
       ...message,
       medias: mapMediaWithUrl((message.medias ?? []) as any),

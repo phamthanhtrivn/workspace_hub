@@ -8,7 +8,11 @@ import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 import { MessageType, Prisma, SpaceRole } from '@prisma/client';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
-import { MESSAGE_DIRECTION, MESSAGE_CONSTANTS, MESSAGE_ERROR_MESSAGES } from './types/message.enums';
+import {
+  MESSAGE_DIRECTION,
+  MESSAGE_CONSTANTS,
+  MESSAGE_ERROR_MESSAGES,
+} from './types/message.enums';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
@@ -79,14 +83,10 @@ export class MessageService {
             );
           }
           if (type === MessageType.POLL && !setting.allowCreatePoll) {
-            throw new BadRequestException(
-              MESSAGE_ERROR_MESSAGES.POLL_DISABLED,
-            );
+            throw new BadRequestException(MESSAGE_ERROR_MESSAGES.POLL_DISABLED);
           }
           if (type === MessageType.NOTE && !setting.allowCreateNote) {
-            throw new BadRequestException(
-              MESSAGE_ERROR_MESSAGES.NOTE_DISABLED,
-            );
+            throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOTE_DISABLED);
           }
         }
       }
@@ -96,7 +96,9 @@ export class MessageService {
           where: { id: threadParentId },
         });
         if (!parentMsg) {
-          throw new BadRequestException(MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND);
+          throw new BadRequestException(
+            MESSAGE_ERROR_MESSAGES.PARENT_NOT_FOUND,
+          );
         }
         await tx.message.update({
           where: { id: threadParentId },
@@ -250,9 +252,9 @@ export class MessageService {
       }
 
       const mappedMessages = messages.reverse().map((message) => ({
-          ...message,
-          medias: mapMediaWithUrl(message.medias),
-        }));
+        ...message,
+        medias: mapMediaWithUrl(message.medias),
+      }));
       return {
         messages:
           await this.userProfileSnapshotService.attachSenderProfilesToMessages(
@@ -277,9 +279,9 @@ export class MessageService {
       }
 
       const mappedMessages = messages.map((message) => ({
-          ...message,
-          medias: mapMediaWithUrl(message.medias),
-        }));
+        ...message,
+        medias: mapMediaWithUrl(message.medias),
+      }));
       return {
         messages:
           await this.userProfileSnapshotService.attachSenderProfilesToMessages(
@@ -337,9 +339,9 @@ export class MessageService {
       }
 
       const mappedMessages = allMessages.map((message) => ({
-          ...message,
-          medias: mapMediaWithUrl(message.medias),
-        }));
+        ...message,
+        medias: mapMediaWithUrl(message.medias),
+      }));
       return {
         messages:
           await this.userProfileSnapshotService.attachSenderProfilesToMessages(
@@ -361,7 +363,9 @@ export class MessageService {
     q?: string,
   ) {
     const mediaTypeWhere = this.getMediaTypeWhere(mediaType);
-    const nameWhere = q ? { name: { contains: q, mode: 'insensitive' as const } } : {};
+    const nameWhere = q
+      ? { name: { contains: q, mode: 'insensitive' as const } }
+      : {};
 
     const medias = await this.prisma.media.findMany({
       where: {
@@ -755,7 +759,9 @@ export class MessageService {
     });
 
     if (!member) {
-      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     const lastReadAt = new Date();
@@ -782,9 +788,7 @@ export class MessageService {
     });
 
     if (!rootMessage) {
-      throw new NotFoundException(
-        MESSAGE_ERROR_MESSAGES.ROOT_THREAD_NOT_FOUND,
-      );
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.ROOT_THREAD_NOT_FOUND);
     }
 
     const replies = await this.prisma.message.findMany({
@@ -794,13 +798,13 @@ export class MessageService {
     });
 
     const mappedRootMessage = {
-        ...rootMessage,
-        medias: mapMediaWithUrl(rootMessage.medias),
-      };
+      ...rootMessage,
+      medias: mapMediaWithUrl(rootMessage.medias),
+    };
     const mappedReplies = replies.map((reply) => ({
-        ...reply,
-        medias: mapMediaWithUrl(reply.medias),
-      }));
+      ...reply,
+      medias: mapMediaWithUrl(reply.medias),
+    }));
 
     return {
       rootMessage:
@@ -968,12 +972,21 @@ export class MessageService {
       });
     }
 
-    // Mark message as recalled, clear content
+    // Delete other associated records (reactions, thread followers, polls, notes)
+    await Promise.all([
+      this.prisma.reaction.deleteMany({ where: { messageId } }),
+      this.prisma.threadFollower.deleteMany({ where: { messageId } }),
+      this.prisma.poll.deleteMany({ where: { messageId } }),
+      this.prisma.note.deleteMany({ where: { messageId } }),
+    ]);
+
+    // Mark message as recalled, clear content, and unpin
     return this.prisma.message.update({
       where: { id: messageId },
       data: {
         recalled: true,
         content: null,
+        pinned: false,
       },
       include: {
         medias: true,
@@ -1002,7 +1015,9 @@ export class MessageService {
     })) as any;
 
     if (!member) {
-      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -1015,9 +1030,7 @@ export class MessageService {
     });
 
     if (!spaceMember) {
-      throw new BadRequestException(
-        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE,
-      );
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE);
     }
 
     if (
@@ -1025,9 +1038,7 @@ export class MessageService {
       member.channel.setting &&
       !member.channel.setting.allowPinMessage
     ) {
-      throw new BadRequestException(
-        MESSAGE_ERROR_MESSAGES.PIN_DISABLED,
-      );
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.PIN_DISABLED);
     }
 
     return this.prisma.message.update({
@@ -1060,7 +1071,9 @@ export class MessageService {
     })) as any;
 
     if (!member) {
-      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     const spaceMember = await this.prisma.spaceMember.findUnique({
@@ -1073,9 +1086,7 @@ export class MessageService {
     });
 
     if (!spaceMember) {
-      throw new BadRequestException(
-        MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE,
-      );
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.NOT_MEMBER_OF_SPACE);
     }
 
     if (
@@ -1083,9 +1094,7 @@ export class MessageService {
       member.channel.setting &&
       !member.channel.setting.allowPinMessage
     ) {
-      throw new BadRequestException(
-        MESSAGE_ERROR_MESSAGES.PIN_DISABLED,
-      );
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.PIN_DISABLED);
     }
 
     return this.prisma.message.update({
@@ -1105,17 +1114,19 @@ export class MessageService {
     limit: number = MESSAGE_CONSTANTS.DEFAULT_LIMIT,
     q?: string,
   ) {
-    const matchedUsers = q ? await this.prisma.userProfileSnapshot.findMany({
-      where: {
-        fullName: {
-          contains: q,
-          mode: 'insensitive' as const,
-        },
-      },
-      select: {
-        userId: true,
-      },
-    }) : [];
+    const matchedUsers = q
+      ? await this.prisma.userProfileSnapshot.findMany({
+          where: {
+            fullName: {
+              contains: q,
+              mode: 'insensitive' as const,
+            },
+          },
+          select: {
+            userId: true,
+          },
+        })
+      : [];
     const matchedUserIds = matchedUsers.map((u) => u.userId);
 
     const messages = await this.prisma.message.findMany({
@@ -1157,9 +1168,9 @@ export class MessageService {
     }
 
     const mappedMessages = messages.map((message) => ({
-        ...message,
-        medias: mapMediaWithUrl(message.medias),
-      }));
+      ...message,
+      medias: mapMediaWithUrl(message.medias),
+    }));
     return {
       messages:
         await this.userProfileSnapshotService.attachSenderProfilesToMessages(

@@ -137,8 +137,8 @@ function DetailsPanel({
               <span className="text-xs text-slate-400 font-medium">
                 Chủ sở hữu
               </span>
-              <span className="text-sm font-semibold text-slate-700 truncate max-w-[200px]" title={item.ownerEmail}>
-                {item.ownerProfile?.fullName || item.ownerEmail}
+              <span className="text-sm font-semibold text-slate-700 truncate max-w-[200px]">
+                {item.ownerEmail}
               </span>
             </div>
           </div>

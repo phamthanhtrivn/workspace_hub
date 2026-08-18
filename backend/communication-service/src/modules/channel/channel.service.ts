@@ -132,12 +132,14 @@ export class ChannelService {
   }
 
   private async enrichChannelForClient(channel: any) {
-    const members = await this.userProfileSnapshotService.attachProfilesToMembers(
-      channel.members ?? [],
-    );
-    const messages = await this.userProfileSnapshotService.attachSenderProfilesToMessages(
-      channel.messages ?? [],
-    );
+    const members =
+      await this.userProfileSnapshotService.attachProfilesToMembers(
+        channel.members ?? [],
+      );
+    const messages =
+      await this.userProfileSnapshotService.attachSenderProfilesToMessages(
+        channel.messages ?? [],
+      );
 
     return {
       ...channel,
@@ -215,9 +217,9 @@ export class ChannelService {
   }
 
   private async getUserDisplayName(userId: string) {
-    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds([
-      userId,
-    ]);
+    const profiles = await this.userProfileSnapshotService.getProfilesByUserIds(
+      [userId],
+    );
     const profile = profiles.get(userId);
     return profile?.fullName || profile?.email || userId;
   }
@@ -290,9 +292,13 @@ export class ChannelService {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.CHANNEL_NOT_FOUND);
     }
 
-    const requester = channel.members.find((member) => member.userId === userId);
+    const requester = channel.members.find(
+      (member) => member.userId === userId,
+    );
     if (!requester) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     const roleRows = await this.prisma.spaceMember.findMany({
@@ -312,16 +318,18 @@ export class ChannelService {
     const normalizedLimit = this.normalizeLimit(limit);
 
     const memberItems = channel.members.map((member) => ({
-        id: member.id,
-        userId: member.userId,
-        joinedAt: member.joinedAt,
-        muted: member.muted,
-        pinned: member.pinned,
-        nickname: member.nickname,
-        role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
-      }));
+      id: member.id,
+      userId: member.userId,
+      joinedAt: member.joinedAt,
+      muted: member.muted,
+      pinned: member.pinned,
+      nickname: member.nickname,
+      role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
+    }));
     const enrichedMembers =
-      await this.userProfileSnapshotService.attachProfilesToMembers(memberItems);
+      await this.userProfileSnapshotService.attachProfilesToMembers(
+        memberItems,
+      );
 
     const filteredMembers = enrichedMembers
       .filter((member) =>
@@ -335,13 +343,15 @@ export class ChannelService {
 
     return {
       total: channel.members.length,
-      admins: limitedMembers.filter((member) => member.role === SpaceRole.ADMIN),
+      admins: limitedMembers.filter(
+        (member) => member.role === SpaceRole.ADMIN,
+      ),
       members: limitedMembers.filter(
         (member) => member.role !== SpaceRole.ADMIN,
       ),
       nextCursor:
         filteredMembers.length > normalizedLimit
-          ? limitedMembers[limitedMembers.length - 1]?.userId ?? null
+          ? (limitedMembers[limitedMembers.length - 1]?.userId ?? null)
           : null,
     };
   }
@@ -463,7 +473,9 @@ export class ChannelService {
     });
 
     if (!member) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     const updatedMember = await this.prisma.channelMember.update({
@@ -496,7 +508,9 @@ export class ChannelService {
     });
 
     if (!member) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     return this.prisma.channelMember.update({
@@ -617,7 +631,8 @@ export class ChannelService {
       },
     });
 
-    const profileMap = await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
+    const profileMap =
+      await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
     const actorProfile = profileMap.get(userId);
     const content = `Channel name was updated to "${updatedChannel.name}" by ${actorProfile?.fullName || 'an admin'}`;
     await this.chatGateway.sendSystemMessage(channelId, userId, content);
@@ -665,7 +680,9 @@ export class ChannelService {
       where: { channelId_userId: { channelId, userId } },
     });
     if (!channelMember) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     await this.prisma.channelMember.delete({
@@ -676,7 +693,11 @@ export class ChannelService {
       where: { channelId },
       select: { userId: true },
     });
-    const targetRooms = [userId, channelId, ...remainingMembers.map((m) => m.userId)];
+    const targetRooms = [
+      userId,
+      channelId,
+      ...remainingMembers.map((m) => m.userId),
+    ];
 
     this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEMBER_LEFT, {
       chatId: channelId,
@@ -777,7 +798,8 @@ export class ChannelService {
     const spaceSetting = await (this.prisma as any).spaceSetting.findUnique({
       where: { spaceId: channel.spaceId },
     });
-    const allowMemberDeleteOwnChannel = spaceSetting?.allowMemberDeleteOwnChannel ?? false;
+    const allowMemberDeleteOwnChannel =
+      spaceSetting?.allowMemberDeleteOwnChannel ?? false;
 
     const isSpaceAdmin = spaceMember?.role === SpaceRole.ADMIN;
     const isChannelCreator = channel.createdBy === userId;

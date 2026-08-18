@@ -248,7 +248,11 @@ export class SpaceController {
     if (!spaceId) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_SPACE_ID);
     }
-    const channels = await this.spaceService.getSpaceChannels(userId, spaceId, search);
+    const channels = await this.spaceService.getSpaceChannels(
+      userId,
+      spaceId,
+      search,
+    );
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.CHANNEL_LISTED,
       data: channels,

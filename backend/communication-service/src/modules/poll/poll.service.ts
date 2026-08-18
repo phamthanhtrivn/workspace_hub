@@ -54,7 +54,11 @@ export class PollService {
     if (!poll) {
       throw new Error(POLL_ERROR_MESSAGES.NOT_FOUND);
     }
-    await this.assertPollChannelMember(poll.message.channelId, channelId, userId);
+    await this.assertPollChannelMember(
+      poll.message.channelId,
+      channelId,
+      userId,
+    );
     if (poll.isLocked) {
       throw new BadRequestException(POLL_ERROR_MESSAGES.LOCKED);
     }
@@ -90,16 +94,18 @@ export class PollService {
     }
 
     // Bump message to bottom and return it
-    return this.prisma.message.update({
-      where: { id: messageId },
-      data: { createdAt: new Date() },
-      include: {
-        poll: { include: { options: { include: { votes: true } } } },
-        note: true,
-        medias: true,
-        reactions: true,
-      },
-    }).then((message) => this.enrichMessage(message));
+    return this.prisma.message
+      .update({
+        where: { id: messageId },
+        data: { createdAt: new Date() },
+        include: {
+          poll: { include: { options: { include: { votes: true } } } },
+          note: true,
+          medias: true,
+          reactions: true,
+        },
+      })
+      .then((message) => this.enrichMessage(message));
   }
 
   async addPollOption(
@@ -113,9 +119,15 @@ export class PollService {
       include: { message: { select: { channelId: true } } },
     });
     if (!poll) throw new Error(POLL_ERROR_MESSAGES.NOT_FOUND);
-    await this.assertPollChannelMember(poll.message.channelId, channelId, userId);
-    if (poll.isLocked) throw new BadRequestException(POLL_ERROR_MESSAGES.LOCKED);
-    if (!poll.allowAddOptions) throw new Error(POLL_ERROR_MESSAGES.ADD_OPTION_PREVENTED);
+    await this.assertPollChannelMember(
+      poll.message.channelId,
+      channelId,
+      userId,
+    );
+    if (poll.isLocked)
+      throw new BadRequestException(POLL_ERROR_MESSAGES.LOCKED);
+    if (!poll.allowAddOptions)
+      throw new Error(POLL_ERROR_MESSAGES.ADD_OPTION_PREVENTED);
 
     const newOption = await this.prisma.pollOption.create({
       data: {
@@ -147,7 +159,11 @@ export class PollService {
     if (!poll) {
       throw new Error(POLL_ERROR_MESSAGES.NOT_FOUND);
     }
-    await this.assertPollChannelMember(poll.message.channelId, channelId, userId);
+    await this.assertPollChannelMember(
+      poll.message.channelId,
+      channelId,
+      userId,
+    );
     if (poll.createdBy !== userId) {
       throw new BadRequestException(POLL_ERROR_MESSAGES.EDIT_ACCESS_DENIED);
     }
@@ -163,16 +179,18 @@ export class PollService {
       },
     });
 
-    return this.prisma.message.update({
-      where: { id: messageId },
-      data: { createdAt: new Date() },
-      include: {
-        poll: { include: { options: { include: { votes: true } } } },
-        note: true,
-        medias: true,
-        reactions: true,
-      },
-    }).then((message) => this.enrichMessage(message));
+    return this.prisma.message
+      .update({
+        where: { id: messageId },
+        data: { createdAt: new Date() },
+        include: {
+          poll: { include: { options: { include: { votes: true } } } },
+          note: true,
+          medias: true,
+          reactions: true,
+        },
+      })
+      .then((message) => this.enrichMessage(message));
   }
 
   private async assertPollChannelMember(
@@ -197,9 +215,9 @@ export class PollService {
     }
   }
 
-  private async enrichMessage<T extends { senderId: string; medias?: unknown[] }>(
-    message: T,
-  ) {
+  private async enrichMessage<
+    T extends { senderId: string; medias?: unknown[] },
+  >(message: T) {
     return this.userProfileSnapshotService.attachSenderProfileToMessage({
       ...message,
       medias: mapMediaWithUrl((message.medias ?? []) as any),

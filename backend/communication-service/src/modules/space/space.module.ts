@@ -7,7 +7,12 @@ import { SpaceController } from './space.controller';
 import { SpaceService } from './space.service';
 
 @Module({
-  imports: [PrismaModule, KafkaProducerModule, ChatModule, UserProfileSnapshotModule],
+  imports: [
+    PrismaModule,
+    KafkaProducerModule,
+    ChatModule,
+    UserProfileSnapshotModule,
+  ],
   controllers: [SpaceController],
   providers: [SpaceService],
   exports: [SpaceService],

@@ -20,29 +20,31 @@ export class DirectConversationService {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.SELF_CONVERSATION);
     }
 
-    const existingConversation = await this.prisma.directConversation.findFirst({
-      where: {
-        AND: [
-          {
-            participants: {
-              some: {
-                userId,
+    const existingConversation = await this.prisma.directConversation.findFirst(
+      {
+        where: {
+          AND: [
+            {
+              participants: {
+                some: {
+                  userId,
+                },
               },
             },
-          },
-          {
-            participants: {
-              some: {
-                userId: participantId,
+            {
+              participants: {
+                some: {
+                  userId: participantId,
+                },
               },
             },
-          },
-        ],
+          ],
+        },
+        include: {
+          participants: true,
+        },
       },
-      include: {
-        participants: true,
-      },
-    });
+    );
 
     if (existingConversation) {
       return this.mapDirectConversation(existingConversation, userId);
@@ -146,13 +148,14 @@ export class DirectConversationService {
     );
 
     return mappedConversations.sort((a, b) => {
-      const aPinned = a.members?.find((member) => member.userId === userId)?.pinned;
-      const bPinned = b.members?.find((member) => member.userId === userId)?.pinned;
+      const aPinned = a.members?.find(
+        (member) => member.userId === userId,
+      )?.pinned;
+      const bPinned = b.members?.find(
+        (member) => member.userId === userId,
+      )?.pinned;
       if (aPinned !== bPinned) return aPinned ? -1 : 1;
-      return (
-        new Date(b.updatedAt).getTime() -
-        new Date(a.updatedAt).getTime()
-      );
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
   }
 
@@ -204,7 +207,9 @@ export class DirectConversationService {
       });
 
     if (!participant) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     const updatedParticipant =
@@ -248,7 +253,9 @@ export class DirectConversationService {
       });
 
     if (!participant) {
-      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL);
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.NOT_MEMBER_OF_CHANNEL,
+      );
     }
 
     const updatedParticipant =

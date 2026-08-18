@@ -166,10 +166,7 @@ export class MessageController {
     if (!messageId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
-    const result = await this.messageService.followThread(
-      userId,
-      messageId,
-    );
+    const result = await this.messageService.followThread(userId, messageId);
     return {
       message: result.following
         ? THREAD_FOLLOW_LABEL.FOLLOWING
@@ -189,10 +186,7 @@ export class MessageController {
     if (!messageId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
-    const result = await this.messageService.unfollowThread(
-      userId,
-      messageId,
-    );
+    const result = await this.messageService.unfollowThread(userId, messageId);
     return {
       message: result.following
         ? THREAD_FOLLOW_LABEL.FOLLOWING
@@ -212,7 +206,10 @@ export class MessageController {
     if (!messageId) {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.MISSING_MESSAGE_ID);
     }
-    const result = await this.messageService.markThreadAsRead(userId, messageId);
+    const result = await this.messageService.markThreadAsRead(
+      userId,
+      messageId,
+    );
     return {
       message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
       data: result,

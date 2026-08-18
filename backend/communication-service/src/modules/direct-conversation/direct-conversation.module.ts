@@ -6,7 +6,11 @@ import { DirectConversationService } from './direct-conversation.service';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 
 @Module({
-  imports: [forwardRef(() => ChatModule), PrismaModule, UserProfileSnapshotModule],
+  imports: [
+    forwardRef(() => ChatModule),
+    PrismaModule,
+    UserProfileSnapshotModule,
+  ],
   controllers: [DirectConversationController],
   providers: [DirectConversationService],
   exports: [DirectConversationService],

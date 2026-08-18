@@ -108,7 +108,9 @@ export class UserProfileSnapshotService {
 
   async attachCreatorProfilesToPolls<T extends { createdBy: string }>(
     polls: T[],
-  ): Promise<Array<T & { creatorProfile: UserProfileSnapshotResponse | null }>> {
+  ): Promise<
+    Array<T & { creatorProfile: UserProfileSnapshotResponse | null }>
+  > {
     const profileByUserId = await this.getProfilesByUserIds([
       ...polls.map((poll) => poll.createdBy),
       ...this.getPollVoteUserIds(polls),
@@ -123,7 +125,9 @@ export class UserProfileSnapshotService {
 
   async attachCreatorProfilesToNotes<T extends { createdBy: string }>(
     notes: T[],
-  ): Promise<Array<T & { creatorProfile: UserProfileSnapshotResponse | null }>> {
+  ): Promise<
+    Array<T & { creatorProfile: UserProfileSnapshotResponse | null }>
+  > {
     const profileByUserId = await this.getProfilesByUserIds(
       notes.map((note) => note.createdBy),
     );
@@ -143,18 +147,20 @@ export class UserProfileSnapshotService {
   >(
     messages: T[],
   ): Promise<Array<T & { senderProfile: UserProfileSnapshotResponse | null }>> {
-    const profileByUserId = await this.getProfilesByUserIds([
-      ...messages.map((message) => message.senderId),
-      ...messages.flatMap((message) => [
-        message.poll?.createdBy,
-        message.note?.createdBy,
-      ]),
-      ...this.getPollVoteUserIds(
-        messages
-          .map((message) => message.poll)
-          .filter((poll): poll is NonNullable<T['poll']> => Boolean(poll)),
-      ),
-    ].filter((userId): userId is string => Boolean(userId)));
+    const profileByUserId = await this.getProfilesByUserIds(
+      [
+        ...messages.map((message) => message.senderId),
+        ...messages.flatMap((message) => [
+          message.poll?.createdBy,
+          message.note?.createdBy,
+        ]),
+        ...this.getPollVoteUserIds(
+          messages
+            .map((message) => message.poll)
+            .filter((poll): poll is NonNullable<T['poll']> => Boolean(poll)),
+        ),
+      ].filter((userId): userId is string => Boolean(userId)),
+    );
 
     return messages.map((message) => ({
       ...message,
@@ -215,7 +221,7 @@ export class UserProfileSnapshotService {
         votes: this.getPollVotes(option).map((vote) => ({
           ...vote,
           voterProfile: vote.userId
-            ? profileByUserId.get(vote.userId) ?? null
+            ? (profileByUserId.get(vote.userId) ?? null)
             : null,
         })),
       })),
@@ -241,7 +247,9 @@ export class UserProfileSnapshotService {
   ): Array<{ userId?: string | null } & Record<string, unknown>> {
     return Array.isArray(option.votes)
       ? option.votes.filter(
-          (vote): vote is { userId?: string | null } & Record<string, unknown> =>
+          (
+            vote,
+          ): vote is { userId?: string | null } & Record<string, unknown> =>
             Boolean(vote) && typeof vote === 'object',
         )
       : [];

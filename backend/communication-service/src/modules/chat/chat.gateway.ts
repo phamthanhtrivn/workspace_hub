@@ -235,8 +235,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (
       !userId ||
       !data.conversationId ||
-      (data.content === undefined &&
-        (!data.medias || data.medias.length === 0))
+      (data.content === undefined && (!data.medias || data.medias.length === 0))
     ) {
       return {
         status: CHAT_RESPONSE_STATUS.ERROR,
