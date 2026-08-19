@@ -13,6 +13,7 @@ class NotificationSocketService {
 
       this.socket = io(baseUrl, {
         path: "/notification.io",
+        transports: ["websocket"],
         reconnectionAttempts: 3,
         timeout: 5_000,
         auth: {
