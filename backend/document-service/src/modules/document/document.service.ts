@@ -139,6 +139,56 @@ export class DocumentService {
   }
 
   /**
+   * Recursively resolves the permission role of a user on a given document item,
+   * taking parent folder inheritance into account.
+   */
+  async getPermissionRole(
+    itemId: string,
+    userId?: string,
+    userEmail?: string,
+  ): Promise<DocumentRole> {
+    const item = await this.prisma.documentItem.findUnique({
+      where: { id: itemId },
+      include: {
+        shares: true,
+      },
+    });
+
+    if (!item) {
+      return DocumentRole.VIEWER;
+    }
+
+    // 1. Owner always has full access
+    if (userId && item.ownerUserId === userId) {
+      return DocumentRole.OWNER;
+    }
+
+    // 2. Check if shared explicitly with this user/email
+    const share = item.shares.find(
+      (s) =>
+        (userId && s.shareWithUserId === userId) ||
+        (userEmail &&
+          s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
+    );
+
+    if (share) {
+      return share.permission as DocumentRole;
+    }
+
+    // 3. Check public link sharing if enabled
+    if (item.linkAccess !== LinkAccess.NONE) {
+      return item.linkAccess as DocumentRole;
+    }
+
+    // 4. Fallback: Check parent folder recursively (inheritance)
+    if (item.parentFolderId) {
+      return this.getPermissionRole(item.parentFolderId, userId, userEmail);
+    }
+
+    return DocumentRole.VIEWER;
+  }
+
+  /**
    * Recursively checks if a user has permission to access an item.
    * If permission is not found on the item itself, it traverses up to the parent folder.
    */
@@ -213,12 +263,13 @@ export class DocumentService {
 
     // 4. Fallback: Check parent folder recursively (inheritance)
     if (item.parentFolderId) {
-      return this.checkPermission(
+      await this.checkPermission(
         item.parentFolderId,
         userId,
         userEmail,
         requiredRole,
       );
+      return item;
     }
 
     throw new ForbiddenException('You are not allowed to access this item');
@@ -392,22 +443,11 @@ export class DocumentService {
 
     const mappedItems = await Promise.all(
       items.map(async (item: any) => {
-        let userRole: DocumentRole = DocumentRole.VIEWER;
-        if (item.ownerUserId === userId) {
-          userRole = DocumentRole.OWNER;
-        } else {
-          const share = item.shares?.find(
-            (s: any) =>
-              (userId && s.shareWithUserId === userId) ||
-              (userEmail &&
-                s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
-          );
-          if (share) {
-            userRole = share.permission as DocumentRole;
-          } else if (item.linkAccess !== LinkAccess.NONE) {
-            userRole = item.linkAccess as DocumentRole;
-          }
-        }
+        const userRole = await this.getPermissionRole(
+          item.id,
+          userId,
+          userEmail,
+        );
 
         let sizeBytes = Number(item.sizeBytes);
         if (item.type === ItemType.FOLDER) {
@@ -1088,23 +1128,12 @@ export class DocumentService {
       DocumentRole.VIEWER,
     );
 
-    // Determine current user's role
-    let userRole: DocumentRole = DocumentRole.VIEWER;
-    if (userId && item.ownerUserId === userId) {
-      userRole = DocumentRole.OWNER;
-    } else {
-      const share = item.shares?.find(
-        (s: DocumentShare) =>
-          (userId && s.shareWithUserId === userId) ||
-          (userEmail &&
-            s.shareWithEmail.toLowerCase() === userEmail.toLowerCase()),
-      );
-      if (share) {
-        userRole = share.permission as DocumentRole;
-      } else if (item.linkAccess !== LinkAccess.NONE) {
-        userRole = item.linkAccess as DocumentRole;
-      }
-    }
+    // Determine effective user role with inheritance
+    const userRole = await this.getPermissionRole(
+      item.id,
+      userId,
+      userEmail,
+    );
 
     return {
       item: {
