@@ -23,6 +23,7 @@ export function logApiError(error: unknown, context = "API request failed") {
     typeof responseData === "string"
       ? responseData
       : responseData?.message || responseData?.error || error.message;
+  const status = error.response?.status || "";
   const logKey = `${context}:${method}:${url}:${status}:${message}`;
   const now = Date.now();
   const lastLoggedAt = apiErrorLogTimes.get(logKey) || 0;
