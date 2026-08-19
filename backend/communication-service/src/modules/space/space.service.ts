@@ -282,20 +282,28 @@ export class SpaceService {
     }
   }
 
-  private async mapChannelForClient(channel: any, userId?: string) {
-    const roles = await this.prisma.spaceMember.findMany({
-      where: {
-        spaceId: channel.spaceId,
-        userId: { in: channel.members.map((member) => member.userId) },
-      },
-      select: {
-        userId: true,
-        role: true,
-      },
-    });
-    const roleByUserId = new Map(
-      roles.map((member) => [member.userId, member.role]),
-    );
+  private async mapChannelForClient(
+    channel: any,
+    userId?: string,
+    roleByUserId?: Map<string, SpaceRole>,
+  ) {
+    let resolvedRoleMap = roleByUserId;
+
+    if (!resolvedRoleMap) {
+      const roles = await this.prisma.spaceMember.findMany({
+        where: {
+          spaceId: channel.spaceId,
+          userId: { in: channel.members.map((member) => member.userId) },
+        },
+        select: {
+          userId: true,
+          role: true,
+        },
+      });
+      resolvedRoleMap = new Map(
+        roles.map((member) => [member.userId, member.role]),
+      );
+    }
 
     let unreadCount = 0;
     if (userId) {
@@ -320,7 +328,7 @@ export class SpaceService {
       unreadCount,
       members: channel.members.map((member) => ({
         ...member,
-        role: roleByUserId.get(member.userId) ?? SpaceRole.MEMBER,
+        role: resolvedRoleMap.get(member.userId) ?? SpaceRole.MEMBER,
       })),
     };
   }
@@ -1199,8 +1207,21 @@ export class SpaceService {
       },
     });
 
+    const spaceMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: {
+        userId: true,
+        role: true,
+      },
+    });
+    const roleByUserId = new Map(
+      spaceMembers.map((m) => [m.userId, m.role]),
+    );
+
     return Promise.all(
-      channels.map((channel) => this.mapChannelForClient(channel, userId)),
+      channels.map((channel) =>
+        this.mapChannelForClient(channel, userId, roleByUserId),
+      ),
     );
   }
 
