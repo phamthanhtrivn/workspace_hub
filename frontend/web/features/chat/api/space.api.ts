@@ -30,7 +30,9 @@ export const createSpace = async (
   };
 };
 
-export const getUserSpaces = async (): Promise<ApiResponse<SpaceResponse[]>> => {
+export const getUserSpaces = async (): Promise<
+  ApiResponse<SpaceResponse[]>
+> => {
   const response = await api.get("/api/spaces");
   const payload = response.data;
   const spaces = payload?.data ?? payload;
@@ -135,7 +137,9 @@ export const removeSpaceMember = async (
   spaceId: string,
   memberId: string,
 ): Promise<ApiResponse<unknown>> => {
-  const response = await api.delete(`/api/spaces/${spaceId}/members/${memberId}`);
+  const response = await api.delete(
+    `/api/spaces/${spaceId}/members/${memberId}`,
+  );
   return normalizeApiResponse<unknown>(response.data);
 };
 

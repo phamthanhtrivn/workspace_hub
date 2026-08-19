@@ -21,14 +21,18 @@ interface UseShareToChatProps {
 }
 
 export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
-  const [activeTab, setActiveTab] = useState<ShareTabType>(ShareTabType.CHANNEL);
+  const [activeTab, setActiveTab] = useState<ShareTabType>(
+    ShareTabType.CHANNEL,
+  );
   const [selectedChatId, setSelectedChatId] = useState<string>("");
   const [selectedSpaceId, setSelectedSpaceId] = useState<string>("");
   const [introMessage, setIntroMessage] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const activeSpaceIdFromStore = useAppSelector((state) => state.chat.activeSpaceId);
+  const activeSpaceIdFromStore = useAppSelector(
+    (state) => state.chat.activeSpaceId,
+  );
 
   const isOwner = useMemo(() => {
     return item && currentUserId ? item.ownerUserId === currentUserId : false;
@@ -47,13 +51,19 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
   }, [spaces, activeSpaceIdFromStore]);
 
   // Fetch channels in selected space
-  const { data: channelsData } = useSpaceChannelsQuery(selectedSpaceId, undefined, {
-    enabled: !!item && activeTab === ShareTabType.CHANNEL && !!selectedSpaceId,
-  });
+  const { data: channelsData } = useSpaceChannelsQuery(
+    selectedSpaceId,
+    undefined,
+    {
+      enabled:
+        !!item && activeTab === ShareTabType.CHANNEL && !!selectedSpaceId,
+    },
+  );
   const channels = channelsData?.channels || [];
 
   // Fetch direct messages (conversations)
-  const { data: directConversationsData } = useDirectMessagesQuery(currentUserId);
+  const { data: directConversationsData } =
+    useDirectMessagesQuery(currentUserId);
   const directConversations = directConversationsData?.directMessages || [];
 
   // Reset selected chat ID on tab/space change
@@ -94,7 +104,7 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
           // 2. Check permissions for these emails
           const unauthorizedEmails = await documentsApi.checkPermissions(
             item.id,
-            emails
+            emails,
           );
 
           if (unauthorizedEmails.length > 0 && isOwner) {
@@ -119,7 +129,7 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
               await documentsApi.addSharesBatch(
                 item.id,
                 unauthorizedEmails,
-                "VIEWER"
+                "VIEWER",
               );
               toast.success("Viewer access granted to channel members.");
             }
@@ -144,7 +154,6 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
           content: item.id,
           type: "DOCUMENT",
         });
-
       } else {
         // Direct conversation sharing
         if (introMessage.trim()) {

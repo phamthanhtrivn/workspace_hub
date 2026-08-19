@@ -12,11 +12,11 @@ import {
   Settings,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import SearchUserModal from "../modals/search-user-modal";
-import CreateSpaceModal from "../modals/create-space-modal";
-import CreateChannelModal from "../modals/create-channel-modal";
-import BrowseChannelsModal from "../modals/browse-channels-modal";
-import SpaceSettingsModal from "../modals/space-settings-modal";
+import SearchUserModal from "../modals/shared/search-user-modal";
+import CreateSpaceModal from "../modals/space/create-space-modal";
+import CreateChannelModal from "../modals/channel/create-channel-modal";
+import BrowseChannelsModal from "../modals/channel/browse-channels-modal";
+import SpaceSettingsModal from "../modals/space/space-settings-modal";
 import ChannelItem from "./channel-item";
 import DirectConversationsSection from "./direct-conversations-section";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,7 +39,6 @@ import {
   UserProfileResponse,
   UserProfileSnapshotResponse,
   SpaceResponse,
-  ConversationRoles,
 } from "../../types/chat.types";
 import {
   CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS,
@@ -47,11 +46,14 @@ import {
   MAX_UNREAD_COUNT,
   chatKeys,
 } from "../../types/chat.constant";
-import { sortDirectConversations, sortChannelsByPin } from "../../utils/direct-conversation-utils";
+import {
+  sortDirectConversations,
+  sortChannelsByPin,
+} from "../../utils/direct-conversation-utils";
 import { cn } from "@/lib/utils";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
-import { getErrorMessage } from "../../types/space-settings.types";
+import { getErrorMessage } from "../../types/space-settings/space-settings.types";
 import {
   markChannelThreadAsRead,
   markDirectThreadAsRead,
@@ -86,8 +88,6 @@ import FollowedThreadsModal, {
 interface ChatSidebarProps {
   onSelectChat?: () => void;
 }
-
-
 
 export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -203,13 +203,21 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       if (activeChat?.id === channelId) {
         dispatch(setActiveConversation(null));
       }
-      queryClient.invalidateQueries({ queryKey: chatKeys.channels(activeSpaceId) });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(activeSpaceId),
+      });
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
-      if (spaces.some((space) => space.id === activeSpaceId && space.defaultChannelId === channelId)) {
+      if (
+        spaces.some(
+          (space) =>
+            space.id === activeSpaceId && space.defaultChannelId === channelId,
+        )
+      ) {
         dispatch(setActiveSpaceId(null));
       }
     },
-    onError: (error) => toast.error(getErrorMessage(error, "Failed to leave channel")),
+    onError: (error) =>
+      toast.error(getErrorMessage(error, "Failed to leave channel")),
   });
 
   const deleteChannelMutation = useMutation({
@@ -219,10 +227,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       if (activeChat?.id === channelId) {
         dispatch(setActiveConversation(null));
       }
-      queryClient.invalidateQueries({ queryKey: chatKeys.channels(activeSpaceId) });
+      queryClient.invalidateQueries({
+        queryKey: chatKeys.channels(activeSpaceId),
+      });
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
     },
-    onError: (error) => toast.error(getErrorMessage(error, "Failed to delete channel")),
+    onError: (error) =>
+      toast.error(getErrorMessage(error, "Failed to delete channel")),
   });
 
   const handleLeaveChannel = async (channel: ChannelResponse) => {
@@ -900,13 +911,16 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   const channelMember = channel.members?.find(
                     (m) => m.userId === currentUserId,
                   );
-                  const isChannelAdmin = channelMember?.role === ConversationRoles.ADMIN;
+                  const isChannelAdmin =
+                    channelMember?.role === SpaceRole.ADMIN;
                   const isCreator = channel.createdBy === currentUserId;
-                  const allowMemberDeleteOwnChannel = spaceDetail?.setting?.allowMemberDeleteOwnChannel ?? false;
+                  const allowMemberDeleteOwnChannel =
+                    spaceDetail?.setting?.allowMemberDeleteOwnChannel ?? false;
 
                   const canDelete =
                     !channel.isDefault &&
-                    (isActiveSpaceAdmin || (isCreator && allowMemberDeleteOwnChannel));
+                    (isActiveSpaceAdmin ||
+                      (isCreator && allowMemberDeleteOwnChannel));
 
                   const canLeave = !channel.isDefault || !isChannelAdmin;
 

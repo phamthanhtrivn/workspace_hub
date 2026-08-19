@@ -15,7 +15,7 @@ import {
 import {
   FormattingType,
   useTextFormatting,
-} from "../../hooks/useTextFormatting";
+} from "../../hooks/input/useTextFormatting";
 
 interface RichTextTextareaProps {
   value: string;
@@ -62,9 +62,7 @@ export default function RichTextTextarea({
       <div className="flex items-center gap-0.5 border-b border-gray-100 bg-gray-50/80 px-2 py-1.5">
         {FORMAT_BUTTONS.map(({ type, label, icon: Icon }, index) => (
           <React.Fragment key={type}>
-            {index === 3 ? (
-              <div className="mx-1 h-4 w-px bg-gray-200" />
-            ) : null}
+            {index === 3 ? <div className="mx-1 h-4 w-px bg-gray-200" /> : null}
             <button
               type="button"
               onClick={() => applyFormatting(type)}

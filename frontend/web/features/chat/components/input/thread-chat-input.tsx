@@ -39,11 +39,11 @@ import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import { toast } from "sonner";
 import MentionDropdown from "./mention-dropdown";
 import EmojiPickerPopover from "./emoji-picker-popover";
-import MyFilesSelectModal from "../modals/my-files-select-modal";
+import MyFilesSelectModal from "../modals/shared/my-files-select-modal";
 
-import { useAudioRecorder } from "../../hooks/useAudioRecorder";
-import { useSpeechToText } from "../../hooks/useSpeechToText";
-import { useTextFormatting } from "../../hooks/useTextFormatting";
+import { useAudioRecorder } from "../../hooks/input/useAudioRecorder";
+import { useSpeechToText } from "../../hooks/input/useSpeechToText";
+import { useTextFormatting } from "../../hooks/input/useTextFormatting";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import {
   claimVoiceSession,

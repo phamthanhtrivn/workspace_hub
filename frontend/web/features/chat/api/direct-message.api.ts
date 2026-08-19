@@ -12,53 +12,12 @@ import {
 } from "../types/chat.types";
 import { normalizeApiResponse, normalizeDirectConversation } from "./chat.api";
 
-const DM_API_ROUTES = {
-  directConversations: "/api/direct-conversations",
-  directConversation: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}`,
-  directMessages: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}/messages`,
-  directMessageRead: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}/messages/read`,
-  directMessageEdit: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}`,
-  directMessageRecall: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}/recall`,
-  directMessageDelete: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}`,
-  directMessageSearch: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}/messages/search`,
-  directMessageReaction: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}/reactions`,
-  directMessagePin: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}/pin`,
-  directMessageUnpin: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}/unpin`,
-  directMedia: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}/media`,
-  directPinned: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}/pinned-messages`,
-  directMute: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}/mute`,
-  directPin: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}/pin`,
-  directThreads: (conversationId: string) =>
-    `/api/direct-conversations/${conversationId}/threads`,
-  directThreadMessages: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}/thread`,
-  directThreadRead: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}/thread/read`,
-  directThreadFollow: (messageId: string) =>
-    `/api/direct-conversations/messages/${messageId}/thread/follow`,
-  directFollowedThreads: "/api/direct-conversations/threads/followed",
-} as const;
-
 // ─── Conversations ─────────────────────────────────────────────────────────
 
 export const createDirectConversation = async (
   participantId: string,
 ): Promise<ApiResponse<DirectConversationResponse>> => {
-  const response = await api.post(DM_API_ROUTES.directConversations, {
+  const response = await api.post("/api/direct-conversations", {
     participantId,
   });
   const payload = response.data;
@@ -71,7 +30,7 @@ export const createDirectConversation = async (
 export const getDirectConversations = async (
   search?: string,
 ): Promise<ApiResponse<DirectConversationResponse[]>> => {
-  const response = await api.get(DM_API_ROUTES.directConversations, {
+  const response = await api.get("/api/direct-conversations", {
     params: { search: search || undefined },
   });
   const payload = response.data;
@@ -102,7 +61,7 @@ export const sendDirectMessage = async (
   },
 ): Promise<ApiResponse<ChatMessageResponse>> => {
   const response = await api.post(
-    DM_API_ROUTES.directMessages(conversationId),
+    `/api/direct-conversations/${conversationId}/messages`,
     payload,
   );
   return normalizeApiResponse<ChatMessageResponse>(response.data);
@@ -114,9 +73,10 @@ export const getDirectConversationMessages = async (
   limit?: number,
   direction?: "older" | "newer" | "around",
 ): Promise<ApiResponse<PaginatedMessagesResponse>> => {
-  const response = await api.get(DM_API_ROUTES.directMessages(conversationId), {
-    params: { cursor, limit, direction },
-  });
+  const response = await api.get(
+    `/api/direct-conversations/${conversationId}/messages`,
+    { params: { cursor, limit, direction } },
+  );
   return normalizeApiResponse<PaginatedMessagesResponse>(response.data);
 };
 
@@ -124,9 +84,10 @@ export const markDirectConversationAsRead = async (
   conversationId: string,
   messageId: string,
 ): Promise<ApiResponse<{ messageId: string }>> => {
-  const response = await api.post(DM_API_ROUTES.directMessageRead(conversationId), {
-    messageId,
-  });
+  const response = await api.post(
+    `/api/direct-conversations/${conversationId}/messages/read`,
+    { messageId },
+  );
   return normalizeApiResponse<{ messageId: string }>(response.data);
 };
 
@@ -134,23 +95,28 @@ export const editDirectMessage = async (
   messageId: string,
   content: string,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.patch(DM_API_ROUTES.directMessageEdit(messageId), {
-    content,
-  });
+  const response = await api.patch(
+    `/api/direct-conversations/messages/${messageId}`,
+    { content },
+  );
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
 export const recallDirectMessage = async (
   messageId: string,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.patch(DM_API_ROUTES.directMessageRecall(messageId));
+  const response = await api.patch(
+    `/api/direct-conversations/messages/${messageId}/recall`,
+  );
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
 export const deleteDirectMessage = async (
   messageId: string,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.delete(DM_API_ROUTES.directMessageDelete(messageId));
+  const response = await api.delete(
+    `/api/direct-conversations/messages/${messageId}`,
+  );
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
@@ -161,7 +127,7 @@ export const searchDirectConversationMessages = async (
   type?: "TEXT",
 ): Promise<ApiResponse<ChatMessageResponse[]>> => {
   const response = await api.get(
-    DM_API_ROUTES.directMessageSearch(conversationId),
+    `/api/direct-conversations/${conversationId}/messages/search`,
     { params: { q, senderId, type } },
   );
   return normalizeApiResponse<ChatMessageResponse[]>(response.data);
@@ -172,10 +138,13 @@ export const searchDirectConversationMessages = async (
 export const addDirectReaction = async (
   messageId: string,
   emoji: string,
-): Promise<ApiResponse<{ action: "add" | "remove" | "update"; emoji: string }>> => {
-  const response = await api.post(DM_API_ROUTES.directMessageReaction(messageId), {
-    emoji,
-  });
+): Promise<
+  ApiResponse<{ action: "add" | "remove" | "update"; emoji: string }>
+> => {
+  const response = await api.post(
+    `/api/direct-conversations/messages/${messageId}/reactions`,
+    { emoji },
+  );
   return normalizeApiResponse(response.data);
 };
 
@@ -184,10 +153,12 @@ export const removeDirectReaction = async (
   emoji: string,
 ): Promise<ApiResponse<{ action: "remove"; emoji: string }>> => {
   const response = await api.delete(
-    DM_API_ROUTES.directMessageReaction(messageId),
+    `/api/direct-conversations/messages/${messageId}/reactions`,
     { data: { emoji } },
   );
-  return normalizeApiResponse<{ action: "remove"; emoji: string }>(response.data);
+  return normalizeApiResponse<{ action: "remove"; emoji: string }>(
+    response.data,
+  );
 };
 
 // ─── Pin ───────────────────────────────────────────────────────────────────
@@ -195,14 +166,18 @@ export const removeDirectReaction = async (
 export const pinDirectMessage = async (
   messageId: string,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.patch(DM_API_ROUTES.directMessagePin(messageId));
+  const response = await api.patch(
+    `/api/direct-conversations/messages/${messageId}/pin`,
+  );
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
 export const unpinDirectMessage = async (
   messageId: string,
 ): Promise<ApiResponse<ChatMessageResponse>> => {
-  const response = await api.patch(DM_API_ROUTES.directMessageUnpin(messageId));
+  const response = await api.patch(
+    `/api/direct-conversations/messages/${messageId}/unpin`,
+  );
   return normalizeApiResponse<ChatMessageResponse>(response.data);
 };
 
@@ -215,9 +190,10 @@ export const getDirectConversationMedia = async (
   mediaType?: string,
   q?: string,
 ): Promise<ApiResponse<PaginatedMediaResponse>> => {
-  const response = await api.get(DM_API_ROUTES.directMedia(conversationId), {
-    params: { cursor, limit, mediaType, q },
-  });
+  const response = await api.get(
+    `/api/direct-conversations/${conversationId}/media`,
+    { params: { cursor, limit, mediaType, q } },
+  );
   return normalizeApiResponse<PaginatedMediaResponse>(response.data);
 };
 
@@ -228,9 +204,10 @@ export const getDirectPinnedMessages = async (
   senderId?: string,
   q?: string,
 ): Promise<ApiResponse<PinnedMessagesResponse>> => {
-  const response = await api.get(DM_API_ROUTES.directPinned(conversationId), {
-    params: { cursor, limit, senderId, q },
-  });
+  const response = await api.get(
+    `/api/direct-conversations/${conversationId}/pinned-messages`,
+    { params: { cursor, limit, senderId, q } },
+  );
   return normalizeApiResponse<PinnedMessagesResponse>(response.data);
 };
 
@@ -240,9 +217,10 @@ export const muteDirectConversation = async (
   conversationId: string,
   muted: boolean,
 ): Promise<ApiResponse<MuteConversationResponse>> => {
-  const response = await api.patch(DM_API_ROUTES.directMute(conversationId), {
-    muted,
-  });
+  const response = await api.patch(
+    `/api/direct-conversations/${conversationId}/mute`,
+    { muted },
+  );
   return normalizeApiResponse<MuteConversationResponse>(response.data);
 };
 
@@ -250,9 +228,10 @@ export const pinDirectConversation = async (
   conversationId: string,
   pinned: boolean,
 ): Promise<ApiResponse<{ pinned: boolean }>> => {
-  const response = await api.patch(DM_API_ROUTES.directPin(conversationId), {
-    pinned,
-  });
+  const response = await api.patch(
+    `/api/direct-conversations/${conversationId}/pin`,
+    { pinned },
+  );
   return normalizeApiResponse<{ pinned: boolean }>(response.data);
 };
 
@@ -264,23 +243,28 @@ export const getDirectConversationThreads = async (
   limit?: number,
   senderId?: string,
 ): Promise<ApiResponse<PaginatedMessagesResponse>> => {
-  const response = await api.get(DM_API_ROUTES.directThreads(conversationId), {
-    params: { cursor, limit, senderId },
-  });
+  const response = await api.get(
+    `/api/direct-conversations/${conversationId}/threads`,
+    { params: { cursor, limit, senderId } },
+  );
   return normalizeApiResponse<PaginatedMessagesResponse>(response.data);
 };
 
 export const getDirectThreadMessages = async (
   messageId: string,
 ): Promise<ApiResponse<ThreadMessagesResponse>> => {
-  const response = await api.get(DM_API_ROUTES.directThreadMessages(messageId));
+  const response = await api.get(
+    `/api/direct-conversations/messages/${messageId}/thread`,
+  );
   return normalizeApiResponse<ThreadMessagesResponse>(response.data);
 };
 
 export const markDirectThreadAsRead = async (
   messageId: string,
 ): Promise<ApiResponse<{ messageId: string; lastReadAt: string }>> => {
-  const response = await api.post(DM_API_ROUTES.directThreadRead(messageId));
+  const response = await api.post(
+    `/api/direct-conversations/messages/${messageId}/thread/read`,
+  );
   return normalizeApiResponse<{ messageId: string; lastReadAt: string }>(
     response.data,
   );
@@ -289,20 +273,24 @@ export const markDirectThreadAsRead = async (
 export const followDirectThread = async (
   messageId: string,
 ): Promise<ApiResponse<{ following: boolean }>> => {
-  const response = await api.post(DM_API_ROUTES.directThreadFollow(messageId));
+  const response = await api.post(
+    `/api/direct-conversations/messages/${messageId}/thread/follow`,
+  );
   return normalizeApiResponse<{ following: boolean }>(response.data);
 };
 
 export const unfollowDirectThread = async (
   messageId: string,
 ): Promise<ApiResponse<{ following: boolean }>> => {
-  const response = await api.delete(DM_API_ROUTES.directThreadFollow(messageId));
+  const response = await api.delete(
+    `/api/direct-conversations/messages/${messageId}/thread/follow`,
+  );
   return normalizeApiResponse<{ following: boolean }>(response.data);
 };
 
 export const getFollowedDirectThreads = async (): Promise<
   ApiResponse<FollowedThreadResponse[]>
 > => {
-  const response = await api.get(DM_API_ROUTES.directFollowedThreads);
+  const response = await api.get("/api/direct-conversations/threads/followed");
   return normalizeApiResponse<FollowedThreadResponse[]>(response.data);
 };

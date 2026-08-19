@@ -42,17 +42,16 @@ import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import { toast } from "sonner";
 import MentionDropdown from "./mention-dropdown";
 import EmojiPickerPopover from "./emoji-picker-popover";
-import MyFilesSelectModal from "../modals/my-files-select-modal";
-
-import { useAudioRecorder } from "../../hooks/useAudioRecorder";
-import { useSpeechToText } from "../../hooks/useSpeechToText";
-import { useTextFormatting } from "../../hooks/useTextFormatting";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { ChatContextType } from "../../types/chat.types";
 import {
   claimVoiceSession,
   releaseVoiceSession,
 } from "../../utils/voice-session-coordinator";
+import { useTextFormatting } from "../../hooks/input/useTextFormatting";
+import { useSpeechToText } from "../../hooks/input/useSpeechToText";
+import { useAudioRecorder } from "../../hooks/input/useAudioRecorder";
+import MyFilesSelectModal from "../modals/shared/my-files-select-modal";
 
 interface ChannelChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -495,7 +494,14 @@ const ChannelChatInput = React.memo(
       );
 
       const handleSelectMyFiles = useCallback(
-        (files: Array<{ name: string; s3Key: string; mimeType: string; sizeBytes: number }>) => {
+        (
+          files: Array<{
+            name: string;
+            s3Key: string;
+            mimeType: string;
+            sizeBytes: number;
+          }>,
+        ) => {
           const newUploads: UploadingMedia[] = files.map((f) => ({
             id: Math.random().toString(36).substring(7) + Date.now(),
             status: "success",

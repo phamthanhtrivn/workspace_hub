@@ -45,8 +45,7 @@ function isRecord(value: unknown): value is UnknownRecord {
 
 export function normalizeApiResponse<T>(payload: unknown): ApiResponse<T> {
   const responsePayload = isRecord(payload) ? payload : {};
-  const data =
-    isRecord(payload) && "data" in payload ? payload.data : payload;
+  const data = isRecord(payload) && "data" in payload ? payload.data : payload;
   return {
     ...responsePayload,
     success:
@@ -87,9 +86,9 @@ export const searchUserByEmail = async (
   const response = await api.get("/api/users/search", {
     params: { email },
   });
-  const payload = normalizeApiResponse<UserSearchResponse[] | UserSearchResponse>(
-    response.data,
-  );
+  const payload = normalizeApiResponse<
+    UserSearchResponse[] | UserSearchResponse
+  >(response.data);
   return {
     ...payload,
     data: Array.isArray(payload.data) ? payload.data : [payload.data],

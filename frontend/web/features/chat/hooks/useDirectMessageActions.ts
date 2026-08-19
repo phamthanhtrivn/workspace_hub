@@ -12,7 +12,7 @@ import {
 import { ChatQueryKey, ChatScope, chatKeys } from "../types/chat.constant";
 import { ChatMessageResponse } from "../types/chat.types";
 import { SendSocketMessageMedia } from "../types/chat-socket.types";
-import { useDirectMessageSocket } from "./useDirectMessageSocket";
+import { useDirectMessageSocket } from "./socket/useDirectMessageSocket";
 
 type MessageDirection = "older" | "newer" | "around";
 

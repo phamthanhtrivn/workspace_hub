@@ -26,7 +26,6 @@ class SocketService {
       }) as ChatSocket;
 
       this.socket.on("connect", () => {});
-
     }
 
     if (!this.socket.connected) {

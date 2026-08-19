@@ -5,11 +5,10 @@ export enum ChatContextType {
   CHANNEL = "CHANNEL",
 }
 
-export enum ConversationRoles {
-  ADMIN = "ADMIN",
-  MEMBER = "MEMBER",
-}
-
+/**
+ * Role của member trong channel/conversation.
+ * Dùng SpaceRole thay vì ConversationRoles (cùng giá trị).
+ */
 export enum SpaceRole {
   ADMIN = "ADMIN",
   MEMBER = "MEMBER",

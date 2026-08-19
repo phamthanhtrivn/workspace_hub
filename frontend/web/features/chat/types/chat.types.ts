@@ -1,7 +1,6 @@
 // Re-export enums từ chat.enums.ts để backward compatible với các import cũ
 export {
   ChatContextType,
-  ConversationRoles,
   SpaceRole,
   MessageType,
   ReactionAction,
@@ -41,9 +40,10 @@ export interface UserProfileSnapshotResponse {
 
 // ─── Role types ────────────────────────────────────────────────────────────
 
-import { ConversationRoles, SpaceRole } from "./chat.enums";
+import { SpaceRole } from "./chat.enums";
 
-export type ConversationRole = ConversationRoles.ADMIN | ConversationRoles.MEMBER;
+/** Role của member trong một channel hoặc direct conversation. */
+export type ConversationRole = SpaceRole.ADMIN | SpaceRole.MEMBER;
 export type SpaceMemberRole = SpaceRole.ADMIN | SpaceRole.MEMBER;
 
 import { ChatContextType } from "./chat.enums";

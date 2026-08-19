@@ -6,10 +6,7 @@ import {
   getSpaceChannels,
   getUserSpaces,
 } from "../api/chat.api";
-import {
-  CHAT_DEFAULT_STALE_TIME_MS,
-  chatKeys,
-} from "../types/chat.constant";
+import { CHAT_DEFAULT_STALE_TIME_MS, chatKeys } from "../types/chat.constant";
 import {
   ChatContextType,
   ChatMessageResponse,
