@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, Globe, Hash, MoreVertical, Pin, LogOut, Trash2 } from "lucide-react";
+import {
+  Bell,
+  BellOff,
+  Globe,
+  Hash,
+  MoreVertical,
+  Pin,
+  LogOut,
+  Trash2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_UNREAD_COUNT } from "../../types/chat.constant";
 import { ChannelResponse } from "../../types/chat.types";
@@ -159,7 +168,9 @@ const ChannelItem = React.memo(function ChannelItem({
                 {isMuted ? <Bell size={14} /> : <BellOff size={14} />}
                 <span>{isMuted ? "Unmute" : "Mute"}</span>
               </button>
-              {(canLeave || canDelete) && <div className="h-[1px] bg-slate-100 my-1" />}
+              {(canLeave || canDelete) && (
+                <div className="h-[1px] bg-slate-100 my-1" />
+              )}
               {canLeave && (
                 <button
                   type="button"

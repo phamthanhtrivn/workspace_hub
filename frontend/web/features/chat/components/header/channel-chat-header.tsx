@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { ArrowLeft, Globe, Hash, Info, Search, User } from "lucide-react";
 import { useActiveChat } from "../../hooks/useChatQueries";
-import ChannelMembersModal from "../modals/channel-members-modal";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../api/chat.api";
 import { chatKeys } from "../../types/chat.constant";
+import ChannelMembersModal from "../modals/channel/channel-members-modal";
 
 interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -34,9 +34,7 @@ export default function ChannelChatHeader({
   const displayName = activeChannel?.name || "Channel";
   const memberCount = activeChannel?.members?.length || 0;
   const isDefaultChannel =
-    !!activeChannel &&
-    "isDefault" in activeChannel &&
-    activeChannel.isDefault;
+    !!activeChannel && "isDefault" in activeChannel && activeChannel.isDefault;
 
   return (
     <div className="py-2 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">

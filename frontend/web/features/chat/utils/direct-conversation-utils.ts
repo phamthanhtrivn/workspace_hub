@@ -1,6 +1,9 @@
 import { ConversationResponse, ChannelResponse } from "../types/chat.types";
 
-function getCurrentMember(conversation: ConversationResponse, userId?: string | null) {
+function getCurrentMember(
+  conversation: ConversationResponse,
+  userId?: string | null,
+) {
   return conversation.members?.find((member) => member.userId === userId);
 }
 

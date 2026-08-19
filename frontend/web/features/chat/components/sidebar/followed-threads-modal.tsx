@@ -243,7 +243,9 @@ export default function FollowedThreadsModal({
                         <MessageSquare size={11} />
                         {thread.replyCount} replies
                       </span>
-                      {lastReplyTime && <span>Last reply: {lastReplyTime}</span>}
+                      {lastReplyTime && (
+                        <span>Last reply: {lastReplyTime}</span>
+                      )}
                     </span>
                   </button>
                 );

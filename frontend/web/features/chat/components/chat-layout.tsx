@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from "react";
 import ChatSidebar from "./sidebar/chat-sidebar";
-import ChatArea from "./chat-area";
+import ChatArea from "./chat-area/chat-area";
 import ChatRightPanel from "./right-panel/chat-right-panel";
-import ThreadSidePanel from "./right-panel/thread-side-panel";
+import ThreadSidePanel from "./right-panel/thread/thread-side-panel";
 import { useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
-import UserProfileModal from "./modals/user-profile-modal";
-import { useChatSocket } from "../hooks/useChatSocket";
+import UserProfileModal from "./modals/shared/user-profile-modal";
+import { useChatSocket } from "../hooks/socket/useChatSocket";
 
 export default function ChatLayout() {
   useChatSocket();

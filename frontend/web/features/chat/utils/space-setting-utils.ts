@@ -1,7 +1,4 @@
-import {
-  SpaceResponse,
-  SpaceSettingResponse,
-} from "../types/chat.types";
+import { SpaceResponse, SpaceSettingResponse } from "../types/chat.types";
 
 export const DEFAULT_SPACE_SETTING: SpaceSettingResponse = {
   id: null,

@@ -17,8 +17,14 @@ interface DirectConversationItemProps {
   isLoadingProfile?: boolean;
   isActive?: boolean;
   onClick: (conversation: DirectConversationListItem) => void;
-  onTogglePin?: (conversation: DirectConversationListItem, pinned: boolean) => void;
-  onToggleMute?: (conversation: DirectConversationListItem, muted: boolean) => void;
+  onTogglePin?: (
+    conversation: DirectConversationListItem,
+    pinned: boolean,
+  ) => void;
+  onToggleMute?: (
+    conversation: DirectConversationListItem,
+    muted: boolean,
+  ) => void;
 }
 
 const DirectConversationItem = React.memo(function DirectConversationItem({
@@ -46,8 +52,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
     );
   }, [conversation.members, currentUserId]);
 
-  const isDirectProfileLoading =
-    !!otherMember && !profile && isLoadingProfile;
+  const isDirectProfileLoading = !!otherMember && !profile && isLoadingProfile;
   const name = profile?.fullName || "User";
   const avatarUrl = profile?.avatarUrl;
   const isMuted = currentMember?.muted || false;
@@ -133,9 +138,7 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
               isMuted ? "bg-slate-400" : "bg-red-500",
             )}
           >
-            {unreadCount > MAX_UNREAD_COUNT
-              ? "99+"
-              : unreadCount}
+            {unreadCount > MAX_UNREAD_COUNT ? "99+" : unreadCount}
           </div>
         ) : null}
 
@@ -165,7 +168,10 @@ const DirectConversationItem = React.memo(function DirectConversationItem({
                 }}
                 className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50"
               >
-                <Pin size={14} className={isPinned ? "fill-blue-600 text-blue-600" : ""} />
+                <Pin
+                  size={14}
+                  className={isPinned ? "fill-blue-600 text-blue-600" : ""}
+                />
                 <span>{isPinned ? "Unpin" : "Pin"}</span>
               </button>
               <button

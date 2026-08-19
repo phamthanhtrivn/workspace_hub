@@ -27,9 +27,9 @@ import {
 import { toast } from "sonner";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import EmojiPickerPopover from "./emoji-picker-popover";
-import MyFilesSelectModal from "../modals/my-files-select-modal";
-import { useAudioRecorder } from "../../hooks/useAudioRecorder";
-import { useSpeechToText } from "../../hooks/useSpeechToText";
+import MyFilesSelectModal from "../modals/shared/my-files-select-modal";
+import { useAudioRecorder } from "../../hooks/input/useAudioRecorder";
+import { useSpeechToText } from "../../hooks/input/useSpeechToText";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import {
   claimVoiceSession,
