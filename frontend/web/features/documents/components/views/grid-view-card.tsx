@@ -28,6 +28,7 @@ export interface GridViewCardProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onDownloadFolder?: (item: DocumentItem) => void;
+  onShareToChat?: (item: DocumentItem) => void;
   formatBytes: (bytes: number) => string;
 }
 
@@ -50,6 +51,7 @@ export function GridViewCard({
   onManageVersions,
   onShare,
   onDownloadFolder,
+  onShareToChat,
   formatBytes,
 }: GridViewCardProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
@@ -137,6 +139,7 @@ export function GridViewCard({
           onDownloadFolder={() => onDownloadFolder?.(item)}
           onManageVersions={() => onManageVersions?.(item)}
           onShare={() => onShare?.(item)}
+          onShareToChat={() => onShareToChat?.(item)}
         />
       </div>
 

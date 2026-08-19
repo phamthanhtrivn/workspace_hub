@@ -13,7 +13,9 @@ export default function ChatMessageAlertManager() {
   const { accessToken, userId: currentUserId } = useAppSelector(
     (state) => state.auth,
   );
-  const activeConversationId = useAppSelector((state) => state.chat.activeChatId);
+  const activeConversationId = useAppSelector(
+    (state) => state.chat.activeChatId,
+  );
   const activeConversationIdRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
   const titleAlert = useFlashingDocumentTitle("You have new chat messages!");
@@ -67,12 +69,7 @@ export default function ChatMessageAlertManager() {
     return () => {
       socket.off(ChatEvent.NEW_MESSAGE, handleNewMessage);
     };
-  }, [
-    accessToken,
-    currentUserId,
-    queryClient,
-    titleAlert,
-  ]);
+  }, [accessToken, currentUserId, queryClient, titleAlert]);
 
   return null;
 }

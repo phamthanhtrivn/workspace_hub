@@ -22,6 +22,7 @@ import {
   FaTrashAlt,
   FaUndo,
   FaTrash,
+  FaPaperPlane,
 } from "react-icons/fa";
 
 interface ItemActionsMenuProps {
@@ -40,6 +41,7 @@ interface ItemActionsMenuProps {
   onManageVersions?: () => void;
   onShare?: () => void;
   onDownloadFolder?: () => void;
+  onShareToChat?: () => void;
 }
 
 function ItemActionsMenu({
@@ -58,6 +60,7 @@ function ItemActionsMenu({
   onManageVersions,
   onShare,
   onDownloadFolder,
+  onShareToChat,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.OWNER;
@@ -111,7 +114,7 @@ function ItemActionsMenu({
                     className="text-[var(--color-primary)] shrink-0"
                     size={14}
                   />
-                  <span>Xem trước</span>
+                  <span>Preview</span>
                 </button>
               )}
 
@@ -125,7 +128,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaDownload className="text-emerald-500 shrink-0" size={14} />
-                  <span>Tải xuống</span>
+                  <span>Download</span>
                 </button>
               )}
 
@@ -139,7 +142,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaDownload className="text-emerald-500 shrink-0" size={14} />
-                  <span>Tải xuống (ZIP)</span>
+                  <span>Download (ZIP)</span>
                 </button>
               )}
 
@@ -153,7 +156,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaHistory className="text-indigo-500 shrink-0" size={14} />
-                  <span>Quản lý phiên bản</span>
+                  <span>Manage Versions</span>
                 </button>
               )}
 
@@ -167,7 +170,21 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-blue-600 hover:text-blue-700"
                 >
                   <FaShareAlt className="text-blue-500 shrink-0" size={14} />
-                  <span>Chia sẻ</span>
+                  <span>Share</span>
+                </button>
+              )}
+
+              {isOwner && onShareToChat && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onShareToChat();
+                  }}
+                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-violet-600 hover:text-violet-700"
+                >
+                  <FaPaperPlane className="text-violet-500 shrink-0" size={12} />
+                  <span>Share to Chat</span>
                 </button>
               )}
 
@@ -180,7 +197,7 @@ function ItemActionsMenu({
                 className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
               >
                 <FaInfoCircle className="text-slate-500 shrink-0" size={14} />
-                <span>Chi tiết</span>
+                <span>Details</span>
               </button>
 
               {(isOwner || isEditor) && (
@@ -193,7 +210,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaEdit className="text-amber-500 shrink-0" size={14} />
-                  <span>Đổi tên</span>
+                  <span>Rename</span>
                 </button>
               )}
 
@@ -207,7 +224,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaFolderOpen className="text-teal-500 shrink-0" size={14} />
-                  <span>Di chuyển</span>
+                  <span>Move</span>
                 </button>
               )}
 
@@ -227,7 +244,7 @@ function ItemActionsMenu({
                 ) : (
                   <FaRegStar className="text-amber-400 shrink-0" size={14} />
                 )}
-                <span>{item.isStarred ? "Bỏ gắn dấu sao" : "Gắn dấu sao"}</span>
+                <span>{item.isStarred ? "Unstar" : "Star"}</span>
               </button>
 
               {isOwner && (
@@ -240,7 +257,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
                 >
                   <FaTrashAlt className="text-red-500 shrink-0" size={14} />
-                  <span>Xóa tạm thời</span>
+                  <span>Move to Trash</span>
                 </button>
               )}
             </>
@@ -256,7 +273,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-green-600 hover:bg-green-50/50 transition-colors text-left"
                 >
                   <FaUndo className="text-green-600 shrink-0" size={13} />
-                  <span>Khôi phục</span>
+                  <span>Restore</span>
                 </button>
               )}
 
@@ -270,7 +287,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
                 >
                   <FaTrash className="text-rose-600 shrink-0" size={14} />
-                  <span>Xóa vĩnh viễn</span>
+                  <span>Delete Permanently</span>
                 </button>
               )}
             </>

@@ -2,12 +2,12 @@
 
 import React, { useState } from "react";
 import { FileText, Edit2 } from "lucide-react";
-import EditNoteModal from "../modals/edit-note-modal";
 import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { NoteResponse } from "../../types/chat.types";
 import { renderMessageContent } from "../../utils/message-formatter";
+import EditNoteModal from "../modals/message/edit-note-modal";
 
 interface NoteMessageProps {
   note: NoteResponse;
@@ -25,9 +25,7 @@ const NoteMessage = React.memo(function NoteMessage({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (!note) {
-    return (
-      <div className="text-gray-500 italic p-4">Note unavailable</div>
-    );
+    return <div className="text-gray-500 italic p-4">Note unavailable</div>;
   }
 
   const isMe = note.createdBy === currentUser?.userId;

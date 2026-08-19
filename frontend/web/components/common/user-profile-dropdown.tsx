@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { clearCredentials } from "@/store/auth/auth-slice";
 import { useLogoutMutation } from "@/features/auth/hooks/useAuthMutations";
+import { useQueryClient } from "@tanstack/react-query";
 import { AuthRouteTarget } from "@/features/auth/types/auth.constants";
 import { getAuthErrorMessage } from "@/features/auth/utils/auth-error";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
@@ -24,17 +25,21 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const router = useRouter();
   const dispatch = useAppDispatch();
   const logoutMutation = useLogoutMutation();
-  const { email } = useAppSelector((state) => state.auth);
+  const queryClient = useQueryClient();
+  const { email, fullName: authFullName, avatarUrl: authAvatarUrl } = useAppSelector((state) => state.auth);
   const { data: profileResponse } = useUserProfileQuery();
 
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const userProfile = profileResponse?.data;
+  const avatarUrl = userProfile?.avatarUrl || authAvatarUrl;
+  const fullName = userProfile?.fullName || authFullName;
 
   const finishLogout = () => {
     notificationSocketService.disconnect();
     dispatch(clearCredentials());
+    queryClient.clear();
     router.push(AuthRouteTarget.LOGIN);
   };
 
@@ -75,10 +80,10 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
         className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-gray-200 text-sm font-black text-[var(--color-primary-dark)] shadow-sm ring-1 ring-slate-200 transition hover:bg-gray-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer"
         aria-label="Open user menu"
       >
-        {userProfile?.avatarUrl ? (
+        {avatarUrl ? (
           <Image
-            src={userProfile.avatarUrl}
-            alt={userProfile.fullName}
+            src={avatarUrl}
+            alt={fullName || "User avatar"}
             fill
             className="rounded-full object-cover"
             sizes="44px"
@@ -92,7 +97,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
         <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-lg ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
           <div className="px-3 py-2 border-b border-slate-100 mb-1">
             <p className="truncate text-sm font-bold text-slate-800">
-              {userProfile?.fullName || "Workspace user"}
+              {fullName || "Workspace user"}
             </p>
             <p className="text-xs font-semibold text-slate-500 truncate">
               {userProfile?.email || email || "email@example.com"}

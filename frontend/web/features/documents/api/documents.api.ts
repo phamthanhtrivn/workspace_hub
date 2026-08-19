@@ -8,6 +8,7 @@ import {
   DocumentVersion,
   DocumentShare,
   SharingSettings,
+  ChatMetadataResponse,
 } from "../types/documents.types";
 import { UploadState } from "../types/documents.enums";
 import axios from "axios";
@@ -498,6 +499,37 @@ export const documentsApi = {
     const response = await api.get(`/api/documents/public/${id}/children`, {
       params: { folderId },
     });
+    return response.data.data;
+  },
+
+  getChatMetadata: async (id: string): Promise<ChatMetadataResponse> => {
+    const response = await api.get(`/api/documents/${id}/chat-metadata`);
+    return response.data.data;
+  },
+
+  checkPermissions: async (id: string, emails: string[]): Promise<string[]> => {
+    const response = await api.post(`/api/documents/${id}/sharing/check-permissions`, {
+      emails,
+    });
+    return response.data.data;
+  },
+
+  addSharesBatch: async (
+    id: string,
+    emails: string[],
+    permission: string,
+  ): Promise<DocumentShare[]> => {
+    const response = await api.post(`/api/documents/${id}/sharing/shares/batch`, {
+      emails,
+      permission,
+    });
+    return response.data.data;
+  },
+
+  getBreadcrumbs: async (
+    id: string,
+  ): Promise<{ id: string; name: string }[]> => {
+    const response = await api.get(`/api/documents/${id}/breadcrumbs`);
     return response.data.data;
   },
 };

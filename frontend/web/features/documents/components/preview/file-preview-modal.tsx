@@ -61,7 +61,7 @@ function FilePreviewModal({
           if (text.length > MAX_TEXT_PREVIEW_SIZE) {
             setTextContent(
               text.slice(0, MAX_TEXT_PREVIEW_SIZE) +
-                "\n\n... [Nội dung quá dài, vui lòng tải xuống để xem toàn bộ] ...",
+                "\n\n... [Content too long, please download to view full file] ...",
             );
           } else {
             setTextContent(text);
@@ -69,7 +69,7 @@ function FilePreviewModal({
         })
         .catch((err) => {
           console.error(err);
-          setTextContent("Không thể tải nội dung tệp văn bản này.");
+          setTextContent("Could not load text file content.");
         })
         .finally(() => {
           setLoadingText(false);
@@ -123,7 +123,7 @@ function FilePreviewModal({
                 {item.name}
               </h3>
               <p className="text-[10px] font-bold text-slate-400 mt-0.5 leading-none">
-                Dung lượng: {formatBytes(item.sizeBytes)}
+                Size: {formatBytes(item.sizeBytes)}
               </p>
             </div>
           </div>
@@ -131,7 +131,7 @@ function FilePreviewModal({
             {previewUrl && (
               <button
                 onClick={handleDownload}
-                title="Tải xuống"
+                title="Download"
                 className="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-all cursor-pointer border border-slate-100"
               >
                 <Download size={16} />
@@ -139,7 +139,7 @@ function FilePreviewModal({
             )}
             <button
               onClick={onClose}
-              title="Đóng"
+              title="Close"
               className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all cursor-pointer border border-slate-100"
             >
               <X size={16} />

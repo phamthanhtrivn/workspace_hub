@@ -4,6 +4,8 @@ import {
   AvatarPresignedUrlResponse,
   BulkUserProfileResponse,
   RevokeUserSessionRequest,
+  SetFirstPasswordRequest,
+  UpdatePasswordRequest,
   UpdatePrivacySettingsRequest,
   UpdateUserProfileRequest,
   UserProfile,
@@ -68,5 +70,24 @@ export const getBulkProfilesByEmails = async (
   const response = await api.get("/api/users/profiles/bulk", {
     params: { emails: emails.join(",") },
   });
+  return response.data;
+};
+
+export const sendPasswordOtp = async (): Promise<ApiResponse<null>> => {
+  const response = await api.post("/api/users/me/profile/password/send-otp");
+  return response.data;
+};
+
+export const setFirstPassword = async (
+  data: SetFirstPasswordRequest,
+): Promise<ApiResponse<null>> => {
+  const response = await api.patch("/api/users/me/profile/password/set", data);
+  return response.data;
+};
+
+export const updatePassword = async (
+  data: UpdatePasswordRequest,
+): Promise<ApiResponse<null>> => {
+  const response = await api.patch("/api/users/me/profile/password", data);
   return response.data;
 };

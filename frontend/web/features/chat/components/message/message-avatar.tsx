@@ -21,7 +21,8 @@ export default function MessageAvatar({
   spaceCreatorId,
   onClick,
 }: MessageAvatarProps) {
-  const isCreator = senderProfile?.userId && senderProfile.userId === spaceCreatorId;
+  const isCreator =
+    senderProfile?.userId && senderProfile.userId === spaceCreatorId;
 
   return (
     <button

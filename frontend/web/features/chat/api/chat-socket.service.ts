@@ -19,13 +19,13 @@ class SocketService {
 
       this.socket = io(baseUrl, {
         path: "/communication.io",
+        transports: ["websocket"],
         auth: {
           token,
         },
       }) as ChatSocket;
 
       this.socket.on("connect", () => {});
-
     }
 
     if (!this.socket.connected) {

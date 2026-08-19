@@ -62,7 +62,7 @@ function DetailsPanel({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-100 p-5">
         <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">
-          Chi tiết tài nguyên
+          Resource Details
         </h3>
         <button
           onClick={onClose}
@@ -97,30 +97,30 @@ function DetailsPanel({
             <div className="flex items-center gap-2 text-[var(--color-primary)] mb-1">
               <Sparkles size={16} className="animate-pulse" />
               <span className="text-xs font-black uppercase tracking-wider">
-                Trợ lý AI tích hợp
+                Integrated AI Assistant
               </span>
             </div>
 
             <button
               onClick={() =>
-                toast.info("AI đang đọc tài liệu để tóm tắt cho bạn...")
+                toast.info("AI is reading the document to summarize it for you...")
               }
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-white hover:bg-slate-50 text-[var(--color-primary)] border border-blue-200/50 px-3 py-2 text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
               <Bot size={14} />
-              <span>Tóm tắt tài liệu với AI</span>
+              <span>Summarize Document with AI</span>
             </button>
 
             <button
               onClick={() =>
                 toast.info(
-                  "Đang khởi tạo chatbot hỏi đáp trên file tài liệu...",
+                  "Initializing chatbot Q&A for this document...",
                 )
               }
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-white hover:bg-slate-50 text-[var(--color-primary)] border border-blue-200/50 px-3 py-2 text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
               <FileText size={14} />
-              <span>Hỏi đáp trên tài liệu</span>
+              <span>Q&A on Document</span>
             </button>
           </div>
         )}
@@ -128,14 +128,14 @@ function DetailsPanel({
         {/* Metadata Properties */}
         <div className="flex flex-col gap-4">
           <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
-            Thông tin thuộc tính
+            Properties
           </h4>
 
           <div className="flex items-center gap-3">
             <User size={16} className="text-slate-400" />
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium">
-                Chủ sở hữu
+                Owner
               </span>
               <span className="text-sm font-semibold text-slate-700 truncate max-w-[200px]">
                 {item.ownerEmail}
@@ -147,7 +147,7 @@ function DetailsPanel({
             <Calendar size={16} className="text-slate-400" />
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium">
-                Ngày tải lên
+                Uploaded Date
               </span>
               <span className="text-sm font-semibold text-slate-700">
                 {formatDateLong(item.createdAt)}
@@ -159,7 +159,7 @@ function DetailsPanel({
             <Layers size={16} className="text-slate-400" />
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium">
-                Dung lượng
+                Size
               </span>
               <span className="text-sm font-semibold text-slate-700">
                 {isFolder ? "--" : formatBytes(item.sizeBytes)}
@@ -172,7 +172,7 @@ function DetailsPanel({
               <FileText size={16} className="text-slate-400" />
               <div className="flex flex-col">
                 <span className="text-xs text-slate-400 font-medium">
-                  Định dạng file
+                  File Format
                 </span>
                 <span className="text-sm font-semibold text-slate-700">
                   {getFileTypeDescription(item.mimeType, item.name)}

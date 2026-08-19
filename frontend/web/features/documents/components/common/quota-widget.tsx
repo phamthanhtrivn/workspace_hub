@@ -33,7 +33,7 @@ function QuotaWidget() {
       <div className="flex items-center gap-2 text-slate-600 mb-2">
         <HardDrive size={18} className="text-slate-400" />
         <span className="text-xs font-semibold uppercase tracking-wider">
-          Bộ nhớ đã dùng
+          Storage used
         </span>
       </div>
 
@@ -53,7 +53,7 @@ function QuotaWidget() {
 
       <div className="flex justify-between text-xs font-semibold text-slate-500">
         <span>
-          {usedMB} MB của {maxGB} GB
+          {usedMB} MB of {maxGB} GB
         </span>
         <span>{percentage.toFixed(1)}%</span>
       </div>

@@ -7,6 +7,9 @@ import {
   getUserSessions,
   getUserSettings,
   revokeUserSession,
+  sendPasswordOtp,
+  setFirstPassword,
+  updatePassword,
   updatePrivacySettings,
   updateUserProfile,
 } from "../api/user-setting.api";
@@ -158,6 +161,7 @@ export const useUploadAvatarMutation = () => {
           dob: currentProfile?.dob ?? "",
           bio: currentProfile?.bio ?? "",
           avatarUrl: fileUrl,
+          hasPassword: currentProfile?.hasPassword ?? false,
         },
       };
     },
@@ -178,3 +182,27 @@ export const useUploadAvatarMutation = () => {
     },
   });
 };
+
+export const useSendPasswordOtpMutation = () =>
+  useMutation({
+    mutationKey: [UserSettingMutationKey.SEND_PASSWORD_OTP],
+    mutationFn: sendPasswordOtp,
+  });
+
+export const useSetFirstPasswordMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationKey: [UserSettingMutationKey.SET_FIRST_PASSWORD],
+    mutationFn: setFirstPassword,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: userSettingKeys.profile });
+    },
+  });
+};
+
+export const useUpdatePasswordMutation = () =>
+  useMutation({
+    mutationKey: [UserSettingMutationKey.UPDATE_PASSWORD],
+    mutationFn: updatePassword,
+  });

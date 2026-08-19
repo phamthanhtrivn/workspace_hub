@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Settings, Shield, User, X } from "lucide-react";
+import { KeyRound, Settings, Shield, User, X } from "lucide-react";
 import ProfileTab from "./profile-tab";
 import SettingsTab from "./settings-tab";
 import SessionsTab from "./sessions-tab";
+import PasswordTab from "./password-tab";
 import { UserSettingTab } from "../types/settings.enums";
+import { useUserProfileQuery } from "../hooks/useUserSettingQueries";
 import { cn } from "@/lib/utils";
 
 type UserSettingsModalProps = {
@@ -22,6 +24,8 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
   const [activeTab, setActiveTab] = useState<UserSettingTab>(
     initialTab ?? UserSettingTab.PROFILE,
   );
+  const { data: profileResponse } = useUserProfileQuery();
+  const hasPassword = profileResponse?.data?.hasPassword ?? true;
 
   useEffect(() => {
     if (isOpen) {
@@ -86,6 +90,24 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               <Shield className="h-5 w-5 md:h-4 md:w-4" />
               <span className="text-xs font-bold md:text-sm">Security</span>
             </button>
+            <button
+              onClick={() => setActiveTab(UserSettingTab.PASSWORD)}
+              className={cn(
+                `relative flex min-w-[110px] shrink-0 flex-col items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 transition-colors cursor-pointer md:min-w-0 md:flex-row md:justify-start md:gap-3 md:px-4 md:py-3 md:text-sm md:font-bold ${
+                  activeTab === UserSettingTab.PASSWORD
+                    ? "text-white bg-[var(--color-primary-dark)] shadow-sm"
+                    : "text-slate-600 hover:bg-slate-300/70"
+                }`,
+              )}
+            >
+              <span className="relative">
+                <KeyRound className="h-5 w-5 md:h-4 md:w-4" />
+                {!hasPassword && (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white" />
+                )}
+              </span>
+              <span className="text-xs font-bold md:text-sm">Password</span>
+            </button>
           </nav>
         </div>
 
@@ -102,6 +124,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
             {activeTab === UserSettingTab.PROFILE && <ProfileTab />}
             {activeTab === UserSettingTab.GENERAL && <SettingsTab />}
             {activeTab === UserSettingTab.SESSION && <SessionsTab />}
+            {activeTab === UserSettingTab.PASSWORD && <PasswordTab />}
           </div>
         </div>
       </div>

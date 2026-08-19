@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
-import EditPollModal from "../modals/edit-poll-modal";
-import PollVotersModal from "../modals/poll-voters-modal";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { PollResponse } from "../../types/chat.types";
+import EditPollModal from "../modals/message/edit-poll-modal";
+import PollVotersModal from "../modals/message/poll-voters-modal";
 
 interface PollMessageProps {
   poll: PollResponse;
@@ -47,9 +47,7 @@ const PollMessage = React.memo(function PollMessage({
   const [isVotersModalOpen, setIsVotersModalOpen] = useState(false);
 
   if (!poll || !poll.options) {
-    return (
-      <div className="text-gray-500 italic p-4">Poll unavailable</div>
-    );
+    return <div className="text-gray-500 italic p-4">Poll unavailable</div>;
   }
 
   const isMe = poll.createdBy === currentUser?.userId;
@@ -317,10 +315,14 @@ const PollMessage = React.memo(function PollMessage({
           </div>
           <div className="flex gap-2">
             {poll.multipleChoice && (
-              <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">Multiple choices</span>
+              <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                Multiple choices
+              </span>
             )}
             {poll.anonymous && (
-              <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">Anonymous</span>
+              <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">
+                Anonymous
+              </span>
             )}
           </div>
         </div>

@@ -24,7 +24,9 @@ import { normalizeSpaceSetting } from "./space-setting-utils";
 export function getMessageChatId(
   payload: Partial<ChatContextPayload> | null | undefined,
 ): string | null {
-  return payload?.chatId ?? payload?.channelId ?? payload?.conversationId ?? null;
+  return (
+    payload?.chatId ?? payload?.channelId ?? payload?.conversationId ?? null
+  );
 }
 
 export function updateChannelsCache(
@@ -33,7 +35,9 @@ export function updateChannelsCache(
   updater: (channel: SpaceChannel) => SpaceChannel,
   spaceId?: string | null,
 ) {
-  const queryKey = spaceId ? chatKeys.channels(spaceId) : chatKeys.allChannels();
+  const queryKey = spaceId
+    ? chatKeys.channels(spaceId)
+    : chatKeys.allChannels();
   queryClient.setQueriesData<SpaceChannelsQueryData>(
     { queryKey },
     (oldData: SpaceChannelsQueryData | undefined) => {
@@ -57,10 +61,14 @@ export function upsertChannelCache(
     chatKeys.channels(channel.spaceId),
     (oldData: SpaceChannelsQueryData | undefined) => {
       const channels = oldData?.channels || [];
-      const exists = channels.some((item: SpaceChannel) => item.id === channel.id);
+      const exists = channels.some(
+        (item: SpaceChannel) => item.id === channel.id,
+      );
       return {
         channels: exists
-          ? channels.map((item: SpaceChannel) => (item.id === channel.id ? channel : item))
+          ? channels.map((item: SpaceChannel) =>
+              item.id === channel.id ? channel : item,
+            )
           : [...channels, channel],
       };
     },
@@ -139,9 +147,7 @@ export function patchSpaceSettingInCaches(
     { queryKey: chatKeys.allSpaces() },
     (oldSpaces: SpaceResponse[] | undefined) =>
       oldSpaces?.map((space) =>
-        space.id === spaceId
-          ? { ...space, setting: normalizedSetting }
-          : space,
+        space.id === spaceId ? { ...space, setting: normalizedSetting } : space,
       ) ?? oldSpaces,
   );
   queryClient.setQueryData<SpaceResponse>(
@@ -161,14 +167,19 @@ export function patchSpaceMemberRoleInCaches(
     { queryKey: chatKeys.spaceMembers(spaceId) },
     (oldData: SpaceMembersListResponse | undefined) => {
       if (!oldData) return oldData;
-      const allMembers = [...(oldData.admins || []), ...(oldData.members || [])];
+      const allMembers = [
+        ...(oldData.admins || []),
+        ...(oldData.members || []),
+      ];
       const nextMembers = allMembers.map((member) =>
         member.userId === memberId ? { ...member, role } : member,
       );
       return {
         ...oldData,
         admins: nextMembers.filter((member) => member.role === SpaceRole.ADMIN),
-        members: nextMembers.filter((member) => member.role !== SpaceRole.ADMIN),
+        members: nextMembers.filter(
+          (member) => member.role !== SpaceRole.ADMIN,
+        ),
       };
     },
   );
@@ -188,10 +199,11 @@ export function updateDirectMessagesCache(
     },
     (oldData: DirectMessagesQueryData | undefined) => {
       if (!oldData?.directMessages) return oldData;
-      const directMessages = oldData.directMessages.map((directMessage: DirectMessage) =>
-        !directMessageId || directMessage.id === directMessageId
-          ? updater(directMessage)
-          : directMessage,
+      const directMessages = oldData.directMessages.map(
+        (directMessage: DirectMessage) =>
+          !directMessageId || directMessage.id === directMessageId
+            ? updater(directMessage)
+            : directMessage,
       );
       return {
         ...oldData,
@@ -210,7 +222,9 @@ export function upsertDirectMessageCache(
     chatKeys.directMessages(currentUserId),
     (oldData: DirectMessagesQueryData | undefined) => {
       const directMessages = oldData?.directMessages || [];
-      const exists = directMessages.some((item: DirectMessage) => item.id === directMessage.id);
+      const exists = directMessages.some(
+        (item: DirectMessage) => item.id === directMessage.id,
+      );
       const nextDirectMessages = exists
         ? directMessages.map((item: DirectMessage) =>
             item.id === directMessage.id ? directMessage : item,

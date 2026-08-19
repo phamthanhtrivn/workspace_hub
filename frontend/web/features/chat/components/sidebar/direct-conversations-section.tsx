@@ -57,26 +57,29 @@ export default function DirectConversationsSection({
     memberPatch: { pinned?: boolean; muted?: boolean },
   ) => {
     const queryKey = chatKeys.directMessages(currentUserId);
-    queryClient.setQueriesData<DirectMessagesQueryData>({ queryKey }, (oldData) => {
-      if (!oldData) return oldData;
+    queryClient.setQueriesData<DirectMessagesQueryData>(
+      { queryKey },
+      (oldData) => {
+        if (!oldData) return oldData;
 
-      const nextDirectMessages = sortDirectConversations(
-        oldData.directMessages.map((directMessage) => {
-          if (directMessage.id !== directMessageId) return directMessage;
-          return {
-            ...directMessage,
-            members: directMessage.members.map((member) =>
-              member.userId === currentUserId
-                ? { ...member, ...memberPatch }
-                : member,
-            ),
-          };
-        }),
-        currentUserId,
-      );
+        const nextDirectMessages = sortDirectConversations(
+          oldData.directMessages.map((directMessage) => {
+            if (directMessage.id !== directMessageId) return directMessage;
+            return {
+              ...directMessage,
+              members: directMessage.members.map((member) =>
+                member.userId === currentUserId
+                  ? { ...member, ...memberPatch }
+                  : member,
+              ),
+            };
+          }),
+          currentUserId,
+        );
 
-      return { ...oldData, directMessages: nextDirectMessages };
-    });
+        return { ...oldData, directMessages: nextDirectMessages };
+      },
+    );
   };
 
   const pinMutation = useMutation({

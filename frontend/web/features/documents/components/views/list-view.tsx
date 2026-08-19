@@ -24,6 +24,7 @@ interface ListViewProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onDownloadFolder?: (item: DocumentItem) => void;
+  onShareToChat?: (item: DocumentItem) => void;
 }
 
 function ListView({
@@ -45,15 +46,16 @@ function ListView({
   onManageVersions,
   onShare,
   onDownloadFolder,
+  onShareToChat,
 }: ListViewProps) {
   return (
     <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
       <table className="w-full border-collapse text-left text-sm text-slate-700">
         <thead className="bg-slate-50 border-b border-slate-100 text-slate-400 font-black text-xs uppercase tracking-wider">
           <tr>
-            <th className="p-4 rounded-tl-2xl">Tên</th>
-            <th className="p-4 hidden sm:table-cell">Ngày sửa</th>
-            <th className="p-4 hidden md:table-cell">Dung lượng</th>
+            <th className="p-4 rounded-tl-2xl">Name</th>
+            <th className="p-4 hidden sm:table-cell">Modified</th>
+            <th className="p-4 hidden md:table-cell">Size</th>
             <th className="p-4 w-10 rounded-tr-2xl"></th>
           </tr>
         </thead>
@@ -79,6 +81,7 @@ function ListView({
               onManageVersions={onManageVersions}
               onShare={onShare}
               onDownloadFolder={onDownloadFolder}
+              onShareToChat={onShareToChat}
             />
           ))}
         </tbody>
