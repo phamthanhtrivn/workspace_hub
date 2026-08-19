@@ -281,22 +281,26 @@ public class AuthService {
                 : null;
 
         List<RefreshToken> tokens = refreshTokenRepository.findByUserIdAndRevokedFalseOrderByCreatedAtDesc(userId);
-        return tokens.stream().map(token -> {
-            boolean isCurrent = currentTokenHash != null && currentTokenHash.equals(token.getTokenHash());
-            return UserSessionResponse.builder()
-                    .id(token.getId())
-                    .deviceId(token.getDeviceId())
-                    .deviceName(token.getDeviceName())
-                    .browser(token.getBrowser())
-                    .operatingSystem(token.getOperatingSystem())
-                    .platform(token.getPlatform())
-                    .location(token.getLocation())
-                    .ipAddress(token.getIpAddress())
-                    .expiresAt(token.getExpiresAt())
-                    .createdAt(token.getCreatedAt())
-                    .isCurrentSession(isCurrent)
-                    .build();
-        }).collect(Collectors.toList());
+        LocalDateTime now = LocalDateTime.now();
+
+        return tokens.stream()
+                .filter(token -> token.getExpiresAt().isAfter(now))
+                .map(token -> {
+                    boolean isCurrent = currentTokenHash != null && currentTokenHash.equals(token.getTokenHash());
+                    return UserSessionResponse.builder()
+                            .id(token.getId())
+                            .deviceId(token.getDeviceId())
+                            .deviceName(token.getDeviceName())
+                            .browser(token.getBrowser())
+                            .operatingSystem(token.getOperatingSystem())
+                            .platform(token.getPlatform())
+                            .location(token.getLocation())
+                            .ipAddress(token.getIpAddress())
+                            .expiresAt(token.getExpiresAt())
+                            .createdAt(token.getCreatedAt())
+                            .isCurrentSession(isCurrent)
+                            .build();
+                }).collect(Collectors.toList());
     }
 
     @Transactional

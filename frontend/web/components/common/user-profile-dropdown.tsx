@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { clearCredentials } from "@/store/auth/auth-slice";
 import { useLogoutMutation } from "@/features/auth/hooks/useAuthMutations";
+import { useQueryClient } from "@tanstack/react-query";
 import { AuthRouteTarget } from "@/features/auth/types/auth.constants";
 import { getAuthErrorMessage } from "@/features/auth/utils/auth-error";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
@@ -24,6 +25,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const router = useRouter();
   const dispatch = useAppDispatch();
   const logoutMutation = useLogoutMutation();
+  const queryClient = useQueryClient();
   const { email, fullName: authFullName, avatarUrl: authAvatarUrl } = useAppSelector((state) => state.auth);
   const { data: profileResponse } = useUserProfileQuery();
 
@@ -37,6 +39,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const finishLogout = () => {
     notificationSocketService.disconnect();
     dispatch(clearCredentials());
+    queryClient.clear();
     router.push(AuthRouteTarget.LOGIN);
   };
 
