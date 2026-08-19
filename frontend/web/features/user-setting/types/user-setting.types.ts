@@ -25,6 +25,7 @@ export type UserProfile = {
   phoneNumber: string;
   dob: string;
   bio: string;
+  hasPassword: boolean;
 };
 
 export type UserSettings = {
@@ -83,4 +84,16 @@ export type BulkUserProfileResponse = Pick<
 export interface UploadAvatarRequest {
   file: File;
   currentProfile?: UserProfile | null;
+}
+
+export interface UpdatePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+export interface SetFirstPasswordRequest {
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
 }
