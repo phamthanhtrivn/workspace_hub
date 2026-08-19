@@ -2,8 +2,8 @@
 
 import { ChatContextType } from "../../types/chat.types";
 import { useActiveChat } from "../../hooks/useChatQueries";
-import DirectMessageRightPanel from "./direct-message-right-panel";
-import ChannelRightPanel from "./channel-right-panel";
+import DirectMessageRightPanel from "./direct-message/direct-message-right-panel";
+import ChannelRightPanel from "./channel/channel-right-panel";
 
 interface ChatRightPanelProps {
   onClose: () => void;

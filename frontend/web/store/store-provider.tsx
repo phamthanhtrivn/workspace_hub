@@ -4,7 +4,7 @@ import { Provider } from "react-redux";
 import { store, useAppDispatch } from "./store";
 import { setCredentials, clearCredentials } from "./auth/auth-slice";
 import "@/lib/interceptors";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { refreshApi } from "@/features/auth/api/auth.api";
 import axios from "axios";
@@ -28,9 +28,28 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const [isInitializing, setIsInitializing] = useState(true);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
     const initializeAuth = async () => {
+      const currentToken = store.getState().auth.accessToken;
+
+      // 1. If we have already checked authentication on initial mount, skip refreshApi
+      if (hasInitialized.current) {
+        if (currentToken) {
+          if (PUBLIC_PATHS.includes(pathname)) {
+            router.replace("/dashboard");
+          }
+        } else {
+          if (!isPublicPath(pathname)) {
+            router.replace("/login");
+          }
+        }
+        setIsInitializing(false);
+        return;
+      }
+
+      // 2. Initial mount check (restore session if refresh cookie exists)
       try {
         const response = await refreshApi();
         const data = response.data;
@@ -70,6 +89,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
           router.replace(`/login`);
         }
       } finally {
+        hasInitialized.current = true;
         setIsInitializing(false);
       }
     };

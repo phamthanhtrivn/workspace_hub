@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { noteApi } from '../api/note.api';
-import { ChatEvent } from '../api/chat.events';
-import { socketService } from '../api/chat-socket.service';
-import { chatKeys, CHAT_DEFAULT_STALE_TIME_MS } from '../types/chat.constant';
-import { ChatMessageResponse, NoteResponse } from '../types/chat.types';
+﻿import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { noteApi } from "../api/note.api";
+import { ChatEvent } from "../api/chat.events";
+import { socketService } from "../api/chat-socket.service";
+import { chatKeys, CHAT_DEFAULT_STALE_TIME_MS } from "../types/chat.constant";
+import { ChatMessageResponse, NoteResponse } from "../types/chat.types";
 
 interface NoteUpdatePayload {
   channelId?: string;
@@ -14,10 +14,16 @@ interface NoteUpdatePayload {
 }
 
 function getUpdatedNote(payload: NoteUpdatePayload | ChatMessageResponse) {
-  return (payload as ChatMessageResponse).note ?? (payload as NoteUpdatePayload).note ?? null;
+  return (
+    (payload as ChatMessageResponse).note ??
+    (payload as NoteUpdatePayload).note ??
+    null
+  );
 }
 
-function getPayloadConversationId(payload: NoteUpdatePayload | ChatMessageResponse) {
+function getPayloadConversationId(
+  payload: NoteUpdatePayload | ChatMessageResponse,
+) {
   return payload.channelId ?? payload.conversationId ?? null;
 }
 
@@ -40,7 +46,9 @@ export function useNotes(conversationId: string | undefined, q?: string) {
     const socket = socketService.getSocket();
     if (!socket || !conversationId) return;
 
-    const handleNoteUpdated = (data: NoteUpdatePayload | ChatMessageResponse) => {
+    const handleNoteUpdated = (
+      data: NoteUpdatePayload | ChatMessageResponse,
+    ) => {
       const convId = getPayloadConversationId(data);
 
       if (convId === conversationId) {

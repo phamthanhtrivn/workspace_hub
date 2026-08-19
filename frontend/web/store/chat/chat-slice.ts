@@ -60,7 +60,7 @@ const chatSlice = createSlice({
     ) => {
       state.activeChatId = action.payload.chatId;
       state.activeChatType = action.payload.chatId
-        ? action.payload.chatType ?? state.activeChatType
+        ? (action.payload.chatType ?? state.activeChatType)
         : null;
       state.highlightMessageId = null;
       state.activeThreadRootMessageId = null;
@@ -130,7 +130,10 @@ const chatSlice = createSlice({
       const payload = action.payload;
       const messageId = payload?.messageId ?? payload?.id ?? null;
       const chatId =
-        payload?.chatId ?? payload?.channelId ?? payload?.conversationId ?? null;
+        payload?.chatId ??
+        payload?.channelId ??
+        payload?.conversationId ??
+        null;
       const chatType =
         payload?.chatType ??
         (payload?.conversationId
@@ -142,9 +145,11 @@ const chatSlice = createSlice({
       state.activeThreadRootMessageId = messageId;
       state.activeThreadRootMessage =
         payload && "senderId" in payload ? payload : null;
-      state.activeThreadChatId = messageId ? chatId ?? state.activeChatId : null;
+      state.activeThreadChatId = messageId
+        ? (chatId ?? state.activeChatId)
+        : null;
       state.activeThreadChatType = messageId
-        ? chatType ?? state.activeChatType
+        ? (chatType ?? state.activeChatType)
         : null;
     },
     setActiveSpaceId: (state, action: PayloadAction<string | null>) => {
@@ -167,7 +172,10 @@ const chatSlice = createSlice({
     setWatermarks: (_state, _action: PayloadAction<unknown>) => {},
     setDirectConversations: (_state, _action: PayloadAction<unknown>) => {},
     upsertDirectConversation: (_state, _action: PayloadAction<unknown>) => {},
-    setDirectConversationsLoading: (_state, _action: PayloadAction<unknown>) => {},
+    setDirectConversationsLoading: (
+      _state,
+      _action: PayloadAction<unknown>,
+    ) => {},
     setSpaceChannels: (_state, _action: PayloadAction<unknown>) => {},
     setSpaceChannelsLoading: (_state, _action: PayloadAction<unknown>) => {},
     upsertSpaceChannel: (_state, _action: PayloadAction<unknown>) => {},

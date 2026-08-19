@@ -1,8 +1,62 @@
 import { ChatContextType } from "./chat.types";
+import { MessageType } from "./chat.enums";
+
+// ─── Pagination ────────────────────────────────────────────────────────────
 
 export const MAX_UNREAD_COUNT = 99;
 export const CHAT_DEFAULT_STALE_TIME_MS = 1000 * 60 * 5;
 export const CHAT_DEFAULT_MESSAGE_PAGE_SIZE = 20;
+
+// ─── Search / Debounce ─────────────────────────────────────────────────────
+
+export const CHANNEL_MEMBER_SEARCH_DEBOUNCE_MS = 300;
+export const CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS = 300;
+export const SPACE_MEMBER_SEARCH_DEBOUNCE_MS = 300;
+export const CHANNEL_MEMBER_SEARCH_PAGE_SIZE = 500;
+export const SPACE_MEMBER_SEARCH_PAGE_SIZE = 500;
+
+// ─── Message Display Timing ────────────────────────────────────────────────
+
+/** Khoảng cách thời gian tối đa (ms) để gom nhóm tin nhắn liên tiếp (5 phút). */
+export const GROUP_MESSAGES_THRESHOLD_MS = 5 * 60 * 1000;
+
+/** Khoảng cách thời gian tối thiểu (ms) để hiển thị time divider (6 giờ). */
+export const TIME_BLOCK_THRESHOLD_MS = 6 * 60 * 60 * 1000;
+
+/** Thời gian (ms) highlight một tin nhắn khi jump-to-message. */
+export const JUMP_TO_MESSAGE_HIGHLIGHT_DURATION_MS = 1500;
+
+/** Thời gian delay (ms) trước khi scroll sau khi tải thêm trang để jump-to. */
+export const JUMP_TO_MESSAGE_SCROLL_DELAY_MS = 800;
+
+/** Delay (ms) scroll xuống cuối sau khi gửi tin nhắn mới. */
+export const SCROLL_TO_BOTTOM_DELAY_MS = 100;
+
+// ─── Typing Indicator ──────────────────────────────────────────────────────
+
+/** Thời gian (ms) tự động ẩn typing indicator nếu không nhận được sự kiện stop. */
+export const TYPING_TIMEOUT_MS = 5000;
+
+// ─── Quick Reactions ───────────────────────────────────────────────────────
+
+/** Danh sách emoji quick-react hiển thị nhanh trên tin nhắn. */
+export const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡"] as const;
+
+// ─── Avatar Display ────────────────────────────────────────────────────────
+
+/**
+ * Danh sách các MessageType không hiển thị avatar người gửi.
+ * Dùng string array để tương thích ngược với các chỗ dùng msg.type (string).
+ */
+export const NO_AVATAR_TYPES: string[] = [
+  MessageType.POLL,
+  MessageType.NOTE,
+  MessageType.TASK,
+  MessageType.SYSTEM,
+  MessageType.EVENT,
+];
+
+// ─── Query Keys ────────────────────────────────────────────────────────────
 
 export enum ChatQueryRoot {
   SPACES = "spaces",
@@ -96,6 +150,8 @@ export const chatKeys = {
   polls: (chatId?: string | null) => [ChatQueryRoot.POLLS, chatId] as const,
 };
 
+// ─── Sidebar Labels ────────────────────────────────────────────────────────
+
 export enum ChatSidebarSection {
   THREADS = "Threads",
   DIRECT_MESSAGES = "Direct Messages (DMs)",
@@ -108,9 +164,3 @@ export const CHANNEL_MEMBERS_MODAL_LABELS = {
   empty: "No members found",
   loadError: "Failed to load channel members",
 } as const;
-
-export const CHANNEL_MEMBER_SEARCH_DEBOUNCE_MS = 300;
-export const CHAT_SIDEBAR_SEARCH_DEBOUNCE_MS = 300;
-export const CHANNEL_MEMBER_SEARCH_PAGE_SIZE = 500;
-export const SPACE_MEMBER_SEARCH_DEBOUNCE_MS = 300;
-export const SPACE_MEMBER_SEARCH_PAGE_SIZE = 500;

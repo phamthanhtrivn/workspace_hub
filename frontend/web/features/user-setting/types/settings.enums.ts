@@ -2,6 +2,7 @@ export enum UserSettingTab {
   PROFILE = "profile",
   GENERAL = "general",
   SESSION = "session",
+  PASSWORD = "password",
 }
 
 export const SETTING_TABS = UserSettingTab;
@@ -18,6 +19,9 @@ export enum UserSettingMutationKey {
   UPLOAD_AVATAR = "user-setting-upload-avatar",
   UPDATE_PRIVACY = "user-setting-update-privacy",
   REVOKE_SESSION = "user-setting-revoke-session",
+  UPDATE_PASSWORD = "user-setting-update-password",
+  SET_FIRST_PASSWORD = "user-setting-set-first-password",
+  SEND_PASSWORD_OTP = "user-setting-send-password-otp",
 }
 
 export enum UserTheme {
@@ -41,3 +45,5 @@ export enum UserDeviceKeyword {
 }
 
 export const USER_SETTING_STALE_TIME_MS = 1000 * 60 * 5;
+
+export const OTP_RESEND_COOLDOWN_SEC = 60;

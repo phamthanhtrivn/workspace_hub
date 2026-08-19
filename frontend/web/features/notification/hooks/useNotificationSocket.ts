@@ -4,7 +4,10 @@ import { RootState, useAppDispatch, useAppSelector } from "@/store/store";
 import { notificationSocketService } from "../api/notification-socket.service";
 import { addNotification } from "@/store/notification/notification.slice";
 import { chatKeys } from "@/features/chat/types/chat.constant";
-import { NotificationType, Notification as AppNotification } from "../types/notification.types";
+import {
+  NotificationType,
+  Notification as AppNotification,
+} from "../types/notification.types";
 
 /**
  * Global hook that owns the notification WebSocket connection lifecycle.

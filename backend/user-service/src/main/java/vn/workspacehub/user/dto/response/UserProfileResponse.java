@@ -20,4 +20,5 @@ public class UserProfileResponse {
     private String phoneNumber;
     private LocalDate dob;
     private String bio;
+    private boolean hasPassword;
 }

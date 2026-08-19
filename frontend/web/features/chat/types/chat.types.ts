@@ -1,20 +1,17 @@
-export const QUICK_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
-export const NO_AVATAR_TYPES = ["POLL", "NOTE", "TASK", "SYSTEM", "EVENT"];
+// Re-export enums từ chat.enums.ts để backward compatible với các import cũ
+export {
+  ChatContextType,
+  SpaceRole,
+  MessageType,
+  ReactionAction,
+  SocketAckStatus,
+  InvitationStatus,
+} from "./chat.enums";
 
-export enum ChatContextType {
-  DIRECT_MESSAGE = "DIRECT_MESSAGE",
-  CHANNEL = "CHANNEL",
-}
+// Re-export constants từ chat.constant.ts để backward compatible
+export { QUICK_EMOJIS, NO_AVATAR_TYPES } from "./chat.constant";
 
-export enum ConversationRoles {
-  ADMIN = "ADMIN",
-  MEMBER = "MEMBER",
-}
-
-export enum SpaceRole {
-  ADMIN = "ADMIN",
-  MEMBER = "MEMBER",
-}
+// ─── User ──────────────────────────────────────────────────────────────────
 
 export interface UserSearchResponse {
   id: string;
@@ -41,9 +38,19 @@ export interface UserProfileSnapshotResponse {
   avatarUrl: string | null;
 }
 
-export type ConversationRole = ConversationRoles.ADMIN | ConversationRoles.MEMBER;
+// ─── Role types ────────────────────────────────────────────────────────────
+
+import { SpaceRole } from "./chat.enums";
+
+/** Role của member trong một channel hoặc direct conversation. */
+export type ConversationRole = SpaceRole.ADMIN | SpaceRole.MEMBER;
 export type SpaceMemberRole = SpaceRole.ADMIN | SpaceRole.MEMBER;
+
+import { ChatContextType } from "./chat.enums";
+
 export type ChatUiType = ChatContextType.DIRECT_MESSAGE | ChatContextType.CHANNEL;
+
+// ─── Conversation / Channel Settings ──────────────────────────────────────
 
 export interface ConversationSetting {
   id: string;
@@ -72,6 +79,8 @@ export interface SpaceSettingResponse {
   allowMemberDeleteOwnChannel: boolean;
 }
 
+// ─── Channel Members ───────────────────────────────────────────────────────
+
 export interface ChannelMemberListItem extends ConversationMember {
   profile: UserProfileSnapshotResponse | null;
 }
@@ -82,6 +91,8 @@ export interface ChannelMembersListResponse {
   members: ChannelMemberListItem[];
   nextCursor?: string | null;
 }
+
+// ─── Space Members ─────────────────────────────────────────────────────────
 
 export interface SpaceMemberListItem {
   id: string;
@@ -98,6 +109,8 @@ export interface SpaceMembersListResponse {
   members: SpaceMemberListItem[];
   nextCursor?: string | null;
 }
+
+// ─── Conversation / Channel entities ──────────────────────────────────────
 
 interface ChatListEntityBase {
   id: string;
@@ -129,6 +142,8 @@ export type DirectMessage = DirectConversationResponse;
 export type SpaceChannel = ChannelResponse;
 export type ConversationResponse = ChatEntity;
 
+// ─── Space ─────────────────────────────────────────────────────────────────
+
 export interface SpaceResponse {
   id: string;
   name: string;
@@ -143,6 +158,8 @@ export interface SpaceResponse {
   setting?: SpaceSettingResponse | null;
   creatorProfile?: UserProfileSnapshotResponse | null;
 }
+
+// ─── Media ─────────────────────────────────────────────────────────────────
 
 export interface ChatMediaResponse {
   id: string;
@@ -161,12 +178,16 @@ export interface ChatMediaResponse {
   };
 }
 
+// ─── Threads ───────────────────────────────────────────────────────────────
+
 export type ThreadFollowerResponse =
   | string
   | {
       userId: string;
       lastReadAt?: string | null;
     };
+
+// ─── Poll ──────────────────────────────────────────────────────────────────
 
 export interface PollVoteResponse {
   id?: string;
@@ -199,6 +220,8 @@ export interface PollResponse {
   creatorProfile?: UserProfileSnapshotResponse | null;
 }
 
+// ─── Note ──────────────────────────────────────────────────────────────────
+
 export interface NoteResponse {
   id: string;
   messageId: string;
@@ -210,6 +233,8 @@ export interface NoteResponse {
   creatorProfile?: UserProfileSnapshotResponse | null;
 }
 
+// ─── Payloads ──────────────────────────────────────────────────────────────
+
 export type CreatePollPayload = Pick<
   PollResponse,
   "title" | "multipleChoice" | "allowAddOptions" | "anonymous"
@@ -219,11 +244,14 @@ export type CreatePollPayload = Pick<
 
 export type CreateNotePayload = Pick<NoteResponse, "title" | "content">;
 
+// ─── Message ───────────────────────────────────────────────────────────────
+
 export interface ChatMessageResponse {
   id: string;
   senderId: string;
   channelId?: string;
   conversationId?: string;
+  /** Giá trị runtime có thể là bất kỳ string nào từ backend — dùng MessageType enum khi compare. */
   type: string;
   content?: string | null;
   createdAt: string;
@@ -237,8 +265,17 @@ export interface ChatMessageResponse {
   medias?: ChatMediaResponse[];
   poll?: PollResponse | null;
   note?: NoteResponse | null;
+  pinned?: boolean;
+  reactions?: ChatReactionResponse[];
   [key: string]: unknown;
 }
+
+export interface ChatReactionResponse {
+  userId?: string;
+  emoji?: string;
+}
+
+// ─── Followed Threads ──────────────────────────────────────────────────────
 
 export interface FollowedThreadResponse {
   rootMessage: ChatMessageResponse;
@@ -251,6 +288,8 @@ export interface FollowedThreadResponse {
   unreadReplyCount: number;
   isFollowing: boolean;
 }
+
+// ─── Paginated Responses ───────────────────────────────────────────────────
 
 export interface PaginatedMessagesResponse {
   messages: ChatMessageResponse[];
@@ -273,12 +312,16 @@ export interface ThreadMessagesResponse {
   replies: ChatMessageResponse[];
 }
 
+// ─── Mute ──────────────────────────────────────────────────────────────────
+
 export interface MuteConversationResponse {
   muted: boolean;
   [key: string]: unknown;
 }
 
-export type InvitationStatus = "PENDING" | "ACCEPTED" | "DECLINED";
+// ─── Invitations ───────────────────────────────────────────────────────────
+
+import { InvitationStatus } from "./chat.enums";
 
 export interface SpaceInvitation {
   id: string;
@@ -287,7 +330,7 @@ export interface SpaceInvitation {
   invitedBy: string;
   invitedByName?: string;
   invitedByAvatar?: string;
-  invitedUserName?: string ;
+  invitedUserName?: string;
   invitedUserAvatar?: string;
   inviter?: {
     userId: string;
@@ -310,6 +353,8 @@ export interface AcceptSpaceInvitationResponse {
   space: SpaceResponse;
   defaultChannel: ChannelResponse | null;
 }
+
+// ─── Misc ──────────────────────────────────────────────────────────────────
 
 export type ChatProfilesMap = Record<string, UserProfileSnapshotResponse>;
 

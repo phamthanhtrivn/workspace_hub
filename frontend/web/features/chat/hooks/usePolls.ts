@@ -14,10 +14,16 @@ interface PollUpdatePayload {
 }
 
 function getUpdatedPoll(payload: PollUpdatePayload | ChatMessageResponse) {
-  return (payload as ChatMessageResponse).poll ?? (payload as PollUpdatePayload).poll ?? null;
+  return (
+    (payload as ChatMessageResponse).poll ??
+    (payload as PollUpdatePayload).poll ??
+    null
+  );
 }
 
-function getPayloadConversationId(payload: PollUpdatePayload | ChatMessageResponse) {
+function getPayloadConversationId(
+  payload: PollUpdatePayload | ChatMessageResponse,
+) {
   return payload.channelId ?? payload.conversationId ?? null;
 }
 
@@ -40,7 +46,9 @@ export function usePolls(conversationId: string | undefined, q?: string) {
     const socket = socketService.getSocket();
     if (!socket || !conversationId) return;
 
-    const handlePollUpdated = (data: PollUpdatePayload | ChatMessageResponse) => {
+    const handlePollUpdated = (
+      data: PollUpdatePayload | ChatMessageResponse,
+    ) => {
       const convId = getPayloadConversationId(data);
 
       if (convId === conversationId) {
