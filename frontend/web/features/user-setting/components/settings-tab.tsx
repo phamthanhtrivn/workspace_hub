@@ -10,14 +10,14 @@ import {
 } from "../types/settings.enums";
 import { UserSettings } from "../types/user-setting.types";
 import {
-  useUpdatePrivacySettingsMutation,
+  useUpdateUserSettingsMutation,
   useUserSettingsQuery,
 } from "../hooks/useUserSettingQueries";
 import { getUserSettingErrorMessage } from "../utils/user-setting-error";
 
 const SettingsTab = React.memo(function SettingsTab() {
   const { data: settingsResponse, isLoading } = useUserSettingsQuery();
-  const privacyMutation = useUpdatePrivacySettingsMutation();
+  const settingsMutation = useUpdateUserSettingsMutation();
   const [settingsForm, setSettingsForm] = useState<UserSettings | null>(null);
 
   useEffect(() => {
@@ -41,27 +41,39 @@ const SettingsTab = React.memo(function SettingsTab() {
   };
 
   const handleSaveSettings = () => {
-    toast.info("Theme, language, and timezone saving is not available yet.");
+    if (!settingsForm) return;
+
+    settingsMutation.mutate(
+      {
+        theme: settingsForm.theme,
+        language: settingsForm.language,
+        timezone: settingsForm.timezone,
+        allowSearchByEmail: settingsForm.allowSearchByEmail,
+        muteNotification: settingsForm.muteNotification,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Settings saved successfully.");
+        },
+        onError: (error) => {
+          toast.error(
+            getUserSettingErrorMessage(error, "Could not save settings."),
+          );
+        },
+      },
+    );
   };
 
   const handlePrivacyChange = (checked: boolean) => {
     if (!settingsForm) return;
 
     updateLocalSetting("allowSearchByEmail", checked);
-    privacyMutation.mutate(
-      { allowSearchByEmail: checked },
-      {
-        onError: (error) => {
-          updateLocalSetting("allowSearchByEmail", !checked);
-          toast.error(
-            getUserSettingErrorMessage(
-              error,
-              "Could not update privacy settings.",
-            ),
-          );
-        },
-      },
-    );
+  };
+
+  const handleMuteNotificationChange = (checked: boolean) => {
+    if (!settingsForm) return;
+
+    updateLocalSetting("muteNotification", checked);
   };
 
   if (isLoading) {
@@ -126,6 +138,30 @@ const SettingsTab = React.memo(function SettingsTab() {
         </div>
 
         <hr className="my-4 border-slate-200" />
+        <h4 className="text-lg font-bold text-slate-800">Notifications</h4>
+
+        <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div>
+            <p className="font-bold text-slate-800 text-sm">
+              Mute notification alerts
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Turn off notification sounds and browser tab flashing.
+            </p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={settingsForm.muteNotification ?? false}
+              onChange={(e) => handleMuteNotificationChange(e.target.checked)}
+              disabled={settingsMutation.isPending}
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--color-primary)]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
+          </label>
+        </div>
+
+        <hr className="my-4 border-slate-200" />
         <h4 className="text-lg font-bold text-slate-800">Privacy</h4>
 
         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
@@ -143,7 +179,7 @@ const SettingsTab = React.memo(function SettingsTab() {
               className="sr-only peer"
               checked={settingsForm.allowSearchByEmail ?? true}
               onChange={(e) => handlePrivacyChange(e.target.checked)}
-              disabled={privacyMutation.isPending}
+              disabled={settingsMutation.isPending}
             />
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[var(--color-primary)]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--color-primary)]"></div>
           </label>
@@ -151,9 +187,14 @@ const SettingsTab = React.memo(function SettingsTab() {
 
         <button
           onClick={handleSaveSettings}
+          disabled={settingsMutation.isPending}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-dark)] px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-[var(--color-primary)] cursor-pointer"
         >
-          <Save className="h-4 w-4" />
+          {settingsMutation.isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
           Save settings
         </button>
       </div>

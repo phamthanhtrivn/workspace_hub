@@ -10,7 +10,7 @@ import {
   sendPasswordOtp,
   setFirstPassword,
   updatePassword,
-  updatePrivacySettings,
+  updateUserSettings,
   updateUserProfile,
 } from "../api/user-setting.api";
 import {
@@ -20,6 +20,7 @@ import {
 } from "../types/settings.enums";
 import {
   ApiResponse,
+  UpdateUserSettingsRequest,
   UploadAvatarRequest,
   UserProfile,
   UserSettings,
@@ -75,13 +76,13 @@ export const useUpdateUserProfileMutation = () => {
   });
 };
 
-export const useUpdatePrivacySettingsMutation = () => {
+export const useUpdateUserSettingsMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationKey: [UserSettingMutationKey.UPDATE_PRIVACY],
-    mutationFn: updatePrivacySettings,
-    onMutate: async (payload) => {
+    mutationKey: [UserSettingMutationKey.UPDATE_SETTINGS],
+    mutationFn: updateUserSettings,
+    onMutate: async (payload: UpdateUserSettingsRequest) => {
       await queryClient.cancelQueries({ queryKey: userSettingKeys.settings });
 
       const previousSettings =
@@ -97,7 +98,7 @@ export const useUpdatePrivacySettingsMutation = () => {
                 ...current,
                 data: {
                   ...current.data,
-                  allowSearchByEmail: payload.allowSearchByEmail,
+                  ...payload,
                 },
               }
             : current,

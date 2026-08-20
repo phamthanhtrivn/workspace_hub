@@ -2,6 +2,8 @@ package vn.workspacehub.user.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import vn.workspacehub.user.dto.request.UpdateAccountSettingsRequest;
 import vn.workspacehub.user.dto.request.UpdatePrivacyRequest;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
@@ -49,12 +51,35 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
-    public void updatePrivacySettings(UUID userId, UpdatePrivacyRequest request) {
+    @Transactional
+    public AccountSettingResponse updateAccountSettings(UUID userId, UpdateAccountSettingsRequest request) {
         AccountSetting setting = accountSettingRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException("Settings were not found for this user"));
 
-        setting.setAllowSearchByEmail(request.isAllowSearchByEmail());
-        accountSettingRepository.save(setting);
+        if (request.getTheme() != null) {
+            setting.setTheme(request.getTheme());
+        }
+        if (request.getLanguage() != null) {
+            setting.setLanguage(request.getLanguage());
+        }
+        if (request.getTimezone() != null) {
+            setting.setTimezone(request.getTimezone());
+        }
+        if (request.getAllowSearchByEmail() != null) {
+            setting.setAllowSearchByEmail(request.getAllowSearchByEmail());
+        }
+        if (request.getMuteNotification() != null) {
+            setting.setMuteNotification(request.getMuteNotification());
+        }
+
+        return accountSettingMapper.toResponse(accountSettingRepository.save(setting));
+    }
+
+    @Transactional
+    public AccountSettingResponse updatePrivacySettings(UUID userId, UpdatePrivacyRequest request) {
+        UpdateAccountSettingsRequest settingsRequest = new UpdateAccountSettingsRequest();
+        settingsRequest.setAllowSearchByEmail(request.isAllowSearchByEmail());
+        return updateAccountSettings(userId, settingsRequest);
     }
 
     public UserProfileResponse getPublicProfile(UUID id) {

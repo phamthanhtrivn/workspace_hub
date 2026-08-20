@@ -32,9 +32,8 @@ export type UserSettings = {
   theme: UserTheme;
   language: UserLanguage;
   timezone: UserTimezone;
-  emailNotificationEnabled: boolean;
-  pushNotificationEnabled: boolean;
   allowSearchByEmail: boolean;
+  muteNotification: boolean;
 };
 
 export type UserSession = {
@@ -67,9 +66,7 @@ export interface AvatarPresignedUrlResponse {
   fileUrl: string;
 }
 
-export interface UpdatePrivacySettingsRequest {
-  allowSearchByEmail: boolean;
-}
+export type UpdateUserSettingsRequest = Partial<UserSettings>;
 
 export interface RevokeUserSessionRequest {
   sessionId: string;

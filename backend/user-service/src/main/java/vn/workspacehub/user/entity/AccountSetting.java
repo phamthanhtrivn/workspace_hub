@@ -31,6 +31,10 @@ public class AccountSetting {
     @Builder.Default
     private boolean allowSearchByEmail = true;
 
+    @Column(name = "mute_notification", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean muteNotification = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
