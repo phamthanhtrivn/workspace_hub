@@ -23,73 +23,76 @@ import UserSettingsModal from "@/features/user-setting/components/user-settings-
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { cn } from "@/lib/utils";
 import WorkspaceHeader from "./workspace-header";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const menuItems = [
   {
     href: "/dashboard",
-    label: "Dashboard",
-    description: "Overview",
+    labelId: "nav.dashboard",
+    descriptionId: "nav.dashboard.description",
     icon: LayoutDashboard,
   },
   {
     href: "/projects",
-    label: "Projects",
-    description: "Projects",
+    labelId: "nav.projects",
+    descriptionId: "nav.projects.description",
     icon: FolderKanban,
   },
   {
     href: "/invitations",
-    label: "Invitations",
-    description: "Invites",
+    labelId: "nav.invitations",
+    descriptionId: "nav.invitations.description",
     icon: Mail,
   },
   {
     href: "/tasks",
-    label: "Tasks",
-    description: "Work",
+    labelId: "nav.tasks",
+    descriptionId: "nav.tasks.description",
     icon: CheckSquare,
   },
   {
     href: "/chat",
-    label: "Chat",
-    description: "Messages",
+    labelId: "nav.chat",
+    descriptionId: "nav.chat.description",
     icon: MessageSquareText,
   },
   {
     href: "/calendar",
-    label: "Calendar",
-    description: "Schedule",
+    labelId: "nav.calendar",
+    descriptionId: "nav.calendar.description",
     icon: CalendarDays,
   },
   {
     href: "/documents",
-    label: "Documents",
-    description: "Files",
+    labelId: "nav.documents",
+    descriptionId: "nav.documents.description",
     icon: Files,
   },
   {
     href: "/pomodoro",
-    label: "Pomodoro",
-    description: "Focus",
+    labelId: "nav.pomodoro",
+    descriptionId: "nav.pomodoro.description",
     icon: Clock3,
   },
   {
     href: "/ai",
-    label: "AI",
-    description: "Assistant",
+    labelId: "nav.ai",
+    descriptionId: "nav.ai.description",
     icon: Bot,
   },
 ];
-
-const pageTitles = new Map(menuItems.map((item) => [item.href, item.label]));
 
 const WorkspaceShell = React.memo(function WorkspaceShell({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const intl = useAppIntl();
   const pathname = usePathname();
-  const currentTitle = pageTitles.get(pathname) ?? "Workspace";
+  const currentItem = menuItems.find((item) => item.href === pathname);
+  const currentTitle = currentItem
+    ? intl.formatMessage({ id: currentItem.labelId })
+    : intl.formatMessage({ id: "app.workspace" });
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -183,10 +186,10 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
             >
               <div className="pl-3 whitespace-nowrap">
                 <span className="block text-base font-black leading-tight">
-                  WorkspaceHub
+                  {intl.formatMessage({ id: "app.workspaceHub" })}
                 </span>
                 <span className="block text-xs font-semibold text-slate-500">
-                  Intelligent workspace
+                  {intl.formatMessage({ id: "app.intelligentWorkspace" })}
                 </span>
               </div>
             </div>
@@ -202,17 +205,19 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 
         <nav
           className="mt-8 flex-1 space-y-1.5 overflow-y-auto pr-2 -mr-2"
-          aria-label="Workspace menu"
+          aria-label={intl.formatMessage({ id: "nav.workspaceMenu" })}
         >
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
+            const label = intl.formatMessage({ id: item.labelId });
+            const description = intl.formatMessage({ id: item.descriptionId });
 
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                title={isSidebarCollapsed ? item.label : undefined}
+                title={isSidebarCollapsed ? label : undefined}
                 className={cn(
                   "group flex items-center rounded-2xl p-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 relative",
                   isActive
@@ -241,14 +246,14 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
                   )}
                 >
                   <div className="pl-3 whitespace-nowrap">
-                    <span className="block leading-tight">{item.label}</span>
+                    <span className="block leading-tight">{label}</span>
                     <span
                       className={cn(
                         "block text-xs font-semibold leading-tight",
                         isActive ? "text-blue-100" : "text-slate-400",
                       )}
                     >
-                      {item.description}
+                      {description}
                     </span>
                   </div>
                 </div>
@@ -287,7 +292,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
               >
                 <div className="pl-3 whitespace-nowrap">
                   <p className="text-sm font-black text-slate-800 hover:text-[var(--color-primary-dark)]">
-                    General settings
+                    {intl.formatMessage({ id: "nav.generalSettings" })}
                   </p>
                   <p className="truncate text-[0.7rem] font-semibold text-slate-500">
                     {email}

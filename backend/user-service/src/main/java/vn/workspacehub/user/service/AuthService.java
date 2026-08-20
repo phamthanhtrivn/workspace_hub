@@ -20,6 +20,7 @@ import vn.workspacehub.user.entity.OAuthAccount;
 import vn.workspacehub.user.entity.RefreshToken;
 import vn.workspacehub.user.entity.User;
 import vn.workspacehub.user.entity.UserProfile;
+import vn.workspacehub.user.enums.AccountLanguage;
 import vn.workspacehub.user.enums.OAuthProvider;
 import vn.workspacehub.user.enums.UserRole;
 import vn.workspacehub.user.enums.UserStatus;
@@ -159,7 +160,7 @@ public class AuthService {
                 AccountSetting accountSetting = AccountSetting.builder()
                         .user(user)
                         .theme("light")
-                        .language("vi")
+                        .language(AccountLanguage.VIETNAMESE.getValue())
                         .timezone("Asia/Ho_Chi_Minh")
                         .build();
                 accountSettingRepository.save(accountSetting);
@@ -267,7 +268,7 @@ public class AuthService {
         AccountSetting accountSetting = AccountSetting.builder()
                 .user(savedUser)
                 .theme("light")
-                .language("vi")
+                .language(AccountLanguage.VIETNAMESE.getValue())
                 .timezone("Asia/Ho_Chi_Minh")
                 .build();
         accountSettingRepository.save(accountSetting);

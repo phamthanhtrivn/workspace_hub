@@ -6,6 +6,7 @@ import NotificationDropdown from "@/components/common/notification-dropdown";
 import UserProfileDropdown from "../common/user-profile-dropdown";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
 import { useNotificationSocket } from "@/features/notification/hooks/useNotificationSocket";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface WorkspaceHeaderProps {
   currentTitle: string;
@@ -18,6 +19,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
   onMenuClick,
   onOpenSettings,
 }: WorkspaceHeaderProps) {
+  const intl = useAppIntl();
   useNotificationSocket();
 
   return (
@@ -33,7 +35,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
           </button>
           <div className="min-w-0">
             <div className="hidden sm:flex items-center text-xs font-bold uppercase tracking-[0.18em] text-[var(--color-secondary)]">
-              <span>Workspace</span>
+              <span>{intl.formatMessage({ id: "app.workspace" })}</span>
               <span className="mx-2 text-slate-300">/</span>
               <span className="truncate">{currentTitle}</span>
             </div>
@@ -46,7 +48,9 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
         {/* Middle: Search Bar (Desktop) & Search Button (Tablet) */}
         <div className="hidden lg:flex flex-1 max-w-md items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-400 shadow-sm transition hover:border-slate-300 cursor-text">
           <Search className="h-4 w-4" strokeWidth={2} />
-          <span className="flex-1 text-left">Search workspace...</span>
+          <span className="flex-1 text-left">
+            {intl.formatMessage({ id: "header.searchWorkspace" })}
+          </span>
           <div className="flex items-center gap-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs font-bold text-slate-400">
             <span>Ctrl</span>
             <span>K</span>

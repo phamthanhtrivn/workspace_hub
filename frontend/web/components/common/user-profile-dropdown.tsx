@@ -14,6 +14,7 @@ import { getAuthErrorMessage } from "@/features/auth/utils/auth-error";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
 import { useUserProfileQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface UserProfileDropdownProps {
   onOpenSettings: (tab: UserSettingTab) => void;
@@ -22,6 +23,7 @@ interface UserProfileDropdownProps {
 const UserProfileDropdown = React.memo(function UserProfileDropdown({
   onOpenSettings,
 }: UserProfileDropdownProps) {
+  const intl = useAppIntl();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const logoutMutation = useLogoutMutation();
@@ -46,11 +48,16 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const handleLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
-        toast.success("Signed out successfully");
+        toast.success(intl.formatMessage({ id: "profile.signOutSuccess" }));
       },
       onError: (error) => {
         console.error("Logout error:", error);
-        toast.error(getAuthErrorMessage(error, "Sign out failed"));
+        toast.error(
+          getAuthErrorMessage(
+            error,
+            intl.formatMessage({ id: "profile.signOutFailed" }),
+          ),
+        );
       },
       onSettled: finishLogout,
     });
@@ -78,12 +85,12 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
         type="button"
         onClick={() => setIsUserDropdownOpen((prev) => !prev)}
         className="relative grid h-11 w-11 shrink-0 place-items-center overflow-hidden rounded-full bg-gray-200 text-sm font-black text-[var(--color-primary-dark)] shadow-sm ring-1 ring-slate-200 transition hover:bg-gray-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer"
-        aria-label="Open user menu"
+        aria-label={intl.formatMessage({ id: "profile.openUserMenu" })}
       >
         {avatarUrl ? (
           <Image
             src={avatarUrl}
-            alt={fullName || "User avatar"}
+            alt={fullName || intl.formatMessage({ id: "app.user" })}
             fill
             className="rounded-full object-cover"
             sizes="44px"
@@ -97,10 +104,12 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
         <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-lg ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
           <div className="px-3 py-2 border-b border-slate-100 mb-1">
             <p className="truncate text-sm font-bold text-slate-800">
-              {fullName || "Workspace user"}
+              {fullName || intl.formatMessage({ id: "profile.workspaceUser" })}
             </p>
             <p className="text-xs font-semibold text-slate-500 truncate">
-              {userProfile?.email || email || "email@example.com"}
+              {userProfile?.email ||
+                email ||
+                intl.formatMessage({ id: "profile.emailFallback" })}
             </p>
           </div>
 
@@ -113,7 +122,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
               className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-[var(--color-primary-dark)] transition cursor-pointer"
             >
               <User className="h-4 w-4" />
-              Profile
+              {intl.formatMessage({ id: "profile.profile" })}
             </button>
             <button
               onClick={() => {
@@ -123,7 +132,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
               className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 hover:text-[var(--color-primary-dark)] transition cursor-pointer"
             >
               <Settings className="h-4 w-4" />
-              General settings
+              {intl.formatMessage({ id: "nav.generalSettings" })}
             </button>
             <button
               onClick={handleLogout}
@@ -131,7 +140,9 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
               className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer mt-1 disabled:opacity-50"
             >
               <LogOut className="h-4 w-4" />
-              {logoutMutation.isPending ? "Signing out..." : "Sign out"}
+              {logoutMutation.isPending
+                ? intl.formatMessage({ id: "app.loading" })
+                : intl.formatMessage({ id: "profile.signOut" })}
             </button>
           </div>
         </div>

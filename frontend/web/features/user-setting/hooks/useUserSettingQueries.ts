@@ -41,10 +41,11 @@ export const useUserProfileQuery = () =>
     staleTime: USER_SETTING_STALE_TIME_MS,
   });
 
-export const useUserSettingsQuery = () =>
+export const useUserSettingsQuery = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: userSettingKeys.settings,
     queryFn: getUserSettings,
+    enabled: options?.enabled ?? true,
     staleTime: USER_SETTING_STALE_TIME_MS,
   });
 

@@ -7,6 +7,7 @@ import StoreProvider from "@/store/store-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import QueryProvider from "@/store/query-provider";
 import NotificationManagers from "@/features/notification/components/notification-managers";
+import AppIntlProvider from "@/features/i18n/app-intl-provider";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -31,8 +32,10 @@ export default function RootLayout({
         >
           <QueryProvider>
             <StoreProvider>
-              {children}
-              <NotificationManagers />
+              <AppIntlProvider>
+                {children}
+                <NotificationManagers />
+              </AppIntlProvider>
             </StoreProvider>
           </QueryProvider>
         </GoogleOAuthProvider>

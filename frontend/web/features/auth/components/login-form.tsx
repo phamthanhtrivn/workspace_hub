@@ -7,6 +7,7 @@ import { useDispatch } from "react-redux";
 import { Eye, EyeOff, Lock, LogIn, Mail } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
 import { useLoginMutation } from "../hooks/useAuthMutations";
@@ -17,6 +18,7 @@ import {
 } from "../utils/auth-error";
 
 const LoginForm = React.memo(function LoginForm() {
+  const intl = useAppIntl();
   const router = useRouter();
   const dispatch = useDispatch<AppDispatch>();
   const loginMutation = useLoginMutation();
@@ -80,7 +82,12 @@ const LoginForm = React.memo(function LoginForm() {
             return;
           }
 
-          toast.error(getAuthErrorMessage(error, "Login failed"));
+          toast.error(
+            getAuthErrorMessage(
+              error,
+              intl.formatMessage({ id: "auth.loginFailed" }),
+            ),
+          );
         },
       },
     );
@@ -94,7 +101,8 @@ const LoginForm = React.memo(function LoginForm() {
             htmlFor="email"
             className="text-sm font-semibold text-slate-700"
           >
-            Email <span className="text-red-500">*</span>
+            {intl.formatMessage({ id: "auth.email" })}{" "}
+            <span className="text-red-500">*</span>
           </label>
         </div>
 
@@ -115,14 +123,15 @@ const LoginForm = React.memo(function LoginForm() {
             htmlFor="password"
             className="text-sm font-semibold text-slate-700"
           >
-            Password <span className="text-red-500">*</span>
+            {intl.formatMessage({ id: "auth.password" })}{" "}
+            <span className="text-red-500">*</span>
           </label>
           <div>
             <Link
               href="/forgot-password"
               className="text-sm font-semibold text-[var(--color-primary)] hover:text-[var(--color-primary-dark)] transition"
             >
-              Forgot password?
+              {intl.formatMessage({ id: "auth.forgotPassword" })}
             </Link>
           </div>
         </div>
@@ -131,7 +140,7 @@ const LoginForm = React.memo(function LoginForm() {
           id="password"
           type={showPassword ? "text" : "password"}
           icon={Lock}
-          placeholder="Enter your password"
+          placeholder={intl.formatMessage({ id: "auth.passwordPlaceholder" })}
           value={formData.password}
           error={errors.password}
           onChange={handleChange}
@@ -152,7 +161,9 @@ const LoginForm = React.memo(function LoginForm() {
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/25 cursor-pointer disabled:opacity-70"
       >
         <LogIn className="h-4 w-4" />
-        {loginMutation.isPending ? "Signing in..." : "Sign in"}
+        {loginMutation.isPending
+          ? intl.formatMessage({ id: "auth.loggingIn" })
+          : intl.formatMessage({ id: "auth.login" })}
       </button>
     </form>
   );

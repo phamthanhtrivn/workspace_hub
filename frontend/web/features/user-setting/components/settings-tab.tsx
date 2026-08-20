@@ -14,8 +14,10 @@ import {
   useUserSettingsQuery,
 } from "../hooks/useUserSettingQueries";
 import { getUserSettingErrorMessage } from "../utils/user-setting-error";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const SettingsTab = React.memo(function SettingsTab() {
+  const intl = useAppIntl();
   const { data: settingsResponse, isLoading } = useUserSettingsQuery();
   const settingsMutation = useUpdateUserSettingsMutation();
   const [settingsForm, setSettingsForm] = useState<UserSettings | null>(null);
@@ -53,11 +55,14 @@ const SettingsTab = React.memo(function SettingsTab() {
       },
       {
         onSuccess: () => {
-          toast.success("Settings saved successfully.");
+          toast.success(intl.formatMessage({ id: "settings.saveSuccess" }));
         },
         onError: (error) => {
           toast.error(
-            getUserSettingErrorMessage(error, "Could not save settings."),
+            getUserSettingErrorMessage(
+              error,
+              intl.formatMessage({ id: "settings.saveFailed" }),
+            ),
           );
         },
       },
@@ -89,12 +94,14 @@ const SettingsTab = React.memo(function SettingsTab() {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
       <h3 className="text-2xl font-black text-slate-800">
-        Workspace preferences
+        {intl.formatMessage({ id: "settings.preferencesTitle" })}
       </h3>
 
       <div className="space-y-4">
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-bold text-slate-700">Theme</label>
+          <label className="text-sm font-bold text-slate-700">
+            {intl.formatMessage({ id: "settings.theme" })}
+          </label>
           <select
             value={settingsForm.theme}
             onChange={(e) =>
@@ -102,13 +109,19 @@ const SettingsTab = React.memo(function SettingsTab() {
             }
             className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
           >
-            <option value={UserTheme.LIGHT}>Light</option>
-            <option value={UserTheme.DARK}>Dark</option>
+            <option value={UserTheme.LIGHT}>
+              {intl.formatMessage({ id: "settings.theme.light" })}
+            </option>
+            <option value={UserTheme.DARK}>
+              {intl.formatMessage({ id: "settings.theme.dark" })}
+            </option>
           </select>
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-bold text-slate-700">Language</label>
+          <label className="text-sm font-bold text-slate-700">
+            {intl.formatMessage({ id: "settings.language" })}
+          </label>
           <select
             value={settingsForm.language}
             onChange={(e) =>
@@ -116,13 +129,19 @@ const SettingsTab = React.memo(function SettingsTab() {
             }
             className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
           >
-            <option value={UserLanguage.EN}>English</option>
-            <option value={UserLanguage.VI}>Vietnamese</option>
+            <option value={UserLanguage.ENGLISH}>
+              {intl.formatMessage({ id: "settings.language.english" })}
+            </option>
+            <option value={UserLanguage.VIETNAMESE}>
+              {intl.formatMessage({ id: "settings.language.vietnamese" })}
+            </option>
           </select>
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-bold text-slate-700">Timezone</label>
+          <label className="text-sm font-bold text-slate-700">
+            {intl.formatMessage({ id: "settings.timezone" })}
+          </label>
           <select
             value={settingsForm.timezone}
             onChange={(e) =>
@@ -138,15 +157,19 @@ const SettingsTab = React.memo(function SettingsTab() {
         </div>
 
         <hr className="my-4 border-slate-200" />
-        <h4 className="text-lg font-bold text-slate-800">Notifications</h4>
+        <h4 className="text-lg font-bold text-slate-800">
+          {intl.formatMessage({ id: "settings.notifications" })}
+        </h4>
 
         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
           <div>
             <p className="font-bold text-slate-800 text-sm">
-              Mute notification alerts
+              {intl.formatMessage({ id: "settings.muteNotification" })}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
-              Turn off notification sounds and browser tab flashing.
+              {intl.formatMessage({
+                id: "settings.muteNotification.description",
+              })}
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -162,15 +185,19 @@ const SettingsTab = React.memo(function SettingsTab() {
         </div>
 
         <hr className="my-4 border-slate-200" />
-        <h4 className="text-lg font-bold text-slate-800">Privacy</h4>
+        <h4 className="text-lg font-bold text-slate-800">
+          {intl.formatMessage({ id: "settings.privacy" })}
+        </h4>
 
         <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200">
           <div>
             <p className="font-bold text-slate-800 text-sm">
-              Allow search by email
+              {intl.formatMessage({ id: "settings.allowSearchByEmail" })}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
-              Other people can find you by your email address.
+              {intl.formatMessage({
+                id: "settings.allowSearchByEmail.description",
+              })}
             </p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
@@ -195,7 +222,7 @@ const SettingsTab = React.memo(function SettingsTab() {
           ) : (
             <Save className="h-4 w-4" />
           )}
-          Save settings
+          {intl.formatMessage({ id: "settings.saveSettings" })}
         </button>
       </div>
     </div>

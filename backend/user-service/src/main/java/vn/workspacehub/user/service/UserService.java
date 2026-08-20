@@ -10,6 +10,7 @@ import vn.workspacehub.user.dto.response.UserProfileResponse;
 import vn.workspacehub.user.dto.response.UserSearchResponse;
 import vn.workspacehub.user.entity.AccountSetting;
 import vn.workspacehub.user.entity.User;
+import vn.workspacehub.user.enums.AccountLanguage;
 import vn.workspacehub.user.exception.BusinessException;
 import vn.workspacehub.user.mapper.AccountSettingMapper;
 import vn.workspacehub.user.mapper.UserMapper;
@@ -60,7 +61,11 @@ public class UserService {
             setting.setTheme(request.getTheme());
         }
         if (request.getLanguage() != null) {
-            setting.setLanguage(request.getLanguage());
+            try {
+                setting.setLanguage(AccountLanguage.fromValue(request.getLanguage()).getValue());
+            } catch (IllegalArgumentException exception) {
+                throw new BusinessException("Unsupported language");
+            }
         }
         if (request.getTimezone() != null) {
             setting.setTimezone(request.getTimezone());

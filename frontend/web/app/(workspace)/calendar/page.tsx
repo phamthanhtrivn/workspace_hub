@@ -1,16 +1,21 @@
+"use client";
+
+import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 export default function CalendarPage() {
+  const intl = useAppIntl();
+
   return (
-      <section>
-        <p className="text-sm font-semibold uppercase tracking-wide text-[var(--color-primary)]">
-          Workspace
-        </p>
-        <h1 className="mt-2 text-3xl font-black text-[var(--color-primary-dark)]">
-          Calendar
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm text-slate-600">
-          Sắp xếp lịch họp, deadline, phiên làm việc tập trung và các sự kiện
-          quan trọng.
-        </p>
-      </section>
+    <section>
+      <p className="text-sm font-semibold uppercase tracking-wide text-[var(--color-primary)]">
+        {intl.formatMessage({ id: "app.workspace" })}
+      </p>
+      <h1 className="mt-2 text-3xl font-black text-[var(--color-primary-dark)]">
+        {intl.formatMessage({ id: "nav.calendar" })}
+      </h1>
+      <p className="mt-3 max-w-2xl text-sm text-slate-600">
+        {intl.formatMessage({ id: "page.calendar.description" })}
+      </p>
+    </section>
   );
 }

@@ -30,8 +30,8 @@ export enum UserTheme {
 }
 
 export enum UserLanguage {
-  EN = "en",
-  VI = "vi",
+  ENGLISH = "en",
+  VIETNAMESE = "vi",
 }
 
 export enum UserTimezone {
