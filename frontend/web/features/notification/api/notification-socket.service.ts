@@ -4,38 +4,50 @@ const SOCKET_ERROR_LOG_THROTTLE_MS = 10_000;
 
 class NotificationSocketService {
   private socket: Socket | null = null;
+  private currentToken: string | null = null;
   private lastErrorLoggedAt = 0;
 
-  connect(token: string) {
-    if (!this.socket) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
-      const baseUrl = apiUrl.replace(/\/api$/, "");
-
-      this.socket = io(baseUrl, {
-        path: "/notification.io",
-        transports: ["websocket"],
-        reconnectionAttempts: 3,
-        timeout: 5_000,
-        auth: {
-          token,
-        },
-      });
-
-      this.socket.on("connect", () => {});
-      this.socket.on("connect_error", (error) => {
-        const now = Date.now();
-        if (now - this.lastErrorLoggedAt < SOCKET_ERROR_LOG_THROTTLE_MS) {
-          return;
-        }
-        this.lastErrorLoggedAt = now;
-        console.warn(`Notification socket unavailable: ${error.message}`);
-      });
-
+  connect(token: string): Socket {
+    if (this.socket && this.currentToken === token) {
+      if (!this.socket.connected && !this.socket.active) {
+        this.socket.connect();
+      }
+      return this.socket;
     }
 
-    if (!this.socket.connected) {
+    if (this.socket) {
+      this.disconnect();
+    }
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
+    const baseUrl = apiUrl.replace(/\/api$/, "");
+
+    this.currentToken = token;
+    this.socket = io(baseUrl, {
+      path: "/notification.io",
+      transports: ["websocket"],
+      reconnectionAttempts: 3,
+      timeout: 5_000,
+      auth: {
+        token,
+      },
+    });
+
+    this.socket.on("connect", () => {});
+    this.socket.on("connect_error", (error) => {
+      const now = Date.now();
+      if (now - this.lastErrorLoggedAt < SOCKET_ERROR_LOG_THROTTLE_MS) {
+        return;
+      }
+      this.lastErrorLoggedAt = now;
+      console.warn(`Notification socket unavailable: ${error.message}`);
+    });
+
+    if (!this.socket.connected && !this.socket.active) {
       this.socket.connect();
     }
+
+    return this.socket;
   }
 
   disconnect() {
@@ -43,6 +55,7 @@ class NotificationSocketService {
       this.socket.disconnect();
       this.socket = null;
     }
+    this.currentToken = null;
   }
 
   getSocket(): Socket | null {

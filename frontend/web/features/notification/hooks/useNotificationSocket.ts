@@ -22,13 +22,15 @@ export function useNotificationSocket() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    if (!accessToken) {
+      notificationSocketService.disconnect();
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
     if (!accessToken) return;
 
-    notificationSocketService.connect(accessToken);
-
-    const socket = notificationSocketService.getSocket();
-
-    if (!socket) return;
+    const socket = notificationSocketService.connect(accessToken);
 
     const handleNewNotification = (noti: AppNotification) => {
       dispatch(addNotification(noti));
@@ -53,7 +55,6 @@ export function useNotificationSocket() {
 
     return () => {
       socket.off("new_notification", handleNewNotification);
-      notificationSocketService.disconnect();
     };
   }, [accessToken, dispatch, queryClient]);
 }

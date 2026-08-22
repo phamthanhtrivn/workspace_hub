@@ -93,11 +93,15 @@ export function useChatSocket() {
   }, [activeChatId]);
 
   useEffect(() => {
+    if (!accessToken) {
+      socketService.disconnect();
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
     if (!accessToken || !currentUserId) return;
 
-    socketService.connect(accessToken);
-    const socket = socketService.getSocket();
-    if (!socket) return;
+    const socket = socketService.connect(accessToken);
 
     const clearUnread = (chatId: string, spaceId?: string | null) => {
       if (spaceId) {
@@ -569,7 +573,6 @@ export function useChatSocket() {
         ChatEvent.CONVERSATION_MUTE_UPDATED,
         handleConversationMuteUpdated,
       );
-      socketService.disconnect();
     };
   }, [accessToken, currentUserId, dispatch, queryClient]);
 }
