@@ -61,6 +61,7 @@ import MessageList from "../message/message-list";
 import EditingBanner from "./editing-banner";
 import JumpToRecentBanner from "./jump-to-recent-banner";
 import { RenderableChatMessage } from "../message/chat-message.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 type ChatInputRef = ChannelChatInputRef | DirectMessageInputRef;
 
@@ -83,6 +84,7 @@ export default function ChatArea({
   onOpenSearch,
   onBack,
 }: ChatAreaProps) {
+  const intl = useAppIntl();
   const {
     activeChat: activeConversation,
     activeChatType,
@@ -605,12 +607,14 @@ export default function ChatArea({
               queryClient.invalidateQueries({
                 queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
               });
-              toast.success("You are no longer in this space");
+              toast.success(
+                intl.formatMessage({ id: "chat.noLongerInThisSpace" }),
+              );
             } else {
               queryClient.invalidateQueries({
                 queryKey: chatKeys.allChannels(),
               });
-              toast.success("You left the channel");
+              toast.success(intl.formatMessage({ id: "chat.leftChannel" }));
             }
           } else {
             queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
@@ -668,8 +672,8 @@ export default function ChatArea({
           });
           toast.info(
             data.leftSpace
-              ? "This space has been disbanded by an admin"
-              : "This channel has been disbanded by an admin",
+              ? intl.formatMessage({ id: "chat.spaceDisbandedByAdmin" })
+              : intl.formatMessage({ id: "chat.channelDisbandedByAdmin" }),
           );
         }
       };
@@ -734,6 +738,7 @@ export default function ChatArea({
     jumpTargetId,
     updateMessageInState,
     handleTypingEvent,
+    intl,
     setNewSocketMessages,
     setReadReceipts,
   ]);
@@ -841,7 +846,9 @@ export default function ChatArea({
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}
           onTypingChange={handleTypingChange}
-          placeholder="Message direct conversation..."
+          placeholder={intl.formatMessage({
+            id: "chat.messageDirectConversation",
+          })}
           autoFocusOnConversationChange={!activeThreadRootMessageId}
         />
       ) : (

@@ -9,6 +9,7 @@ import { ChatEvent } from "../../../api/chat.events";
 import { useDirectMessageActions } from "../../../hooks/useDirectMessageActions";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import SeeAllButton from "../see-all-button";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface PinnedMessagesSectionProps {
   conversationId: string;
@@ -19,12 +20,13 @@ interface PinnedMessagesSectionProps {
   onJumpToMessage: (messageId: string) => void;
 }
 
-function getPinnedPreviewText(message: any) {
+function getPinnedPreviewText(message: any, intl: ReturnType<typeof useAppIntl>) {
   if (message.content) return message.content;
-  if (message.medias?.length) return "[Attachment]";
-  if (message.poll) return "[Poll]";
-  if (message.note) return "[Note]";
-  return "[Message]";
+  if (message.medias?.length)
+    return intl.formatMessage({ id: "chat.attachment" });
+  if (message.poll) return intl.formatMessage({ id: "chat.pollPreview" });
+  if (message.note) return intl.formatMessage({ id: "chat.notePreview" });
+  return intl.formatMessage({ id: "chat.messagePreview" });
 }
 
 function getInitial(name?: string | null) {
@@ -39,6 +41,7 @@ export default function PinnedMessagesSection({
   onSeeAll,
   onJumpToMessage,
 }: PinnedMessagesSectionProps) {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const { unpinMessage: unpinDirectPinnedMessage } = useDirectMessageActions();
 
@@ -120,7 +123,7 @@ export default function PinnedMessagesSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <Pin size={18} className="text-gray-500" />
-          Pinned Messages
+          {intl.formatMessage({ id: "chat.pinnedMessages" })}
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -133,10 +136,12 @@ export default function PinnedMessagesSection({
         <div className="px-4 pb-3">
           {isLoading ? (
             <div className="text-xs text-gray-400 py-2">
-              Loading pinned messages...
+              {intl.formatMessage({ id: "chat.loadingPinnedMessages" })}
             </div>
           ) : pinnedMessages.length === 0 ? (
-            <div className="text-xs text-gray-400 py-2">No pinned messages</div>
+            <div className="text-xs text-gray-400 py-2">
+              {intl.formatMessage({ id: "chat.noPinnedMessages" })}
+            </div>
           ) : (
             <div className="space-y-1">
               {pinnedMessages.map((message: any) => (
@@ -148,7 +153,10 @@ export default function PinnedMessagesSection({
                   {message.senderProfile?.avatarUrl ? (
                     <img
                       src={message.senderProfile.avatarUrl || ""}
-                      alt={message.senderProfile.fullName || "User"}
+                      alt={
+                        message.senderProfile.fullName ||
+                        intl.formatMessage({ id: "app.user" })
+                      }
                       className="h-7 w-7 shrink-0 rounded-full object-cover"
                     />
                   ) : (
@@ -158,10 +166,11 @@ export default function PinnedMessagesSection({
                   )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-xs font-semibold text-gray-800">
-                      {message.senderProfile?.fullName || "User"}
+                      {message.senderProfile?.fullName ||
+                        intl.formatMessage({ id: "app.user" })}
                     </span>
                     <span className="block truncate text-xs text-gray-500">
-                      {getPinnedPreviewText(message)}
+                      {getPinnedPreviewText(message, intl)}
                     </span>
                   </span>
                   <span
@@ -170,7 +179,7 @@ export default function PinnedMessagesSection({
                       handleUnpin(message.id);
                     }}
                     className="cursor-pointer rounded-md p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500 transition"
-                    title="Unpin"
+                    title={intl.formatMessage({ id: "chat.unpin" })}
                   >
                     <Pin size={13} className="mt-1 shrink-0 text-blue-500" />
                   </span>
@@ -178,7 +187,7 @@ export default function PinnedMessagesSection({
               ))}
               {data?.nextCursor && (
                 <SeeAllButton onClick={onSeeAll} className="mt-2">
-                  See all pinned messages
+                  {intl.formatMessage({ id: "chat.seeAllPinnedMessages" })}
                 </SeeAllButton>
               )}
             </div>

@@ -4,10 +4,11 @@ import React from "react";
 import { Star } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DocumentItem } from "../../types/documents.types";
-import { DocumentItemType, DocumentViewType, ResourceTypeName } from "../../types/documents.enums";
+import { DocumentItemType, DocumentViewType } from "../../types/documents.enums";
 import ItemActionsMenu from "../explorer/item-actions-menu";
 import { cn } from "@/lib/utils";
 import { DocumentIcon } from "../common/document-icon";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export interface GridViewCardProps {
   item: DocumentItem;
@@ -54,6 +55,7 @@ export function GridViewCard({
   onShareToChat,
   formatBytes,
 }: GridViewCardProps) {
+  const intl = useAppIntl();
   const isFolder = item.type === DocumentItemType.FOLDER;
   const isSelected = item.id === selectedItemId;
 
@@ -149,7 +151,9 @@ export function GridViewCard({
           {item.name}
         </span>
         <span className="block text-xs text-slate-400 font-semibold mt-1">
-          {isFolder ? ResourceTypeName.FOLDER : formatBytes(item.sizeBytes)}
+          {isFolder
+            ? intl.formatMessage({ id: "documents.folder" })
+            : formatBytes(item.sizeBytes)}
         </span>
       </div>
 

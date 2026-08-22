@@ -5,6 +5,7 @@ import { formatDateTime } from "@/lib/date";
 import { usePolls } from "../../../hooks/usePolls";
 import SeeAllButton from "../see-all-button";
 import { useActiveChat } from "../../../hooks/useChatQueries";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface PollsSectionProps {
   isExpanded: boolean;
@@ -17,6 +18,7 @@ export default function PollsSection({
   onToggle,
   onSeeAll,
 }: PollsSectionProps) {
+  const intl = useAppIntl();
   const { activeChat: activeConversation } = useActiveChat();
 
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export default function PollsSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <BarChart2 size={18} className="text-gray-500" />
-          Polls
+          {intl.formatMessage({ id: "chat.polls" })}
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -52,7 +54,7 @@ export default function PollsSection({
             </div>
           ) : polls.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              No polls available
+              {intl.formatMessage({ id: "chat.noPollsAvailable" })}
             </p>
           ) : (
             <>
@@ -64,17 +66,24 @@ export default function PollsSection({
                     className="p-3 bg-purple-50 border border-purple-100 rounded-lg cursor-pointer hover:bg-purple-100 transition-colors"
                   >
                     <p className="text-xs font-semibold text-purple-900 mb-1 truncate">
-                      {poll.title || "Untitled poll"} -{" "}
+                      {poll.title ||
+                        intl.formatMessage({ id: "chat.untitledPoll" })}{" "}
+                      -{" "}
                       {formatDateTime(poll.createdAt)}
                     </p>
                     <p className="text-[10px] text-purple-600/70">
-                      {poll.options?.length || 0} options
+                      {intl.formatMessage(
+                        { id: "chat.optionsCount" },
+                        { count: poll.options?.length || 0 },
+                      )}
                     </p>
                   </div>
                 ))}
               </div>
               {hasMore && (
-                <SeeAllButton onClick={onSeeAll}>See all</SeeAllButton>
+                <SeeAllButton onClick={onSeeAll}>
+                  {intl.formatMessage({ id: "chat.seeAll" })}
+                </SeeAllButton>
               )}
             </>
           )}

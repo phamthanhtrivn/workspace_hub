@@ -16,6 +16,7 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface PreviewContentProps {
   item: DocumentItem;
@@ -38,6 +39,8 @@ export const PreviewContent = React.memo(function PreviewContent({
   error,
   handleDownload,
 }: PreviewContentProps) {
+  const intl = useAppIntl();
+
   if (isUrlLoading || (previewType === PreviewFileType.TEXT && loadingText)) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-20">
@@ -45,7 +48,9 @@ export const PreviewContent = React.memo(function PreviewContent({
           className="animate-spin text-[var(--color-primary)]"
           size={36}
         />
-        <span className="text-sm font-semibold">Loading preview...</span>
+        <span className="text-sm font-semibold">
+          {intl.formatMessage({ id: "documents.loadingPreview" })}
+        </span>
       </div>
     );
   }
@@ -57,9 +62,11 @@ export const PreviewContent = React.memo(function PreviewContent({
           <X size={32} />
         </div>
         <div>
-          <h4 className="font-black text-slate-800">Failed to load file</h4>
+          <h4 className="font-black text-slate-800">
+            {intl.formatMessage({ id: "documents.previewLoadFailed" })}
+          </h4>
           <p className="text-xs text-slate-400 font-semibold mt-1">
-            An error occurred while generating the preview link. Please download the file directly.
+            {intl.formatMessage({ id: "documents.previewErrorDescription" })}
           </p>
         </div>
         <button
@@ -67,7 +74,7 @@ export const PreviewContent = React.memo(function PreviewContent({
           className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] hover:opacity-90 px-4 py-2.5 text-xs font-black text-white shadow-xs cursor-pointer transition-opacity"
         >
           <Download size={14} />
-          <span>Download File</span>
+          <span>{intl.formatMessage({ id: "documents.downloadFile" })}</span>
         </button>
       </div>
     );
@@ -157,7 +164,7 @@ export const PreviewContent = React.memo(function PreviewContent({
             className="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-xl bg-white border border-slate-200/80 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-md hover:bg-slate-50 transition-all cursor-pointer animate-in fade-in"
           >
             <ExternalLink size={12} />
-            <span>Open Directly</span>
+            <span>{intl.formatMessage({ id: "documents.openDirectly" })}</span>
           </a>
         </div>
       );
@@ -173,18 +180,20 @@ export const PreviewContent = React.memo(function PreviewContent({
             {item.name}
           </h4>
           <p className="text-xs text-slate-400 font-semibold mb-6">
-            File Type: {item.mimeType} • Size:{" "}
-            {formatBytes(item.sizeBytes)}
+            {intl.formatMessage(
+              { id: "documents.fileTypeAndSize" },
+              { type: item.mimeType, size: formatBytes(item.sizeBytes) },
+            )}
           </p>
           <p className="text-xs text-slate-500 font-bold mb-6 max-w-sm">
-            This file format is not supported for direct preview. Please download the file to your device to open it.
+            {intl.formatMessage({ id: "documents.unsupportedPreview" })}
           </p>
           <button
             onClick={handleDownload}
             className="flex items-center gap-2 rounded-xl bg-[var(--color-primary)] hover:opacity-90 px-5 py-3 text-xs font-black text-white shadow-xs cursor-pointer transition-opacity"
           >
             <Download size={14} />
-            <span>Download to Device</span>
+            <span>{intl.formatMessage({ id: "documents.downloadToDevice" })}</span>
           </button>
         </div>
       );

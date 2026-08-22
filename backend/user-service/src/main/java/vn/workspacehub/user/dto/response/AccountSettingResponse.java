@@ -14,4 +14,5 @@ public class AccountSettingResponse {
     private String language;
     private String timezone;
     private boolean allowSearchByEmail;
+    private boolean muteNotification;
 }

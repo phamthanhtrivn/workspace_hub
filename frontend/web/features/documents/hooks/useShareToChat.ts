@@ -14,6 +14,7 @@ import { ShareTabType } from "../types/documents.enums";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { ChatContextType } from "@/features/chat/types/chat.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface UseShareToChatProps {
   item: DocumentItem | null;
@@ -21,6 +22,7 @@ interface UseShareToChatProps {
 }
 
 export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
+  const intl = useAppIntl();
   const [activeTab, setActiveTab] = useState<ShareTabType>(
     ShareTabType.CHANNEL,
   );
@@ -75,13 +77,13 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
     if (!item) return;
 
     if (!selectedChatId) {
-      toast.error("Please select a target chat to share");
+      toast.error(intl.formatMessage({ id: "documents.selectTargetChat" }));
       return;
     }
 
     const socket = socketService.getSocket();
     if (!socket) {
-      toast.error("Chat connection is not ready. Please try again.");
+      toast.error(intl.formatMessage({ id: "chat.connectionNotReady" }));
       return;
     }
 
@@ -110,12 +112,21 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
           if (unauthorizedEmails.length > 0 && isOwner) {
             // 3. Prompt owner to grant Viewer permission
             const swalResult = await Swal.fire({
-              title: "Permissions Required",
-              text: `${unauthorizedEmails.length} channel members do not have permission to view this item. Would you like to grant Viewer permissions to them?`,
+              title: intl.formatMessage({
+                id: "documents.permissionsRequired",
+              }),
+              text: intl.formatMessage(
+                { id: "documents.channelMembersNoPermission" },
+                { count: unauthorizedEmails.length },
+              ),
               icon: "warning",
               showCancelButton: true,
-              confirmButtonText: "Grant & Share",
-              cancelButtonText: "Share Only",
+              confirmButtonText: intl.formatMessage({
+                id: "documents.grantAndShare",
+              }),
+              cancelButtonText: intl.formatMessage({
+                id: "documents.shareOnly",
+              }),
               customClass: {
                 confirmButton:
                   "bg-violet-600 hover:bg-violet-700 text-white font-bold py-2.5 px-5 rounded-xl mr-3 cursor-pointer outline-none transition-colors text-sm",
@@ -131,7 +142,11 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
                 unauthorizedEmails,
                 "VIEWER",
               );
-              toast.success("Viewer access granted to channel members.");
+              toast.success(
+                intl.formatMessage({
+                  id: "documents.viewerAccessGrantedToMembers",
+                }),
+              );
             }
           }
         }
@@ -175,11 +190,11 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
         });
       }
 
-      toast.success("Shared successfully");
+      toast.success(intl.formatMessage({ id: "documents.sharedSuccessfully" }));
       onSuccess();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to share document to chat");
+      toast.error(intl.formatMessage({ id: "documents.shareToChatFailed" }));
     } finally {
       setIsSubmitting(false);
     }

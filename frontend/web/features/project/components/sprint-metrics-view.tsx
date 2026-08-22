@@ -7,6 +7,7 @@ import {
   type Sprint,
   type Task,
 } from "@/features/project/types/project";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function SprintMetricsView({
   sprints,
@@ -15,6 +16,7 @@ export default function SprintMetricsView({
   sprints: Sprint[];
   tasks: Task[];
 }) {
+  const intl = useAppIntl();
   const visibleSprints = sprints
     .filter(
       (sprint) =>
@@ -28,10 +30,11 @@ export default function SprintMetricsView({
       <div className="flex items-start justify-between gap-3">
         <div>
           <h2 className="flex items-center gap-2 text-sm font-bold text-[#172B4D]">
-            <Activity className="h-4 w-4 text-blue-600" /> Sprint analytics
+            <Activity className="h-4 w-4 text-blue-600" />{" "}
+            {intl.formatMessage({ id: "project.sprint.analytics" })}
           </h2>
           <p className="mt-0.5 text-xs text-slate-500">
-            Burndown hiện tại và velocity theo Sprint.
+            {intl.formatMessage({ id: "project.sprint.analyticsDescription" })}
           </p>
         </div>
         <Gauge className="h-5 w-5 text-slate-400" />
@@ -87,12 +90,18 @@ export default function SprintMetricsView({
                   {sprint.name}
                 </span>
                 <span className="shrink-0 text-[11px] font-bold text-blue-700">
-                  Velocity: {done}
+                  {intl.formatMessage(
+                    { id: "project.sprint.velocity" },
+                    { count: done },
+                  )}
                 </span>
               </div>
               <div className="mt-2 flex items-center justify-between text-[10px] font-semibold text-slate-500">
                 <span>
-                  {done}/{total} done · {estimate} phút
+                  {intl.formatMessage(
+                    { id: "project.sprint.doneEstimate" },
+                    { done, total, estimate },
+                  )}
                 </span>
                 <span>{percent}%</span>
               </div>
@@ -124,9 +133,14 @@ export default function SprintMetricsView({
                 />
               </svg>
               <div className="mt-1 flex justify-between text-[10px] font-semibold text-slate-400">
-                <span>Start</span>
-                <span>Còn lại: {remaining}</span>
-                <span>End</span>
+                <span>{intl.formatMessage({ id: "project.sprint.start" })}</span>
+                <span>
+                  {intl.formatMessage(
+                    { id: "project.sprint.remaining" },
+                    { count: remaining },
+                  )}
+                </span>
+                <span>{intl.formatMessage({ id: "project.sprint.end" })}</span>
               </div>
             </div>
           );

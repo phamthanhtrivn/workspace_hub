@@ -46,6 +46,7 @@ import ShareToChatModal from "./sharing/share-to-chat-modal";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
 import { cn } from "@/lib/utils";
 import { useDownloadQueue } from "./download/download-queue-provider";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -64,6 +65,7 @@ function DocumentExplorer({
   path,
   setPath,
 }: DocumentExplorerProps) {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [viewLayout, setViewLayout] = useState<ViewLayout>(ViewLayout.GRID);
@@ -191,11 +193,14 @@ function DocumentExplorer({
   const createFolderMutation = useMutation({
     mutationFn: documentsApi.createFolder,
     onSuccess: () => {
-      toast.success("New folder created successfully");
+      toast.success(intl.formatMessage({ id: "documents.folderCreated" }));
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to create folder");
+      toast.error(
+        err.response?.data?.message ||
+          intl.formatMessage({ id: "documents.createFolderFailed" }),
+      );
     },
   });
 
@@ -203,11 +208,14 @@ function DocumentExplorer({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       documentsApi.renameItem(id, name),
     onSuccess: () => {
-      toast.success("Renamed successfully");
+      toast.success(intl.formatMessage({ id: "documents.renamed" }));
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to rename");
+      toast.error(
+        err.response?.data?.message ||
+          intl.formatMessage({ id: "documents.renameFailed" }),
+      );
     },
   });
 
@@ -215,13 +223,16 @@ function DocumentExplorer({
     mutationFn: ({ id, destId }: { id: string; destId: string | null }) =>
       documentsApi.moveItem(id, destId),
     onSuccess: () => {
-      toast.success("Resource moved successfully");
+      toast.success(intl.formatMessage({ id: "documents.moved" }));
       setIsMoveModalOpen(false);
       setSelectedItemId(null);
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to move resource");
+      toast.error(
+        err.response?.data?.message ||
+          intl.formatMessage({ id: "documents.moveFailed" }),
+      );
     },
   });
 
@@ -238,7 +249,11 @@ function DocumentExplorer({
       archive ? documentsApi.archiveItem(id) : documentsApi.restoreItem(id),
     onSuccess: (data, variables) => {
       toast.success(
-        variables.archive ? "Moved to trash" : "Restored successfully",
+        intl.formatMessage({
+          id: variables.archive
+            ? "documents.movedToTrash"
+            : "documents.restored",
+        }),
       );
       setSelectedItemId(null);
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
@@ -249,13 +264,16 @@ function DocumentExplorer({
   const deletePermanentlyMutation = useMutation({
     mutationFn: (id: string) => documentsApi.deleteItemPermanently(id),
     onSuccess: () => {
-      toast.success("Permanently deleted resource");
+      toast.success(intl.formatMessage({ id: "documents.deletedPermanently" }));
       setSelectedItemId(null);
       void queryClient.invalidateQueries({ queryKey: ["documents"] });
       void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || "Failed to delete permanently");
+      toast.error(
+        err.response?.data?.message ||
+          intl.formatMessage({ id: "documents.deletePermanentlyFailed" }),
+      );
     },
   });
 
@@ -278,7 +296,12 @@ function DocumentExplorer({
         );
 
         setUploadState(UploadState.SUCCESS);
-        toast.success(`Successfully uploaded file ${file.name}!`);
+        toast.success(
+          intl.formatMessage(
+            { id: "documents.uploadSuccess" },
+            { name: file.name },
+          ),
+        );
 
         void queryClient.invalidateQueries({ queryKey: ["documents"] });
         void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
@@ -292,14 +315,16 @@ function DocumentExplorer({
         console.error(err);
         setUploadState(UploadState.ERROR);
         const errMsg =
-          err.response?.data?.message || err.message || "Failed to upload file";
+          err.response?.data?.message ||
+          err.message ||
+          intl.formatMessage({ id: "documents.uploadFailed" });
         toast.error(errMsg);
         setTimeout(() => {
           setUploadState(UploadState.IDLE);
         }, 3000);
       }
     },
-    [currentFolderId, queryClient],
+    [currentFolderId, intl, queryClient],
   );
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -370,16 +395,18 @@ function DocumentExplorer({
   // Folder creation trigger
   const handleCreateFolder = useCallback(() => {
     void Swal.fire({
-      title: "New Folder",
+      title: intl.formatMessage({ id: "documents.newFolder" }),
       input: "text",
-      inputPlaceholder: "Enter folder name...",
+      inputPlaceholder: intl.formatMessage({
+        id: "documents.folderNamePlaceholder",
+      }),
       showCancelButton: true,
-      confirmButtonText: "Create",
-      cancelButtonText: "Cancel",
+      confirmButtonText: intl.formatMessage({ id: "app.create" }),
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
       confirmButtonColor: "var(--color-primary, #3b82f6)",
       inputValidator: (value) => {
         if (!value) {
-          return "Folder name cannot be empty!";
+          return intl.formatMessage({ id: "documents.folderNameRequired" });
         }
         return null;
       },
@@ -391,22 +418,22 @@ function DocumentExplorer({
         });
       }
     });
-  }, [createFolderMutation, currentFolderId]);
+  }, [createFolderMutation, currentFolderId, intl]);
 
   // Rename trigger
   const handleRename = useCallback(
     (id: string, currentName: string) => {
       void Swal.fire({
-        title: "Rename Resource",
+        title: intl.formatMessage({ id: "documents.renameResource" }),
         input: "text",
         inputValue: currentName,
         showCancelButton: true,
-        confirmButtonText: "Save",
-        cancelButtonText: "Cancel",
+        confirmButtonText: intl.formatMessage({ id: "app.save" }),
+        cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
         confirmButtonColor: "var(--color-primary, #3b82f6)",
         inputValidator: (value) => {
           if (!value) {
-            return "Name cannot be empty!";
+            return intl.formatMessage({ id: "documents.nameRequired" });
           }
           return null;
         },
@@ -416,7 +443,7 @@ function DocumentExplorer({
         }
       });
     },
-    [renameMutation],
+    [intl, renameMutation],
   );
 
   // Move trigger
@@ -438,12 +465,12 @@ function DocumentExplorer({
     (id: string, archive: boolean) => {
       if (archive) {
         void Swal.fire({
-          title: "Move to Trash?",
-          text: "Files/Folders will be moved to Trash and kept for 30 days.",
+          title: intl.formatMessage({ id: "documents.moveToTrashTitle" }),
+          text: intl.formatMessage({ id: "documents.moveToTrashDescription" }),
           icon: "warning",
           showCancelButton: true,
-          confirmButtonText: "Yes",
-          cancelButtonText: "Cancel",
+          confirmButtonText: intl.formatMessage({ id: "app.yes" }),
+          cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
           confirmButtonColor: "#ef4444",
         }).then((result) => {
           if (result.isConfirmed) {
@@ -454,7 +481,7 @@ function DocumentExplorer({
         archiveMutation.mutate({ id, archive: false });
       }
     },
-    [archiveMutation],
+    [archiveMutation, intl],
   );
 
   // Navigation handlers
@@ -532,9 +559,9 @@ function DocumentExplorer({
       document.body.removeChild(link);
     } catch (err) {
       console.error("Failed to generate download URL", err);
-      toast.error("Failed to generate download link");
+      toast.error(intl.formatMessage({ id: "documents.downloadLinkFailed" }));
     }
-  }, []);
+  }, [intl]);
 
   const { enqueueDownload } = useDownloadQueue();
 
@@ -548,21 +575,23 @@ function DocumentExplorer({
   const handleDeletePermanently = useCallback(
     (id: string) => {
       Swal.fire({
-        title: "Delete Permanently?",
-        text: "Resource will be permanently deleted and cannot be recovered!",
+        title: intl.formatMessage({ id: "documents.deletePermanentlyTitle" }),
+        text: intl.formatMessage({
+          id: "documents.deletePermanentlyDescription",
+        }),
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#d33",
         cancelButtonColor: "#3085d6",
-        confirmButtonText: "Delete",
-        cancelButtonText: "Cancel",
+        confirmButtonText: intl.formatMessage({ id: "app.delete" }),
+        cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
       }).then((result) => {
         if (result.isConfirmed) {
           deletePermanentlyMutation.mutate(id);
         }
       });
     },
-    [deletePermanentlyMutation],
+    [deletePermanentlyMutation, intl],
   );
 
   return (
@@ -611,7 +640,7 @@ function DocumentExplorer({
                   size={48}
                 />
                 <p className="text-sm font-black text-blue-600">
-                  Drop files here to upload
+                  {intl.formatMessage({ id: "documents.dropFilesToUpload" })}
                 </p>
               </div>
             )}
@@ -621,10 +650,10 @@ function DocumentExplorer({
               <div className="flex h-full flex-col items-center justify-center text-slate-400 py-20 animate-in fade-in duration-300">
                 <Folder size={64} className="text-slate-200 mb-4" />
                 <span className="text-base font-semibold text-slate-700">
-                  Folder is empty
+                  {intl.formatMessage({ id: "documents.folderEmpty" })}
                 </span>
                 <span className="text-xs text-slate-400 font-semibold mt-1">
-                  No files or folders here yet.
+                  {intl.formatMessage({ id: "documents.noFilesOrFolders" })}
                 </span>
               </div>
             ) : viewLayout === ViewLayout.GRID ? (
@@ -677,9 +706,17 @@ function DocumentExplorer({
             {totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-6">
                 <span className="text-xs font-semibold text-slate-400">
-                  Showing {(safeCurrentPage - 1) * ITEMS_PER_PAGE + 1} -{" "}
-                  {Math.min(safeCurrentPage * ITEMS_PER_PAGE, totalItems)} of{" "}
-                  {totalItems} items
+                  {intl.formatMessage(
+                    { id: "documents.paginationSummary" },
+                    {
+                      start: (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1,
+                      end: Math.min(
+                        safeCurrentPage * ITEMS_PER_PAGE,
+                        totalItems,
+                      ),
+                      total: totalItems,
+                    },
+                  )}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -689,7 +726,7 @@ function DocumentExplorer({
                     }
                     className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    Previous
+                    {intl.formatMessage({ id: "app.previous" })}
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(
                     (page) => (
@@ -714,7 +751,7 @@ function DocumentExplorer({
                     }
                     className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    Next
+                    {intl.formatMessage({ id: "app.next" })}
                   </button>
                 </div>
               </div>

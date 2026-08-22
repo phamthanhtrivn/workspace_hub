@@ -24,6 +24,7 @@ import {
   FaTrash,
   FaPaperPlane,
 } from "react-icons/fa";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ItemActionsMenuProps {
   item: DocumentItem;
@@ -62,6 +63,7 @@ function ItemActionsMenu({
   onDownloadFolder,
   onShareToChat,
 }: ItemActionsMenuProps) {
+  const intl = useAppIntl();
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.OWNER;
   const isOwner = userRole === DocumentRole.OWNER;
@@ -114,7 +116,7 @@ function ItemActionsMenu({
                     className="text-[var(--color-primary)] shrink-0"
                     size={14}
                   />
-                  <span>Preview</span>
+                  <span>{intl.formatMessage({ id: "documents.preview" })}</span>
                 </button>
               )}
 
@@ -128,7 +130,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaDownload className="text-emerald-500 shrink-0" size={14} />
-                  <span>Download</span>
+                  <span>{intl.formatMessage({ id: "documents.download" })}</span>
                 </button>
               )}
 
@@ -142,7 +144,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaDownload className="text-emerald-500 shrink-0" size={14} />
-                  <span>Download (ZIP)</span>
+                  <span>{intl.formatMessage({ id: "documents.downloadZip" })}</span>
                 </button>
               )}
 
@@ -156,7 +158,9 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaHistory className="text-indigo-500 shrink-0" size={14} />
-                  <span>Manage Versions</span>
+                  <span>
+                    {intl.formatMessage({ id: "documents.manageVersions" })}
+                  </span>
                 </button>
               )}
 
@@ -170,7 +174,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-blue-600 hover:text-blue-700"
                 >
                   <FaShareAlt className="text-blue-500 shrink-0" size={14} />
-                  <span>Share</span>
+                  <span>{intl.formatMessage({ id: "documents.share" })}</span>
                 </button>
               )}
 
@@ -184,7 +188,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-violet-600 hover:text-violet-700"
                 >
                   <FaPaperPlane className="text-violet-500 shrink-0" size={12} />
-                  <span>Share to Chat</span>
+                  <span>{intl.formatMessage({ id: "documents.shareToChat" })}</span>
                 </button>
               )}
 
@@ -197,7 +201,7 @@ function ItemActionsMenu({
                 className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
               >
                 <FaInfoCircle className="text-slate-500 shrink-0" size={14} />
-                <span>Details</span>
+                <span>{intl.formatMessage({ id: "documents.details" })}</span>
               </button>
 
               {(isOwner || isEditor) && (
@@ -210,7 +214,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaEdit className="text-amber-500 shrink-0" size={14} />
-                  <span>Rename</span>
+                  <span>{intl.formatMessage({ id: "documents.rename" })}</span>
                 </button>
               )}
 
@@ -224,7 +228,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
                 >
                   <FaFolderOpen className="text-teal-500 shrink-0" size={14} />
-                  <span>Move</span>
+                  <span>{intl.formatMessage({ id: "documents.move" })}</span>
                 </button>
               )}
 
@@ -244,7 +248,13 @@ function ItemActionsMenu({
                 ) : (
                   <FaRegStar className="text-amber-400 shrink-0" size={14} />
                 )}
-                <span>{item.isStarred ? "Unstar" : "Star"}</span>
+                <span>
+                  {intl.formatMessage({
+                    id: item.isStarred
+                      ? "documents.unstar"
+                      : "documents.star",
+                  })}
+                </span>
               </button>
 
               {isOwner && (
@@ -257,7 +267,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
                 >
                   <FaTrashAlt className="text-red-500 shrink-0" size={14} />
-                  <span>Move to Trash</span>
+                  <span>{intl.formatMessage({ id: "documents.moveToTrash" })}</span>
                 </button>
               )}
             </>
@@ -273,7 +283,7 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-green-600 hover:bg-green-50/50 transition-colors text-left"
                 >
                   <FaUndo className="text-green-600 shrink-0" size={13} />
-                  <span>Restore</span>
+                  <span>{intl.formatMessage({ id: "documents.restore" })}</span>
                 </button>
               )}
 
@@ -287,7 +297,9 @@ function ItemActionsMenu({
                   className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
                 >
                   <FaTrash className="text-rose-600 shrink-0" size={14} />
-                  <span>Delete Permanently</span>
+                  <span>
+                    {intl.formatMessage({ id: "documents.deletePermanently" })}
+                  </span>
                 </button>
               )}
             </>

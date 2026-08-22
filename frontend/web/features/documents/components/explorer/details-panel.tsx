@@ -4,10 +4,6 @@ import React from "react";
 import { DocumentItem } from "../../types/documents.types";
 import {
   DocumentItemType,
-  ResourceTypeLabel,
-  StarActionLabel,
-  ArchiveActionLabel,
-  DocumentRole,
 } from "../../types/documents.enums";
 import { cn } from "@/lib/utils";
 import {
@@ -33,6 +29,7 @@ import {
 } from "lucide-react";
 import { DocumentIcon } from "../common/document-icon";
 import { toast } from "sonner";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface DetailsPanelProps {
   item: DocumentItem | null;
@@ -53,6 +50,8 @@ function DetailsPanel({
   onArchive,
   onShare,
 }: DetailsPanelProps) {
+  const intl = useAppIntl();
+
   if (!item) return null;
 
   const isFolder = item.type === DocumentItemType.FOLDER;
@@ -62,7 +61,7 @@ function DetailsPanel({
       {/* Header */}
       <div className="flex items-center justify-between border-b border-slate-100 p-5">
         <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">
-          Resource Details
+          {intl.formatMessage({ id: "documents.resourceDetails" })}
         </h3>
         <button
           onClick={onClose}
@@ -86,7 +85,7 @@ function DetailsPanel({
           </span>
           <span className="text-xs text-slate-400 font-semibold mt-1 max-w-[200px]">
             {item.type === DocumentItemType.FOLDER
-              ? ResourceTypeLabel.FOLDER
+              ? intl.formatMessage({ id: "documents.folder" })
               : getFileTypeDescription(item.mimeType, item.name)}
           </span>
         </div>
@@ -97,30 +96,34 @@ function DetailsPanel({
             <div className="flex items-center gap-2 text-[var(--color-primary)] mb-1">
               <Sparkles size={16} className="animate-pulse" />
               <span className="text-xs font-black uppercase tracking-wider">
-                Integrated AI Assistant
+                {intl.formatMessage({ id: "documents.integratedAiAssistant" })}
               </span>
             </div>
 
             <button
               onClick={() =>
-                toast.info("AI is reading the document to summarize it for you...")
+                toast.info(
+                  intl.formatMessage({ id: "documents.aiSummarizing" }),
+                )
               }
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-white hover:bg-slate-50 text-[var(--color-primary)] border border-blue-200/50 px-3 py-2 text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
               <Bot size={14} />
-              <span>Summarize Document with AI</span>
+              <span>
+                {intl.formatMessage({ id: "documents.summarizeWithAi" })}
+              </span>
             </button>
 
             <button
               onClick={() =>
                 toast.info(
-                  "Initializing chatbot Q&A for this document...",
+                  intl.formatMessage({ id: "documents.aiQaInitializing" }),
                 )
               }
               className="flex items-center justify-center gap-2 w-full rounded-xl bg-white hover:bg-slate-50 text-[var(--color-primary)] border border-blue-200/50 px-3 py-2 text-xs font-bold shadow-xs transition-all cursor-pointer"
             >
               <FileText size={14} />
-              <span>Q&A on Document</span>
+              <span>{intl.formatMessage({ id: "documents.qaOnDocument" })}</span>
             </button>
           </div>
         )}
@@ -128,14 +131,14 @@ function DetailsPanel({
         {/* Metadata Properties */}
         <div className="flex flex-col gap-4">
           <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
-            Properties
+            {intl.formatMessage({ id: "documents.properties" })}
           </h4>
 
           <div className="flex items-center gap-3">
             <User size={16} className="text-slate-400" />
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium">
-                Owner
+                {intl.formatMessage({ id: "documents.owner" })}
               </span>
               <span className="text-sm font-semibold text-slate-700 truncate max-w-[200px]">
                 {item.ownerEmail}
@@ -147,7 +150,7 @@ function DetailsPanel({
             <Calendar size={16} className="text-slate-400" />
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium">
-                Uploaded Date
+                {intl.formatMessage({ id: "documents.uploadedDate" })}
               </span>
               <span className="text-sm font-semibold text-slate-700">
                 {formatDateLong(item.createdAt)}
@@ -159,7 +162,7 @@ function DetailsPanel({
             <Layers size={16} className="text-slate-400" />
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium">
-                Size
+                {intl.formatMessage({ id: "documents.size" })}
               </span>
               <span className="text-sm font-semibold text-slate-700">
                 {isFolder ? "--" : formatBytes(item.sizeBytes)}
@@ -172,7 +175,7 @@ function DetailsPanel({
               <FileText size={16} className="text-slate-400" />
               <div className="flex flex-col">
                 <span className="text-xs text-slate-400 font-medium">
-                  File Format
+                  {intl.formatMessage({ id: "documents.fileFormat" })}
                 </span>
                 <span className="text-sm font-semibold text-slate-700">
                   {getFileTypeDescription(item.mimeType, item.name)}

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { NoteResponse } from "../../../types/chat.types";
 import SeeAllButton from "../see-all-button";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface NotesSectionProps {
   isExpanded: boolean;
@@ -18,6 +19,7 @@ export default function NotesSection({
   onToggle,
   onSeeAll,
 }: NotesSectionProps) {
+  const intl = useAppIntl();
   const { activeChat: activeConversation } = useActiveChat();
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -37,7 +39,7 @@ export default function NotesSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <FileText size={18} className="text-gray-500" />
-          Notes
+          {intl.formatMessage({ id: "chat.notes" })}
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -53,7 +55,7 @@ export default function NotesSection({
             </div>
           ) : notes.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              No notes yet
+              {intl.formatMessage({ id: "chat.noNotesYet" })}
             </p>
           ) : (
             <>
@@ -65,7 +67,9 @@ export default function NotesSection({
                     className="p-3 bg-amber-50 border border-amber-100 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors"
                   >
                     <p className="text-xs font-semibold text-amber-900 mb-1 truncate">
-                      {note.title || "Untitled note"} -{" "}
+                      {note.title ||
+                        intl.formatMessage({ id: "chat.untitledNote" })}{" "}
+                      -{" "}
                       {formatDateTime(note.createdAt)}
                     </p>
                     <p className="text-[10px] text-amber-700/80 line-clamp-2">
@@ -75,7 +79,9 @@ export default function NotesSection({
                 ))}
               </div>
               {hasMore && (
-                <SeeAllButton onClick={onSeeAll}>See all</SeeAllButton>
+                <SeeAllButton onClick={onSeeAll}>
+                  {intl.formatMessage({ id: "chat.seeAll" })}
+                </SeeAllButton>
               )}
             </>
           )}

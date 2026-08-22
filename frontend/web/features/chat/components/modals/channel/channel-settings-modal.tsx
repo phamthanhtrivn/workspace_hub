@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -18,6 +20,7 @@ import {
   updateChannelInfo,
   updateChannelSettings,
 } from "@/features/chat/api/channel.api";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelSettingsModalProps {
   channel: ChannelResponse;
@@ -28,6 +31,7 @@ export default function ChannelSettingsModal({
   channel,
   onClose,
 }: ChannelSettingsModalProps) {
+  const intl = useAppIntl();
   const [settings, setSettings] = useState({
     allowSendMessage: channel.setting?.allowSendMessage ?? true,
     allowPinMessage: channel.setting?.allowPinMessage ?? true,
@@ -79,7 +83,7 @@ export default function ChannelSettingsModal({
         const trimmedName = channelName.trim();
         if (trimmedName !== (channel.name || "")) {
           if (!trimmedName) {
-            toast.error("Channel name cannot be empty");
+            toast.error(intl.formatMessage({ id: "chat.channelNameRequired" }));
             setIsSaving(false);
             return;
           }
@@ -87,13 +91,13 @@ export default function ChannelSettingsModal({
         }
       }
 
-      toast.success("Settings updated successfully");
+      toast.success(intl.formatMessage({ id: "chat.settingsUpdated" }));
       queryClient.invalidateQueries({
         queryKey: chatKeys.channels(activeSpaceId),
       });
       onClose();
     } catch {
-      toast.error("Failed to update channel settings");
+      toast.error(intl.formatMessage({ id: "chat.updateChannelSettingsFailed" }));
     } finally {
       setIsSaving(false);
     }
@@ -106,7 +110,7 @@ export default function ChannelSettingsModal({
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200 border border-gray-100 flex flex-col max-h-[85vh]">
         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white shrink-0">
           <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
-            Channel Settings
+            {intl.formatMessage({ id: "chat.channelSettings" })}
           </h2>
           <button
             onClick={onClose}
@@ -124,13 +128,15 @@ export default function ChannelSettingsModal({
               <div className="flex flex-col items-center gap-4">
                 <div className="w-full">
                   <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
-                    Channel Name
+                    {intl.formatMessage({ id: "chat.channelName" })}
                   </label>
                   <input
                     type="text"
                     value={channelName}
                     onChange={(e) => setChannelName(e.target.value)}
-                    placeholder="Enter channel name..."
+                    placeholder={intl.formatMessage({
+                      id: "chat.enterChannelName",
+                    })}
                     className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all text-sm font-medium text-gray-800"
                   />
                 </div>
@@ -142,8 +148,7 @@ export default function ChannelSettingsModal({
                     {channelName}
                   </h3>
                   <p className="text-xs text-gray-500">
-                    Only channel creators, space admins, or the space owner can
-                    update channel settings
+                    {intl.formatMessage({ id: "chat.channelSettingsOwnerOnly" })}
                   </p>
                 </div>
               </div>
@@ -154,32 +159,44 @@ export default function ChannelSettingsModal({
             <div className="p-5 bg-gray-50/50">
               <div className="border border-gray-200 rounded-2xl overflow-hidden divide-y divide-gray-100 shadow-sm">
                 <SettingItem
-                  title="Allow sending messages"
-                  description="Members can send messages in the channel"
+                  title={intl.formatMessage({
+                    id: "chat.allowSendingMessages",
+                  })}
+                  description={intl.formatMessage({
+                    id: "chat.allowSendingMessagesDescription",
+                  })}
                   checked={settings.allowSendMessage}
                   disabled={!canEditSettings}
                   onChange={() => handleToggle("allowSendMessage")}
                   icon={<FiMessageSquare size={18} />}
                 />
                 <SettingItem
-                  title="Allow pinning messages"
-                  description="Members can pin/unpin messages"
+                  title={intl.formatMessage({
+                    id: "chat.allowPinningMessages",
+                  })}
+                  description={intl.formatMessage({
+                    id: "chat.allowPinningMessagesDescription",
+                  })}
                   checked={settings.allowPinMessage}
                   disabled={!canEditSettings}
                   onChange={() => handleToggle("allowPinMessage")}
                   icon={<FiPaperclip size={18} />}
                 />
                 <SettingItem
-                  title="Allow creating polls"
-                  description="Members can create new polls"
+                  title={intl.formatMessage({ id: "chat.allowCreatingPolls" })}
+                  description={intl.formatMessage({
+                    id: "chat.allowCreatingPollsDescription",
+                  })}
                   checked={settings.allowCreatePoll}
                   disabled={!canEditSettings}
                   onChange={() => handleToggle("allowCreatePoll")}
                   icon={<FiBarChart2 size={18} />}
                 />
                 <SettingItem
-                  title="Allow creating notes"
-                  description="Members can create new notes"
+                  title={intl.formatMessage({ id: "chat.allowCreatingNotes" })}
+                  description={intl.formatMessage({
+                    id: "chat.allowCreatingNotesDescription",
+                  })}
                   checked={settings.allowCreateNote}
                   disabled={!canEditSettings}
                   onChange={() => handleToggle("allowCreateNote")}
@@ -195,7 +212,7 @@ export default function ChannelSettingsModal({
             onClick={onClose}
             className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer shadow-sm"
           >
-            Cancel
+            {intl.formatMessage({ id: "app.cancel" })}
           </button>
           {canEditName && (
             <button
@@ -204,11 +221,11 @@ export default function ChannelSettingsModal({
               className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-blue-200"
             >
               {isSaving ? (
-                "Saving..."
+                intl.formatMessage({ id: "app.saving" })
               ) : (
                 <>
                   <FiCheck size={18} />
-                  Save changes
+                  {intl.formatMessage({ id: "app.saveChanges" })}
                 </>
               )}
             </button>

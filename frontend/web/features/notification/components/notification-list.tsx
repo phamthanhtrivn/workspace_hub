@@ -3,6 +3,7 @@
 import React from "react";
 import { Notification } from "../types/notification.types";
 import NotificationItem from "./notification-item";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface NotificationListProps {
   notifications: Notification[];
@@ -10,12 +11,20 @@ interface NotificationListProps {
   isLoading?: boolean;
 }
 
-const NotificationList = React.memo(function NotificationList({ notifications, onItemClick, isLoading }: NotificationListProps) {
+const NotificationList = React.memo(function NotificationList({
+  notifications,
+  onItemClick,
+  isLoading,
+}: NotificationListProps) {
+  const intl = useAppIntl();
+
   if (isLoading && notifications.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500">
         <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-slate-200 border-t-[var(--color-primary)]"></div>
-        <p className="text-sm mt-2 font-medium">Loading...</p>
+        <p className="text-sm mt-2 font-medium">
+          {intl.formatMessage({ id: "notifications.loading" })}
+        </p>
       </div>
     );
   }
@@ -23,7 +32,9 @@ const NotificationList = React.memo(function NotificationList({ notifications, o
   if (notifications.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500">
-        <p className="text-sm font-medium">No notifications</p>
+        <p className="text-sm font-medium">
+          {intl.formatMessage({ id: "notifications.emptyTitle" })}
+        </p>
       </div>
     );
   }

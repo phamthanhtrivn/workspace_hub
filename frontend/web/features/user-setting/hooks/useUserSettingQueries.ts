@@ -10,7 +10,7 @@ import {
   sendPasswordOtp,
   setFirstPassword,
   updatePassword,
-  updatePrivacySettings,
+  updateUserSettings,
   updateUserProfile,
 } from "../api/user-setting.api";
 import {
@@ -20,6 +20,7 @@ import {
 } from "../types/settings.enums";
 import {
   ApiResponse,
+  UpdateUserSettingsRequest,
   UploadAvatarRequest,
   UserProfile,
   UserSettings,
@@ -40,10 +41,11 @@ export const useUserProfileQuery = () =>
     staleTime: USER_SETTING_STALE_TIME_MS,
   });
 
-export const useUserSettingsQuery = () =>
+export const useUserSettingsQuery = (options?: { enabled?: boolean }) =>
   useQuery({
     queryKey: userSettingKeys.settings,
     queryFn: getUserSettings,
+    enabled: options?.enabled ?? true,
     staleTime: USER_SETTING_STALE_TIME_MS,
   });
 
@@ -75,13 +77,13 @@ export const useUpdateUserProfileMutation = () => {
   });
 };
 
-export const useUpdatePrivacySettingsMutation = () => {
+export const useUpdateUserSettingsMutation = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationKey: [UserSettingMutationKey.UPDATE_PRIVACY],
-    mutationFn: updatePrivacySettings,
-    onMutate: async (payload) => {
+    mutationKey: [UserSettingMutationKey.UPDATE_SETTINGS],
+    mutationFn: updateUserSettings,
+    onMutate: async (payload: UpdateUserSettingsRequest) => {
       await queryClient.cancelQueries({ queryKey: userSettingKeys.settings });
 
       const previousSettings =
@@ -97,7 +99,7 @@ export const useUpdatePrivacySettingsMutation = () => {
                 ...current,
                 data: {
                   ...current.data,
-                  allowSearchByEmail: payload.allowSearchByEmail,
+                  ...payload,
                 },
               }
             : current,

@@ -23,6 +23,10 @@ function isPublicPath(pathname: string): boolean {
   );
 }
 
+function shouldRedirectAuthenticatedUser(pathname: string): boolean {
+  return pathname === "/" || pathname === "/login" || pathname === "/register";
+}
+
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -31,18 +35,24 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   const hasInitialized = useRef(false);
 
   useEffect(() => {
+    const replaceIfNeeded = (targetPath: string) => {
+      if (pathname !== targetPath) {
+        router.replace(targetPath);
+      }
+    };
+
     const initializeAuth = async () => {
       const currentToken = store.getState().auth.accessToken;
 
       // 1. If we have already checked authentication on initial mount, skip refreshApi
       if (hasInitialized.current) {
         if (currentToken) {
-          if (PUBLIC_PATHS.includes(pathname)) {
-            router.replace("/dashboard");
+          if (shouldRedirectAuthenticatedUser(pathname)) {
+            replaceIfNeeded("/dashboard");
           }
         } else {
           if (!isPublicPath(pathname)) {
-            router.replace("/login");
+            replaceIfNeeded("/login");
           }
         }
         setIsInitializing(false);
@@ -69,24 +79,24 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
           }),
         );
 
-        if (PUBLIC_PATHS.includes(pathname)) {
-          router.replace("/dashboard");
+        if (shouldRedirectAuthenticatedUser(pathname)) {
+          replaceIfNeeded("/dashboard");
         }
-      } catch (error) {
+      } catch {
         dispatch(clearCredentials());
 
-        try {
-          await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`,
-            {},
-            { withCredentials: true },
-          );
-        } catch (e) {
-          // Ignore logout error
-        }
-
         if (!isPublicPath(pathname)) {
-          router.replace(`/login`);
+          try {
+            await axios.post(
+              `${process.env.NEXT_PUBLIC_API_URL}/api/auth/logout`,
+              {},
+              { withCredentials: true },
+            );
+          } catch {
+            // Ignore logout error
+          }
+
+          replaceIfNeeded("/login");
         }
       } finally {
         hasInitialized.current = true;

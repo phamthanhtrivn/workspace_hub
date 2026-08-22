@@ -3,6 +3,7 @@ import { ArrowLeft, BarChart2, Loader2, Search } from "lucide-react";
 import ViewPollModal from "../../modals/message/view-poll-modal";
 import { usePolls } from "../../../hooks/usePolls";
 import { PollOptionResponse, PollResponse } from "../../../types/chat.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface PollDetailViewProps {
   conversationId: string;
@@ -13,6 +14,7 @@ export default function PollDetailView({
   conversationId,
   onBack,
 }: PollDetailViewProps) {
+  const intl = useAppIntl();
   const [selectedPollId, setSelectedPollId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -43,7 +45,9 @@ export default function PollDetailView({
         >
           <ArrowLeft size={20} />
         </button>
-        <h2 className="font-semibold text-gray-800">Polls</h2>
+        <h2 className="font-semibold text-gray-800">
+          {intl.formatMessage({ id: "chat.polls" })}
+        </h2>
       </div>
 
       <div className="border-b border-gray-100 px-4 py-3 flex-shrink-0">
@@ -56,7 +60,7 @@ export default function PollDetailView({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search polls by title..."
+            placeholder={intl.formatMessage({ id: "chat.searchPollsByTitle" })}
             className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
           />
         </div>
@@ -69,7 +73,9 @@ export default function PollDetailView({
           </div>
         ) : polls.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-4">
-            {searchQuery ? "No matching polls found" : "No polls available"}
+            {searchQuery
+              ? intl.formatMessage({ id: "chat.noMatchingPolls" })
+              : intl.formatMessage({ id: "chat.noPollsAvailable" })}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -85,14 +91,25 @@ export default function PollDetailView({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-purple-900 mb-1">
-                      {poll.title || "Untitled poll"}
+                      {poll.title ||
+                        intl.formatMessage({ id: "chat.untitledPoll" })}
                     </p>
                     <div className="text-xs text-purple-600/70 space-y-1">
-                      <p>{poll.options?.length || 0} options</p>
-                      <p>{getVoteCount(poll)} votes</p>
+                      <p>
+                        {intl.formatMessage(
+                          { id: "chat.optionsCount" },
+                          { count: poll.options?.length || 0 },
+                        )}
+                      </p>
+                      <p>
+                        {intl.formatMessage(
+                          { id: "chat.voteCount" },
+                          { count: getVoteCount(poll) },
+                        )}
+                      </p>
                       {poll.isLocked && (
                         <span className="inline-block mt-1 bg-red-50 text-red-600 px-2 py-0.5 rounded font-medium">
-                          Locked
+                          {intl.formatMessage({ id: "chat.locked" })}
                         </span>
                       )}
                     </div>

@@ -3,6 +3,7 @@ import { User } from "lucide-react";
 import { FaKey } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { UserProfileSnapshotResponse } from "../../types/chat.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MessageAvatarProps {
   showAvatar: boolean;
@@ -21,6 +22,7 @@ export default function MessageAvatar({
   spaceCreatorId,
   onClick,
 }: MessageAvatarProps) {
+  const intl = useAppIntl();
   const isCreator =
     senderProfile?.userId && senderProfile.userId === spaceCreatorId;
 
@@ -33,7 +35,14 @@ export default function MessageAvatar({
         showAvatar &&
           "bg-gradient-to-br from-slate-100 to-slate-200 cursor-pointer hover:ring-2 hover:ring-blue-100 transition-all shadow-sm",
       )}
-      aria-label={showAvatar ? `Open ${senderName} profile` : undefined}
+      aria-label={
+        showAvatar
+          ? intl.formatMessage(
+              { id: "profile.openNamedProfile" },
+              { name: senderName },
+            )
+          : undefined
+      }
     >
       {showAvatar ? (
         <span className="relative inline-block">
@@ -54,14 +63,14 @@ export default function MessageAvatar({
           {isCreator ? (
             <span
               className="absolute -bottom-1 -right-1 bg-amber-500 text-white rounded-full p-0.5 border border-white flex items-center justify-center h-4 w-4 shadow-sm"
-              title="Owner"
+              title={intl.formatMessage({ id: "chat.role.owner" })}
             >
               <FaKey size={8} />
             </span>
           ) : memberRole === "ADMIN" ? (
             <span
               className="absolute -bottom-1 -right-1 bg-slate-400 text-white rounded-full p-0.5 border border-white flex items-center justify-center h-4 w-4 shadow-sm"
-              title="Admin"
+              title={intl.formatMessage({ id: "chat.role.admin" })}
             >
               <FaKey size={8} />
             </span>

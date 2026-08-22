@@ -1,14 +1,18 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, LogIn, UserPlus } from "lucide-react";
+import { LogIn, UserPlus } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function PublicPage() {
+  const intl = useAppIntl();
+
   return (
     <div className="grid min-h-screen grid-cols-1 grid-rows-1 bg-slate-50 selection:bg-[var(--color-primary)] selection:text-white">
-      {/* Background Layer */}
-      <div className="pointer-events-none col-start-1 row-start-1 grid h-full w-full grid-cols-1 grid-rows-1 overflow-hidden min-h-0">
+      <div className="pointer-events-none col-start-1 row-start-1 grid h-full min-h-0 w-full grid-cols-1 grid-rows-1 overflow-hidden">
         <div
-          className="col-start-1 row-start-1 flex w-full justify-center self-start -translate-y-40 transform-gpu blur-3xl sm:-translate-y-80"
+          className="col-start-1 row-start-1 flex w-full -translate-y-40 transform-gpu justify-center self-start blur-3xl sm:-translate-y-80"
           aria-hidden="true"
         >
           <div
@@ -21,7 +25,7 @@ export default function PublicPage() {
         </div>
 
         <div
-          className="col-start-1 row-start-1 flex w-full justify-center self-end translate-y-1/4 transform-gpu blur-3xl"
+          className="col-start-1 row-start-1 flex w-full translate-y-1/4 transform-gpu justify-center self-end blur-3xl"
           aria-hidden="true"
         >
           <div
@@ -34,7 +38,6 @@ export default function PublicPage() {
         </div>
       </div>
 
-      {/* Content Layer */}
       <div className="col-start-1 row-start-1 flex flex-col">
         <header className="z-50 w-full">
           <nav
@@ -54,58 +57,56 @@ export default function PublicPage() {
             <div className="flex flex-1 justify-end gap-x-3 sm:gap-x-4">
               <Link
                 href="/login"
-                className="hidden sm:inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200/50 hover:text-[var(--color-primary-dark)]"
+                className="hidden items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200/50 hover:text-[var(--color-primary-dark)] sm:inline-flex"
               >
-                Đăng nhập
+                {intl.formatMessage({ id: "public.nav.login" })}
               </Link>
               <Link
                 href="/register"
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-4 py-2 sm:px-5 sm:py-2.5 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-semibold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 sm:px-5 sm:py-2.5"
               >
-                Đăng kí
+                {intl.formatMessage({ id: "public.nav.register" })}
               </Link>
             </div>
           </nav>
         </header>
 
-        {/* Hero Section */}
         <main className="isolate flex flex-1 items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl py-12 text-center sm:py-20 lg:py-24">
             <div className="mb-8 flex justify-center">
-              <div className="rounded-full px-3 py-1 text-xs sm:text-sm leading-6 text-slate-600 ring-1 ring-slate-900/10 transition-all hover:ring-slate-900/20 cursor-default">
-                Kỷ nguyên làm việc thông minh.{" "}
+              <div className="cursor-default rounded-full px-3 py-1 text-xs leading-6 text-slate-600 ring-1 ring-slate-900/10 transition-all hover:ring-slate-900/20 sm:text-sm">
+                {intl.formatMessage({ id: "public.badge" })}{" "}
                 <Link
                   href="/register"
                   className="font-semibold text-[var(--color-primary)]"
                 >
-                  Đăng kí ngay <span aria-hidden="true">&rarr;</span>
+                  {intl.formatMessage({ id: "public.badgeCta" })}{" "}
+                  <span aria-hidden="true">&rarr;</span>
                 </Link>
               </div>
             </div>
 
             <h1 className="text-3xl font-black tracking-tight text-[var(--color-primary-dark)] drop-shadow-sm sm:text-5xl md:text-6xl">
-              Nền tảng quản lý công việc thông minh
+              {intl.formatMessage({ id: "public.heroTitle" })}
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-base sm:text-lg leading-7 sm:leading-8 text-slate-600">
-              WorkspaceHub mang đến trải nghiệm quản lý tác vụ, tài liệu và lịch
-              trình học tập tuyệt vời, tích hợp AI để tối ưu hóa hiệu suất của
-              bạn mỗi ngày.
+            <p className="mx-auto mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+              {intl.formatMessage({ id: "public.heroDescription" })}
             </p>
 
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-x-6">
+            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-x-6">
               <Link
                 href="/register"
-                className="inline-flex w-full sm:w-auto h-14 items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-8 text-base font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-1 hover:bg-[var(--color-primary)] active:translate-y-0"
+                className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-8 text-base font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-1 hover:bg-[var(--color-primary)] active:translate-y-0 sm:w-auto"
               >
                 <UserPlus className="h-5 w-5" />
-                Bắt đầu miễn phí
+                {intl.formatMessage({ id: "public.startFree" })}
               </Link>
               <Link
                 href="/login"
-                className="inline-flex w-full sm:w-auto h-14 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 text-base font-bold text-slate-700 shadow-sm transition hover:-translate-y-1 hover:border-slate-300 hover:bg-slate-50 active:translate-y-0"
+                className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-8 text-base font-bold text-slate-700 shadow-sm transition hover:-translate-y-1 hover:border-slate-300 hover:bg-slate-50 active:translate-y-0 sm:w-auto"
               >
                 <LogIn className="h-5 w-5" />
-                Đăng nhập
+                {intl.formatMessage({ id: "public.nav.login" })}
               </Link>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useAppSelector } from "@/store/store";
 import { NotificationType } from "../types/notification.types";
 import { useFlashingDocumentTitle } from "../hooks/useFlashingDocumentTitle";
 import { playNotificationSound } from "../utils/notification-alert.utils";
+import { useNotificationAlertPreference } from "@/features/user-setting/hooks/useNotificationAlertPreference";
 
 const SPACE_NOTIFICATION_TYPES = new Set<string>([
   NotificationType.SPACE_INVITATION,
@@ -19,10 +20,13 @@ export default function SpaceNotificationAlertManager() {
   const notifications = useAppSelector((state) => state.notification.list);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const hasHydratedRef = useRef(false);
-  const mountedAtRef = useRef(Date.now());
+  const mountedAtRef = useRef<number | null>(null);
   const titleAlert = useFlashingDocumentTitle("You have new space notifications!");
+  const shouldRunNotificationAlert = useNotificationAlertPreference();
 
   useEffect(() => {
+    mountedAtRef.current ??= Date.now();
+
     const nextIds = new Set(
       notifications.map((notification) => notification.id),
     );
@@ -37,15 +41,16 @@ export default function SpaceNotificationAlertManager() {
       (notification) =>
         !knownIdsRef.current.has(notification.id) &&
         SPACE_NOTIFICATION_TYPES.has(notification.type) &&
-        new Date(notification.createdAt).getTime() >= mountedAtRef.current,
+        new Date(notification.createdAt).getTime() >=
+          (mountedAtRef.current ?? 0),
     );
     knownIdsRef.current = nextIds;
 
-    if (hasNewNotification) {
+    if (shouldRunNotificationAlert && hasNewNotification) {
       playNotificationSound();
       titleAlert.increment();
     }
-  }, [notifications, titleAlert]);
+  }, [notifications, shouldRunNotificationAlert, titleAlert]);
 
   return null;
 }

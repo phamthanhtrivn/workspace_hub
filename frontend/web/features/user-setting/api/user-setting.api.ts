@@ -6,7 +6,7 @@ import {
   RevokeUserSessionRequest,
   SetFirstPasswordRequest,
   UpdatePasswordRequest,
-  UpdatePrivacySettingsRequest,
+  UpdateUserSettingsRequest,
   UpdateUserProfileRequest,
   UserProfile,
   UserSession,
@@ -40,10 +40,10 @@ export const getUserSettings = async (): Promise<ApiResponse<UserSettings>> => {
   return response.data;
 };
 
-export const updatePrivacySettings = async (
-  data: UpdatePrivacySettingsRequest,
+export const updateUserSettings = async (
+  data: UpdateUserSettingsRequest,
 ): Promise<ApiResponse<UserSettings>> => {
-  const response = await api.put("/api/users/me/settings/privacy", data);
+  const response = await api.patch("/api/users/me/settings", data);
   return response.data;
 };
 

@@ -7,7 +7,7 @@ import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import ChannelMembersList from "./channel-members-list";
 import { useChannelMembersSearch } from "@/features/chat/hooks/useChannelMembersSearch";
-import { CHANNEL_MEMBERS_MODAL_LABELS } from "@/features/chat/types/chat.constant";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelMembersModalProps {
   channelId: string;
@@ -24,6 +24,7 @@ export default function ChannelMembersModal({
   onClose,
   spaceCreatorId,
 }: ChannelMembersModalProps) {
+  const intl = useAppIntl();
   const dispatch = useAppDispatch();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,8 +54,8 @@ export default function ChannelMembersModal({
   const hasMembers = memberList.length > 0;
 
   const modalTitle = useMemo(
-    () => CHANNEL_MEMBERS_MODAL_LABELS.title(memberCount),
-    [memberCount],
+    () => intl.formatMessage({ id: "chat.membersCount" }, { count: memberCount }),
+    [intl, memberCount],
   );
 
   const handleOpenProfile = (userId: string) => {
@@ -74,7 +75,7 @@ export default function ChannelMembersModal({
             type="button"
             onClick={onClose}
             className="cursor-pointer rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            aria-label="Close channel members"
+            aria-label={intl.formatMessage({ id: "chat.closeChannelMembers" })}
           >
             <X size={20} />
           </button>
@@ -89,7 +90,7 @@ export default function ChannelMembersModal({
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={CHANNEL_MEMBERS_MODAL_LABELS.searchPlaceholder}
+              placeholder={intl.formatMessage({ id: "chat.searchMembersByName" })}
               className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-11 pr-4 text-sm font-medium text-gray-700 shadow-sm outline-none transition-all placeholder:text-gray-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
             />
           </label>
@@ -99,11 +100,11 @@ export default function ChannelMembersModal({
           {isLoading ? (
             <div className="flex h-full flex-col items-center justify-center gap-3 text-sm font-medium text-gray-500">
               <Loader2 size={24} className="animate-spin text-blue-500" />
-              <span>{CHANNEL_MEMBERS_MODAL_LABELS.loading}</span>
+              <span>{intl.formatMessage({ id: "chat.loadingMembers" })}</span>
             </div>
           ) : isError ? (
             <div className="flex h-full items-center justify-center text-sm font-medium text-gray-500">
-              {CHANNEL_MEMBERS_MODAL_LABELS.loadError}
+              {intl.formatMessage({ id: "chat.failedLoadChannelMembers" })}
             </div>
           ) : hasMembers ? (
             <div className="space-y-1">
@@ -115,14 +116,14 @@ export default function ChannelMembersModal({
             </div>
           ) : (
             <div className="flex h-full items-center justify-center text-sm font-medium text-gray-500">
-              {CHANNEL_MEMBERS_MODAL_LABELS.empty}
+              {intl.formatMessage({ id: "chat.noMembers" })}
             </div>
           )}
         </div>
 
         {isFetching && !isLoading ? (
           <div className="border-t border-gray-100 bg-white px-6 py-2 text-xs font-medium text-gray-400">
-            {CHANNEL_MEMBERS_MODAL_LABELS.loading}
+            {intl.formatMessage({ id: "chat.loadingMembers" })}
           </div>
         ) : null}
       </div>

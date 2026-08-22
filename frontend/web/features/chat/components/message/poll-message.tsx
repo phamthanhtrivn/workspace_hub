@@ -16,6 +16,7 @@ import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { PollResponse } from "../../types/chat.types";
 import EditPollModal from "../modals/message/edit-poll-modal";
 import PollVotersModal from "../modals/message/poll-voters-modal";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface PollMessageProps {
   poll: PollResponse;
@@ -38,6 +39,7 @@ const PollMessage = React.memo(function PollMessage({
   onAddOption,
   onEditPoll,
 }: PollMessageProps) {
+  const intl = useAppIntl();
   const currentUser = useAppSelector((state) => state.auth);
   const memberProfiles = useChatMemberProfiles();
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -47,7 +49,11 @@ const PollMessage = React.memo(function PollMessage({
   const [isVotersModalOpen, setIsVotersModalOpen] = useState(false);
 
   if (!poll || !poll.options) {
-    return <div className="text-gray-500 italic p-4">Poll unavailable</div>;
+    return (
+      <div className="text-gray-500 italic p-4">
+        {intl.formatMessage({ id: "chat.pollUnavailable" })}
+      </div>
+    );
   }
 
   const isMe = poll.createdBy === currentUser?.userId;
@@ -108,7 +114,7 @@ const PollMessage = React.memo(function PollMessage({
                 {poll.title}
               </h3>
               <div className="flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-                <span>Created by</span>
+                <span>{intl.formatMessage({ id: "chat.createdBy" })}</span>
                 <span className="font-semibold text-slate-600">
                   <span
                     className={`font-semibold ${!isMe ? "cursor-pointer hover:underline" : ""}`}
@@ -117,10 +123,10 @@ const PollMessage = React.memo(function PollMessage({
                     }}
                   >
                     {isMe
-                      ? "You"
+                      ? intl.formatMessage({ id: "chat.you" })
                       : creatorProfile?.fullName ||
                         creatorProfile?.email ||
-                        "User"}
+                        intl.formatMessage({ id: "app.user" })}
                   </span>
                 </span>
                 <span>-</span>
@@ -132,7 +138,7 @@ const PollMessage = React.memo(function PollMessage({
             <button
               onClick={() => setIsEditModalOpen(true)}
               className="cursor-pointer p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors flex-shrink-0"
-              title="Edit poll"
+              title={intl.formatMessage({ id: "chat.editPoll" })}
             >
               <Edit2 size={16} />
             </button>
@@ -179,11 +185,11 @@ const PollMessage = React.memo(function PollMessage({
                       </span>
                       {option.createdBy && (
                         <span className="text-[9px] text-slate-400 font-semibold mt-0.5 uppercase tracking-wide">
-                          Added by:{" "}
+                          {intl.formatMessage({ id: "chat.addedBy" })}{" "}
                           {memberProfiles?.[option.createdBy]?.fullName ||
                             (option.createdBy == currentUser?.userId
-                              ? "You"
-                              : "User")}
+                              ? intl.formatMessage({ id: "chat.you" })
+                              : intl.formatMessage({ id: "app.user" }))}
                         </span>
                       )}
                     </div>
@@ -212,12 +218,17 @@ const PollMessage = React.memo(function PollMessage({
                                     ? "cursor-pointer hover:z-10 hover:scale-105"
                                     : ""
                                 }`}
-                                title={profile?.fullName || "User"}
+                                title={
+                                  profile?.fullName ||
+                                  intl.formatMessage({ id: "app.user" })
+                                }
                               >
                                 {profile?.avatarUrl ? (
                                   <img
                                     src={profile.avatarUrl}
-                                    alt="Avatar"
+                                    alt={intl.formatMessage({
+                                      id: "profile.avatar",
+                                    })}
                                     className="w-full h-full object-cover"
                                   />
                                 ) : (
@@ -232,7 +243,10 @@ const PollMessage = React.memo(function PollMessage({
                         {percentage}%
                       </span>
                       <span className="w-12 text-right text-xs font-extrabold text-slate-800">
-                        {voteCount} {voteCount === 1 ? "vote" : "votes"}
+                        {intl.formatMessage(
+                          { id: "chat.voteCount" },
+                          { count: voteCount },
+                        )}
                       </span>
                     </div>
                   )}
@@ -253,7 +267,9 @@ const PollMessage = React.memo(function PollMessage({
                   type="text"
                   value={newOptionText}
                   onChange={(e) => setNewOptionText(e.target.value)}
-                  placeholder="Enter new option..."
+                  placeholder={intl.formatMessage({
+                    id: "chat.enterNewOption",
+                  })}
                   className="flex-1 px-3.5 py-2 text-xs border border-slate-200 focus:border-blue-500 rounded-xl outline-none transition"
                   autoFocus
                 />
@@ -262,7 +278,7 @@ const PollMessage = React.memo(function PollMessage({
                   disabled={!newOptionText.trim()}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl disabled:opacity-50 transition"
                 >
-                  Add
+                  {intl.formatMessage({ id: "app.add" })}
                 </button>
                 <button
                   type="button"
@@ -272,7 +288,7 @@ const PollMessage = React.memo(function PollMessage({
                   }}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition"
                 >
-                  Cancel
+                  {intl.formatMessage({ id: "app.cancel" })}
                 </button>
               </form>
             ) : (
@@ -280,7 +296,8 @@ const PollMessage = React.memo(function PollMessage({
                 onClick={() => setIsAddingOption(true)}
                 className="flex items-center justify-center gap-1.5 text-xs text-blue-600 font-bold py-2.5 px-3 cursor-pointer rounded-xl bg-slate-50 border border-slate-200/50 hover:bg-blue-50/50 hover:border-blue-200/50 transition-all duration-150 w-full"
               >
-                <Plus size={15} /> Add poll option
+                <Plus size={15} />{" "}
+                {intl.formatMessage({ id: "chat.addPollOption" })}
               </button>
             )}
           </div>
@@ -296,32 +313,39 @@ const PollMessage = React.memo(function PollMessage({
               >
                 <Users size={14} />
                 <span>
-                  {totalUniqueVoters}{" "}
-                  {totalUniqueVoters === 1 ? "voter" : "voters"}
+                  {intl.formatMessage(
+                    { id: "chat.voterCount" },
+                    { count: totalUniqueVoters },
+                  )}
                 </span>
                 <ChevronRight size={13} />
               </button>
             ) : (
               <span className="font-bold text-slate-600">
-                {totalVotes} {totalVotes === 1 ? "vote" : "votes"}{" "}
-                {poll.anonymous ? "(Anonymous)" : ""}
+                {intl.formatMessage(
+                  { id: "chat.voteCount" },
+                  { count: totalVotes },
+                )}{" "}
+                {poll.anonymous
+                  ? intl.formatMessage({ id: "chat.anonymousParenthesized" })
+                  : ""}
               </span>
             )}
             {poll.isLocked && (
               <span className="bg-red-50 text-red-600 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider">
-                Locked
+                {intl.formatMessage({ id: "chat.locked" })}
               </span>
             )}
           </div>
           <div className="flex gap-2">
             {poll.multipleChoice && (
               <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">
-                Multiple choices
+                {intl.formatMessage({ id: "chat.multipleChoices" })}
               </span>
             )}
             {poll.anonymous && (
               <span className="bg-slate-100 text-slate-500 px-2 py-0.5 rounded-lg text-[10px] font-bold">
-                Anonymous
+                {intl.formatMessage({ id: "chat.anonymous" })}
               </span>
             )}
           </div>

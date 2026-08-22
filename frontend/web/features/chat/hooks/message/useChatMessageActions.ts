@@ -20,6 +20,7 @@ import {
   ReactionAction,
 } from "../../types/chat.enums";
 import { useDirectMessageActions } from "../useDirectMessageActions";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export interface UseChatMessageActionsParams {
   conversationId: string | undefined;
@@ -44,6 +45,7 @@ export function useChatMessageActions({
   appendRealtimeMessage,
   scrollToBottom,
 }: UseChatMessageActionsParams) {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const {
     editMessage: editDirectChatMessage,
@@ -84,7 +86,7 @@ export function useChatMessageActions({
           return;
         }
         if (!socket) {
-          toast.error("Chat connection is not ready. Please try again.");
+          toast.error(intl.formatMessage({ id: "chat.connectionNotReady" }));
           return;
         }
         socket.emit(ChatEvent.EDIT_MESSAGE, {
@@ -114,7 +116,7 @@ export function useChatMessageActions({
       }
 
       if (!socket) {
-        toast.error("Chat connection is not ready. Please try again.");
+        toast.error(intl.formatMessage({ id: "chat.connectionNotReady" }));
         return;
       }
       socket.emit(
@@ -138,6 +140,7 @@ export function useChatMessageActions({
     },
     [
       conversationId,
+      intl,
       isDirectConversation,
       editDirectChatMessage,
       sendDirectChatMessage,

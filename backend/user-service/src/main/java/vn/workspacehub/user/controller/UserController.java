@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.workspacehub.user.common.ApiResponse;
+import vn.workspacehub.user.dto.request.UpdateAccountSettingsRequest;
+import vn.workspacehub.user.dto.request.UpdatePrivacyRequest;
 import vn.workspacehub.user.dto.request.RevokeSessionRequest;
 import vn.workspacehub.user.dto.response.AccountSettingResponse;
 import vn.workspacehub.user.dto.response.UserProfileResponse;
@@ -63,15 +65,29 @@ public class UserController {
                 .build());
     }
 
-    @PutMapping("/me/settings/privacy")
-    public ResponseEntity<ApiResponse<Void>> updatePrivacySettings(
+    @PatchMapping("/me/settings")
+    public ResponseEntity<ApiResponse<AccountSettingResponse>> updateAccountSettings(
             @RequestHeader(value = "X-User-Id") UUID userId,
-            @RequestBody vn.workspacehub.user.dto.request.UpdatePrivacyRequest request) {
+            @RequestBody UpdateAccountSettingsRequest request) {
 
-        userService.updatePrivacySettings(userId, request);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
+        AccountSettingResponse settings = userService.updateAccountSettings(userId, request);
+        return ResponseEntity.ok(ApiResponse.<AccountSettingResponse>builder()
+                .success(true)
+                .message("Settings updated successfully")
+                .data(settings)
+                .build());
+    }
+
+    @PutMapping("/me/settings/privacy")
+    public ResponseEntity<ApiResponse<AccountSettingResponse>> updatePrivacySettings(
+            @RequestHeader(value = "X-User-Id") UUID userId,
+            @RequestBody UpdatePrivacyRequest request) {
+
+        AccountSettingResponse settings = userService.updatePrivacySettings(userId, request);
+        return ResponseEntity.ok(ApiResponse.<AccountSettingResponse>builder()
                 .success(true)
                 .message("Privacy settings updated successfully")
+                .data(settings)
                 .build());
     }
 

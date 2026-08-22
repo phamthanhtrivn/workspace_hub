@@ -6,6 +6,19 @@ import { refreshApi } from "@/features/auth/api/auth.api";
 
 const API_ERROR_LOG_THROTTLE_MS = 10_000;
 const apiErrorLogTimes = new Map<string, number>();
+const PUBLIC_PATHS = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/",
+  "/documents/shared",
+];
+
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(path + "/"),
+  );
+}
 
 export function logApiError(error: unknown, context = "API request failed") {
   if (!axios.isAxiosError(error)) {
@@ -71,6 +84,15 @@ const processQueue = (error: unknown | null) => {
   failedQueue = [];
 };
 
+function redirectToLoginIfNeeded() {
+  if (typeof window === "undefined") return;
+
+  const loginPath = "/login";
+  if (isPublicPath(window.location.pathname)) return;
+
+  window.location.assign(loginPath);
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -83,11 +105,13 @@ api.interceptors.response.use(
     }
 
     // Don't try to refresh for auth endpoints themselves
-    if (
-      originalRequest.url?.includes("/api/auth/login") ||
-      originalRequest.url?.includes("/api/auth/register") ||
-      originalRequest.url?.includes("/api/auth/refresh")
-    ) {
+    if (originalRequest.url?.includes("/api/auth/")) {
+      return Promise.reject(error);
+    }
+
+    const hasAuthToken = Boolean(store.getState().auth.accessToken);
+    if (!hasAuthToken) {
+      redirectToLoginIfNeeded();
       return Promise.reject(error);
     }
 
@@ -144,9 +168,7 @@ api.interceptors.response.use(
         console.error("Lỗi xóa cookie:", e);
       }
 
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
+      redirectToLoginIfNeeded();
 
       return Promise.reject(refreshError);
     } finally {

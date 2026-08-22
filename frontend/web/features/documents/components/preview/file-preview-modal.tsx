@@ -9,6 +9,7 @@ import { getPreviewFileType, formatBytes } from "../../utils/documents.utils";
 import { MAX_TEXT_PREVIEW_SIZE } from "../../types/documents.constants";
 import { PreviewContent, PreviewIcon } from "./preview-content";
 import { X, Download } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface FilePreviewModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ function FilePreviewModal({
   item,
   versionId,
 }: FilePreviewModalProps) {
+  const intl = useAppIntl();
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
 
@@ -123,7 +125,10 @@ function FilePreviewModal({
                 {item.name}
               </h3>
               <p className="text-[10px] font-bold text-slate-400 mt-0.5 leading-none">
-                Size: {formatBytes(item.sizeBytes)}
+                {intl.formatMessage(
+                  { id: "documents.sizeValue" },
+                  { size: formatBytes(item.sizeBytes) },
+                )}
               </p>
             </div>
           </div>
@@ -131,7 +136,7 @@ function FilePreviewModal({
             {previewUrl && (
               <button
                 onClick={handleDownload}
-                title="Download"
+                title={intl.formatMessage({ id: "documents.download" })}
                 className="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-all cursor-pointer border border-slate-100"
               >
                 <Download size={16} />
@@ -139,7 +144,7 @@ function FilePreviewModal({
             )}
             <button
               onClick={onClose}
-              title="Close"
+              title={intl.formatMessage({ id: "app.close" })}
               className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all cursor-pointer border border-slate-100"
             >
               <X size={16} />

@@ -11,6 +11,7 @@ import { UserProfileSnapshotResponse } from "../../../types/chat.types";
 import { formatDateTime } from "@/lib/date";
 import { formatMessageContent } from "../../../utils/message-formatter";
 import { RenderableChatMessage } from "../../message/chat-message.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface SearchResultItemProps {
   message: RenderableChatMessage;
@@ -27,14 +28,21 @@ export default function SearchResultItem({
   isDirect,
   onClick,
 }: SearchResultItemProps) {
+  const intl = useAppIntl();
   const profile = message.senderProfile || memberProfiles[message.senderId];
   const isMe = message.senderId === currentUserId;
-  const fullName = isMe ? "You" : profile?.fullName || "User";
+  const fullName = isMe
+    ? intl.formatMessage({ id: "chat.you" })
+    : profile?.fullName || intl.formatMessage({ id: "app.user" });
   const avatarUrl = profile?.avatarUrl;
 
   const renderSnippet = () => {
     if (message.recalled) {
-      return <span className="italic text-gray-500">Message recalled</span>;
+      return (
+        <span className="italic text-gray-500">
+          {intl.formatMessage({ id: "chat.messageRecalled" })}
+        </span>
+      );
     }
     if (message.type === "SYSTEM") {
       return <span className="italic text-gray-500">{message.content}</span>;
@@ -43,7 +51,12 @@ export default function SearchResultItem({
       return (
         <span className="flex items-center gap-1">
           <BarChart2 size={14} className="inline-block" />
-          <span>Poll: {message.poll?.title}</span>
+          <span>
+            {intl.formatMessage(
+              { id: "chat.pollTitle" },
+              { title: message.poll?.title },
+            )}
+          </span>
         </span>
       );
     }
@@ -51,7 +64,7 @@ export default function SearchResultItem({
       return (
         <span className="flex items-center gap-1">
           <FileText size={14} className="inline-block" />
-          <span>Created a note</span>
+          <span>{intl.formatMessage({ id: "chat.createdNote" })}</span>
         </span>
       );
     }
@@ -71,7 +84,15 @@ export default function SearchResultItem({
         return (
           <span className="flex items-center gap-1">
             <ImageIcon size={14} className="inline-block shrink-0" />
-            <span className="truncate">Image: {fileName || "Unnamed"}</span>
+            <span className="truncate">
+              {intl.formatMessage(
+                { id: "chat.imageFile" },
+                {
+                  name:
+                    fileName || intl.formatMessage({ id: "chat.unnamed" }),
+                },
+              )}
+            </span>
           </span>
         );
       }
@@ -79,7 +100,15 @@ export default function SearchResultItem({
         return (
           <span className="flex items-center gap-1">
             <Video size={14} className="inline-block shrink-0" />
-            <span className="truncate">Video: {fileName || "Unnamed"}</span>
+            <span className="truncate">
+              {intl.formatMessage(
+                { id: "chat.videoFile" },
+                {
+                  name:
+                    fileName || intl.formatMessage({ id: "chat.unnamed" }),
+                },
+              )}
+            </span>
           </span>
         );
       }
@@ -87,7 +116,14 @@ export default function SearchResultItem({
       return (
         <span className="flex items-center gap-1">
           <FileText size={14} className="inline-block shrink-0" />
-          <span className="truncate">File: {fileName || "Unnamed"}</span>
+          <span className="truncate">
+            {intl.formatMessage(
+              { id: "chat.genericFile" },
+              {
+                name: fileName || intl.formatMessage({ id: "chat.unnamed" }),
+              },
+            )}
+          </span>
         </span>
       );
     }

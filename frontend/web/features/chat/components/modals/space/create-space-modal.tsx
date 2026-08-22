@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createSpace } from "@/features/chat/api/space.api";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface CreateSpaceModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ export default function CreateSpaceModal({
   onClose,
   onSpaceCreated,
 }: CreateSpaceModalProps) {
+  const intl = useAppIntl();
   const [name, setName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -35,7 +37,7 @@ export default function CreateSpaceModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Please enter a space name");
+      toast.error(intl.formatMessage({ id: "chat.enterSpaceNameError" }));
       return;
     }
 
@@ -43,16 +45,19 @@ export default function CreateSpaceModal({
     try {
       const response = await createSpace(name.trim());
       if (response && response.data) {
-        toast.success("Space created successfully!");
+        toast.success(intl.formatMessage({ id: "chat.spaceCreated" }));
         if (onSpaceCreated) {
           onSpaceCreated(response.data);
         }
         onClose();
       } else {
-        toast.error("Failed to create space");
+        toast.error(intl.formatMessage({ id: "chat.createSpaceFailed" }));
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Error creating space");
+      toast.error(
+        err.response?.data?.message ||
+          intl.formatMessage({ id: "chat.createSpaceError" }),
+      );
     } finally {
       setIsCreating(false);
     }
@@ -65,7 +70,9 @@ export default function CreateSpaceModal({
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-800">Create new space</h2>
+          <h2 className="text-lg font-bold text-gray-800">
+            {intl.formatMessage({ id: "chat.createNewSpace" })}
+          </h2>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition cursor-pointer"
@@ -78,11 +85,13 @@ export default function CreateSpaceModal({
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Your space name
+              {intl.formatMessage({ id: "chat.yourSpaceName" })}
             </label>
             <input
               type="text"
-              placeholder="e.g. Team Software, Team Marketing, ..."
+              placeholder={intl.formatMessage({
+                id: "chat.spaceNamePlaceholder",
+              })}
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={isCreating}
@@ -100,7 +109,7 @@ export default function CreateSpaceModal({
               disabled={isCreating}
               className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
             >
-              Cancel
+              {intl.formatMessage({ id: "app.cancel" })}
             </button>
             <button
               type="submit"
@@ -108,7 +117,7 @@ export default function CreateSpaceModal({
               className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md shadow-blue-100 transition flex items-center gap-1.5 cursor-pointer"
             >
               {isCreating && <Loader2 size={16} className="animate-spin" />}
-              Create space
+              {intl.formatMessage({ id: "chat.createSpace" })}
             </button>
           </div>
         </form>

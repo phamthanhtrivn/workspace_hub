@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, FileText } from "lucide-react";
 import RichTextTextarea from "../../input/rich-text-textarea";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface EditNoteModalProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ export default function EditNoteModal({
   initialContent,
   onSave,
 }: EditNoteModalProps) {
+  const intl = useAppIntl();
   const [mounted, setMounted] = useState(false);
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
@@ -50,7 +52,7 @@ export default function EditNoteModal({
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <FileText size={20} className="text-amber-600" />
-            Edit Note
+            {intl.formatMessage({ id: "chat.editNote" })}
           </h2>
           <button
             onClick={onClose}
@@ -63,13 +65,13 @@ export default function EditNoteModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title
+              {intl.formatMessage({ id: "chat.noteTitle" })}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter title..."
+              placeholder={intl.formatMessage({ id: "chat.enterTitle" })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
               required
             />
@@ -77,12 +79,12 @@ export default function EditNoteModal({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Content
+              {intl.formatMessage({ id: "chat.noteContent" })}
             </label>
             <RichTextTextarea
               value={content}
               setValue={setContent}
-              placeholder="Enter note content..."
+              placeholder={intl.formatMessage({ id: "chat.enterNoteContent" })}
               minHeightClassName="min-h-[150px]"
             />
           </div>
@@ -93,14 +95,14 @@ export default function EditNoteModal({
               onClick={onClose}
               className="px-5 py-2.5 rounded-xl font-medium text-gray-700 hover:bg-gray-100 transition-colors"
             >
-              Cancel
+              {intl.formatMessage({ id: "app.cancel" })}
             </button>
             <button
               type="submit"
               disabled={!title.trim() || !content.trim()}
               className="px-5 py-2.5 rounded-xl font-medium text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
-              Save changes
+              {intl.formatMessage({ id: "app.saveChanges" })}
             </button>
           </div>
         </form>

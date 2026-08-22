@@ -17,33 +17,34 @@ import {
   Pause,
   Archive,
 } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 // ─── Task Status ──────────────────────────────────────────────────────────────
 
 const taskStatusConfig: Record<
   TaskStatus,
-  { label: string; color: string; bg: string; icon: React.ElementType }
+  { labelId: string; color: string; bg: string; icon: React.ElementType }
 > = {
   [TaskStatus.TODO]: {
-    label: "To Do",
+    labelId: "project.task.status.todo",
     color: "text-slate-500",
     bg: "bg-slate-100",
     icon: Circle,
   },
   [TaskStatus.IN_PROGRESS]: {
-    label: "In Progress",
+    labelId: "project.task.status.inProgress",
     color: "text-blue-600",
     bg: "bg-blue-50",
     icon: Loader2,
   },
   [TaskStatus.IN_REVIEW]: {
-    label: "In Review",
+    labelId: "project.task.status.inReview",
     color: "text-amber-600",
     bg: "bg-amber-50",
     icon: Eye,
   },
   [TaskStatus.DONE]: {
-    label: "Done",
+    labelId: "project.task.status.done",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
     icon: CheckCircle2,
@@ -54,28 +55,28 @@ const taskStatusConfig: Record<
 
 const taskPriorityConfig: Record<
   TaskPriority,
-  { label: string; color: string; bg: string; icon: React.ElementType }
+  { labelId: string; color: string; bg: string; icon: React.ElementType }
 > = {
   [TaskPriority.LOW]: {
-    label: "Low",
+    labelId: "project.task.priority.low",
     color: "text-slate-500",
     bg: "bg-slate-100",
     icon: ArrowDown,
   },
   [TaskPriority.MEDIUM]: {
-    label: "Medium",
+    labelId: "project.task.priority.medium",
     color: "text-sky-600",
     bg: "bg-sky-50",
     icon: ArrowRight,
   },
   [TaskPriority.HIGH]: {
-    label: "High",
+    labelId: "project.task.priority.high",
     color: "text-orange-600",
     bg: "bg-orange-50",
     icon: ArrowUp,
   },
   [TaskPriority.URGENT]: {
-    label: "Urgent",
+    labelId: "project.task.priority.urgent",
     color: "text-red-600",
     bg: "bg-red-50",
     icon: Flame,
@@ -86,28 +87,28 @@ const taskPriorityConfig: Record<
 
 const projectStatusConfig: Record<
   ProjectStatus,
-  { label: string; color: string; bg: string; icon: React.ElementType }
+  { labelId: string; color: string; bg: string; icon: React.ElementType }
 > = {
   [ProjectStatus.ACTIVE]: {
-    label: "Active",
+    labelId: "project.status.active",
     color: "text-emerald-600",
     bg: "bg-emerald-50",
     icon: Loader2,
   },
   [ProjectStatus.ON_HOLD]: {
-    label: "On Hold",
+    labelId: "project.status.onHold",
     color: "text-amber-600",
     bg: "bg-amber-50",
     icon: Pause,
   },
   [ProjectStatus.COMPLETED]: {
-    label: "Completed",
+    labelId: "project.status.completed",
     color: "text-blue-600",
     bg: "bg-blue-50",
     icon: CheckCircle2,
   },
   [ProjectStatus.ARCHIVED]: {
-    label: "Archived",
+    labelId: "project.status.archived",
     color: "text-slate-500",
     bg: "bg-slate-100",
     icon: Archive,
@@ -123,6 +124,7 @@ export function TaskStatusBadge({
   status: TaskStatus;
   compact?: boolean;
 }) {
+  const intl = useAppIntl();
   const cfg = taskStatusConfig[status];
   const Icon = cfg.icon;
   return (
@@ -130,7 +132,7 @@ export function TaskStatusBadge({
       className={`inline-flex items-center gap-1.5 ${compact ? "rounded-[3px] px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-1 text-xs"} font-bold ${cfg.bg} ${cfg.color}`}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
-      {cfg.label}
+      {intl.formatMessage({ id: cfg.labelId })}
     </span>
   );
 }
@@ -142,6 +144,7 @@ export function TaskPriorityBadge({
   priority: TaskPriority;
   compact?: boolean;
 }) {
+  const intl = useAppIntl();
   const cfg = taskPriorityConfig[priority];
   const Icon = cfg.icon;
   return (
@@ -149,12 +152,13 @@ export function TaskPriorityBadge({
       className={`inline-flex items-center gap-1.5 ${compact ? "rounded-[3px] px-1 py-0.5 text-[10px]" : "rounded-full px-2.5 py-1 text-xs"} font-bold ${cfg.bg} ${cfg.color}`}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
-      {cfg.label}
+      {intl.formatMessage({ id: cfg.labelId })}
     </span>
   );
 }
 
 export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
+  const intl = useAppIntl();
   const cfg = projectStatusConfig[status];
   const Icon = cfg.icon;
   return (
@@ -162,7 +166,7 @@ export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
       className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.color}`}
     >
       <Icon className="h-3 w-3" strokeWidth={2.5} />
-      {cfg.label}
+      {intl.formatMessage({ id: cfg.labelId })}
     </span>
   );
 }

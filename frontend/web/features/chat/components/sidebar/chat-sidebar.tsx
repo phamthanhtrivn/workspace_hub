@@ -84,12 +84,14 @@ import { canMembersCreateChannels } from "../../utils/space-setting-utils";
 import FollowedThreadsModal, {
   fetchFollowedThreads,
 } from "./followed-threads-modal";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChatSidebarProps {
   onSelectChat?: () => void;
 }
 
 export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
+  const intl = useAppIntl();
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [isCreateSpaceModalOpen, setIsCreateSpaceModalOpen] = useState(false);
@@ -763,7 +765,9 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                       <span className="truncate">{space.name}</span>
                       {hasCollision && space.creatorProfile?.fullName && (
                         <div className="flex gap-1 text-[10px] text-slate-400 font-normal truncate">
-                          <span>created by</span>
+                          <span>
+                            {intl.formatMessage({ id: "chat.createdBy" })}
+                          </span>
                           <span
                             onClick={(e) => {
                               e.stopPropagation();
@@ -786,7 +790,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               })}
               {spaces.length === 0 && (
                 <div className="px-3 py-2 text-xs text-slate-400 italic">
-                  No spaces joined
+                  {intl.formatMessage({ id: "chat.noSpacesJoined" })}
                 </div>
               )}
             </div>
@@ -800,7 +804,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                 className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 rounded-lg flex items-center gap-2 cursor-pointer transition"
               >
                 <PlusCircle size={14} className="text-slate-400" />
-                Create new space
+                {intl.formatMessage({ id: "chat.createNewSpace" })}
               </button>
               {isActiveSpaceAdmin && (
                 <button
@@ -814,7 +818,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                   className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 disabled:opacity-50 disabled:pointer-events-none rounded-lg flex items-center gap-2 cursor-pointer transition"
                 >
                   <Settings size={14} className="text-slate-400" />
-                  Space settings
+                  {intl.formatMessage({ id: "chat.spaceSettings" })}
                 </button>
               )}
             </div>
@@ -833,7 +837,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search..."
+            placeholder={intl.formatMessage({ id: "chat.searchPlaceholder" })}
             className="w-full pl-9 pr-4 py-2 text-xs bg-slate-100/70 border border-transparent focus:border-blue-500/20 focus:ring-4 focus:ring-blue-500/5 rounded-xl outline-none transition-all duration-200"
           />
         </div>
@@ -853,7 +857,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
               ) : (
                 <ChevronRight size={12} />
               )}
-              <span>Channels</span>
+              <span>{intl.formatMessage({ id: "chat.channels" })}</span>
             </button>
             {activeSpaceId && (
               <div className="relative" ref={channelsDropdownRef}>
@@ -862,7 +866,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                     setIsChannelsDropdownOpen(!isChannelsDropdownOpen)
                   }
                   className="p-0.5 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition cursor-pointer"
-                  title="Channel options"
+                  title={intl.formatMessage({ id: "chat.channelOptions" })}
                 >
                   <Plus size={14} />
                 </button>
@@ -876,7 +880,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                       className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
                     >
                       <Globe size={14} className="text-slate-400" />
-                      Browse channels
+                      {intl.formatMessage({ id: "chat.browseChannels" })}
                     </button>
                     {canCreateChannelInActiveSpace && (
                       <button
@@ -887,7 +891,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                         className="w-full text-left px-3 py-2 text-xs hover:bg-slate-50 flex items-center gap-2 transition cursor-pointer"
                       >
                         <Plus size={14} className="text-slate-400" />
-                        Create new channel
+                        {intl.formatMessage({ id: "chat.createNewChannel" })}
                       </button>
                     )}
                   </div>
@@ -904,7 +908,7 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
             >
               {loadingChannels ? (
                 <div className="text-[11px] text-slate-400 italic px-3 py-1">
-                  Loading channels...
+                  {intl.formatMessage({ id: "chat.loadingChannels" })}
                 </div>
               ) : joinedChannels.length > 0 ? (
                 joinedChannels.map((channel: ChannelResponse) => {

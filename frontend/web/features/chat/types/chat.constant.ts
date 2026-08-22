@@ -156,11 +156,3 @@ export enum ChatSidebarSection {
   THREADS = "Threads",
   DIRECT_MESSAGES = "Direct Messages (DMs)",
 }
-
-export const CHANNEL_MEMBERS_MODAL_LABELS = {
-  title: (count: number) => `${count} ${count === 1 ? "member" : "members"}`,
-  searchPlaceholder: "Search members by name",
-  loading: "Loading members...",
-  empty: "No members found",
-  loadError: "Failed to load channel members",
-} as const;

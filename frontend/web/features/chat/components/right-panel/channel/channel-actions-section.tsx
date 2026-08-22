@@ -17,6 +17,7 @@ import {
 import { chatKeys } from "../../../types/chat.constant";
 import { ChannelResponse, SpaceRole } from "../../../types/chat.types";
 import { getErrorMessage } from "../../../types/space-settings/space-settings.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelActionsSectionProps {
   activeChannel: ChannelResponse;
@@ -24,29 +25,12 @@ interface ChannelActionsSectionProps {
   onClose: () => void;
 }
 
-const CHANNEL_ACTION_LABELS = {
-  delete: "Delete channel",
-  deleteFailed: "Failed to delete channel",
-  deleteSuccess: "Channel deleted",
-  deleteTitle: "Delete channel?",
-  deleteConfirm: "Delete",
-  deleteText: "This channel and its messages will be permanently deleted.",
-  leave: "Leave channel",
-  leaveDefault: "Leave space",
-  leaveDefaultDescription:
-    "Leaving the default channel will remove you from this space.",
-  leaveFailed: "Failed to leave channel",
-  leaveSuccess: "Left channel",
-  leaveDefaultSuccess: "Left space",
-  leaveTitle: (label: string) => `${label}?`,
-  cancel: "Cancel",
-} as const;
-
 export default function ChannelActionsSection({
   activeChannel,
   currentUserId,
   onClose,
 }: ChannelActionsSectionProps) {
+  const intl = useAppIntl();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const { data: spaceDetail } = useQuery({
@@ -68,8 +52,8 @@ export default function ChannelActionsSection({
     (isAdmin || (isCreator && allowMemberDeleteOwnChannel));
   const canLeaveChannel = !activeChannel.isDefault || !isAdmin;
   const actionLabel = activeChannel.isDefault
-    ? CHANNEL_ACTION_LABELS.leaveDefault
-    : CHANNEL_ACTION_LABELS.leave;
+    ? intl.formatMessage({ id: "chat.leaveSpace" })
+    : intl.formatMessage({ id: "chat.leaveChannel" });
 
   const invalidateChannelData = () => {
     queryClient.invalidateQueries({
@@ -95,37 +79,50 @@ export default function ChannelActionsSection({
     onSuccess: () => {
       toast.success(
         activeChannel.isDefault
-          ? CHANNEL_ACTION_LABELS.leaveDefaultSuccess
-          : CHANNEL_ACTION_LABELS.leaveSuccess,
+          ? intl.formatMessage({ id: "chat.leftSpace" })
+          : intl.formatMessage({ id: "chat.leftChannel" }),
       );
       resetChannelUi();
     },
     onError: (error) =>
-      toast.error(getErrorMessage(error, CHANNEL_ACTION_LABELS.leaveFailed)),
+      toast.error(
+        getErrorMessage(
+          error,
+          intl.formatMessage({ id: "chat.leaveChannelFailed" }),
+        ),
+      ),
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => disbandChannel(activeChannel.id),
     onSuccess: () => {
-      toast.success(CHANNEL_ACTION_LABELS.deleteSuccess);
+      toast.success(intl.formatMessage({ id: "chat.channelDeleted" }));
       resetChannelUi();
     },
     onError: (error) =>
-      toast.error(getErrorMessage(error, CHANNEL_ACTION_LABELS.deleteFailed)),
+      toast.error(
+        getErrorMessage(
+          error,
+          intl.formatMessage({ id: "chat.deleteChannelFailed" }),
+        ),
+      ),
   });
 
   const confirmLeaveChannel = async () => {
     const result = await Swal.fire({
-      title: CHANNEL_ACTION_LABELS.leaveTitle(actionLabel),
+      title: intl.formatMessage(
+        { id: "chat.confirmActionTitle" },
+        { action: actionLabel },
+      ),
       text: activeChannel.isDefault
-        ? CHANNEL_ACTION_LABELS.leaveDefaultDescription
-        : "Are you sure you want to leave this channel?",
+        ? intl.formatMessage({ id: "chat.leaveDefaultChannelDescription" })
+        : intl.formatMessage({ id: "chat.leaveChannelDescription" }),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#3085d6",
       confirmButtonText: actionLabel,
-      cancelButtonText: CHANNEL_ACTION_LABELS.cancel,
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
     });
 
     if (result.isConfirmed) {
@@ -135,14 +132,14 @@ export default function ChannelActionsSection({
 
   const confirmDeleteChannel = async () => {
     const result = await Swal.fire({
-      title: CHANNEL_ACTION_LABELS.deleteTitle,
-      text: CHANNEL_ACTION_LABELS.deleteText,
+      title: intl.formatMessage({ id: "chat.deleteChannelTitle" }),
+      text: intl.formatMessage({ id: "chat.deleteChannelDescription" }),
       icon: "error",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: CHANNEL_ACTION_LABELS.deleteConfirm,
-      cancelButtonText: CHANNEL_ACTION_LABELS.cancel,
+      confirmButtonText: intl.formatMessage({ id: "app.delete" }),
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
     });
 
     if (result.isConfirmed) {
@@ -165,7 +162,7 @@ export default function ChannelActionsSection({
               className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <LogOut size={15} />
-              {CHANNEL_ACTION_LABELS.leave}
+              {intl.formatMessage({ id: "chat.leaveChannel" })}
             </button>
           )}
           <button
@@ -175,7 +172,7 @@ export default function ChannelActionsSection({
             className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Trash2 size={15} />
-            {CHANNEL_ACTION_LABELS.delete}
+            {intl.formatMessage({ id: "chat.deleteChannel" })}
           </button>
         </div>
       ) : (

@@ -6,6 +6,7 @@ import { ArrowLeft, Eye, EyeOff, KeyRound, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
 import { OtpInput } from "@/components/common/otp-input";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   useResetPasswordMutation,
   useSendResetOtpMutation,
@@ -21,6 +22,7 @@ import {
 } from "../utils/auth-error";
 
 const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
+  const intl = useAppIntl();
   const sendResetOtpMutation = useSendResetOtpMutation();
   const verifyResetOtpMutation = useVerifyResetOtpMutation();
   const resetPasswordMutation = useResetPasswordMutation();
@@ -51,7 +53,10 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
     }
 
     toast.error(
-      getAuthErrorMessage(error, "Something went wrong. Please try again."),
+      getAuthErrorMessage(
+        error,
+        intl.formatMessage({ id: "auth.genericError" }),
+      ),
     );
   };
 
@@ -63,7 +68,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
       { email },
       {
         onSuccess: () => {
-          toast.success("A verification code has been sent to your email.");
+          toast.success(intl.formatMessage({ id: "auth.codeSentSuccess" }));
           setStep(ForgotPasswordStep.OTP);
         },
         onError: handleApiError,
@@ -80,7 +85,9 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
       {
         onSuccess: (response) => {
           setResetToken(response.data.resetToken);
-          toast.success("Verification successful.");
+          toast.success(
+            intl.formatMessage({ id: "auth.verificationSuccess" }),
+          );
           setStep(ForgotPasswordStep.PASSWORD);
         },
         onError: handleApiError,
@@ -93,7 +100,9 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
     setErrors({});
 
     if (newPassword !== confirmPassword) {
-      setErrors({ confirmPassword: "Password confirmation does not match" });
+      setErrors({
+        confirmPassword: intl.formatMessage({ id: "auth.passwordMismatch" }),
+      });
       return;
     }
 
@@ -101,7 +110,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
       { email, resetToken, newPassword },
       {
         onSuccess: () => {
-          toast.success("Password updated successfully.");
+          toast.success(intl.formatMessage({ id: "auth.passwordUpdated" }));
           window.location.href = AuthRouteTarget.LOGIN;
         },
         onError: handleApiError,
@@ -148,7 +157,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
           className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-800 transition cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back
+          {intl.formatMessage({ id: "auth.back" })}
         </button>
       )}
 
@@ -162,13 +171,14 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="email"
               className="text-sm font-semibold text-slate-700"
             >
-              Email <span className="text-red-500">*</span>
+              {intl.formatMessage({ id: "auth.email" })}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <InputField
               id="email"
               type="email"
               icon={Mail}
-              placeholder="Enter your email"
+              placeholder={intl.formatMessage({ id: "auth.emailPlaceholder" })}
               value={email}
               error={errors.email}
               onChange={handleEmailChange}
@@ -179,7 +189,9 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {sendResetOtpMutation.isPending ? "Sending..." : "Send reset code"}
+            {sendResetOtpMutation.isPending
+              ? intl.formatMessage({ id: "auth.sending" })
+              : intl.formatMessage({ id: "auth.sendResetCode" })}
           </button>
         </form>
       )}
@@ -195,10 +207,10 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                 <KeyRound className="w-6 h-6" />
               </div>
               <h3 className="text-lg font-bold text-slate-800">
-                Enter verification code
+                {intl.formatMessage({ id: "auth.enterVerificationCode" })}
               </h3>
               <p className="text-sm text-slate-500 mt-1">
-                The 6-digit code was sent to
+                {intl.formatMessage({ id: "auth.codeSentTo" })}
                 <br />
                 <span className="font-semibold text-slate-800">{email}</span>
               </p>
@@ -220,7 +232,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
 
             <div className="text-center text-sm">
               <span className="text-slate-500">
-                Did not receive the code?{" "}
+                {intl.formatMessage({ id: "auth.didNotReceiveCode" })}{" "}
               </span>
               <button
                 type="button"
@@ -228,7 +240,7 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
                 className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] cursor-pointer"
                 disabled={isLoading}
               >
-                Resend
+                {intl.formatMessage({ id: "auth.resend" })}
               </button>
             </div>
           </div>
@@ -237,7 +249,9 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             disabled={isLoading || otp.length < 6}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {verifyResetOtpMutation.isPending ? "Verifying..." : "Verify"}
+            {verifyResetOtpMutation.isPending
+              ? intl.formatMessage({ id: "auth.verifying" })
+              : intl.formatMessage({ id: "auth.verify" })}
           </button>
         </form>
       )}
@@ -252,13 +266,16 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="newPassword"
               className="text-sm font-semibold text-slate-700"
             >
-              New password <span className="text-red-500">*</span>
+              {intl.formatMessage({ id: "auth.newPassword" })}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <InputField
               id="newPassword"
               type={showPassword ? "text" : "password"}
               icon={Lock}
-              placeholder="Enter a new password"
+              placeholder={intl.formatMessage({
+                id: "auth.newPasswordPlaceholder",
+              })}
               value={newPassword}
               error={errors.newPassword}
               onChange={handleNewPasswordChange}
@@ -278,13 +295,16 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
               htmlFor="confirmPassword"
               className="text-sm font-semibold text-slate-700"
             >
-              Confirm password <span className="text-red-500">*</span>
+              {intl.formatMessage({ id: "auth.confirmPassword" })}{" "}
+              <span className="text-red-500">*</span>
             </label>
             <InputField
               id="confirmPassword"
               type={showConfirmPassword ? "text" : "password"}
               icon={Lock}
-              placeholder="Re-enter your new password"
+              placeholder={intl.formatMessage({
+                id: "auth.confirmNewPasswordPlaceholder",
+              })}
               value={confirmPassword}
               error={errors.confirmPassword}
               onChange={handleConfirmPasswordChange}
@@ -303,19 +323,21 @@ const ForgotPasswordForm = React.memo(function ForgotPasswordForm() {
             disabled={isLoading}
             className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-md transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:translate-y-0 disabled:hover:shadow-md cursor-pointer"
           >
-            {resetPasswordMutation.isPending ? "Updating..." : "Update password"}
+            {resetPasswordMutation.isPending
+              ? intl.formatMessage({ id: "auth.updating" })
+              : intl.formatMessage({ id: "auth.updatePassword" })}
           </button>
         </form>
       )}
 
       {step === ForgotPasswordStep.EMAIL && (
         <p className="mt-8 text-center text-sm text-slate-500">
-          Remembered your password?{" "}
+          {intl.formatMessage({ id: "auth.rememberedPassword" })}{" "}
           <Link
             href={AuthRouteTarget.LOGIN}
             className="font-bold text-[var(--color-primary)] transition hover:text-[var(--color-primary-dark)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] underline"
           >
-            Back to sign in
+            {intl.formatMessage({ id: "auth.backToSignIn" })}
           </Link>
         </p>
       )}

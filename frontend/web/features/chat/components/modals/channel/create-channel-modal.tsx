@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X, Loader2, Hash } from "lucide-react";
 import { toast } from "sonner";
 import { createChannel } from "@/features/chat/api/space.api";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface CreateChannelModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export default function CreateChannelModal({
   spaceId,
   onChannelCreated,
 }: CreateChannelModalProps) {
+  const intl = useAppIntl();
   const [name, setName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -37,12 +39,12 @@ export default function CreateChannelModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      toast.error("Please enter a channel name");
+      toast.error(intl.formatMessage({ id: "chat.enterChannelNameError" }));
       return;
     }
 
     if (!spaceId) {
-      toast.error("Space information not found");
+      toast.error(intl.formatMessage({ id: "chat.spaceInfoNotFound" }));
       return;
     }
 
@@ -54,7 +56,7 @@ export default function CreateChannelModal({
       .replace(/[^a-z0-9-_]/g, "");
 
     if (!formattedName) {
-      toast.error("Invalid channel name");
+      toast.error(intl.formatMessage({ id: "chat.invalidChannelName" }));
       return;
     }
 
@@ -62,16 +64,19 @@ export default function CreateChannelModal({
     try {
       const response = await createChannel(spaceId, formattedName);
       if (response && response.data) {
-        toast.success("Channel created successfully!");
+        toast.success(intl.formatMessage({ id: "chat.channelCreated" }));
         if (onChannelCreated) {
           onChannelCreated(response.data);
         }
         onClose();
       } else {
-        toast.error("Failed to create channel");
+        toast.error(intl.formatMessage({ id: "chat.createChannelFailed" }));
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Error creating channel");
+      toast.error(
+        err.response?.data?.message ||
+          intl.formatMessage({ id: "chat.createChannelError" }),
+      );
     } finally {
       setIsCreating(false);
     }
@@ -85,7 +90,7 @@ export default function CreateChannelModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800">
-            Create new channel
+            {intl.formatMessage({ id: "chat.createNewChannel" })}
           </h2>
           <button
             onClick={onClose}
@@ -99,7 +104,7 @@ export default function CreateChannelModal({
         <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              Channel name
+              {intl.formatMessage({ id: "chat.channelName" })}
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -107,7 +112,9 @@ export default function CreateChannelModal({
               </span>
               <input
                 type="text"
-                placeholder="e.g. sports, news, ..."
+                placeholder={intl.formatMessage({
+                  id: "chat.channelNamePlaceholder",
+                })}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isCreating}
@@ -117,8 +124,7 @@ export default function CreateChannelModal({
               />
             </div>
             <p className="text-[11px] text-gray-400">
-              Channels are where members discuss specific topics. Channel names
-              will be lowercase and spaces will be replaced with dashes.
+              {intl.formatMessage({ id: "chat.channelNameHelp" })}
             </p>
           </div>
 
@@ -130,7 +136,7 @@ export default function CreateChannelModal({
               disabled={isCreating}
               className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
             >
-              Cancel
+              {intl.formatMessage({ id: "app.cancel" })}
             </button>
             <button
               type="submit"
@@ -138,7 +144,7 @@ export default function CreateChannelModal({
               className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md shadow-blue-100 transition flex items-center gap-1.5 cursor-pointer"
             >
               {isCreating && <Loader2 size={16} className="animate-spin" />}
-              Create channel
+              {intl.formatMessage({ id: "chat.createChannel" })}
             </button>
           </div>
         </form>

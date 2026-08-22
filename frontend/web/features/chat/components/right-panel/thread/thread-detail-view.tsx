@@ -48,6 +48,7 @@ import { renderMessageContent } from "../../../utils/message-formatter";
 import MediaLightbox from "../../message/media-lightbox";
 import MessageAvatar from "../../message/message-avatar";
 import { toast } from "sonner";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ThreadDetailViewProps {
   rootMessage: ChatMessageResponse;
@@ -93,6 +94,7 @@ export default function ThreadDetailView({
   isDirect = false,
   onBack,
 }: ThreadDetailViewProps) {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
   const { sendMessage: sendDirectThreadReply } = useDirectMessageActions();
@@ -199,15 +201,15 @@ export default function ThreadDetailView({
       });
       toast.success(
         following
-          ? "Following: you will receive notifications for this thread"
-          : "Unfollowed this thread",
+          ? intl.formatMessage({ id: "chat.followingThreadNotifications" })
+          : intl.formatMessage({ id: "chat.unfollowedThread" }),
       );
     } catch {
       setFollowOverride({
         threadId: rootMessage.id,
         isFollowing: !nextFollowingState,
       });
-      toast.error("Failed to change follow status");
+      toast.error(intl.formatMessage({ id: "chat.failedChangeFollowStatus" }));
     }
   };
 
@@ -378,13 +380,15 @@ export default function ThreadDetailView({
             chatInputRef.current?.focus();
           }
         })
-        .catch(() => toast.error("Failed to send reply"));
+        .catch(() =>
+          toast.error(intl.formatMessage({ id: "chat.failedSendReply" })),
+        );
       return;
     }
 
     if (!socket || !rootChatId) return;
     if (!canReplyInThread) {
-      toast.error("Only administrators can reply in this thread");
+      toast.error(intl.formatMessage({ id: "chat.onlyAdminsCanReplyThread" }));
       return;
     }
 
@@ -406,7 +410,10 @@ export default function ThreadDetailView({
           return;
         }
 
-        toast.error(response?.message || "Failed to send reply");
+        toast.error(
+          response?.message ||
+            intl.formatMessage({ id: "chat.failedSendReply" }),
+        );
       },
     );
   };
@@ -539,12 +546,18 @@ export default function ThreadDetailView({
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Thread Discussion</h2>
+        <h2 className="font-semibold text-gray-800">
+          {intl.formatMessage({ id: "chat.threadDiscussion" })}
+        </h2>
         <div className="flex items-center gap-2">
           <button
             onClick={handleToggleFollow}
             className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer"
-            title={isFollowing ? "Following this thread" : "Follow this thread"}
+            title={
+              isFollowing
+                ? intl.formatMessage({ id: "chat.followingThisThread" })
+                : intl.formatMessage({ id: "chat.followThisThread" })
+            }
           >
             <Bell
               size={18}
@@ -572,7 +585,7 @@ export default function ThreadDetailView({
           <div className="flex items-start gap-3">
             <MessageAvatar
               showAvatar={true}
-              senderName={rootProfile?.fullName || "User"}
+              senderName={rootProfile?.fullName || intl.formatMessage({ id: "app.user" })}
               senderProfile={rootProfile}
               memberRole={
                 activeChat?.members?.find(
@@ -589,7 +602,7 @@ export default function ThreadDetailView({
             <div className="flex-1 min-w-0">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="font-bold text-xs text-gray-900 truncate">
-                  {rootProfile?.fullName || "User"}
+                  {rootProfile?.fullName || intl.formatMessage({ id: "app.user" })}
                 </span>
                 <span className="text-[10px] text-gray-400">
                   {formatDateTime(rootMessage.createdAt)}
@@ -602,21 +615,26 @@ export default function ThreadDetailView({
                     memberProfiles ?? undefined,
                   )
                 ) : (
-                  <span className="text-gray-400 italic">[Attachment]</span>
+                  <span className="text-gray-400 italic">
+                    {intl.formatMessage({ id: "chat.attachment" })}
+                  </span>
                 )}
                 {renderThreadMessageMedias(rootMessage)}
               </div>
             </div>
           </div>
           <div className="mt-2 pl-11 text-[10px] font-semibold text-gray-500">
-            {replies.length} replies
+            {intl.formatMessage(
+              { id: "chat.repliesCount" },
+              { count: replies.length },
+            )}
           </div>
         </div>
 
         {/* Loading / Replies */}
         {isLoading ? (
           <div className="text-center text-xs text-gray-400 py-4">
-            Loading comments...
+            {intl.formatMessage({ id: "chat.loadingComments" })}
           </div>
         ) : (
           <div className="space-y-4">
@@ -626,7 +644,7 @@ export default function ThreadDetailView({
                 <div key={reply.id} className="flex items-start gap-3">
                   <MessageAvatar
                     showAvatar={true}
-                    senderName={profile?.fullName || "User"}
+                    senderName={profile?.fullName || intl.formatMessage({ id: "app.user" })}
                     senderProfile={profile}
                     memberRole={
                       activeChat?.members?.find(
@@ -643,7 +661,7 @@ export default function ThreadDetailView({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between mb-0.5">
                       <span className="font-bold text-xs text-gray-700 truncate">
-                        {profile?.fullName || "User"}
+                        {profile?.fullName || intl.formatMessage({ id: "app.user" })}
                       </span>
                       <span className="text-[9px] text-gray-400">
                         {formatDateTime(reply.createdAt)}
@@ -670,7 +688,7 @@ export default function ThreadDetailView({
       ) : (
         <div className="w-full border-t border-gray-200 bg-white p-3">
           <div className="flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-500">
-            Only administrators can reply in this thread
+            {intl.formatMessage({ id: "chat.onlyAdminsCanReplyThread" })}
           </div>
         </div>
       )}

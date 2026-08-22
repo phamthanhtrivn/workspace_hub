@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MessageCircle, Send, X } from "lucide-react";
 import type { Task } from "@/features/project/types/project";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function TaskChatDialog({
   task,
@@ -11,6 +12,7 @@ export default function TaskChatDialog({
   task: Task | null;
   onClose: () => void;
 }) {
+  const intl = useAppIntl();
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<
     Array<{ id: number; content: string; time: string }>
@@ -26,7 +28,7 @@ export default function TaskChatDialog({
       {
         id: Date.now(),
         content,
-        time: new Date().toLocaleTimeString("vi-VN", {
+        time: new Date().toLocaleTimeString(intl.locale, {
           hour: "2-digit",
           minute: "2-digit",
         }),
@@ -49,7 +51,7 @@ export default function TaskChatDialog({
             <MessageCircle className="h-4 w-4 shrink-0 text-blue-600" />
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Chat của task
+                {intl.formatMessage({ id: "project.task.chatTitle" })}
               </p>
               <h2 className="truncate text-sm font-black text-[#172B4D]">
                 {task.title}
@@ -60,7 +62,7 @@ export default function TaskChatDialog({
             type="button"
             onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-            aria-label="Đóng chat"
+            aria-label={intl.formatMessage({ id: "project.task.closeChat" })}
           >
             <X className="h-4 w-4" />
           </button>
@@ -70,11 +72,10 @@ export default function TaskChatDialog({
             <div className="flex h-full flex-col items-center justify-center text-center">
               <MessageCircle className="h-9 w-9 text-slate-300" />
               <p className="mt-3 text-xs font-bold text-slate-500">
-                Chưa có tin nhắn
+                {intl.formatMessage({ id: "project.task.noChatMessages" })}
               </p>
               <p className="mt-1 max-w-xs text-[11px] font-semibold text-slate-400">
-                Đây là giao diện chat mẫu cho Task/Subtask. Tin nhắn chưa kết
-                nối backend.
+                {intl.formatMessage({ id: "project.task.chatMockHelp" })}
               </p>
             </div>
           ) : (
@@ -105,7 +106,9 @@ export default function TaskChatDialog({
                 }
               }}
               rows={2}
-              placeholder="Nhập tin nhắn..."
+              placeholder={intl.formatMessage({
+                id: "project.task.messagePlaceholder",
+              })}
               className="min-h-10 flex-1 resize-none rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium outline-none focus:border-blue-500"
             />
             <button
@@ -113,13 +116,13 @@ export default function TaskChatDialog({
               onClick={handleSend}
               disabled={!message.trim()}
               className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Gửi"
+              aria-label={intl.formatMessage({ id: "chat.send" })}
             >
               <Send className="h-4 w-4" />
             </button>
           </div>
           <p className="mt-1.5 text-[10px] font-semibold text-slate-400">
-            Enter để gửi · Shift + Enter xuống dòng
+            {intl.formatMessage({ id: "project.task.chatEnterHint" })}
           </p>
         </div>
       </div>

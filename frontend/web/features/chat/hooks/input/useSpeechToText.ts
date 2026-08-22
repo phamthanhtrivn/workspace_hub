@@ -2,12 +2,14 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface UseSpeechToTextProps {
   onTranscript: (finalText: string) => void;
 }
 
 export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
+  const intl = useAppIntl();
   const [isDictating, setIsDictating] = useState(false);
   const [interimMessage, setInterimMessage] = useState("");
   const recognitionRef = useRef<any>(null);
@@ -51,21 +53,20 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
           console.error("Speech recognition error", event.error);
           resetDictationState();
 
-          const errorMessages: Record<string, string> = {
-            network:
-              "Speech recognition service is unavailable. Please check your connection and try again.",
-            "not-allowed":
-              "Microphone permission is blocked. Please allow microphone access and try again.",
-            "service-not-allowed":
-              "Speech recognition is blocked by the browser or network policy.",
-            "no-speech": "No speech was detected. Please try speaking again.",
-            "audio-capture":
-              "No microphone was detected. Please check your audio input.",
+          const errorMessageIds: Record<string, string> = {
+            network: "chat.speechNetworkError",
+            "not-allowed": "chat.microphonePermissionBlocked",
+            "service-not-allowed": "chat.speechServiceBlocked",
+            "no-speech": "chat.noSpeechDetected",
+            "audio-capture": "chat.noMicrophoneDetected",
           };
 
           toast.error(
-            errorMessages[event.error] ||
-              "Speech recognition stopped unexpectedly.",
+            intl.formatMessage({
+              id:
+                errorMessageIds[event.error] ||
+                "chat.speechRecognitionStopped",
+            }),
           );
         };
 
@@ -76,7 +77,7 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
         recognitionRef.current = recognition;
       }
     }
-  }, [onTranscript, resetDictationState]);
+  }, [intl, onTranscript, resetDictationState]);
 
   const stopDictation = useCallback(() => {
     if (!recognitionRef.current || !isDictatingRef.current) return;
@@ -91,7 +92,9 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
 
   const startDictation = useCallback(() => {
     if (!recognitionRef.current) {
-      toast.error("Your browser does not support speech recognition.");
+      toast.error(
+        intl.formatMessage({ id: "chat.speechRecognitionNotSupported" }),
+      );
       return false;
     }
 
@@ -103,10 +106,10 @@ export function useSpeechToText({ onTranscript }: UseSpeechToTextProps) {
     } catch (error) {
       console.error("Error starting speech recognition:", error);
       resetDictationState();
-      toast.error("Speech recognition is already running. Please try again.");
+      toast.error(intl.formatMessage({ id: "chat.speechAlreadyRunning" }));
       return false;
     }
-  }, [resetDictationState]);
+  }, [intl, resetDictationState]);
 
   const toggleDictation = useCallback(() => {
     if (isDictatingRef.current) {

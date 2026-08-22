@@ -12,6 +12,7 @@ import { saveAs } from "file-saver";
 import { formatFileSize } from "@/lib/file";
 import { formatDateTime } from "@/lib/date";
 import SeeAllButton from "../see-all-button";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface FilesSectionProps {
   isExpanded: boolean;
@@ -64,6 +65,7 @@ export default function FilesSection({
   onSeeAll,
   onOpenPreview,
 }: FilesSectionProps) {
+  const intl = useAppIntl();
   const displayItems = files.slice(0, 5);
   const hasMore = files.length > 5;
 
@@ -87,7 +89,7 @@ export default function FilesSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <FileText size={18} className="text-gray-500" />
-          Files
+          {intl.formatMessage({ id: "chat.files" })}
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -100,7 +102,7 @@ export default function FilesSection({
         <div className="px-4 pb-4">
           {files.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              No files available
+              {intl.formatMessage({ id: "chat.noFilesAvailable" })}
             </p>
           ) : (
             <>
@@ -141,7 +143,7 @@ export default function FilesSection({
                       <span
                         onClick={(e) => handleDownload(e, item)}
                         className="rounded-md p-1.5 text-gray-400 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
-                        title="Download"
+                        title={intl.formatMessage({ id: "documents.download" })}
                       >
                         <Download size={15} />
                       </span>
@@ -150,7 +152,9 @@ export default function FilesSection({
                 ))}
               </div>
               {hasMore && (
-                <SeeAllButton onClick={onSeeAll}>See all files</SeeAllButton>
+                <SeeAllButton onClick={onSeeAll}>
+                  {intl.formatMessage({ id: "chat.seeAllFiles" })}
+                </SeeAllButton>
               )}
             </>
           )}

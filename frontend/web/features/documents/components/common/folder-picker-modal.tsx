@@ -7,6 +7,7 @@ import { Folder, ChevronRight, X, Loader2 } from "lucide-react";
 import { DocumentItemType, NavigationLabel } from "../../types/documents.enums";
 import { DocumentItem } from "../../types/documents.types";
 import { cn } from "@/lib/utils";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface FolderPickerModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ function FolderPickerModal({
   initialFolderId = null,
   initialPath,
 }: FolderPickerModalProps) {
+  const intl = useAppIntl();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
   const [path, setPath] = useState<{ id: string | null; name: string }[]>(
     initialPath || [{ id: null, name: NavigationLabel.ROOT }],
@@ -81,11 +83,12 @@ function FolderPickerModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 p-5">
           <h3 className="text-lg font-bold text-slate-800">
-            Move Resource
+            {intl.formatMessage({ id: "documents.moveResource" })}
           </h3>
           <button
             onClick={onClose}
             className="cursor-pointer rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors"
+            aria-label={intl.formatMessage({ id: "app.close" })}
           >
             <X size={20} />
           </button>
@@ -117,13 +120,13 @@ function FolderPickerModal({
                 className="animate-spin text-[var(--color-primary)] mb-2"
                 size={24}
               />
-              <span>Loading folders...</span>
+              <span>{intl.formatMessage({ id: "documents.loadingFolders" })}</span>
             </div>
           ) : folders.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center py-10 text-slate-400">
               <Folder size={32} className="text-slate-200 mb-2" />
               <span className="text-sm font-medium">
-                No subfolders here
+                {intl.formatMessage({ id: "documents.noSubfolders" })}
               </span>
             </div>
           ) : (
@@ -151,13 +154,13 @@ function FolderPickerModal({
             onClick={onClose}
             className="cursor-pointer rounded-xl px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 transition-colors"
           >
-            Cancel
+            {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             onClick={() => onSelect(currentFolderId)}
             className="cursor-pointer rounded-xl bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] px-5 py-2 text-sm font-bold text-white shadow-md shadow-blue-500/10 hover:shadow-lg transition-all"
           >
-            Move here
+            {intl.formatMessage({ id: "documents.moveHere" })}
           </button>
         </div>
       </div>

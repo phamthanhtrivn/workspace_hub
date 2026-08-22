@@ -3,6 +3,7 @@
 import React from "react";
 import { UploadCloud, Loader2, CheckCircle2 } from "lucide-react";
 import { UploadState } from "../../types/documents.enums";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface VersionUploaderProps {
   uploadState: UploadState;
@@ -21,6 +22,16 @@ export function VersionUploader({
   onFileChange,
   onTriggerFileSelect,
 }: VersionUploaderProps) {
+  const intl = useAppIntl();
+  const uploadStatusMessageIds: Partial<Record<UploadState, string>> = {
+    [UploadState.INITIATING]: "documents.upload.initiating",
+    [UploadState.UPLOADING]: "documents.uploadingToStorage",
+    [UploadState.CONFIRMING]: "documents.confirmingNewVersion",
+    [UploadState.SUCCESS]: "documents.versionUploadedSuccessfully",
+    [UploadState.ERROR]: "documents.uploadErrorOccurred",
+  };
+  const statusMessageId = uploadStatusMessageIds[uploadState];
+
   return (
     <div className="mb-6">
       <input
@@ -38,10 +49,10 @@ export function VersionUploader({
             <UploadCloud size={24} />
           </div>
           <span className="text-sm font-black text-slate-700">
-            Upload a new version
+            {intl.formatMessage({ id: "documents.uploadNewVersion" })}
           </span>
           <span className="text-xs text-slate-400 font-bold mt-1">
-            Old versions will be kept safely
+            {intl.formatMessage({ id: "documents.oldVersionsKeptSafely" })}
           </span>
         </div>
       ) : (
@@ -74,16 +85,7 @@ export function VersionUploader({
             />
           </div>
           <p className="text-[10px] text-slate-400 font-bold mt-2">
-            {uploadState === UploadState.INITIATING &&
-              "Initiating upload..."}
-            {uploadState === UploadState.UPLOADING &&
-              "Uploading file to storage..."}
-            {uploadState === UploadState.CONFIRMING &&
-              "Confirming new version..."}
-            {uploadState === UploadState.SUCCESS &&
-              "Version uploaded successfully!"}
-            {uploadState === UploadState.ERROR &&
-              "Error occurred during upload."}
+            {statusMessageId ? intl.formatMessage({ id: statusMessageId }) : null}
           </p>
         </div>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
-import { Bell, Check, Loader2 } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import {
   setNotifications,
@@ -22,6 +22,7 @@ import NotificationList from "@/features/notification/components/notification-li
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
 import { logApiError } from "@/lib/interceptors";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 // Renderers
 import {
@@ -68,6 +69,7 @@ if (!isRegistryInitialized) {
 }
 
 const NotificationDropdown = React.memo(function NotificationDropdown() {
+  const intl = useAppIntl();
   const dispatch = useAppDispatch();
   const {
     list: notifications,
@@ -169,7 +171,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             ? "border-indigo-300 text-indigo-600 bg-indigo-50"
             : "border-slate-200 text-slate-600 hover:bg-slate-50"
         }`}
-        aria-label="Notifications"
+        aria-label={intl.formatMessage({ id: "header.notifications" })}
       >
         <Bell size={22} className={isOpen ? "fill-indigo-100" : ""} />
         {unreadCount > 0 && (
@@ -182,13 +184,16 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       {isOpen && (
         <div className="absolute right-[-48] z-90 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-            <h3 className="font-black text-slate-800 text-base">Thông báo</h3>
+            <h3 className="font-black text-slate-800 text-base">
+              {intl.formatMessage({ id: "notifications.title" })}
+            </h3>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllAsRead}
                 className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition cursor-pointer"
               >
-                <Check size={14} /> Đánh dấu tất cả đã đọc
+                <Check size={14} />
+                {intl.formatMessage({ id: "notifications.markAllRead" })}
               </button>
             )}
           </div>
@@ -202,7 +207,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                   : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
-              Tất cả
+              {intl.formatMessage({ id: "notifications.all" })}
             </button>
             <button
               onClick={() => setTab("UNREAD")}
@@ -212,7 +217,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                   : "border-transparent text-slate-500 hover:text-slate-700"
               }`}
             >
-              Chưa đọc
+              {intl.formatMessage({ id: "notifications.unread" })}
               {unreadCount > 0 && (
                 <span
                   className={`px-1.5 py-0.5 rounded-full text-[10px] ${tab === "UNREAD" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}
@@ -233,7 +238,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
 
           <div className="p-2 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
             <button className="w-full py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition cursor-pointer">
-              Xem tất cả thông báo
+              {intl.formatMessage({ id: "notifications.viewAll" })}
             </button>
           </div>
         </div>

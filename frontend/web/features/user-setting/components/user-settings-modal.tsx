@@ -9,6 +9,7 @@ import PasswordTab from "./password-tab";
 import { UserSettingTab } from "../types/settings.enums";
 import { useUserProfileQuery } from "../hooks/useUserSettingQueries";
 import { cn } from "@/lib/utils";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 type UserSettingsModalProps = {
   isOpen: boolean;
@@ -21,6 +22,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
   onClose,
   initialTab = UserSettingTab.PROFILE,
 }: UserSettingsModalProps) {
+  const intl = useAppIntl();
   const [activeTab, setActiveTab] = useState<UserSettingTab>(
     initialTab ?? UserSettingTab.PROFILE,
   );
@@ -40,11 +42,13 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
       <div className="flex h-full max-h-[550px] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 md:flex-row">
         <div className="w-full border-b border-slate-100 bg-slate-50 p-4 md:w-56 md:border-b-0 md:border-r">
           <div className="mb-6 flex items-center justify-between md:mb-8">
-            <h2 className="text-lg font-black text-slate-800">Settings</h2>
+            <h2 className="text-lg font-black text-slate-800">
+              {intl.formatMessage({ id: "settings.title" })}
+            </h2>
             <button
               onClick={onClose}
               className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-600 md:hidden"
-              aria-label="Close settings"
+              aria-label={intl.formatMessage({ id: "settings.close" })}
             >
               <X className="h-5 w-5" />
             </button>
@@ -62,7 +66,9 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               )}
             >
               <User className="h-5 w-5 md:h-4 md:w-4" />
-              <span className="text-xs font-bold md:text-sm">Account</span>
+              <span className="text-xs font-bold md:text-sm">
+                {intl.formatMessage({ id: "settings.account" })}
+              </span>
             </button>
             <button
               onClick={() => setActiveTab(UserSettingTab.GENERAL)}
@@ -75,7 +81,9 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               )}
             >
               <Settings className="h-5 w-5 md:h-4 md:w-4" />
-              <span className="text-xs font-bold md:text-sm">Preferences</span>
+              <span className="text-xs font-bold md:text-sm">
+                {intl.formatMessage({ id: "settings.preferences" })}
+              </span>
             </button>
             <button
               onClick={() => setActiveTab(UserSettingTab.SESSION)}
@@ -88,7 +96,9 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
               )}
             >
               <Shield className="h-5 w-5 md:h-4 md:w-4" />
-              <span className="text-xs font-bold md:text-sm">Security</span>
+              <span className="text-xs font-bold md:text-sm">
+                {intl.formatMessage({ id: "settings.security" })}
+              </span>
             </button>
             <button
               onClick={() => setActiveTab(UserSettingTab.PASSWORD)}
@@ -106,7 +116,9 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
                   <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white" />
                 )}
               </span>
-              <span className="text-xs font-bold md:text-sm">Password</span>
+              <span className="text-xs font-bold md:text-sm">
+                {intl.formatMessage({ id: "settings.password" })}
+              </span>
             </button>
           </nav>
         </div>
@@ -115,7 +127,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
           <button
             onClick={onClose}
             className="absolute right-6 top-6 hidden rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:block cursor-pointer"
-            aria-label="Close settings"
+            aria-label={intl.formatMessage({ id: "settings.close" })}
           >
             <X className="h-5 w-5" />
           </button>

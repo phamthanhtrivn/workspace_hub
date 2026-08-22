@@ -6,6 +6,7 @@ import {
 } from "@/features/chat/types/chat.types";
 import { User } from "lucide-react";
 import { FaKey } from "react-icons/fa";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelMemberRowProps {
   member: ChannelMemberListItem;
@@ -13,17 +14,17 @@ interface ChannelMemberRowProps {
   spaceCreatorId?: string | null;
 }
 
-function getDisplayName(member: ChannelMemberListItem) {
+function getDisplayName(member: ChannelMemberListItem, fallback: string) {
   return (
     member.nickname ||
     member.profile?.fullName ||
     member.profile?.email ||
-    "Unknown user"
+    fallback
   );
 }
 
-function getInitial(member: ChannelMemberListItem) {
-  return getDisplayName(member).charAt(0).toUpperCase();
+function getInitial(member: ChannelMemberListItem, fallback: string) {
+  return getDisplayName(member, fallback).charAt(0).toUpperCase();
 }
 
 export default function ChannelMemberRow({
@@ -31,7 +32,9 @@ export default function ChannelMemberRow({
   onOpenProfile,
   spaceCreatorId,
 }: ChannelMemberRowProps) {
-  const displayName = getDisplayName(member);
+  const intl = useAppIntl();
+  const unknownUser = intl.formatMessage({ id: "chat.unknownUser" });
+  const displayName = getDisplayName(member, unknownUser);
   const isAdmin = member.role === SpaceRole.ADMIN;
   const isCreator = member.userId === spaceCreatorId;
 
@@ -50,20 +53,20 @@ export default function ChannelMemberRow({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span>{getInitial(member) || <User size={16} />}</span>
+            <span>{getInitial(member, unknownUser) || <User size={16} />}</span>
           )}
         </div>
         {isCreator ? (
           <span
             className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
-            title="Owner"
+            title={intl.formatMessage({ id: "chat.role.owner" })}
           >
             <FaKey size={8} />
           </span>
         ) : isAdmin ? (
           <span
             className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
-            title="Admin"
+            title={intl.formatMessage({ id: "chat.role.admin" })}
           >
             <FaKey size={8} />
           </span>
@@ -77,7 +80,7 @@ export default function ChannelMemberRow({
           </span>
           {isAdmin ? (
             <span className="shrink-0 rounded-full border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-blue-600">
-              Admin
+              {intl.formatMessage({ id: "chat.role.admin" })}
             </span>
           ) : null}
         </span>

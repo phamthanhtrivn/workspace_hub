@@ -1,18 +1,9 @@
-import React from "react";
-import {
-  CheckCircle2,
-  MessageSquare,
-  Pin,
-  Settings,
-  StickyNote,
-  BarChart2,
-  XCircle,
-} from "lucide-react";
+import { Settings } from "lucide-react";
 import { ChannelResponse } from "../../../types/chat.types";
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../../api/chat.api";
 import { chatKeys } from "../../../types/chat.constant";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelSettingsSectionProps {
   activeChannel: ChannelResponse;
@@ -25,6 +16,7 @@ export default function ChannelSettingsSection({
   currentUserId,
   onOpenSettings,
 }: ChannelSettingsSectionProps) {
+  const intl = useAppIntl();
   const { data: spaceDetail } = useQuery({
     queryKey: chatKeys.spaceDetails(activeChannel.spaceId || ""),
     queryFn: async () => (await getSpaceDetails(activeChannel.spaceId!)).data,
@@ -50,7 +42,7 @@ export default function ChannelSettingsSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <Settings size={18} className="text-gray-500" />
-          Channel Settings
+          {intl.formatMessage({ id: "chat.channelSettings" })}
         </div>
       </button>
       <div className="h-px bg-gray-100 mx-4 my-1" />

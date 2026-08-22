@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X, Plus, Trash2 } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface CreatePollModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const intl = useAppIntl();
   const [title, setTitle] = useState("");
   const [options, setOptions] = useState<string[]>(["", ""]);
   const [multipleChoice, setMultipleChoice] = useState(true);
@@ -71,7 +73,9 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Create Poll</h2>
+          <h2 className="text-xl font-bold text-gray-800">
+            {intl.formatMessage({ id: "chat.createPoll" })}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
@@ -83,13 +87,13 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Poll Question
+              {intl.formatMessage({ id: "chat.pollQuestion" })}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ask a question..."
+              placeholder={intl.formatMessage({ id: "chat.askQuestion" })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               required
             />
@@ -97,7 +101,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
 
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">
-              Options
+              {intl.formatMessage({ id: "chat.options" })}
             </label>
             {options.map((option, index) => (
               <div key={index} className="flex items-center gap-2">
@@ -105,7 +109,10 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                   type="text"
                   value={option}
                   onChange={(e) => handleOptionChange(index, e.target.value)}
-                  placeholder={`Option ${index + 1}`}
+                  placeholder={intl.formatMessage(
+                    { id: "chat.optionNumber" },
+                    { number: index + 1 },
+                  )}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                   required={index < 2}
                 />
@@ -125,7 +132,8 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
               onClick={handleAddOption}
               className="flex items-center gap-2 text-blue-600 hover:text-blue-700 text-sm font-medium p-2 rounded-lg hover:bg-blue-50 transition-colors"
             >
-              <Plus size={16} /> Add option
+              <Plus size={16} />{" "}
+              {intl.formatMessage({ id: "chat.addOption" })}
             </button>
           </div>
 
@@ -138,7 +146,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">
-                Allow multiple choices
+                {intl.formatMessage({ id: "chat.allowMultipleChoices" })}
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -149,7 +157,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">
-                Allow others to add options
+                {intl.formatMessage({ id: "chat.allowOthersAddOptions" })}
               </span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
@@ -159,7 +167,9 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
                 onChange={(e) => setAnonymous(e.target.checked)}
                 className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-700">Anonymous poll</span>
+              <span className="text-sm text-gray-700">
+                {intl.formatMessage({ id: "chat.anonymousPoll" })}
+              </span>
             </label>
           </div>
 
@@ -171,7 +181,7 @@ const CreatePollModal: React.FC<CreatePollModalProps> = ({
               }
               className="cursor-pointer w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create poll
+              {intl.formatMessage({ id: "chat.createPoll" })}
             </button>
           </div>
         </form>

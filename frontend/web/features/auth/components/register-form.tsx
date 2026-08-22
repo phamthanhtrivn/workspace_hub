@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import InputField from "@/components/common/input-field";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useRegisterMutation } from "../hooks/useAuthMutations";
 import { AuthRouteTarget } from "../types/auth.constants";
 import {
@@ -21,6 +22,7 @@ import {
 } from "../utils/auth-error";
 
 const RegisterForm = React.memo(function RegisterForm() {
+  const intl = useAppIntl();
   const router = useRouter();
   const registerMutation = useRegisterMutation();
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -54,7 +56,7 @@ const RegisterForm = React.memo(function RegisterForm() {
 
     if (formData.password !== formData.confirmPassword) {
       setErrors({
-        confirmPassword: "Password confirmation does not match",
+        confirmPassword: intl.formatMessage({ id: "auth.passwordMismatch" }),
       });
       return;
     }
@@ -87,7 +89,12 @@ const RegisterForm = React.memo(function RegisterForm() {
             return;
           }
 
-          toast.error(getAuthErrorMessage(error, "Registration failed"));
+          toast.error(
+            getAuthErrorMessage(
+              error,
+              intl.formatMessage({ id: "auth.registrationFailed" }),
+            ),
+          );
         },
       },
     );
@@ -98,7 +105,8 @@ const RegisterForm = React.memo(function RegisterForm() {
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-700">
-            Full name <span className="text-red-500">*</span>
+            {intl.formatMessage({ id: "auth.fullName" })}{" "}
+            <span className="text-red-500">*</span>
           </label>
 
           <InputField
@@ -114,7 +122,8 @@ const RegisterForm = React.memo(function RegisterForm() {
 
         <div className="space-y-2">
           <label className="text-sm font-semibold text-slate-700">
-            Date of birth <span className="text-red-500">*</span>
+            {intl.formatMessage({ id: "auth.dateOfBirth" })}{" "}
+            <span className="text-red-500">*</span>
           </label>
 
           <InputField
@@ -131,7 +140,8 @@ const RegisterForm = React.memo(function RegisterForm() {
 
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-700">
-          Email <span className="text-red-500">*</span>
+          {intl.formatMessage({ id: "auth.email" })}{" "}
+          <span className="text-red-500">*</span>
         </label>
 
         <InputField
@@ -147,14 +157,15 @@ const RegisterForm = React.memo(function RegisterForm() {
 
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-700">
-          Password <span className="text-red-500">*</span>
+          {intl.formatMessage({ id: "auth.password" })}{" "}
+          <span className="text-red-500">*</span>
         </label>
 
         <InputField
           id="password"
           type={showPassword ? "text" : "password"}
           icon={Lock}
-          placeholder="Enter your password"
+          placeholder={intl.formatMessage({ id: "auth.passwordPlaceholder" })}
           value={formData.password}
           error={errors.password}
           onChange={handleChange}
@@ -171,14 +182,17 @@ const RegisterForm = React.memo(function RegisterForm() {
 
       <div className="space-y-2">
         <label className="text-sm font-semibold text-slate-700">
-          Confirm password <span className="text-red-500">*</span>
+          {intl.formatMessage({ id: "auth.confirmPassword" })}{" "}
+          <span className="text-red-500">*</span>
         </label>
 
         <InputField
           id="confirmPassword"
           type={showConfirmPassword ? "text" : "password"}
           icon={Lock}
-          placeholder="Re-enter your password"
+          placeholder={intl.formatMessage({
+            id: "auth.confirmPasswordPlaceholder",
+          })}
           value={formData.confirmPassword}
           error={errors.confirmPassword}
           onChange={handleChange}
@@ -199,7 +213,9 @@ const RegisterForm = React.memo(function RegisterForm() {
         className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[var(--color-primary-dark)] px-5 text-sm font-bold text-white shadow-[0_16px_32px_rgba(15,40,84,0.22)] transition hover:-translate-y-0.5 hover:bg-[var(--color-primary)] disabled:opacity-70"
       >
         <UserPlus className="h-4 w-4" />
-        {registerMutation.isPending ? "Creating account..." : "Create account"}
+        {registerMutation.isPending
+          ? intl.formatMessage({ id: "auth.creatingAccount" })
+          : intl.formatMessage({ id: "auth.register" })}
       </button>
     </form>
   );

@@ -9,6 +9,7 @@ import { NoteResponse } from "@/features/chat/types/chat.types";
 import NoteMessage from "../../message/note-message";
 import { socketService } from "@/features/chat/api/chat-socket.service";
 import { ChatEvent } from "@/features/chat/api/chat.events";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ViewNoteModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export default function ViewNoteModal({
   note,
   conversationId,
 }: ViewNoteModalProps) {
+  const intl = useAppIntl();
   const [mounted, setMounted] = useState(false);
   const dispatch = useAppDispatch();
 
@@ -36,7 +38,9 @@ export default function ViewNoteModal({
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Note Details</h2>
+          <h2 className="text-xl font-bold text-gray-800">
+            {intl.formatMessage({ id: "chat.noteDetails" })}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 cursor-pointer"

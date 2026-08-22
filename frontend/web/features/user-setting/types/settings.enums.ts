@@ -17,7 +17,7 @@ export enum UserSettingQueryKey {
 export enum UserSettingMutationKey {
   UPDATE_PROFILE = "user-setting-update-profile",
   UPLOAD_AVATAR = "user-setting-upload-avatar",
-  UPDATE_PRIVACY = "user-setting-update-privacy",
+  UPDATE_SETTINGS = "user-setting-update-settings",
   REVOKE_SESSION = "user-setting-revoke-session",
   UPDATE_PASSWORD = "user-setting-update-password",
   SET_FIRST_PASSWORD = "user-setting-set-first-password",
@@ -30,8 +30,8 @@ export enum UserTheme {
 }
 
 export enum UserLanguage {
-  EN = "en",
-  VI = "vi",
+  ENGLISH = "en",
+  VIETNAMESE = "vi",
 }
 
 export enum UserTimezone {

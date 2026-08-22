@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DownloadStatus } from "@/features/documents/types/documents.enums";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,7 @@ export function DownloadQueueProvider({
 }: {
   children: React.ReactNode;
 }) {
+  const intl = useAppIntl();
   const [tasks, setTasks] = useState<DownloadTask[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const taskIdRef = useRef(0);
@@ -161,8 +163,11 @@ export function DownloadQueueProvider({
             <Download size={15} className="text-blue-400 shrink-0" />
             <span className="text-sm font-bold text-white">
               {activeCount > 0
-                ? `Downloading ${activeCount} items...`
-                : `Completed`}
+                ? intl.formatMessage(
+                    { id: "documents.downloadingItems" },
+                    { count: activeCount },
+                  )
+                : intl.formatMessage({ id: "documents.downloadCompleted" })}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -178,7 +183,7 @@ export function DownloadQueueProvider({
                 }}
                 className="text-[10px] font-bold text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded hover:bg-slate-700 transition-colors cursor-pointer"
               >
-                Clear all
+                {intl.formatMessage({ id: "documents.clearAll" })}
               </button>
             )}
             <button
@@ -219,6 +224,7 @@ function DownloadTaskRow({
   task: DownloadTask;
   onRemove: (id: string) => void;
 }) {
+  const intl = useAppIntl();
   const isIndeterminate = task.progress === -1;
 
   return (
@@ -241,6 +247,7 @@ function DownloadTaskRow({
             task.status === DownloadStatus.ERROR) && (
             <button
               onClick={() => onRemove(task.id)}
+              aria-label={intl.formatMessage({ id: "documents.removeDownload" })}
               className="text-slate-500 hover:text-slate-300 transition-colors"
             >
               <X size={13} />

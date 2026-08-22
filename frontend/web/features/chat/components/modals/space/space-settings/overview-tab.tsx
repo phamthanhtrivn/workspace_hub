@@ -1,5 +1,5 @@
 import { SpaceResponse } from "@/features/chat/types/chat.types";
-import { SPACE_SETTINGS_LABELS } from "@/features/chat/types/space-settings/space-settings.constants";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface OverviewTabProps {
   detail: SpaceResponse;
@@ -22,22 +22,24 @@ export function OverviewTab({
   onSpaceNameChange,
   onSave,
 }: OverviewTabProps) {
+  const intl = useAppIntl();
+
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-3">
         <OverviewStat
-          label="Members"
+          label={intl.formatMessage({ id: "chat.members" })}
           value={isLoadingDetails ? "-" : (detail.memberCount ?? 0)}
         />
         <OverviewStat
-          label="Channels"
+          label={intl.formatMessage({ id: "chat.channels" })}
           value={isLoadingDetails ? "-" : (detail.channelCount ?? 0)}
         />
         <OverviewStat
-          label="Created"
+          label={intl.formatMessage({ id: "chat.created" })}
           value={
             detail.createdAt
-              ? new Date(detail.createdAt).toLocaleDateString()
+              ? new Date(detail.createdAt).toLocaleDateString(intl.locale)
               : "-"
           }
           compact
@@ -46,7 +48,7 @@ export function OverviewTab({
 
       <div className="space-y-2">
         <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-          Space name
+          {intl.formatMessage({ id: "chat.spaceName" })}
         </label>
         <div className="flex gap-2">
           <input
@@ -69,8 +71,8 @@ export function OverviewTab({
               className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               {isSaving
-                ? SPACE_SETTINGS_LABELS.saving
-                : SPACE_SETTINGS_LABELS.save}
+                ? intl.formatMessage({ id: "app.saving" })
+                : intl.formatMessage({ id: "app.save" })}
             </button>
           )}
         </div>

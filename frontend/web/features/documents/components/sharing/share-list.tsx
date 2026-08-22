@@ -9,11 +9,7 @@ import { DocumentShare } from "../../types/documents.types";
 import { SharePermission } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import { useBulkUserProfilesByEmailsQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
-import {
-  PERMISSION_ROLE_LABELS,
-  PERMISSION_ROLE_SHARE,
-} from "../../types/documents.constants";
-import { GoDotFill } from "react-icons/go";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ShareModalListProps {
   documentItemId: string;
@@ -32,6 +28,7 @@ export function ShareModalList({
   onShareUpdated,
   isOwner = false,
 }: ShareModalListProps) {
+  const intl = useAppIntl();
   // Collect all emails to fetch profiles in bulk
   const allEmails = useMemo(() => {
     const emails = new Set<string>();
@@ -72,7 +69,12 @@ export function ShareModalList({
     mutationFn: ({ shareId }: { shareId: string; email: string }) =>
       documentsApi.removeShare(documentItemId, shareId),
     onSuccess: (_, variables) => {
-      toast.success(`Revoked access for ${variables.email}`);
+      toast.success(
+        intl.formatMessage(
+          { id: "documents.revokedAccessFor" },
+          { email: variables.email },
+        ),
+      );
       queryClient.invalidateQueries({
         queryKey: ["document-sharing", documentItemId],
       });
@@ -80,7 +82,7 @@ export function ShareModalList({
     },
     onError: (err) => {
       console.error("Failed to remove share", err);
-      toast.error("Failed to revoke access");
+      toast.error(intl.formatMessage({ id: "documents.revokeAccessFailed" }));
     },
   });
 
@@ -93,7 +95,12 @@ export function ShareModalList({
       permission: SharePermission;
     }) => documentsApi.addShare(documentItemId, email, permission),
     onSuccess: (_, variables) => {
-      toast.success(`Updated permission for ${variables.email}`);
+      toast.success(
+        intl.formatMessage(
+          { id: "documents.updatedPermissionFor" },
+          { email: variables.email },
+        ),
+      );
       queryClient.invalidateQueries({
         queryKey: ["document-sharing", documentItemId],
       });
@@ -101,7 +108,9 @@ export function ShareModalList({
     },
     onError: (err) => {
       console.error("Failed to update permission", err);
-      toast.error("Failed to update access permission");
+      toast.error(
+        intl.formatMessage({ id: "documents.updateAccessPermissionFailed" }),
+      );
     },
   });
 
@@ -120,11 +129,20 @@ export function ShareModalList({
   );
 
   const ownerProfile = profilesMap.get(ownerEmail.toLowerCase());
+  const permissionLabel = (permission: SharePermission | "OWNER") =>
+    intl.formatMessage({
+      id:
+        permission === "OWNER"
+          ? "documents.permission.owner"
+          : permission === SharePermission.EDITOR
+            ? "documents.permission.editor"
+            : "documents.permission.viewer",
+    });
 
   return (
     <div className="space-y-3">
       <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-        People with access
+        {intl.formatMessage({ id: "documents.peopleWithAccess" })}
       </h4>
       <div className="divide-y divide-slate-50 border border-slate-100 rounded-2xl p-2 max-h-64 overflow-y-auto bg-white">
         {/* Owner Item */}
@@ -153,7 +171,7 @@ export function ShareModalList({
             </div>
           </div>
           <span className="text-[10px] font-black text-slate-400 bg-slate-100 rounded-lg px-2 py-1 uppercase tracking-wide">
-            {PERMISSION_ROLE_LABELS["OWNER"]}
+            {permissionLabel("OWNER")}
           </span>
         </div>
 
@@ -208,13 +226,11 @@ export function ShareModalList({
                         }
                         className="bg-transparent hover:bg-slate-50 border-0 rounded-lg py-1 px-1.5 text-xs font-black text-slate-500 hover:text-slate-700 outline-hidden transition-all cursor-pointer"
                       >
-                        {Object.entries(PERMISSION_ROLE_SHARE).map(
-                          ([value, label]) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ),
-                        )}
+                        {Object.values(SharePermission).map((value) => (
+                          <option key={value} value={value}>
+                            {permissionLabel(value)}
+                          </option>
+                        ))}
                       </select>
                       <button
                         onClick={() =>
@@ -227,7 +243,7 @@ export function ShareModalList({
                     </>
                   ) : (
                     <span className="text-[10px] font-black text-slate-400 bg-slate-100 rounded-lg px-2.5 py-1 uppercase tracking-wide">
-                      {PERMISSION_ROLE_LABELS[share.permission]}
+                      {permissionLabel(share.permission)}
                     </span>
                   )}
                 </div>
