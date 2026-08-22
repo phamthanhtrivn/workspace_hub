@@ -15,6 +15,7 @@ import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { toast } from "sonner";
 import { VersionUploader } from "./version-uploader";
 import { VersionHistoryTable } from "./version-history-table";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface VersionManagementModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ function VersionManagementModal({
   isPublic = false,
   onVersionUploaded,
 }: VersionManagementModalProps) {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
@@ -74,13 +76,17 @@ function VersionManagementModal({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        toast.success("Version download initiated successfully");
+        toast.success(
+          intl.formatMessage({ id: "documents.versionDownloadStarted" }),
+        );
       } catch (err) {
         console.error("Failed to download version", err);
-        toast.error("Error creating version download link");
+        toast.error(
+          intl.formatMessage({ id: "documents.versionDownloadLinkFailed" }),
+        );
       }
     },
-    [item, isPublic],
+    [item, isPublic, intl],
   );
 
   const uploadVersionMutation = useMutation({
@@ -106,7 +112,9 @@ function VersionManagementModal({
     },
     onSuccess: () => {
       setUploadState(UploadState.SUCCESS);
-      toast.success(`New version uploaded successfully!`);
+      toast.success(
+        intl.formatMessage({ id: "documents.newVersionUploaded" }),
+      );
 
       // Invalidate queries to refresh lists and quota
       void queryClient.invalidateQueries({
@@ -131,7 +139,7 @@ function VersionManagementModal({
       const errMsg =
         err.response?.data?.message ||
         err.message ||
-        "Failed to upload new version";
+        intl.formatMessage({ id: "documents.uploadNewVersionFailed" });
       toast.error(errMsg);
       setTimeout(() => {
         setUploadState(UploadState.IDLE);
@@ -165,7 +173,7 @@ function VersionManagementModal({
             </div>
             <div>
               <h3 className="text-base font-black text-slate-800 leading-tight">
-                Version Management
+                {intl.formatMessage({ id: "documents.versionManagement" })}
               </h3>
               <p className="text-xs text-slate-400 font-bold mt-0.5 truncate max-w-lg">
                 {item.name}

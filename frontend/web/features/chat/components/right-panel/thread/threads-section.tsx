@@ -16,6 +16,7 @@ import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import SeeAllButton from "../see-all-button";
 import { logApiError } from "@/lib/interceptors";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ThreadsSectionProps {
   conversationId: string;
@@ -34,6 +35,7 @@ export default function ThreadsSection({
   onSeeAll,
   onOpenThread,
 }: ThreadsSectionProps) {
+  const intl = useAppIntl();
   const memberProfiles = useChatMemberProfiles() || {};
 
   const { data, isLoading } = useQuery({
@@ -83,7 +85,7 @@ export default function ThreadsSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <MessageCircle size={18} className="text-gray-500" />
-          Threads
+          {intl.formatMessage({ id: "chat.threads" })}
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -95,15 +97,20 @@ export default function ThreadsSection({
       {isExpanded && (
         <div className="px-4 pb-3">
           {isLoading ? (
-            <div className="text-xs text-gray-400 py-2">Loading threads...</div>
+            <div className="text-xs text-gray-400 py-2">
+              {intl.formatMessage({ id: "chat.loadingThreads" })}
+            </div>
           ) : previewThreads.length === 0 ? (
-            <div className="text-xs text-gray-400 py-2">No threads yet</div>
+            <div className="text-xs text-gray-400 py-2">
+              {intl.formatMessage({ id: "chat.noThreadsYet" })}
+            </div>
           ) : (
             <div className="space-y-1">
               {previewThreads.map((message: any) => {
                 const profile =
                   message.senderProfile || memberProfiles[message.senderId];
-                const name = profile?.fullName || "User";
+                const name =
+                  profile?.fullName || intl.formatMessage({ id: "app.user" });
                 const lastReplyTime = message.threadLastReplyAt
                   ? formatDateTime(message.threadLastReplyAt)
                   : null;
@@ -132,11 +139,15 @@ export default function ThreadsSection({
                         {name}
                       </span>
                       <span className="block truncate text-xs text-gray-500">
-                        {message.content || "[Attachment]"}
+                        {message.content ||
+                          intl.formatMessage({ id: "chat.attachment" })}
                       </span>
                       <span className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-blue-600">
                         <MessageSquare size={11} />
-                        {message.threadReplyCount} replies
+                        {intl.formatMessage(
+                          { id: "chat.repliesCount" },
+                          { count: message.threadReplyCount },
+                        )}
                         {lastReplyTime && (
                           <span className="font-normal text-gray-400">
                             · {lastReplyTime}
@@ -149,7 +160,7 @@ export default function ThreadsSection({
               })}
               {hasMore && (
                 <SeeAllButton onClick={onSeeAll} className="mt-2">
-                  See all threads
+                  {intl.formatMessage({ id: "chat.seeAllThreads" })}
                 </SeeAllButton>
               )}
             </div>

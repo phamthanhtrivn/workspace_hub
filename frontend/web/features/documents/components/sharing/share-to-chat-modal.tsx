@@ -6,6 +6,7 @@ import { X, Send, MessageSquare, Users, Loader2 } from "lucide-react";
 import { DocumentItem } from "../../types/documents.types";
 import { ShareTabType } from "../../types/documents.enums";
 import { useShareToChat } from "../../hooks/useShareToChat";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ShareToChatModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export default function ShareToChatModal({
   onClose,
   item,
 }: ShareToChatModalProps) {
+  const intl = useAppIntl();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -58,7 +60,7 @@ export default function ShareToChatModal({
             </div>
             <div>
               <h3 className="text-base font-black text-slate-800 leading-tight">
-                Share to Chat
+                {intl.formatMessage({ id: "documents.shareToChat" })}
               </h3>
               <p className="text-xs text-slate-400 font-bold mt-0.5 truncate max-w-[280px]">
                 {item.name}
@@ -84,7 +86,7 @@ export default function ShareToChatModal({
             }`}
           >
             <Users size={16} />
-            <span>Channels</span>
+            <span>{intl.formatMessage({ id: "chat.channels" })}</span>
           </button>
           <button
             onClick={() => setActiveTab(ShareTabType.DM)}
@@ -95,7 +97,7 @@ export default function ShareToChatModal({
             }`}
           >
             <MessageSquare size={16} />
-            <span>Direct Messages</span>
+            <span>{intl.formatMessage({ id: "chat.directMessages" })}</span>
           </button>
         </div>
 
@@ -106,7 +108,7 @@ export default function ShareToChatModal({
               {/* Space Selection */}
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                  Space
+                  {intl.formatMessage({ id: "chat.space" })}
                 </label>
                 <select
                   value={selectedSpaceId}
@@ -124,14 +126,16 @@ export default function ShareToChatModal({
               {/* Channel Selection */}
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                  Channel
+                  {intl.formatMessage({ id: "chat.channel" })}
                 </label>
                 <select
                   value={selectedChatId}
                   onChange={(e) => setSelectedChatId(e.target.value)}
                   className="w-full rounded-xl border border-slate-100 p-3 text-sm font-semibold bg-slate-50 focus:outline-none focus:border-violet-500 cursor-pointer"
                 >
-                  <option value="">-- Choose a Channel --</option>
+                  <option value="">
+                    {intl.formatMessage({ id: "documents.chooseChannel" })}
+                  </option>
                   {channels.map((channel) => (
                     <option key={channel.id} value={channel.id}>
                       # {channel.name}
@@ -144,14 +148,16 @@ export default function ShareToChatModal({
             /* DM Selection */
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                Recipient
+                {intl.formatMessage({ id: "documents.recipient" })}
               </label>
               <select
                 value={selectedChatId}
                 onChange={(e) => setSelectedChatId(e.target.value)}
                 className="w-full rounded-xl border border-slate-100 p-3 text-sm font-semibold bg-slate-50 focus:outline-none focus:border-violet-500 cursor-pointer"
               >
-                <option value="">-- Choose a Conversation --</option>
+                <option value="">
+                  {intl.formatMessage({ id: "documents.chooseConversation" })}
+                </option>
                 {directConversations.map((conv) => {
                   const otherMember = conv.members?.find(
                     (m) => m.userId !== currentUserId,
@@ -159,7 +165,7 @@ export default function ShareToChatModal({
                   const displayName =
                     otherMember?.profile?.fullName ||
                     otherMember?.nickname ||
-                    "Direct Conversation";
+                    intl.formatMessage({ id: "chat.directConversation" });
                   return (
                     <option key={conv.id} value={conv.id}>
                       {displayName}
@@ -173,12 +179,14 @@ export default function ShareToChatModal({
           {/* Intro message */}
           <div className="space-y-2">
             <label className="text-xs font-black text-slate-400 uppercase tracking-wider">
-              Intro Message (Optional)
+              {intl.formatMessage({ id: "documents.introMessageOptional" })}
             </label>
             <textarea
               value={introMessage}
               onChange={(e) => setIntroMessage(e.target.value)}
-              placeholder="Add a message about this document..."
+              placeholder={intl.formatMessage({
+                id: "documents.shareMessagePlaceholder",
+              })}
               className="w-full rounded-2xl border border-slate-100 p-3 text-sm font-semibold focus:outline-none focus:border-violet-500 bg-slate-50/50 min-h-[80px] resize-none"
             />
           </div>
@@ -191,7 +199,7 @@ export default function ShareToChatModal({
             disabled={isSubmitting}
             className="cursor-pointer rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
           >
-            Cancel
+            {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             onClick={handleShare}
@@ -201,12 +209,12 @@ export default function ShareToChatModal({
             {isSubmitting ? (
               <>
                 <Loader2 size={16} className="animate-spin" />
-                <span>Sharing...</span>
+                <span>{intl.formatMessage({ id: "documents.sharing" })}</span>
               </>
             ) : (
               <>
                 <Send size={16} />
-                <span>Share</span>
+                <span>{intl.formatMessage({ id: "documents.share" })}</span>
               </>
             )}
           </button>

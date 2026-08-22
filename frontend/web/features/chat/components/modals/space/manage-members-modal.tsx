@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -16,18 +18,20 @@ import { FaKey } from "react-icons/fa";
 import {
   ChannelResponse,
   ChatProfilesMap,
+  ConversationMember,
 } from "@/features/chat/types/chat.types";
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import {
   getSpaceDetails,
   transferSpaceOwnership,
 } from "@/features/chat/api/space.api";
-import { updateMemberRole } from "@/store/chat/chat-slice";
 import {
   disbandChannel,
   kickMember,
   leaveChannel,
-} from "@/features/chat/api/chat.api";
+  updateMemberRole,
+} from "@/features/chat/api/channel.api";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (
@@ -61,6 +65,7 @@ export default function ManageMembersModal({
   currentUserId,
   onClose,
 }: ManageMembersModalProps) {
+  const intl = useAppIntl();
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
@@ -84,7 +89,9 @@ export default function ManageMembersModal({
     (member) => member.userId === currentUserId,
   );
   const currentUserRole = currentUserMember?.role;
-  const leaveLabel = channel.isDefault ? "Leave space" : "Leave channel";
+  const leaveLabel = intl.formatMessage({
+    id: channel.isDefault ? "chat.leaveSpace" : "chat.leaveChannel",
+  });
 
   const handleUpdateRole = async (
     memberId: string,
@@ -94,17 +101,20 @@ export default function ManageMembersModal({
 
     const actionText =
       role === "ADMIN"
-        ? "promote this user to Admin"
-        : "demote this user to Member";
+        ? intl.formatMessage({ id: "chat.promoteThisUserToAdmin" })
+        : intl.formatMessage({ id: "chat.demoteThisUserToMember" });
     const result = await Swal.fire({
-      title: "Update role?",
-      text: `Are you sure you want to ${actionText}?`,
+      title: intl.formatMessage({ id: "chat.updateRoleTitle" }),
+      text: intl.formatMessage(
+        { id: "chat.updateRoleDescription" },
+        { action: actionText },
+      ),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Yes",
-      cancelButtonText: "Cancel",
+      confirmButtonText: intl.formatMessage({ id: "app.yes" }),
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
     });
 
     if (!result.isConfirmed) return;
@@ -112,12 +122,17 @@ export default function ManageMembersModal({
     setIsProcessing(true);
     try {
       await updateMemberRole(channel.id, memberId, role);
-      toast.success("Role updated successfully");
+      toast.success(intl.formatMessage({ id: "chat.roleUpdated" }));
       queryClient.invalidateQueries({
         queryKey: chatKeys.channels(channel.spaceId),
       });
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to update role"));
+      toast.error(
+        getErrorMessage(
+          error,
+          intl.formatMessage({ id: "chat.updateRoleFailed" }),
+        ),
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -126,16 +141,21 @@ export default function ManageMembersModal({
   const handleTransferOwnership = async (memberId: string) => {
     if (isProcessing) return;
 
-    const memberName = memberProfiles?.[memberId]?.fullName || "this user";
+    const memberName =
+      memberProfiles?.[memberId]?.fullName ||
+      intl.formatMessage({ id: "chat.thisUser" });
     const result = await Swal.fire({
-      title: "Transfer ownership?",
-      text: `Are you sure you want to transfer ownership of this space to ${memberName}? You will remain as an Admin.`,
+      title: intl.formatMessage({ id: "chat.transferOwnershipTitle" }),
+      text: intl.formatMessage(
+        { id: "chat.transferOwnershipDescription" },
+        { name: memberName },
+      ),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
-      confirmButtonText: "Transfer",
-      cancelButtonText: "Cancel",
+      confirmButtonText: intl.formatMessage({ id: "chat.transfer" }),
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
     });
 
     if (!result.isConfirmed) return;
@@ -143,7 +163,7 @@ export default function ManageMembersModal({
     setIsProcessing(true);
     try {
       await transferSpaceOwnership(channel.spaceId, memberId);
-      toast.success("Space ownership transferred successfully");
+      toast.success(intl.formatMessage({ id: "chat.spaceOwnershipTransferred" }));
       queryClient.invalidateQueries({
         queryKey: chatKeys.channels(channel.spaceId),
       });
@@ -151,7 +171,12 @@ export default function ManageMembersModal({
         queryKey: chatKeys.spaceDetails(channel.spaceId),
       });
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to transfer ownership"));
+      toast.error(
+        getErrorMessage(
+          error,
+          intl.formatMessage({ id: "chat.transferOwnershipFailed" }),
+        ),
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -160,26 +185,31 @@ export default function ManageMembersModal({
   const handleKickMember = async (memberId: string) => {
     if (isProcessing) return;
     const result = await Swal.fire({
-      title: "Kick member?",
-      text: "Are you sure you want to remove this user from the space?",
+      title: intl.formatMessage({ id: "chat.kickMemberTitle" }),
+      text: intl.formatMessage({ id: "chat.kickMemberDescription" }),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Kick",
-      cancelButtonText: "Cancel",
+      confirmButtonText: intl.formatMessage({ id: "chat.kick" }),
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
     });
 
     if (!result.isConfirmed) return;
     setIsProcessing(true);
     try {
       await kickMember(channel.id, memberId);
-      toast.success("Member kicked successfully");
+      toast.success(intl.formatMessage({ id: "chat.memberKicked" }));
       queryClient.invalidateQueries({
         queryKey: chatKeys.channels(channel.spaceId),
       });
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to kick member"));
+      toast.error(
+        getErrorMessage(
+          error,
+          intl.formatMessage({ id: "chat.kickMemberFailed" }),
+        ),
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -189,16 +219,19 @@ export default function ManageMembersModal({
     if (isProcessing) return;
 
     const result = await Swal.fire({
-      title: `${leaveLabel}?`,
+      title: intl.formatMessage(
+        { id: "chat.confirmActionTitle" },
+        { action: leaveLabel },
+      ),
       text: channel.isDefault
-        ? "Leaving the default channel will remove you from this space."
-        : "Are you sure you want to leave this channel?",
+        ? intl.formatMessage({ id: "chat.leaveDefaultChannelDescription" })
+        : intl.formatMessage({ id: "chat.leaveChannelDescription" }),
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
       confirmButtonText: leaveLabel,
-      cancelButtonText: "Cancel",
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
     });
 
     if (!result.isConfirmed) return;
@@ -213,7 +246,12 @@ export default function ManageMembersModal({
       }
       onClose();
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to leave space"));
+      toast.error(
+        getErrorMessage(
+          error,
+          intl.formatMessage({ id: "chat.leaveSpaceFailed" }),
+        ),
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -222,27 +260,32 @@ export default function ManageMembersModal({
   const handleDisbandChannel = async () => {
     if (isProcessing) return;
     const result = await Swal.fire({
-      title: "Disband channel?",
-      text: "Are you sure you want to disband this channel? All messages and data will be permanently deleted.",
+      title: intl.formatMessage({ id: "chat.disbandChannelTitle" }),
+      text: intl.formatMessage({ id: "chat.disbandChannelDescription" }),
       icon: "error",
       showCancelButton: true,
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Disband",
-      cancelButtonText: "Cancel",
+      confirmButtonText: intl.formatMessage({ id: "chat.disband" }),
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
     });
 
     if (!result.isConfirmed) return;
     setIsProcessing(true);
     try {
       await disbandChannel(channel.id);
-      toast.success("Channel disbanded successfully");
+      toast.success(intl.formatMessage({ id: "chat.channelDisbanded" }));
       queryClient.invalidateQueries({
         queryKey: chatKeys.channels(channel.spaceId),
       });
       onClose();
     } catch (error: unknown) {
-      toast.error(getErrorMessage(error, "Failed to disband channel"));
+      toast.error(
+        getErrorMessage(
+          error,
+          intl.formatMessage({ id: "chat.disbandChannelFailed" }),
+        ),
+      );
     } finally {
       setIsProcessing(false);
     }
@@ -250,7 +293,7 @@ export default function ManageMembersModal({
 
   const filteredMembers = channel.members?.filter((member) => {
     const profile = memberProfiles?.[member.userId];
-    const name = profile?.fullName || "User";
+    const name = profile?.fullName || intl.formatMessage({ id: "app.user" });
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
@@ -261,7 +304,7 @@ export default function ManageMembersModal({
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] border border-gray-100">
         <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white">
           <h2 className="text-xl font-extrabold text-gray-800 tracking-tight">
-            Manage Members
+            {intl.formatMessage({ id: "chat.manageMembers" })}
           </h2>
           <button
             onClick={onClose}
@@ -279,7 +322,7 @@ export default function ManageMembersModal({
             />
             <input
               type="text"
-              placeholder="Search members..."
+              placeholder={intl.formatMessage({ id: "chat.searchMembers" })}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400"
@@ -290,9 +333,12 @@ export default function ManageMembersModal({
         <div className="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
           {filteredMembers?.map((member: ConversationMember) => {
             const profile = memberProfiles?.[member.userId];
-            const name = profile?.fullName || "User";
+            const name =
+              profile?.fullName || intl.formatMessage({ id: "app.user" });
             const isMe = member.userId === currentUserId;
-            const displayName = isMe ? "You" : name;
+            const displayName = isMe
+              ? intl.formatMessage({ id: "chat.you" })
+              : name;
 
             return (
               <div
@@ -305,7 +351,7 @@ export default function ManageMembersModal({
                       {profile?.avatarUrl ? (
                         <Image
                           src={profile.avatarUrl}
-                          alt="Avatar"
+                          alt={intl.formatMessage({ id: "profile.avatar" })}
                           width={40}
                           height={40}
                           className="rounded-full"
@@ -319,14 +365,14 @@ export default function ManageMembersModal({
                     {member.userId === spaceCreatorId ? (
                       <span
                         className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
-                        title="Owner"
+                        title={intl.formatMessage({ id: "chat.role.owner" })}
                       >
                         <FaKey size={8} />
                       </span>
                     ) : member.role === "ADMIN" ? (
                       <span
                         className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
-                        title="Admin"
+                        title={intl.formatMessage({ id: "chat.role.admin" })}
                       >
                         <FaKey size={8} />
                       </span>
@@ -339,12 +385,13 @@ export default function ManageMembersModal({
                       </span>
                       {member.userId === spaceCreatorId ? (
                         <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border border-amber-100">
-                          <FaKey size={10} className="text-amber-500" /> Admin
-                          (Owner)
+                          <FaKey size={10} className="text-amber-500" />{" "}
+                          {intl.formatMessage({ id: "chat.adminOwner" })}
                         </span>
                       ) : member.role === "ADMIN" ? (
                         <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border border-blue-100">
-                          <FiShield size={10} className="text-blue-500" /> Admin
+                          <FiShield size={10} className="text-blue-500" />{" "}
+                          {intl.formatMessage({ id: "chat.role.admin" })}
                         </span>
                       ) : null}
                     </div>
@@ -363,7 +410,9 @@ export default function ManageMembersModal({
                             onClick={() =>
                               handleUpdateRole(member.userId, "ADMIN")
                             }
-                            title="Promote to Admin"
+                            title={intl.formatMessage({
+                              id: "chat.promoteToAdmin",
+                            })}
                             className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <FiShield size={18} />
@@ -375,7 +424,9 @@ export default function ManageMembersModal({
                               onClick={() =>
                                 handleUpdateRole(member.userId, "MEMBER")
                               }
-                              title="Demote to Member"
+                              title={intl.formatMessage({
+                                id: "chat.demoteToMember",
+                              })}
                               className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                             >
                               <FiShieldOff size={18} />
@@ -383,7 +434,9 @@ export default function ManageMembersModal({
                           )}
                         <button
                           onClick={() => handleTransferOwnership(member.userId)}
-                          title="Promote to Owner"
+                          title={intl.formatMessage({
+                            id: "chat.promoteToOwner",
+                          })}
                           className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <FaKey size={16} className="text-amber-500" />
@@ -394,7 +447,9 @@ export default function ManageMembersModal({
                     {isCurrentUserOwner && member.userId !== spaceCreatorId && (
                       <button
                         onClick={() => handleKickMember(member.userId)}
-                        title="Remove from space"
+                        title={intl.formatMessage({
+                          id: "chat.removeFromSpace",
+                        })}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                       >
                         <FiTrash2 size={18} />
@@ -424,7 +479,7 @@ export default function ManageMembersModal({
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shadow-red-200"
             >
               <FiTrash2 size={18} />
-              Disband channel
+              {intl.formatMessage({ id: "chat.disbandChannel" })}
             </button>
           )}
         </div>

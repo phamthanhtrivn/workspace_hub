@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 import { LinkAccess } from "../../types/documents.enums";
 import { documentsApi } from "../../api/documents.api";
 import {
-  LINK_ACCESS_LABELS,
-  LINK_ACCESS_DESCRIPTIONS,
+  LINK_ACCESS_LABEL_IDS,
+  LINK_ACCESS_DESCRIPTION_IDS,
 } from "../../types/documents.constants";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ShareModalLinkProps {
   documentItemId: string;
@@ -25,6 +26,7 @@ export function ShareModalLink({
   onLinkAccessChanged,
   isOwner = false,
 }: ShareModalLinkProps) {
+  const intl = useAppIntl();
   const [linkAccess, setLinkAccess] = useState<LinkAccess>(initialLinkAccess);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -41,7 +43,7 @@ export function ShareModalLink({
       const newAccess = updatedItem.linkAccess as LinkAccess;
       setLinkAccess(newAccess);
       onLinkAccessChanged?.(newAccess);
-      toast.success("General access updated");
+      toast.success(intl.formatMessage({ id: "documents.generalAccessUpdated" }));
       queryClient.invalidateQueries({
         queryKey: ["document-sharing", documentItemId],
       });
@@ -51,7 +53,9 @@ export function ShareModalLink({
     },
     onError: (err) => {
       console.error("Failed to update link access", err);
-      toast.error("Failed to update link configurations");
+      toast.error(
+        intl.formatMessage({ id: "documents.updateLinkConfigurationsFailed" }),
+      );
     },
   });
 
@@ -66,14 +70,14 @@ export function ShareModalLink({
     const shareUrl = `${window.location.origin}/documents/shared/${documentItemId}`;
     void navigator.clipboard.writeText(shareUrl);
     setIsCopied(true);
-    toast.success("Link copied to clipboard");
+    toast.success(intl.formatMessage({ id: "documents.linkCopiedToClipboard" }));
     setTimeout(() => setIsCopied(false), 2000);
-  }, [documentItemId]);
+  }, [documentItemId, intl]);
 
   return (
     <div className="space-y-3 pt-4 border-t border-slate-100">
       <h4 className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-        General Access
+        {intl.formatMessage({ id: "documents.generalAccess" })}
       </h4>
       <div className="flex items-start gap-3 bg-slate-50/70 border border-slate-100 rounded-2xl p-4">
         <div
@@ -100,20 +104,24 @@ export function ShareModalLink({
                 }
                 className="bg-transparent border border-gray-300 rounded-lg -ml-1 py-0.5 px-1.5 text-sm font-black text-slate-800 outline-hidden focus:ring-1 focus:ring-slate-100 transition-all cursor-pointer"
               >
-                {Object.entries(LINK_ACCESS_LABELS).map(([value, label]) => (
+                {Object.entries(LINK_ACCESS_LABEL_IDS).map(
+                  ([value, labelId]) => (
                   <option key={value} value={value}>
-                    {label}
+                      {intl.formatMessage({ id: labelId })}
                   </option>
-                ))}
+                  ),
+                )}
               </select>
             ) : (
               <span className="text-sm font-black text-slate-800 py-0.5 px-1.5 block -ml-1.5">
-                {LINK_ACCESS_LABELS[linkAccess]}
+                {intl.formatMessage({ id: LINK_ACCESS_LABEL_IDS[linkAccess] })}
               </span>
             )}
           </div>
           <p className="text-xs text-slate-400 font-bold mt-1 leading-normal">
-            {LINK_ACCESS_DESCRIPTIONS[linkAccess]}
+            {intl.formatMessage({
+              id: LINK_ACCESS_DESCRIPTION_IDS[linkAccess],
+            })}
           </p>
         </div>
       </div>
@@ -126,12 +134,14 @@ export function ShareModalLink({
         {isCopied ? (
           <>
             <Check size={14} className="text-green-600" />
-            <span className="text-green-600">Link copied</span>
+            <span className="text-green-600">
+              {intl.formatMessage({ id: "documents.linkCopied" })}
+            </span>
           </>
         ) : (
           <>
             <Copy size={14} />
-            <span>Copy share link</span>
+            <span>{intl.formatMessage({ id: "documents.copyShareLink" })}</span>
           </>
         )}
       </button>

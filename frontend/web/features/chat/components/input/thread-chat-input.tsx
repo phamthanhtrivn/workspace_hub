@@ -50,6 +50,7 @@ import {
   releaseVoiceSession,
 } from "../../utils/voice-session-coordinator";
 import { ChatContextType } from "../../types/chat.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ThreadChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -75,6 +76,7 @@ const ThreadChatInput = React.memo(
     { onSendMessage },
     ref,
   ) {
+    const intl = useAppIntl();
     const [message, setMessage] = useState("");
     const [showThreadOptions, setShowThreadOptions] = useState(false);
     const [showFormatting, setShowFormatting] = useState(false);
@@ -347,7 +349,7 @@ const ThreadChatInput = React.memo(
     const uploadFilesList = async (files: File[]) => {
       const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
       if (validFiles.length < files.length) {
-        toast.error("File size cannot exceed 100MB.");
+        toast.error(intl.formatMessage({ id: "chat.fileSizeExceeded" }));
       }
       if (validFiles.length === 0) return;
 
@@ -533,7 +535,7 @@ const ThreadChatInput = React.memo(
     const handleSend = useCallback(() => {
       if (!message.trim() && uploadingMedia.length === 0) return;
       if (isUploading) {
-        toast.warning("Please wait for the file to upload.");
+        toast.warning(intl.formatMessage({ id: "chat.waitForFileUpload" }));
         return;
       }
       if (!onSendMessage) return;
@@ -566,6 +568,7 @@ const ThreadChatInput = React.memo(
       isUploading,
       onSendMessage,
       clearInterim,
+      intl,
     ]);
 
     return (
@@ -583,7 +586,7 @@ const ThreadChatInput = React.memo(
               size={28}
             />
             <p className="text-xs font-black text-blue-600">
-              Drop files here to upload
+              {intl.formatMessage({ id: "chat.dropFilesHere" })}
             </p>
           </div>
         )}
@@ -633,8 +636,10 @@ const ThreadChatInput = React.memo(
                     className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
                     title={
                       media.status === "uploading"
-                        ? "Remove uploading file"
-                        : "Remove file"
+                        ? intl.formatMessage({
+                            id: "chat.removeUploadingFile",
+                          })
+                        : intl.formatMessage({ id: "chat.removeFile" })
                     }
                   >
                     <X size={14} />
@@ -668,7 +673,7 @@ const ThreadChatInput = React.memo(
                     ? "bg-blue-100 text-blue-600"
                     : "text-gray-400 hover:bg-gray-200"
                 }`}
-                title="Options"
+                title={intl.formatMessage({ id: "chat.options" })}
               >
                 <Plus
                   size={18}
@@ -686,7 +691,8 @@ const ThreadChatInput = React.memo(
                     disabled={isUploading}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <Paperclip size={14} className="text-gray-500" /> Files
+                    <Paperclip size={14} className="text-gray-500" />
+                    {intl.formatMessage({ id: "chat.files" })}
                   </button>
                   <button
                     onClick={() => {
@@ -696,7 +702,8 @@ const ThreadChatInput = React.memo(
                     disabled={isUploading}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                   >
-                    <Folder size={14} className="text-blue-500" /> My Files
+                    <Folder size={14} className="text-blue-500" />
+                    {intl.formatMessage({ id: "documents.nav.myFiles" })}
                   </button>
                   <button
                     onClick={() => {
@@ -705,7 +712,8 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Type size={14} className="text-blue-500" /> Formatting
+                    <Type size={14} className="text-blue-500" />
+                    {intl.formatMessage({ id: "chat.formatting" })}
                   </button>
                   <button
                     onClick={() => {
@@ -714,7 +722,8 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Smile size={14} className="text-yellow-500" /> Emoji
+                    <Smile size={14} className="text-yellow-500" />
+                    {intl.formatMessage({ id: "chat.emoji" })}
                   </button>
                   <button
                     onClick={() => {
@@ -723,7 +732,8 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Mic size={14} className="text-green-500" /> Voice Input
+                    <Mic size={14} className="text-green-500" />
+                    {intl.formatMessage({ id: "chat.voiceInput" })}
                   </button>
                   <button
                     onClick={() => {
@@ -732,8 +742,8 @@ const ThreadChatInput = React.memo(
                     }}
                     className="flex items-center gap-2.5 px-2.5 py-1.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left"
                   >
-                    <Voicemail size={14} className="text-red-500" /> Voice
-                    Message
+                    <Voicemail size={14} className="text-red-500" />
+                    {intl.formatMessage({ id: "chat.voiceMessage" })}
                   </button>
                 </div>
               )}
@@ -764,7 +774,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("bold")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Bold"
+                    title={intl.formatMessage({ id: "chat.format.bold" })}
                   >
                     <Bold size={13} />
                   </button>
@@ -772,7 +782,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("italic")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Italic"
+                    title={intl.formatMessage({ id: "chat.format.italic" })}
                   >
                     <Italic size={13} />
                   </button>
@@ -780,7 +790,9 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("strikethrough")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Strikethrough"
+                    title={intl.formatMessage({
+                      id: "chat.format.strikethrough",
+                    })}
                   >
                     <Strikethrough size={13} />
                   </button>
@@ -789,7 +801,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("heading")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Heading"
+                    title={intl.formatMessage({ id: "chat.format.heading" })}
                   >
                     <Heading size={13} />
                   </button>
@@ -797,7 +809,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("link")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Link"
+                    title={intl.formatMessage({ id: "chat.format.link" })}
                   >
                     <Link size={13} />
                   </button>
@@ -805,7 +817,9 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("code")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Code block"
+                    title={intl.formatMessage({
+                      id: "chat.format.codeBlock",
+                    })}
                   >
                     <Code size={13} />
                   </button>
@@ -813,7 +827,7 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("quote")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Quote"
+                    title={intl.formatMessage({ id: "chat.format.quote" })}
                   >
                     <Quote size={13} />
                   </button>
@@ -821,7 +835,9 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("bullet")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Bulleted list"
+                    title={intl.formatMessage({
+                      id: "chat.format.bulletedList",
+                    })}
                   >
                     <List size={13} />
                   </button>
@@ -829,7 +845,9 @@ const ThreadChatInput = React.memo(
                     type="button"
                     onClick={() => applyFormatting("number")}
                     className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-0.5"
-                    title="Numbered list"
+                    title={intl.formatMessage({
+                      id: "chat.format.numberedList",
+                    })}
                   >
                     <ListOrdered size={13} />
                   </button>
@@ -853,7 +871,7 @@ const ThreadChatInput = React.memo(
                     handleTyping(e.target.value, e.target.selectionStart);
                   }
                 }}
-                placeholder="Reply in thread..."
+                placeholder={intl.formatMessage({ id: "chat.replyInThread" })}
                 disabled={isUploading}
                 className="w-full bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto px-1 py-1 text-xs min-h-[24px]"
                 rows={1}
@@ -907,14 +925,14 @@ const ThreadChatInput = React.memo(
                   <button
                     onClick={handleCancelRecording}
                     className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
-                    title="Cancel recording"
+                    title={intl.formatMessage({ id: "chat.cancelRecording" })}
                   >
                     <Trash2 size={16} />
                   </button>
                   <button
                     onClick={handleStopRecording}
                     className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
-                    title="Send"
+                    title={intl.formatMessage({ id: "chat.send" })}
                   >
                     <Send size={14} />
                   </button>
@@ -926,7 +944,7 @@ const ThreadChatInput = React.memo(
                       type="button"
                       onClick={handleStopDictation}
                       className="p-1.5 rounded-full bg-red-100 text-red-600 animate-pulse hover:bg-red-200 transition-colors cursor-pointer"
-                      title="Stop speech to text"
+                      title={intl.formatMessage({ id: "chat.stopSpeechToText" })}
                     >
                       <Mic size={15} />
                     </button>

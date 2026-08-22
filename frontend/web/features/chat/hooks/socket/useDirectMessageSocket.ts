@@ -8,6 +8,7 @@ import {
   SendSocketMessageMedia,
 } from "../../types/chat-socket.types";
 import { useAppSelector } from "@/store/store";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface SendDirectSocketMessageParams {
   conversationId: string;
@@ -23,14 +24,18 @@ function getConnectedSocket() {
 }
 
 export function useDirectMessageSocket() {
+  const intl = useAppIntl();
   const currentUserId = useAppSelector((state) => state.auth.userId);
 
   const sendMessage = useCallback((params: SendDirectSocketMessageParams) => {
     const socket = getConnectedSocket();
     if (!socket) {
-      toast.error("Direct message socket is not connected");
+      const message = intl.formatMessage({
+        id: "chat.directMessageSocketNotConnected",
+      });
+      toast.error(message);
       return Promise.reject(
-        new Error("Direct message socket is not connected"),
+        new Error(message),
       );
     }
 
@@ -48,13 +53,15 @@ export function useDirectMessageSocket() {
             return;
           }
 
-          const message = response?.message || "Failed to send message";
+          const message =
+            response?.message ||
+            intl.formatMessage({ id: "chat.failedSendMessage" });
           toast.error(message);
           reject(new Error(message));
         },
       );
     });
-  }, []);
+  }, [intl]);
 
   const markAsRead = useCallback(
     (conversationId: string, messageId: string) => {

@@ -14,6 +14,7 @@ import {
   METADATA_QUERY_KEY,
   METADATA_STALE_TIME,
 } from "../../types/document.constants";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface DocumentMessageProps {
   msg: ChatMessageResponse;
@@ -24,6 +25,7 @@ const DocumentMessage = React.memo(function DocumentMessage({
   msg,
   isMe,
 }: DocumentMessageProps) {
+  const intl = useAppIntl();
   const router = useRouter();
   const documentId = msg.content || "";
   const [isProcessing, setIsProcessing] = useState(false);
@@ -62,7 +64,7 @@ const DocumentMessage = React.memo(function DocumentMessage({
         <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 max-w-sm w-full flex items-center gap-3 text-rose-700">
           <Lock size={20} className="shrink-0 text-rose-500" />
           <div className="text-xs font-semibold">
-            This shared document is unavailable or has been deleted.
+            {intl.formatMessage({ id: "chat.documentUnavailable" })}
           </div>
         </div>
       </div>
@@ -77,11 +79,11 @@ const DocumentMessage = React.memo(function DocumentMessage({
       if (previewUrl) {
         window.open(previewUrl, "_blank");
       } else {
-        toast.error("Preview unavailable for this item");
+        toast.error(intl.formatMessage({ id: "documents.previewLoadFailed" }));
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to generate preview link");
+      toast.error(intl.formatMessage({ id: "documents.downloadLinkFailed" }));
     } finally {
       setIsProcessing(false);
     }
@@ -104,7 +106,7 @@ const DocumentMessage = React.memo(function DocumentMessage({
       }
     } catch (err) {
       console.error(err);
-      toast.error("Download failed");
+      toast.error(intl.formatMessage({ id: "documents.downloadFailed" }));
     } finally {
       setIsProcessing(false);
     }
@@ -142,7 +144,7 @@ const DocumentMessage = React.memo(function DocumentMessage({
           </h4>
           <p className="text-xs text-slate-400 font-bold mt-1">
             {metadata.type === DocumentItemType.FOLDER
-              ? "Folder"
+              ? intl.formatMessage({ id: "documents.folder" })
               : formatBytes(metadata.sizeBytes)}
             <span className="mx-1.5">•</span>
             <span>{metadata.ownerName || metadata.ownerEmail}</span>
@@ -161,14 +163,14 @@ const DocumentMessage = React.memo(function DocumentMessage({
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all"
                 >
                   <FolderOpen size={14} className="text-slate-500" />
-                  <span>Open Folder</span>
+                  <span>{intl.formatMessage({ id: "documents.openFolder" })}</span>
                 </button>
                 <button
                   onClick={handleDownload}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100/80 rounded-xl transition-all"
                 >
                   <Download size={14} className="text-amber-600" />
-                  <span>Download ZIP</span>
+                  <span>{intl.formatMessage({ id: "documents.downloadZip" })}</span>
                 </button>
               </>
             ) : (
@@ -178,14 +180,14 @@ const DocumentMessage = React.memo(function DocumentMessage({
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-all"
                 >
                   <Eye size={14} className="text-slate-500" />
-                  <span>Preview</span>
+                  <span>{intl.formatMessage({ id: "documents.preview" })}</span>
                 </button>
                 <button
                   onClick={handleDownload}
                   className="flex-1 cursor-pointer py-2 px-3 flex items-center justify-center gap-1.5 text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100/80 rounded-xl transition-all"
                 >
                   <Download size={14} className="text-violet-600" />
-                  <span>Download</span>
+                  <span>{intl.formatMessage({ id: "documents.download" })}</span>
                 </button>
               </>
             )}
@@ -194,9 +196,14 @@ const DocumentMessage = React.memo(function DocumentMessage({
           <div className="w-full flex items-center gap-2.5 text-rose-600 bg-rose-50/50 p-2.5 rounded-xl border border-rose-100/50">
             <Lock size={15} className="shrink-0 text-rose-500" />
             <div className="text-[11px] font-bold leading-normal">
-              Access Denied. Please contact owner{" "}
-              <span className="underline">{metadata.ownerEmail}</span> to
-              request permission.
+              {intl.formatMessage(
+                { id: "chat.documentAccessDenied" },
+                {
+                  owner: (
+                    <span className="underline">{metadata.ownerEmail}</span>
+                  ),
+                },
+              )}
             </div>
           </div>
         )}

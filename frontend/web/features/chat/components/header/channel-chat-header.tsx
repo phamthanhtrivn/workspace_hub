@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../api/chat.api";
 import { chatKeys } from "../../types/chat.constant";
 import ChannelMembersModal from "../modals/channel/channel-members-modal";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -17,6 +18,7 @@ export default function ChannelChatHeader({
   onOpenSearch,
   onBack,
 }: ChannelChatHeaderProps) {
+  const intl = useAppIntl();
   const { activeChat: activeChannel } = useActiveChat();
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
 
@@ -31,7 +33,8 @@ export default function ChannelChatHeader({
     enabled: !!spaceId,
   });
 
-  const displayName = activeChannel?.name || "Channel";
+  const displayName =
+    activeChannel?.name || intl.formatMessage({ id: "chat.channel" });
   const memberCount = activeChannel?.members?.length || 0;
   const isDefaultChannel =
     !!activeChannel && "isDefault" in activeChannel && activeChannel.isDefault;
@@ -65,7 +68,10 @@ export default function ChannelChatHeader({
             onClick={() => setIsMembersModalOpen(true)}
             disabled={!activeChannel?.id}
             className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1 text-xs text-gray-600 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label={`Open ${memberCount} channel members`}
+            aria-label={intl.formatMessage(
+              { id: "chat.openChannelMembers" },
+              { count: memberCount },
+            )}
           >
             <span>
               <User className="w-3 h-3" />
@@ -79,7 +85,7 @@ export default function ChannelChatHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onOpenSearch}
-          title="Search"
+          title={intl.formatMessage({ id: "app.search" })}
         >
           <Search size={20} />
         </button>
@@ -87,7 +93,7 @@ export default function ChannelChatHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onToggleRightPanel}
-          title="Channel Info"
+          title={intl.formatMessage({ id: "chat.channelInfo" })}
         >
           <Info size={20} />
         </button>

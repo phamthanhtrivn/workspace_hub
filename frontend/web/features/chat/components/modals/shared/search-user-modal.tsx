@@ -22,6 +22,7 @@ import {
   getPublicProfile,
   searchUserByEmail,
 } from "@/features/chat/api/chat.api";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface SearchUserModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
   onClose,
   onConversationCreated,
 }: SearchUserModalProps) {
+  const intl = useAppIntl();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<UserSearchResponse[]>([]);
@@ -84,10 +86,13 @@ const SearchUserModal = React.memo(function SearchUserModal({
         const users = response?.success ? response.data : [];
         setResults(users);
         if (users.length === 0) {
-          setError("User not found");
+          setError(intl.formatMessage({ id: "chat.userNotFound" }));
         }
       } catch (err: any) {
-        setError(err.response?.data?.message || "Search error");
+        setError(
+          err.response?.data?.message ||
+            intl.formatMessage({ id: "chat.searchError" }),
+        );
         setResults([]);
       } finally {
         setLoading(false);
@@ -95,7 +100,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [email]);
+  }, [email, intl]);
 
   const handleSelectUser = async (user: UserSearchResponse) => {
     setSelectedUser(user);
@@ -104,7 +109,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
       const response = await getPublicProfile(user.id);
       setUserProfile(response?.success ? response.data : null);
     } catch (err) {
-      toast.error("Failed to load user details");
+      toast.error(intl.formatMessage({ id: "chat.failedLoadUserDetails" }));
       setSelectedUser(null); // Go back if error
     } finally {
       setLoadingProfile(false);
@@ -126,10 +131,16 @@ const SearchUserModal = React.memo(function SearchUserModal({
         });
         onClose();
       } else {
-        toast.error(response?.message || "Failed to create chat room");
+        toast.error(
+          response?.message ||
+            intl.formatMessage({ id: "chat.failedCreateChatRoom" }),
+        );
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.message || "Failed to create chat room");
+      toast.error(
+        err.response?.data?.message ||
+          intl.formatMessage({ id: "chat.failedCreateChatRoom" }),
+      );
     }
   };
 
@@ -149,7 +160,9 @@ const SearchUserModal = React.memo(function SearchUserModal({
               </button>
             )}
             <h2 className="text-xl font-bold text-gray-800 tracking-tight">
-              {selectedUser ? "User Profile" : "Add New Connection"}
+              {selectedUser
+                ? intl.formatMessage({ id: "chat.userProfile" })
+                : intl.formatMessage({ id: "chat.addNewConnection" })}
             </h2>
           </div>
           <button
@@ -168,7 +181,9 @@ const SearchUserModal = React.memo(function SearchUserModal({
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter user email..."
+                  placeholder={intl.formatMessage({
+                    id: "chat.enterUserEmail",
+                  })}
                   className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-sm font-medium text-gray-700 placeholder:text-gray-400 shadow-sm"
                 />
                 <Search
@@ -183,7 +198,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                 <div className="flex flex-col items-center justify-center py-8 gap-3">
                   <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
                   <p className="text-sm font-medium text-gray-500">
-                    Searching...
+                    {intl.formatMessage({ id: "chat.searching" })}
                   </p>
                 </div>
               )}
@@ -195,7 +210,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                   </div>
                   <p className="text-red-500 font-medium">{error}</p>
                   <p className="text-xs text-gray-400 mt-1">
-                    Please check the email address.
+                    {intl.formatMessage({ id: "chat.checkEmailAddress" })}
                   </p>
                 </div>
               )}
@@ -208,7 +223,9 @@ const SearchUserModal = React.memo(function SearchUserModal({
                     <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
                       <Search size={24} className="text-gray-300" />
                     </div>
-                    <p className="text-gray-500 font-medium">No results</p>
+                    <p className="text-gray-500 font-medium">
+                      {intl.formatMessage({ id: "chat.noResults" })}
+                    </p>
                   </div>
                 )}
 
@@ -225,7 +242,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                           {user.avatarUrl ? (
                             <img
                               src={user.avatarUrl}
-                              alt="avatar"
+                              alt={intl.formatMessage({ id: "chat.userAvatar" })}
                               className="w-full h-full object-cover"
                             />
                           ) : (
@@ -234,7 +251,8 @@ const SearchUserModal = React.memo(function SearchUserModal({
                         </div>
                         <div className="overflow-hidden">
                           <p className="font-semibold text-gray-800 text-sm truncate group-hover:text-blue-700 transition-colors">
-                            {user.fullName || "Anonymous user"}
+                            {user.fullName ||
+                              intl.formatMessage({ id: "chat.anonymousUser" })}
                           </p>
                           <p className="text-xs text-gray-500 truncate mt-0.5">
                             {user.email}
@@ -247,7 +265,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                           handleMessage(user);
                         }}
                         className="p-2 text-blue-600 hover:bg-blue-100 rounded-lg transition-colors shrink-0 cursor-pointer"
-                        title="Message"
+                        title={intl.formatMessage({ id: "chat.message" })}
                       >
                         <MessageCircle size={20} />
                       </button>
@@ -263,7 +281,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
               <div className="flex flex-col items-center justify-center py-10 gap-3">
                 <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
                 <p className="text-sm font-medium text-gray-500">
-                  Loading profile...
+                  {intl.formatMessage({ id: "chat.loadingProfile" })}
                 </p>
               </div>
             ) : (
@@ -274,7 +292,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                       src={
                         userProfile?.avatarUrl || selectedUser.avatarUrl || ""
                       }
-                      alt="avatar"
+                      alt={intl.formatMessage({ id: "chat.userAvatar" })}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -284,25 +302,34 @@ const SearchUserModal = React.memo(function SearchUserModal({
                 <h3 className="text-xl font-bold text-gray-800">
                   {userProfile?.fullName ||
                     selectedUser.fullName ||
-                    "Anonymous user"}
+                    intl.formatMessage({ id: "chat.anonymousUser" })}
                 </h3>
                 <p className="text-gray-500 text-sm mb-6">
-                  {userProfile?.email || selectedUser.email || "Anonymous user"}
+                  {userProfile?.email ||
+                    selectedUser.email ||
+                    intl.formatMessage({ id: "chat.anonymousUser" })}
                 </p>
 
                 <div className="w-full bg-gray-50 rounded-xl p-4 flex flex-col gap-3 mb-6">
                   <div className="flex items-center gap-3 text-sm text-gray-700">
                     <Phone size={18} className="text-gray-400" />
                     <span>
-                      {userProfile?.phoneNumber || "Phone number not updated"}
+                      {userProfile?.phoneNumber ||
+                        intl.formatMessage({
+                          id: "chat.phoneNumberNotUpdated",
+                        })}
                     </span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-700">
                     <Calendar size={18} className="text-gray-400" />
                     <span>
                       {userProfile?.dob
-                        ? new Date(userProfile.dob).toLocaleDateString("en-US")
-                        : "Date of birth not updated"}
+                        ? new Date(userProfile.dob).toLocaleDateString(
+                            intl.locale,
+                          )
+                        : intl.formatMessage({
+                            id: "chat.dateOfBirthNotUpdated",
+                          })}
                     </span>
                   </div>
                   <div className="flex items-start gap-3 text-sm text-gray-700 mt-2 pt-2 border-t border-gray-200">
@@ -310,7 +337,9 @@ const SearchUserModal = React.memo(function SearchUserModal({
                     {userProfile?.bio ? (
                       <span className="italic">"{userProfile?.bio}"</span>
                     ) : (
-                      <span>Bio not updated</span>
+                      <span>
+                        {intl.formatMessage({ id: "chat.bioNotUpdated" })}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -319,7 +348,7 @@ const SearchUserModal = React.memo(function SearchUserModal({
                   onClick={() => handleMessage(selectedUser)}
                   className="cursor-pointer w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  Send Message
+                  {intl.formatMessage({ id: "chat.sendMessage" })}
                 </button>
               </div>
             )}

@@ -8,6 +8,7 @@ import {
 import ChatMessage from "./chat-message";
 import TimeDivider from "./time-divider";
 import { RenderableChatMessage, MemberProfilesMap } from "./chat-message.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MessageListProps {
   messages: RenderableChatMessage[];
@@ -83,10 +84,12 @@ export default function MessageList({
   conversationId,
   isDirectConversation,
 }: MessageListProps) {
+  const intl = useAppIntl();
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-full text-gray-400">
-        Loading...
+        {intl.formatMessage({ id: "app.loading" })}
       </div>
     );
   }
@@ -94,7 +97,7 @@ export default function MessageList({
   if (messages.length === 0) {
     return (
       <div className="flex justify-center items-center h-full text-gray-400">
-        No messages here yet. Say hello!
+        {intl.formatMessage({ id: "chat.noMessages" })}
       </div>
     );
   }
@@ -254,7 +257,9 @@ export default function MessageList({
         className="h-6 w-full flex justify-center items-center my-2"
       >
         {isFetchingNextPage && (
-          <span className="text-xs text-gray-400">Loading more...</span>
+          <span className="text-xs text-gray-400">
+            {intl.formatMessage({ id: "chat.loadingMore" })}
+          </span>
         )}
       </div>,
     );
@@ -267,7 +272,9 @@ export default function MessageList({
         className="h-6 w-full flex justify-center items-center my-2 shrink-0"
       >
         {isFetchingPreviousPage && (
-          <span className="text-xs text-gray-400">Loading new messages...</span>
+          <span className="text-xs text-gray-400">
+            {intl.formatMessage({ id: "chat.loadingNewMessages" })}
+          </span>
         )}
       </div>,
     );

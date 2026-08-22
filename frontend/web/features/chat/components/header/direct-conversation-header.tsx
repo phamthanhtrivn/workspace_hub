@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface DirectConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -15,6 +16,7 @@ export default function DirectConversationHeader({
   onOpenSearch,
   onBack,
 }: DirectConversationHeaderProps) {
+  const intl = useAppIntl();
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
@@ -26,7 +28,10 @@ export default function DirectConversationHeader({
   const profile = otherMember?.profile ?? null;
   const isLoadingProfile = false;
   const displayName =
-    profile?.fullName || profile?.email || otherMemberId || "User";
+    profile?.fullName ||
+    profile?.email ||
+    otherMemberId ||
+    intl.formatMessage({ id: "app.user" });
   const displayAvatarUrl = profile?.avatarUrl || null;
 
   return (
@@ -56,7 +61,7 @@ export default function DirectConversationHeader({
             ) : displayAvatarUrl ? (
               <Image
                 src={displayAvatarUrl}
-                alt="Avatar"
+                alt={intl.formatMessage({ id: "profile.avatar" })}
                 width={40}
                 height={40}
                 className="rounded-full"
@@ -78,7 +83,9 @@ export default function DirectConversationHeader({
               <h2 className="font-semibold text-gray-800 truncate">
                 {displayName}
               </h2>
-              <p className="text-xs text-gray-500">Direct Message</p>
+              <p className="text-xs text-gray-500">
+                {intl.formatMessage({ id: "chat.directMessage" })}
+              </p>
             </>
           )}
         </div>
@@ -88,7 +95,7 @@ export default function DirectConversationHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onOpenSearch}
-          title="Search"
+          title={intl.formatMessage({ id: "app.search" })}
         >
           <Search size={20} />
         </button>
@@ -96,7 +103,7 @@ export default function DirectConversationHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onToggleRightPanel}
-          title="Conversation Info"
+          title={intl.formatMessage({ id: "chat.conversationInfo" })}
         >
           <Info size={20} />
         </button>

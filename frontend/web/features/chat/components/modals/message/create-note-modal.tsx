@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import RichTextTextarea from "../../input/rich-text-textarea";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface CreateNoteModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
   onClose,
   onSubmit,
 }) => {
+  const intl = useAppIntl();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -41,7 +43,9 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Create Note</h2>
+          <h2 className="text-xl font-bold text-gray-800">
+            {intl.formatMessage({ id: "chat.createNote" })}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
@@ -53,13 +57,13 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Title
+              {intl.formatMessage({ id: "chat.noteTitle" })}
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter note title..."
+              placeholder={intl.formatMessage({ id: "chat.enterNoteTitle" })}
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
               required
             />
@@ -67,12 +71,12 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Content
+              {intl.formatMessage({ id: "chat.noteContent" })}
             </label>
             <RichTextTextarea
               value={content}
               setValue={setContent}
-              placeholder="Enter note content..."
+              placeholder={intl.formatMessage({ id: "chat.enterNoteContent" })}
               focusColorClassName="focus-within:border-blue-500 focus-within:ring-blue-500/10"
             />
           </div>
@@ -83,7 +87,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({
               disabled={!title.trim() || !content.trim()}
               className="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create note
+              {intl.formatMessage({ id: "chat.createNote" })}
             </button>
           </div>
         </form>

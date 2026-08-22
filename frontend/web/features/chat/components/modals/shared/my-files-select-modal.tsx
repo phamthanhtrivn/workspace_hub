@@ -9,6 +9,7 @@ import { chatKeys } from "@/features/chat/types/chat.constant";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { formatFileSize } from "@/features/project/components/project-file-panel";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MyFilesSelectModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export default function MyFilesSelectModal({
   onClose,
   onSelect,
 }: MyFilesSelectModalProps) {
+  const intl = useAppIntl();
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderHistory, setFolderHistory] = useState<FolderHistoryItem[]>([
     { id: null, name: "Home" },
@@ -57,7 +59,7 @@ export default function MyFilesSelectModal({
       setCurrentFolderId(folderId);
 
       if (folderId === null) {
-        setFolderHistory([{ id: null, name: "Home" }]);
+      setFolderHistory([{ id: null, name: "Home" }]);
       } else {
         const index = folderHistory.findIndex((h) => h.id === folderId);
         if (index !== -1) {
@@ -112,7 +114,7 @@ export default function MyFilesSelectModal({
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
           <h2 className="text-lg font-black text-gray-800">
-            Select from My Files
+            {intl.formatMessage({ id: "documents.selectFromMyFiles" })}
           </h2>
           <button
             onClick={handleCloseModal}
@@ -138,7 +140,9 @@ export default function MyFilesSelectModal({
                     : "text-gray-400"
                 }`}
               >
-                {history.name}
+                {history.id === null
+                  ? intl.formatMessage({ id: "documents.nav.myFiles" })
+                  : history.name}
               </button>
             </React.Fragment>
           ))}
@@ -148,12 +152,12 @@ export default function MyFilesSelectModal({
         <div className="flex-1 overflow-y-auto p-4 space-y-1.5 min-h-[220px]">
           {isLoading ? (
             <div className="flex items-center justify-center h-full text-xs font-semibold text-gray-400">
-              Loading files...
+              {intl.formatMessage({ id: "documents.loadingFiles" })}
             </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-xs font-semibold text-gray-400 space-y-2 py-8">
               <Folder size={32} className="text-gray-300" />
-              <span>This folder is empty</span>
+              <span>{intl.formatMessage({ id: "documents.folderEmpty" })}</span>
             </div>
           ) : (
             items.map((item: DocumentItem) => {
@@ -234,7 +238,7 @@ export default function MyFilesSelectModal({
             onClick={handleCloseModal}
             className="cursor-pointer px-4 py-2 text-xs font-bold text-gray-500 hover:bg-gray-100 rounded-xl transition"
           >
-            Cancel
+            {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             type="button"
@@ -242,7 +246,10 @@ export default function MyFilesSelectModal({
             disabled={selectedFiles.size === 0}
             className="cursor-pointer px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition shadow-md hover:shadow-lg disabled:shadow-none"
           >
-            Attach {selectedFiles.size > 0 ? `(${selectedFiles.size})` : ""}
+            {intl.formatMessage(
+              { id: "documents.attachSelected" },
+              { count: selectedFiles.size },
+            )}
           </button>
         </div>
       </div>

@@ -5,6 +5,7 @@ import { DocumentItem, DocumentVersion } from "../../types/documents.types";
 import { formatBytes, formatDateShort } from "../../utils/documents.utils";
 import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { Eye, Download, Loader2 } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface VersionHistoryTableProps {
   versions: DocumentVersion[];
@@ -21,6 +22,8 @@ export function VersionHistoryTable({
   onPreviewVersion,
   onDownload,
 }: VersionHistoryTableProps) {
+  const intl = useAppIntl();
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-10">
@@ -32,7 +35,7 @@ export function VersionHistoryTable({
   if (versions.length === 0) {
     return (
       <div className="text-center py-8 text-slate-400 font-semibold text-sm">
-        No version history available.
+        {intl.formatMessage({ id: "documents.noVersionHistory" })}
       </div>
     );
   }
@@ -42,11 +45,21 @@ export function VersionHistoryTable({
       <table className="w-full text-left border-collapse text-xs">
         <thead>
           <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider">
-            <th className="px-5 py-3">Version</th>
-            <th className="px-5 py-3">Date</th>
-            <th className="px-5 py-3">Size</th>
-            <th className="px-5 py-3">Uploaded By</th>
-            <th className="px-5 py-3 text-right">Actions</th>
+            <th className="px-5 py-3">
+              {intl.formatMessage({ id: "documents.version" })}
+            </th>
+            <th className="px-5 py-3">
+              {intl.formatMessage({ id: "documents.date" })}
+            </th>
+            <th className="px-5 py-3">
+              {intl.formatMessage({ id: "documents.size" })}
+            </th>
+            <th className="px-5 py-3">
+              {intl.formatMessage({ id: "documents.uploadedBy" })}
+            </th>
+            <th className="px-5 py-3 text-right">
+              {intl.formatMessage({ id: "documents.actions" })}
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
@@ -63,7 +76,7 @@ export function VersionHistoryTable({
                   <span>v{version.versionNumber}</span>
                   {isLatest && (
                     <span className="bg-blue-50 text-blue-600 text-[10px] px-2 py-0.5 rounded-full font-bold border border-blue-100">
-                      Current
+                      {intl.formatMessage({ id: "documents.current" })}
                     </span>
                   )}
                 </td>
@@ -88,14 +101,18 @@ export function VersionHistoryTable({
                           version.id === ORIGINAL_VERSION_ID ? "" : version.id,
                         )
                       }
-                      title="Preview Version"
+                      title={intl.formatMessage({
+                        id: "documents.previewVersion",
+                      })}
                       className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-500 rounded-lg cursor-pointer transition-colors"
                     >
                       <Eye size={15} />
                     </button>
                     <button
                       onClick={() => onDownload(version.id)}
-                      title="Download Version"
+                      title={intl.formatMessage({
+                        id: "documents.downloadVersion",
+                      })}
                       className="p-1.5 hover:bg-slate-100 text-slate-500 hover:text-blue-500 rounded-lg cursor-pointer transition-colors"
                     >
                       <Download size={15} />

@@ -290,17 +290,16 @@ export const USER_FALLBACK_NAME = "Anonymous User";
 
 // ─── Link access labels ────────────────────────────────────────────────────────
 
-export const LINK_ACCESS_LABELS: Record<string, string> = {
-  NONE: "Restricted",
-  VIEWER: "Anyone with link (Viewer)",
-  EDITOR: "Anyone with link (Editor)",
+export const LINK_ACCESS_LABEL_IDS: Record<string, string> = {
+  NONE: "documents.linkAccess.restricted",
+  VIEWER: "documents.linkAccess.viewer",
+  EDITOR: "documents.linkAccess.editor",
 };
 
-export const LINK_ACCESS_DESCRIPTIONS: Record<string, string> = {
-  NONE: "Only people added above can access using this link.",
-  VIEWER: "Anyone with this link can view and download the resource.",
-  EDITOR:
-    "Anyone with this link can edit, move, and delete the resource.",
+export const LINK_ACCESS_DESCRIPTION_IDS: Record<string, string> = {
+  NONE: "documents.linkAccess.restrictedDescription",
+  VIEWER: "documents.linkAccess.viewerDescription",
+  EDITOR: "documents.linkAccess.editorDescription",
 };
 
 // ─── Drag & Drop ───────────────────────────────────────────────────────────────

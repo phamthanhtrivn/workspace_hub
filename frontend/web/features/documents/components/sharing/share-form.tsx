@@ -9,6 +9,7 @@ import { documentsApi } from "../../api/documents.api";
 import { searchUserByEmail } from "@/features/chat/api/chat.api";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import { ShareSuggestionsDropdown } from "./share-suggestions-dropdown";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ShareModalFormProps {
   documentItemId: string;
@@ -19,6 +20,7 @@ export function ShareModalForm({
   documentItemId,
   onShareAdded,
 }: ShareModalFormProps) {
+  const intl = useAppIntl();
   const [emailInput, setEmailInput] = useState("");
   const [permissionInput, setPermissionInput] = useState<SharePermission>(
     SharePermission.VIEWER,
@@ -124,14 +126,19 @@ export function ShareModalForm({
 
       if (!userExists) {
         throw new Error(
-          "This email does not exist in the system. Please select a registered user.",
+          intl.formatMessage({ id: "documents.userEmailNotFound" }),
         );
       }
 
       return documentsApi.addShare(documentItemId, email, permission);
     },
     onSuccess: (_, variables) => {
-      toast.success(`Successfully shared access with ${variables.email}`);
+      toast.success(
+        intl.formatMessage(
+          { id: "documents.sharedAccessWith" },
+          { email: variables.email },
+        ),
+      );
       setEmailInput("");
       setSearchResults([]);
       queryClient.invalidateQueries({
@@ -141,7 +148,10 @@ export function ShareModalForm({
     },
     onError: (err: any) => {
       console.error("Failed to add share", err);
-      const errMsg = err.message || "Failed to share access";
+      const errMsg =
+        err.response?.data?.message ||
+        err.message ||
+        intl.formatMessage({ id: "documents.shareAccessFailed" });
       toast.error(errMsg);
     },
   });
@@ -163,7 +173,7 @@ export function ShareModalForm({
   return (
     <form onSubmit={handleAddShare} className="space-y-2">
       <label className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-        Share with others
+        {intl.formatMessage({ id: "documents.shareWithOthers" })}
       </label>
       <div className="flex items-center gap-2">
         <div ref={containerRef} className="relative flex-1">
@@ -180,7 +190,9 @@ export function ShareModalForm({
           )}
           <input
             type="text"
-            placeholder="Enter email address..."
+            placeholder={intl.formatMessage({
+              id: "documents.enterEmailAddress",
+            })}
             required
             value={emailInput}
             onChange={(e) => setEmailInput(e.target.value)}
@@ -206,8 +218,12 @@ export function ShareModalForm({
           }
           className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-700 outline-hidden transition-all cursor-pointer"
         >
-          <option value={SharePermission.VIEWER}>Viewer</option>
-          <option value={SharePermission.EDITOR}>Editor</option>
+          <option value={SharePermission.VIEWER}>
+            {intl.formatMessage({ id: "documents.permission.viewer" })}
+          </option>
+          <option value={SharePermission.EDITOR}>
+            {intl.formatMessage({ id: "documents.permission.editor" })}
+          </option>
         </select>
         <button
           type="submit"

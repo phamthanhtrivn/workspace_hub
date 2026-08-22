@@ -3,6 +3,7 @@ import { Grid, List, ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DocumentViewType } from "../../types/documents.enums";
 import { ViewLayout, DocumentSortBy } from "../../types/documents.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ExplorerToolbarProps {
   searchQuery: string;
@@ -29,6 +30,7 @@ function ExplorerToolbar({
   setSortBy,
   inputRef,
 }: ExplorerToolbarProps) {
+  const intl = useAppIntl();
   const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,7 +40,9 @@ function ExplorerToolbar({
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search documents, folders (Ctrl+K)..."
+          placeholder={intl.formatMessage({
+            id: "documents.searchPlaceholder",
+          })}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm focus:border-[var(--color-primary)] focus:bg-white focus:outline-hidden transition-all placeholder:text-slate-400 font-semibold text-slate-700"
@@ -52,8 +56,12 @@ function ExplorerToolbar({
           onChange={(e) => setSortBy(e.target.value as DocumentSortBy)}
           className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-500 focus:outline-hidden cursor-pointer hover:border-slate-300 transition-colors"
         >
-          <option value={DocumentSortBy.LATEST}>Latest</option>
-          <option value={DocumentSortBy.OLDEST}>Oldest</option>
+          <option value={DocumentSortBy.LATEST}>
+            {intl.formatMessage({ id: "documents.sort.latest" })}
+          </option>
+          <option value={DocumentSortBy.OLDEST}>
+            {intl.formatMessage({ id: "documents.sort.oldest" })}
+          </option>
         </select>
 
         {/* View Layout Switcher */}
@@ -89,7 +97,7 @@ function ExplorerToolbar({
               onClick={() => setIsNewMenuOpen(!isNewMenuOpen)}
               className="flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white px-5 py-2.5 text-sm font-bold shadow-md shadow-blue-500/10 hover:shadow-lg transition-all cursor-pointer"
             >
-              <span>+ New</span>
+              <span>{intl.formatMessage({ id: "documents.new" })}</span>
               <ChevronDown size={14} />
             </button>
 
@@ -108,7 +116,7 @@ function ExplorerToolbar({
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors text-left cursor-pointer"
                   >
                     <FolderPlus className="text-amber-500" size={16} />
-                    <span>New folder</span>
+                    <span>{intl.formatMessage({ id: "documents.newFolder" })}</span>
                   </button>
 
                   <button
@@ -119,7 +127,7 @@ function ExplorerToolbar({
                     className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-50 cursor-pointer"
                   >
                     <UploadCloud className="text-blue-500" size={16} />
-                    <span>Upload file</span>
+                    <span>{intl.formatMessage({ id: "documents.uploadFile" })}</span>
                   </button>
                 </div>
               </>

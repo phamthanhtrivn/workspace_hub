@@ -32,6 +32,7 @@ import { ChatContextType } from "../../../types/chat.types";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { logApiError } from "@/lib/interceptors";
 import MediaDetailView from "../files/media-detail-view";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface DirectMessageRightPanelProps {
   onClose: () => void;
@@ -48,6 +49,7 @@ export default function DirectMessageRightPanel({
   onClose,
   initialDetailView,
 }: DirectMessageRightPanelProps) {
+  const intl = useAppIntl();
   const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "pinned",
@@ -179,7 +181,7 @@ export default function DirectMessageRightPanel({
     }
   };
 
-  let displayName = "Direct Message";
+  let displayName = intl.formatMessage({ id: "chat.directMessage" });
   let displayAvatarUrl = null;
   let displayDescription = "";
   let otherMemberId: string | null = null;
@@ -191,7 +193,10 @@ export default function DirectMessageRightPanel({
     otherMemberId = otherMember.userId;
     const profile = otherMember.profile || memberProfiles?.[otherMember.userId];
     displayName =
-      profile?.fullName || profile?.email || otherMember.userId || "User";
+      profile?.fullName ||
+      profile?.email ||
+      otherMember.userId ||
+      intl.formatMessage({ id: "app.user" });
     displayAvatarUrl = profile?.avatarUrl || null;
     displayDescription = profile?.email || "";
   }
@@ -310,7 +315,9 @@ export default function DirectMessageRightPanel({
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-800">Details</h2>
+        <h2 className="font-semibold text-gray-800">
+          {intl.formatMessage({ id: "documents.details" })}
+        </h2>
         <button
           onClick={onClose}
           className="cursor-pointer p-2 hover:bg-gray-100 rounded-full text-gray-500 transition"
@@ -332,7 +339,7 @@ export default function DirectMessageRightPanel({
             {displayAvatarUrl ? (
               <Image
                 src={displayAvatarUrl}
-                alt="Avatar"
+                alt={intl.formatMessage({ id: "profile.avatar" })}
                 width={80}
                 height={80}
                 className="rounded-full"
@@ -356,7 +363,9 @@ export default function DirectMessageRightPanel({
                 />
               </div>
               <span className="text-xs font-medium">
-                {isPinned ? "Unpin" : "Pin"}
+                {intl.formatMessage({
+                  id: isPinned ? "chat.unpin" : "chat.pin",
+                })}
               </span>
             </button>
 
@@ -368,7 +377,9 @@ export default function DirectMessageRightPanel({
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">
-                {isMuted ? "Unmute" : "Mute"}
+                {intl.formatMessage({
+                  id: isMuted ? "chat.unmute" : "chat.mute",
+                })}
               </span>
             </button>
           </div>

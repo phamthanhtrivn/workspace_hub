@@ -10,8 +10,10 @@ import { DownloadQueueProvider } from "./download/download-queue-provider";
 import { useSearchParams } from "next/navigation";
 import { DOCUMENT_QUERY_PARAMS } from "../types/documents.constants";
 import { documentsApi } from "../api/documents.api";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 function DocumentsView() {
+  const intl = useAppIntl();
   const [activeView, setActiveView] = useState<DocumentViewType>(
     DocumentViewType.MY_FILES,
   );
@@ -127,7 +129,7 @@ function DocumentsView() {
                     : "text-slate-400 group-hover:text-slate-600",
                 )}
               />
-              <span>My Files</span>
+              <span>{intl.formatMessage({ id: "documents.nav.myFiles" })}</span>
             </button>
 
             <button
@@ -148,7 +150,7 @@ function DocumentsView() {
                     : "text-slate-400 group-hover:text-slate-600",
                 )}
               />
-              <span>Shared</span>
+              <span>{intl.formatMessage({ id: "documents.nav.shared" })}</span>
             </button>
 
             <button
@@ -169,7 +171,7 @@ function DocumentsView() {
                     : "text-slate-400 group-hover:text-slate-600",
                 )}
               />
-              <span>Starred</span>
+              <span>{intl.formatMessage({ id: "documents.nav.starred" })}</span>
             </button>
 
             <button
@@ -190,7 +192,7 @@ function DocumentsView() {
                     : "text-slate-400 group-hover:text-slate-600",
                 )}
               />
-              <span>Trash</span>
+              <span>{intl.formatMessage({ id: "documents.nav.trash" })}</span>
             </button>
           </div>
 

@@ -4,38 +4,39 @@ import { type Task, TaskStatus } from "@/features/project/types/project";
 import { getTasksByStatus } from "@/lib/mock-data";
 import TaskCard from "./task-card";
 import { Plus, Circle, Loader2, Eye, CheckCircle2 } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const COLUMNS: {
   status: TaskStatus;
-  label: string;
+  labelId: string;
   headerColor: string;
   badgeBg: string;
   badgeText: string;
 }[] = [
   {
     status: TaskStatus.TODO,
-    label: "TO DO",
+    labelId: "project.task.status.todoUpper",
     headerColor: "text-[#5E6C84]",
     badgeBg: "bg-[#DFE1E6]",
     badgeText: "text-[#42526E]",
   },
   {
     status: TaskStatus.IN_PROGRESS,
-    label: "IN PROGRESS",
+    labelId: "project.task.status.inProgressUpper",
     headerColor: "text-[#0052CC]",
     badgeBg: "bg-[#DEEBFF]",
     badgeText: "text-[#0747A6]",
   },
   {
     status: TaskStatus.IN_REVIEW,
-    label: "IN REVIEW",
+    labelId: "project.task.status.inReviewUpper",
     headerColor: "text-[#FF8B00]",
     badgeBg: "bg-[#FFF0B3]",
     badgeText: "text-[#A54800]",
   },
   {
     status: TaskStatus.DONE,
-    label: "DONE",
+    labelId: "project.task.status.doneUpper",
     headerColor: "text-[#006644]",
     badgeBg: "bg-[#E3FCEF]",
     badgeText: "text-[#006644]",
@@ -55,10 +56,13 @@ export default function BoardView({
   onAddTask?: (status: TaskStatus) => void;
   onOpenChat?: (task: Task) => void;
 }) {
+  const intl = useAppIntl();
+
   return (
     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4 items-start h-full">
       {COLUMNS.map((col) => {
         const columnTasks = getTasksByStatus(tasks, col.status);
+        const columnLabel = intl.formatMessage({ id: col.labelId });
 
         return (
           <div
@@ -79,7 +83,7 @@ export default function BoardView({
                 <h3
                   className={`text-xs font-bold tracking-wider ${col.headerColor}`}
                 >
-                  {col.label}
+                  {columnLabel}
                 </h3>
                 <span
                   className={`inline-flex items-center justify-center h-5 px-1.5 rounded-full text-[10px] font-bold ${col.badgeBg} ${col.badgeText}`}
@@ -91,7 +95,10 @@ export default function BoardView({
                 type="button"
                 onClick={() => onAddTask?.(col.status)}
                 className="grid h-6 w-6 place-items-center rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition"
-                title={`Tạo công việc trong ${col.label}`}
+                title={intl.formatMessage(
+                  { id: "project.task.createInStatus" },
+                  { status: columnLabel },
+                )}
               >
                 <Plus className="h-4 w-4" strokeWidth={2} />
               </button>
@@ -110,7 +117,7 @@ export default function BoardView({
 
               {columnTasks.length === 0 && (
                 <div className="flex flex-1 flex-col items-center justify-center rounded border border-dashed border-slate-300 py-10 text-xs font-medium text-slate-400 bg-slate-50/50">
-                  <span>Không có công việc</span>
+                  <span>{intl.formatMessage({ id: "project.task.empty" })}</span>
                   {onAddTask && (
                     <button
                       type="button"
@@ -118,7 +125,7 @@ export default function BoardView({
                       className="mt-2 inline-flex items-center gap-1 font-semibold text-[#0052CC] hover:underline"
                     >
                       <Plus className="h-3 w-3" strokeWidth={2.5} />
-                      Thêm công việc
+                      {intl.formatMessage({ id: "project.task.add" })}
                     </button>
                   )}
                 </div>
@@ -133,7 +140,7 @@ export default function BoardView({
                 className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold rounded text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition text-left px-2"
               >
                 <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-                <span>Tạo công việc</span>
+                <span>{intl.formatMessage({ id: "project.task.create" })}</span>
               </button>
             )}
           </div>

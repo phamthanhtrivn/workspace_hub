@@ -35,6 +35,7 @@ import {
   claimVoiceSession,
   releaseVoiceSession,
 } from "../../utils/voice-session-coordinator";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export interface DirectMessageInputProps {
   onSendMessage?: (content: string, media?: any[]) => void;
@@ -75,7 +76,7 @@ const DirectMessageInput = React.memo(
       {
         onSendMessage,
         onTypingChange,
-        placeholder = "Message...",
+        placeholder,
         compact = false,
         autoFocusOnConversationChange = true,
       },
@@ -83,6 +84,9 @@ const DirectMessageInput = React.memo(
     ) {
       const { activeChatId: activeConversationId, activeChatType } =
         useActiveChat();
+      const intl = useAppIntl();
+      const resolvedPlaceholder =
+        placeholder ?? intl.formatMessage({ id: "chat.messagePlaceholder" });
       const [message, setMessage] = useState("");
       const [showEmojiPicker, setShowEmojiPicker] = useState(false);
       const [showMicOptions, setShowMicOptions] = useState(false);
@@ -333,7 +337,7 @@ const DirectMessageInput = React.memo(
             (file) => file.size <= MAX_FILE_SIZE_BYTES,
           );
           if (validFiles.length < files.length) {
-            toast.error("File size cannot exceed 100MB.");
+            toast.error(intl.formatMessage({ id: "chat.fileSizeExceeded" }));
           }
           if (validFiles.length === 0) return;
 
@@ -406,7 +410,7 @@ const DirectMessageInput = React.memo(
             );
           }
         },
-        [activeChatType, activeConversationId],
+        [activeChatType, activeConversationId, intl],
       );
 
       const handleFileChange = useCallback(
@@ -499,7 +503,9 @@ const DirectMessageInput = React.memo(
       const handleSend = useCallback(() => {
         if (!message.trim() && uploadingMedia.length === 0) return;
         if (isUploading) {
-          toast.warning("Please wait for the file to upload.");
+          toast.warning(
+            intl.formatMessage({ id: "chat.waitForFileUpload" }),
+          );
           return;
         }
         if (!onSendMessage) return;
@@ -535,6 +541,7 @@ const DirectMessageInput = React.memo(
         clearInterim,
         interimMessage,
         isUploading,
+        intl,
         message,
         onSendMessage,
         onTypingChange,
@@ -568,7 +575,7 @@ const DirectMessageInput = React.memo(
                 size={28}
               />
               <p className="text-xs font-black text-blue-600">
-                Drop files here to upload
+                {intl.formatMessage({ id: "chat.dropFilesHere" })}
               </p>
             </div>
           )}
@@ -613,7 +620,7 @@ const DirectMessageInput = React.memo(
                       type="button"
                       onClick={() => removeFile(media.id)}
                       className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
-                      title="Remove file"
+                      title={intl.formatMessage({ id: "chat.removeFile" })}
                     >
                       <X size={14} />
                     </button>
@@ -646,7 +653,7 @@ const DirectMessageInput = React.memo(
                   className={`cursor-pointer rounded-full transition-colors text-gray-500 hover:bg-gray-200 disabled:opacity-50 ${
                     compact ? "p-1.5" : "p-2"
                   }`}
-                  title="Attach Options"
+                  title={intl.formatMessage({ id: "chat.attachOptions" })}
                 >
                   <Paperclip size={compact ? 18 : 20} />
                 </button>
@@ -662,7 +669,7 @@ const DirectMessageInput = React.memo(
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
                       <Paperclip size={16} className="text-gray-500" />
-                      Files
+                      {intl.formatMessage({ id: "chat.files" })}
                     </button>
                     <button
                       onClick={() => {
@@ -672,7 +679,8 @@ const DirectMessageInput = React.memo(
                       disabled={isUploading}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Folder size={16} className="text-blue-500" /> My Files
+                      <Folder size={16} className="text-blue-500" />
+                      {intl.formatMessage({ id: "documents.nav.myFiles" })}
                     </button>
                   </div>
                 )}
@@ -688,7 +696,7 @@ const DirectMessageInput = React.memo(
                 }
                 onChange={(event) => handleTyping(event.target.value)}
                 onPaste={handlePaste}
-                placeholder={placeholder}
+                placeholder={resolvedPlaceholder}
                 disabled={isUploading}
                 className={`flex-1 min-w-0 bg-transparent resize-none outline-none text-gray-800 placeholder-gray-400 disabled:opacity-50 overflow-y-auto ${
                   compact
@@ -714,7 +722,7 @@ const DirectMessageInput = React.memo(
                     type="button"
                     onClick={handleCancelRecording}
                     className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
-                    title="Cancel recording"
+                    title={intl.formatMessage({ id: "chat.cancelRecording" })}
                   >
                     <Trash2 size={compact ? 14 : 16} />
                   </button>
@@ -722,7 +730,7 @@ const DirectMessageInput = React.memo(
                     type="button"
                     onClick={handleStopRecording}
                     className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
-                    title="Send voice message"
+                    title={intl.formatMessage({ id: "chat.sendVoiceMessage" })}
                   >
                     <Send size={compact ? 14 : 16} />
                   </button>
@@ -740,7 +748,7 @@ const DirectMessageInput = React.memo(
                           ? "bg-blue-100 text-blue-600"
                           : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
                       } ${compact ? "p-1.5" : "p-2"}`}
-                      title="Insert emoji"
+                      title={intl.formatMessage({ id: "chat.insertEmoji" })}
                     >
                       <Smile size={compact ? 18 : 20} />
                     </button>
@@ -770,7 +778,7 @@ const DirectMessageInput = React.memo(
                             ? "bg-blue-100 text-blue-600"
                             : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
                       } ${compact ? "p-1.5" : "p-2"}`}
-                      title="Voice options"
+                      title={intl.formatMessage({ id: "chat.voiceOptions" })}
                     >
                       <Mic size={compact ? 18 : 20} />
                     </button>
@@ -786,7 +794,7 @@ const DirectMessageInput = React.memo(
                           className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                         >
                           <Voicemail size={16} className="text-blue-500" />
-                          Send voice message
+                          {intl.formatMessage({ id: "chat.sendVoiceMessage" })}
                         </button>
                         <button
                           type="button"
@@ -797,7 +805,7 @@ const DirectMessageInput = React.memo(
                           className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                         >
                           <Type size={16} className="text-green-500" />
-                          Speech to text
+                          {intl.formatMessage({ id: "chat.speechToText" })}
                         </button>
                       </div>
                     )}
@@ -814,7 +822,7 @@ const DirectMessageInput = React.memo(
                     }`}
                     disabled={!canSend}
                     onClick={handleSend}
-                    title="Send"
+                    title={intl.formatMessage({ id: "chat.send" })}
                   >
                     <Send size={compact ? 15 : 18} />
                   </button>

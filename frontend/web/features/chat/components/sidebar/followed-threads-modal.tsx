@@ -22,10 +22,10 @@ import {
   FollowedThreadResponse,
 } from "../../types/chat.types";
 import {
-  ChatSidebarSection,
   chatKeys,
   MAX_UNREAD_COUNT,
 } from "../../types/chat.constant";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const EMPTY_THREADS: FollowedThreadResponse[] = [];
 
@@ -40,8 +40,11 @@ export function getThreadSortDate(thread: FollowedThreadResponse) {
   return new Date(thread.lastReplyAt ?? thread.rootMessage.createdAt).getTime();
 }
 
-export function getThreadPreview(thread: FollowedThreadResponse) {
-  return thread.rootMessage.content?.trim() || "[Attachment]";
+export function getThreadPreview(
+  thread: FollowedThreadResponse,
+  attachmentFallback = "[Attachment]",
+) {
+  return thread.rootMessage.content?.trim() || attachmentFallback;
 }
 
 export async function fetchFollowedThreads() {
@@ -69,6 +72,7 @@ export default function FollowedThreadsModal({
   onClose,
   onSelectThread,
 }: FollowedThreadsModalProps) {
+  const intl = useAppIntl();
   const [searchQuery, setSearchQuery] = useState("");
   const {
     data = EMPTY_THREADS,
@@ -113,11 +117,14 @@ export default function FollowedThreadsModal({
               ?.map((member) => member.profile?.fullName || "")
               .join(" ") || "";
 
-      return `${chatName} ${senderName} ${getThreadPreview(thread)}`
+      return `${chatName} ${senderName} ${getThreadPreview(
+        thread,
+        intl.formatMessage({ id: "chat.attachment" }),
+      )}`
         .toLowerCase()
         .includes(trimmedQuery);
     });
-  }, [data, searchQuery]);
+  }, [data, intl, searchQuery]);
 
   const handleSelectThread = (thread: FollowedThreadResponse) => {
     onSelectThread(thread);
@@ -142,17 +149,17 @@ export default function FollowedThreadsModal({
             </span>
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-slate-900 truncate">
-                {ChatSidebarSection.THREADS}
+                {intl.formatMessage({ id: "chat.threads" })}
               </h2>
               <p className="text-xs text-slate-500">
-                Followed thread discussions
+                {intl.formatMessage({ id: "chat.followedThreadDiscussions" })}
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
             className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition cursor-pointer"
-            title="Close"
+            title={intl.formatMessage({ id: "app.close" })}
           >
             <X size={20} />
           </button>
@@ -167,7 +174,9 @@ export default function FollowedThreadsModal({
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search followed threads..."
+              placeholder={intl.formatMessage({
+                id: "chat.searchFollowedThreads",
+              })}
               className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition"
             />
           </div>
@@ -177,18 +186,20 @@ export default function FollowedThreadsModal({
           {isLoading ? (
             <div className="h-48 flex flex-col items-center justify-center gap-3 text-slate-500">
               <Loader2 size={24} className="animate-spin text-blue-500" />
-              <p className="text-sm font-medium">Loading threads...</p>
+              <p className="text-sm font-medium">
+                {intl.formatMessage({ id: "chat.loadingThreads" })}
+              </p>
             </div>
           ) : isError ? (
             <div className="h-48 flex flex-col items-center justify-center gap-3 text-center px-6">
               <p className="text-sm font-semibold text-slate-700">
-                Failed to load followed threads
+                {intl.formatMessage({ id: "chat.failedLoadFollowedThreads" })}
               </p>
               <button
                 onClick={() => refetch()}
                 className="px-4 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer"
               >
-                Try again
+                {intl.formatMessage({ id: "app.tryAgain" })}
               </button>
             </div>
           ) : filteredThreads.length > 0 ? (
@@ -236,15 +247,26 @@ export default function FollowedThreadsModal({
                       )}
                     </span>
                     <span className="text-xs text-slate-600 line-clamp-2 break-words">
-                      {getThreadPreview(thread)}
+                      {getThreadPreview(
+                        thread,
+                        intl.formatMessage({ id: "chat.attachment" }),
+                      )}
                     </span>
                     <span className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100/50 mt-1 shrink-0">
                       <span className="flex items-center gap-1 text-blue-600 font-bold">
                         <MessageSquare size={11} />
-                        {thread.replyCount} replies
+                        {intl.formatMessage(
+                          { id: "chat.repliesCount" },
+                          { count: thread.replyCount },
+                        )}
                       </span>
                       {lastReplyTime && (
-                        <span>Last reply: {lastReplyTime}</span>
+                        <span>
+                          {intl.formatMessage(
+                            { id: "chat.lastReplyAt" },
+                            { time: lastReplyTime },
+                          )}
+                        </span>
                       )}
                     </span>
                   </button>
@@ -254,10 +276,10 @@ export default function FollowedThreadsModal({
           ) : (
             <div className="h-48 flex flex-col items-center justify-center text-center px-6">
               <p className="text-sm font-semibold text-slate-700">
-                No followed threads
+                {intl.formatMessage({ id: "chat.noFollowedThreads" })}
               </p>
               <p className="text-xs text-slate-400 mt-1">
-                Follow a thread to keep it here.
+                {intl.formatMessage({ id: "chat.followThreadHint" })}
               </p>
             </div>
           )}

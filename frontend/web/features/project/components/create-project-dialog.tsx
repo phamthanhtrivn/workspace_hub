@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Code2, ListTodo, X } from "lucide-react";
 import { ProjectTemplate, ProjectType } from "@/features/project/types/project";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const COLOR_OPTIONS = [
   "#6366f1",
@@ -55,6 +56,7 @@ export default function CreateProjectDialog({
   onSubmit,
   isSubmitting = false,
 }: CreateProjectDialogProps) {
+  const intl = useAppIntl();
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
   const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
@@ -90,16 +92,17 @@ export default function CreateProjectDialog({
         {/* Close button */}
         <button
           onClick={onClose}
+          aria-label={intl.formatMessage({ id: "app.close" })}
           className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-xl text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
         >
           <X className="h-4 w-4" strokeWidth={2} />
         </button>
 
         <h2 className="text-lg font-black text-[var(--color-primary-dark)]">
-          Tạo dự án mới
+          {intl.formatMessage({ id: "project.create.title" })}
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Thiết lập dự án để bắt đầu quản lý công việc của bạn.
+          {intl.formatMessage({ id: "project.create.description" })}
         </p>
 
         <div className="mt-6 space-y-5">
@@ -109,14 +112,16 @@ export default function CreateProjectDialog({
               htmlFor="project-name"
               className="block text-xs font-bold uppercase tracking-wider text-slate-500"
             >
-              Tên dự án
+              {intl.formatMessage({ id: "project.name" })}
             </label>
             <input
               id="project-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Ví dụ: WorkspaceHub Platform"
+              placeholder={intl.formatMessage({
+                id: "project.namePlaceholder",
+              })}
               className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-3 text-sm font-semibold text-[var(--color-primary-dark)] outline-none transition placeholder:text-slate-400 focus:border-[var(--color-secondary)] focus:bg-white focus:ring-4 focus:ring-[var(--color-secondary)]/10"
             />
           </div>
@@ -124,23 +129,23 @@ export default function CreateProjectDialog({
           {/* Project Type */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-              Loại project
+              {intl.formatMessage({ id: "project.type" })}
             </label>
             <div className="mt-2 grid gap-3 sm:grid-cols-2">
               {[
                 {
                   type: ProjectType.GENERAL,
-                  title: "Project thường",
-                  description: "Task và subtask, không có backlog hay sprint",
+                  titleId: "project.type.general",
+                  descriptionId: "project.type.generalDescription",
                   Icon: ListTodo,
                 },
                 {
                   type: ProjectType.SOFTWARE_DEVELOPMENT,
-                  title: "Phát triển phần mềm",
-                  description: "Backlog, sprint, review và release",
+                  titleId: "project.type.software",
+                  descriptionId: "project.type.softwareDescription",
                   Icon: Code2,
                 },
-              ].map(({ type, title, description, Icon }) => {
+              ].map(({ type, titleId, descriptionId, Icon }) => {
                 const selected = projectType === type;
 
                 return (
@@ -167,10 +172,10 @@ export default function CreateProjectDialog({
                     </span>
                     <span>
                       <span className="block text-sm font-bold text-slate-800">
-                        {title}
+                        {intl.formatMessage({ id: titleId })}
                       </span>
                       <span className="mt-0.5 block text-xs leading-5 text-slate-500">
-                        {description}
+                        {intl.formatMessage({ id: descriptionId })}
                       </span>
                     </span>
                   </button>
@@ -182,7 +187,7 @@ export default function CreateProjectDialog({
           {/* Icon Picker */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-              Template khởi tạo
+              {intl.formatMessage({ id: "project.template" })}
             </label>
             <select
               value={template}
@@ -191,26 +196,32 @@ export default function CreateProjectDialog({
               }
               className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-blue-600"
             >
-              <option value={ProjectTemplate.EMPTY}>Project trống</option>
+              <option value={ProjectTemplate.EMPTY}>
+                {intl.formatMessage({ id: "project.template.empty" })}
+              </option>
               {projectType === ProjectType.SOFTWARE_DEVELOPMENT && (
                 <option value={ProjectTemplate.SOFTWARE_SCRUM}>
                   Software Scrum
                 </option>
               )}
               <option value={ProjectTemplate.MARKETING_CAMPAIGN}>
-                Marketing Campaign
+                {intl.formatMessage({
+                  id: "project.template.marketingCampaign",
+                })}
               </option>
-              <option value={ProjectTemplate.EVENT_PLAN}>Event Plan</option>
+              <option value={ProjectTemplate.EVENT_PLAN}>
+                {intl.formatMessage({ id: "project.template.eventPlan" })}
+              </option>
             </select>
             <p className="mt-1 text-[11px] text-slate-400">
-              Template sẽ tạo sẵn task, subtask và checklist.
+              {intl.formatMessage({ id: "project.templateDescription" })}
             </p>
           </div>
 
           {/* Icon Picker */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-              Icon
+              {intl.formatMessage({ id: "project.icon" })}
             </label>
             <div className="mt-2 flex flex-wrap gap-2">
               {ICON_OPTIONS.map((icon) => (
@@ -234,7 +245,7 @@ export default function CreateProjectDialog({
           {/* Color Picker */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-              Màu sắc
+              {intl.formatMessage({ id: "project.color" })}
             </label>
             <div className="mt-2 flex flex-wrap gap-2.5">
               {COLOR_OPTIONS.map((color) => (
@@ -259,7 +270,7 @@ export default function CreateProjectDialog({
           {/* Preview */}
           <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              Preview
+              {intl.formatMessage({ id: "project.preview" })}
             </p>
             <div className="mt-2 flex items-center gap-3">
               <span
@@ -269,7 +280,7 @@ export default function CreateProjectDialog({
                 {selectedIcon}
               </span>
               <span className="text-sm font-black text-[var(--color-primary-dark)]">
-                {name || "Tên dự án"}
+                {name || intl.formatMessage({ id: "project.nameFallback" })}
               </span>
             </div>
           </div>
@@ -281,14 +292,14 @@ export default function CreateProjectDialog({
             onClick={onClose}
             className="rounded-xl px-5 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100"
           >
-            Hủy
+            {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!name.trim() || isSubmitting}
             className="rounded-xl bg-[var(--color-primary-dark)] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-[var(--color-primary-dark)]/20 transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Tạo dự án
+            {intl.formatMessage({ id: "project.create.submit" })}
           </button>
         </div>
       </div>

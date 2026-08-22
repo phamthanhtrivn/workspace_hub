@@ -10,6 +10,7 @@ import {
   Timer,
   X,
 } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   TaskPriority,
   TaskStatus,
@@ -17,17 +18,17 @@ import {
 } from "@/features/project/types/project";
 
 const STATUS_OPTIONS = [
-  { value: TaskStatus.TODO, label: "To Do" },
-  { value: TaskStatus.IN_PROGRESS, label: "In Progress" },
-  { value: TaskStatus.IN_REVIEW, label: "In Review" },
-  { value: TaskStatus.DONE, label: "Done" },
+  { value: TaskStatus.TODO, labelId: "project.task.status.todo" },
+  { value: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress" },
+  { value: TaskStatus.IN_REVIEW, labelId: "project.task.status.inReview" },
+  { value: TaskStatus.DONE, labelId: "project.task.status.done" },
 ];
 
 const PRIORITY_OPTIONS = [
-  { value: TaskPriority.LOW, label: "Thấp" },
-  { value: TaskPriority.MEDIUM, label: "Trung bình" },
-  { value: TaskPriority.HIGH, label: "Cao" },
-  { value: TaskPriority.URGENT, label: "Khẩn cấp" },
+  { value: TaskPriority.LOW, labelId: "project.task.priority.low" },
+  { value: TaskPriority.MEDIUM, labelId: "project.task.priority.medium" },
+  { value: TaskPriority.HIGH, labelId: "project.task.priority.high" },
+  { value: TaskPriority.URGENT, labelId: "project.task.priority.urgent" },
 ];
 
 function toDateInput(value?: string): string {
@@ -99,6 +100,7 @@ export default function TaskFormDialog({
   onSubmit: (values: TaskFormValues) => Promise<void>;
   isSubmitting?: boolean;
 }) {
+  const intl = useAppIntl();
   const [title, setTitle] = useState(task?.title || "");
   const [description, setDescription] = useState(task?.description || "");
   const [priority, setPriority] = useState<TaskPriority>(
@@ -179,22 +181,31 @@ export default function TaskFormDialog({
         <header className="flex items-start justify-between border-b border-slate-100 px-6 py-5 sm:px-7">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              {projectName ? `Project / ${projectName}` : "Project"}
+              {projectName
+                ? intl.formatMessage(
+                    { id: "project.breadcrumb" },
+                    { name: projectName },
+                  )
+                : intl.formatMessage({ id: "project.project" })}
             </p>
             <h2 className="mt-1 text-xl font-black text-[var(--color-primary-dark)]">
-              {task ? "Chỉnh sửa task" : "Tạo task"}
+              {intl.formatMessage({
+                id: task ? "project.task.editTitle" : "project.task.createTitle",
+              })}
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              {task
-                ? "Cập nhật thông tin và tiến độ công việc."
-                : "Tạo một công việc mới trong project này."}
+              {intl.formatMessage({
+                id: task
+                  ? "project.task.editDescription"
+                  : "project.task.createDescription",
+              })}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={isSubmitting}
-            aria-label="Đóng"
+            aria-label={intl.formatMessage({ id: "app.close" })}
             className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
           >
             <X className="h-4 w-4" />
@@ -205,30 +216,37 @@ export default function TaskFormDialog({
           <section>
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold text-slate-700">
-                Summary / Tên task <span className="text-red-500">*</span>
+                {intl.formatMessage({ id: "project.task.summary" })}{" "}
+                <span className="text-red-500">*</span>
               </span>
               <input
                 autoFocus
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Nhập tên task ngắn gọn, dễ hiểu"
+                placeholder={intl.formatMessage({
+                  id: "project.task.titlePlaceholder",
+                })}
                 maxLength={200}
                 required
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
               />
               <span className="mt-1 block text-[11px] text-slate-400">
-                Ví dụ: Thiết kế giao diện trang chủ
+                {intl.formatMessage({ id: "project.task.titleHint" })}
               </span>
             </label>
           </section>
 
           <section>
             <label className="block">
-              <FieldLabel icon={AlignLeft}>Mô tả</FieldLabel>
+              <FieldLabel icon={AlignLeft}>
+                {intl.formatMessage({ id: "project.task.description" })}
+              </FieldLabel>
               <textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="Mô tả mục tiêu, phạm vi hoặc tiêu chí hoàn thành của task..."
+                placeholder={intl.formatMessage({
+                  id: "project.task.descriptionPlaceholder",
+                })}
                 rows={5}
                 className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
               />
@@ -238,16 +256,18 @@ export default function TaskFormDialog({
           <section className="border-t border-slate-100 pt-5">
             <div className="mb-4 flex items-center gap-2">
               <span className="text-sm font-black text-[var(--color-primary-dark)]">
-                Details
+                {intl.formatMessage({ id: "project.details" })}
               </span>
               <span className="text-xs text-slate-400">
-                Thông tin quản lý task
+                {intl.formatMessage({ id: "project.task.managementInfo" })}
               </span>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">
-                <FieldLabel icon={ChevronDown}>Trạng thái</FieldLabel>
+                <FieldLabel icon={ChevronDown}>
+                  {intl.formatMessage({ id: "project.task.status" })}
+                </FieldLabel>
                 <div className="relative">
                   <select
                     value={status}
@@ -258,7 +278,7 @@ export default function TaskFormDialog({
                   >
                     {STATUS_OPTIONS.map((item) => (
                       <option key={item.value} value={item.value}>
-                        {item.label}
+                        {intl.formatMessage({ id: item.labelId })}
                       </option>
                     ))}
                   </select>
@@ -267,7 +287,9 @@ export default function TaskFormDialog({
               </label>
 
               <label className="block">
-                <FieldLabel icon={Flag}>Độ ưu tiên</FieldLabel>
+                <FieldLabel icon={Flag}>
+                  {intl.formatMessage({ id: "project.task.priority" })}
+                </FieldLabel>
                 <div className="relative">
                   <select
                     value={priority}
@@ -278,7 +300,7 @@ export default function TaskFormDialog({
                   >
                     {PRIORITY_OPTIONS.map((item) => (
                       <option key={item.value} value={item.value}>
-                        {item.label}
+                        {intl.formatMessage({ id: item.labelId })}
                       </option>
                     ))}
                   </select>
@@ -287,7 +309,9 @@ export default function TaskFormDialog({
               </label>
 
               <label className="block">
-                <FieldLabel icon={ChevronDown}>Task cha</FieldLabel>
+                <FieldLabel icon={ChevronDown}>
+                  {intl.formatMessage({ id: "project.task.parentTask" })}
+                </FieldLabel>
                 <div className="relative">
                   <select
                     value={parentTaskId}
@@ -295,7 +319,9 @@ export default function TaskFormDialog({
                     onChange={(event) => setParentTaskId(event.target.value)}
                     className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
                   >
-                    <option value="">Không có — task lớn</option>
+                    <option value="">
+                      {intl.formatMessage({ id: "project.task.noParentTask" })}
+                    </option>
                     {parentTasks
                       .filter(
                         (candidate) =>
@@ -310,7 +336,7 @@ export default function TaskFormDialog({
                   <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 </div>
                 <span className="mt-1 block text-[11px] text-slate-400">
-                  Chọn task lớn nếu đây là một task nhỏ/subtask.
+                  {intl.formatMessage({ id: "project.task.parentTaskHint" })}
                 </span>
               </label>
             </div>
@@ -320,10 +346,10 @@ export default function TaskFormDialog({
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-black text-[var(--color-primary-dark)]">
-                  Lịch trình
+                  {intl.formatMessage({ id: "project.schedule" })}
                 </p>
                 <p className="mt-0.5 text-xs text-slate-400">
-                  Thiết lập thời gian thực hiện
+                  {intl.formatMessage({ id: "project.task.scheduleHint" })}
                 </p>
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
@@ -333,14 +359,18 @@ export default function TaskFormDialog({
                   onChange={(event) => handleAllDayChange(event.target.checked)}
                   className="h-4 w-4 accent-[var(--color-secondary)]"
                 />
-                Cả ngày
+                {intl.formatMessage({ id: "project.task.allDay" })}
               </label>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">
                 <FieldLabel icon={CalendarDays}>
-                  {allDay ? "Ngày bắt đầu" : "Bắt đầu lúc"}
+                  {intl.formatMessage({
+                    id: allDay
+                      ? "project.task.startDate"
+                      : "project.task.startAt",
+                  })}
                 </FieldLabel>
                 <input
                   type={allDay ? "date" : "datetime-local"}
@@ -351,7 +381,9 @@ export default function TaskFormDialog({
               </label>
               <label className="block">
                 <FieldLabel icon={CalendarDays}>
-                  {allDay ? "Ngày kết thúc" : "Hạn hoàn thành"}
+                  {intl.formatMessage({
+                    id: allDay ? "project.task.endDate" : "project.task.dueAt",
+                  })}
                 </FieldLabel>
                 <input
                   type={allDay ? "date" : "datetime-local"}
@@ -365,22 +397,26 @@ export default function TaskFormDialog({
 
           <section className="border-t border-slate-100 pt-5">
             <label className="block max-w-sm">
-              <FieldLabel icon={Timer}>Ước tính thời lượng</FieldLabel>
+              <FieldLabel icon={Timer}>
+                {intl.formatMessage({ id: "project.task.estimate" })}
+              </FieldLabel>
               <div className="relative">
                 <input
                   type="number"
                   min={0}
                   value={estimatedMinutes}
                   onChange={(event) => setEstimatedMinutes(event.target.value)}
-                  placeholder="Ví dụ: 120"
+                  placeholder={intl.formatMessage({
+                    id: "project.task.estimatePlaceholder",
+                  })}
                   className="w-full rounded-xl border border-slate-200 px-3.5 py-3 pr-20 text-sm text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-                  phút
+                  {intl.formatMessage({ id: "project.task.minutes" })}
                 </span>
               </div>
               <span className="mt-1 block text-[11px] text-slate-400">
-                Có thể bỏ trống nếu chưa xác định.
+                {intl.formatMessage({ id: "project.task.estimateHint" })}
               </span>
             </label>
           </section>
@@ -389,7 +425,7 @@ export default function TaskFormDialog({
         <footer className="flex items-center justify-between border-t border-slate-100 bg-slate-50/70 px-6 py-4 sm:px-7">
           <p className="hidden items-center gap-1.5 text-[11px] text-slate-400 sm:flex">
             <Clock3 className="h-3.5 w-3.5" />
-            Có thể chỉnh sửa sau khi tạo
+            {intl.formatMessage({ id: "project.task.editLaterHint" })}
           </p>
           <div className="ml-auto flex items-center gap-2">
             <button
@@ -398,7 +434,7 @@ export default function TaskFormDialog({
               disabled={isSubmitting}
               className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-700 disabled:opacity-50"
             >
-              Hủy
+              {intl.formatMessage({ id: "app.cancel" })}
             </button>
             <button
               type="submit"
@@ -406,10 +442,12 @@ export default function TaskFormDialog({
               className="rounded-xl bg-[var(--color-primary-dark)] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting
-                ? "Đang lưu..."
-                : task
-                  ? "Lưu thay đổi"
-                  : "Tạo task"}
+                ? intl.formatMessage({ id: "app.saving" })
+                : intl.formatMessage({
+                    id: task
+                      ? "project.task.saveChanges"
+                      : "project.task.create",
+                  })}
             </button>
           </div>
         </footer>

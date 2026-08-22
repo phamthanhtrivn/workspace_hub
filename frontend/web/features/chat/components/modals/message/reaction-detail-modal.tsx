@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X } from "lucide-react";
 import { createPortal } from "react-dom";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ReactionDetailModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
   onClose,
   reactions,
 }) => {
+  const intl = useAppIntl();
   const [activeTab, setActiveTab] = useState<string>("all");
 
   if (!isOpen) return null;
@@ -41,7 +43,9 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
-          <h2 className="text-xl font-bold text-gray-800">Reactions</h2>
+          <h2 className="text-xl font-bold text-gray-800">
+            {intl.formatMessage({ id: "chat.reactions" })}
+          </h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
@@ -55,7 +59,10 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
             onClick={() => setActiveTab("all")}
             className={`cursor-pointer px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${activeTab === "all" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"}`}
           >
-            All {reactions.length}
+            {intl.formatMessage(
+              { id: "chat.allCount" },
+              { count: reactions.length },
+            )}
           </button>
           {emojis.map((emoji) => (
             <button
@@ -98,7 +105,8 @@ const ReactionDetailModal: React.FC<ReactionDetailModalProps> = ({
                   </div>
                 </div>
                 <span className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
-                  {reaction.user?.name || "User"}
+                  {reaction.user?.name ||
+                    intl.formatMessage({ id: "app.user" })}
                 </span>
               </div>
             </div>

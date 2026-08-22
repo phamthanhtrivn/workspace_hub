@@ -52,6 +52,7 @@ import { useTextFormatting } from "../../hooks/input/useTextFormatting";
 import { useSpeechToText } from "../../hooks/input/useSpeechToText";
 import { useAudioRecorder } from "../../hooks/input/useAudioRecorder";
 import MyFilesSelectModal from "../modals/shared/my-files-select-modal";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -88,6 +89,7 @@ const ChannelChatInput = React.memo(
       },
       ref,
     ) {
+      const intl = useAppIntl();
       const [message, setMessage] = useState("");
       const [showOptions, setShowOptions] = useState(false);
       const [showFormatting, setShowFormatting] = useState(true);
@@ -407,7 +409,7 @@ const ChannelChatInput = React.memo(
       const uploadFilesList = async (files: File[]) => {
         const validFiles = files.filter((f) => f.size <= 100 * 1024 * 1024);
         if (validFiles.length < files.length) {
-          toast.error("File size cannot exceed 100MB.");
+          toast.error(intl.formatMessage({ id: "chat.fileSizeExceeded" }));
         }
         if (validFiles.length === 0) return;
 
@@ -592,7 +594,9 @@ const ChannelChatInput = React.memo(
         )
           return;
         if (isUploading) {
-          toast.warning("Please wait for the file to upload.");
+          toast.warning(
+            intl.formatMessage({ id: "chat.waitForFileUpload" }),
+          );
           return;
         }
         if (!onSendMessage) return;
@@ -632,6 +636,7 @@ const ChannelChatInput = React.memo(
         onSendMessage,
         onTypingChange,
         clearInterim,
+        intl,
       ]);
 
       const currentMember = activeChannel?.members?.find(
@@ -658,7 +663,7 @@ const ChannelChatInput = React.memo(
         return (
           <div className="p-4 bg-white border-t border-gray-200">
             <div className="flex items-center justify-center p-3 bg-gray-50 rounded-2xl border border-gray-200 text-gray-500 text-sm">
-              Only administrators can send messages
+              {intl.formatMessage({ id: "chat.onlyAdminsCanSendMessages" })}
             </div>
           </div>
         );
@@ -679,7 +684,7 @@ const ChannelChatInput = React.memo(
                 size={28}
               />
               <p className="text-xs font-black text-blue-600">
-                Drop files here to upload
+                {intl.formatMessage({ id: "chat.dropFilesHere" })}
               </p>
             </div>
           )}
@@ -749,8 +754,10 @@ const ChannelChatInput = React.memo(
                       className="text-gray-500 hover:text-red-500 transition ml-1 flex-shrink-0 cursor-pointer"
                       title={
                         media.status === "uploading"
-                          ? "Remove uploading file"
-                          : "Remove file"
+                          ? intl.formatMessage({
+                              id: "chat.removeUploadingFile",
+                            })
+                          : intl.formatMessage({ id: "chat.removeFile" })
                       }
                     >
                       <X size={14} />
@@ -800,7 +807,8 @@ const ChannelChatInput = React.memo(
                       disabled={isUploading}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Paperclip size={16} className="text-gray-500" /> Files
+                      <Paperclip size={16} className="text-gray-500" />
+                      {intl.formatMessage({ id: "chat.files" })}
                     </button>
 
                     <button
@@ -811,7 +819,8 @@ const ChannelChatInput = React.memo(
                       disabled={isUploading}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                     >
-                      <Folder size={16} className="text-blue-500" /> My Files
+                      <Folder size={16} className="text-blue-500" />
+                      {intl.formatMessage({ id: "documents.nav.myFiles" })}
                     </button>
 
                     <div className="h-px bg-gray-100 my-1"></div>
@@ -820,7 +829,8 @@ const ChannelChatInput = React.memo(
                       disabled={isUploading}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
                     >
-                      <CheckSquare size={16} className="text-green-500" /> Task
+                      <CheckSquare size={16} className="text-green-500" />
+                      {intl.formatMessage({ id: "project.task.task" })}
                     </button>
 
                     {allowCreatePoll && (
@@ -832,7 +842,8 @@ const ChannelChatInput = React.memo(
                         disabled={isUploading}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                       >
-                        <BarChart2 size={16} className="text-purple-500" /> Poll
+                        <BarChart2 size={16} className="text-purple-500" />
+                        {intl.formatMessage({ id: "chat.poll" })}
                       </button>
                     )}
 
@@ -840,7 +851,8 @@ const ChannelChatInput = React.memo(
                       disabled={isUploading}
                       className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors text-left cursor-pointer disabled:opacity-50"
                     >
-                      <Calendar size={16} className="text-orange-500" /> Event
+                      <Calendar size={16} className="text-orange-500" />
+                      {intl.formatMessage({ id: "chat.event" })}
                     </button>
 
                     {allowCreateNote && (
@@ -852,7 +864,8 @@ const ChannelChatInput = React.memo(
                         disabled={isUploading}
                         className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer text-left disabled:opacity-50"
                       >
-                        <FileText size={16} className="text-yellow-500" /> Note
+                        <FileText size={16} className="text-yellow-500" />
+                        {intl.formatMessage({ id: "chat.note" })}
                       </button>
                     )}
                   </div>
@@ -876,7 +889,7 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("bold")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Bold"
+                      title={intl.formatMessage({ id: "chat.format.bold" })}
                     >
                       <Bold size={15} />
                     </button>
@@ -884,7 +897,7 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("italic")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Italic"
+                      title={intl.formatMessage({ id: "chat.format.italic" })}
                     >
                       <Italic size={15} />
                     </button>
@@ -892,7 +905,9 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("strikethrough")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Strikethrough"
+                      title={intl.formatMessage({
+                        id: "chat.format.strikethrough",
+                      })}
                     >
                       <Strikethrough size={15} />
                     </button>
@@ -903,7 +918,7 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("heading")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Heading"
+                      title={intl.formatMessage({ id: "chat.format.heading" })}
                     >
                       <Heading size={15} />
                     </button>
@@ -911,7 +926,7 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("link")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Link"
+                      title={intl.formatMessage({ id: "chat.format.link" })}
                     >
                       <Link size={15} />
                     </button>
@@ -919,7 +934,9 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("code")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Code Block"
+                      title={intl.formatMessage({
+                        id: "chat.format.codeBlock",
+                      })}
                     >
                       <Code size={15} />
                     </button>
@@ -927,7 +944,7 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("quote")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Quote"
+                      title={intl.formatMessage({ id: "chat.format.quote" })}
                     >
                       <Quote size={15} />
                     </button>
@@ -935,7 +952,9 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("bullet")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Bulleted List"
+                      title={intl.formatMessage({
+                        id: "chat.format.bulletedList",
+                      })}
                     >
                       <List size={15} />
                     </button>
@@ -943,7 +962,9 @@ const ChannelChatInput = React.memo(
                       type="button"
                       onClick={() => applyFormatting("number")}
                       className="hover:bg-gray-200 rounded text-gray-500 hover:text-gray-800 transition cursor-pointer p-1"
-                      title="Numbered List"
+                      title={intl.formatMessage({
+                        id: "chat.format.numberedList",
+                      })}
                     >
                       <ListOrdered size={15} />
                     </button>
@@ -1032,14 +1053,16 @@ const ChannelChatInput = React.memo(
                     <button
                       onClick={handleCancelRecording}
                       className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-gray-200 rounded-full transition cursor-pointer"
-                      title="Cancel recording"
+                      title={intl.formatMessage({
+                        id: "chat.cancelRecording",
+                      })}
                     >
                       <Trash2 size={16} />
                     </button>
                     <button
                       onClick={handleStopRecording}
                       className="p-1.5 text-white bg-blue-600 hover:bg-blue-700 rounded-full transition cursor-pointer"
-                      title="Send"
+                      title={intl.formatMessage({ id: "chat.send" })}
                     >
                       <Send size={14} />
                     </button>
@@ -1055,7 +1078,9 @@ const ChannelChatInput = React.memo(
                           ? "bg-blue-100 text-blue-600"
                           : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
                       }`}
-                      title="Text formatting"
+                      title={intl.formatMessage({
+                        id: "chat.textFormatting",
+                      })}
                       disabled={isUploading}
                     >
                       <Type size={20} />
@@ -1072,7 +1097,7 @@ const ChannelChatInput = React.memo(
                             : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
                         }`}
                         disabled={isUploading}
-                        title="Insert emoji"
+                        title={intl.formatMessage({ id: "chat.insertEmoji" })}
                       >
                         <Smile size={20} />
                       </button>
@@ -1101,7 +1126,7 @@ const ChannelChatInput = React.memo(
                               ? "bg-blue-100 text-blue-600"
                               : "text-gray-400 hover:text-gray-600 hover:bg-gray-200"
                         }`}
-                        title="Voice options"
+                        title={intl.formatMessage({ id: "chat.voiceOptions" })}
                         disabled={isUploading}
                       >
                         <Mic size={20} />
@@ -1117,7 +1142,9 @@ const ChannelChatInput = React.memo(
                             className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                           >
                             <Voicemail size={16} className="text-blue-500" />{" "}
-                            Send voice message
+                            {intl.formatMessage({
+                              id: "chat.sendVoiceMessage",
+                            })}
                           </button>
                           <button
                             onClick={() => {
@@ -1126,8 +1153,8 @@ const ChannelChatInput = React.memo(
                             }}
                             className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition text-left cursor-pointer"
                           >
-                            <Type size={16} className="text-green-500" /> Speech
-                            to text
+                            <Type size={16} className="text-green-500" />
+                            {intl.formatMessage({ id: "chat.speechToText" })}
                           </button>
                         </div>
                       )}

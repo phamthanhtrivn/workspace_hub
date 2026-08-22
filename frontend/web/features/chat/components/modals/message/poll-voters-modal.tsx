@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { X, User } from "lucide-react";
@@ -7,6 +9,7 @@ import {
   PollVoteResponse,
   UserProfileSnapshotResponse,
 } from "@/features/chat/types/chat.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface PollVotersModalProps {
   isOpen: boolean;
@@ -32,8 +35,8 @@ function getVoteProfile(
   return vote.voterProfile ?? null;
 }
 
-function getVoterName(voter: PollVoterListItem) {
-  return voter.profile?.fullName || voter.profile?.email || "User";
+function getVoterName(voter: PollVoterListItem, fallback: string) {
+  return voter.profile?.fullName || voter.profile?.email || fallback;
 }
 
 function getOptionVoters(option: PollOptionResponse): PollVoterListItem[] {
@@ -49,6 +52,7 @@ export default function PollVotersModal({
   poll,
   onUserClick,
 }: PollVotersModalProps) {
+  const intl = useAppIntl();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -81,17 +85,20 @@ export default function PollVotersModal({
         <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-gray-100 bg-white/85 px-6 py-4 backdrop-blur-md">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-gray-800">
-              Poll voter details
+              {intl.formatMessage({ id: "chat.pollVoterDetails" })}
             </h2>
             <p className="mt-0.5 text-xs font-semibold text-gray-400">
-              {totalUniqueVoters} {totalUniqueVoters === 1 ? "voter" : "voters"}
+              {intl.formatMessage(
+                { id: "chat.voterCount" },
+                { count: totalUniqueVoters },
+              )}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="cursor-pointer rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            aria-label="Close poll voters"
+            aria-label={intl.formatMessage({ id: "chat.closePollVoters" })}
           >
             <X size={20} />
           </button>
@@ -109,19 +116,24 @@ export default function PollVotersModal({
                     {section.optionText}
                   </h3>
                   <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-extrabold text-blue-700">
-                    {section.voters.length}{" "}
-                    {section.voters.length === 1 ? "vote" : "votes"}
+                    {intl.formatMessage(
+                      { id: "chat.voteCount" },
+                      { count: section.voters.length },
+                    )}
                   </span>
                 </div>
 
                 {section.voters.length === 0 ? (
                   <p className="mt-3 text-sm font-medium text-gray-400">
-                    No votes yet
+                    {intl.formatMessage({ id: "chat.noVotesYet" })}
                   </p>
                 ) : (
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {section.voters.map((voter) => {
-                      const displayName = getVoterName(voter);
+                      const displayName = getVoterName(
+                        voter,
+                        intl.formatMessage({ id: "app.user" }),
+                      );
                       const canOpenProfile = Boolean(onUserClick);
 
                       return (

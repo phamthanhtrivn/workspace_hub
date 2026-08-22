@@ -13,6 +13,7 @@ import { ChatQueryKey, ChatScope, chatKeys } from "../types/chat.constant";
 import { ChatMessageResponse } from "../types/chat.types";
 import { SendSocketMessageMedia } from "../types/chat-socket.types";
 import { useDirectMessageSocket } from "./socket/useDirectMessageSocket";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 type MessageDirection = "older" | "newer" | "around";
 
@@ -55,6 +56,7 @@ function hasErrorMessage(error: unknown) {
 }
 
 export function useDirectMessageActions() {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const {
     markAsRead: markDirectSocketAsRead,
@@ -116,12 +118,12 @@ export function useDirectMessageActions() {
         return sentMessage;
       } catch (error: unknown) {
         if (!hasErrorMessage(error)) {
-          toast.error("Failed to send message");
+          toast.error(intl.formatMessage({ id: "chat.failedSendMessage" }));
         }
         return null;
       }
     },
-    [queryClient, sendDirectSocketMessage],
+    [intl, queryClient, sendDirectSocketMessage],
   );
 
   const editMessage = useCallback(
@@ -133,11 +135,16 @@ export function useDirectMessageActions() {
         });
         return true;
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to edit message"));
+        toast.error(
+          getErrorMessage(
+            error,
+            intl.formatMessage({ id: "chat.failedEditMessage" }),
+          ),
+        );
         return false;
       }
     },
-    [queryClient],
+    [intl, queryClient],
   );
 
   const recallMessage = useCallback(
@@ -148,10 +155,15 @@ export function useDirectMessageActions() {
           queryKey: ["messages", conversationId],
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to recall message"));
+        toast.error(
+          getErrorMessage(
+            error,
+            intl.formatMessage({ id: "chat.failedRecallMessage" }),
+          ),
+        );
       }
     },
-    [queryClient],
+    [intl, queryClient],
   );
 
   const togglePinMessage = useCallback(
@@ -179,10 +191,15 @@ export function useDirectMessageActions() {
           ),
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to update pin"));
+        toast.error(
+          getErrorMessage(
+            error,
+            intl.formatMessage({ id: "chat.failedUpdatePin" }),
+          ),
+        );
       }
     },
-    [queryClient],
+    [intl, queryClient],
   );
 
   const unpinMessage = useCallback(
@@ -202,10 +219,15 @@ export function useDirectMessageActions() {
           ),
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to unpin message"));
+        toast.error(
+          getErrorMessage(
+            error,
+            intl.formatMessage({ id: "chat.failedUnpinMessage" }),
+          ),
+        );
       }
     },
-    [queryClient],
+    [intl, queryClient],
   );
 
   const reactToMessage = useCallback(
@@ -216,10 +238,15 @@ export function useDirectMessageActions() {
           queryKey: ["messages", conversationId],
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "Failed to react"));
+        toast.error(
+          getErrorMessage(
+            error,
+            intl.formatMessage({ id: "chat.failedReact" }),
+          ),
+        );
       }
     },
-    [queryClient],
+    [intl, queryClient],
   );
 
   const markAsRead = useCallback(

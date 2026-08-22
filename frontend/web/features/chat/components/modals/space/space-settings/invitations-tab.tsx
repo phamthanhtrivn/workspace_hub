@@ -1,6 +1,6 @@
 import { SpaceInvitation } from "@/features/chat/types/chat.types";
-import { SPACE_SETTINGS_LABELS } from "@/features/chat/types/space-settings/space-settings.constants";
 import { RefreshCw, UserPlus, X } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface InvitationsTabProps {
   invitations: SpaceInvitation[];
@@ -19,12 +19,15 @@ export function InvitationsTab({
   onInvite,
   onResend,
 }: InvitationsTabProps) {
+  const intl = useAppIntl();
   const header = (
     <div className="mb-4 flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <h3 className="text-sm font-bold text-slate-900">Invitations</h3>
+        <h3 className="text-sm font-bold text-slate-900">
+          {intl.formatMessage({ id: "chat.invitations" })}
+        </h3>
         <p className="text-xs text-slate-400">
-          Invite new members and manage pending invitations.
+          {intl.formatMessage({ id: "chat.invitationsDescription" })}
         </p>
       </div>
       <button
@@ -33,7 +36,7 @@ export function InvitationsTab({
         className="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-700"
       >
         <UserPlus size={14} />
-        Invite members
+        {intl.formatMessage({ id: "chat.inviteMembers" })}
       </button>
     </div>
   );
@@ -43,7 +46,7 @@ export function InvitationsTab({
       <>
         {header}
         <div className="py-8 text-center text-xs text-slate-400">
-          {SPACE_SETTINGS_LABELS.loadingInvitations}
+          {intl.formatMessage({ id: "chat.loadingInvitations" })}
         </div>
       </>
     );
@@ -54,7 +57,7 @@ export function InvitationsTab({
       <>
         {header}
         <div className="py-8 text-center text-xs text-slate-400">
-          {SPACE_SETTINGS_LABELS.noInvitations}
+          {intl.formatMessage({ id: "chat.noInvitations" })}
         </div>
       </>
     );
@@ -76,13 +79,20 @@ export function InvitationsTab({
                   invitation.invitedUserId}
               </p>
               <p className="text-xs text-slate-400">
-                Invited {new Date(invitation.createdAt).toLocaleDateString()}
+                {intl.formatMessage(
+                  { id: "chat.invitedDate" },
+                  {
+                    date: new Date(invitation.createdAt).toLocaleDateString(
+                      intl.locale,
+                    ),
+                  },
+                )}
               </p>
             </div>
             <div className="flex items-center gap-1">
               <button
                 type="button"
-                title="Resend invitation"
+                title={intl.formatMessage({ id: "chat.resendInvitation" })}
                 disabled={isMutating}
                 onClick={() => onResend(invitation.id)}
                 className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 cursor-pointer"
@@ -91,7 +101,7 @@ export function InvitationsTab({
               </button>
               <button
                 type="button"
-                title="Cancel invitation"
+                title={intl.formatMessage({ id: "chat.cancelInvitation" })}
                 disabled={isMutating}
                 onClick={() => onCancel(invitation.id)}
                 className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer"
