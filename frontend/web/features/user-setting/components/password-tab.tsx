@@ -178,7 +178,7 @@ const PasswordTab = React.memo(function PasswordTab() {
     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
       {/* Warning banner — only for Google users without a password */}
       {!hasPassword && (
-        <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3">
+        <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 mt-10">
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
           <div>
             <p className="text-sm font-bold text-amber-800">
