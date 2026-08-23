@@ -253,7 +253,7 @@ export function useCalendarWorkspace(
     handleSubmitEvent,
     handleViewChange,
     hasError: calendarsQuery.isError || eventsQuery.isError,
-    isEmpty: calendars.length === 0 && !calendarsQuery.isLoading,
+    isPreparingDefaultCalendar: calendars.length === 0 && calendarsQuery.isLoading,
     loading: calendarsQuery.isLoading || eventsQuery.isLoading,
     openCreateModal,
     selectedCalendarIds,

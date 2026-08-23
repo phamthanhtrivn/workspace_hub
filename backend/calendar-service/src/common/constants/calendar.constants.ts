@@ -1,4 +1,5 @@
 export const CALENDAR_DEFAULTS = {
+  NAME: 'Personal',
   COLOR: '#2563eb',
   TIMEZONE: 'Asia/Bangkok',
   DEFAULT_REMINDER_MINUTES: 10,
@@ -13,6 +14,7 @@ export const CALENDAR_ERROR_MESSAGES = {
   EVENT_NOT_FOUND: 'Calendar event not found',
   SETTING_NOT_FOUND: 'Calendar setting not found',
   FORBIDDEN_CALENDAR: 'You are not allowed to manage this calendar',
+  FORBIDDEN_DEFAULT_CALENDAR_DELETE: 'Default calendar cannot be deleted',
   FORBIDDEN_EVENT: 'You are not allowed to access this event',
   FORBIDDEN_EVENT_UPDATE: 'Only the event creator or calendar owner can update this event',
   FORBIDDEN_RESPONSE: 'Only invited attendees can respond to this event',

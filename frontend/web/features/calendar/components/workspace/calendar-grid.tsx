@@ -71,18 +71,35 @@ export function CalendarGrid({
         eventClick={onEventClick}
         eventDrop={onEventMove}
         eventResize={onEventMove}
-        eventContent={(arg) => (
-          <div className="min-w-0 px-1 py-0.5">
-            <p className="truncate text-[11px] font-black">
-              {arg.event.title}
-            </p>
-            {!arg.event.allDay && (
-              <p className="truncate text-[10px] font-semibold opacity-90">
-                {arg.timeText}
-              </p>
-            )}
-          </div>
-        )}
+        eventContent={(arg) => {
+          const calendarColor = String(
+            arg.event.extendedProps.calendarColor || "#2563eb",
+          );
+          const hasCustomEventColor = Boolean(
+            arg.event.extendedProps.hasCustomEventColor,
+          );
+
+          return (
+            <div className="relative min-h-full min-w-0 overflow-hidden rounded-md px-2 py-1">
+              {hasCustomEventColor && (
+                <span
+                  className="absolute inset-y-0 left-0 w-1"
+                  style={{ backgroundColor: calendarColor }}
+                />
+              )}
+              <div className={hasCustomEventColor ? "pl-1" : ""}>
+                <p className="truncate text-[11px] font-black">
+                  {arg.event.title}
+                </p>
+                {!arg.event.allDay && (
+                  <p className="truncate text-[10px] font-semibold opacity-90">
+                    {arg.timeText}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        }}
       />
     </div>
   );

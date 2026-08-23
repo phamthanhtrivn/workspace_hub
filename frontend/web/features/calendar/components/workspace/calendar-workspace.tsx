@@ -17,7 +17,7 @@ export function CalendarWorkspace() {
   const calendar = useCalendarWorkspace(calendarRef);
 
   return (
-    <section className="h-[calc(100dvh-7.5rem)] min-h-[680px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <section className="h-[calc(100dvh-7.5rem)] min-h-[680px] overflow-hidden bg-white shadow-sm">
       <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <CalendarSidebar
           calendars={calendar.calendars}
@@ -40,17 +40,6 @@ export function CalendarWorkspace() {
                 <AlertCircle className="mx-auto h-8 w-8 text-red-500" />
                 <p className="mt-2 text-sm font-bold text-slate-700">
                   {intl.formatMessage({ id: "calendar.loadFailed" })}
-                </p>
-              </div>
-            </div>
-          ) : calendar.isEmpty ? (
-            <div className="flex flex-1 items-center justify-center p-6">
-              <div className="max-w-md rounded-xl border border-dashed border-slate-200 bg-white px-6 py-8 text-center">
-                <h2 className="text-lg font-black text-[var(--color-primary-dark)]">
-                  {intl.formatMessage({ id: "calendar.emptyTitle" })}
-                </h2>
-                <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-                  {intl.formatMessage({ id: "calendar.emptyDescription" })}
                 </p>
               </div>
             </div>

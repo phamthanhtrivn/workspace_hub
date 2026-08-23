@@ -46,8 +46,8 @@ export function createEventEndFromStart(startAt: Date): Date {
 export function mapCalendarEventToFullCalendar(
   event: CalendarEvent,
 ): EventInput {
-  const color =
-    event.color || event.calendar?.color || CALENDAR_DEFAULT_EVENT_COLOR;
+  const calendarColor = event.calendar?.color || CALENDAR_DEFAULT_EVENT_COLOR;
+  const eventColor = event.color || calendarColor;
 
   return {
     id: event.id,
@@ -55,8 +55,8 @@ export function mapCalendarEventToFullCalendar(
     start: event.startAt,
     end: event.endAt,
     allDay: event.allDay,
-    backgroundColor: color,
-    borderColor: color,
+    backgroundColor: eventColor,
+    borderColor: eventColor,
     textColor: "#ffffff",
     extendedProps: {
       model: event,
@@ -67,6 +67,9 @@ export function mapCalendarEventToFullCalendar(
       status: event.status,
       location: event.location,
       description: event.description,
+      calendarColor,
+      eventColor,
+      hasCustomEventColor: Boolean(event.color),
     },
   };
 }

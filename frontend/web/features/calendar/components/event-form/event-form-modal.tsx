@@ -14,6 +14,12 @@ import {
   WorkspaceCalendar,
 } from "../../types/calendar.types";
 import {
+  CALENDAR_COLOR_CHOICES,
+  CALENDAR_DEFAULT_EVENT_COLOR,
+  CALENDAR_RECURRENCE_OPTIONS,
+  CALENDAR_REMINDER_OPTIONS,
+} from "../../types/calendar.constants";
+import {
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "../../utils/calendar-date.utils";
@@ -40,6 +46,12 @@ export function EventFormModal({
   const defaultCalendar = calendars.find((calendar) => calendar.isDefault) || calendars[0];
   const initialCalendarId =
     event?.calendarId || initialDraft?.calendarId || defaultCalendar?.id || "";
+  const initialReminderMinutes = event?.reminders?.[0]?.minutesBefore ?? 10;
+  const initialReminderOption = CALENDAR_REMINDER_OPTIONS.some(
+    (option) => option.value === String(initialReminderMinutes),
+  )
+    ? String(initialReminderMinutes)
+    : "custom";
 
   const defaultStart = useMemo(
     () => initialDraft?.startAt || new Date(),
@@ -53,13 +65,18 @@ export function EventFormModal({
   }, [defaultStart, initialDraft]);
 
   const [calendarId, setCalendarId] = useState(initialCalendarId);
+  const selectedCalendar =
+    calendars.find((calendar) => calendar.id === calendarId) || defaultCalendar;
   const [title, setTitle] = useState(event?.title || "");
   const [description, setDescription] = useState(event?.description || "");
   const [location, setLocation] = useState(event?.location || "");
   const [startAt, setStartAt] = useState(toDateTimeLocal(event?.startAt || defaultStart));
   const [endAt, setEndAt] = useState(toDateTimeLocal(event?.endAt || defaultEnd));
   const [allDay, setAllDay] = useState(event?.allDay || initialDraft?.allDay || false);
-  const [color, setColor] = useState(event?.color || defaultCalendar?.color || "#2563eb");
+  const [useCustomColor, setUseCustomColor] = useState(Boolean(event?.color));
+  const [color, setColor] = useState(
+    event?.color || selectedCalendar?.color || CALENDAR_DEFAULT_EVENT_COLOR,
+  );
   const [visibility, setVisibility] = useState(
     event?.visibility || EventVisibility.DEFAULT,
   );
@@ -70,9 +87,11 @@ export function EventFormModal({
       optional: attendee.optional,
     })) || [],
   );
-  const [reminderMinutes, setReminderMinutes] = useState(
-    String(event?.reminders?.[0]?.minutesBefore ?? 10),
+  const [reminderOption, setReminderOption] = useState(initialReminderOption);
+  const [customReminderMinutes, setCustomReminderMinutes] = useState(
+    String(initialReminderMinutes),
   );
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -83,7 +102,10 @@ export function EventFormModal({
     setStartAt(toDateTimeLocal(event?.startAt || defaultStart));
     setEndAt(toDateTimeLocal(event?.endAt || defaultEnd));
     setAllDay(event?.allDay || initialDraft?.allDay || false);
-    setColor(event?.color || defaultCalendar?.color || "#2563eb");
+    setUseCustomColor(Boolean(event?.color));
+    setColor(
+      event?.color || selectedCalendar?.color || CALENDAR_DEFAULT_EVENT_COLOR,
+    );
     setVisibility(event?.visibility || EventVisibility.DEFAULT);
     setRecurrenceRule(event?.recurrenceRule || "");
     setAttendees(
@@ -92,8 +114,35 @@ export function EventFormModal({
         optional: attendee.optional,
       })) || [],
     );
-    setReminderMinutes(String(event?.reminders?.[0]?.minutesBefore ?? 10));
-  }, [defaultCalendar?.color, defaultEnd, defaultStart, event, initialCalendarId, initialDraft?.allDay, open]);
+    setReminderOption(initialReminderOption);
+    setCustomReminderMinutes(String(initialReminderMinutes));
+    setShowAdvanced(
+      Boolean(
+        (event?.visibility && event.visibility !== EventVisibility.DEFAULT) ||
+          event?.recurrenceRule,
+      ),
+    );
+  }, [
+    defaultEnd,
+    defaultStart,
+    event,
+    initialCalendarId,
+    initialDraft?.allDay,
+    initialReminderMinutes,
+    initialReminderOption,
+    open,
+    selectedCalendar?.color,
+  ]);
+
+  const handleCalendarChange = (nextCalendarId: string) => {
+    setCalendarId(nextCalendarId);
+    if (useCustomColor) return;
+
+    const nextCalendar = calendars.find(
+      (calendar) => calendar.id === nextCalendarId,
+    );
+    setColor(nextCalendar?.color || CALENDAR_DEFAULT_EVENT_COLOR);
+  };
 
   if (!open) return null;
 
@@ -110,11 +159,15 @@ export function EventFormModal({
       return;
     }
 
+    const reminderMinutes =
+      reminderOption === "custom"
+        ? Number(customReminderMinutes)
+        : Number(reminderOption);
     const reminders =
-      Number(reminderMinutes) >= 0
+      Number.isFinite(reminderMinutes) && reminderMinutes >= 0
         ? [
             {
-              minutesBefore: Number(reminderMinutes),
+              minutesBefore: reminderMinutes,
               method: ReminderMethod.ALERT,
             },
           ]
@@ -128,7 +181,7 @@ export function EventFormModal({
       startAt: fromDateTimeLocal(startAt),
       endAt: fromDateTimeLocal(endAt),
       allDay,
-      color,
+      color: useCustomColor ? color : null,
       visibility,
       recurrenceRule: recurrenceRule.trim() || null,
       attendees,
@@ -172,7 +225,9 @@ export function EventFormModal({
               </span>
               <select
                 value={calendarId}
-                onChange={(changeEvent) => setCalendarId(changeEvent.target.value)}
+                onChange={(changeEvent) =>
+                  handleCalendarChange(changeEvent.target.value)
+                }
                 className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
               >
                 {calendars.map((calendar) => (
@@ -184,14 +239,72 @@ export function EventFormModal({
             </label>
             <label className="space-y-2">
               <span className="text-xs font-black uppercase text-slate-400">
-                {intl.formatMessage({ id: "calendar.color" })}
+                {intl.formatMessage({ id: "calendar.eventColor" })}
               </span>
-              <input
-                type="color"
-                value={color || "#2563eb"}
-                onChange={(changeEvent) => setColor(changeEvent.target.value)}
-                className="h-10 w-full rounded-lg border border-slate-200 bg-white p-1"
-              />
+              <div className="rounded-lg border border-slate-200 px-3 py-2">
+                <label className="flex items-center gap-2 text-sm font-bold text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={useCustomColor}
+                    onChange={(changeEvent) => {
+                      setUseCustomColor(changeEvent.target.checked);
+                      if (!changeEvent.target.checked) {
+                        setColor(
+                          selectedCalendar?.color ||
+                            CALENDAR_DEFAULT_EVENT_COLOR,
+                        );
+                      }
+                    }}
+                    className="h-4 w-4 rounded border-slate-300"
+                  />
+                  {intl.formatMessage({ id: "calendar.customEventColor" })}
+                </label>
+                {!useCustomColor ? (
+                  <div className="mt-2 flex items-center gap-2 text-xs font-bold text-slate-500">
+                    <span
+                      className="h-4 w-4 rounded-full"
+                      style={{
+                        backgroundColor:
+                          selectedCalendar?.color ||
+                          CALENDAR_DEFAULT_EVENT_COLOR,
+                      }}
+                    />
+                    {intl.formatMessage({ id: "calendar.useCalendarColor" })}
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-3">
+                    <div className="grid grid-cols-6 gap-2">
+                      {CALENDAR_COLOR_CHOICES.map((choice) => (
+                        <button
+                          key={choice}
+                          type="button"
+                          onClick={() => setColor(choice)}
+                          className="grid h-7 w-7 place-items-center rounded-full border border-white shadow-sm ring-1 ring-slate-200"
+                          style={{ backgroundColor: choice }}
+                          aria-label={choice}
+                        >
+                          {color === choice && (
+                            <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="color"
+                        value={color || CALENDAR_DEFAULT_EVENT_COLOR}
+                        onChange={(changeEvent) => setColor(changeEvent.target.value)}
+                        className="h-10 w-12 rounded-lg border border-slate-200 bg-white p-1"
+                      />
+                      <input
+                        value={color}
+                        onChange={(changeEvent) => setColor(changeEvent.target.value)}
+                        className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </label>
           </div>
 
@@ -246,37 +359,34 @@ export function EventFormModal({
                 {intl.formatMessage({ id: "calendar.reminder" })}
               </span>
               <input
-                type="number"
-                min={0}
-                value={reminderMinutes}
-                onChange={(changeEvent) => setReminderMinutes(changeEvent.target.value)}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+                type="hidden"
+                value={customReminderMinutes}
+                readOnly
               />
+              <select
+                value={reminderOption}
+                onChange={(changeEvent) => setReminderOption(changeEvent.target.value)}
+                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+              >
+                {CALENDAR_REMINDER_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {intl.formatMessage({ id: option.labelId })}
+                  </option>
+                ))}
+              </select>
+              {reminderOption === "custom" && (
+                <input
+                  type="number"
+                  min={0}
+                  value={customReminderMinutes}
+                  onChange={(changeEvent) =>
+                    setCustomReminderMinutes(changeEvent.target.value)
+                  }
+                  className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+                />
+              )}
             </label>
           </div>
-
-          <label className="space-y-2 block">
-            <span className="text-xs font-black uppercase text-slate-400">
-              {intl.formatMessage({ id: "calendar.visibility" })}
-            </span>
-            <select
-              value={visibility}
-              onChange={(changeEvent) =>
-                setVisibility(changeEvent.target.value as EventVisibility)
-              }
-              className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
-            >
-              <option value={EventVisibility.DEFAULT}>
-                {intl.formatMessage({ id: "calendar.visibility.default" })}
-              </option>
-              <option value={EventVisibility.PRIVATE}>
-                {intl.formatMessage({ id: "calendar.visibility.private" })}
-              </option>
-              <option value={EventVisibility.PUBLIC}>
-                {intl.formatMessage({ id: "calendar.visibility.public" })}
-              </option>
-            </select>
-          </label>
 
           <textarea
             value={description}
@@ -286,12 +396,59 @@ export function EventFormModal({
             className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
           />
 
-          <input
-            value={recurrenceRule}
-            onChange={(changeEvent) => setRecurrenceRule(changeEvent.target.value)}
-            placeholder={intl.formatMessage({ id: "calendar.recurrencePlaceholder" })}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
-          />
+          <button
+            type="button"
+            onClick={() => setShowAdvanced((current) => !current)}
+            className="text-sm font-black text-[var(--color-primary)]"
+          >
+            {intl.formatMessage({ id: "calendar.moreOptions" })}
+          </button>
+
+          {showAdvanced && (
+            <div className="grid gap-4 rounded-lg border border-slate-200 bg-slate-50 p-4 md:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase text-slate-400">
+                  {intl.formatMessage({ id: "calendar.recurrence" })}
+                </span>
+                <select
+                  value={recurrenceRule}
+                  onChange={(changeEvent) =>
+                    setRecurrenceRule(changeEvent.target.value)
+                  }
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+                >
+                  {CALENDAR_RECURRENCE_OPTIONS.map((option) => (
+                    <option key={option.value || "none"} value={option.value}>
+                      {intl.formatMessage({ id: option.labelId })}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-xs font-black uppercase text-slate-400">
+                  {intl.formatMessage({ id: "calendar.visibility" })}
+                </span>
+                <select
+                  value={visibility}
+                  onChange={(changeEvent) =>
+                    setVisibility(changeEvent.target.value as EventVisibility)
+                  }
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+                >
+                  <option value={EventVisibility.DEFAULT}>
+                    {intl.formatMessage({ id: "calendar.visibility.default" })}
+                  </option>
+                  <option value={EventVisibility.PRIVATE}>
+                    {intl.formatMessage({ id: "calendar.visibility.private" })}
+                  </option>
+                  <option value={EventVisibility.PUBLIC}>
+                    {intl.formatMessage({ id: "calendar.visibility.public" })}
+                  </option>
+                </select>
+              </label>
+            </div>
+          )}
 
           <AttendeePicker attendees={attendees} onChange={setAttendees} />
         </div>

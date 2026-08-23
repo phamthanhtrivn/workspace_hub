@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Calendar, ReminderMethod } from '@prisma/client';
 import {
   CALENDAR_DEFAULTS,
@@ -57,6 +53,8 @@ export class CalendarService {
   }
 
   async getUserCalendars(userId: string): Promise<Calendar[]> {
+    await this.ensureDefaultCalendar(userId);
+
     return this.prisma.calendar.findMany({
       where: { ownerUserId: userId },
       include: { setting: true },
@@ -72,6 +70,8 @@ export class CalendarService {
     await this.assertCalendarOwner(userId, calendarId);
 
     return this.prisma.$transaction(async (tx) => {
+      const updateData = { ...dto };
+
       if (dto.isDefault === true) {
         await tx.calendar.updateMany({
           where: { ownerUserId: userId, id: { not: calendarId } },
@@ -82,12 +82,12 @@ export class CalendarService {
       return tx.calendar.update({
         where: { id: calendarId },
         data: {
-          name: dto.name,
-          description: dto.description,
-          projectId: dto.projectId,
-          color: dto.color,
-          isDefault: dto.isDefault,
-          isVisible: dto.isVisible,
+          name: updateData.name,
+          description: updateData.description,
+          projectId: updateData.projectId,
+          color: updateData.color,
+          isDefault: updateData.isDefault === false ? undefined : updateData.isDefault,
+          isVisible: updateData.isVisible,
         },
         include: { setting: true },
       });
@@ -97,21 +97,13 @@ export class CalendarService {
   async deleteCalendar(userId: string, calendarId: string): Promise<void> {
     const calendar = await this.assertCalendarOwner(userId, calendarId);
 
-    await this.prisma.calendar.delete({ where: { id: calendar.id } });
-
     if (calendar.isDefault) {
-      const nextCalendar = await this.prisma.calendar.findFirst({
-        where: { ownerUserId: userId },
-        orderBy: { createdAt: 'asc' },
-      });
-
-      if (nextCalendar) {
-        await this.prisma.calendar.update({
-          where: { id: nextCalendar.id },
-          data: { isDefault: true },
-        });
-      }
+      throw new ForbiddenException(
+        CALENDAR_ERROR_MESSAGES.FORBIDDEN_DEFAULT_CALENDAR_DELETE,
+      );
     }
+
+    await this.prisma.calendar.delete({ where: { id: calendar.id } });
   }
 
   async assertCalendarOwner(
@@ -131,5 +123,46 @@ export class CalendarService {
     }
 
     return calendar;
+  }
+
+  private async ensureDefaultCalendar(userId: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const defaultCalendar = await tx.calendar.findFirst({
+        where: { ownerUserId: userId, isDefault: true },
+      });
+
+      if (defaultCalendar) return;
+
+      const firstCalendar = await tx.calendar.findFirst({
+        where: { ownerUserId: userId },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      if (firstCalendar) {
+        await tx.calendar.update({
+          where: { id: firstCalendar.id },
+          data: { isDefault: true, isVisible: true },
+        });
+        return;
+      }
+
+      await tx.calendar.create({
+        data: {
+          ownerUserId: userId,
+          name: CALENDAR_DEFAULTS.NAME,
+          color: CALENDAR_DEFAULTS.COLOR,
+          isDefault: true,
+          isVisible: true,
+          setting: {
+            create: {
+              timezone: CALENDAR_DEFAULTS.TIMEZONE,
+              defaultReminderMinutes:
+                CALENDAR_DEFAULTS.DEFAULT_REMINDER_MINUTES,
+              defaultReminderMethod: ReminderMethod.ALERT,
+            },
+          },
+        },
+      });
+    });
   }
 }
