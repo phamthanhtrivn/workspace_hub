@@ -53,6 +53,7 @@ export function CalendarGrid({
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
         initialView={CALENDAR_INITIAL_VIEW}
         headerToolbar={false}
+        firstDay={1}
         height="100%"
         nowIndicator
         selectable

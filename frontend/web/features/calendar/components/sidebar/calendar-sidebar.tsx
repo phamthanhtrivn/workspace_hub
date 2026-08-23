@@ -7,15 +7,22 @@ import { WorkspaceCalendar } from "../../types/calendar.types";
 import { CalendarSettingsModal } from "../modal/calendar-settings-modal";
 import { CreateCalendarModal } from "../modal/create-calendar-modal";
 import { CalendarListItem } from "./calendar-list-item";
+import { MiniCalendar } from "./mini-calendar";
 
 export function CalendarSidebar({
   calendars,
+  currentDate,
   selectedCalendarIds,
+  selectedDate,
   onToggleCalendar,
+  onSelectDate,
 }: {
   calendars: WorkspaceCalendar[];
+  currentDate: Date;
   selectedCalendarIds: Set<string>;
+  selectedDate: Date | null;
   onToggleCalendar: (calendarId: string) => void;
+  onSelectDate: (date: Date) => void;
 }) {
   const intl = useAppIntl();
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -24,7 +31,7 @@ export function CalendarSidebar({
 
   return (
     <>
-      <aside className="flex h-full min-h-0 flex-col border-r border-slate-200 bg-white">
+      <aside className="flex h-full min-h-0 flex-col border-r border-slate-200 bg-white overflow-y-auto">
         <div className="border-b border-slate-200 px-4 py-4">
           <button
             type="button"
@@ -36,7 +43,13 @@ export function CalendarSidebar({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <MiniCalendar
+          currentDate={currentDate}
+          selectedDate={selectedDate}
+          onSelectDate={onSelectDate}
+        />
+
+        <div className="min-h-0 flex-1 px-3 py-3">
           <div className="mb-2 flex items-center gap-2 px-2">
             <CalendarPlus className="h-4 w-4 text-[var(--color-primary)]" />
             <h2 className="text-sm font-black text-[var(--color-primary-dark)]">

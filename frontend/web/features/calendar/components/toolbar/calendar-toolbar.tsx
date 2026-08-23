@@ -1,6 +1,5 @@
 "use client";
 
-import { CalendarApi } from "@fullcalendar/core";
 import {
   CalendarDays,
   ChevronLeft,
@@ -12,26 +11,19 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CALENDAR_VIEW_OPTIONS } from "../../types/calendar.constants";
 
 export function CalendarToolbar({
-  calendarApi,
   title,
   activeView,
   onViewChange,
+  onNavigate,
   onCreateEvent,
 }: {
-  calendarApi: CalendarApi | null;
   title: string;
   activeView: string;
   onViewChange: (view: string) => void;
+  onNavigate: (direction: "prev" | "next" | "today") => void;
   onCreateEvent: () => void;
 }) {
   const intl = useAppIntl();
-
-  const move = (direction: "prev" | "next" | "today") => {
-    if (!calendarApi) return;
-    if (direction === "prev") calendarApi.prev();
-    if (direction === "next") calendarApi.next();
-    if (direction === "today") calendarApi.today();
-  };
 
   return (
     <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
@@ -48,7 +40,7 @@ export function CalendarToolbar({
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => move("prev")}
+            onClick={() => onNavigate("prev")}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             aria-label={intl.formatMessage({ id: "app.previous" })}
           >
@@ -56,7 +48,7 @@ export function CalendarToolbar({
           </button>
           <button
             type="button"
-            onClick={() => move("next")}
+            onClick={() => onNavigate("next")}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             aria-label={intl.formatMessage({ id: "app.next" })}
           >
@@ -65,7 +57,7 @@ export function CalendarToolbar({
         </div>
         <button
           type="button"
-          onClick={() => move("today")}
+          onClick={() => onNavigate("today")}
           className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
         >
           {intl.formatMessage({ id: "calendar.today" })}

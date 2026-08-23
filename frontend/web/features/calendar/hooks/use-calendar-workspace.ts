@@ -52,6 +52,8 @@ export function useCalendarWorkspace(
   const [range, setRange] = useState(createInitialCalendarRange);
   const [title, setTitle] = useState("");
   const [activeView, setActiveView] = useState(CALENDAR_INITIAL_VIEW);
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
   const [selectedCalendarIds, setSelectedCalendarIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -105,6 +107,7 @@ export function useCalendarWorkspace(
     });
     setTitle(arg.view.title);
     setActiveView(arg.view.type);
+    setCurrentDate(arg.view.calendar.getDate());
     setCalendarApi(calendarRef.current?.getApi() ?? null);
   };
 
@@ -207,6 +210,27 @@ export function useCalendarWorkspace(
     setActiveView(view);
   };
 
+  const handleCalendarNavigate = (direction: "prev" | "next" | "today") => {
+    const api = calendarApi || calendarRef.current?.getApi();
+    if (!api) return;
+
+    if (direction === "prev") api.prev();
+    if (direction === "next") api.next();
+    if (direction === "today") {
+      const today = new Date();
+      api.today();
+      setSelectedDate(today);
+      setCurrentDate(today);
+    }
+  };
+
+  const handleMiniCalendarDateSelect = (date: Date) => {
+    setSelectedDate(date);
+    const api = calendarApi || calendarRef.current?.getApi();
+    api?.gotoDate(date);
+    setCurrentDate(date);
+  };
+
   const handleCancelEvent = async () => {
     if (!detailEvent) return;
     try {
@@ -237,17 +261,20 @@ export function useCalendarWorkspace(
     calendars,
     closeDetail,
     closeForm,
+    currentDate,
     detailBusy: cancelEvent.isPending || updateResponse.isPending,
     detailEvent,
     draft,
     editingEvent,
     formSubmitting: createEvent.isPending || updateEvent.isPending,
     fullCalendarEvents,
+    handleCalendarNavigate,
     handleCancelEvent,
     handleDateClick,
     handleDatesSet,
     handleEventClick,
     handleEventMove,
+    handleMiniCalendarDateSelect,
     handleRespond,
     handleSelect,
     handleSubmitEvent,
@@ -257,6 +284,7 @@ export function useCalendarWorkspace(
     loading: calendarsQuery.isLoading || eventsQuery.isLoading,
     openCreateModal,
     selectedCalendarIds,
+    selectedDate,
     startEditingDetailEvent,
     title,
     toggleCalendar,

@@ -28,3 +28,22 @@ export function formatCalendarEventRange(
     timeStyle,
   })}`;
 }
+
+export function isSameDate(first?: Date | null, second?: Date | null) {
+  if (!first || !second) return false;
+
+  return (
+    first.getFullYear() === second.getFullYear() &&
+    first.getMonth() === second.getMonth() &&
+    first.getDate() === second.getDate()
+  );
+}
+
+export function getMiniCalendarWeekdayLabel(date: Date, locale: string) {
+  if (locale.toLowerCase().startsWith("vi")) {
+    const vietnameseLabels = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
+    return vietnameseLabels[date.getDay()];
+  }
+
+  return new Intl.DateTimeFormat(locale, { weekday: "narrow" }).format(date);
+}

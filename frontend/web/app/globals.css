@@ -194,3 +194,104 @@ html {
   overflow: hidden;
   background: #ffffff;
 }
+
+.calendar-mini-shell .fc {
+  --fc-border-color: transparent;
+  --fc-page-bg-color: transparent;
+  --fc-today-bg-color: transparent;
+  --fc-small-font-size: 0.72rem;
+  background: transparent;
+  font-size: 1rem;
+}
+
+.calendar-mini-shell .fc-scrollgrid {
+  border: 0;
+}
+
+.calendar-mini-shell .fc-scrollgrid,
+.calendar-mini-shell .fc-scrollgrid table,
+.calendar-mini-shell .fc-daygrid-body {
+  width: 100% !important;
+}
+
+.calendar-mini-shell .fc-scrollgrid,
+.calendar-mini-shell .fc-scrollgrid-section > td,
+.calendar-mini-shell .fc-theme-standard td,
+.calendar-mini-shell .fc-theme-standard th {
+  border: 0;
+}
+
+.calendar-mini-shell .fc-scrollgrid-section-header th {
+  padding-bottom: 0.25rem;
+}
+
+.calendar-mini-shell .fc-col-header-cell-cushion {
+  color: rgb(51 65 85);
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 1;
+  padding: 0;
+  text-decoration: none;
+}
+
+.calendar-mini-shell .fc-daygrid-day {
+  cursor: pointer;
+}
+
+.calendar-mini-shell .fc-daygrid-day-frame {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  min-height: 2.05rem;
+}
+
+.calendar-mini-shell .fc-daygrid-day-top {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: center;
+}
+
+.calendar-mini-shell .fc-daygrid-day-number {
+  align-items: center;
+  border-radius: 9999px;
+  color: rgb(15 40 84);
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 800;
+  height: 1.65rem;
+  justify-content: center;
+  padding: 0;
+  text-decoration: none;
+  width: 1.65rem;
+}
+
+.calendar-mini-shell .fc-daygrid-day-number:hover {
+  background: rgb(241 245 249);
+}
+
+.calendar-mini-shell .fc-day-other .fc-daygrid-day-number {
+  color: rgb(100 116 139);
+  opacity: 0.75;
+}
+
+.calendar-mini-shell .fc-day-today .fc-daygrid-day-number {
+  background: rgb(219 234 254);
+  color: rgb(37 99 235);
+}
+
+.calendar-mini-shell .is-selected-date .fc-daygrid-day-number {
+  background: rgb(37 99 235);
+  color: #ffffff;
+}
+
+.calendar-mini-shell .fc-daygrid-day-events,
+.calendar-mini-shell .fc-daygrid-day-bg {
+  display: none;
+}
+
+.calendar-mini-shell .fc-daygrid-day-events {
+  margin: 0;
+  min-height: 0;
+}

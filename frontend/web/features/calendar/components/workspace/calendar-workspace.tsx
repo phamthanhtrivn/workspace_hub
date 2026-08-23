@@ -21,16 +21,19 @@ export function CalendarWorkspace() {
       <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]">
         <CalendarSidebar
           calendars={calendar.calendars}
+          currentDate={calendar.currentDate}
           selectedCalendarIds={calendar.selectedCalendarIds}
+          selectedDate={calendar.selectedDate}
           onToggleCalendar={calendar.toggleCalendar}
+          onSelectDate={calendar.handleMiniCalendarDateSelect}
         />
 
         <div className="flex min-h-0 flex-col bg-slate-50/60">
           <CalendarToolbar
-            calendarApi={calendar.calendarApi}
             title={calendar.title}
             activeView={calendar.activeView}
             onViewChange={calendar.handleViewChange}
+            onNavigate={calendar.handleCalendarNavigate}
             onCreateEvent={() => calendar.openCreateModal()}
           />
 
