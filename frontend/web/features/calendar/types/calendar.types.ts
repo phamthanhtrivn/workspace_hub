@@ -133,6 +133,32 @@ export interface CalendarEventReminderPayload {
   method: ReminderMethod;
 }
 
+export type CalendarRecurrenceFrequency =
+  | "DAILY"
+  | "WEEKLY"
+  | "MONTHLY"
+  | "YEARLY";
+
+export type CalendarRecurrenceEndType = "never" | "on" | "after";
+
+export type CalendarRecurrenceWeekday =
+  | "MO"
+  | "TU"
+  | "WE"
+  | "TH"
+  | "FR"
+  | "SA"
+  | "SU";
+
+export interface CalendarCustomRecurrence {
+  interval: number;
+  frequency: CalendarRecurrenceFrequency;
+  weekdays: CalendarRecurrenceWeekday[];
+  endType: CalendarRecurrenceEndType;
+  until?: string;
+  count?: number;
+}
+
 export interface CalendarEventDraft {
   startAt: Date;
   endAt: Date;

@@ -1,4 +1,5 @@
 import { CalendarEvent } from "../types/calendar.types";
+import { CALENDAR_MIN_EVENT_DURATION_MS } from "../types/calendar.constants";
 
 export function toDateTimeLocal(value: Date | string): string {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -22,6 +23,43 @@ export function getTimeInputValue(value: string): string {
 
 export function composeDateTimeLocal(date: string, time: string): string {
   return `${date}T${time || "00:00"}`;
+}
+
+export function addMinutesToDateTimeLocal(value: string, minutes: number): string {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  date.setMinutes(date.getMinutes() + minutes);
+  return toDateTimeLocal(date);
+}
+
+export function ensureMinimumEventEndAt(startAt: string, endAt: string): string {
+  const start = new Date(startAt);
+  const end = new Date(endAt);
+
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end.getTime() - start.getTime() < CALENDAR_MIN_EVENT_DURATION_MS
+  ) {
+    return addMinutesToDateTimeLocal(
+      startAt,
+      CALENDAR_MIN_EVENT_DURATION_MS / 60_000,
+    );
+  }
+
+  return endAt;
+}
+
+export function hasMinimumEventDuration(startAt: string, endAt: string): boolean {
+  const start = new Date(startAt);
+  const end = new Date(endAt);
+
+  return (
+    !Number.isNaN(start.getTime()) &&
+    !Number.isNaN(end.getTime()) &&
+    end.getTime() - start.getTime() >= CALENDAR_MIN_EVENT_DURATION_MS
+  );
 }
 
 export function formatCalendarEventRange(

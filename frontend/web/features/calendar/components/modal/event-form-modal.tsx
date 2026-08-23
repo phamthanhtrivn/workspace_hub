@@ -14,15 +14,29 @@ import {
 import {
   CALENDAR_COLOR_CHOICES,
   CALENDAR_DEFAULT_EVENT_COLOR,
+  CALENDAR_MIN_EVENT_DURATION_MS,
+  CALENDAR_RECURRENCE_PRESET_VALUES,
   CALENDAR_REMINDER_OPTIONS,
 } from "../../types/calendar.constants";
 import {
   composeDateTimeLocal,
+  ensureMinimumEventEndAt,
   fromDateTimeLocal,
   getDateInputValue,
   getTimeInputValue,
+  hasMinimumEventDuration,
   toDateTimeLocal,
 } from "../../utils/calendar-date.utils";
+import {
+  CalendarRecurrencePreset,
+  buildCustomRecurrenceRule,
+  getMonthDayName,
+  getPresetRecurrenceRule,
+  getRecurrencePresetFromRule,
+  getWeekdayName,
+  parseCustomRecurrenceRule,
+} from "../../utils/calendar-recurrence.utils";
+import { CustomRecurrenceModal } from "./custom-recurrence-modal";
 import { CalendarColorPicker } from "../sidebar/calendar-style-fields";
 
 export function EventFormModal({
@@ -83,6 +97,17 @@ export function EventFormModal({
   const [customReminderMinutes, setCustomReminderMinutes] = useState(
     String(initialReminderMinutes),
   );
+  const [recurrenceRule, setRecurrenceRule] = useState<string | null>(
+    event?.recurrenceRule || null,
+  );
+  const [recurrencePreset, setRecurrencePreset] =
+    useState<CalendarRecurrencePreset>(
+      getRecurrencePresetFromRule(event?.recurrenceRule, defaultStart),
+    );
+  const [customRecurrence, setCustomRecurrence] = useState(
+    parseCustomRecurrenceRule(event?.recurrenceRule, defaultStart),
+  );
+  const [showCustomRecurrence, setShowCustomRecurrence] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -107,6 +132,20 @@ export function EventFormModal({
     );
     setReminderOption(initialReminderOption);
     setCustomReminderMinutes(String(initialReminderMinutes));
+    setRecurrenceRule(event?.recurrenceRule || null);
+    setRecurrencePreset(
+      getRecurrencePresetFromRule(
+        event?.recurrenceRule,
+        event?.startAt ? new Date(event.startAt) : defaultStart,
+      ),
+    );
+    setCustomRecurrence(
+      parseCustomRecurrenceRule(
+        event?.recurrenceRule,
+        event?.startAt ? new Date(event.startAt) : defaultStart,
+      ),
+    );
+    setShowCustomRecurrence(false);
   }, [
     defaultEnd,
     defaultStart,
@@ -123,28 +162,99 @@ export function EventFormModal({
   };
 
   const handleStartDateChange = (nextDate: string) => {
-    setStartAt(composeDateTimeLocal(nextDate, getTimeInputValue(startAt)));
+    const nextStartAt = composeDateTimeLocal(
+      nextDate,
+      allDay ? "00:00" : getTimeInputValue(startAt),
+    );
+    const nextEndAt = allDay
+      ? composeDateTimeLocal(getDateInputValue(endAt), "23:59")
+      : endAt;
+
+    setStartAt(nextStartAt);
+    setEndAt(
+      hasMinimumEventDuration(nextStartAt, nextEndAt)
+        ? nextEndAt
+        : allDay
+          ? composeDateTimeLocal(nextDate, "23:59")
+          : ensureMinimumEventEndAt(nextStartAt, nextEndAt),
+    );
   };
 
   const handleStartTimeChange = (nextTime: string) => {
-    setStartAt(composeDateTimeLocal(getDateInputValue(startAt), nextTime));
+    const nextStartAt = composeDateTimeLocal(
+      getDateInputValue(startAt),
+      nextTime,
+    );
+    setStartAt(nextStartAt);
+    setEndAt(ensureMinimumEventEndAt(nextStartAt, endAt));
   };
 
   const handleEndDateChange = (nextDate: string) => {
-    setEndAt(composeDateTimeLocal(nextDate, getTimeInputValue(endAt)));
+    const nextEndAt = composeDateTimeLocal(
+      nextDate,
+      allDay ? "23:59" : getTimeInputValue(endAt),
+    );
+    if (!hasMinimumEventDuration(startAt, nextEndAt)) {
+      toast.error(intl.formatMessage({ id: "calendar.invalidMinimumRange" }));
+      return;
+    }
+    setEndAt(nextEndAt);
   };
 
   const handleEndTimeChange = (nextTime: string) => {
-    setEndAt(composeDateTimeLocal(getDateInputValue(endAt), nextTime));
+    const nextEndAt = composeDateTimeLocal(getDateInputValue(endAt), nextTime);
+    if (!hasMinimumEventDuration(startAt, nextEndAt)) {
+      toast.error(intl.formatMessage({ id: "calendar.invalidMinimumRange" }));
+      return;
+    }
+    setEndAt(nextEndAt);
   };
 
   const handleAllDayChange = (checked: boolean) => {
     setAllDay(checked);
     if (!checked) return;
 
-    setStartAt(composeDateTimeLocal(getDateInputValue(startAt), "00:00"));
-    setEndAt(composeDateTimeLocal(getDateInputValue(endAt), "23:59"));
+    const nextStartAt = composeDateTimeLocal(getDateInputValue(startAt), "00:00");
+    const nextEndAt = composeDateTimeLocal(getDateInputValue(endAt), "23:59");
+
+    setStartAt(nextStartAt);
+    setEndAt(
+      hasMinimumEventDuration(nextStartAt, nextEndAt)
+        ? nextEndAt
+        : composeDateTimeLocal(getDateInputValue(startAt), "23:59"),
+    );
   };
+
+  const handleRecurrenceChange = (nextPreset: CalendarRecurrencePreset) => {
+    if (nextPreset === CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM) {
+      setShowCustomRecurrence(true);
+      return;
+    }
+
+    setRecurrencePreset(nextPreset);
+    setRecurrenceRule(getPresetRecurrenceRule(nextPreset, new Date(startAt)));
+  };
+
+  const handleCustomRecurrenceSave = (nextRecurrence: typeof customRecurrence) => {
+    setCustomRecurrence(nextRecurrence);
+    setRecurrencePreset(CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM);
+    setRecurrenceRule(buildCustomRecurrenceRule(nextRecurrence));
+    setShowCustomRecurrence(false);
+  };
+
+  useEffect(() => {
+    if (
+      !open ||
+      recurrencePreset === CALENDAR_RECURRENCE_PRESET_VALUES.NONE ||
+      recurrencePreset === CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM
+    ) {
+      return;
+    }
+
+    setRecurrenceRule(
+      getPresetRecurrenceRule(recurrencePreset, new Date(startAt)),
+    );
+  }, [open, recurrencePreset, startAt]);
 
   if (!open) return null;
 
@@ -161,10 +271,14 @@ export function EventFormModal({
 
     if (
       Number.isNaN(startDate.getTime()) ||
-      Number.isNaN(endDate.getTime()) ||
-      endDate <= startDate
+      Number.isNaN(endDate.getTime())
     ) {
       toast.error(intl.formatMessage({ id: "calendar.invalidRange" }));
+      return;
+    }
+
+    if (endDate.getTime() - startDate.getTime() < CALENDAR_MIN_EVENT_DURATION_MS) {
+      toast.error(intl.formatMessage({ id: "calendar.invalidMinimumRange" }));
       return;
     }
 
@@ -191,9 +305,50 @@ export function EventFormModal({
       endAt: fromDateTimeLocal(endAt),
       allDay,
       color: useEventColor ? color : null,
+      recurrenceRule,
       reminders,
     });
   };
+
+  const recurrenceOptions = [
+    {
+      value: CALENDAR_RECURRENCE_PRESET_VALUES.NONE,
+      label: intl.formatMessage({ id: "calendar.recurrence.none" }),
+    },
+    {
+      value: CALENDAR_RECURRENCE_PRESET_VALUES.DAILY,
+      label: intl.formatMessage({ id: "calendar.recurrence.daily" }),
+    },
+    {
+      value: CALENDAR_RECURRENCE_PRESET_VALUES.WEEKLY,
+      label: intl.formatMessage(
+        { id: "calendar.recurrence.weeklyOn" },
+        { weekday: getWeekdayName(new Date(startAt), intl.locale) },
+      ),
+    },
+    {
+      value: CALENDAR_RECURRENCE_PRESET_VALUES.MONTHLY,
+      label: intl.formatMessage(
+        { id: "calendar.recurrence.monthlyOn" },
+        { day: new Date(startAt).getDate() },
+      ),
+    },
+    {
+      value: CALENDAR_RECURRENCE_PRESET_VALUES.YEARLY,
+      label: intl.formatMessage(
+        { id: "calendar.recurrence.yearlyOn" },
+        { date: getMonthDayName(new Date(startAt), intl.locale) },
+      ),
+    },
+    {
+      value: CALENDAR_RECURRENCE_PRESET_VALUES.WEEKDAYS,
+      label: intl.formatMessage({ id: "calendar.recurrence.weekdays" }),
+    },
+    {
+      value: CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM,
+      label: intl.formatMessage({ id: "calendar.recurrence.custom" }),
+    },
+  ];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
@@ -319,17 +474,34 @@ export function EventFormModal({
               />
             </div>
 
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-slate-600">
-              <input
-                type="checkbox"
-                checked={allDay}
-                onChange={(changeEvent) =>
-                  handleAllDayChange(changeEvent.target.checked)
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={allDay}
+                  onChange={(changeEvent) =>
+                    handleAllDayChange(changeEvent.target.checked)
+                  }
+                  className="h-4 w-4 cursor-pointer rounded border-slate-300"
+                />
+                {intl.formatMessage({ id: "calendar.allDay" })}
+              </label>
+              <select
+                value={recurrencePreset}
+                onChange={(event) =>
+                  handleRecurrenceChange(
+                    event.target.value as CalendarRecurrencePreset,
+                  )
                 }
-                className="h-4 w-4 cursor-pointer rounded border-slate-300"
-              />
-              {intl.formatMessage({ id: "calendar.allDay" })}
-            </label>
+                className="h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+              >
+                {recurrenceOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
@@ -405,6 +577,12 @@ export function EventFormModal({
           </button>
         </div>
       </form>
+      <CustomRecurrenceModal
+        open={showCustomRecurrence}
+        value={customRecurrence}
+        onClose={() => setShowCustomRecurrence(false)}
+        onSave={handleCustomRecurrenceSave}
+      />
     </div>
   );
 }
