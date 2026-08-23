@@ -149,9 +149,8 @@ export interface CalendarEventFormValues {
   endAt: string;
   allDay: boolean;
   color?: string | null;
-  visibility: EventVisibility;
   recurrenceRule?: string | null;
-  attendees: CalendarEventAttendeePayload[];
+  attendees?: CalendarEventAttendeePayload[];
   reminders: CalendarEventReminderPayload[];
 }
 

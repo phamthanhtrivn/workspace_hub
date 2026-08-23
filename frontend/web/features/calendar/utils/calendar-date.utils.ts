@@ -12,6 +12,18 @@ export function fromDateTimeLocal(value: string): string {
   return new Date(value).toISOString();
 }
 
+export function getDateInputValue(value: string): string {
+  return value.split("T")[0] || "";
+}
+
+export function getTimeInputValue(value: string): string {
+  return value.split("T")[1]?.slice(0, 5) || "00:00";
+}
+
+export function composeDateTimeLocal(date: string, time: string): string {
+  return `${date}T${time || "00:00"}`;
+}
+
 export function formatCalendarEventRange(
   event: CalendarEvent,
   locale: string,

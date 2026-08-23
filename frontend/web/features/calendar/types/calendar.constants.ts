@@ -57,11 +57,3 @@ export const CALENDAR_REMINDER_OPTIONS = [
   { value: "1440", labelId: "calendar.reminder.1d" },
   { value: "custom", labelId: "calendar.reminder.custom" },
 ] as const;
-
-export const CALENDAR_RECURRENCE_OPTIONS = [
-  { value: "", labelId: "calendar.recurrence.none" },
-  { value: "FREQ=DAILY", labelId: "calendar.recurrence.daily" },
-  { value: "FREQ=WEEKLY", labelId: "calendar.recurrence.weekly" },
-  { value: "FREQ=MONTHLY", labelId: "calendar.recurrence.monthly" },
-  { value: "FREQ=YEARLY", labelId: "calendar.recurrence.yearly" },
-] as const;
