@@ -134,3 +134,63 @@ html {
     @apply font-sans;
   }
 }
+
+.calendar-shell .fc {
+  height: 100%;
+  --fc-border-color: rgb(226 232 240);
+  --fc-page-bg-color: #ffffff;
+  --fc-neutral-bg-color: rgb(248 250 252);
+  --fc-today-bg-color: rgb(189 232 245 / 0.24);
+  --fc-now-indicator-color: #dc2626;
+  --fc-event-border-color: transparent;
+  --fc-event-bg-color: var(--color-primary);
+  --fc-small-font-size: 0.75rem;
+}
+
+.calendar-shell .fc-scrollgrid {
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+
+.calendar-shell .fc-col-header-cell {
+  background: rgb(248 250 252);
+  padding: 0.45rem 0;
+}
+
+.calendar-shell .fc-col-header-cell-cushion,
+.calendar-shell .fc-timegrid-axis-cushion,
+.calendar-shell .fc-timegrid-slot-label-cushion {
+  color: rgb(100 116 139);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.calendar-shell .fc-daygrid-day-number {
+  color: rgb(71 85 105);
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.calendar-shell .fc-event {
+  border-radius: 0.45rem;
+  border: 0;
+  box-shadow: 0 2px 8px rgb(15 40 84 / 0.12);
+}
+
+.calendar-shell .fc-event-main {
+  overflow: hidden;
+}
+
+.calendar-shell .fc-timegrid-now-indicator-line {
+  border-top-width: 2px;
+}
+
+.calendar-shell .fc-list {
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: #ffffff;
+}
