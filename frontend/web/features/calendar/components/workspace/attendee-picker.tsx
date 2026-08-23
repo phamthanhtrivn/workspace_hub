@@ -86,7 +86,7 @@ export function AttendeePicker({
                 key={user.id}
                 type="button"
                 onClick={() => addUser(user)}
-                className="flex w-full items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50 disabled:opacity-50"
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={attendeeIds.has(user.id)}
               >
                 <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-slate-100">
@@ -125,7 +125,7 @@ export function AttendeePicker({
               <button
                 type="button"
                 onClick={() => removeUser(attendee.userId)}
-                className="text-slate-400 hover:text-slate-700"
+                className="cursor-pointer text-slate-400 hover:text-slate-700"
                 aria-label={intl.formatMessage({ id: "app.delete" })}
               >
                 <X className="h-3.5 w-3.5" />

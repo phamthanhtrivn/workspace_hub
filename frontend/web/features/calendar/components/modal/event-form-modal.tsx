@@ -23,7 +23,7 @@ import {
   fromDateTimeLocal,
   toDateTimeLocal,
 } from "../../utils/calendar-date.utils";
-import { AttendeePicker } from "../attendee-picker/attendee-picker";
+import { AttendeePicker } from "../workspace/attendee-picker";
 
 export function EventFormModal({
   open,
@@ -204,7 +204,7 @@ export function EventFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
           </button>
@@ -279,7 +279,7 @@ export function EventFormModal({
                           key={choice}
                           type="button"
                           onClick={() => setColor(choice)}
-                          className="grid h-7 w-7 place-items-center rounded-full border border-white shadow-sm ring-1 ring-slate-200"
+                          className="grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-white shadow-sm ring-1 ring-slate-200"
                           style={{ backgroundColor: choice }}
                           aria-label={choice}
                         >
@@ -399,7 +399,7 @@ export function EventFormModal({
           <button
             type="button"
             onClick={() => setShowAdvanced((current) => !current)}
-            className="text-sm font-black text-[var(--color-primary)]"
+            className="cursor-pointer text-sm font-black text-[var(--color-primary)]"
           >
             {intl.formatMessage({ id: "calendar.moreOptions" })}
           </button>
@@ -457,14 +457,14 @@ export function EventFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+            className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
           >
             {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="cursor-pointer rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting
               ? intl.formatMessage({ id: "app.saving" })

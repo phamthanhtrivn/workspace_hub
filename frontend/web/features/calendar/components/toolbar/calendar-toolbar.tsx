@@ -39,7 +39,7 @@ export function CalendarToolbar({
         <button
           type="button"
           onClick={onCreateEvent}
-          className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-dark)] px-3.5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--color-primary)] active:translate-y-px"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[var(--color-primary-dark)] px-3.5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--color-primary)] active:translate-y-px"
         >
           <Plus className="h-4 w-4" />
           {intl.formatMessage({ id: "calendar.newEvent" })}
@@ -49,7 +49,7 @@ export function CalendarToolbar({
           <button
             type="button"
             onClick={() => move("prev")}
-            className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             aria-label={intl.formatMessage({ id: "app.previous" })}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -57,7 +57,7 @@ export function CalendarToolbar({
           <button
             type="button"
             onClick={() => move("next")}
-            className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             aria-label={intl.formatMessage({ id: "app.next" })}
           >
             <ChevronRight className="h-4 w-4" />
@@ -66,7 +66,7 @@ export function CalendarToolbar({
         <button
           type="button"
           onClick={() => move("today")}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+          className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
         >
           {intl.formatMessage({ id: "calendar.today" })}
         </button>
@@ -83,7 +83,7 @@ export function CalendarToolbar({
               key={view.value}
               type="button"
               onClick={() => onViewChange(view.value)}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
+              className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold transition ${
                 activeView === view.value
                   ? "bg-white text-[var(--color-primary-dark)] shadow-sm"
                   : "text-slate-500 hover:text-slate-800"

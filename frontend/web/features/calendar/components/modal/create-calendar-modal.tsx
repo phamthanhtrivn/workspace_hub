@@ -1,14 +1,15 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { X } from "lucide-react";
 import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useCreateCalendar } from "../../hooks/use-calendar-queries";
+import { CALENDAR_DEFAULT_EVENT_COLOR } from "../../types/calendar.constants";
 import {
-  CALENDAR_COLOR_CHOICES,
-  CALENDAR_DEFAULT_EVENT_COLOR,
-} from "../../types/calendar.constants";
+  CalendarColorPicker,
+  CalendarIconPicker,
+} from "../sidebar/calendar-style-fields";
 
 export function CreateCalendarModal({
   open,
@@ -20,8 +21,11 @@ export function CreateCalendarModal({
   const intl = useAppIntl();
   const createCalendar = useCreateCalendar();
   const [name, setName] = useState("");
+  const [icon, setIcon] = useState<string | null>(null);
   const [color, setColor] = useState<string>(CALENDAR_DEFAULT_EVENT_COLOR);
   const [showCustomColor, setShowCustomColor] = useState(false);
+  const previewName =
+    name.trim() || intl.formatMessage({ id: "calendar.calendarNamePlaceholder" });
 
   if (!open) return null;
 
@@ -36,10 +40,12 @@ export function CreateCalendarModal({
     try {
       await createCalendar.mutateAsync({
         name: name.trim(),
+        icon: icon || null,
         color,
         isVisible: true,
       });
       setName("");
+      setIcon(null);
       setColor(CALENDAR_DEFAULT_EVENT_COLOR);
       setShowCustomColor(false);
       toast.success(intl.formatMessage({ id: "calendar.calendarCreated" }));
@@ -62,7 +68,7 @@ export function CreateCalendarModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
           </button>
@@ -85,68 +91,59 @@ export function CreateCalendarModal({
 
           <div className="space-y-2">
             <span className="text-xs font-black uppercase text-slate-400">
-              {intl.formatMessage({ id: "calendar.color" })}
+              {intl.formatMessage({ id: "calendar.icon" })}
             </span>
-            <div className="grid grid-cols-6 gap-2">
-              {CALENDAR_COLOR_CHOICES.map((choice) => (
-                <button
-                  key={choice}
-                  type="button"
-                  onClick={() => {
-                    setColor(choice);
-                    setShowCustomColor(false);
-                  }}
-                  className="grid h-8 w-8 place-items-center rounded-full border border-white shadow-sm ring-1 ring-slate-200"
-                  style={{ backgroundColor: choice }}
-                  aria-label={choice}
-                >
-                  {color === choice && !showCustomColor && (
-                    <Check className="h-4 w-4 text-white" />
-                  )}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => setShowCustomColor(true)}
-                className="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-lg font-black text-slate-500 ring-1 ring-slate-200"
-                aria-label={intl.formatMessage({
-                  id: "calendar.customColor",
-                })}
-              >
-                +
-              </button>
-            </div>
+            <CalendarIconPicker value={icon} onChange={setIcon} />
           </div>
 
-          {showCustomColor && (
-            <div className="flex gap-2">
-              <input
-                type="color"
-                value={color}
-                onChange={(event) => setColor(event.target.value)}
-                className="h-10 w-12 rounded-lg border border-slate-200 bg-white p-1"
-              />
-              <input
-                value={color}
-                onChange={(event) => setColor(event.target.value)}
-                className="min-w-0 flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
-              />
+          <div className="space-y-2">
+            <span className="text-xs font-black uppercase text-slate-400">
+              {intl.formatMessage({ id: "calendar.color" })}
+            </span>
+            <CalendarColorPicker
+              value={color}
+              showCustomColor={showCustomColor}
+              onChange={setColor}
+              onShowCustomColor={setShowCustomColor}
+            />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              {intl.formatMessage({ id: "calendar.preview" })}
+            </p>
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-white px-2 py-2 shadow-sm ring-1 ring-slate-100">
+              <span
+                className="grid h-5 w-5 place-items-center rounded border"
+                style={{
+                  borderColor: color,
+                  backgroundColor: color,
+                }}
+              >
+                <span className="h-2 w-2 rounded-full bg-white" />
+              </span>
+              {icon && (
+                <span className="shrink-0 text-sm leading-none">{icon}</span>
+              )}
+              <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-700">
+                {previewName}
+              </span>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+            className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
           >
             {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             type="submit"
             disabled={createCalendar.isPending}
-            className="rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="cursor-pointer rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {createCalendar.isPending
               ? intl.formatMessage({ id: "app.saving" })

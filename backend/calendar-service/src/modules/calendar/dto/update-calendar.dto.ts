@@ -14,6 +14,11 @@ export class UpdateCalendarDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(16)
+  icon?: string | null;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(500)
   description?: string;
 

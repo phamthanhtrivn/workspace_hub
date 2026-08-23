@@ -1,5 +1,6 @@
 export const CALENDAR_DEFAULT_EVENT_COLOR = "#2563eb";
 export const CALENDAR_DEFAULT_NAME = "Personal";
+export const CALENDAR_DEFAULT_ICON = "📅";
 export const CALENDAR_DEFAULT_EVENT_DURATION_MS = 60 * 60 * 1000;
 export const CALENDAR_INITIAL_RANGE_LOOKBACK_DAYS = 14;
 export const CALENDAR_INITIAL_RANGE_LOOKAHEAD_DAYS = 45;
@@ -19,6 +20,25 @@ export const CALENDAR_COLOR_CHOICES = [
   "#7c3aed",
   "#6366f1",
   "#64748b",
+] as const;
+
+export const CALENDAR_ICON_CHOICES = [
+  "📅",
+  "💼",
+  "📚",
+  "🎯",
+  "🏋️",
+  "🎂",
+  "✈️",
+  "🧠",
+  "🛠️",
+  "⭐",
+  "🏠",
+  "🎨",
+  "💡",
+  "🚀",
+  "📝",
+  "🏆",
 ] as const;
 
 export const CALENDAR_VIEW_OPTIONS = [

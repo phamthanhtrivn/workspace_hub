@@ -1,5 +1,6 @@
 export const CALENDAR_DEFAULTS = {
   NAME: 'Personal',
+  ICON: '📅',
   COLOR: '#2563eb',
   TIMEZONE: 'Asia/Bangkok',
   DEFAULT_REMINDER_MINUTES: 10,

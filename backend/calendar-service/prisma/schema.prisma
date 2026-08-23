@@ -47,6 +47,7 @@ model Calendar {
   ownerUserId String            @map("owner_user_id") @db.Uuid
   projectId   String?           @map("project_id") @db.Uuid
   name        String
+  icon        String?
   description String?
   color       String
   isDefault   Boolean           @default(false) @map("is_default")

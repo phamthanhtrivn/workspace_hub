@@ -50,7 +50,7 @@ export function EventDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
           </button>
@@ -137,7 +137,7 @@ export function EventDetailModal({
                 type="button"
                 onClick={() => onRespond(status)}
                 disabled={busy}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 transition hover:border-[var(--color-secondary)] hover:bg-blue-50 disabled:opacity-60"
+                className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 transition hover:border-[var(--color-secondary)] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {intl.formatMessage({ id: `calendar.response.${status}` })}
               </button>
@@ -150,7 +150,7 @@ export function EventDetailModal({
             type="button"
             onClick={onCancelEvent}
             disabled={busy}
-            className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <Trash2 className="h-4 w-4" />
             {intl.formatMessage({ id: "calendar.cancelEvent" })}
@@ -158,7 +158,7 @@ export function EventDetailModal({
           <button
             type="button"
             onClick={onEdit}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--color-primary)]"
+            className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white transition hover:bg-[var(--color-primary)]"
           >
             <Pencil className="h-4 w-4" />
             {intl.formatMessage({ id: "calendar.editEvent" })}

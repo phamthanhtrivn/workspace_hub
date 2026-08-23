@@ -34,6 +34,7 @@ export class CalendarService {
           ownerUserId: userId,
           projectId: dto.projectId ?? null,
           name: dto.name,
+          icon: dto.icon === undefined ? CALENDAR_DEFAULTS.ICON : dto.icon,
           description: dto.description ?? null,
           color: dto.color ?? CALENDAR_DEFAULTS.COLOR,
           isDefault: shouldBeDefault,
@@ -83,6 +84,7 @@ export class CalendarService {
         where: { id: calendarId },
         data: {
           name: updateData.name,
+          icon: updateData.icon,
           description: updateData.description,
           projectId: updateData.projectId,
           color: updateData.color,
@@ -150,6 +152,7 @@ export class CalendarService {
         data: {
           ownerUserId: userId,
           name: CALENDAR_DEFAULTS.NAME,
+          icon: CALENDAR_DEFAULTS.ICON,
           color: CALENDAR_DEFAULTS.COLOR,
           isDefault: true,
           isVisible: true,

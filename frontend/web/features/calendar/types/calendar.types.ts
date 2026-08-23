@@ -66,6 +66,7 @@ export interface WorkspaceCalendar {
   ownerUserId: string;
   projectId: string | null;
   name: string;
+  icon: string | null;
   description: string | null;
   color: string;
   isDefault: boolean;
@@ -127,6 +128,7 @@ export interface CalendarEventFilters {
 
 export interface CreateCalendarPayload {
   name: string;
+  icon?: string | null;
   description?: string;
   projectId?: string;
   color?: string;
@@ -136,6 +138,7 @@ export interface CreateCalendarPayload {
 
 export interface UpdateCalendarPayload {
   name?: string;
+  icon?: string | null;
   description?: string | null;
   projectId?: string | null;
   color?: string;
