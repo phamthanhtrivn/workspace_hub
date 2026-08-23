@@ -13,7 +13,6 @@ export const CALENDAR_ERROR_MESSAGES = {
   MISSING_REQUIRED_INFO: 'Missing required information',
   CALENDAR_NOT_FOUND: 'Calendar not found',
   EVENT_NOT_FOUND: 'Calendar event not found',
-  SETTING_NOT_FOUND: 'Calendar setting not found',
   FORBIDDEN_CALENDAR: 'You are not allowed to manage this calendar',
   FORBIDDEN_DEFAULT_CALENDAR_DELETE: 'Default calendar cannot be deleted',
   FORBIDDEN_EVENT: 'You are not allowed to access this event',
@@ -35,6 +34,4 @@ export const CALENDAR_SUCCESS_MESSAGES = {
   EVENT_UPDATED: 'Event updated successfully',
   EVENT_CANCELLED: 'Event cancelled successfully',
   EVENT_RESPONSE_UPDATED: 'Event response updated successfully',
-  SETTING_RETRIEVED: 'Calendar setting retrieved successfully',
-  SETTING_UPDATED: 'Calendar setting updated successfully',
 } as const;

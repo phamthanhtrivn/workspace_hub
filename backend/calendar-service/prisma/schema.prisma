@@ -7,16 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum DayOfWeek {
-  MONDAY
-  TUESDAY
-  WEDNESDAY
-  THURSDAY
-  FRIDAY
-  SATURDAY
-  SUNDAY
-}
-
 enum ReminderMethod {
   ALERT
   PUSH
@@ -56,27 +46,10 @@ model Calendar {
   updatedAt   DateTime          @updatedAt @map("updated_at")
 
   events      CalendarEvent[]
-  setting     CalendarSetting?
 
   @@index([ownerUserId])
   @@index([projectId])
   @@map("calendars")
-}
-
-model CalendarSetting {
-  id                    String          @id @default(uuid()) @db.Uuid
-  calendarId            String          @unique @map("calendar_id") @db.Uuid
-  timezone              String          @default("Asia/Bangkok")
-  firstDayOfWeek        DayOfWeek       @default(MONDAY) @map("first_day_of_week")
-  showWeekends          Boolean         @default(true) @map("show_weekends")
-  defaultReminderMinutes Int?           @map("default_reminder_minutes")
-  defaultReminderMethod  ReminderMethod? @map("default_reminder_method")
-  createdAt             DateTime        @default(now()) @map("created_at")
-  updatedAt             DateTime        @updatedAt @map("updated_at")
-
-  calendar              Calendar        @relation(fields: [calendarId], references: [id], onDelete: Cascade)
-
-  @@map("calendar_settings")
 }
 
 model CalendarEvent {

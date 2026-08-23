@@ -4,7 +4,6 @@ import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
 import { CalendarModule } from './modules/calendar/calendar.module';
 import { CalendarEventModule } from './modules/calendar-event/calendar-event.module';
-import { CalendarSettingModule } from './modules/calendar-setting/calendar-setting.module';
 import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-profile-snapshot.module';
 
 @Module({
@@ -12,7 +11,6 @@ import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-
     PrismaModule,
     CalendarModule,
     CalendarEventModule,
-    CalendarSettingModule,
     UserProfileSnapshotModule,
   ],
   controllers: [AppController],

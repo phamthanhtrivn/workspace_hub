@@ -1,13 +1,3 @@
-export enum DayOfWeek {
-  MONDAY = "MONDAY",
-  TUESDAY = "TUESDAY",
-  WEDNESDAY = "WEDNESDAY",
-  THURSDAY = "THURSDAY",
-  FRIDAY = "FRIDAY",
-  SATURDAY = "SATURDAY",
-  SUNDAY = "SUNDAY",
-}
-
 export enum ReminderMethod {
   ALERT = "ALERT",
   PUSH = "PUSH",
@@ -49,18 +39,6 @@ export interface UserProfileSnapshot {
   avatarUrl: string | null;
 }
 
-export interface CalendarSetting {
-  id: string;
-  calendarId: string;
-  timezone: string;
-  firstDayOfWeek: DayOfWeek;
-  showWeekends: boolean;
-  defaultReminderMinutes: number | null;
-  defaultReminderMethod: ReminderMethod | null;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface WorkspaceCalendar {
   id: string;
   ownerUserId: string;
@@ -73,7 +51,6 @@ export interface WorkspaceCalendar {
   isVisible: boolean;
   createdAt: string;
   updatedAt: string;
-  setting?: CalendarSetting | null;
 }
 
 export interface CalendarEventAttendee {
@@ -197,11 +174,3 @@ export interface CreateCalendarEventPayload {
 }
 
 export type UpdateCalendarEventPayload = Partial<CreateCalendarEventPayload>;
-
-export interface UpdateCalendarSettingPayload {
-  timezone?: string;
-  firstDayOfWeek?: DayOfWeek;
-  showWeekends?: boolean;
-  defaultReminderMinutes?: number | null;
-  defaultReminderMethod?: ReminderMethod | null;
-}

@@ -6,12 +6,10 @@ import {
   deleteCalendar,
   getCalendarEvent,
   getCalendarEvents,
-  getCalendarSetting,
   getCalendars,
   updateCalendar,
   updateCalendarEvent,
   updateCalendarEventResponse,
-  updateCalendarSetting,
 } from "../api/calendar.api";
 import {
   AttendeeResponseStatus,
@@ -20,7 +18,6 @@ import {
   CreateCalendarPayload,
   UpdateCalendarEventPayload,
   UpdateCalendarPayload,
-  UpdateCalendarSettingPayload,
 } from "../types/calendar.types";
 
 export const calendarKeys = {
@@ -29,8 +26,6 @@ export const calendarKeys = {
   events: (filters: CalendarEventFilters) =>
     ["calendar", "events", filters] as const,
   event: (eventId: string) => ["calendar", "events", eventId] as const,
-  setting: (calendarId: string) =>
-    ["calendar", "settings", calendarId] as const,
 };
 
 export function useCalendarCalendars() {
@@ -153,34 +148,6 @@ export function useUpdateCalendarEventResponse() {
       void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
       void queryClient.invalidateQueries({
         queryKey: calendarKeys.event(variables.eventId),
-      });
-    },
-  });
-}
-
-export function useCalendarSetting(calendarId?: string | null) {
-  return useQuery({
-    queryKey: calendarKeys.setting(calendarId || ""),
-    queryFn: () => getCalendarSetting(calendarId!),
-    enabled: Boolean(calendarId),
-  });
-}
-
-export function useUpdateCalendarSetting() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      calendarId,
-      payload,
-    }: {
-      calendarId: string;
-      payload: UpdateCalendarSettingPayload;
-    }) => updateCalendarSetting(calendarId, payload),
-    onSuccess: (_, variables) => {
-      void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
-      void queryClient.invalidateQueries({
-        queryKey: calendarKeys.setting(variables.calendarId),
       });
     },
   });

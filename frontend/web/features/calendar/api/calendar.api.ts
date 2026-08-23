@@ -4,12 +4,10 @@ import {
   AttendeeResponseStatus,
   CalendarEvent,
   CalendarEventFilters,
-  CalendarSetting,
   CreateCalendarEventPayload,
   CreateCalendarPayload,
   UpdateCalendarEventPayload,
   UpdateCalendarPayload,
-  UpdateCalendarSettingPayload,
   WorkspaceCalendar,
 } from "../types/calendar.types";
 
@@ -112,24 +110,4 @@ export async function updateCalendarEventResponse(
     { responseStatus },
   );
   return response.data;
-}
-
-export async function getCalendarSetting(
-  calendarId: string,
-): Promise<CalendarSetting> {
-  const response = await api.get<ApiResponse<CalendarSetting>>(
-    `/api/calendar/settings/${calendarId}`,
-  );
-  return unwrap(response);
-}
-
-export async function updateCalendarSetting(
-  calendarId: string,
-  payload: UpdateCalendarSettingPayload,
-): Promise<CalendarSetting> {
-  const response = await api.patch<ApiResponse<CalendarSetting>>(
-    `/api/calendar/settings/${calendarId}`,
-    payload,
-  );
-  return unwrap(response);
 }

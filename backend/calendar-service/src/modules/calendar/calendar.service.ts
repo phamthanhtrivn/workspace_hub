@@ -1,5 +1,5 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Calendar, ReminderMethod } from '@prisma/client';
+import { Calendar } from '@prisma/client';
 import {
   CALENDAR_DEFAULTS,
   CALENDAR_ERROR_MESSAGES,
@@ -39,16 +39,7 @@ export class CalendarService {
           color: dto.color ?? CALENDAR_DEFAULTS.COLOR,
           isDefault: shouldBeDefault,
           isVisible: dto.isVisible ?? true,
-          setting: {
-            create: {
-              timezone: CALENDAR_DEFAULTS.TIMEZONE,
-              defaultReminderMinutes:
-                CALENDAR_DEFAULTS.DEFAULT_REMINDER_MINUTES,
-              defaultReminderMethod: ReminderMethod.ALERT,
-            },
-          },
         },
-        include: { setting: true },
       });
     });
   }
@@ -58,7 +49,6 @@ export class CalendarService {
 
     return this.prisma.calendar.findMany({
       where: { ownerUserId: userId },
-      include: { setting: true },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
     });
   }
@@ -91,7 +81,6 @@ export class CalendarService {
           isDefault: updateData.isDefault === false ? undefined : updateData.isDefault,
           isVisible: updateData.isVisible,
         },
-        include: { setting: true },
       });
     });
   }
@@ -156,14 +145,6 @@ export class CalendarService {
           color: CALENDAR_DEFAULTS.COLOR,
           isDefault: true,
           isVisible: true,
-          setting: {
-            create: {
-              timezone: CALENDAR_DEFAULTS.TIMEZONE,
-              defaultReminderMinutes:
-                CALENDAR_DEFAULTS.DEFAULT_REMINDER_MINUTES,
-              defaultReminderMethod: ReminderMethod.ALERT,
-            },
-          },
         },
       });
     });
