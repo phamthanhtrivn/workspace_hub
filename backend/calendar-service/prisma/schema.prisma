@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ReminderMethod {
+  ALERT
+  PUSH
+  EMAIL
+}
+
+enum EventStatus {
+  CONFIRMED
+  TENTATIVE
+  CANCELLED
+}
+
+enum AttendeeResponseStatus {
+  NEEDS_ACTION
+  ACCEPTED
+  DECLINED
+  TENTATIVE
+}
+
+enum EventVisibility {
+  DEFAULT
+  PRIVATE
+  PUBLIC
+}
+
+model Calendar {
+  id          String            @id @default(uuid()) @db.Uuid
+  ownerUserId String            @map("owner_user_id") @db.Uuid
+  projectId   String?           @map("project_id") @db.Uuid
+  name        String
+  description String?
+  color       String
+  isDefault   Boolean           @default(false) @map("is_default")
+  isVisible   Boolean           @default(true) @map("is_visible")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  events      CalendarEvent[]
+  setting     CalendarSetting?
+
+  @@index([ownerUserId])
+  @@index([projectId])
+  @@map("calendars")
+}
+
+model CalendarSetting {
+  id                    String          @id @default(uuid()) @db.Uuid
+  calendarId            String          @unique @map("calendar_id") @db.Uuid
+  timezone              String          @default("Asia/Bangkok")
+  firstDayOfWeek        DayOfWeek       @default(MONDAY) @map("first_day_of_week")
+  showWeekends          Boolean         @default(true) @map("show_weekends")
+  defaultReminderMinutes Int?           @map("default_reminder_minutes")
+  defaultReminderMethod  ReminderMethod? @map("default_reminder_method")
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  calendar              Calendar        @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+
+  @@map("calendar_settings")
+}
+
+model CalendarEvent {
+  id             String          @id @default(uuid()) @db.Uuid
+  calendarId     String          @map("calendar_id") @db.Uuid
+  createdBy      String          @map("created_by") @db.Uuid
+  updatedBy      String?         @map("updated_by") @db.Uuid
+  title          String
+  description    String?
+  location       String?
+  startAt        DateTime        @map("start_at")
+  endAt          DateTime        @map("end_at")
+  allDay         Boolean         @default(false) @map("all_day")
+  color          String?
+  status         EventStatus     @default(CONFIRMED)
+  visibility     EventVisibility @default(DEFAULT)
+  recurrenceRule String?         @map("recurrence_rule")
+  exceptionDates DateTime[]      @default([]) @map("exception_dates")
+  documentIds    String[]        @default([]) @map("document_ids") @db.Uuid
+  cancelledAt    DateTime?       @map("cancelled_at")
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  calendar       Calendar        @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  attendees      CalendarEventAttendee[]
+  reminders      Reminder[]
+
+  @@index([calendarId, startAt])
+  @@index([createdBy])
+  @@index([startAt, endAt])
+  @@map("calendar_events")
+}
+
+model CalendarEventAttendee {
+  id             String                 @id @default(uuid()) @db.Uuid
+  eventId        String                 @map("event_id") @db.Uuid
+  userId         String                 @map("user_id") @db.Uuid
+  responseStatus AttendeeResponseStatus @default(NEEDS_ACTION) @map("response_status")
+  optional       Boolean                @default(false)
+  createdAt      DateTime               @default(now()) @map("created_at")
+  updatedAt      DateTime               @updatedAt @map("updated_at")
+
+  event          CalendarEvent          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+  @@map("calendar_event_attendees")
+}
+
+model Reminder {
+  id            String         @id @default(uuid()) @db.Uuid
+  eventId       String         @map("event_id") @db.Uuid
+  minutesBefore Int            @map("minutes_before")
+  method        ReminderMethod
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+
+  event         CalendarEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@map("reminders")
+}
+
+model UserProfileSnapshot {
+  userId    String   @id @map("user_id") @db.Uuid
+  email     String?
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  syncedAt  DateTime @default(now()) @updatedAt @map("synced_at")
+
+  @@map("user_profile_snapshots")
+}

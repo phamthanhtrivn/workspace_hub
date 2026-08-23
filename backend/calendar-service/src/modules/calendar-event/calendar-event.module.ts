@@ -1,0 +1,11 @@
+import { Module } from '@nestjs/common';
+import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
+import { CalendarEventController } from './calendar-event.controller';
+import { CalendarEventService } from './calendar-event.service';
+
+@Module({
+  imports: [UserProfileSnapshotModule],
+  controllers: [CalendarEventController],
+  providers: [CalendarEventService],
+})
+export class CalendarEventModule {}
