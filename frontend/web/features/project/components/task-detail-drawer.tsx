@@ -301,7 +301,15 @@ export default function TaskDetailDrawer({
 
   if (!task) return null;
 
-  const comments = loadedComments ?? task.comments;
+  const comments = (loadedComments ?? task.comments).map((comment) => {
+    const author = members.find((member) => member.userId === comment.authorId);
+    if (!author) return comment;
+    return {
+      ...comment,
+      authorName: author.displayName,
+      authorAvatar: author.avatarUrl || comment.authorAvatar,
+    };
+  });
   const childTasks = tasks.filter(
     (candidate) => candidate.parentTaskId === task.id && !candidate.archived,
   );
