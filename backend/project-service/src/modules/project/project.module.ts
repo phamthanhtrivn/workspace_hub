@@ -22,6 +22,16 @@ import { ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
 import { DependencyController } from './dependency.controller';
 import { DependencyService } from './dependency.service';
+import { RuntimeConfigService } from '../../common/config/runtime-config.service';
+import { HttpJsonClient } from '../../common/communication/http-json.client';
+import {
+  NOTIFICATION_GATEWAY,
+  USER_DIRECTORY,
+} from './communication/project-communication.port';
+import { HttpNotificationAdapter } from './communication/http-notification.adapter';
+import { HttpUserDirectoryAdapter } from './communication/http-user-directory.adapter';
+import { ProjectTemplateService } from './project-template.service';
+import { TaskPolicyService } from './task-policy.service';
 
 @Module({
   controllers: [
@@ -50,6 +60,12 @@ import { DependencyService } from './dependency.service';
     ActivityService,
     NotificationEventService,
     DependencyService,
+    RuntimeConfigService,
+    HttpJsonClient,
+    { provide: USER_DIRECTORY, useClass: HttpUserDirectoryAdapter },
+    { provide: NOTIFICATION_GATEWAY, useClass: HttpNotificationAdapter },
+    ProjectTemplateService,
+    TaskPolicyService,
   ],
 })
 export class ProjectModule {}

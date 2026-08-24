@@ -6,12 +6,14 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse, toProjectResponse } from './project.mapper';
+import { ProjectTemplateService } from './project-template.service';
 
 @Injectable()
 export class ProjectService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly templates: ProjectTemplateService,
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
@@ -20,47 +22,47 @@ export class ProjectService {
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
 
-    const project = await this.prisma.project.create({
-      data: {
-        id: crypto.randomUUID(),
-        name: dto.name.trim(),
-        color: dto.color,
-        icon: dto.icon,
-        description: dto.description,
-        projectType: dto.projectType ?? ProjectType.GENERAL,
-        visibility: dto.visibility ?? ProjectVisibility.MEMBERS_ONLY,
-        status: ProjectStatus.ACTIVE,
-        ownerId: userId,
-        archived: false,
-        startDate,
-        dueDate,
-        createdAt: now,
-        updatedAt: now,
-        setting: {
-          create: {
-            id: crypto.randomUUID(),
-            allowMemberCreateTask: true,
-            allowMemberEditOthersTask: false,
-            allowMemberEditOwnTask: true,
-            allowMemberInvite: false,
+    const project = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          id: crypto.randomUUID(),
+          name: dto.name.trim(),
+          color: dto.color,
+          icon: dto.icon,
+          description: dto.description,
+          projectType: dto.projectType ?? ProjectType.GENERAL,
+          visibility: dto.visibility ?? ProjectVisibility.MEMBERS_ONLY,
+          status: ProjectStatus.ACTIVE,
+          ownerId: userId,
+          archived: false,
+          startDate,
+          dueDate,
+          createdAt: now,
+          updatedAt: now,
+          setting: {
+            create: {
+              id: crypto.randomUUID(),
+              allowMemberCreateTask: true,
+              allowMemberEditOthersTask: false,
+              allowMemberEditOwnTask: true,
+              allowMemberInvite: false,
+            },
+          },
+          members: {
+            create: {
+              id: crypto.randomUUID(),
+              userId,
+              role: ProjectRole.OWNER,
+              status: ProjectMemberStatus.ACTIVE,
+              joinedAt: now,
+              updatedAt: now,
+            },
           },
         },
-        members: {
-          create: {
-            id: crypto.randomUUID(),
-            userId,
-            role: ProjectRole.OWNER,
-            status: ProjectMemberStatus.ACTIVE,
-            joinedAt: now,
-            updatedAt: now,
-          },
-        },
-      },
+      });
+      await this.templates.initialize(tx, created.id, userId, dto.template ?? ProjectTemplate.EMPTY, now);
+      return created;
     });
-
-    if (dto.template && dto.template !== ProjectTemplate.EMPTY) {
-      await this.createTemplateTasks(project.id, userId, dto.template);
-    }
 
     return toProjectResponse(project);
   }
@@ -150,41 +152,4 @@ export class ProjectService {
     }
   }
 
-  private async createTemplateTasks(projectId: string, userId: string, template: ProjectTemplate): Promise<void> {
-    const roots = template === ProjectTemplate.SOFTWARE_SCRUM
-      ? [['Define product backlog', ['Write user stories', 'Prioritize MVP scope']], ['Build first increment', ['Implement core flow', 'Review with team']], ['Quality and release', ['Prepare test plan', 'Create release notes']]]
-      : template === ProjectTemplate.MARKETING_CAMPAIGN
-        ? [['Campaign goals', ['Define audience', 'Set success metrics']], ['Content production', ['Create content calendar', 'Review campaign assets']], ['Launch and measure', ['Publish campaign', 'Track performance']]]
-        : [['Event objectives', ['Confirm target audience', 'Define event scope']], ['Event preparation', ['Book venue and vendors', 'Prepare communication plan']], ['Event execution', ['Run event checklist', 'Collect feedback']]];
-    const now = new Date();
-
-    for (const [rootIndex, root] of roots.entries()) {
-      const parent = await this.prisma.task.create({
-        data: {
-          id: crypto.randomUUID(), projectId, title: root[0] as string, description: 'Sample task from project template.',
-          priority: rootIndex === 0 ? 'HIGH' : 'MEDIUM', status: 'TODO', createdBy: userId, reporterId: userId,
-          allDay: false, estimatedMinutes: 180, rank: String((rootIndex + 1) * 1000), archived: false,
-          isParentTask: true, autoCompleteSprint: false, createdAt: now, updatedAt: now,
-        },
-      });
-      for (const [childIndex, childTitle] of (root[1] as string[]).entries()) {
-        const child = await this.prisma.task.create({
-          data: {
-            id: crypto.randomUUID(), projectId, parentTaskId: parent.id, title: childTitle,
-            description: 'Sample subtask from project template.', priority: 'MEDIUM', status: 'TODO', createdBy: userId,
-            reporterId: userId, allDay: false, estimatedMinutes: 60, rank: String((childIndex + 1) * 100), archived: false,
-            isParentTask: false, autoCompleteSprint: false, createdAt: now, updatedAt: now,
-          },
-        });
-        await this.prisma.taskChecklist.createMany({ data: [
-          { id: crypto.randomUUID(), taskId: child.id, title: 'Define work scope', completed: false, createdAt: now, rank: '001' },
-          { id: crypto.randomUUID(), taskId: child.id, title: 'Update execution result', completed: false, createdAt: now, rank: '002' },
-        ] });
-      }
-      await this.prisma.taskChecklist.createMany({ data: [
-        { id: crypto.randomUUID(), taskId: parent.id, title: 'Review task objective', completed: false, createdAt: now, rank: '001' },
-        { id: crypto.randomUUID(), taskId: parent.id, title: 'Confirm completion', completed: false, createdAt: now, rank: '002' },
-      ] });
-    }
-  }
 }

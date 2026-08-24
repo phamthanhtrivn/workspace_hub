@@ -6,9 +6,9 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toTaskResponse } from './project.mapper';
-import { ActivityService } from './activity.service';
+import { ActivityChange, ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
-import { assertTaskEditable } from './task-edit.guard';
+import { assertTaskEditable, assertTaskStatusTransition } from './task-edit.guard';
 
 const taskWithCount = {
   _count: { select: { children: true } },
@@ -35,35 +35,37 @@ export class TaskService {
 
     const now = new Date();
     const status = dto.status ?? TaskStatus.TODO;
-    const task = await this.prisma.task.create({
-      data: {
-        id: crypto.randomUUID(),
-        projectId,
-        parentTaskId: dto.parentTaskId,
-        ...(parentSprintId !== undefined ? { sprintId: parentSprintId } : {}),
-        title: dto.title.trim(),
-        description: dto.description,
-        priority: dto.priority ?? 'MEDIUM',
-        status,
-        createdBy: userId,
-        reporterId: userId,
-        startDate,
-        dueDate,
-        allDay: dto.allDay ?? false,
-        completedAt: isTerminalTaskStatus(status) ? now : undefined,
-        completedBy: isTerminalTaskStatus(status) ? userId : undefined,
-        estimatedMinutes: dto.estimatedMinutes ?? 0,
-        rank: dto.rank,
-        archived: false,
-        isParentTask: dto.isParentTask ?? false,
-        autoCompleteSprint: dto.autoCompleteSprint ?? false,
-        createdAt: now,
-        updatedAt: now,
-      },
-      include: taskWithCount,
+    const task = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.task.create({
+        data: {
+          id: crypto.randomUUID(),
+          projectId,
+          parentTaskId: dto.parentTaskId,
+          ...(parentSprintId !== undefined ? { sprintId: parentSprintId } : {}),
+          title: dto.title.trim(),
+          description: dto.description,
+          priority: dto.priority ?? 'MEDIUM',
+          status,
+          createdBy: userId,
+          reporterId: userId,
+          startDate,
+          dueDate,
+          allDay: dto.allDay ?? false,
+          completedAt: isTerminalTaskStatus(status) ? now : undefined,
+          completedBy: isTerminalTaskStatus(status) ? userId : undefined,
+          estimatedMinutes: dto.estimatedMinutes ?? 0,
+          rank: dto.rank,
+          archived: false,
+          isParentTask: dto.isParentTask ?? false,
+          autoCompleteSprint: dto.autoCompleteSprint ?? false,
+          createdAt: now,
+          updatedAt: now,
+        },
+        include: taskWithCount,
+      });
+      await this.activities.record(created.id, userId, 'created', null, created.title, tx);
+      return created;
     });
-
-    await this.activities.record(task.id, userId, 'created', null, task.title);
 
     return toTaskResponse(task);
   }
@@ -94,6 +96,13 @@ export class TaskService {
     }
     if (dto.clearParent && dto.parentTaskId) {
       throw new ConflictException('A task cannot be assigned and unassigned at the same time');
+    }
+    if (dto.status !== undefined) {
+      assertTaskStatusTransition(current.status, dto.status);
+    }
+
+    if (dto.assigneeUserId) {
+      await this.requireActiveMember(current.projectId, dto.assigneeUserId);
     }
 
     const startDate = dto.startDate !== undefined ? this.toDate(dto.startDate) : current.startDate;
@@ -131,29 +140,33 @@ export class TaskService {
       data.completedBy = isTerminalTaskStatus(dto.status) ? userId : null;
     }
 
-    const task = await this.prisma.task.update({
-      where: { id: taskId },
-      data,
-      include: taskWithCount,
+    const task = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.task.update({
+        where: { id: taskId },
+        data,
+        include: taskWithCount,
+      });
+      if (dto.assigneeUserId !== undefined) {
+        await tx.taskAssignee.deleteMany({ where: { taskId } });
+        if (dto.assigneeUserId !== null) {
+          await tx.taskAssignee.create({
+            data: {
+              id: crypto.randomUUID(),
+              taskId,
+              projectId: current.projectId,
+              userId: dto.assigneeUserId,
+              assignedAt: new Date(),
+            },
+          });
+        }
+      }
+      await this.recordChanges(current, updated, dto, userId, tx);
+      if (dto.assigneeUserId === undefined) return updated;
+      return tx.task.findUniqueOrThrow({ where: { id: taskId }, include: taskWithCount });
     });
 
-    await this.recordChanges(current, dto, userId, task.id);
-
     if (dto.assigneeUserId !== undefined) {
-      if (dto.assigneeUserId === null) {
-        await this.prisma.taskAssignee.deleteMany({ where: { taskId } });
-      } else {
-        const member = await this.prisma.projectMember.findUnique({
-          where: { projectId_userId: { projectId: current.projectId, userId: dto.assigneeUserId } },
-          select: { status: true },
-        });
-        if (!member || member.status !== 'ACTIVE') {
-          throw new BadRequestException('Assignee must be an active project member');
-        }
-        await this.prisma.taskAssignee.deleteMany({ where: { taskId } });
-        await this.prisma.taskAssignee.create({
-          data: { id: crypto.randomUUID(), taskId, projectId: current.projectId, userId: dto.assigneeUserId, assignedAt: new Date() },
-        });
+      if (dto.assigneeUserId !== null) {
         void this.notifications.send({
           recipientId: dto.assigneeUserId,
           senderId: userId,
@@ -164,7 +177,7 @@ export class TaskService {
           metadata: { taskId: current.id, projectId: current.projectId },
         });
       }
-      return toTaskResponse(await this.findTask(task.id));
+      return toTaskResponse(task);
     }
     if (dto.status !== undefined || dto.title !== undefined || dto.dueDate !== undefined) {
       for (const assignee of current.assignees) {
@@ -187,11 +200,13 @@ export class TaskService {
     const task = await this.findTask(taskId);
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
     assertTaskEditable(task.status);
-    await this.prisma.task.update({
-      where: { id: taskId },
-      data: { archived: true, deletedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.task.update({
+        where: { id: taskId },
+        data: { archived: true, deletedAt: new Date() },
+      });
+      await this.activities.record(taskId, userId, 'archived', false, true, tx);
     });
-    await this.activities.record(taskId, userId, 'archived', false, true);
   }
 
   private async findTask(taskId: string) {
@@ -218,6 +233,16 @@ export class TaskService {
     return parent.sprintId;
   }
 
+  private async requireActiveMember(projectId: string, userId: string): Promise<void> {
+    const member = await this.prisma.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId } },
+      select: { status: true },
+    });
+    if (!member || member.status !== 'ACTIVE') {
+      throw new BadRequestException('Assignee must be an active project member');
+    }
+  }
+
   private toDate(value?: string): Date | undefined {
     return value === undefined ? undefined : new Date(value);
   }
@@ -230,25 +255,26 @@ export class TaskService {
 
   private async recordChanges(
     current: Prisma.TaskGetPayload<{ include: typeof taskWithCount }>,
+    updated: Prisma.TaskGetPayload<{ include: typeof taskWithCount }>,
     dto: UpdateTaskDto,
     actorId: string,
-    taskId: string,
+    database: Prisma.TransactionClient,
   ) {
-    const changes: Array<[string, unknown, unknown]> = [];
-    if (dto.title !== undefined) changes.push(['title', current.title, dto.title.trim()]);
-    if (dto.description !== undefined) changes.push(['description', current.description, dto.description]);
-    if (dto.priority !== undefined) changes.push(['priority', current.priority, dto.priority]);
-    if (dto.status !== undefined) changes.push(['status', current.status, dto.status]);
-    if (dto.startDate !== undefined) changes.push(['startDate', current.startDate?.toISOString(), dto.startDate]);
-    if (dto.dueDate !== undefined) changes.push(['dueDate', current.dueDate?.toISOString(), dto.dueDate]);
-    if (dto.estimatedMinutes !== undefined) changes.push(['estimatedMinutes', current.estimatedMinutes, dto.estimatedMinutes]);
-    if (dto.allDay !== undefined) changes.push(['allDay', current.allDay, dto.allDay]);
-    if (dto.rank !== undefined) changes.push(['rank', current.rank, dto.rank]);
-    if (dto.archived !== undefined) changes.push(['archived', current.archived, dto.archived]);
-    if (dto.parentTaskId !== undefined || dto.clearParent) changes.push(['parentTaskId', current.parentTaskId, dto.clearParent ? null : dto.parentTaskId]);
-    if (dto.isParentTask !== undefined) changes.push(['isParentTask', current.isParentTask, dto.isParentTask]);
-    if (dto.autoCompleteSprint !== undefined) changes.push(['autoCompleteSprint', current.autoCompleteSprint, dto.autoCompleteSprint]);
+    const changes: ActivityChange[] = [];
+    if (dto.title !== undefined) changes.push(['title', current.title, updated.title]);
+    if (dto.description !== undefined) changes.push(['description', current.description, updated.description]);
+    if (dto.priority !== undefined) changes.push(['priority', current.priority, updated.priority]);
+    if (dto.status !== undefined) changes.push(['status', current.status, updated.status]);
+    if (dto.startDate !== undefined) changes.push(['startDate', current.startDate?.toISOString(), updated.startDate?.toISOString()]);
+    if (dto.dueDate !== undefined) changes.push(['dueDate', current.dueDate?.toISOString(), updated.dueDate?.toISOString()]);
+    if (dto.estimatedMinutes !== undefined) changes.push(['estimatedMinutes', current.estimatedMinutes, updated.estimatedMinutes]);
+    if (dto.allDay !== undefined) changes.push(['allDay', current.allDay, updated.allDay]);
+    if (dto.rank !== undefined) changes.push(['rank', current.rank, updated.rank]);
+    if (dto.archived !== undefined) changes.push(['archived', current.archived, updated.archived]);
+    if (dto.parentTaskId !== undefined || dto.clearParent) changes.push(['parentTaskId', current.parentTaskId, updated.parentTaskId]);
+    if (dto.isParentTask !== undefined) changes.push(['isParentTask', current.isParentTask, updated.isParentTask]);
+    if (dto.autoCompleteSprint !== undefined) changes.push(['autoCompleteSprint', current.autoCompleteSprint, updated.autoCompleteSprint]);
     if (dto.assigneeUserId !== undefined) changes.push(['assigneeUserId', current.assignees[0]?.userId, dto.assigneeUserId]);
-    await Promise.all(changes.map(([field, oldValue, newValue]) => this.activities.record(taskId, actorId, field, oldValue, newValue)));
+    await this.activities.recordMany(current.id, actorId, changes, database);
   }
 }

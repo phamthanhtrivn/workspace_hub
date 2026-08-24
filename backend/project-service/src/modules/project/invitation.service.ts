@@ -5,6 +5,7 @@ import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toInvitationResponse } from './project.mapper';
 import { InvitationEmailService } from './invitation-email.service';
+import { isUniqueConstraintError } from '../../common/prisma/prisma-errors';
 
 const EXPIRY_DAYS = 7;
 
@@ -33,18 +34,26 @@ export class InvitationService {
     }
 
     const now = new Date();
-    const invitation = await this.prisma.projectInvitation.create({
-      data: {
-        id: crypto.randomUUID(),
-        projectId,
-        invitedUserId: dto.invitedUserId,
-        invitedBy: userId,
-        status: InvitationStatus.PENDING,
-        createdAt: now,
-        expiresAt: new Date(now.getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000),
-      },
-      include: { project: { select: { name: true } } },
-    });
+    let invitation;
+    try {
+      invitation = await this.prisma.projectInvitation.create({
+        data: {
+          id: crypto.randomUUID(),
+          projectId,
+          invitedUserId: dto.invitedUserId,
+          invitedBy: userId,
+          status: InvitationStatus.PENDING,
+          createdAt: now,
+          expiresAt: new Date(now.getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000),
+        },
+        include: { project: { select: { name: true } } },
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictException('A pending invitation already exists for this user');
+      }
+      throw error;
+    }
 
     await this.email.sendSafely({
       invitationId: invitation.id,
@@ -58,35 +67,44 @@ export class InvitationService {
   }
 
   async findPending(userId: string) {
+    const now = new Date();
+    await this.prisma.projectInvitation.updateMany({
+      where: {
+        invitedUserId: userId,
+        status: InvitationStatus.PENDING,
+        expiresAt: { lt: now },
+      },
+      data: { status: InvitationStatus.EXPIRED, respondedAt: now },
+    });
     const invitations = await this.prisma.projectInvitation.findMany({
       where: { invitedUserId: userId, status: InvitationStatus.PENDING },
       include: { project: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
     });
-    const now = new Date();
-    const active = [];
-
-    for (const invitation of invitations) {
-      if (invitation.expiresAt && invitation.expiresAt < now) {
-        await this.prisma.projectInvitation.update({
-          where: { id: invitation.id },
-          data: { status: InvitationStatus.EXPIRED, respondedAt: now },
-        });
-      } else {
-        active.push(invitation);
-      }
-    }
-
-    return active.map(toInvitationResponse);
+    return invitations.map(toInvitationResponse);
   }
 
   async accept(userId: string, invitationId: string) {
-    const invitation = await this.findInvitation(invitationId);
-    this.requireInvitee(userId, invitation.invitedUserId);
-    this.ensurePending(invitation.status, invitation.expiresAt);
+    const initial = await this.findInvitation(invitationId);
+    this.requireInvitee(userId, initial.invitedUserId);
+    await this.ensurePendingAndPersistExpiry(initial.id, initial.status, initial.expiresAt);
 
     const now = new Date();
     const updated = await this.prisma.$transaction(async (tx) => {
+      const invitation = await tx.projectInvitation.findUnique({
+        where: { id: invitationId },
+        include: { project: { select: { name: true } } },
+      });
+      if (!invitation) throw new NotFoundException('Invitation not found');
+      this.requireInvitee(userId, invitation.invitedUserId);
+      this.ensurePending(invitation.status, invitation.expiresAt);
+
+      const claimed = await tx.projectInvitation.updateMany({
+        where: { id: invitationId, status: InvitationStatus.PENDING },
+        data: { status: InvitationStatus.ACCEPTED, respondedAt: now },
+      });
+      if (claimed.count !== 1) throw new ConflictException('Invitation has already been processed');
+
       const existing = await tx.projectMember.findUnique({
         where: {
           projectId_userId: {
@@ -118,9 +136,8 @@ export class InvitationService {
         });
       }
 
-      return tx.projectInvitation.update({
+      return tx.projectInvitation.findUniqueOrThrow({
         where: { id: invitationId },
-        data: { status: InvitationStatus.ACCEPTED, respondedAt: now },
         include: { project: { select: { name: true } } },
       });
     });
@@ -131,13 +148,14 @@ export class InvitationService {
   async decline(userId: string, invitationId: string) {
     const invitation = await this.findInvitation(invitationId);
     this.requireInvitee(userId, invitation.invitedUserId);
-    this.ensurePending(invitation.status, invitation.expiresAt);
+    await this.ensurePendingAndPersistExpiry(invitation.id, invitation.status, invitation.expiresAt);
 
-    const updated = await this.prisma.projectInvitation.update({
-      where: { id: invitationId },
+    const changed = await this.prisma.projectInvitation.updateMany({
+      where: { id: invitationId, status: InvitationStatus.PENDING },
       data: { status: InvitationStatus.DECLINED, respondedAt: new Date() },
-      include: { project: { select: { name: true } } },
     });
+    if (changed.count !== 1) throw new ConflictException('Invitation has already been processed');
+    const updated = await this.findInvitation(invitationId);
     return toInvitationResponse(updated);
   }
 
@@ -145,11 +163,12 @@ export class InvitationService {
     await this.access.requireCanInvite(userId, projectId);
     const invitation = await this.prisma.projectInvitation.findFirst({ where: { id: invitationId, projectId } });
     if (!invitation) throw new NotFoundException('Invitation not found');
-    this.ensurePending(invitation.status, invitation.expiresAt);
-    await this.prisma.projectInvitation.update({
-      where: { id: invitationId },
+    await this.ensurePendingAndPersistExpiry(invitation.id, invitation.status, invitation.expiresAt);
+    const changed = await this.prisma.projectInvitation.updateMany({
+      where: { id: invitationId, status: InvitationStatus.PENDING },
       data: { status: InvitationStatus.CANCELLED, respondedAt: new Date() },
     });
+    if (changed.count !== 1) throw new ConflictException('Invitation has already been processed');
   }
 
   private async findInvitation(id: string) {
@@ -168,5 +187,22 @@ export class InvitationService {
   private ensurePending(status: string, expiresAt: Date | null): void {
     if (status !== InvitationStatus.PENDING) throw new ConflictException('Invitation has already been processed');
     if (expiresAt && expiresAt < new Date()) throw new ConflictException('Invitation has expired');
+  }
+
+  private async ensurePendingAndPersistExpiry(
+    invitationId: string,
+    status: string,
+    expiresAt: Date | null,
+  ): Promise<void> {
+    if (status !== InvitationStatus.PENDING) {
+      throw new ConflictException('Invitation has already been processed');
+    }
+    const now = new Date();
+    if (!expiresAt || expiresAt >= now) return;
+    await this.prisma.projectInvitation.updateMany({
+      where: { id: invitationId, status: InvitationStatus.PENDING },
+      data: { status: InvitationStatus.EXPIRED, respondedAt: now },
+    });
+    throw new ConflictException('Invitation has expired');
   }
 }
