@@ -1,11 +1,7 @@
 import { api } from "@/lib/axios";
 
 export type ProjectInvitationStatus =
-  | "PENDING"
-  | "ACCEPTED"
-  | "DECLINED"
-  | "CANCELLED"
-  | "EXPIRED";
+  "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED";
 
 export interface ProjectInvitation {
   id: string;
@@ -41,13 +37,6 @@ export async function createProjectInvitation(
     { invitedUserId },
   );
   return unwrap(response);
-}
-
-export async function getPendingProjectInvitations(): Promise<ProjectInvitation[]> {
-  const response = await api.get<ApiResponse<ProjectInvitation[]>>(
-    "/api/project-invitations/pending",
-  );
-  return unwrap(response) || [];
 }
 
 export async function acceptProjectInvitation(

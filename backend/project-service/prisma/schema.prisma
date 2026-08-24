@@ -187,6 +187,7 @@ model TaskLabelMapping {
   task  Task      @relation(fields: [taskId, projectId], references: [id, projectId], onDelete: Cascade)
   label TaskLabel @relation(fields: [labelId, projectId], references: [id, projectId], onDelete: Cascade)
 
+  @@unique([taskId, labelId], map: "uk_task_label_mapping_task_label")
   @@index([labelId], map: "idx_task_label_mappings_label")
   @@index([projectId], map: "idx_task_label_mappings_project")
   @@map("task_label_mappings")
@@ -256,4 +257,19 @@ model ProjectInvitation {
   @@index([invitedUserId, status, createdAt], map: "idx_project_invitation_recipient_status_created")
   @@index([projectId, status], map: "idx_project_invitation_project_status")
   @@map("project_invitations")
+}
+
+model NotificationOutbox {
+  id            String    @id @default(uuid()) @db.Uuid
+  eventType     String    @map("event_type") @db.VarChar(50)
+  payload       Json
+  status        String    @default("PENDING") @db.VarChar(20)
+  attemptCount  Int       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime? @map("next_attempt_at")
+  lockedAt      DateTime? @map("locked_at")
+  lastError     String?   @map("last_error")
+  createdAt     DateTime  @map("created_at")
+  processedAt   DateTime? @map("processed_at")
+
+  @@map("notification_outbox")
 }

@@ -7,8 +7,10 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toTaskResponse } from './project.mapper';
 import { ActivityChange, ActivityService } from './activity.service';
-import { NotificationEventService } from './notification-event.service';
+import { NotificationOutboxService } from './notification-outbox.service';
 import { assertTaskEditable, assertTaskStatusTransition } from './task-edit.guard';
+import { isRecordNotFoundError, rethrowWriteConflict } from '../../common/prisma/prisma-errors';
+import { paginate, PaginationQueryDto } from '../../common/pagination';
 
 const taskWithCount = {
   _count: { select: { children: true } },
@@ -23,7 +25,7 @@ export class TaskService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly activities: ActivityService,
-    private readonly notifications: NotificationEventService,
+    private readonly notifications: NotificationOutboxService,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
@@ -70,14 +72,20 @@ export class TaskService {
     return toTaskResponse(task);
   }
 
-  async findAll(userId: string, projectId: string) {
+  async findAll(userId: string, projectId: string, query: PaginationQueryDto) {
     await this.access.requireReadAccess(userId, projectId);
-    const tasks = await this.prisma.task.findMany({
-      where: { projectId, archived: false, deletedAt: null },
-      orderBy: [{ rank: 'asc' }, { createdAt: 'asc' }],
-      include: taskWithCount,
-    });
-    return tasks.map(toTaskResponse);
+    const where: Prisma.TaskWhereInput = { projectId, archived: false, deletedAt: null };
+    const [total, tasks] = await this.prisma.$transaction([
+      this.prisma.task.count({ where }),
+      this.prisma.task.findMany({
+        where,
+        orderBy: [{ rank: 'asc' }, { createdAt: 'asc' }],
+        include: taskWithCount,
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+    ]);
+    return paginate(tasks.map(toTaskResponse), total, query);
   }
 
   async findOne(userId: string, taskId: string) {
@@ -140,59 +148,63 @@ export class TaskService {
       data.completedBy = isTerminalTaskStatus(dto.status) ? userId : null;
     }
 
-    const task = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.task.update({
-        where: { id: taskId },
-        data,
-        include: taskWithCount,
-      });
-      if (dto.assigneeUserId !== undefined) {
-        await tx.taskAssignee.deleteMany({ where: { taskId } });
-        if (dto.assigneeUserId !== null) {
-          await tx.taskAssignee.create({
-            data: {
-              id: crypto.randomUUID(),
-              taskId,
-              projectId: current.projectId,
-              userId: dto.assigneeUserId,
-              assignedAt: new Date(),
-            },
-          });
+    let task: Prisma.TaskGetPayload<{ include: typeof taskWithCount }>;
+    try {
+      task = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.task.update({
+          where: { id: taskId, version: current.version },
+          data: { ...data, version: { increment: 1 } },
+          include: taskWithCount,
+        });
+        if (dto.assigneeUserId !== undefined) {
+          await tx.taskAssignee.deleteMany({ where: { taskId } });
+          if (dto.assigneeUserId !== null) {
+            await tx.taskAssignee.create({
+              data: {
+                id: crypto.randomUUID(),
+                taskId,
+                projectId: current.projectId,
+                userId: dto.assigneeUserId,
+                assignedAt: new Date(),
+              },
+            });
+          }
         }
+        await this.recordChanges(current, updated, dto, userId, tx);
+        if (dto.assigneeUserId !== undefined && dto.assigneeUserId !== null) {
+          await this.notifications.enqueueNotification({
+            recipientId: dto.assigneeUserId,
+            senderId: userId,
+            type: 'PROJECT_TASK_ASSIGNED',
+            title: 'You were assigned a task',
+            content: `Task "${updated.title}" was assigned to you.`,
+            link: `/projects/${current.projectId}`,
+            metadata: { taskId: current.id, projectId: current.projectId },
+          }, tx);
+        } else if (dto.status !== undefined || dto.title !== undefined || dto.dueDate !== undefined) {
+          for (const assignee of current.assignees) {
+            if (assignee.userId === userId) continue;
+            await this.notifications.enqueueNotification({
+              recipientId: assignee.userId,
+              senderId: userId,
+              type: 'PROJECT_TASK_UPDATED',
+              title: 'Task updated',
+              content: `Task "${updated.title}" was just updated.`,
+              link: `/projects/${current.projectId}`,
+              metadata: { taskId: current.id, projectId: current.projectId },
+            }, tx);
+          }
+        }
+        if (dto.assigneeUserId === undefined) return updated;
+        return tx.task.findUniqueOrThrow({ where: { id: taskId }, include: taskWithCount });
+      });
+    } catch (error) {
+      if (isRecordNotFoundError(error)) {
+        throw new ConflictException('Task was changed by another request');
       }
-      await this.recordChanges(current, updated, dto, userId, tx);
-      if (dto.assigneeUserId === undefined) return updated;
-      return tx.task.findUniqueOrThrow({ where: { id: taskId }, include: taskWithCount });
-    });
+      throw error;
+    }
 
-    if (dto.assigneeUserId !== undefined) {
-      if (dto.assigneeUserId !== null) {
-        void this.notifications.send({
-          recipientId: dto.assigneeUserId,
-          senderId: userId,
-          type: 'PROJECT_TASK_ASSIGNED',
-          title: 'You were assigned a task',
-          content: `Task "${current.title}" was assigned to you.`,
-          link: `/projects/${current.projectId}`,
-          metadata: { taskId: current.id, projectId: current.projectId },
-        });
-      }
-      return toTaskResponse(task);
-    }
-    if (dto.status !== undefined || dto.title !== undefined || dto.dueDate !== undefined) {
-      for (const assignee of current.assignees) {
-        if (assignee.userId === userId) continue;
-        void this.notifications.send({
-          recipientId: assignee.userId,
-          senderId: userId,
-          type: 'PROJECT_TASK_UPDATED',
-          title: 'Task updated',
-          content: `Task "${task.title}" was just updated.`,
-          link: `/projects/${current.projectId}`,
-          metadata: { taskId: current.id, projectId: current.projectId },
-        });
-      }
-    }
     return toTaskResponse(task);
   }
 
@@ -200,13 +212,17 @@ export class TaskService {
     const task = await this.findTask(taskId);
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
     assertTaskEditable(task.status);
-    await this.prisma.$transaction(async (tx) => {
-      await tx.task.update({
-        where: { id: taskId },
-        data: { archived: true, deletedAt: new Date() },
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.task.update({
+          where: { id: taskId, version: task.version },
+          data: { archived: true, deletedAt: new Date(), version: { increment: 1 } },
+        });
+        await this.activities.record(taskId, userId, 'archived', false, true, tx);
       });
-      await this.activities.record(taskId, userId, 'archived', false, true, tx);
-    });
+    } catch (error) {
+      rethrowWriteConflict(error, 'Task was changed by another request');
+    }
   }
 
   private async findTask(taskId: string) {

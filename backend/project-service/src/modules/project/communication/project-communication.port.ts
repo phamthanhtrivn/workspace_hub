@@ -1,5 +1,5 @@
-export const USER_DIRECTORY = Symbol('USER_DIRECTORY');
-export const NOTIFICATION_GATEWAY = Symbol('NOTIFICATION_GATEWAY');
+export const USER_DIRECTORY = Symbol("USER_DIRECTORY");
+export const NOTIFICATION_GATEWAY = Symbol("NOTIFICATION_GATEWAY");
 
 export interface UserContact {
   email: string;
@@ -33,4 +33,9 @@ export interface InvitationEmail {
 export interface NotificationGateway {
   send(event: ProjectNotification): Promise<void>;
   sendInvitationEmail(email: InvitationEmail): Promise<void>;
+  updateProjectInvitationStatus(
+    invitationId: string,
+    recipientId: string,
+    status: "ACCEPTED" | "DECLINED",
+  ): Promise<void>;
 }

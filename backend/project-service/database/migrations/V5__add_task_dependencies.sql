@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS task_dependencies (
     successor_task_id UUID NOT NULL,
     dependency_type VARCHAR(30) NOT NULL DEFAULT 'FINISH_TO_START',
     created_by UUID NOT NULL,
-    created_at TIMESTAMP(6) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT chk_task_dependency_not_self CHECK (predecessor_task_id <> successor_task_id),
     CONSTRAINT uk_task_dependency_project_predecessor_successor UNIQUE (project_id, predecessor_task_id, successor_task_id),
     CONSTRAINT fk_task_dependencies_project FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,

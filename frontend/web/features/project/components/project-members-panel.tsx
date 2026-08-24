@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
+import { confirmProjectAction } from "@/features/project/project-alert";
 import {
   type ProjectMember,
   ProjectRole,
@@ -50,6 +51,27 @@ export default function ProjectMembersPanel({
     return order[a.role] - order[b.role];
   });
 
+  const handleRemoveMember = async (member: ProjectMember) => {
+    const confirmed = await confirmProjectAction({
+      title: `Xóa ${member.displayName} khỏi dự án?`,
+      text: "Thành viên này sẽ mất quyền truy cập vào dự án.",
+      confirmText: "Xóa thành viên",
+      icon: "warning",
+      destructive: true,
+    });
+    if (!confirmed) return;
+
+    removeMemberMutation.mutate(member.userId, {
+      onSuccess: () => toast.success("Đã xóa thành viên"),
+      onError: (error) =>
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : "Không thể xóa thành viên",
+        ),
+    });
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -97,23 +119,7 @@ export default function ProjectMembersPanel({
               {member.role !== ProjectRole.OWNER && (
                 <button
                   type="button"
-                  onClick={() => {
-                    if (
-                      !window.confirm(`Xóa ${member.displayName} khỏi project?`)
-                    ) {
-                      return;
-                    }
-
-                    removeMemberMutation.mutate(member.userId, {
-                      onSuccess: () => toast.success("Đã xóa thành viên"),
-                      onError: (error) =>
-                        toast.error(
-                          error instanceof Error
-                            ? error.message
-                            : "Không thể xóa thành viên",
-                        ),
-                    });
-                  }}
+                  onClick={() => void handleRemoveMember(member)}
                   disabled={removeMemberMutation.isPending}
                   className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
                   aria-label={`Xóa ${member.displayName}`}

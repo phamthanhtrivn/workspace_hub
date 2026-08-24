@@ -7,6 +7,8 @@ import { ProjectAccessService } from './project-access.service';
 import { toCommentResponse } from './project.mapper';
 import { ActivityService } from './activity.service';
 import { assertTaskEditable } from './task-edit.guard';
+import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
+import { paginate, PaginationQueryDto } from '../../common/pagination';
 
 @Injectable()
 export class CommentService {
@@ -16,14 +18,19 @@ export class CommentService {
     private readonly activities: ActivityService,
   ) {}
 
-  async findAll(userId: string, taskId: string) {
+  async findAll(userId: string, taskId: string, query: PaginationQueryDto) {
     const task = await this.findTask(taskId);
     await this.access.requireReadAccess(userId, task.projectId);
-    const comments = await this.prisma.taskComment.findMany({
-      where: { taskId },
-      orderBy: { createdAt: 'asc' },
-    });
-    return comments.map(toCommentResponse);
+    const [total, comments] = await this.prisma.$transaction([
+      this.prisma.taskComment.count({ where: { taskId } }),
+      this.prisma.taskComment.findMany({
+        where: { taskId },
+        orderBy: { createdAt: 'asc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+    ]);
+    return paginate(comments.map(toCommentResponse), total, query);
   }
 
   async create(userId: string, taskId: string, dto: CreateCommentDto) {
@@ -54,14 +61,24 @@ export class CommentService {
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
     assertTaskEditable(task.status);
-    const updated = await this.prisma.$transaction(async (tx) => {
-      const result = await tx.taskComment.update({
-        where: { id: commentId },
-        data: { content: dto.content.trim(), edited: true, updatedAt: new Date() },
+    let updated;
+    try {
+      updated = await this.prisma.$transaction(async (tx) => {
+        const result = await tx.taskComment.update({
+          where: { id: commentId, version: comment.version },
+          data: {
+            content: dto.content.trim(),
+            edited: true,
+            updatedAt: new Date(),
+            version: { increment: 1 },
+          },
+        });
+        await this.activities.record(comment.taskId, userId, 'comment_updated', comment.content, result.content, tx);
+        return result;
       });
-      await this.activities.record(comment.taskId, userId, 'comment_updated', comment.content, result.content, tx);
-      return result;
-    });
+    } catch (error) {
+      rethrowWriteConflict(error, 'Comment was changed by another request');
+    }
     return toCommentResponse(updated);
   }
 
@@ -70,10 +87,14 @@ export class CommentService {
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
     assertTaskEditable(task.status);
-    await this.prisma.$transaction(async (tx) => {
-      await tx.taskComment.delete({ where: { id: commentId } });
-      await this.activities.record(comment.taskId, userId, 'comment_deleted', comment.content, null, tx);
-    });
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.taskComment.delete({ where: { id: commentId, version: comment.version } });
+        await this.activities.record(comment.taskId, userId, 'comment_deleted', comment.content, null, tx);
+      });
+    } catch (error) {
+      rethrowWriteConflict(error, 'Comment was changed by another request');
+    }
   }
 
   private async requireWriteAccess(userId: string, projectId: string): Promise<void> {

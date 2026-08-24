@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Search, User, X } from "lucide-react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { searchUsersByEmail, type UserSearchResult } from "@/features/project/api/user.api";
 import { useCreateProjectInvitation } from "@/features/project/hooks/use-invitations";
 

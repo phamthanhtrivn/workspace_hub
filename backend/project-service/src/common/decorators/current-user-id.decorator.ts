@@ -3,17 +3,14 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { isUUID } from 'class-validator';
-import { Request } from 'express';
+import { AuthenticatedRequest } from '../auth/jwt-identity.guard';
 
 export const CurrentUserId = createParamDecorator(
   (_data: unknown, context: ExecutionContext): string => {
-    const request = context.switchToHttp().getRequest<Request>();
-    const userId = request.header('X-User-Id');
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const userId = request.authenticatedUserId;
 
-    if (!userId || !isUUID(userId)) {
-      throw new UnauthorizedException('Missing or invalid authenticated user');
-    }
+    if (!userId) throw new UnauthorizedException('Missing authenticated user');
 
     return userId;
   },

@@ -2,7 +2,7 @@ version: '3.8'
 
 include:
   - path: ../user-service/docker-compose.yml
-  - path: ../project-service/docker-compose.yml
+  - path: ../project-service/docker-compose.stack.yml
   - path: ../communication-service/docker-compose.yml
   - path: ../document-service/docker-compose.yml
   - path: ../notification-service/docker-compose.yml

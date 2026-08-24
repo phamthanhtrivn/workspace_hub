@@ -1,5 +1,6 @@
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 import { TaskPriority, TaskStatus } from '../project.enums';
+import { Trim } from '../../../common/trim.decorator';
 
 export class UpdateTaskDto {
   @IsOptional()
@@ -7,7 +8,9 @@ export class UpdateTaskDto {
   assigneeUserId?: string | null;
 
   @IsOptional()
+  @Trim()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   title?: string;
 

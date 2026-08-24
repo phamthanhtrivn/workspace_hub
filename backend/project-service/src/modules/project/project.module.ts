@@ -19,10 +19,9 @@ import { LabelController } from './label.controller';
 import { LabelService } from './label.service';
 import { ActivityController } from './activity.controller';
 import { ActivityService } from './activity.service';
-import { NotificationEventService } from './notification-event.service';
+import { NotificationOutboxService } from './notification-outbox.service';
 import { DependencyController } from './dependency.controller';
 import { DependencyService } from './dependency.service';
-import { RuntimeConfigService } from '../../common/config/runtime-config.service';
 import { HttpJsonClient } from '../../common/communication/http-json.client';
 import {
   NOTIFICATION_GATEWAY,
@@ -58,9 +57,8 @@ import { TaskPolicyService } from './task-policy.service';
     ChecklistService,
     LabelService,
     ActivityService,
-    NotificationEventService,
+    NotificationOutboxService,
     DependencyService,
-    RuntimeConfigService,
     HttpJsonClient,
     { provide: USER_DIRECTORY, useClass: HttpUserDirectoryAdapter },
     { provide: NOTIFICATION_GATEWAY, useClass: HttpNotificationAdapter },

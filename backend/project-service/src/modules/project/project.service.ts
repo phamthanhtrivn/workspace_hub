@@ -7,6 +7,8 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse, toProjectResponse } from './project.mapper';
 import { ProjectTemplateService } from './project-template.service';
+import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
+import { paginate, PaginationQueryDto } from '../../common/pagination';
 
 @Injectable()
 export class ProjectService {
@@ -67,20 +69,25 @@ export class ProjectService {
     return toProjectResponse(project);
   }
 
-  async findAll(userId: string) {
-    const projects = await this.prisma.project.findMany({
-      where: {
-        archived: false,
-        OR: [
-          { visibility: ProjectVisibility.PUBLIC },
-          { ownerId: userId },
-          { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
-        ],
-      },
-      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-    });
-
-    return projects.map(toProjectResponse);
+  async findAll(userId: string, query: PaginationQueryDto) {
+    const where: Prisma.ProjectWhereInput = {
+      archived: false,
+      OR: [
+        { visibility: ProjectVisibility.PUBLIC },
+        { ownerId: userId },
+        { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
+      ],
+    };
+    const [total, projects] = await this.prisma.$transaction([
+      this.prisma.project.count({ where }),
+      this.prisma.project.findMany({
+        where,
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+    ]);
+    return paginate(projects.map(toProjectResponse), total, query);
   }
 
   async findOne(userId: string, projectId: string) {
@@ -116,20 +123,29 @@ export class ProjectService {
       data.archived = dto.status === ProjectStatus.ARCHIVED;
     }
 
-    const project = await this.prisma.project.update({
-      where: { id: projectId },
-      data,
-    });
+    let project;
+    try {
+      project = await this.prisma.project.update({
+        where: { id: projectId, version: current.version },
+        data: { ...data, version: { increment: 1 } },
+      });
+    } catch (error) {
+      rethrowWriteConflict(error, 'Project was changed by another request');
+    }
 
     return toProjectResponse(project);
   }
 
   async archive(userId: string, projectId: string): Promise<void> {
-    await this.access.requireManager(userId, projectId);
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: { status: ProjectStatus.ARCHIVED, archived: true },
-    });
+    const project = await this.access.requireManager(userId, projectId);
+    try {
+      await this.prisma.project.update({
+        where: { id: projectId, version: project.version },
+        data: { status: ProjectStatus.ARCHIVED, archived: true, version: { increment: 1 } },
+      });
+    } catch (error) {
+      rethrowWriteConflict(error, 'Project was changed by another request');
+    }
   }
 
   async listMembers(userId: string, projectId: string) {

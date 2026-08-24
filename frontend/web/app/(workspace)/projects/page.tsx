@@ -19,7 +19,7 @@ import {
   useProjects,
 } from "@/features/project/hooks/use-projects";
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 const FILTER_TABS = [
   { key: "ALL", label: "Tất cả dự án" },

@@ -1,7 +1,9 @@
 import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 import { TaskPriority, TaskStatus } from '../project.enums';
+import { Trim } from '../../../common/trim.decorator';
 
 export class CreateTaskDto {
+  @Trim()
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)

@@ -1,28 +1,60 @@
 services:
+  project-postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      POSTGRES_DB: project_db
+    ports:
+      - "127.0.0.1:${PROJECT_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - project_postgres_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d project_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks:
+      - project_network
+
   project-service:
     build:
       context: .
       dockerfile: Dockerfile
+      target: development
     image: wh_project_service
     container_name: wh_project_service
     ports:
-      - "8082:8082"
+      - "127.0.0.1:8082:8082"
     env_file:
       - .env.docker
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-123456}@project-postgres:5432/project_db?schema=public
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: ${JWT_ISSUER:-workspace-hub}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
     volumes:
       - .:/app
       - /app/node_modules
       - /app/dist
     command: sh -c "npx prisma generate && npm run start:dev"
     depends_on:
-      postgres:
+      project-postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 8082"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8082/ready >/dev/null 2>&1"]
       interval: 5s
       timeout: 5s
       retries: 12
       start_period: 30s
     networks:
-      - wh_network
+      - project_network
     restart: on-failure
+
+volumes:
+  project_postgres_data:
+
+networks:
+  project_network:
+    driver: bridge

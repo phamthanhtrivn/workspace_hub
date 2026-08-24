@@ -8,6 +8,11 @@ import { AddSprintTasksDto } from './dto/add-sprint-tasks.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
 import { toTaskResponse } from './project.mapper';
 import { assertTaskEditable } from './task-edit.guard';
+import {
+  isRecordNotFoundError,
+  isUniqueConstraintError,
+  rethrowWriteConflict,
+} from '../../common/prisma/prisma-errors';
 
 const sprintInclude = {
   tasks: {
@@ -122,19 +127,28 @@ export class SprintService {
     if (sprint.status !== SprintStatus.PLANNED) {
       throw new ConflictException('Only a planned sprint can be started');
     }
-    const activeSprint = await this.prisma.sprint.findFirst({
-      where: { projectId: sprint.projectId, status: SprintStatus.ACTIVE },
-      select: { id: true },
-    });
-    if (activeSprint) throw new ConflictException('This project already has an active sprint');
-
     const now = new Date();
-    const updated = await this.prisma.sprint.update({
-      where: { id: sprint.id },
-      data: { status: SprintStatus.ACTIVE, startedAt: now, updatedAt: now },
-      include: sprintInclude,
-    });
-    return this.toResponse(updated);
+    try {
+      const updated = await this.prisma.sprint.update({
+        where: { id: sprint.id, version: sprint.version },
+        data: {
+          status: SprintStatus.ACTIVE,
+          startedAt: now,
+          updatedAt: now,
+          version: { increment: 1 },
+        },
+        include: sprintInclude,
+      });
+      return this.toResponse(updated);
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictException('This project already has an active sprint');
+      }
+      if (isRecordNotFoundError(error)) {
+        throw new ConflictException('Sprint was changed by another request');
+      }
+      throw error;
+    }
   }
 
   async update(userId: string, sprintId: string, dto: UpdateSprintDto) {
@@ -144,18 +158,23 @@ export class SprintService {
     const endDate = dto.endDate ? new Date(dto.endDate) : sprint.endDate;
     await this.validateDateRange(startDate?.toISOString(), endDate?.toISOString());
 
-    const updated = await this.prisma.sprint.update({
-      where: { id: sprint.id },
-      data: {
-        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.goal !== undefined ? { goal: dto.goal.trim() || null } : {}),
-        ...(dto.startDate !== undefined ? { startDate: new Date(dto.startDate) } : {}),
-        ...(dto.endDate !== undefined ? { endDate: new Date(dto.endDate) } : {}),
-        updatedAt: new Date(),
-      },
-      include: sprintInclude,
-    });
-    return this.toResponse(updated);
+    try {
+      const updated = await this.prisma.sprint.update({
+        where: { id: sprint.id, version: sprint.version },
+        data: {
+          ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+          ...(dto.goal !== undefined ? { goal: dto.goal.trim() || null } : {}),
+          ...(dto.startDate !== undefined ? { startDate: new Date(dto.startDate) } : {}),
+          ...(dto.endDate !== undefined ? { endDate: new Date(dto.endDate) } : {}),
+          updatedAt: new Date(),
+          version: { increment: 1 },
+        },
+        include: sprintInclude,
+      });
+      return this.toResponse(updated);
+    } catch (error) {
+      rethrowWriteConflict(error, 'Sprint was changed by another request');
+    }
   }
 
   async complete(userId: string, sprintId: string) {
@@ -165,27 +184,36 @@ export class SprintService {
     }
 
     const now = new Date();
-    const result = await this.prisma.$transaction(async (tx) => {
-      const unfinished = await tx.task.findMany({
-        where: {
-          sprintId: sprint.id,
-          archived: false,
-          deletedAt: null,
-          status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
-        },
-        select: { id: true },
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const unfinished = await tx.task.findMany({
+          where: {
+            sprintId: sprint.id,
+            archived: false,
+            deletedAt: null,
+            status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
+          },
+          select: { id: true },
+        });
+        await tx.task.updateMany({
+          where: { id: { in: unfinished.map((task) => task.id) } },
+          data: { sprintId: null, updatedAt: now },
+        });
+        return tx.sprint.update({
+          where: { id: sprint.id, version: sprint.version },
+          data: {
+            status: SprintStatus.COMPLETED,
+            completedAt: now,
+            updatedAt: now,
+            version: { increment: 1 },
+          },
+          include: sprintInclude,
+        });
       });
-      await tx.task.updateMany({
-        where: { id: { in: unfinished.map((task) => task.id) } },
-        data: { sprintId: null, updatedAt: now },
-      });
-      return tx.sprint.update({
-        where: { id: sprint.id },
-        data: { status: SprintStatus.COMPLETED, completedAt: now, updatedAt: now },
-        include: sprintInclude,
-      });
-    });
-    return this.toResponse(result);
+      return this.toResponse(result);
+    } catch (error) {
+      rethrowWriteConflict(error, 'Sprint was changed by another request');
+    }
   }
 
   async reopen(userId: string, sprintId: string) {
@@ -194,17 +222,22 @@ export class SprintService {
       throw new ConflictException('Only a completed sprint can be reopened');
     }
 
-    const updated = await this.prisma.sprint.update({
-      where: { id: sprint.id },
-      data: {
-        status: SprintStatus.PLANNED,
-        startedAt: null,
-        completedAt: null,
-        updatedAt: new Date(),
-      },
-      include: sprintInclude,
-    });
-    return this.toResponse(updated);
+    try {
+      const updated = await this.prisma.sprint.update({
+        where: { id: sprint.id, version: sprint.version },
+        data: {
+          status: SprintStatus.PLANNED,
+          startedAt: null,
+          completedAt: null,
+          updatedAt: new Date(),
+          version: { increment: 1 },
+        },
+        include: sprintInclude,
+      });
+      return this.toResponse(updated);
+    } catch (error) {
+      rethrowWriteConflict(error, 'Sprint was changed by another request');
+    }
   }
 
   private async getById(sprintId: string) {

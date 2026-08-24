@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
+import { confirmProjectAction } from "@/features/project/project-alert";
 import {
   type Task,
   TaskStatus,
@@ -520,9 +521,16 @@ export default function TaskDetailDrawer({
     }
   };
 
-  const handleDeleteComment = (commentId: string) => {
+  const handleDeleteComment = async (commentId: string) => {
     if (isReadOnly) return;
-    if (!window.confirm("Bạn có chắc muốn xóa bình luận này?")) return;
+    const confirmed = await confirmProjectAction({
+      title: "Xóa bình luận?",
+      text: "Nội dung bình luận sẽ không thể khôi phục.",
+      confirmText: "Xóa bình luận",
+      icon: "warning",
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     deleteCommentMutation.mutate(commentId, {
       onSuccess: () => toast.success("Đã xóa bình luận"),

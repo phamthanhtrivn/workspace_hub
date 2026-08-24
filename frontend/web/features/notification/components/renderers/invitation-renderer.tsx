@@ -22,7 +22,7 @@ import {
   getPendingInvitations,
 } from "@/features/chat/api/chat.api";
 import Swal from "sweetalert2";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store/store";
 import { setActiveSpaceId, setActiveConversation } from "@/store/chat/chat-slice";

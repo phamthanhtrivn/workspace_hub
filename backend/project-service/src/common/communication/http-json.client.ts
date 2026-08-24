@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { RuntimeConfigService } from '../config/runtime-config.service';
+import { Injectable } from "@nestjs/common";
+import { RuntimeConfigService } from "../config/runtime-config.service";
 
 export class ServiceHttpError extends Error {
   constructor(
@@ -15,7 +15,7 @@ export class ServiceHttpError extends Error {
 interface JsonRequest {
   service: string;
   url: string;
-  method?: 'GET' | 'POST';
+  method?: "GET" | "POST" | "PATCH";
   headers?: Record<string, string>;
   body?: unknown;
 }
@@ -28,18 +28,25 @@ export class HttpJsonClient {
     let response: Response;
     try {
       response = await fetch(request.url, {
-        method: request.method ?? 'GET',
+        method: request.method ?? "GET",
         headers: {
-          accept: 'application/json',
-          ...(request.body === undefined ? {} : { 'content-type': 'application/json' }),
+          accept: "application/json",
+          ...(request.body === undefined
+            ? {}
+            : { "content-type": "application/json" }),
           ...request.headers,
         },
-        body: request.body === undefined ? undefined : JSON.stringify(request.body),
+        body:
+          request.body === undefined ? undefined : JSON.stringify(request.body),
         signal: AbortSignal.timeout(this.config.httpTimeoutMs),
       });
     } catch (error) {
-      const reason = error instanceof Error ? error.message : 'unknown network error';
-      throw new ServiceHttpError(request.service, `${request.service} request failed: ${reason}`);
+      const reason =
+        error instanceof Error ? error.message : "unknown network error";
+      throw new ServiceHttpError(
+        request.service,
+        `${request.service} request failed: ${reason}`,
+      );
     }
 
     if (!response.ok) {
@@ -51,8 +58,8 @@ export class HttpJsonClient {
     }
 
     if (response.status === 204) return undefined as T;
-    const contentType = response.headers.get('content-type');
-    if (!contentType?.includes('application/json')) return undefined as T;
+    const contentType = response.headers.get("content-type");
+    if (!contentType?.includes("application/json")) return undefined as T;
     return response.json() as Promise<T>;
   }
 }

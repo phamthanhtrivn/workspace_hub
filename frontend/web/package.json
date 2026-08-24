@@ -28,7 +28,6 @@
     "react-intersection-observer": "^10.0.3",
     "react-intl": "^10.1.22",
     "react-redux": "^9.3.0",
-    "react-toastify": "^11.1.0",
     "shadcn": "^4.11.0",
     "socket.io-client": "^4.8.3",
     "sonner": "^2.0.7",

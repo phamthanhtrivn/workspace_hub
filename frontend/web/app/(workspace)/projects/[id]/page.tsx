@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import {
   type Task,
   type TaskAssignee,
@@ -65,9 +65,7 @@ import SoftwareBacklogView, {
 import SummaryView from "@/features/project/components/summary-view";
 import GeneralSummaryView from "@/features/project/components/general-summary-view";
 import TaskDetailDrawer from "@/features/project/components/task-detail-drawer";
-import TaskStatusMoveDialog, {
-  type TaskStatusMoveDialogState,
-} from "@/features/project/components/task-status-move-dialog";
+import { confirmProjectAction } from "@/features/project/project-alert";
 import TaskQuickFilters, {
   type TaskKindFilter,
 } from "@/features/project/components/task-quick-filters";
@@ -161,8 +159,6 @@ export default function ProjectDetailPage() {
   // States
   const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [taskMoveDialog, setTaskMoveDialog] =
-    useState<TaskStatusMoveDialogState | null>(null);
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
@@ -252,12 +248,14 @@ export default function ProjectDetailPage() {
   };
 
   const handleDeleteLabel = async (labelId: string) => {
-    if (
-      !window.confirm(
-        "Xóa label này khỏi Project? Các task đang dùng label sẽ bị bỏ nhãn.",
-      )
-    )
-      return;
+    const confirmed = await confirmProjectAction({
+      title: "Xóa nhãn khỏi dự án?",
+      text: "Các công việc đang sử dụng nhãn này sẽ bị bỏ nhãn.",
+      confirmText: "Xóa nhãn",
+      icon: "warning",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await deleteLabelMutation.mutateAsync(labelId);
       toast.success("Đã xóa label");
@@ -399,7 +397,7 @@ export default function ProjectDetailPage() {
     members: "Thành viên dự án",
   };
 
-  const handleTaskMove = (taskId: string, newStatus: TaskStatus) => {
+  const handleTaskMove = async (taskId: string, newStatus: TaskStatus) => {
     const task = tasks.find((item) => item.id === taskId);
     if (!task || task.status === newStatus) return;
     if (isTerminalTaskStatus(task.status)) return;
@@ -409,27 +407,15 @@ export default function ProjectDetailPage() {
 
     if (newStatus !== TaskStatus.CANCELLED && nextStep <= currentStep) return;
 
-    setTaskMoveDialog({
-      taskId,
-      taskTitle: task.title,
-      fromStatus: TASK_STATUS_LABELS[task.status],
-      toStatus: TASK_STATUS_LABELS[newStatus],
-      targetStatus: newStatus,
+    const confirmed = await confirmProjectAction({
+      title: "Chuyển trạng thái công việc?",
+      text: `Chuyển “${task.title}” từ ${TASK_STATUS_LABELS[task.status]} sang ${TASK_STATUS_LABELS[newStatus]}?`,
+      confirmText: "Chuyển trạng thái",
+      icon: "question",
     });
-  };
+    if (!confirmed) return;
 
-  const confirmTaskMove = () => {
-    if (!taskMoveDialog) return;
-
-    const task = tasks.find((item) => item.id === taskMoveDialog.taskId);
-    if (!task) {
-      setTaskMoveDialog(null);
-      return;
-    }
-
-    const newStatus = taskMoveDialog.targetStatus;
     const previousStatus = task.status;
-    setTaskMoveDialog(null);
     setTaskStatusOverrides((prev) => ({
       ...prev,
       [task.id]: newStatus,
@@ -475,7 +461,14 @@ export default function ProjectDetailPage() {
   };
 
   const handleArchiveProject = async () => {
-    if (!window.confirm("Bạn có chắc muốn archive Project này không?")) return;
+    const confirmed = await confirmProjectAction({
+      title: "Lưu trữ dự án?",
+      text: "Dự án sẽ không còn xuất hiện trong danh sách đang hoạt động.",
+      confirmText: "Lưu trữ",
+      icon: "warning",
+      destructive: true,
+    });
+    if (!confirmed) return;
     try {
       await archiveProjectMutation.mutateAsync();
       window.location.assign("/projects");
@@ -725,14 +718,14 @@ export default function ProjectDetailPage() {
   };
 
   const handleDeleteGroup = async (group: Task) => {
-    if (
-      typeof window !== "undefined" &&
-      !window.confirm(
-        `Xóa nhóm "${group.title}"? Các task bên trong sẽ được chuyển về Backlog.`,
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirmProjectAction({
+      title: `Xóa nhóm “${group.title}”?`,
+      text: "Các công việc bên trong sẽ được chuyển về Backlog.",
+      confirmText: "Xóa nhóm",
+      icon: "warning",
+      destructive: true,
+    });
+    if (!confirmed) return;
 
     try {
       const children = tasks.filter((task) => task.parentTaskId === group.id);
@@ -1478,12 +1471,6 @@ export default function ProjectDetailPage() {
           }}
         />
       )}
-
-      <TaskStatusMoveDialog
-        state={taskMoveDialog}
-        onClose={() => setTaskMoveDialog(null)}
-        onConfirm={confirmTaskMove}
-      />
 
       <TaskChatDialog task={chatTask} onClose={() => setChatTask(null)} />
 

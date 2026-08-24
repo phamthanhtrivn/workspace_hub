@@ -9,6 +9,7 @@ import {
   NotificationWhereInput,
   PushNotificationPayload,
 } from "./types/notification.types";
+import { ProjectInvitationResolution } from "./dtos/resolve-project-invitation.dto";
 
 @Injectable()
 export class NotificationService {
@@ -49,11 +50,10 @@ export class NotificationService {
       link: saved.link || undefined,
       senderName: saved.senderName || undefined,
       senderAvatar: saved.senderAvatar || undefined,
-    }).catch(err => console.error("Failed to send push notification:", err));
+    }).catch((err) => console.error("Failed to send push notification:", err));
 
     return saved;
   }
-
 
   async getNotifications(
     recipientId: string,
@@ -125,6 +125,45 @@ export class NotificationService {
       data: { isRead: true },
     });
     return result.count;
+  }
+
+  async resolveProjectInvitation(
+    invitationId: string,
+    recipientId: string,
+    status: ProjectInvitationResolution,
+  ): Promise<Notification | null> {
+    const notification = await this.prisma.notification.findFirst({
+      where: {
+        recipientId,
+        type: "PROJECT_INVITATION",
+        metadata: { path: ["invitationId"], equals: invitationId },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!notification) return null;
+
+    const currentMetadata =
+      notification.metadata &&
+      typeof notification.metadata === "object" &&
+      !Array.isArray(notification.metadata)
+        ? notification.metadata
+        : {};
+    const updated = await this.prisma.notification.update({
+      where: { id: notification.id },
+      data: {
+        isRead: true,
+        metadata: {
+          ...currentMetadata,
+          status,
+          respondedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    this.notificationGateway.server
+      .to(updated.recipientId)
+      .emit("notification_updated", updated);
+    return updated;
   }
 
   async deleteNotification(id: string, recipientId: string): Promise<boolean> {
@@ -199,16 +238,21 @@ export class NotificationService {
 
     await Promise.all(
       subscriptions.map(async (sub) => {
-        const success = await this.pushService.sendPushNotification(sub, payload);
+        const success = await this.pushService.sendPushNotification(
+          sub,
+          payload,
+        );
         if (!success) {
           await this.prisma.pushSubscription
             .delete({ where: { id: sub.id } })
             .catch((err) =>
-              console.error(`Failed to delete expired subscription ${sub.id}:`, err),
+              console.error(
+                `Failed to delete expired subscription ${sub.id}:`,
+                err,
+              ),
             );
         }
       }),
     );
   }
 }
-

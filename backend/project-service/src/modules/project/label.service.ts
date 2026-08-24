@@ -64,12 +64,19 @@ export class LabelService {
     if (label.projectId !== task.projectId) throw new ConflictException('Label does not belong to this project');
     const existing = await this.prisma.taskLabelMapping.findFirst({ where: { taskId, labelId, projectId: task.projectId } });
     if (!existing) {
-      await this.prisma.$transaction(async (tx) => {
-        await tx.taskLabelMapping.create({
-          data: { id: crypto.randomUUID(), taskId, labelId, projectId: task.projectId },
+      try {
+        await this.prisma.$transaction(async (tx) => {
+          await tx.taskLabelMapping.create({
+            data: { id: crypto.randomUUID(), taskId, labelId, projectId: task.projectId },
+          });
+          await this.activities.record(taskId, userId, 'label_attached', null, label.name, tx);
         });
-        await this.activities.record(taskId, userId, 'label_attached', null, label.name, tx);
-      });
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          throw new ConflictException('Label is already attached to this task');
+        }
+        throw error;
+      }
     }
     return label;
   }
