@@ -1,6 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import { TaskStatus } from './project.enums';
-import { assertTaskEditable } from './task-edit.guard';
+import { assertTaskEditable, assertTaskStatusTransition } from './task-edit.guard';
 
 describe('assertTaskEditable', () => {
   it.each([
@@ -17,4 +17,17 @@ describe('assertTaskEditable', () => {
       expect(() => assertTaskEditable(status)).toThrow(ConflictException);
     },
   );
+});
+
+describe('assertTaskStatusTransition', () => {
+  it('allows moving forward, skipping stages, or cancelling', () => {
+    expect(() => assertTaskStatusTransition(TaskStatus.TODO, TaskStatus.IN_REVIEW)).not.toThrow();
+    expect(() => assertTaskStatusTransition(TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED)).not.toThrow();
+  });
+
+  it('rejects moving backwards', () => {
+    expect(() => assertTaskStatusTransition(TaskStatus.IN_REVIEW, TaskStatus.TODO)).toThrow(
+      ConflictException,
+    );
+  });
 });

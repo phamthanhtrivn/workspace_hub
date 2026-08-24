@@ -1,21 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { ProjectAccessService } from './project-access.service';
+import { TaskPolicyService } from './task-policy.service';
+
+type ActivityDatabase = PrismaService | Prisma.TransactionClient;
+export type ActivityChange = [field: string, oldValue: unknown, newValue: unknown];
 
 @Injectable()
 export class ActivityService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly access: ProjectAccessService,
+    private readonly taskPolicy: TaskPolicyService,
   ) {}
 
   async list(userId: string, taskId: string) {
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
-      select: { projectId: true },
-    });
-    if (!task) throw new NotFoundException('Task not found');
-    await this.access.requireReadAccess(userId, task.projectId);
+    await this.taskPolicy.requireReadable(userId, taskId);
     return this.prisma.taskActivity.findMany({
       where: { taskId },
       orderBy: { createdAt: 'desc' },
@@ -23,19 +22,41 @@ export class ActivityService {
     });
   }
 
-  async record(taskId: string, actorId: string | null, field: string, oldValue?: unknown, newValue?: unknown) {
-    if (oldValue === newValue) return;
-    return this.prisma.taskActivity.create({
+  async record(
+    taskId: string,
+    actorId: string | null,
+    field: string,
+    oldValue?: unknown,
+    newValue?: unknown,
+    database: ActivityDatabase = this.prisma,
+  ) {
+    const serializedOldValue = this.stringify(oldValue);
+    const serializedNewValue = this.stringify(newValue);
+    if (serializedOldValue === serializedNewValue) return;
+    return database.taskActivity.create({
       data: {
         id: crypto.randomUUID(),
         taskId,
         actorId,
         field,
-        oldValue: this.stringify(oldValue),
-        newValue: this.stringify(newValue),
+        oldValue: serializedOldValue,
+        newValue: serializedNewValue,
         createdAt: new Date(),
       },
     });
+  }
+
+  async recordMany(
+    taskId: string,
+    actorId: string | null,
+    changes: ActivityChange[],
+    database: ActivityDatabase = this.prisma,
+  ): Promise<void> {
+    await Promise.all(
+      changes.map(([field, oldValue, newValue]) =>
+        this.record(taskId, actorId, field, oldValue, newValue, database),
+      ),
+    );
   }
 
   private stringify(value: unknown): string | null {

@@ -31,18 +31,21 @@ export class CommentService {
     await this.requireWriteAccess(userId, task.projectId);
     assertTaskEditable(task.status);
     const now = new Date();
-    const comment = await this.prisma.taskComment.create({
-      data: {
-        id: crypto.randomUUID(),
-        taskId,
-        authorId: userId,
-        content: dto.content.trim(),
-        edited: false,
-        createdAt: now,
-        updatedAt: now,
-      },
+    const comment = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.taskComment.create({
+        data: {
+          id: crypto.randomUUID(),
+          taskId,
+          authorId: userId,
+          content: dto.content.trim(),
+          edited: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+      });
+      await this.activities.record(taskId, userId, 'comment_created', null, created.content, tx);
+      return created;
     });
-    await this.activities.record(taskId, userId, 'comment_created', null, comment.content);
     return toCommentResponse(comment);
   }
 
@@ -51,11 +54,14 @@ export class CommentService {
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
     assertTaskEditable(task.status);
-    const updated = await this.prisma.taskComment.update({
-      where: { id: commentId },
-      data: { content: dto.content.trim(), edited: true, updatedAt: new Date() },
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.taskComment.update({
+        where: { id: commentId },
+        data: { content: dto.content.trim(), edited: true, updatedAt: new Date() },
+      });
+      await this.activities.record(comment.taskId, userId, 'comment_updated', comment.content, result.content, tx);
+      return result;
     });
-    await this.activities.record(comment.taskId, userId, 'comment_updated', comment.content, updated.content);
     return toCommentResponse(updated);
   }
 
@@ -64,8 +70,10 @@ export class CommentService {
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
     assertTaskEditable(task.status);
-    await this.prisma.taskComment.delete({ where: { id: commentId } });
-    await this.activities.record(comment.taskId, userId, 'comment_deleted', comment.content, null);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.taskComment.delete({ where: { id: commentId } });
+      await this.activities.record(comment.taskId, userId, 'comment_deleted', comment.content, null, tx);
+    });
   }
 
   private async requireWriteAccess(userId: string, projectId: string): Promise<void> {
