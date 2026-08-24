@@ -9,7 +9,9 @@ import {
   type TaskAssignee,
   ProjectType,
   ProjectStatus,
+  TaskPriority,
   TaskStatus,
+  isTerminalTaskStatus,
 } from "@/features/project/types/project";
 import { useAppSelector } from "@/store/store";
 import {
@@ -63,6 +65,12 @@ import SoftwareBacklogView, {
 import SummaryView from "@/features/project/components/summary-view";
 import GeneralSummaryView from "@/features/project/components/general-summary-view";
 import TaskDetailDrawer from "@/features/project/components/task-detail-drawer";
+import TaskStatusMoveDialog, {
+  type TaskStatusMoveDialogState,
+} from "@/features/project/components/task-status-move-dialog";
+import TaskQuickFilters, {
+  type TaskKindFilter,
+} from "@/features/project/components/task-quick-filters";
 import TaskChatDialog from "@/features/project/components/task-chat-dialog";
 import TaskFormDialog, {
   type TaskFormValues,
@@ -94,6 +102,21 @@ type TaskDrawerUpdatePayload = UpdateTaskPayload & {
 };
 
 type ViewMode = "summary" | "board" | "list" | "calendar" | "gantt" | "members";
+
+const TASK_STATUS_FLOW = [
+  TaskStatus.TODO,
+  TaskStatus.IN_PROGRESS,
+  TaskStatus.IN_REVIEW,
+  TaskStatus.DONE,
+];
+
+const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
+  [TaskStatus.TODO]: "TO DO",
+  [TaskStatus.IN_PROGRESS]: "IN PROGRESS",
+  [TaskStatus.IN_REVIEW]: "IN REVIEW",
+  [TaskStatus.DONE]: "DONE",
+  [TaskStatus.CANCELLED]: "ĐÃ HỦY",
+};
 
 export default function ProjectDetailPage() {
   const params = useParams();
@@ -138,6 +161,8 @@ export default function ProjectDetailPage() {
   // States
   const [viewMode, setViewMode] = useState<ViewMode>("board");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskMoveDialog, setTaskMoveDialog] =
+    useState<TaskStatusMoveDialogState | null>(null);
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
@@ -159,11 +184,19 @@ export default function ProjectDetailPage() {
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
+  function rejectCompletedTaskChange(taskId: string): boolean {
+    const target = serverTasks.find((task) => task.id === taskId);
+    if (!target || !isTerminalTaskStatus(target.status)) return false;
+    toast.info("Công việc đã kết thúc và chỉ có thể xem");
+    return true;
+  }
+
   const handleToggleLabel = async (
     taskId: string,
     labelId: string,
     attached: boolean,
   ) => {
+    if (rejectCompletedTaskChange(taskId)) return;
     if (attached) {
       await detachLabelMutation.mutateAsync({ taskId, labelId });
     } else {
@@ -185,6 +218,7 @@ export default function ProjectDetailPage() {
     successorTaskId: string,
     predecessorTaskId: string,
   ) => {
+    if (rejectCompletedTaskChange(successorTaskId)) return;
     await createDependencyMutation.mutateAsync({
       successorTaskId,
       predecessorTaskId,
@@ -196,6 +230,7 @@ export default function ProjectDetailPage() {
     successorTaskId: string,
     predecessorTaskId: string,
   ) => {
+    if (rejectCompletedTaskChange(successorTaskId)) return;
     await deleteDependencyMutation.mutateAsync({
       successorTaskId,
       predecessorTaskId,
@@ -237,6 +272,11 @@ export default function ProjectDetailPage() {
   const [activeAssigneeFilters, setActiveAssigneeFilters] = useState<string[]>(
     [],
   );
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | "">("");
+  const [priorityFilter, setPriorityFilter] = useState<TaskPriority | "">("");
+  const [quickAssigneeFilter, setQuickAssigneeFilter] = useState("");
+  const [taskKindFilter, setTaskKindFilter] =
+    useState<TaskKindFilter>("ALL");
   const [onlyMyIssues, setOnlyMyIssues] = useState(false);
 
   const [taskStatusOverrides, setTaskStatusOverrides] = useState<
@@ -283,9 +323,40 @@ export default function ProjectDetailPage() {
         matchesMyIssues = t.assignees.some((a) => a.userId === currentUserId);
       }
 
-      return matchesSearch && matchesAssignee && matchesMyIssues;
+      const matchesStatus = !statusFilter || t.status === statusFilter;
+      const matchesPriority = !priorityFilter || t.priority === priorityFilter;
+      const matchesQuickAssignee =
+        !quickAssigneeFilter ||
+        (quickAssigneeFilter === "UNASSIGNED"
+          ? t.assignees.length === 0
+          : t.assignees.some((a) => a.userId === quickAssigneeFilter));
+      const matchesTaskKind =
+        taskKindFilter === "ALL" ||
+        (taskKindFilter === "PARENT" && Boolean(t.isParentTask)) ||
+        (taskKindFilter === "SUBTASK" && Boolean(t.parentTaskId)) ||
+        (taskKindFilter === "TASK" && !t.isParentTask && !t.parentTaskId);
+
+      return (
+        matchesSearch &&
+        matchesAssignee &&
+        matchesMyIssues &&
+        matchesStatus &&
+        matchesPriority &&
+        matchesQuickAssignee &&
+        matchesTaskKind
+      );
     });
-  }, [tasks, searchQuery, activeAssigneeFilters, onlyMyIssues, currentUserId]);
+  }, [
+    tasks,
+    searchQuery,
+    activeAssigneeFilters,
+    onlyMyIssues,
+    currentUserId,
+    statusFilter,
+    priorityFilter,
+    quickAssigneeFilter,
+    taskKindFilter,
+  ]);
 
   if (isLoading) {
     return (
@@ -329,26 +400,56 @@ export default function ProjectDetailPage() {
   };
 
   const handleTaskMove = (taskId: string, newStatus: TaskStatus) => {
-    const previousStatus = tasks.find((task) => task.id === taskId)?.status;
-    setTaskStatusOverrides((prev) => ({ ...prev, [taskId]: newStatus }));
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task || task.status === newStatus) return;
+    if (isTerminalTaskStatus(task.status)) return;
+
+    const currentStep = TASK_STATUS_FLOW.indexOf(task.status);
+    const nextStep = TASK_STATUS_FLOW.indexOf(newStatus);
+
+    if (newStatus !== TaskStatus.CANCELLED && nextStep <= currentStep) return;
+
+    setTaskMoveDialog({
+      taskId,
+      taskTitle: task.title,
+      fromStatus: TASK_STATUS_LABELS[task.status],
+      toStatus: TASK_STATUS_LABELS[newStatus],
+      targetStatus: newStatus,
+    });
+  };
+
+  const confirmTaskMove = () => {
+    if (!taskMoveDialog) return;
+
+    const task = tasks.find((item) => item.id === taskMoveDialog.taskId);
+    if (!task) {
+      setTaskMoveDialog(null);
+      return;
+    }
+
+    const newStatus = taskMoveDialog.targetStatus;
+    const previousStatus = task.status;
+    setTaskMoveDialog(null);
+    setTaskStatusOverrides((prev) => ({
+      ...prev,
+      [task.id]: newStatus,
+    }));
 
     updateTaskMutation.mutate(
-      { taskId, payload: { status: newStatus } },
+      { taskId: task.id, payload: { status: newStatus } },
       {
         onSuccess: () => {
           setTaskStatusOverrides((prev) => {
             const next = { ...prev };
-            delete next[taskId];
+            delete next[task.id];
             return next;
           });
         },
         onError: () => {
-          if (previousStatus) {
-            setTaskStatusOverrides((prev) => ({
-              ...prev,
-              [taskId]: previousStatus,
-            }));
-          }
+          setTaskStatusOverrides((prev) => ({
+            ...prev,
+            [task.id]: previousStatus,
+          }));
           toast.error("Không thể cập nhật trạng thái task");
         },
       },
@@ -386,6 +487,7 @@ export default function ProjectDetailPage() {
   };
 
   const handleTaskSubmit = async (values: TaskFormValues) => {
+    if (editingTask && rejectCompletedTaskChange(editingTask.id)) return;
     try {
       if (editingTask) {
         const payload =
@@ -423,6 +525,7 @@ export default function ProjectDetailPage() {
     taskId: string,
     payload: TaskDrawerUpdatePayload,
   ) => {
+    if (rejectCompletedTaskChange(taskId)) return;
     try {
       // 1. Separate backend allowed keys from payload
       const backendKeys = [
@@ -538,6 +641,9 @@ export default function ProjectDetailPage() {
   };
 
   const handleCreateChecklist = async (taskId: string, title: string) => {
+    if (rejectCompletedTaskChange(taskId)) {
+      throw new Error("Công việc đã hoàn thành và chỉ có thể xem");
+    }
     const item = await createChecklistMutation.mutateAsync({ taskId, title });
     setSelectedTask((current) =>
       current?.id === taskId
@@ -551,6 +657,9 @@ export default function ProjectDetailPage() {
     checklistId: string,
     completed: boolean,
   ) => {
+    if (selectedTask && rejectCompletedTaskChange(selectedTask.id)) {
+      throw new Error("Công việc đã hoàn thành và chỉ có thể xem");
+    }
     const item = await updateChecklistMutation.mutateAsync({
       checklistId,
       completed,
@@ -569,6 +678,9 @@ export default function ProjectDetailPage() {
   };
 
   const handleDeleteChecklist = async (checklistId: string) => {
+    if (selectedTask && rejectCompletedTaskChange(selectedTask.id)) {
+      throw new Error("Công việc đã hoàn thành và chỉ có thể xem");
+    }
     await deleteChecklistMutation.mutateAsync(checklistId);
     setSelectedTask((current) =>
       current
@@ -583,6 +695,7 @@ export default function ProjectDetailPage() {
   };
 
   const handleEditGroup = (group: Task) => {
+    if (rejectCompletedTaskChange(group.id)) return;
     setSelectedTask(null);
     setEditingSprint(group);
   };
@@ -844,6 +957,7 @@ export default function ProjectDetailPage() {
   };
 
   const toggleAssigneeFilter = (userId: string) => {
+    setQuickAssigneeFilter("");
     setActiveAssigneeFilters((prev) =>
       prev.includes(userId)
         ? prev.filter((id) => id !== userId)
@@ -855,10 +969,20 @@ export default function ProjectDetailPage() {
     setActiveAssigneeFilters([]);
     setOnlyMyIssues(false);
     setSearchQuery("");
+    setStatusFilter("");
+    setPriorityFilter("");
+    setQuickAssigneeFilter("");
+    setTaskKindFilter("ALL");
   };
 
   const isFiltersActive =
-    activeAssigneeFilters.length > 0 || onlyMyIssues || searchQuery.length > 0;
+    activeAssigneeFilters.length > 0 ||
+    onlyMyIssues ||
+    searchQuery.length > 0 ||
+    statusFilter !== "" ||
+    priorityFilter !== "" ||
+    quickAssigneeFilter !== "" ||
+    taskKindFilter !== "ALL";
 
   return (
     <div className="flex flex-1 overflow-hidden h-full">
@@ -1073,6 +1197,21 @@ export default function ProjectDetailPage() {
             />
           </div>
 
+          <TaskQuickFilters
+            members={projectWithMembers.members}
+            status={statusFilter}
+            priority={priorityFilter}
+            assignee={quickAssigneeFilter}
+            taskKind={taskKindFilter}
+            onStatusChange={setStatusFilter}
+            onPriorityChange={setPriorityFilter}
+            onAssigneeChange={(value) => {
+              setQuickAssigneeFilter(value);
+              setActiveAssigneeFilters([]);
+            }}
+            onTaskKindChange={setTaskKindFilter}
+          />
+
           {/* Member filters (Avatars) */}
           <div className="flex items-center gap-1">
             <span className="text-xs text-slate-500 font-semibold mr-1">
@@ -1159,6 +1298,15 @@ export default function ProjectDetailPage() {
               {
                 tasks.filter((t) => t.status === TaskStatus.DONE && !t.archived)
                   .length
+              }
+            </span>
+            <span className="w-px h-3 bg-slate-200" />
+            <span className="text-slate-600">
+              Đã hủy:{" "}
+              {
+                tasks.filter(
+                  (t) => t.status === TaskStatus.CANCELLED && !t.archived,
+                ).length
               }
             </span>
           </div>
@@ -1292,81 +1440,50 @@ export default function ProjectDetailPage() {
             </div>
           )}
 
-          {/* Jira-style Split Screen Task Detail Panel (Desktop inline) */}
-          {selectedTask && (
-            <div className="hidden lg:flex w-[400px] xl:w-[450px] shrink-0 border border-slate-200 rounded bg-white flex-col h-full overflow-hidden shadow-sm animate-in slide-in-from-right duration-200">
-              <TaskDetailDrawer
-                task={selectedTask}
-                tasks={tasks}
-                members={projectWithMembers.members}
-                project={project}
-                onClose={() => setSelectedTask(null)}
-                onOpenChat={(task) => setChatTask(task)}
-                onTaskClick={(task) => setSelectedTask(task)}
-                onUpdateTask={handleUpdateTaskDirect}
-                onCreateChecklist={handleCreateChecklist}
-                onUpdateChecklist={handleUpdateChecklist}
-                onDeleteChecklist={handleDeleteChecklist}
-                labels={labels}
-                onToggleLabel={handleToggleLabel}
-                dependencies={dependencies}
-                onCreateDependency={handleCreateDependency}
-                onDeleteDependency={handleDeleteDependency}
-                onCreateSubtask={(task) => {
-                  setSelectedTask(null);
-                  openCreateTask(TaskStatus.TODO, undefined, false, task.id);
-                }}
-                onEdit={(task) => {
-                  setSelectedTask(null);
-                  setNewTaskStatus(task.status);
-                  setNewTaskStartDate(undefined);
-                  setNewTaskAllDay(false);
-                  setEditingTask(task);
-                  setShowTaskForm(true);
-                }}
-                isInline={true}
-              />
-            </div>
-          )}
         </div>
       </main>
 
-      {/* ── Task detail drawer (Jira style right panel - Overlay version for mobile) ── */}
+      {/* ── Task detail drawer ── */}
       {selectedTask && (
-        <div className="lg:hidden">
-          <TaskDetailDrawer
-            task={selectedTask}
-            tasks={tasks}
-            members={projectWithMembers.members}
-            project={project}
-            onClose={() => setSelectedTask(null)}
-            onOpenChat={(task) => setChatTask(task)}
-            onTaskClick={(task) => setSelectedTask(task)}
-            onUpdateTask={handleUpdateTaskDirect}
-            onCreateChecklist={handleCreateChecklist}
-            onUpdateChecklist={handleUpdateChecklist}
-            onDeleteChecklist={handleDeleteChecklist}
-            labels={labels}
-            onToggleLabel={handleToggleLabel}
-            dependencies={dependencies}
-            onCreateDependency={handleCreateDependency}
-            onDeleteDependency={handleDeleteDependency}
-            onCreateSubtask={(task) => {
-              setSelectedTask(null);
-              openCreateTask(TaskStatus.TODO, undefined, false, task.id);
-            }}
-            onEdit={(task) => {
-              setSelectedTask(null);
-              setNewTaskStatus(task.status);
-              setNewTaskStartDate(undefined);
-              setNewTaskAllDay(false);
-              setEditingTask(task);
-              setShowTaskForm(true);
-            }}
-            isInline={false}
-          />
-        </div>
+        <TaskDetailDrawer
+          task={selectedTask}
+          tasks={tasks}
+          members={projectWithMembers.members}
+          project={project}
+          onClose={() => setSelectedTask(null)}
+          onOpenChat={(task) => setChatTask(task)}
+          onTaskClick={(task) => setSelectedTask(task)}
+          onUpdateTask={handleUpdateTaskDirect}
+          onCreateChecklist={handleCreateChecklist}
+          onUpdateChecklist={handleUpdateChecklist}
+          onDeleteChecklist={handleDeleteChecklist}
+          labels={labels}
+          onToggleLabel={handleToggleLabel}
+          dependencies={dependencies}
+          onCreateDependency={handleCreateDependency}
+          onDeleteDependency={handleDeleteDependency}
+          onCreateSubtask={(task) => {
+            if (rejectCompletedTaskChange(task.id)) return;
+            setSelectedTask(null);
+            openCreateTask(TaskStatus.TODO, undefined, false, task.id);
+          }}
+          onEdit={(task) => {
+            if (rejectCompletedTaskChange(task.id)) return;
+            setSelectedTask(null);
+            setNewTaskStatus(task.status);
+            setNewTaskStartDate(undefined);
+            setNewTaskAllDay(false);
+            setEditingTask(task);
+            setShowTaskForm(true);
+          }}
+        />
       )}
+
+      <TaskStatusMoveDialog
+        state={taskMoveDialog}
+        onClose={() => setTaskMoveDialog(null)}
+        onConfirm={confirmTaskMove}
+      />
 
       <TaskChatDialog task={chatTask} onClose={() => setChatTask(null)} />
 

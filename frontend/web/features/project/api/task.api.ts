@@ -67,7 +67,7 @@ export interface UpdateTaskPayload {
   priority?: TaskPriority;
   status?: TaskStatus;
   startDate?: string;
-  dueDate?: string;
+  dueDate?: string | null;
   allDay?: boolean;
   estimatedMinutes?: number;
   rank?: string;

@@ -16,6 +16,7 @@ import {
   Flame,
   Pause,
   Archive,
+  Ban,
 } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
@@ -48,6 +49,12 @@ const taskStatusConfig: Record<
     color: "text-emerald-600",
     bg: "bg-emerald-50",
     icon: CheckCircle2,
+  },
+  [TaskStatus.CANCELLED]: {
+    labelId: "project.task.status.cancelled",
+    color: "text-slate-600",
+    bg: "bg-slate-200",
+    icon: Ban,
   },
 };
 

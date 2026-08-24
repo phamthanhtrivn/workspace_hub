@@ -45,7 +45,7 @@ function formatSprintDateRange(startDate?: string, endDate?: string): string {
 }
 
 function isOverdue(dueDate?: string, status?: string): boolean {
-  if (!dueDate || status === "DONE") return false;
+  if (!dueDate || status === "DONE" || status === "CANCELLED") return false;
   return new Date(dueDate) < new Date();
 }
 
@@ -209,7 +209,10 @@ export default function ListView({
       done = 0;
     list.forEach((t) => {
       if (t.status === TaskStatus.TODO) todo++;
-      else if (t.status === TaskStatus.DONE) done++;
+      else if (
+        t.status === TaskStatus.DONE ||
+        t.status === TaskStatus.CANCELLED
+      ) done++;
       else progress++;
     });
     return { todo, progress, done };

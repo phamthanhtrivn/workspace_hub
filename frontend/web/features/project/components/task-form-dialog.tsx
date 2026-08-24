@@ -22,6 +22,7 @@ const STATUS_OPTIONS = [
   { value: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress" },
   { value: TaskStatus.IN_REVIEW, labelId: "project.task.status.inReview" },
   { value: TaskStatus.DONE, labelId: "project.task.status.done" },
+  { value: TaskStatus.CANCELLED, labelId: "project.task.status.cancelled" },
 ];
 
 const PRIORITY_OPTIONS = [

@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { TaskStatus } from './project.enums';
+import { isTerminalTaskStatus, TaskStatus } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -8,6 +8,7 @@ import { ProjectAccessService } from './project-access.service';
 import { toTaskResponse } from './project.mapper';
 import { ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
+import { assertTaskEditable } from './task-edit.guard';
 
 const taskWithCount = {
   _count: { select: { children: true } },
@@ -49,8 +50,8 @@ export class TaskService {
         startDate,
         dueDate,
         allDay: dto.allDay ?? false,
-        completedAt: status === TaskStatus.DONE ? now : undefined,
-        completedBy: status === TaskStatus.DONE ? userId : undefined,
+        completedAt: isTerminalTaskStatus(status) ? now : undefined,
+        completedBy: isTerminalTaskStatus(status) ? userId : undefined,
         estimatedMinutes: dto.estimatedMinutes ?? 0,
         rank: dto.rank,
         archived: false,
@@ -86,6 +87,7 @@ export class TaskService {
   async update(userId: string, taskId: string, dto: UpdateTaskDto) {
     const current = await this.findTask(taskId);
     await this.access.requireCanEditTask(userId, current.projectId, current.createdBy);
+    assertTaskEditable(current.status);
 
     if (dto.title !== undefined && !dto.title.trim()) {
       throw new BadRequestException('Task title cannot be empty');
@@ -125,8 +127,8 @@ export class TaskService {
     }
     if (dto.status !== undefined) {
       data.status = dto.status;
-      data.completedAt = dto.status === TaskStatus.DONE ? new Date() : null;
-      data.completedBy = dto.status === TaskStatus.DONE ? userId : null;
+      data.completedAt = isTerminalTaskStatus(dto.status) ? new Date() : null;
+      data.completedBy = isTerminalTaskStatus(dto.status) ? userId : null;
     }
 
     const task = await this.prisma.task.update({
@@ -184,10 +186,12 @@ export class TaskService {
   async delete(userId: string, taskId: string): Promise<void> {
     const task = await this.findTask(taskId);
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
+    assertTaskEditable(task.status);
     await this.prisma.task.update({
       where: { id: taskId },
       data: { archived: true, deletedAt: new Date() },
     });
+    await this.activities.record(taskId, userId, 'archived', false, true);
   }
 
   private async findTask(taskId: string) {
@@ -205,10 +209,11 @@ export class TaskService {
 
     const parent = await this.prisma.task.findFirst({
       where: { id: parentTaskId, projectId, deletedAt: null },
-      select: { archived: true, parentTaskId: true, sprintId: true },
+      select: { archived: true, parentTaskId: true, sprintId: true, status: true },
     });
     if (!parent) throw new NotFoundException('Parent task not found in this project');
     if (parent.archived) throw new ConflictException('An archived task cannot be a parent');
+    assertTaskEditable(parent.status);
     if (parent.parentTaskId) throw new ConflictException('Only top-level tasks can be parents');
     return parent.sprintId;
   }
@@ -223,7 +228,12 @@ export class TaskService {
     }
   }
 
-  private async recordChanges(current: Prisma.TaskGetPayload<{}>, dto: UpdateTaskDto, actorId: string, taskId: string) {
+  private async recordChanges(
+    current: Prisma.TaskGetPayload<{ include: typeof taskWithCount }>,
+    dto: UpdateTaskDto,
+    actorId: string,
+    taskId: string,
+  ) {
     const changes: Array<[string, unknown, unknown]> = [];
     if (dto.title !== undefined) changes.push(['title', current.title, dto.title.trim()]);
     if (dto.description !== undefined) changes.push(['description', current.description, dto.description]);
@@ -232,9 +242,13 @@ export class TaskService {
     if (dto.startDate !== undefined) changes.push(['startDate', current.startDate?.toISOString(), dto.startDate]);
     if (dto.dueDate !== undefined) changes.push(['dueDate', current.dueDate?.toISOString(), dto.dueDate]);
     if (dto.estimatedMinutes !== undefined) changes.push(['estimatedMinutes', current.estimatedMinutes, dto.estimatedMinutes]);
+    if (dto.allDay !== undefined) changes.push(['allDay', current.allDay, dto.allDay]);
+    if (dto.rank !== undefined) changes.push(['rank', current.rank, dto.rank]);
     if (dto.archived !== undefined) changes.push(['archived', current.archived, dto.archived]);
     if (dto.parentTaskId !== undefined || dto.clearParent) changes.push(['parentTaskId', current.parentTaskId, dto.clearParent ? null : dto.parentTaskId]);
-    if (dto.assigneeUserId !== undefined) changes.push(['assigneeUserId', 'changed', dto.assigneeUserId]);
+    if (dto.isParentTask !== undefined) changes.push(['isParentTask', current.isParentTask, dto.isParentTask]);
+    if (dto.autoCompleteSprint !== undefined) changes.push(['autoCompleteSprint', current.autoCompleteSprint, dto.autoCompleteSprint]);
+    if (dto.assigneeUserId !== undefined) changes.push(['assigneeUserId', current.assignees[0]?.userId, dto.assigneeUserId]);
     await Promise.all(changes.map(([field, oldValue, newValue]) => this.activities.record(taskId, actorId, field, oldValue, newValue)));
   }
 }

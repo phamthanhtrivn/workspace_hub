@@ -36,6 +36,11 @@ export enum TaskStatus {
   IN_PROGRESS = "IN_PROGRESS",
   IN_REVIEW = "IN_REVIEW",
   DONE = "DONE",
+  CANCELLED = "CANCELLED",
+}
+
+export function isTerminalTaskStatus(status: TaskStatus): boolean {
+  return status === TaskStatus.DONE || status === TaskStatus.CANCELLED;
 }
 
 export enum TaskPriority {
@@ -120,11 +125,11 @@ export interface TaskComment {
 export interface TaskActivity {
   id: string;
   taskId: string;
-  actorId: string;
-  actorName: string;
+  actorId?: string | null;
+  actorName?: string;
   field: string;
-  oldValue: string;
-  newValue: string;
+  oldValue?: string | null;
+  newValue?: string | null;
   createdAt: string;
 }
 

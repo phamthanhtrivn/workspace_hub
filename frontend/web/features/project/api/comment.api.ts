@@ -17,6 +17,12 @@ interface TaskCommentApiModel {
   updatedAt?: string | null;
 }
 
+interface UserProfileApiModel {
+  id: string;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+}
+
 export interface CreateTaskCommentPayload {
   content: string;
 }
@@ -32,14 +38,17 @@ function unwrap<T>(response: { data: ApiResponse<T> }): T {
   return response.data.data;
 }
 
-function normalizeComment(comment: TaskCommentApiModel): TaskComment {
+function normalizeComment(
+  comment: TaskCommentApiModel,
+  profile?: UserProfileApiModel,
+): TaskComment {
   const now = new Date().toISOString();
   return {
     id: comment.id,
     taskId: comment.taskId,
     authorId: comment.authorId,
-    authorName: comment.authorId,
-    authorAvatar: undefined,
+    authorName: profile?.fullName?.trim() || "Người dùng",
+    authorAvatar: profile?.avatarUrl || undefined,
     content: comment.content,
     edited: comment.edited,
     createdAt: comment.createdAt || now,
@@ -47,11 +56,36 @@ function normalizeComment(comment: TaskCommentApiModel): TaskComment {
   };
 }
 
+async function hydrateCommentAuthors(
+  comments: TaskCommentApiModel[],
+): Promise<TaskComment[]> {
+  if (comments.length === 0) return [];
+
+  const authorIds = [...new Set(comments.map((comment) => comment.authorId))];
+  let profilesById = new Map<string, UserProfileApiModel>();
+
+  try {
+    const response = await api.get<ApiResponse<UserProfileApiModel[]>>(
+      "/api/users/profiles/bulk",
+      { params: { ids: authorIds.join(",") } },
+    );
+    profilesById = new Map(
+      (unwrap(response) || []).map((profile) => [profile.id, profile]),
+    );
+  } catch {
+    // Comments remain usable when profile enrichment is unavailable.
+  }
+
+  return comments.map((comment) =>
+    normalizeComment(comment, profilesById.get(comment.authorId)),
+  );
+}
+
 export async function getTaskComments(taskId: string): Promise<TaskComment[]> {
   const response = await api.get<ApiResponse<TaskCommentApiModel[]>>(
     `/api/tasks/${taskId}/comments`,
   );
-  return (unwrap(response) || []).map(normalizeComment);
+  return hydrateCommentAuthors(unwrap(response) || []);
 }
 
 export async function createTaskComment(
@@ -62,7 +96,8 @@ export async function createTaskComment(
     `/api/tasks/${taskId}/comments`,
     payload,
   );
-  return normalizeComment(unwrap(response));
+  const [comment] = await hydrateCommentAuthors([unwrap(response)]);
+  return comment;
 }
 
 export async function updateTaskComment(
@@ -73,7 +108,8 @@ export async function updateTaskComment(
     `/api/task-comments/${commentId}`,
     payload,
   );
-  return normalizeComment(unwrap(response));
+  const [comment] = await hydrateCommentAuthors([unwrap(response)]);
+  return comment;
 }
 
 export async function deleteTaskComment(commentId: string): Promise<void> {

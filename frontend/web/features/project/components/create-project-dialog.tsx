@@ -80,7 +80,7 @@ export default function CreateProjectDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
@@ -88,7 +88,7 @@ export default function CreateProjectDialog({
       />
 
       {/* Dialog */}
-      <div className="relative w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+      <div className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95 fade-in duration-200 sm:max-h-[calc(100dvh-2rem)]">
         {/* Close button */}
         <button
           onClick={onClose}
@@ -98,14 +98,16 @@ export default function CreateProjectDialog({
           <X className="h-4 w-4" strokeWidth={2} />
         </button>
 
-        <h2 className="text-lg font-black text-[var(--color-primary-dark)]">
-          {intl.formatMessage({ id: "project.create.title" })}
-        </h2>
-        <p className="mt-1 text-sm text-slate-500">
-          {intl.formatMessage({ id: "project.create.description" })}
-        </p>
+        <div className="shrink-0 px-6 pb-4 pt-6 pr-14">
+          <h2 className="text-lg font-black text-[var(--color-primary-dark)]">
+            {intl.formatMessage({ id: "project.create.title" })}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {intl.formatMessage({ id: "project.create.description" })}
+          </p>
+        </div>
 
-        <div className="mt-6 space-y-5">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-2">
           {/* Project Name */}
           <div>
             <label
@@ -287,7 +289,7 @@ export default function CreateProjectDialog({
         </div>
 
         {/* Actions */}
-        <div className="mt-6 flex items-center justify-end gap-3">
+        <div className="mt-4 flex shrink-0 items-center justify-end gap-3 border-t border-slate-200 bg-white px-6 py-4">
           <button
             onClick={onClose}
             className="rounded-xl px-5 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-100"

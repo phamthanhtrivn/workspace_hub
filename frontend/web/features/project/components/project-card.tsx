@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type Project, TaskStatus } from "@/features/project/types/project";
+import { type Project, isTerminalTaskStatus } from "@/features/project/types/project";
 import { ProjectStatusBadge } from "./status-badge";
 import { ProjectTypeBadge } from "./project-type-badge";
 import { AvatarStack } from "./avatar-stack";
@@ -12,7 +12,7 @@ export default function ProjectCard({ project }: { project: Project }) {
   const intl = useAppIntl();
   const totalTasks = project.tasks.filter((t) => !t.archived).length;
   const doneTasks = project.tasks.filter(
-    (t) => t.status === TaskStatus.DONE && !t.archived,
+    (task) => isTerminalTaskStatus(task.status) && !task.archived,
   ).length;
   const progress =
     totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;

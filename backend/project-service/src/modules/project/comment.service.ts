@@ -5,12 +5,15 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toCommentResponse } from './project.mapper';
+import { ActivityService } from './activity.service';
+import { assertTaskEditable } from './task-edit.guard';
 
 @Injectable()
 export class CommentService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly activities: ActivityService,
   ) {}
 
   async findAll(userId: string, taskId: string) {
@@ -26,6 +29,7 @@ export class CommentService {
   async create(userId: string, taskId: string, dto: CreateCommentDto) {
     const task = await this.findTask(taskId);
     await this.requireWriteAccess(userId, task.projectId);
+    assertTaskEditable(task.status);
     const now = new Date();
     const comment = await this.prisma.taskComment.create({
       data: {
@@ -38,6 +42,7 @@ export class CommentService {
         updatedAt: now,
       },
     });
+    await this.activities.record(taskId, userId, 'comment_created', null, comment.content);
     return toCommentResponse(comment);
   }
 
@@ -45,10 +50,12 @@ export class CommentService {
     const comment = await this.findComment(commentId);
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
+    assertTaskEditable(task.status);
     const updated = await this.prisma.taskComment.update({
       where: { id: commentId },
       data: { content: dto.content.trim(), edited: true, updatedAt: new Date() },
     });
+    await this.activities.record(comment.taskId, userId, 'comment_updated', comment.content, updated.content);
     return toCommentResponse(updated);
   }
 
@@ -56,7 +63,9 @@ export class CommentService {
     const comment = await this.findComment(commentId);
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
+    assertTaskEditable(task.status);
     await this.prisma.taskComment.delete({ where: { id: commentId } });
+    await this.activities.record(comment.taskId, userId, 'comment_deleted', comment.content, null);
   }
 
   private async requireWriteAccess(userId: string, projectId: string): Promise<void> {

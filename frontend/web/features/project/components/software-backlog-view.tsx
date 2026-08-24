@@ -13,6 +13,7 @@ import {
 import {
   SprintStatus,
   TaskStatus,
+  isTerminalTaskStatus,
   type Sprint,
   type Task,
 } from "@/features/project/types/project";
@@ -302,6 +303,7 @@ export default function SoftwareBacklogView({
               <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
               <option value={TaskStatus.IN_REVIEW}>In Review</option>
               <option value={TaskStatus.DONE}>Done</option>
+              <option value={TaskStatus.CANCELLED}>Đã hủy</option>
             </select>
             <button
               type="button"
@@ -325,13 +327,16 @@ export default function SoftwareBacklogView({
                       type="checkbox"
                       checked={selectedTaskIds.includes(task.id)}
                       onChange={() => toggleTask(task.id)}
-                      className="h-4 w-4 accent-[#0052CC]"
+                      disabled={isTerminalTaskStatus(task.status)}
+                      className="h-4 w-4 accent-[#0052CC] disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label={`Chọn ${task.title}`}
                     />
                     <button
                       type="button"
-                      draggable
-                      onDragStart={(event) => handleDragStart(event, task.id)}
+                      draggable={!isTerminalTaskStatus(task.status)}
+                      onDragStart={(event) => {
+                        if (!isTerminalTaskStatus(task.status)) handleDragStart(event, task.id);
+                      }}
                       onClick={() => onTaskClick?.(task)}
                       className="min-w-0 flex-1 cursor-grab text-left active:cursor-grabbing"
                     >

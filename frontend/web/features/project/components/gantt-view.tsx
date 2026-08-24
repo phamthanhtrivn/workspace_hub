@@ -54,6 +54,8 @@ function barColor(status: TaskStatus): string {
   switch (status) {
     case TaskStatus.DONE:
       return "bg-emerald-500";
+    case TaskStatus.CANCELLED:
+      return "bg-slate-500";
     case TaskStatus.IN_PROGRESS:
       return "bg-blue-600";
     case TaskStatus.IN_REVIEW:
@@ -215,7 +217,7 @@ export default function GanttView({
                     className={`flex min-w-0 items-center gap-2 border-r border-slate-200 px-4 py-3 ${isSubtask ? "pl-9" : ""}`}
                   >
                     <span
-                      className={`h-2 w-2 shrink-0 rounded-full ${task.status === TaskStatus.DONE ? "bg-emerald-500" : "bg-slate-300"}`}
+                      className={`h-2 w-2 shrink-0 rounded-full ${task.status === TaskStatus.DONE ? "bg-emerald-500" : task.status === TaskStatus.CANCELLED ? "bg-slate-500" : "bg-slate-300"}`}
                     />
                     <span className="min-w-0 truncate text-xs font-bold text-[#172B4D]">
                       {task.title}
