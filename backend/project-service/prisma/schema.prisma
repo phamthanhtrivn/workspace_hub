@@ -21,6 +21,7 @@ model Project {
   dueDate     DateTime?          @map("due_date")
   archived    Boolean            @default(false)
   version     BigInt             @default(0)
+  nextTaskNumber Int             @default(1) @map("next_task_number")
   createdAt   DateTime           @map("created_at")
   updatedAt   DateTime?          @map("updated_at")
 
@@ -72,6 +73,8 @@ model Task {
   id                 String       @id @default(uuid()) @db.Uuid
   projectId          String       @map("project_id") @db.Uuid
   parentTaskId       String?      @map("parent_task_id") @db.Uuid
+  taskNumber         Int          @map("task_number")
+  taskType           String       @default("TASK") @map("task_type") @db.VarChar(20)
   title              String       @db.VarChar(200)
   description        String?
   priority           String       @db.VarChar(20)
@@ -111,6 +114,7 @@ model Task {
   @@index([parentTaskId], map: "idx_tasks_parent")
   @@index([projectId, sprintId, archived], map: "idx_tasks_project_sprint_archived")
   @@unique([id, projectId], map: "uk_tasks_id_project")
+  @@unique([projectId, taskNumber], map: "uk_tasks_project_task_number")
   @@map("tasks")
 }
 

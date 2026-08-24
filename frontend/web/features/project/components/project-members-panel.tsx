@@ -39,9 +39,13 @@ const ROLE_CONFIG: Record<
 export default function ProjectMembersPanel({
   projectId,
   members,
+  canInvite = false,
+  canRemoveMembers = false,
 }: {
   projectId: string;
   members: ProjectMember[];
+  canInvite?: boolean;
+  canRemoveMembers?: boolean;
 }) {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const removeMemberMutation = useRemoveProjectMember(projectId);
@@ -78,14 +82,14 @@ export default function ProjectMembersPanel({
         <h3 className="text-sm font-black text-[var(--color-primary-dark)]">
           Thành viên ({members.length})
         </h3>
-        <button
+        {canInvite && <button
           type="button"
           onClick={() => setShowInviteDialog(true)}
           className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/10"
         >
           <UserPlus className="h-3 w-3" strokeWidth={2.5} />
           Mời
-        </button>
+        </button>}
       </div>
 
       <div className="mt-3 space-y-1.5">
@@ -116,7 +120,7 @@ export default function ProjectMembersPanel({
                   {roleCfg.label}
                 </span>
               </div>
-              {member.role !== ProjectRole.OWNER && (
+              {canRemoveMembers && member.role !== ProjectRole.OWNER && (
                 <button
                   type="button"
                   onClick={() => void handleRemoveMember(member)}
@@ -131,11 +135,12 @@ export default function ProjectMembersPanel({
           );
         })}
       </div>
-      <InviteMemberDialog
+      {canInvite && <InviteMemberDialog
+        key={showInviteDialog ? "invite-open" : "invite-closed"}
         open={showInviteDialog}
         projectId={projectId}
         onClose={() => setShowInviteDialog(false)}
-      />
+      />}
     </div>
   );
 }

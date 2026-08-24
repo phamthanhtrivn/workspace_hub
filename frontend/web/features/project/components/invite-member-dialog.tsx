@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { Search, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { searchUsersByEmail, type UserSearchResult } from "@/features/project/api/user.api";
@@ -23,17 +24,7 @@ export default function InviteMemberDialog({
   const createInvitationMutation = useCreateProjectInvitation(projectId);
 
   useEffect(() => {
-    if (!open) return;
-    setEmail("");
-    setResults([]);
-    setSearchError("");
-    setSelectedUser(null);
-  }, [open]);
-
-  useEffect(() => {
     if (!open || selectedUser || email.trim().length < 2) {
-      setResults([]);
-      setSearchError("");
       return;
     }
 
@@ -106,6 +97,8 @@ export default function InviteMemberDialog({
             onChange={(event) => {
               setEmail(event.target.value);
               setSelectedUser(null);
+              setResults([]);
+              setSearchError("");
             }}
             placeholder="nhap-email@example.com"
             className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-3 text-sm outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
@@ -139,9 +132,12 @@ export default function InviteMemberDialog({
                   ].join(" ")}
                 >
                   {user.avatarUrl ? (
-                    <img
+                    <Image
                       src={user.avatarUrl}
                       alt=""
+                      width={36}
+                      height={36}
+                      unoptimized
                       className="h-9 w-9 rounded-full object-cover"
                     />
                   ) : (

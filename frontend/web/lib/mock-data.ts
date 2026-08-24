@@ -8,6 +8,7 @@ import {
   ProjectRole,
   TaskStatus,
   TaskPriority,
+  TaskType,
 } from "@/features/project/types/project";
 
 // ─── Labels ───────────────────────────────────────────────────────────────────
@@ -127,6 +128,12 @@ function buildTask(
   },
 ): Task {
   return {
+    taskNumber: Number(overrides.id.replace(/\D/g, "")) || 1,
+    taskType: overrides.parentTaskId
+      ? TaskType.SUBTASK
+      : overrides.isParentTask
+        ? TaskType.EPIC
+        : TaskType.TASK,
     description: "",
     createdBy: "u-1",
     reporterId: "u-1",
@@ -675,6 +682,10 @@ export const mockProjects: Project[] = [
     archived: false,
     createdAt: "2026-05-01T08:00:00Z",
     updatedAt: "2026-06-27T12:00:00Z",
+    totalTaskCount: tasksProject1.length,
+    completedTaskCount: tasksProject1.filter(
+      (task) => task.status === TaskStatus.DONE,
+    ).length,
     projectSetting: {
       id: "ps-1",
       projectId: "proj-1",
@@ -698,6 +709,10 @@ export const mockProjects: Project[] = [
     archived: false,
     createdAt: "2026-06-01T08:00:00Z",
     updatedAt: "2026-06-27T10:00:00Z",
+    totalTaskCount: tasksProject2.length,
+    completedTaskCount: tasksProject2.filter(
+      (task) => task.status === TaskStatus.DONE,
+    ).length,
     projectSetting: {
       id: "ps-2",
       projectId: "proj-2",
@@ -721,6 +736,10 @@ export const mockProjects: Project[] = [
     archived: false,
     createdAt: "2026-04-15T08:00:00Z",
     updatedAt: "2026-06-20T10:00:00Z",
+    totalTaskCount: tasksProject3.length,
+    completedTaskCount: tasksProject3.filter(
+      (task) => task.status === TaskStatus.DONE,
+    ).length,
     projectSetting: {
       id: "ps-3",
       projectId: "proj-3",

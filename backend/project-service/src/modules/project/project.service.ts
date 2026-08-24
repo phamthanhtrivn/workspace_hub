@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ProjectMemberStatus, ProjectRole, ProjectStatus, ProjectTemplate, ProjectType, ProjectVisibility } from './project.enums';
+import { ProjectMemberStatus, ProjectRole, ProjectStatus, ProjectTemplate, ProjectType, ProjectVisibility, TaskStatus } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -83,11 +83,41 @@ export class ProjectService {
       this.prisma.project.findMany({
         where,
         orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+        include: { setting: true },
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
     ]);
-    return paginate(projects.map(toProjectResponse), total, query);
+    const projectIds = projects.map((project) => project.id);
+    const taskCounts = projectIds.length === 0
+      ? []
+      : await this.prisma.task.groupBy({
+          by: ['projectId', 'status'],
+          where: {
+            projectId: { in: projectIds },
+            archived: false,
+            deletedAt: null,
+          },
+          _count: { _all: true },
+        });
+    const statsByProject = new Map<string, { total: number; completed: number }>();
+    for (const count of taskCounts) {
+      const stats = statsByProject.get(count.projectId) ?? { total: 0, completed: 0 };
+      stats.total += count._count._all;
+      if (count.status === TaskStatus.DONE) stats.completed += count._count._all;
+      statsByProject.set(count.projectId, stats);
+    }
+    return paginate(
+      projects.map((project) => {
+        const stats = statsByProject.get(project.id);
+        return toProjectResponse(project, {
+          totalTaskCount: stats?.total ?? 0,
+          completedTaskCount: stats?.completed ?? 0,
+        });
+      }),
+      total,
+      query,
+    );
   }
 
   async findOne(userId: string, projectId: string) {

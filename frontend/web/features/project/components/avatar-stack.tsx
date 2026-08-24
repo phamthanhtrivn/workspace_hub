@@ -49,10 +49,13 @@ export function Avatar({
 
   if (user.avatarUrl) {
     return (
-      <img
+      <Image
         src={user.avatarUrl}
         alt={user.displayName}
         title={user.displayName}
+        width={40}
+        height={40}
+        unoptimized
         className={`${sizeClasses[size]} shrink-0 rounded-full object-cover ring-2 ring-white`}
       />
     );
@@ -101,3 +104,4 @@ export function AvatarStack({
     </div>
   );
 }
+import Image from "next/image";

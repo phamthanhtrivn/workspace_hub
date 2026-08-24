@@ -60,6 +60,14 @@ export enum TaskPriority {
   URGENT = 'URGENT',
 }
 
+export enum TaskType {
+  TASK = 'TASK',
+  BUG = 'BUG',
+  STORY = 'STORY',
+  EPIC = 'EPIC',
+  SUBTASK = 'SUBTASK',
+}
+
 export enum InvitationStatus {
   PENDING = 'PENDING',
   ACCEPTED = 'ACCEPTED',

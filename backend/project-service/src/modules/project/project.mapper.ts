@@ -1,4 +1,11 @@
-import { Prisma, Project, ProjectInvitation, ProjectMember, Task, TaskComment } from '@prisma/client';
+import { Prisma, Project, ProjectInvitation, ProjectMember, ProjectSetting, Task, TaskComment } from '@prisma/client';
+
+type ProjectWithOptionalSetting = Project & { setting?: ProjectSetting | null };
+
+interface ProjectResponseStats {
+  totalTaskCount?: number;
+  completedTaskCount?: number;
+}
 
 type TaskWithCount = Prisma.TaskGetPayload<{
   include: {
@@ -9,7 +16,10 @@ type TaskWithCount = Prisma.TaskGetPayload<{
   };
 }>;
 
-export function toProjectResponse(project: Project) {
+export function toProjectResponse(
+  project: ProjectWithOptionalSetting,
+  stats: ProjectResponseStats = {},
+) {
   return {
     id: project.id,
     name: project.name,
@@ -25,6 +35,9 @@ export function toProjectResponse(project: Project) {
     archived: project.archived,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
+    projectSetting: project.setting ?? undefined,
+    totalTaskCount: stats.totalTaskCount ?? 0,
+    completedTaskCount: stats.completedTaskCount ?? 0,
   };
 }
 
@@ -47,6 +60,8 @@ export function toTaskResponse(task: TaskWithCount | Task) {
     id: task.id,
     projectId: task.projectId,
     parentTaskId: task.parentTaskId,
+    taskNumber: task.taskNumber,
+    taskType: task.taskType,
     childCount,
     title: task.title,
     description: task.description,

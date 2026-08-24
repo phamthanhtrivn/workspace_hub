@@ -13,6 +13,7 @@ import {
 import {
   TaskPriority,
   TaskStatus,
+  TaskType,
   isTerminalTaskStatus,
   type ProjectMember,
   type Task,
@@ -42,8 +43,8 @@ function formatRelative(value?: string): string {
 }
 
 function getTaskType(task: Task): "Task" | "Epic" | "Subtask" {
-  if (task.isParentTask) return "Epic";
-  if (task.parentTaskId) return "Subtask";
+  if (task.taskType === TaskType.EPIC) return "Epic";
+  if (task.taskType === TaskType.SUBTASK) return "Subtask";
   return "Task";
 }
 

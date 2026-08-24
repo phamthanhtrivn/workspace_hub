@@ -6,6 +6,7 @@ import {
   ProjectTemplate,
   type Project,
   type ProjectMember,
+  type ProjectSetting,
 } from "@/features/project/types/project";
 
 interface ApiResponse<T> {
@@ -30,6 +31,9 @@ interface ProjectApiModel {
   archived: boolean;
   createdAt?: string | null;
   updatedAt?: string | null;
+  projectSetting?: ProjectSetting | null;
+  totalTaskCount?: number;
+  completedTaskCount?: number;
 }
 
 interface ProjectMemberApiModel {
@@ -89,7 +93,9 @@ function normalizeProject(project: ProjectApiModel): Project {
     archived: project.archived,
     createdAt: project.createdAt || now,
     updatedAt: project.updatedAt || now,
-    projectSetting: {
+    totalTaskCount: project.totalTaskCount || 0,
+    completedTaskCount: project.completedTaskCount || 0,
+    projectSetting: project.projectSetting || {
       id: `setting-${project.id}`,
       projectId: project.id,
       allowMemberCreateTask: true,
@@ -122,7 +128,24 @@ function normalizeMember(
 export async function getProjects(): Promise<Project[]> {
   const response =
     await api.get<ApiResponse<ProjectApiModel[]>>("/api/projects");
-  return (unwrap(response) || []).map(normalizeProject);
+  const projects = (unwrap(response) || []).map(normalizeProject);
+  const profilesById = await getUserProfiles(
+    projects.map((project) => project.ownerId),
+  );
+  return projects.map((project) => ({
+    ...project,
+    members: [
+      {
+        id: `owner-${project.id}`,
+        projectId: project.id,
+        userId: project.ownerId,
+        displayName: profilesById.get(project.ownerId)?.fullName?.trim() || "Người dùng",
+        avatarUrl: profilesById.get(project.ownerId)?.avatarUrl || undefined,
+        role: ProjectRole.OWNER,
+        joinedAt: project.createdAt,
+      },
+    ],
+  }));
 }
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -170,20 +193,29 @@ export async function getProjectMembers(
 
   if (members.length === 0) return [];
 
-  let profilesById = new Map<string, UserProfileApiModel>();
-  try {
-    const profilesResponse = await api.get<ApiResponse<UserProfileApiModel[]>>(
-      "/api/users/profiles/bulk",
-      { params: { ids: members.map((member) => member.userId).join(",") } },
-    );
-    profilesById = new Map(
-      (unwrap(profilesResponse) || []).map((profile) => [profile.id, profile]),
-    );
-  } catch {
-    // Keep project membership usable if profile enrichment is unavailable.
-  }
+  const profilesById = await getUserProfiles(
+    members.map((member) => member.userId),
+  );
 
   return members.map((member) =>
     normalizeMember(member, projectId, profilesById.get(member.userId)),
   );
+}
+
+async function getUserProfiles(
+  userIds: string[],
+): Promise<Map<string, UserProfileApiModel>> {
+  const uniqueIds = [...new Set(userIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return new Map();
+  try {
+    const response = await api.get<ApiResponse<UserProfileApiModel[]>>(
+      "/api/users/profiles/bulk",
+      { params: { ids: uniqueIds.join(",") } },
+    );
+    return new Map(
+      (unwrap(response) || []).map((profile) => [profile.id, profile]),
+    );
+  } catch {
+    return new Map();
+  }
 }

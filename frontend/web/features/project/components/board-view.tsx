@@ -56,12 +56,14 @@ export default function BoardView({
   onTaskMove,
   onAddTask,
   onOpenChat,
+  canEditTask = () => false,
 }: {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void;
   onAddTask?: (status: TaskStatus) => void;
   onOpenChat?: (task: Task) => void;
+  canEditTask?: (task: Task) => boolean;
 }) {
   const intl = useAppIntl();
 
@@ -75,7 +77,9 @@ export default function BoardView({
           <div
             key={col.status}
             className="flex flex-col rounded bg-[#F4F5F7] p-2 min-h-[500px]"
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => {
+              if (onTaskMove) e.preventDefault();
+            }}
             onDrop={(e) => {
               e.preventDefault();
               const taskId = e.dataTransfer.getData("text/plain");
@@ -119,6 +123,7 @@ export default function BoardView({
                   task={task}
                   onClick={() => onTaskClick?.(task)}
                   onOpenChat={onOpenChat}
+                  canDrag={Boolean(onTaskMove) && canEditTask(task)}
                 />
               ))}
 

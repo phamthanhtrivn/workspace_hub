@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { isTerminalTaskStatus, TaskStatus } from './project.enums';
+import { isTerminalTaskStatus, TaskStatus, TaskType } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -34,15 +34,29 @@ export class TaskService {
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
     const parentSprintId = await this.validateParent(projectId, dto.parentTaskId);
+    if (!dto.parentTaskId && dto.taskType === TaskType.SUBTASK) {
+      throw new ConflictException('A subtask must have a parent task');
+    }
 
     const now = new Date();
     const status = dto.status ?? TaskStatus.TODO;
     const task = await this.prisma.$transaction(async (tx) => {
+      const projectSequence = await tx.project.update({
+        where: { id: projectId },
+        data: { nextTaskNumber: { increment: 1 } },
+        select: { nextTaskNumber: true },
+      });
       const created = await tx.task.create({
         data: {
           id: crypto.randomUUID(),
           projectId,
           parentTaskId: dto.parentTaskId,
+          taskNumber: projectSequence.nextTaskNumber - 1,
+          taskType: dto.parentTaskId
+            ? TaskType.SUBTASK
+            : dto.isParentTask
+              ? TaskType.EPIC
+              : dto.taskType ?? TaskType.TASK,
           ...(parentSprintId !== undefined ? { sprintId: parentSprintId } : {}),
           title: dto.title.trim(),
           description: dto.description,
@@ -105,6 +119,12 @@ export class TaskService {
     if (dto.clearParent && dto.parentTaskId) {
       throw new ConflictException('A task cannot be assigned and unassigned at the same time');
     }
+    const effectiveParentTaskId = dto.clearParent
+      ? null
+      : dto.parentTaskId ?? current.parentTaskId;
+    if (!effectiveParentTaskId && dto.taskType === TaskType.SUBTASK) {
+      throw new ConflictException('A subtask must have a parent task');
+    }
     if (dto.status !== undefined) {
       assertTaskStatusTransition(current.status, dto.status);
     }
@@ -136,6 +156,19 @@ export class TaskService {
     if (dto.rank !== undefined) data.rank = dto.rank;
     if (dto.archived !== undefined) data.archived = dto.archived;
     if (dto.isParentTask !== undefined) data.isParentTask = dto.isParentTask;
+    if (parentTaskId !== undefined) {
+      data.taskType = parentTaskId === null
+        ? dto.taskType ?? TaskType.TASK
+        : TaskType.SUBTASK;
+    } else if (current.parentTaskId && dto.taskType !== undefined) {
+      data.taskType = TaskType.SUBTASK;
+    } else if (dto.isParentTask === true) {
+      data.taskType = TaskType.EPIC;
+    } else if (dto.isParentTask === false && current.taskType === TaskType.EPIC) {
+      data.taskType = dto.taskType ?? TaskType.TASK;
+    } else if (dto.taskType !== undefined) {
+      data.taskType = dto.taskType;
+    }
     if (dto.autoCompleteSprint !== undefined) data.autoCompleteSprint = dto.autoCompleteSprint;
     if (parentTaskId !== undefined) {
       data.parent = parentTaskId === null
@@ -280,6 +313,9 @@ export class TaskService {
     if (dto.title !== undefined) changes.push(['title', current.title, updated.title]);
     if (dto.description !== undefined) changes.push(['description', current.description, updated.description]);
     if (dto.priority !== undefined) changes.push(['priority', current.priority, updated.priority]);
+    if (dto.taskType !== undefined || dto.parentTaskId !== undefined || dto.clearParent) {
+      changes.push(['taskType', current.taskType, updated.taskType]);
+    }
     if (dto.status !== undefined) changes.push(['status', current.status, updated.status]);
     if (dto.startDate !== undefined) changes.push(['startDate', current.startDate?.toISOString(), updated.startDate?.toISOString()]);
     if (dto.dueDate !== undefined) changes.push(['dueDate', current.dueDate?.toISOString(), updated.dueDate?.toISOString()]);

@@ -9,7 +9,6 @@ import {
   MoreHorizontal,
   Settings,
 } from "lucide-react";
-import { ProjectStatus } from "@/features/project/types/project";
 import CreateProjectDialog from "@/features/project/components/create-project-dialog";
 import { ProjectStatusBadge } from "@/features/project/components/status-badge";
 import { ProjectTypeBadge } from "@/features/project/components/project-type-badge";
@@ -20,26 +19,9 @@ import {
 } from "@/features/project/hooks/use-projects";
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "sonner";
+import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
+import { getProjectKey } from "@/features/project/utils/project.utils";
 
-const FILTER_TABS = [
-  { key: "ALL", label: "Tất cả dự án" },
-  { key: ProjectStatus.ACTIVE, label: "Đang hoạt động" },
-  { key: ProjectStatus.ON_HOLD, label: "Tạm dừng" },
-  { key: ProjectStatus.COMPLETED, label: "Hoàn thành" },
-] as const;
-
-// Helper to get Project Key (first letter of each word, up to 4 chars)
-export function getProjectKey(name: string): string {
-  return (
-    name
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .replace(/[^A-Za-z0-9]/g, "")
-      .toUpperCase()
-      .slice(0, 4) || "PRJ"
-  );
-}
 
 export default function ProjectsPage() {
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
@@ -106,7 +88,7 @@ export default function ProjectsPage() {
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-3">
         {/* Tabs */}
         <div className="flex gap-1.5 overflow-x-auto">
-          {FILTER_TABS.map((tab) => {
+          {PROJECT_FILTER_TABS.map((tab) => {
             const isActive = activeFilter === tab.key;
             return (
               <button
@@ -181,12 +163,8 @@ export default function ProjectsPage() {
                 const owner =
                   project.members.find((m) => m.role === "OWNER") ||
                   project.members[0];
-                const totalTasks =
-                  project.tasks?.filter((t) => !t.archived).length || 0;
-                const doneTasks =
-                  project.tasks?.filter(
-                    (t) => t.status === "DONE" && !t.archived,
-                  ).length || 0;
+                const totalTasks = project.totalTaskCount;
+                const doneTasks = project.completedTaskCount;
                 const progress =
                   totalTasks > 0
                     ? Math.round((doneTasks / totalTasks) * 100)
@@ -279,12 +257,28 @@ export default function ProjectsPage() {
                         >
                           <Settings className="h-4 w-4" />
                         </Link>
-                        <button
-                          title="Thêm tùy chọn"
-                          className="grid h-8 w-8 place-items-center rounded hover:bg-slate-200 text-slate-500 hover:text-slate-700"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
+                        <details className="relative">
+                          <summary
+                            title="Thêm tùy chọn"
+                            className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </summary>
+                          <div className="absolute right-0 top-9 z-20 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 text-left shadow-lg">
+                            <Link
+                              href={`/projects/${project.id}`}
+                              className="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                              Mở dự án
+                            </Link>
+                            <Link
+                              href={`/projects/${project.id}?view=settings`}
+                              className="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                              Cài đặt dự án
+                            </Link>
+                          </div>
+                        </details>
                       </div>
                     </td>
                   </tr>

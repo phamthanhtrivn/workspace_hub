@@ -4,38 +4,7 @@ import { useState } from "react";
 import { Code2, ListTodo, X } from "lucide-react";
 import { ProjectTemplate, ProjectType } from "@/features/project/types/project";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-
-const COLOR_OPTIONS = [
-  "#6366f1",
-  "#f59e0b",
-  "#22c55e",
-  "#ef4444",
-  "#ec4899",
-  "#0ea5e9",
-  "#8b5cf6",
-  "#14b8a6",
-  "#f97316",
-  "#64748b",
-];
-
-const ICON_OPTIONS = [
-  "🚀",
-  "📚",
-  "📊",
-  "💡",
-  "🎯",
-  "🔧",
-  "📝",
-  "🎨",
-  "⚡",
-  "🏆",
-  "💼",
-  "🎓",
-  "🧪",
-  "📱",
-  "🌐",
-  "🔒",
-];
+import { PROJECT_COLOR_OPTIONS, PROJECT_ICON_OPTIONS } from "@/features/project/constants/project-form.constants";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -58,8 +27,8 @@ export default function CreateProjectDialog({
 }: CreateProjectDialogProps) {
   const intl = useAppIntl();
   const [name, setName] = useState("");
-  const [selectedColor, setSelectedColor] = useState(COLOR_OPTIONS[0]);
-  const [selectedIcon, setSelectedIcon] = useState(ICON_OPTIONS[0]);
+  const [selectedColor, setSelectedColor] = useState<string>(PROJECT_COLOR_OPTIONS[0]);
+  const [selectedIcon, setSelectedIcon] = useState<string>(PROJECT_ICON_OPTIONS[0]);
   const [projectType, setProjectType] = useState(ProjectType.GENERAL);
   const [template, setTemplate] = useState(ProjectTemplate.EMPTY);
 
@@ -226,7 +195,7 @@ export default function CreateProjectDialog({
               {intl.formatMessage({ id: "project.icon" })}
             </label>
             <div className="mt-2 flex flex-wrap gap-2">
-              {ICON_OPTIONS.map((icon) => (
+              {PROJECT_ICON_OPTIONS.map((icon) => (
                 <button
                   key={icon}
                   type="button"
@@ -250,7 +219,7 @@ export default function CreateProjectDialog({
               {intl.formatMessage({ id: "project.color" })}
             </label>
             <div className="mt-2 flex flex-wrap gap-2.5">
-              {COLOR_OPTIONS.map((color) => (
+              {PROJECT_COLOR_OPTIONS.map((color) => (
                 <button
                   key={color}
                   type="button"
