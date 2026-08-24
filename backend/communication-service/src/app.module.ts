@@ -13,6 +13,7 @@ import { NoteModule } from './modules/note/note.module';
 import { DirectConversationModule } from './modules/direct-conversation/direct-conversation.module';
 import { DirectMessageModule } from './modules/direct-message/direct-message.module';
 import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-profile-snapshot.module';
+import { LiveKitModule } from './infrastructure/livekit/livekit.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-
     DirectConversationModule,
     DirectMessageModule,
     UserProfileSnapshotModule,
+    LiveKitModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,0 +1,11 @@
+export enum LiveKitEnvironmentKey {
+  URL = 'LIVEKIT_URL',
+  API_KEY = 'LIVEKIT_API_KEY',
+  API_SECRET = 'LIVEKIT_API_SECRET',
+}
+
+export const LIVEKIT_CONFIG = Symbol('LIVEKIT_CONFIG');
+export const LIVEKIT_ROOM_SERVICE_CLIENT = Symbol(
+  'LIVEKIT_ROOM_SERVICE_CLIENT',
+);
+
