@@ -188,6 +188,7 @@ export class TaskService {
       where: { id: taskId },
       data: { archived: true, deletedAt: new Date() },
     });
+    await this.activities.record(taskId, userId, 'archived', false, true);
   }
 
   private async findTask(taskId: string) {
@@ -223,7 +224,12 @@ export class TaskService {
     }
   }
 
-  private async recordChanges(current: Prisma.TaskGetPayload<{}>, dto: UpdateTaskDto, actorId: string, taskId: string) {
+  private async recordChanges(
+    current: Prisma.TaskGetPayload<{ include: typeof taskWithCount }>,
+    dto: UpdateTaskDto,
+    actorId: string,
+    taskId: string,
+  ) {
     const changes: Array<[string, unknown, unknown]> = [];
     if (dto.title !== undefined) changes.push(['title', current.title, dto.title.trim()]);
     if (dto.description !== undefined) changes.push(['description', current.description, dto.description]);
@@ -232,9 +238,13 @@ export class TaskService {
     if (dto.startDate !== undefined) changes.push(['startDate', current.startDate?.toISOString(), dto.startDate]);
     if (dto.dueDate !== undefined) changes.push(['dueDate', current.dueDate?.toISOString(), dto.dueDate]);
     if (dto.estimatedMinutes !== undefined) changes.push(['estimatedMinutes', current.estimatedMinutes, dto.estimatedMinutes]);
+    if (dto.allDay !== undefined) changes.push(['allDay', current.allDay, dto.allDay]);
+    if (dto.rank !== undefined) changes.push(['rank', current.rank, dto.rank]);
     if (dto.archived !== undefined) changes.push(['archived', current.archived, dto.archived]);
     if (dto.parentTaskId !== undefined || dto.clearParent) changes.push(['parentTaskId', current.parentTaskId, dto.clearParent ? null : dto.parentTaskId]);
-    if (dto.assigneeUserId !== undefined) changes.push(['assigneeUserId', 'changed', dto.assigneeUserId]);
+    if (dto.isParentTask !== undefined) changes.push(['isParentTask', current.isParentTask, dto.isParentTask]);
+    if (dto.autoCompleteSprint !== undefined) changes.push(['autoCompleteSprint', current.autoCompleteSprint, dto.autoCompleteSprint]);
+    if (dto.assigneeUserId !== undefined) changes.push(['assigneeUserId', current.assignees[0]?.userId, dto.assigneeUserId]);
     await Promise.all(changes.map(([field, oldValue, newValue]) => this.activities.record(taskId, actorId, field, oldValue, newValue)));
   }
 }

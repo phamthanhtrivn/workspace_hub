@@ -3,12 +3,14 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ProjectAccessService } from './project-access.service';
 import { CreateLabelDto } from './dto/create-label.dto';
 import { UpdateLabelDto } from './dto/update-label.dto';
+import { ActivityService } from './activity.service';
 
 @Injectable()
 export class LabelService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly activities: ActivityService,
   ) {}
 
   async list(userId: string, projectId: string) {
@@ -57,6 +59,7 @@ export class LabelService {
       await this.prisma.taskLabelMapping.create({
         data: { id: crypto.randomUUID(), taskId, labelId, projectId: task.projectId },
       });
+      await this.activities.record(taskId, userId, 'label_attached', null, label.name);
     }
     return label;
   }
@@ -65,7 +68,11 @@ export class LabelService {
     const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, createdBy: true } });
     if (!task) throw new NotFoundException('Task not found');
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
-    await this.prisma.taskLabelMapping.deleteMany({ where: { taskId, labelId } });
+    const label = await this.getLabel(labelId);
+    const deleted = await this.prisma.taskLabelMapping.deleteMany({ where: { taskId, labelId } });
+    if (deleted.count > 0) {
+      await this.activities.record(taskId, userId, 'label_detached', label.name, null);
+    }
     return { taskId, labelId };
   }
 

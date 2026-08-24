@@ -20,6 +20,7 @@ import {
   useUpdateTaskComment,
 } from "@/features/project/hooks/use-comments";
 import { useTaskActivities } from "@/features/project/hooks/use-tasks";
+import type { UpdateTaskPayload } from "@/features/project/api/task.api";
 import { TaskStatusBadge, LabelBadge } from "./status-badge";
 import { Avatar } from "./avatar-stack";
 import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "./task-card";
@@ -27,9 +28,6 @@ import TaskChatButton from "./task-chat-button";
 import {
   X,
   Pencil,
-  Calendar,
-  Clock,
-  User,
   Tag,
   CheckSquare,
   MessageSquare,
@@ -75,6 +73,52 @@ const PRIORITY_OPTS = [
   { value: TaskPriority.LOW, label: "Thấp" },
 ];
 
+type TaskDetailTab = "details" | "activity";
+type TaskDrawerUpdatePayload = UpdateTaskPayload & {
+  assignees?: Task["assignees"];
+  assigneeUserId?: string | null;
+};
+
+const ACTIVITY_ACTION_LABELS: Record<string, string> = {
+  created: "Đã tạo công việc",
+  title: "Đã đổi tên công việc",
+  description: "Đã cập nhật mô tả",
+  priority: "Đã thay đổi độ ưu tiên",
+  status: "Đã thay đổi trạng thái",
+  startDate: "Đã thay đổi ngày bắt đầu",
+  dueDate: "Đã thay đổi hạn hoàn thành",
+  estimatedMinutes: "Đã thay đổi thời gian ước tính",
+  allDay: "Đã thay đổi chế độ cả ngày",
+  archived: "Đã thay đổi trạng thái lưu trữ",
+  parentTaskId: "Đã thay đổi task cha",
+  assigneeUserId: "Đã thay đổi người thực hiện",
+  isParentTask: "Đã thay đổi loại task",
+  autoCompleteSprint: "Đã thay đổi tự động hoàn thành sprint",
+  rank: "Đã thay đổi thứ tự",
+  checklist_created: "Đã thêm mục checklist",
+  checklist_completed: "Đã cập nhật mục checklist",
+  checklist_deleted: "Đã xóa mục checklist",
+  label_attached: "Đã gắn nhãn",
+  label_detached: "Đã gỡ nhãn",
+  comment_created: "Đã thêm bình luận",
+  comment_updated: "Đã chỉnh sửa bình luận",
+  comment_deleted: "Đã xóa bình luận",
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  TODO: "Cần làm",
+  IN_PROGRESS: "Đang làm",
+  IN_REVIEW: "Đang review",
+  DONE: "Hoàn thành",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  LOW: "Thấp",
+  MEDIUM: "Trung bình",
+  HIGH: "Cao",
+  URGENT: "Khẩn cấp",
+};
+
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("vi-VN", {
     day: "2-digit",
@@ -100,7 +144,6 @@ export default function TaskDetailDrawer({
   task,
   tasks = [],
   members = [],
-  project,
   onClose,
   onOpenChat,
   onEdit,
@@ -115,17 +158,19 @@ export default function TaskDetailDrawer({
   dependencies = [],
   onCreateDependency,
   onDeleteDependency,
-  isInline = false, // If true, renders as inline split screen panel. If false, renders as fixed overlay drawer.
 }: {
   task: Task | null;
   tasks?: Task[];
   members?: ProjectMember[];
-  project?: any;
+  project?: unknown;
   onClose: () => void;
   onOpenChat?: (task: Task) => void;
   onEdit?: (task: Task) => void;
   onTaskClick?: (task: Task) => void;
-  onUpdateTask?: (taskId: string, payload: any) => Promise<void>;
+  onUpdateTask?: (
+    taskId: string,
+    payload: TaskDrawerUpdatePayload,
+  ) => Promise<void>;
   onCreateSubtask?: (task: Task) => void;
   onCreateChecklist?: (taskId: string, title: string) => Promise<TaskChecklist>;
   onUpdateChecklist?: (
@@ -148,8 +193,8 @@ export default function TaskDetailDrawer({
     successorTaskId: string,
     predecessorTaskId: string,
   ) => Promise<void>;
-  isInline?: boolean;
 }) {
+  const [activeTab, setActiveTab] = useState<TaskDetailTab>("details");
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState("");
@@ -174,7 +219,12 @@ export default function TaskDetailDrawer({
 
   const { userId: currentUserId } = useAppSelector((state) => state.auth);
   const { data: loadedComments } = useTaskComments(task?.id || "");
-  const { data: activities = [] } = useTaskActivities(task?.id || "");
+  const {
+    data: activities = [],
+    isLoading: isActivitiesLoading,
+    isError: isActivitiesError,
+    refetch: refetchActivities,
+  } = useTaskActivities(task?.id || "");
   const createCommentMutation = useCreateTaskComment(task?.id || "");
   const updateCommentMutation = useUpdateTaskComment(task?.id || "");
   const deleteCommentMutation = useDeleteTaskComment(task?.id || "");
@@ -210,12 +260,31 @@ export default function TaskDetailDrawer({
   // Reset temp inputs when task changes
   useEffect(() => {
     if (task) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Draft fields must reset when the selected task changes.
       setTempTitle(task.title);
       setTempDesc(task.description || "");
       setIsEditingTitle(false);
       setIsEditingDesc(false);
+      setActiveTab("details");
     }
   }, [task]);
+
+  useEffect(() => {
+    if (!task) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, task]);
 
   if (!task) return null;
 
@@ -241,7 +310,7 @@ export default function TaskDetailDrawer({
         toast.success("Đã cập nhật tiêu đề");
       }
       setIsEditingTitle(false);
-    } catch (e) {
+    } catch {
       setTempTitle(task.title);
     }
   };
@@ -257,7 +326,7 @@ export default function TaskDetailDrawer({
         toast.success("Đã cập nhật mô tả");
       }
       setIsEditingDesc(false);
-    } catch (e) {
+    } catch {
       setTempDesc(task.description || "");
     }
   };
@@ -270,7 +339,7 @@ export default function TaskDetailDrawer({
         await onUpdateTask(task.id, { status: newStatus });
         toast.success("Đã cập nhật trạng thái");
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handleAssigneeChange = async (userId: string) => {
@@ -280,7 +349,7 @@ export default function TaskDetailDrawer({
         await onUpdateTask(task.id, { assigneeUserId: userId });
         toast.success("Đã cập nhật người thực hiện");
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handleUnassign = async () => {
@@ -290,7 +359,7 @@ export default function TaskDetailDrawer({
         await onUpdateTask(task.id, { assigneeUserId: null, assignees: [] });
         toast.success("Đã hủy giao việc");
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handlePriorityChange = async (priority: TaskPriority) => {
@@ -301,7 +370,7 @@ export default function TaskDetailDrawer({
         await onUpdateTask(task.id, { priority });
         toast.success("Đã cập nhật độ ưu tiên");
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handleToggleLabel = async (label: TaskLabel) => {
@@ -348,7 +417,7 @@ export default function TaskDetailDrawer({
         });
         toast.success("Đã cập nhật hạn hoàn thành");
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handleStartDateChange = async (val: string) => {
@@ -359,7 +428,7 @@ export default function TaskDetailDrawer({
         });
         toast.success("Đã cập nhật ngày bắt đầu");
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handleEstimateChange = async (val: number) => {
@@ -368,7 +437,7 @@ export default function TaskDetailDrawer({
         await onUpdateTask(task.id, { estimatedMinutes: val || 0 });
         toast.success("Đã cập nhật thời gian ước lượng");
       }
-    } catch (e) {}
+    } catch {}
   };
 
   const handleCreateComment = async () => {
@@ -460,7 +529,58 @@ export default function TaskDetailDrawer({
 
   const activityLabel = (activity: TaskActivity) => {
     const member = members.find((item) => item.userId === activity.actorId);
-    return member?.displayName || "Thành viên";
+    return (
+      member?.displayName ||
+      activity.actorName ||
+      (activity.actorId ? "Thành viên" : "Hệ thống")
+    );
+  };
+
+  const formatActivityValue = (
+    activity: TaskActivity,
+    value?: string | null,
+  ): string | null => {
+    if (value === undefined || value === null || value === "") return null;
+
+    if (activity.field.startsWith("checklist_")) {
+      try {
+        const checklist = JSON.parse(value) as {
+          title?: string;
+          completed?: boolean;
+        };
+        if (typeof checklist.completed === "boolean") {
+          return `${checklist.title || "Checklist"}: ${checklist.completed ? "Đã hoàn thành" : "Chưa hoàn thành"}`;
+        }
+        return checklist.title || "Checklist";
+      } catch {
+        return value;
+      }
+    }
+
+    if (activity.field === "status") return STATUS_LABELS[value] || value;
+    if (activity.field === "priority") return PRIORITY_LABELS[value] || value;
+    if (activity.field === "assigneeUserId") {
+      return members.find((member) => member.userId === value)?.displayName || value;
+    }
+    if (activity.field === "parentTaskId") {
+      return tasks.find((item) => item.id === value)?.title || value;
+    }
+    if (activity.field === "estimatedMinutes") return `${value} phút`;
+    if (["startDate", "dueDate"].includes(activity.field)) {
+      const date = new Date(value);
+      return Number.isNaN(date.getTime())
+        ? value
+        : date.toLocaleDateString("vi-VN");
+    }
+    if (["allDay", "archived", "isParentTask", "autoCompleteSprint"].includes(activity.field)) {
+      return value === "true" ? "Bật" : "Tắt";
+    }
+    return value;
+  };
+
+  const handleTabChange = (tab: TaskDetailTab) => {
+    setActiveTab(tab);
+    if (tab === "activity") void refetchActivities();
   };
 
   const currentStatusOpt =
@@ -495,14 +615,63 @@ export default function TaskDetailDrawer({
             onClick={onClose}
             className="grid h-7 w-7 place-items-center rounded hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition"
             title="Đóng panel chi tiết"
+            aria-label="Đóng chi tiết công việc"
           >
             <X className="h-4.5 w-4.5" />
           </button>
         </div>
       </div>
 
-      {/* ── Main Scroll Content (Vertically Stacked sections, no tabs!) ── */}
-      <div className="flex-1 overflow-y-auto px-5 py-4.5 space-y-5.5">
+      <div
+        className="flex shrink-0 items-center gap-1 border-b border-slate-200 px-5"
+        role="tablist"
+        aria-label="Nội dung công việc"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "details"}
+          onClick={() => handleTabChange("details")}
+          className={[
+            "flex items-center gap-1.5 border-b-2 px-2 py-2.5 text-xs font-bold transition",
+            activeTab === "details"
+              ? "border-[#0052CC] text-[#0052CC]"
+              : "border-transparent text-slate-500 hover:text-slate-700",
+          ].join(" ")}
+        >
+          <FileText className="h-3.5 w-3.5" />
+          Chi tiết
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === "activity"}
+          onClick={() => handleTabChange("activity")}
+          className={[
+            "flex items-center gap-1.5 border-b-2 px-2 py-2.5 text-xs font-bold transition",
+            activeTab === "activity"
+              ? "border-[#0052CC] text-[#0052CC]"
+              : "border-transparent text-slate-500 hover:text-slate-700",
+          ].join(" ")}
+        >
+          <History className="h-3.5 w-3.5" />
+          Nhật ký
+          {activities.length > 0 && (
+            <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] text-slate-500">
+              {activities.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Main details content */}
+      <div
+        role="tabpanel"
+        className={[
+          "flex-1 overflow-y-auto px-5 py-4.5 space-y-5.5",
+          activeTab === "details" ? "block" : "hidden",
+        ].join(" ")}
+      >
         {/* Title Edit */}
         <div>
           {isEditingTitle ? (
@@ -911,46 +1080,6 @@ export default function TaskDetailDrawer({
           )}
         </div>
 
-        {/* Activity history */}
-        <div className="space-y-1.5 border-t border-slate-100 pt-4">
-          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">
-            Lịch sử thay đổi
-          </h3>
-          {activities.length === 0 ? (
-            <p className="rounded border border-dashed border-slate-200 bg-slate-50/30 py-4 text-center text-[11px] font-semibold text-slate-400">
-              Chưa có lịch sử thay đổi.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {activities.slice(0, 20).map((activity) => (
-                <div
-                  key={activity.id}
-                  className="rounded border border-slate-100 bg-slate-50/60 px-2.5 py-2 text-[11px]"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-slate-600">
-                      {activityLabel(activity)}
-                    </span>
-                    <time className="shrink-0 text-[10px] text-slate-400">
-                      {formatRelative(activity.createdAt)}
-                    </time>
-                  </div>
-                  <p className="mt-1 text-slate-500">
-                    Đã thay đổi{" "}
-                    <strong className="text-slate-700">{activity.field}</strong>
-                  </p>
-                  {(activity.oldValue || activity.newValue) && (
-                    <p className="mt-0.5 truncate text-slate-400">
-                      {activity.oldValue || "trống"} →{" "}
-                      {activity.newValue || "trống"}
-                    </p>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Details Accordion / Grid Panel */}
         <div className="border border-slate-200 rounded bg-white shadow-sm overflow-hidden select-none">
           <div className="px-3 py-2 bg-slate-50 border-b border-slate-150 text-xs font-bold text-slate-700 uppercase tracking-wide">
@@ -1259,29 +1388,146 @@ export default function TaskDetailDrawer({
           </div>
         </div>
       </div>
+
+      {activeTab === "activity" && (
+        <div
+          role="tabpanel"
+          className="min-h-0 flex-1 overflow-y-auto px-5 py-4"
+        >
+          <div className="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-[#172B4D]">
+                Nhật ký hoạt động
+              </h3>
+              <p className="mt-0.5 text-[11px] text-slate-500">
+                Các thay đổi mới nhất của công việc này.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void refetchActivities()}
+              className="shrink-0 rounded px-2 py-1 text-[10px] font-bold text-[#0052CC] hover:bg-blue-50"
+            >
+              Làm mới
+            </button>
+          </div>
+
+          {isActivitiesLoading ? (
+            <div className="space-y-3" aria-label="Đang tải nhật ký">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="flex animate-pulse gap-3">
+                  <div className="h-7 w-7 shrink-0 rounded-full bg-slate-100" />
+                  <div className="flex-1 space-y-2 py-1">
+                    <div className="h-3 w-2/3 rounded bg-slate-100" />
+                    <div className="h-3 w-1/3 rounded bg-slate-100" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : isActivitiesError ? (
+            <div className="rounded border border-red-100 bg-red-50 px-4 py-5 text-center">
+              <p className="text-xs font-semibold text-red-700">
+                Không thể tải nhật ký hoạt động.
+              </p>
+              <button
+                type="button"
+                onClick={() => void refetchActivities()}
+                className="mt-2 text-[11px] font-bold text-red-700 underline"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : activities.length === 0 ? (
+            <div className="rounded border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
+              <History className="mx-auto h-6 w-6 text-slate-300" />
+              <p className="mt-2 text-xs font-semibold text-slate-500">
+                Chưa có hoạt động nào được ghi nhận.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-0">
+              {activities.map((activity, index) => {
+                const oldValue = formatActivityValue(
+                  activity,
+                  activity.oldValue,
+                );
+                const newValue = formatActivityValue(
+                  activity,
+                  activity.newValue,
+                );
+
+                return (
+                  <article
+                    key={activity.id}
+                    className="relative flex gap-3 pb-5"
+                  >
+                    {index < activities.length - 1 && (
+                      <span className="absolute bottom-0 left-3.5 top-7 w-px bg-slate-200" />
+                    )}
+                    <span className="relative z-[1] grid h-7 w-7 shrink-0 place-items-center rounded-full border border-blue-100 bg-blue-50 text-[#0052CC]">
+                      <History className="h-3.5 w-3.5" />
+                    </span>
+                    <div className="min-w-0 flex-1 pt-0.5">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-xs leading-5 text-slate-700">
+                          <strong className="font-bold text-[#172B4D]">
+                            {activityLabel(activity)}
+                          </strong>{" "}
+                          {ACTIVITY_ACTION_LABELS[activity.field] ||
+                            `Đã thay đổi ${activity.field}`}
+                        </p>
+                        <time
+                          dateTime={activity.createdAt}
+                          title={formatDateTime(activity.createdAt)}
+                          className="shrink-0 pt-0.5 text-[9px] font-semibold text-slate-400"
+                        >
+                          {formatRelative(activity.createdAt)}
+                        </time>
+                      </div>
+
+                      {(oldValue || newValue) && (
+                        <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-slate-500">
+                          {oldValue && (
+                            <span className="min-w-0 break-words rounded bg-slate-100 px-1.5 py-1">
+                              {oldValue}
+                            </span>
+                          )}
+                          {oldValue && newValue && (
+                            <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
+                          )}
+                          {newValue && (
+                            <span className="min-w-0 break-words rounded bg-blue-50 px-1.5 py-1 text-blue-700">
+                              {newValue}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
-  // If isInline is true, just render PanelContent inline without fixed backdrop overlay.
-  if (isInline) {
-    return (
-      <div className="relative flex h-full w-full flex-col bg-white">
-        {PanelContent}
-      </div>
-    );
-  }
-
-  // Traditional floating overlay drawer for mobile / popup fallback.
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm animate-in fade-in duration-200"
+    <div
+      className="fixed inset-0 z-50 flex justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Chi tiết công việc ${issueKey}`}
+    >
+      <button
+        type="button"
+        className="absolute inset-0 cursor-default bg-slate-950/35 animate-in fade-in duration-200 motion-reduce:animate-none"
         onClick={onClose}
+        aria-label="Đóng chi tiết công việc"
       />
 
-      {/* Drawer Container */}
-      <div className="relative flex h-full w-full max-w-lg flex-col bg-white shadow-2xl animate-in slide-in-from-right duration-200">
+      <div className="relative flex h-dvh w-full flex-col border-l border-slate-200 bg-white shadow-2xl animate-in slide-in-from-right duration-200 motion-reduce:animate-none sm:w-[560px] sm:max-w-[calc(100vw-3rem)]">
         {PanelContent}
       </div>
     </div>

@@ -120,11 +120,11 @@ export interface TaskComment {
 export interface TaskActivity {
   id: string;
   taskId: string;
-  actorId: string;
-  actorName: string;
+  actorId?: string | null;
+  actorName?: string;
   field: string;
-  oldValue: string;
-  newValue: string;
+  oldValue?: string | null;
+  newValue?: string | null;
   createdAt: string;
 }
 

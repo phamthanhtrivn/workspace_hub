@@ -3,12 +3,14 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ProjectAccessService } from './project-access.service';
 import { CreateChecklistDto } from './dto/create-checklist.dto';
 import { UpdateChecklistDto } from './dto/update-checklist.dto';
+import { ActivityService } from './activity.service';
 
 @Injectable()
 export class ChecklistService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly activities: ActivityService,
   ) {}
 
   async create(userId: string, taskId: string, dto: CreateChecklistDto) {
@@ -23,6 +25,7 @@ export class ChecklistService {
         rank: String(Date.now()),
       },
     });
+    await this.activities.record(taskId, userId, 'checklist_created', null, { title: item.title });
     return item;
   }
 
@@ -30,10 +33,18 @@ export class ChecklistService {
     const item = await this.getChecklist(checklistId);
     const task = await this.getTask(item.taskId);
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
-    return this.prisma.taskChecklist.update({
+    const updated = await this.prisma.taskChecklist.update({
       where: { id: checklistId },
       data: { completed: dto.completed, completedBy: dto.completed ? userId : null },
     });
+    await this.activities.record(
+      item.taskId,
+      userId,
+      'checklist_completed',
+      { title: item.title, completed: item.completed },
+      { title: updated.title, completed: updated.completed },
+    );
+    return updated;
   }
 
   async remove(userId: string, checklistId: string) {
@@ -41,6 +52,7 @@ export class ChecklistService {
     const task = await this.getTask(item.taskId);
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
     await this.prisma.taskChecklist.delete({ where: { id: checklistId } });
+    await this.activities.record(item.taskId, userId, 'checklist_deleted', { title: item.title }, null);
     return { id: checklistId };
   }
 

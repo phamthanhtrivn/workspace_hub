@@ -1292,80 +1292,41 @@ export default function ProjectDetailPage() {
             </div>
           )}
 
-          {/* Jira-style Split Screen Task Detail Panel (Desktop inline) */}
-          {selectedTask && (
-            <div className="hidden lg:flex w-[400px] xl:w-[450px] shrink-0 border border-slate-200 rounded bg-white flex-col h-full overflow-hidden shadow-sm animate-in slide-in-from-right duration-200">
-              <TaskDetailDrawer
-                task={selectedTask}
-                tasks={tasks}
-                members={projectWithMembers.members}
-                project={project}
-                onClose={() => setSelectedTask(null)}
-                onOpenChat={(task) => setChatTask(task)}
-                onTaskClick={(task) => setSelectedTask(task)}
-                onUpdateTask={handleUpdateTaskDirect}
-                onCreateChecklist={handleCreateChecklist}
-                onUpdateChecklist={handleUpdateChecklist}
-                onDeleteChecklist={handleDeleteChecklist}
-                labels={labels}
-                onToggleLabel={handleToggleLabel}
-                dependencies={dependencies}
-                onCreateDependency={handleCreateDependency}
-                onDeleteDependency={handleDeleteDependency}
-                onCreateSubtask={(task) => {
-                  setSelectedTask(null);
-                  openCreateTask(TaskStatus.TODO, undefined, false, task.id);
-                }}
-                onEdit={(task) => {
-                  setSelectedTask(null);
-                  setNewTaskStatus(task.status);
-                  setNewTaskStartDate(undefined);
-                  setNewTaskAllDay(false);
-                  setEditingTask(task);
-                  setShowTaskForm(true);
-                }}
-                isInline={true}
-              />
-            </div>
-          )}
         </div>
       </main>
 
-      {/* ── Task detail drawer (Jira style right panel - Overlay version for mobile) ── */}
+      {/* ── Task detail drawer ── */}
       {selectedTask && (
-        <div className="lg:hidden">
-          <TaskDetailDrawer
-            task={selectedTask}
-            tasks={tasks}
-            members={projectWithMembers.members}
-            project={project}
-            onClose={() => setSelectedTask(null)}
-            onOpenChat={(task) => setChatTask(task)}
-            onTaskClick={(task) => setSelectedTask(task)}
-            onUpdateTask={handleUpdateTaskDirect}
-            onCreateChecklist={handleCreateChecklist}
-            onUpdateChecklist={handleUpdateChecklist}
-            onDeleteChecklist={handleDeleteChecklist}
-            labels={labels}
-            onToggleLabel={handleToggleLabel}
-            dependencies={dependencies}
-            onCreateDependency={handleCreateDependency}
-            onDeleteDependency={handleDeleteDependency}
-            onCreateSubtask={(task) => {
-              setSelectedTask(null);
-              openCreateTask(TaskStatus.TODO, undefined, false, task.id);
-            }}
-            onEdit={(task) => {
-              setSelectedTask(null);
-              setNewTaskStatus(task.status);
-              setNewTaskStartDate(undefined);
-              setNewTaskAllDay(false);
-              setEditingTask(task);
-              setShowTaskForm(true);
-            }}
-            isInline={false}
-          />
-        </div>
+        <TaskDetailDrawer
+          task={selectedTask}
+          tasks={tasks}
+          members={projectWithMembers.members}
+          project={project}
+          onClose={() => setSelectedTask(null)}
+          onOpenChat={(task) => setChatTask(task)}
+          onTaskClick={(task) => setSelectedTask(task)}
+          onUpdateTask={handleUpdateTaskDirect}
+          onCreateChecklist={handleCreateChecklist}
+          onUpdateChecklist={handleUpdateChecklist}
+          onDeleteChecklist={handleDeleteChecklist}
+          labels={labels}
+          onToggleLabel={handleToggleLabel}
+          dependencies={dependencies}
+          onCreateDependency={handleCreateDependency}
+          onDeleteDependency={handleDeleteDependency}
+          onCreateSubtask={(task) => {
+            setSelectedTask(null);
+            openCreateTask(TaskStatus.TODO, undefined, false, task.id);
+          }}
+          onEdit={(task) => {
+            setSelectedTask(null);
+            setNewTaskStatus(task.status);
+            setNewTaskStartDate(undefined);
+            setNewTaskAllDay(false);
+            setEditingTask(task);
+            setShowTaskForm(true);
+          }}
+        />
       )}
 
       <TaskChatDialog task={chatTask} onClose={() => setChatTask(null)} />
