@@ -7,6 +7,7 @@ import { CreateSprintDto } from './dto/create-sprint.dto';
 import { AddSprintTasksDto } from './dto/add-sprint-tasks.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
 import { toTaskResponse } from './project.mapper';
+import { assertTaskEditable } from './task-edit.guard';
 
 const sprintInclude = {
   tasks: {
@@ -70,17 +71,19 @@ export class SprintService {
         deletedAt: null,
         id: { in: dto.taskIds },
       },
-      select: { id: true, parentTaskId: true },
+      select: { id: true, parentTaskId: true, status: true },
     });
     if (tasks.length !== dto.taskIds.length) {
       throw new NotFoundException('One or more tasks were not found in this project');
     }
+    tasks.forEach((task) => assertTaskEditable(task.status));
 
     const selectedIds = tasks.map((task) => task.id);
     const childTasks = await this.prisma.task.findMany({
       where: { projectId: sprint.projectId, parentTaskId: { in: selectedIds }, archived: false, deletedAt: null },
-      select: { id: true },
+      select: { id: true, status: true },
     });
+    childTasks.forEach((task) => assertTaskEditable(task.status));
     const allTaskIds = [...new Set([...selectedIds, ...childTasks.map((task) => task.id)])];
     await this.prisma.task.updateMany({
       where: { id: { in: allTaskIds } },
@@ -97,14 +100,16 @@ export class SprintService {
 
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, projectId: sprint.projectId, sprintId: sprint.id, archived: false, deletedAt: null },
-      select: { id: true },
+      select: { id: true, status: true },
     });
     if (!task) throw new NotFoundException('Task not found in this sprint');
+    assertTaskEditable(task.status);
 
     const childTasks = await this.prisma.task.findMany({
       where: { projectId: sprint.projectId, parentTaskId: task.id, sprintId: sprint.id, archived: false, deletedAt: null },
-      select: { id: true },
+      select: { id: true, status: true },
     });
+    childTasks.forEach((child) => assertTaskEditable(child.status));
     await this.prisma.task.updateMany({
       where: { id: { in: [task.id, ...childTasks.map((child) => child.id)] } },
       data: { sprintId: null, updatedAt: new Date() },
@@ -162,7 +167,12 @@ export class SprintService {
     const now = new Date();
     const result = await this.prisma.$transaction(async (tx) => {
       const unfinished = await tx.task.findMany({
-        where: { sprintId: sprint.id, archived: false, deletedAt: null, status: { not: TaskStatus.DONE } },
+        where: {
+          sprintId: sprint.id,
+          archived: false,
+          deletedAt: null,
+          status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
+        },
         select: { id: true },
       });
       await tx.task.updateMany({

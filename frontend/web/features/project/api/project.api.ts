@@ -39,6 +39,12 @@ interface ProjectMemberApiModel {
   joinedAt?: string | null;
 }
 
+interface UserProfileApiModel {
+  id: string;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+}
+
 export interface CreateProjectPayload {
   name: string;
   color: string;
@@ -100,12 +106,14 @@ function normalizeProject(project: ProjectApiModel): Project {
 function normalizeMember(
   member: ProjectMemberApiModel,
   projectId: string,
+  profile?: UserProfileApiModel,
 ): ProjectMember {
   return {
     id: member.id,
     projectId,
     userId: member.userId,
-    displayName: member.userId,
+    displayName: profile?.fullName?.trim() || "Người dùng",
+    avatarUrl: profile?.avatarUrl || undefined,
     role: member.role,
     joinedAt: member.joinedAt || new Date().toISOString(),
   };
@@ -158,8 +166,24 @@ export async function getProjectMembers(
   const response = await api.get<ApiResponse<ProjectMemberApiModel[]>>(
     `/api/projects/${projectId}/members`,
   );
+  const members = unwrap(response) || [];
 
-  return (unwrap(response) || []).map((member) =>
-    normalizeMember(member, projectId),
+  if (members.length === 0) return [];
+
+  let profilesById = new Map<string, UserProfileApiModel>();
+  try {
+    const profilesResponse = await api.get<ApiResponse<UserProfileApiModel[]>>(
+      "/api/users/profiles/bulk",
+      { params: { ids: members.map((member) => member.userId).join(",") } },
+    );
+    profilesById = new Map(
+      (unwrap(profilesResponse) || []).map((profile) => [profile.id, profile]),
+    );
+  } catch {
+    // Keep project membership usable if profile enrichment is unavailable.
+  }
+
+  return members.map((member) =>
+    normalizeMember(member, projectId, profilesById.get(member.userId)),
   );
 }

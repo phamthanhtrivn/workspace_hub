@@ -6,6 +6,7 @@ import { UpdateCommentDto } from './dto/update-comment.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toCommentResponse } from './project.mapper';
 import { ActivityService } from './activity.service';
+import { assertTaskEditable } from './task-edit.guard';
 
 @Injectable()
 export class CommentService {
@@ -28,6 +29,7 @@ export class CommentService {
   async create(userId: string, taskId: string, dto: CreateCommentDto) {
     const task = await this.findTask(taskId);
     await this.requireWriteAccess(userId, task.projectId);
+    assertTaskEditable(task.status);
     const now = new Date();
     const comment = await this.prisma.taskComment.create({
       data: {
@@ -48,6 +50,7 @@ export class CommentService {
     const comment = await this.findComment(commentId);
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
+    assertTaskEditable(task.status);
     const updated = await this.prisma.taskComment.update({
       where: { id: commentId },
       data: { content: dto.content.trim(), edited: true, updatedAt: new Date() },
@@ -60,6 +63,7 @@ export class CommentService {
     const comment = await this.findComment(commentId);
     const task = await this.findTask(comment.taskId);
     await this.requireCanManage(userId, task.projectId, comment.authorId);
+    assertTaskEditable(task.status);
     await this.prisma.taskComment.delete({ where: { id: commentId } });
     await this.activities.record(comment.taskId, userId, 'comment_deleted', comment.content, null);
   }

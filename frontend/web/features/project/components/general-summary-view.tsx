@@ -12,6 +12,7 @@ import { useState } from "react";
 import {
   TaskPriority,
   TaskStatus,
+  isTerminalTaskStatus,
   type ProjectMember,
   type Task,
 } from "@/features/project/types/project";
@@ -88,18 +89,20 @@ export default function GeneralSummaryView({
   const activeTasks = tasks.filter((task) => !task.archived);
   const rootTasks = activeTasks.filter((task) => !task.parentTaskId);
   const subtasks = activeTasks.filter((task) => Boolean(task.parentTaskId));
-  const completed = activeTasks.filter(
-    (task) => task.status === TaskStatus.DONE,
+  const completed = activeTasks.filter((task) => task.status === TaskStatus.DONE);
+  const cancelled = activeTasks.filter(
+    (task) => task.status === TaskStatus.CANCELLED,
   );
+  const terminal = activeTasks.filter((task) => isTerminalTaskStatus(task.status));
   const overdue = activeTasks.filter(
     (task) =>
       task.dueDate &&
-      task.status !== TaskStatus.DONE &&
+      !isTerminalTaskStatus(task.status) &&
       new Date(task.dueDate).getTime() < now,
   );
   const dueSoon = activeTasks
     .filter((task) => {
-      if (!task.dueDate || task.status === TaskStatus.DONE) return false;
+      if (!task.dueDate || isTerminalTaskStatus(task.status)) return false;
       const due = new Date(task.dueDate).getTime();
       return due >= now && due <= now + 7 * DAY;
     })
@@ -111,7 +114,7 @@ export default function GeneralSummaryView({
     (task) => !task.startDate && !task.dueDate,
   );
   const completionPercent = activeTasks.length
-    ? Math.round((completed.length / activeTasks.length) * 100)
+    ? Math.round((terminal.length / activeTasks.length) * 100)
     : 0;
   const statusItems = [
     {
@@ -134,6 +137,7 @@ export default function GeneralSummaryView({
       color: "#FFAB00",
     },
     { label: "Done", value: completed.length, color: "#36B37E" },
+    { label: "Đã hủy", value: cancelled.length, color: "#64748B" },
   ];
   const priorityItems = [
     {

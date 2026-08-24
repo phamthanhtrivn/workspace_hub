@@ -71,6 +71,11 @@ const statusColors: Record<
     card: "border-emerald-200 bg-emerald-50/70",
     dot: "bg-emerald-500",
   },
+  [TaskStatus.CANCELLED]: {
+    labelId: "project.task.status.cancelled",
+    card: "border-slate-300 bg-slate-100/80",
+    dot: "bg-slate-500",
+  },
 };
 
 export default function CalendarView({

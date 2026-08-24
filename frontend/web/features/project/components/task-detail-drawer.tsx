@@ -11,6 +11,7 @@ import {
   type TaskLabel,
   type TaskActivity,
   type TaskDependency,
+  isTerminalTaskStatus,
 } from "@/features/project/types/project";
 import { useAppSelector } from "@/store/store";
 import {
@@ -41,6 +42,7 @@ import {
   ChevronDown,
   Check,
   Link2,
+  LockKeyhole,
 } from "lucide-react";
 
 const STATUS_OPTS = [
@@ -63,6 +65,11 @@ const STATUS_OPTS = [
     value: TaskStatus.DONE,
     label: "DONE",
     color: "text-[#006644] bg-[#E3FCEF] hover:bg-[#ABF5D1]",
+  },
+  {
+    value: TaskStatus.CANCELLED,
+    label: "ĐÃ HỦY",
+    color: "text-slate-600 bg-slate-200 hover:bg-slate-300",
   },
 ];
 
@@ -110,6 +117,7 @@ const STATUS_LABELS: Record<string, string> = {
   IN_PROGRESS: "Đang làm",
   IN_REVIEW: "Đang review",
   DONE: "Hoàn thành",
+  CANCELLED: "Đã hủy",
 };
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -230,6 +238,8 @@ export default function TaskDetailDrawer({
   const deleteCommentMutation = useDeleteTaskComment(task?.id || "");
   const [showChecklistInput, setShowChecklistInput] = useState(false);
   const [checklistTitle, setChecklistTitle] = useState("");
+  const [estimateDraft, setEstimateDraft] = useState("");
+  const isReadOnly = task ? isTerminalTaskStatus(task.status) : false;
 
   // Detect clicks outside dropdowns
   useEffect(() => {
@@ -263,6 +273,9 @@ export default function TaskDetailDrawer({
       // eslint-disable-next-line react-hooks/set-state-in-effect -- Draft fields must reset when the selected task changes.
       setTempTitle(task.title);
       setTempDesc(task.description || "");
+      setEstimateDraft(
+        task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
+      );
       setIsEditingTitle(false);
       setIsEditingDesc(false);
       setActiveTab("details");
@@ -300,6 +313,7 @@ export default function TaskDetailDrawer({
   const issueType = getIssueTypeDetails(task);
 
   const handleTitleSave = async () => {
+    if (isReadOnly) return;
     if (!tempTitle.trim() || tempTitle === task.title) {
       setIsEditingTitle(false);
       return;
@@ -316,6 +330,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleDescSave = async () => {
+    if (isReadOnly) return;
     if (tempDesc === task.description) {
       setIsEditingDesc(false);
       return;
@@ -332,6 +347,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleStatusChange = async (newStatus: TaskStatus) => {
+    if (isReadOnly) return;
     setShowStatusDropdown(false);
     if (newStatus === task.status) return;
     try {
@@ -343,6 +359,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleAssigneeChange = async (userId: string) => {
+    if (isReadOnly) return;
     setShowAssigneeDropdown(false);
     try {
       if (onUpdateTask) {
@@ -353,6 +370,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleUnassign = async () => {
+    if (isReadOnly) return;
     setShowAssigneeDropdown(false);
     try {
       if (onUpdateTask) {
@@ -363,6 +381,7 @@ export default function TaskDetailDrawer({
   };
 
   const handlePriorityChange = async (priority: TaskPriority) => {
+    if (isReadOnly) return;
     setShowPriorityDropdown(false);
     if (priority === task.priority) return;
     try {
@@ -374,6 +393,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleToggleLabel = async (label: TaskLabel) => {
+    if (isReadOnly) return;
     if (!onToggleLabel) return;
     const attached = task.labels.some((item) => item.id === label.id);
     try {
@@ -398,6 +418,7 @@ export default function TaskDetailDrawer({
   );
 
   const handleAddDependency = async (predecessorTaskId: string) => {
+    if (isReadOnly) return;
     if (!onCreateDependency) return;
     try {
       await onCreateDependency(task.id, predecessorTaskId);
@@ -410,6 +431,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleDueDateChange = async (val: string) => {
+    if (isReadOnly) return;
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, {
@@ -421,6 +443,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleStartDateChange = async (val: string) => {
+    if (isReadOnly) return;
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, {
@@ -431,16 +454,31 @@ export default function TaskDetailDrawer({
     } catch {}
   };
 
-  const handleEstimateChange = async (val: number) => {
+  const handleEstimateSave = async () => {
+    if (isReadOnly) return;
+    const nextValue = estimateDraft.trim() === "" ? 0 : Number(estimateDraft);
+    if (!Number.isInteger(nextValue) || nextValue < 0) {
+      setEstimateDraft(
+        task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
+      );
+      toast.error("Thời gian ước tính phải là số nguyên không âm");
+      return;
+    }
+    if (nextValue === task.estimatedMinutes) return;
     try {
       if (onUpdateTask) {
-        await onUpdateTask(task.id, { estimatedMinutes: val || 0 });
+        await onUpdateTask(task.id, { estimatedMinutes: nextValue });
         toast.success("Đã cập nhật thời gian ước lượng");
       }
-    } catch {}
+    } catch {
+      setEstimateDraft(
+        task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
+      );
+    }
   };
 
   const handleCreateComment = async () => {
+    if (isReadOnly) return;
     const content = newComment.trim();
     if (!content || createCommentMutation.isPending) return;
 
@@ -456,6 +494,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleUpdateComment = async () => {
+    if (isReadOnly) return;
     if (!editingCommentId || !editingComment.trim()) return;
 
     try {
@@ -474,6 +513,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleDeleteComment = (commentId: string) => {
+    if (isReadOnly) return;
     if (!window.confirm("Bạn có chắc muốn xóa bình luận này?")) return;
 
     deleteCommentMutation.mutate(commentId, {
@@ -491,6 +531,7 @@ export default function TaskDetailDrawer({
     checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
   const handleCreateChecklist = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isReadOnly) return;
     const title = checklistTitle.trim();
     if (!title || !onCreateChecklist) return;
     try {
@@ -506,6 +547,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleToggleChecklist = async (item: TaskChecklist) => {
+    if (isReadOnly) return;
     if (!onUpdateChecklist) return;
     try {
       await onUpdateChecklist(item.id, !item.completed);
@@ -517,6 +559,7 @@ export default function TaskDetailDrawer({
   };
 
   const handleDeleteChecklist = async (checklistId: string) => {
+    if (isReadOnly) return;
     if (!onDeleteChecklist) return;
     try {
       await onDeleteChecklist(checklistId);
@@ -527,13 +570,19 @@ export default function TaskDetailDrawer({
     }
   };
 
+  const memberDisplayName = (userId?: string | null) => {
+    if (!userId) return "Người dùng";
+    const name = members.find((member) => member.userId === userId)?.displayName;
+    return name && name !== userId ? name : "Người dùng";
+  };
+
   const activityLabel = (activity: TaskActivity) => {
-    const member = members.find((item) => item.userId === activity.actorId);
-    return (
-      member?.displayName ||
-      activity.actorName ||
-      (activity.actorId ? "Thành viên" : "Hệ thống")
-    );
+    const memberName = memberDisplayName(activity.actorId);
+    if (memberName !== "Người dùng") return memberName;
+    if (activity.actorName && activity.actorName !== activity.actorId) {
+      return activity.actorName;
+    }
+    return activity.actorId ? "Thành viên" : "Hệ thống";
   };
 
   const formatActivityValue = (
@@ -560,7 +609,7 @@ export default function TaskDetailDrawer({
     if (activity.field === "status") return STATUS_LABELS[value] || value;
     if (activity.field === "priority") return PRIORITY_LABELS[value] || value;
     if (activity.field === "assigneeUserId") {
-      return members.find((member) => member.userId === value)?.displayName || value;
+      return memberDisplayName(value);
     }
     if (activity.field === "parentTaskId") {
       return tasks.find((item) => item.id === value)?.title || value;
@@ -600,7 +649,7 @@ export default function TaskDetailDrawer({
         </div>
         <div className="flex items-center gap-1.5">
           <TaskChatButton task={task} onOpenChat={onOpenChat} />
-          {onEdit && (
+          {onEdit && !isReadOnly && (
             <button
               type="button"
               onClick={() => onEdit(task)}
@@ -664,6 +713,13 @@ export default function TaskDetailDrawer({
         </button>
       </div>
 
+      {isReadOnly && (
+        <div className="mx-5 mt-3 flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
+          <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
+          Công việc {task.status === TaskStatus.CANCELLED ? "đã hủy" : "đã hoàn thành"} và đang ở chế độ chỉ đọc.
+        </div>
+      )}
+
       {/* Main details content */}
       <div
         role="tabpanel"
@@ -674,7 +730,7 @@ export default function TaskDetailDrawer({
       >
         {/* Title Edit */}
         <div>
-          {isEditingTitle ? (
+          {isEditingTitle && !isReadOnly ? (
             <div className="space-y-1.5">
               <input
                 type="text"
@@ -707,8 +763,8 @@ export default function TaskDetailDrawer({
             </div>
           ) : (
             <h1
-              onClick={() => setIsEditingTitle(true)}
-              className="text-base font-semibold text-[#172B4D] cursor-pointer hover:bg-slate-100 p-1 -ml-1 rounded transition break-words leading-snug"
+              onClick={isReadOnly ? undefined : () => setIsEditingTitle(true)}
+              className={`text-base font-semibold text-[#172B4D] p-1 -ml-1 rounded transition break-words leading-snug ${isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-100"}`}
             >
               {task.title}
             </h1>
@@ -724,6 +780,7 @@ export default function TaskDetailDrawer({
           <div className="relative">
             <button
               onClick={() => setShowStatusDropdown(!showStatusDropdown)}
+              disabled={isReadOnly}
               className={[
                 "flex items-center gap-1 rounded px-2.5 py-1 text-xs font-bold transition border border-transparent shadow-sm",
                 currentStatusOpt.color,
@@ -733,7 +790,7 @@ export default function TaskDetailDrawer({
               <ChevronDown className="h-3.5 w-3.5" />
             </button>
 
-            {showStatusDropdown && (
+            {showStatusDropdown && !isReadOnly && (
               <div className="absolute left-0 mt-1 w-40 rounded border border-slate-200 bg-white py-1 shadow-lg z-20">
                 {STATUS_OPTS.map((opt) => (
                   <button
@@ -758,7 +815,8 @@ export default function TaskDetailDrawer({
             <button
               type="button"
               onClick={() => setShowLabelDropdown((value) => !value)}
-              className="inline-flex items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700"
+              disabled={isReadOnly}
+              className="inline-flex items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-default disabled:hover:border-slate-300 disabled:hover:bg-transparent disabled:hover:text-slate-500"
               title="Gắn nhãn"
             >
               <Tag className="h-3.5 w-3.5" />
@@ -767,7 +825,7 @@ export default function TaskDetailDrawer({
                 : "Gắn nhãn"}
               <ChevronDown className="h-3 w-3" />
             </button>
-            {showLabelDropdown && (
+            {showLabelDropdown && !isReadOnly && (
               <div className="absolute left-0 top-full z-30 mt-1 w-56 rounded border border-slate-200 bg-white p-1.5 shadow-lg">
                 {labels.length === 0 ? (
                   <p className="px-2 py-2 text-[11px] text-slate-400">
@@ -811,7 +869,7 @@ export default function TaskDetailDrawer({
             </div>
           )}
 
-          {onCreateDependency && (
+          {onCreateDependency && !isReadOnly && (
             <div className="relative">
               <button
                 type="button"
@@ -856,7 +914,7 @@ export default function TaskDetailDrawer({
                     className="inline-flex max-w-full items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-700"
                   >
                     ← {predecessor?.title || "Task trước"}
-                    {onDeleteDependency && (
+                    {onDeleteDependency && !isReadOnly && (
                       <button
                         type="button"
                         onClick={() =>
@@ -883,7 +941,7 @@ export default function TaskDetailDrawer({
           <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide">
             Mô tả
           </h3>
-          {isEditingDesc ? (
+          {isEditingDesc && !isReadOnly ? (
             <div className="space-y-2">
               <textarea
                 value={tempDesc}
@@ -913,9 +971,10 @@ export default function TaskDetailDrawer({
             </div>
           ) : (
             <div
-              onClick={() => setIsEditingDesc(true)}
+              onClick={isReadOnly ? undefined : () => setIsEditingDesc(true)}
               className={[
-                "min-h-[60px] p-2.5 rounded border border-transparent hover:border-slate-300 bg-slate-50/50 cursor-pointer text-xs transition leading-relaxed text-[#42526E] break-words",
+                "min-h-[60px] p-2.5 rounded border border-transparent bg-slate-50/50 text-xs transition leading-relaxed text-[#42526E] break-words",
+                isReadOnly ? "cursor-default" : "cursor-pointer hover:border-slate-300",
                 !task.description && "text-slate-400 font-medium italic",
               ].join(" ")}
             >
@@ -931,7 +990,7 @@ export default function TaskDetailDrawer({
               <ListTree className="h-3.5 w-3.5" />
               <span>Subtasks</span>
             </h3>
-            {onCreateSubtask && !task.parentTaskId && (
+            {onCreateSubtask && !task.parentTaskId && !isReadOnly && (
               <button
                 type="button"
                 onClick={() => onCreateSubtask(task)}
@@ -996,18 +1055,20 @@ export default function TaskDetailDrawer({
                   {checklistDone}/{checklistTotal} ({checklistProgress}%)
                 </span>
               )}
-              <button
-                type="button"
-                onClick={() => setShowChecklistInput((value) => !value)}
-                className="rounded p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
-                title="Thêm checklist"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={() => setShowChecklistInput((value) => !value)}
+                  className="rounded p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
+                  title="Thêm checklist"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
 
-          {showChecklistInput && (
+          {showChecklistInput && !isReadOnly && (
             <form
               onSubmit={(event) => void handleCreateChecklist(event)}
               className="mt-2 flex items-center gap-2"
@@ -1041,12 +1102,13 @@ export default function TaskDetailDrawer({
                 {task.checklists.map((item) => (
                   <label
                     key={item.id}
-                    className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 hover:bg-slate-50 text-xs border border-transparent select-none"
+                    className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs border border-transparent select-none ${isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-50"}`}
                   >
                     <input
                       type="checkbox"
                       checked={item.completed}
                       onChange={() => void handleToggleChecklist(item)}
+                      disabled={isReadOnly}
                       className="h-3.5 w-3.5 rounded border-slate-300 text-[#36B37E] accent-[#36B37E]"
                     />
                     <span
@@ -1059,7 +1121,7 @@ export default function TaskDetailDrawer({
                     >
                       {item.title}
                     </span>
-                    {onDeleteChecklist && (
+                    {onDeleteChecklist && !isReadOnly && (
                       <button
                         type="button"
                         onClick={() => void handleDeleteChecklist(item.id)}
@@ -1096,8 +1158,8 @@ export default function TaskDetailDrawer({
               </span>
               <div className="relative">
                 <div
-                  onClick={() => setShowAssigneeDropdown(!showAssigneeDropdown)}
-                  className="flex items-center justify-between cursor-pointer hover:bg-slate-50 p-1 rounded -ml-1 transition"
+                  onClick={isReadOnly ? undefined : () => setShowAssigneeDropdown(!showAssigneeDropdown)}
+                  className={`flex items-center justify-between p-1 rounded -ml-1 transition ${isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-50"}`}
                 >
                   <div className="flex items-center gap-2">
                     {assignedUser ? (
@@ -1125,10 +1187,10 @@ export default function TaskDetailDrawer({
                       </>
                     )}
                   </div>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                  {!isReadOnly && <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
                 </div>
 
-                {showAssigneeDropdown && (
+                {showAssigneeDropdown && !isReadOnly && (
                   <div className="absolute left-0 mt-1 w-full max-h-48 overflow-y-auto rounded border border-slate-200 bg-white py-1 shadow-lg z-20">
                     <button
                       onClick={handleUnassign}
@@ -1168,8 +1230,8 @@ export default function TaskDetailDrawer({
               </span>
               <div className="relative">
                 <div
-                  onClick={() => setShowPriorityDropdown(!showPriorityDropdown)}
-                  className="flex items-center justify-between cursor-pointer hover:bg-slate-50 p-1 rounded -ml-1 transition"
+                  onClick={isReadOnly ? undefined : () => setShowPriorityDropdown(!showPriorityDropdown)}
+                  className={`flex items-center justify-between p-1 rounded -ml-1 transition ${isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-50"}`}
                 >
                   <div className="flex items-center gap-2">
                     {getPriorityIcon(task.priority)}
@@ -1177,10 +1239,10 @@ export default function TaskDetailDrawer({
                       {task.priority.toLowerCase()}
                     </span>
                   </div>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                  {!isReadOnly && <ChevronDown className="h-3.5 w-3.5 text-slate-400" />}
                 </div>
 
-                {showPriorityDropdown && (
+                {showPriorityDropdown && !isReadOnly && (
                   <div className="absolute left-0 mt-1 w-full rounded border border-slate-200 bg-white py-1 shadow-lg z-20">
                     {PRIORITY_OPTS.map((opt) => (
                       <button
@@ -1206,7 +1268,8 @@ export default function TaskDetailDrawer({
                 type="date"
                 value={task.startDate ? task.startDate.slice(0, 10) : ""}
                 onChange={(e) => void handleStartDateChange(e.target.value)}
-                className="w-full text-xs font-semibold text-slate-700 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0"
+                disabled={isReadOnly}
+                className="w-full text-xs font-semibold text-slate-700 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0 disabled:cursor-default"
               />
             </div>
 
@@ -1219,7 +1282,8 @@ export default function TaskDetailDrawer({
                 type="date"
                 value={task.dueDate ? task.dueDate.slice(0, 10) : ""}
                 onChange={(e) => void handleDueDateChange(e.target.value)}
-                className="w-full text-xs font-semibold text-slate-700 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0"
+                disabled={isReadOnly}
+                className="w-full text-xs font-semibold text-slate-700 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0 disabled:cursor-default"
               />
             </div>
 
@@ -1231,12 +1295,16 @@ export default function TaskDetailDrawer({
               <input
                 type="number"
                 min={0}
+                step={1}
                 placeholder="Ví dụ: 60"
-                value={task.estimatedMinutes || ""}
-                onChange={(e) =>
-                  void handleEstimateChange(Number(e.target.value))
-                }
-                className="w-full text-xs font-semibold text-slate-700 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0"
+                value={estimateDraft}
+                onChange={(e) => setEstimateDraft(e.target.value)}
+                onBlur={() => void handleEstimateSave()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") event.currentTarget.blur();
+                }}
+                disabled={isReadOnly}
+                className="w-full text-xs font-semibold text-slate-700 bg-transparent border-none outline-none focus:ring-0 cursor-pointer p-0 disabled:cursor-default"
               />
             </div>
 
@@ -1246,10 +1314,7 @@ export default function TaskDetailDrawer({
                 Người báo cáo
               </span>
               <span className="font-semibold text-slate-600 block mt-0.5">
-                {members.find((m) => m.userId === task.reporterId)
-                  ?.displayName ||
-                  task.reporterId ||
-                  "Hệ thống"}
+                {memberDisplayName(task.reporterId)}
               </span>
             </div>
 
@@ -1291,7 +1356,7 @@ export default function TaskDetailDrawer({
                           {formatRelative(comment.createdAt)}
                           {comment.edited && " (đã sửa)"}
                         </span>
-                        {currentUserId === comment.authorId && (
+                        {currentUserId === comment.authorId && !isReadOnly && (
                           <div className="flex items-center gap-0.5">
                             <button
                               type="button"
@@ -1315,7 +1380,7 @@ export default function TaskDetailDrawer({
                       </div>
                     </div>
 
-                    {editingCommentId === comment.id ? (
+                    {editingCommentId === comment.id && !isReadOnly ? (
                       <div className="mt-1.5 space-y-1.5">
                         <textarea
                           value={editingComment}
@@ -1360,8 +1425,9 @@ export default function TaskDetailDrawer({
           )}
 
           {/* Add comment field */}
-          <div className="flex gap-2.5 pt-2 border-t border-slate-100">
-            <Avatar
+          {!isReadOnly && (
+            <div className="flex gap-2.5 pt-2 border-t border-slate-100">
+              <Avatar
               user={{ userId: currentUserId || "u-curr", displayName: "Me" }}
               size="sm"
             />
@@ -1384,8 +1450,9 @@ export default function TaskDetailDrawer({
               >
                 <Send className="h-3 w-3" strokeWidth={2.5} />
               </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

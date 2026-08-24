@@ -36,6 +36,11 @@ export enum TaskStatus {
   IN_PROGRESS = "IN_PROGRESS",
   IN_REVIEW = "IN_REVIEW",
   DONE = "DONE",
+  CANCELLED = "CANCELLED",
+}
+
+export function isTerminalTaskStatus(status: TaskStatus): boolean {
+  return status === TaskStatus.DONE || status === TaskStatus.CANCELLED;
 }
 
 export enum TaskPriority {

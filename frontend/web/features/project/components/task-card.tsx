@@ -1,6 +1,10 @@
 "use client";
 
-import { type Task, TaskPriority } from "@/features/project/types/project";
+import {
+  type Task,
+  TaskPriority,
+  isTerminalTaskStatus,
+} from "@/features/project/types/project";
 import { LabelBadge } from "./status-badge";
 import { AvatarStack } from "./avatar-stack";
 import TaskChatButton from "./task-chat-button";
@@ -13,10 +17,7 @@ import {
   ChevronUp,
   ChevronsUp,
   Equal,
-  Bug,
-  Bookmark,
   CheckSquare2,
-  FileText,
 } from "lucide-react";
 
 function isOverdue(dueDate?: string): boolean {
@@ -126,7 +127,7 @@ export default function TaskCard({
 }) {
   const checklistTotal = task.checklists.length;
   const checklistDone = task.checklists.filter((c) => c.completed).length;
-  const overdue = isOverdue(task.dueDate) && task.status !== "DONE";
+  const overdue = isOverdue(task.dueDate) && !isTerminalTaskStatus(task.status);
   const issueKey = getIssueKey(task);
   const issueType = getIssueTypeDetails(task);
   const priorityIcon = getPriorityIcon(task.priority);

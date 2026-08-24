@@ -4,6 +4,7 @@ import { ProjectAccessService } from './project-access.service';
 import { CreateLabelDto } from './dto/create-label.dto';
 import { UpdateLabelDto } from './dto/update-label.dto';
 import { ActivityService } from './activity.service';
+import { assertTaskEditable } from './task-edit.guard';
 
 @Injectable()
 export class LabelService {
@@ -49,9 +50,10 @@ export class LabelService {
   }
 
   async attach(userId: string, taskId: string, labelId: string) {
-    const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, createdBy: true } });
+    const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, createdBy: true, status: true } });
     if (!task) throw new NotFoundException('Task not found');
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
+    assertTaskEditable(task.status);
     const label = await this.getLabel(labelId);
     if (label.projectId !== task.projectId) throw new ConflictException('Label does not belong to this project');
     const existing = await this.prisma.taskLabelMapping.findFirst({ where: { taskId, labelId, projectId: task.projectId } });
@@ -65,9 +67,10 @@ export class LabelService {
   }
 
   async detach(userId: string, taskId: string, labelId: string) {
-    const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, createdBy: true } });
+    const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true, createdBy: true, status: true } });
     if (!task) throw new NotFoundException('Task not found');
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
+    assertTaskEditable(task.status);
     const label = await this.getLabel(labelId);
     const deleted = await this.prisma.taskLabelMapping.deleteMany({ where: { taskId, labelId } });
     if (deleted.count > 0) {
