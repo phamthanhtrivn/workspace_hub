@@ -39,6 +39,8 @@ const en = {
   "nav.chat.description": "Messages",
   "nav.calendar": "Calendar",
   "nav.calendar.description": "Schedule",
+  "nav.meetings": "Meetings",
+  "nav.meetings.description": "Calls",
   "nav.documents": "Documents",
   "nav.documents.description": "Files",
   "nav.pomodoro": "Pomodoro",
@@ -54,6 +56,8 @@ const en = {
     "Track task lists, priorities, deadlines, and assignees.",
   "page.calendar.description":
     "Organize meetings, deadlines, focus sessions, and important events.",
+  "page.meetings.description":
+    "Prepare live rooms, schedules, and collaboration details for team meetings.",
   "page.pomodoro.description":
     "Set focus sessions, short breaks, long breaks, and track your personal work rhythm.",
   "page.ai.description":
@@ -588,6 +592,37 @@ const en = {
   "chat.noNotesYet": "No notes yet",
   "chat.untitledNote": "Untitled note",
   "chat.seeAll": "See all",
+
+  "meeting.title": "Meetings",
+  "meeting.statusLine": "Live rooms foundation",
+  "meeting.newMeeting": "New meeting",
+  "meeting.preparingTitle": "Meeting rooms are being prepared",
+  "meeting.preparingDescription":
+    "The self-hosted LiveKit foundation is ready. The next step is to connect room creation, participant tokens, and the in-call experience.",
+  "meeting.foundationReady": "Infrastructure ready",
+  "meeting.foundationScope": "LiveKit server and backend SDK provider",
+  "meeting.instant.title": "Instant meeting",
+  "meeting.instant.description":
+    "Start a quick workspace call when token generation is connected.",
+  "meeting.scheduled.title": "Scheduled meetings",
+  "meeting.scheduled.description":
+    "Review upcoming sessions once calendar-backed meeting data exists.",
+  "meeting.recent.title": "Recent rooms",
+  "meeting.recent.description":
+    "Return to recent room activity after meeting history is added.",
+  "meeting.comingSoon": "Soon",
+  "meeting.today": "Today",
+  "meeting.noMeetingsToday": "No meetings today",
+  "meeting.noMeetingsTodayDescription":
+    "Scheduled meeting data will appear here in a later phase.",
+  "meeting.livekitStatus": "LiveKit status",
+  "meeting.livekitConfigured": "Signaling URL configured",
+  "meeting.livekitNotConfigured": "Signaling URL not configured",
+  "meeting.notConfiguredValue": "Not configured",
+  "meeting.whatsNext": "What's next",
+  "meeting.next.tokenEndpoint": "Add short-lived participant token endpoint.",
+  "meeting.next.roomCreation": "Create meeting room APIs and persistence.",
+  "meeting.next.reactRoom": "Build the LiveKit React room experience.",
 
   "documents.searchPlaceholder": "Search documents, folders (Ctrl+K)...",
   "documents.sort.latest": "Latest",

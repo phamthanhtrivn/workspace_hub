@@ -16,6 +16,7 @@ import {
   Mail,
   MessageSquareText,
   Settings,
+  Video,
   X,
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
@@ -61,6 +62,12 @@ const menuItems = [
     labelId: "nav.calendar",
     descriptionId: "nav.calendar.description",
     icon: CalendarDays,
+  },
+  {
+    href: "/meetings",
+    labelId: "nav.meetings",
+    descriptionId: "nav.meetings.description",
+    icon: Video,
   },
   {
     href: "/documents",

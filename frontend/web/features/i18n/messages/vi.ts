@@ -22,6 +22,8 @@ const vi = {
   "nav.chat.description": "Tin nhắn",
   "nav.calendar": "Lịch",
   "nav.calendar.description": "Lịch trình",
+  "nav.meetings": "Cuộc họp",
+  "nav.meetings.description": "Gọi nhóm",
   "nav.documents": "Tài liệu",
   "nav.documents.description": "Tệp",
   "nav.pomodoro": "Pomodoro",
@@ -152,6 +154,8 @@ const vi = {
     "Theo dõi danh sách công việc, mức ưu tiên, deadline và người phụ trách.",
   "page.calendar.description":
     "Sắp xếp lịch họp, deadline, phiên làm việc tập trung và các sự kiện quan trọng.",
+  "page.meetings.description":
+    "Chuẩn bị phòng họp trực tuyến, lịch họp và thông tin cộng tác cho nhóm.",
   "page.pomodoro.description":
     "Thiết lập phiên tập trung, nghỉ ngắn, nghỉ dài và theo dõi nhịp làm việc cá nhân.",
   "page.ai.description":
@@ -583,6 +587,37 @@ const vi = {
   "chat.noNotesYet": "Chưa có ghi chú",
   "chat.untitledNote": "Ghi chú chưa đặt tên",
   "chat.seeAll": "Xem tất cả",
+
+  "meeting.title": "Cuộc họp",
+  "meeting.statusLine": "Nền tảng phòng trực tuyến",
+  "meeting.newMeeting": "Tạo cuộc họp",
+  "meeting.preparingTitle": "Phòng họp đang được chuẩn bị",
+  "meeting.preparingDescription":
+    "Nền tảng LiveKit self-hosted đã sẵn sàng. Bước tiếp theo là kết nối tạo phòng, token người tham gia và trải nghiệm trong cuộc gọi.",
+  "meeting.foundationReady": "Hạ tầng đã sẵn sàng",
+  "meeting.foundationScope": "LiveKit server và backend SDK provider",
+  "meeting.instant.title": "Họp nhanh",
+  "meeting.instant.description":
+    "Bắt đầu cuộc gọi nhanh trong workspace sau khi kết nối tạo token.",
+  "meeting.scheduled.title": "Lịch họp",
+  "meeting.scheduled.description":
+    "Xem các phiên sắp tới sau khi có dữ liệu cuộc họp gắn với lịch.",
+  "meeting.recent.title": "Phòng gần đây",
+  "meeting.recent.description":
+    "Quay lại hoạt động phòng gần đây sau khi bổ sung lịch sử họp.",
+  "meeting.comingSoon": "Sắp có",
+  "meeting.today": "Hôm nay",
+  "meeting.noMeetingsToday": "Hôm nay chưa có cuộc họp",
+  "meeting.noMeetingsTodayDescription":
+    "Dữ liệu lịch họp sẽ hiển thị ở đây trong phase sau.",
+  "meeting.livekitStatus": "Trạng thái LiveKit",
+  "meeting.livekitConfigured": "Đã cấu hình signaling URL",
+  "meeting.livekitNotConfigured": "Chưa cấu hình signaling URL",
+  "meeting.notConfiguredValue": "Chưa cấu hình",
+  "meeting.whatsNext": "Tiếp theo",
+  "meeting.next.tokenEndpoint": "Thêm endpoint cấp participant token ngắn hạn.",
+  "meeting.next.roomCreation": "Tạo API phòng họp và lưu trữ dữ liệu.",
+  "meeting.next.reactRoom": "Xây dựng trải nghiệm phòng họp bằng LiveKit React.",
 
   "documents.searchPlaceholder": "Tìm tài liệu, thư mục (Ctrl+K)...",
   "documents.sort.latest": "Mới nhất",
