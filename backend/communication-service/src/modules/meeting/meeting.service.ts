@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Meeting, MeetingParticipant, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChatGateway } from '../chat/chat.gateway';
@@ -18,6 +19,11 @@ import {
   MeetingStatusValue,
   MeetingTypeValue,
 } from './types/meeting.enums';
+import {
+  MeetingResponse,
+  MeetingWithParticipantsAndPendingCount,
+  RequestJoinMeetingResult,
+} from './types/meeting.types';
 
 @Injectable()
 export class MeetingService {
@@ -25,14 +31,6 @@ export class MeetingService {
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
   ) {}
-
-  private get meetingClient() {
-    return (this.prisma as any).meeting;
-  }
-
-  private get participantClient() {
-    return (this.prisma as any).meetingParticipant;
-  }
 
   private buildJoinUrl(joinToken: string) {
     const frontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, '');
@@ -48,8 +46,11 @@ export class MeetingService {
     return randomUUID();
   }
 
-  private async assertHost(meetingId: string, userId: string) {
-    const meeting = await this.meetingClient.findUnique({
+  private async assertHost(
+    meetingId: string,
+    userId: string,
+  ): Promise<Meeting> {
+    const meeting = await this.prisma.meeting.findUnique({
       where: { id: meetingId },
     });
     if (!meeting) {
@@ -61,8 +62,8 @@ export class MeetingService {
     return meeting;
   }
 
-  private async getMeetingOrThrow(meetingId: string) {
-    const meeting = await this.meetingClient.findUnique({
+  private async getMeetingOrThrow(meetingId: string): Promise<Meeting> {
+    const meeting = await this.prisma.meeting.findUnique({
       where: { id: meetingId },
     });
     if (!meeting) {
@@ -71,15 +72,17 @@ export class MeetingService {
     return meeting;
   }
 
-  private mapMeetingResponse(meeting: any, userId: string) {
+  private mapMeetingResponse(
+    meeting: MeetingWithParticipantsAndPendingCount,
+    userId: string,
+  ): MeetingResponse {
     const participant = meeting.participants?.find(
-      (item: any) => item.userId === userId,
+      (item) => item.userId === userId,
     );
     const pendingJoinRequestCount =
       meeting._count?.participants ??
       meeting.participants?.filter(
-        (item: any) =>
-          item.status === MeetingParticipantStatusValue.REQUESTED,
+        (item) => item.status === MeetingParticipantStatusValue.REQUESTED,
       ).length ??
       0;
 
@@ -91,17 +94,19 @@ export class MeetingService {
     };
   }
 
-  async createInstantMeeting(userId: string, body: CreateInstantMeetingDto) {
-    const title = body.title?.trim() || MeetingDefault.INSTANT_TITLE;
+  async createInstantMeeting(
+    userId: string,
+    body: CreateInstantMeetingDto,
+  ): Promise<MeetingResponse> {
     const allowJoinWithoutApproval = body.allowJoinWithoutApproval ?? false;
     const now = new Date();
 
-    const meeting = await this.prisma.$transaction(async (tx) => {
-      const createdMeeting = await (tx as any).meeting.create({
+    const meeting = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const createdMeeting = await tx.meeting.create({
         data: {
           roomName: this.buildRoomName(),
           joinToken: this.buildJoinToken(),
-          title,
           type: MeetingTypeValue.INSTANT,
           status: MeetingStatusValue.LIVE,
           createdBy: userId,
@@ -143,16 +148,17 @@ export class MeetingService {
             },
           },
         },
-      });
+        });
 
-      return createdMeeting;
-    });
+        return createdMeeting;
+      },
+    );
 
     return this.mapMeetingResponse(meeting, userId);
   }
 
-  async getUserMeetings(userId: string) {
-    const meetings = await this.meetingClient.findMany({
+  async getUserMeetings(userId: string): Promise<MeetingResponse[]> {
+    const meetings = await this.prisma.meeting.findMany({
       where: {
         OR: [
           { createdBy: userId },
@@ -175,13 +181,14 @@ export class MeetingService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return meetings.map((meeting: any) =>
-      this.mapMeetingResponse(meeting, userId),
-    );
+    return meetings.map((meeting) => this.mapMeetingResponse(meeting, userId));
   }
 
-  async getJoinInfoByToken(joinToken: string, userId: string) {
-    const meeting = await this.meetingClient.findUnique({
+  async getJoinInfoByToken(
+    joinToken: string,
+    userId: string,
+  ): Promise<MeetingResponse> {
+    const meeting = await this.prisma.meeting.findUnique({
       where: { joinToken },
       include: {
         participants: {
@@ -206,7 +213,10 @@ export class MeetingService {
     return this.mapMeetingResponse(meeting, userId);
   }
 
-  async requestJoin(meetingId: string, userId: string) {
+  async requestJoin(
+    meetingId: string,
+    userId: string,
+  ): Promise<RequestJoinMeetingResult> {
     const meeting = await this.getMeetingOrThrow(meetingId);
     if (meeting.status !== MeetingStatusValue.LIVE) {
       throw new BadRequestException(MeetingErrorMessage.MEETING_NOT_LIVE);
@@ -217,8 +227,9 @@ export class MeetingService {
       ? MeetingParticipantStatusValue.JOINED
       : MeetingParticipantStatusValue.REQUESTED;
 
-    const participant = await this.prisma.$transaction(async (tx) => {
-      const updatedParticipant = await (tx as any).meetingParticipant.upsert({
+    const participant = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const updatedParticipant = await tx.meetingParticipant.upsert({
         where: {
           meetingId_userId: {
             meetingId,
@@ -245,19 +256,20 @@ export class MeetingService {
           lastSeenAt: now,
           leftAt: null,
         },
-      });
+        });
 
-      await (tx as any).meetingEvent.create({
+        await tx.meetingEvent.create({
         data: {
           meetingId,
           actorId: userId,
           type: MeetingEventTypeValue.PARTICIPANT_JOINED,
           metadata: { status: nextStatus },
         },
-      });
+        });
 
-      return updatedParticipant;
-    });
+        return updatedParticipant;
+      },
+    );
 
     if (nextStatus === MeetingParticipantStatusValue.REQUESTED) {
       this.chatGateway.emitMeetingJoinRequested(meetingId, userId, participant);
@@ -274,9 +286,12 @@ export class MeetingService {
     };
   }
 
-  async getJoinRequests(meetingId: string, userId: string) {
+  async getJoinRequests(
+    meetingId: string,
+    userId: string,
+  ): Promise<MeetingParticipant[]> {
     await this.assertHost(meetingId, userId);
-    return this.participantClient.findMany({
+    return this.prisma.meetingParticipant.findMany({
       where: {
         meetingId,
         status: MeetingParticipantStatusValue.REQUESTED,
@@ -285,13 +300,17 @@ export class MeetingService {
     });
   }
 
-  async approveJoinRequest(meetingId: string, requesterId: string, hostId: string) {
+  async approveJoinRequest(
+    meetingId: string,
+    requesterId: string,
+    hostId: string,
+  ): Promise<MeetingParticipant> {
     await this.assertHost(meetingId, hostId);
     if (requesterId === hostId) {
       throw new BadRequestException(MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED);
     }
 
-    const participant = await this.participantClient.findUnique({
+    const participant = await this.prisma.meetingParticipant.findUnique({
       where: {
         meetingId_userId: {
           meetingId,
@@ -307,7 +326,7 @@ export class MeetingService {
       throw new NotFoundException(MeetingErrorMessage.REQUEST_NOT_FOUND);
     }
 
-    const updatedParticipant = await this.participantClient.update({
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
       where: {
         meetingId_userId: {
           meetingId,
@@ -330,13 +349,17 @@ export class MeetingService {
     return updatedParticipant;
   }
 
-  async rejectJoinRequest(meetingId: string, requesterId: string, hostId: string) {
+  async rejectJoinRequest(
+    meetingId: string,
+    requesterId: string,
+    hostId: string,
+  ): Promise<MeetingParticipant> {
     await this.assertHost(meetingId, hostId);
     if (requesterId === hostId) {
       throw new BadRequestException(MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED);
     }
 
-    const participant = await this.participantClient.findUnique({
+    const participant = await this.prisma.meetingParticipant.findUnique({
       where: {
         meetingId_userId: {
           meetingId,
@@ -352,7 +375,7 @@ export class MeetingService {
       throw new NotFoundException(MeetingErrorMessage.REQUEST_NOT_FOUND);
     }
 
-    const updatedParticipant = await this.participantClient.update({
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
       where: {
         meetingId_userId: {
           meetingId,
@@ -376,9 +399,9 @@ export class MeetingService {
     meetingId: string,
     userId: string,
     allowJoinWithoutApproval: boolean,
-  ) {
+  ): Promise<MeetingResponse> {
     await this.assertHost(meetingId, userId);
-    const meeting = await this.meetingClient.update({
+    const meeting = await this.prisma.meeting.update({
       where: { id: meetingId },
       data: { allowJoinWithoutApproval },
       include: {

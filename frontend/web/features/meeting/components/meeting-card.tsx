@@ -41,7 +41,7 @@ export function MeetingCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="truncate text-base font-bold text-slate-900">
-              {meeting.title}
+              {intl.formatMessage({ id: "meeting.instantMeetingName" })}
             </h3>
             <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">
               {intl.formatMessage({ id: "meeting.live" })}

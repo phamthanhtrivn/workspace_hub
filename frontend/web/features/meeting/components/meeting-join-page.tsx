@@ -82,7 +82,7 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
                 </div>
                 <div className="min-w-0">
                   <h1 className="text-2xl font-bold text-slate-900">
-                    {meeting.title}
+                    {intl.formatMessage({ id: "meeting.instantMeetingName" })}
                   </h1>
                   <p className="mt-1 text-sm font-medium text-slate-500">
                     {intl.formatMessage({

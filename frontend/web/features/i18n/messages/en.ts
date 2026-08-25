@@ -615,6 +615,7 @@ const en = {
   "meeting.dashboard.action.scheduleMeeting.description": "Plan a meeting ahead",
   "meeting.dashboard.action.viewRecordings.title": "View recordings",
   "meeting.dashboard.action.viewRecordings.description": "Browse saved sessions",
+  "meeting.instantMeetingName": "Instant meeting",
   "meeting.preparingTitle": "Meeting rooms are being prepared",
   "meeting.preparingDescription":
     "The self-hosted LiveKit foundation is ready. The next step is to connect room creation, participant tokens, and the in-call experience.",
@@ -643,8 +644,23 @@ const en = {
   "meeting.next.roomCreation": "Create meeting room APIs and persistence.",
   "meeting.next.reactRoom": "Build the LiveKit React room experience.",
   "meeting.createInstantTitle": "Create instant meeting",
-  "meeting.titleLabel": "Meeting title",
-  "meeting.titlePlaceholder": "Quick sync, sprint review, design check...",
+  "meeting.deviceSetup.title": "Set up your meeting",
+  "meeting.deviceSetup.description":
+    "Choose your microphone, camera, and entry access before creating the room.",
+  "meeting.deviceSetup.preparing": "Preparing devices...",
+  "meeting.deviceSetup.unsupported":
+    "Your browser does not support camera or microphone preview.",
+  "meeting.deviceSetup.permissionDenied":
+    "Camera or microphone permission was blocked. You can still create the meeting.",
+  "meeting.deviceSetup.cameraPreparing": "Camera preview is starting",
+  "meeting.deviceSetup.cameraOff": "Camera is off",
+  "meeting.deviceSetup.cameraOn": "Camera on",
+  "meeting.deviceSetup.cameraOffShort": "Camera off",
+  "meeting.deviceSetup.micOn": "Mic on",
+  "meeting.deviceSetup.micOff": "Mic off",
+  "meeting.deviceSetup.accessTitle": "Entry access",
+  "meeting.deviceSetup.accessDescription":
+    "Keep approval on for private rooms, or let anyone with the link enter directly.",
   "meeting.allowWithoutApproval": "Allow joining without host approval",
   "meeting.allowWithoutApprovalHelp":
     "Anyone with the meeting link can enter the waiting room directly.",

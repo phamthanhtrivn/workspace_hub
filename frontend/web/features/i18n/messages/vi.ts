@@ -610,6 +610,7 @@ const vi = {
   "meeting.dashboard.action.scheduleMeeting.description": "Chuẩn bị cuộc họp trước",
   "meeting.dashboard.action.viewRecordings.title": "Xem bản ghi",
   "meeting.dashboard.action.viewRecordings.description": "Các phiên đã lưu",
+  "meeting.instantMeetingName": "Cuộc họp tức thì",
   "meeting.preparingTitle": "Phòng họp đang được chuẩn bị",
   "meeting.preparingDescription":
     "Nền tảng LiveKit self-hosted đã sẵn sàng. Bước tiếp theo là kết nối tạo phòng, token người tham gia và trải nghiệm trong cuộc gọi.",
@@ -638,8 +639,23 @@ const vi = {
   "meeting.next.roomCreation": "Tạo API phòng họp và lưu trữ dữ liệu.",
   "meeting.next.reactRoom": "Xây dựng trải nghiệm phòng họp bằng LiveKit React.",
   "meeting.createInstantTitle": "Tạo cuộc họp tức thì",
-  "meeting.titleLabel": "Tiêu đề cuộc họp",
-  "meeting.titlePlaceholder": "Họp nhanh, review sprint, kiểm tra thiết kế...",
+  "meeting.deviceSetup.title": "Thiết lập cuộc họp",
+  "meeting.deviceSetup.description":
+    "Chọn micro, camera và quyền vào phòng trước khi tạo phòng.",
+  "meeting.deviceSetup.preparing": "Đang chuẩn bị thiết bị...",
+  "meeting.deviceSetup.unsupported":
+    "Trình duyệt của bạn không hỗ trợ xem trước camera hoặc micro.",
+  "meeting.deviceSetup.permissionDenied":
+    "Quyền camera hoặc micro đã bị chặn. Bạn vẫn có thể tạo cuộc họp.",
+  "meeting.deviceSetup.cameraPreparing": "Đang mở xem trước camera",
+  "meeting.deviceSetup.cameraOff": "Camera đang tắt",
+  "meeting.deviceSetup.cameraOn": "Bật camera",
+  "meeting.deviceSetup.cameraOffShort": "Tắt camera",
+  "meeting.deviceSetup.micOn": "Bật mic",
+  "meeting.deviceSetup.micOff": "Tắt mic",
+  "meeting.deviceSetup.accessTitle": "Quyền vào phòng",
+  "meeting.deviceSetup.accessDescription":
+    "Giữ phê duyệt để phòng riêng tư, hoặc cho phép ai có liên kết vào trực tiếp.",
   "meeting.allowWithoutApproval": "Cho phép tham gia không cần host duyệt",
   "meeting.allowWithoutApprovalHelp":
     "Bất kỳ ai có liên kết cuộc họp có thể vào phòng chờ trực tiếp.",

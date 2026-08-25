@@ -37,7 +37,6 @@ export enum MeetingErrorMessage {
 }
 
 export enum MeetingDefault {
-  INSTANT_TITLE = 'Instant meeting',
   ROOM_PREFIX = 'meeting',
 }
 

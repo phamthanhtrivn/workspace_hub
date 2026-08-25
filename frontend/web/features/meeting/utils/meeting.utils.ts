@@ -42,3 +42,7 @@ export function canRequestMeetingJoin(meeting?: MeetingResponse | null) {
     status === MeetingParticipantStatus.REMOVED
   );
 }
+
+export function stopPreviewStream(stream: MediaStream | null) {
+  stream?.getTracks().forEach((track) => track.stop());
+}

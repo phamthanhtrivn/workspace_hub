@@ -25,6 +25,7 @@ import { MeetingSocketEvent } from '../meeting/meeting.events';
 import {
   MeetingAccessUpdatedPayload,
   MeetingJoinDecisionPayload,
+  MeetingParticipantPayload,
   MeetingJoinRequestPayload,
 } from '../meeting/types/meeting.types';
 import {
@@ -803,7 +804,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   emitMeetingJoinRequested(
     meetingId: string,
     userId: string,
-    participant: unknown,
+    participant: MeetingParticipantPayload,
   ) {
     const payload: MeetingJoinRequestPayload = {
       meetingId,
@@ -818,7 +819,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   emitMeetingJoinApproved(
     meetingId: string,
     userId: string,
-    participant: unknown,
+    participant: MeetingParticipantPayload,
   ) {
     const payload: MeetingJoinDecisionPayload = {
       meetingId,
@@ -833,7 +834,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   emitMeetingJoinRejected(
     meetingId: string,
     userId: string,
-    participant: unknown,
+    participant: MeetingParticipantPayload,
   ) {
     const payload: MeetingJoinDecisionPayload = {
       meetingId,

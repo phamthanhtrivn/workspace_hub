@@ -49,7 +49,6 @@ export interface MeetingResponse {
   roomName: string;
   joinToken: string;
   joinUrl: string;
-  title: string;
   description?: string | null;
   type: MeetingType;
   status: MeetingStatus;
@@ -66,7 +65,6 @@ export interface MeetingResponse {
 }
 
 export interface CreateInstantMeetingRequest {
-  title?: string;
   allowJoinWithoutApproval?: boolean;
 }
 
