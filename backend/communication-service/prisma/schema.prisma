@@ -39,6 +39,54 @@ enum InvitationStatus {
   DECLINED
 }
 
+enum MeetingType {
+  INSTANT
+  SCHEDULED
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum MeetingRole {
+  HOST
+  COHOST
+  PARTICIPANT
+}
+
+enum MeetingParticipantStatus {
+  INVITED
+  JOINED
+  LEFT
+  REMOVED
+}
+
+enum MeetingRecordingStatus {
+  STARTING
+  RECORDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DELETED
+}
+
+enum MeetingEventType {
+  CREATED
+  STARTED
+  ENDED
+  CANCELLED
+  PARTICIPANT_JOINED
+  PARTICIPANT_LEFT
+  RECORDING_STARTED
+  RECORDING_STOPPED
+  RECORDING_COMPLETED
+  SCREEN_SHARE_STARTED
+  SCREEN_SHARE_STOPPED
+}
+
 /* =========================================================
  * USER PROFILE SNAPSHOT
  * ========================================================= */
@@ -462,4 +510,131 @@ model DirectThreadFollower {
 
   @@unique([messageId, userId])
   @@map("direct_thread_followers")
+}
+
+/* =========================================================
+ * MEETING
+ * ========================================================= */
+
+model Meeting {
+  id               String                  @id @default(uuid()) @db.Uuid
+  roomName         String                  @unique @map("room_name")
+  joinToken        String                  @unique @map("join_token")
+  title            String
+  description      String?
+  type             MeetingType
+  status           MeetingStatus
+  createdBy        String                  @map("created_by") @db.Uuid
+  hostId           String                  @map("host_id") @db.Uuid
+  scheduledStartAt DateTime?               @map("scheduled_start_at")
+  scheduledEndAt   DateTime?               @map("scheduled_end_at")
+  startedAt        DateTime?               @map("started_at")
+  endedAt          DateTime?               @map("ended_at")
+  cancelledAt      DateTime?               @map("cancelled_at")
+  hasPassword      Boolean                 @default(false) @map("has_password")
+  passwordHash     String?                 @map("password_hash")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  participants     MeetingParticipant[]
+  messages         MeetingMessage[]
+  recordings       MeetingRecording[]
+  events           MeetingEvent[]
+
+  @@index([createdBy])
+  @@index([hostId])
+  @@index([status])
+  @@index([scheduledStartAt])
+  @@map("meetings")
+}
+
+/* =========================================================
+ * MEETING PARTICIPANT
+ * ========================================================= */
+
+model MeetingParticipant {
+  id          String                   @id @default(uuid()) @db.Uuid
+  meetingId   String                   @map("meeting_id") @db.Uuid
+  userId      String                   @map("user_id") @db.Uuid
+  role        MeetingRole
+  status      MeetingParticipantStatus
+  invitedAt   DateTime?                @map("invited_at")
+  joinedAt    DateTime?                @map("joined_at")
+  leftAt      DateTime?                @map("left_at")
+  lastSeenAt  DateTime?                @map("last_seen_at")
+  createdAt   DateTime                 @default(now()) @map("created_at")
+  updatedAt   DateTime                 @updatedAt @map("updated_at")
+
+  meeting     Meeting                  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([userId])
+  @@index([meetingId, status])
+  @@map("meeting_participants")
+}
+
+/* =========================================================
+ * MEETING MESSAGE
+ * ========================================================= */
+
+model MeetingMessage {
+  id        String    @id @default(uuid()) @db.Uuid
+  meetingId String    @map("meeting_id") @db.Uuid
+  senderId  String    @map("sender_id") @db.Uuid
+  content   String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  meeting   Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, createdAt])
+  @@index([senderId])
+  @@map("meeting_messages")
+}
+
+/* =========================================================
+ * MEETING RECORDING
+ * ========================================================= */
+
+model MeetingRecording {
+  id              String                 @id @default(uuid()) @db.Uuid
+  meetingId       String                 @map("meeting_id") @db.Uuid
+  startedBy       String                 @map("started_by") @db.Uuid
+  stoppedBy       String?                @map("stopped_by") @db.Uuid
+  status          MeetingRecordingStatus
+  livekitEgressId String?                @map("livekit_egress_id")
+  s3Key           String?                @map("s3_key")
+  fileName        String?                @map("file_name")
+  mimeType        String?                @map("mime_type")
+  sizeBytes       Int?                   @map("size_bytes")
+  durationSeconds Int?                   @map("duration_seconds")
+  startedAt       DateTime               @default(now()) @map("started_at")
+  stoppedAt       DateTime?              @map("stopped_at")
+  completedAt     DateTime?              @map("completed_at")
+  errorMessage    String?                @map("error_message")
+
+  meeting         Meeting                @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, startedAt])
+  @@index([status])
+  @@map("meeting_recordings")
+}
+
+/* =========================================================
+ * MEETING EVENT
+ * ========================================================= */
+
+model MeetingEvent {
+  id        String           @id @default(uuid()) @db.Uuid
+  meetingId String           @map("meeting_id") @db.Uuid
+  actorId   String?          @map("actor_id") @db.Uuid
+  type      MeetingEventType
+  metadata  Json?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  meeting   Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, createdAt])
+  @@map("meeting_events")
 }
