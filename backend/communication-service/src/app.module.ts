@@ -14,6 +14,7 @@ import { DirectConversationModule } from './modules/direct-conversation/direct-c
 import { DirectMessageModule } from './modules/direct-message/direct-message.module';
 import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-profile-snapshot.module';
 import { LiveKitModule } from './infrastructure/livekit/livekit.module';
+import { MeetingModule } from './modules/meeting/meeting.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { LiveKitModule } from './infrastructure/livekit/livekit.module';
     DirectMessageModule,
     UserProfileSnapshotModule,
     LiveKitModule,
+    MeetingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

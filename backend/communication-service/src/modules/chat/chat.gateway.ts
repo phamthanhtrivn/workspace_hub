@@ -21,6 +21,16 @@ import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { PollService } from '../poll/poll.service';
 import { NoteService } from '../note/note.service';
 import { DirectMessageService } from '../direct-message/direct-message.service';
+import { MeetingSocketEvent } from '../meeting/meeting.events';
+import {
+  MeetingAccessUpdatedPayload,
+  MeetingJoinDecisionPayload,
+  MeetingJoinRequestPayload,
+} from '../meeting/types/meeting.types';
+import {
+  getMeetingHostRoom,
+  getMeetingUserRoom,
+} from '../meeting/utils/meeting-room.util';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -61,6 +71,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(_: Socket) {}
+
+  @SubscribeMessage(MeetingSocketEvent.JOIN_CONTROL_ROOM)
+  handleJoinMeetingControlRoom(
+    @MessageBody() data: { meetingId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const userId = client.data.userId;
+    if (!userId || !data.meetingId) return;
+
+    client.join(getMeetingHostRoom(data.meetingId));
+    client.join(getMeetingUserRoom(data.meetingId, userId));
+
+    return {
+      status: CHAT_RESPONSE_STATUS.JOINED,
+      meetingId: data.meetingId,
+    };
+  }
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
   handleJoinConversation(
@@ -771,6 +798,64 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitMemberJoin(targetRooms: string[], payload: any) {
     this.server.to(targetRooms).emit(ChatEvent.JOIN_CONVERSATION, payload);
+  }
+
+  emitMeetingJoinRequested(
+    meetingId: string,
+    userId: string,
+    participant: unknown,
+  ) {
+    const payload: MeetingJoinRequestPayload = {
+      meetingId,
+      userId,
+      participant,
+    };
+    this.server
+      .to(getMeetingHostRoom(meetingId))
+      .emit(MeetingSocketEvent.JOIN_REQUESTED, payload);
+  }
+
+  emitMeetingJoinApproved(
+    meetingId: string,
+    userId: string,
+    participant: unknown,
+  ) {
+    const payload: MeetingJoinDecisionPayload = {
+      meetingId,
+      userId,
+      participant,
+    };
+    this.server
+      .to(getMeetingUserRoom(meetingId, userId))
+      .emit(MeetingSocketEvent.JOIN_APPROVED, payload);
+  }
+
+  emitMeetingJoinRejected(
+    meetingId: string,
+    userId: string,
+    participant: unknown,
+  ) {
+    const payload: MeetingJoinDecisionPayload = {
+      meetingId,
+      userId,
+      participant,
+    };
+    this.server
+      .to(getMeetingUserRoom(meetingId, userId))
+      .emit(MeetingSocketEvent.JOIN_REJECTED, payload);
+  }
+
+  emitMeetingAccessUpdated(
+    meetingId: string,
+    allowJoinWithoutApproval: boolean,
+  ) {
+    const payload: MeetingAccessUpdatedPayload = {
+      meetingId,
+      allowJoinWithoutApproval,
+    };
+    this.server
+      .to(getMeetingHostRoom(meetingId))
+      .emit(MeetingSocketEvent.ACCESS_UPDATED, payload);
   }
 
   @SubscribeMessage(ChatEvent.PIN_MESSAGE)

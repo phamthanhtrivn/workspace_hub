@@ -59,9 +59,11 @@ enum MeetingRole {
 
 enum MeetingParticipantStatus {
   INVITED
+  REQUESTED
   JOINED
   LEFT
   REMOVED
+  REJECTED
 }
 
 enum MeetingRecordingStatus {
@@ -517,24 +519,25 @@ model DirectThreadFollower {
  * ========================================================= */
 
 model Meeting {
-  id               String                  @id @default(uuid()) @db.Uuid
-  roomName         String                  @unique @map("room_name")
-  joinToken        String                  @unique @map("join_token")
-  title            String
-  description      String?
-  type             MeetingType
-  status           MeetingStatus
-  createdBy        String                  @map("created_by") @db.Uuid
-  hostId           String                  @map("host_id") @db.Uuid
-  scheduledStartAt DateTime?               @map("scheduled_start_at")
-  scheduledEndAt   DateTime?               @map("scheduled_end_at")
-  startedAt        DateTime?               @map("started_at")
-  endedAt          DateTime?               @map("ended_at")
-  cancelledAt      DateTime?               @map("cancelled_at")
-  hasPassword      Boolean                 @default(false) @map("has_password")
-  passwordHash     String?                 @map("password_hash")
-  createdAt        DateTime                @default(now()) @map("created_at")
-  updatedAt        DateTime                @updatedAt @map("updated_at")
+  id                       String                  @id @default(uuid()) @db.Uuid
+  roomName                 String                  @unique @map("room_name")
+  joinToken                String                  @unique @map("join_token")
+  title                    String
+  description              String?
+  type                     MeetingType
+  status                   MeetingStatus
+  createdBy                String                  @map("created_by") @db.Uuid
+  hostId                   String                  @map("host_id") @db.Uuid
+  scheduledStartAt         DateTime?               @map("scheduled_start_at")
+  scheduledEndAt           DateTime?               @map("scheduled_end_at")
+  startedAt                DateTime?               @map("started_at")
+  endedAt                  DateTime?               @map("ended_at")
+  cancelledAt              DateTime?               @map("cancelled_at")
+  hasPassword              Boolean                 @default(false) @map("has_password")
+  passwordHash             String?                 @map("password_hash")
+  allowJoinWithoutApproval Boolean                 @default(false) @map("allow_join_without_approval")
+  createdAt                DateTime                @default(now()) @map("created_at")
+  updatedAt                DateTime                @updatedAt @map("updated_at")
 
   participants     MeetingParticipant[]
   messages         MeetingMessage[]

@@ -1,0 +1,112 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  approveMeetingJoinRequest,
+  createInstantMeeting,
+  getMeetingJoinInfo,
+  getMeetingJoinRequests,
+  getMeetings,
+  rejectMeetingJoinRequest,
+  requestJoinMeeting,
+  updateMeetingAccess,
+} from "../api/meeting.api";
+import { meetingKeys } from "../types/meeting.constants";
+import {
+  CreateInstantMeetingRequest,
+  UpdateMeetingAccessRequest,
+} from "../types/meeting.types";
+
+export function useMeetingsQuery() {
+  return useQuery({
+    queryKey: meetingKeys.all,
+    queryFn: getMeetings,
+  });
+}
+
+export function useMeetingJoinInfoQuery(joinToken: string) {
+  return useQuery({
+    queryKey: meetingKeys.join(joinToken),
+    queryFn: () => getMeetingJoinInfo(joinToken),
+    enabled: Boolean(joinToken),
+  });
+}
+
+export function useMeetingJoinRequestsQuery(
+  meetingId: string | undefined,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: meetingKeys.requests(meetingId ?? ""),
+    queryFn: () => getMeetingJoinRequests(meetingId ?? ""),
+    enabled: Boolean(meetingId) && enabled,
+    refetchInterval: enabled ? 15_000 : false,
+  });
+}
+
+export function useCreateInstantMeetingMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: CreateInstantMeetingRequest) =>
+      createInstantMeeting(payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+    },
+  });
+}
+
+export function useRequestJoinMeetingMutation(joinToken?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (meetingId: string) => requestJoinMeeting(meetingId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
+    },
+  });
+}
+
+export function useApproveMeetingJoinRequestMutation(meetingId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) =>
+      approveMeetingJoinRequest(meetingId, userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requests(meetingId),
+      });
+    },
+  });
+}
+
+export function useRejectMeetingJoinRequestMutation(meetingId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => rejectMeetingJoinRequest(meetingId, userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requests(meetingId),
+      });
+    },
+  });
+}
+
+export function useUpdateMeetingAccessMutation(meetingId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (payload: UpdateMeetingAccessRequest) =>
+      updateMeetingAccess(meetingId, payload),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+    },
+  });
+}
