@@ -1,14 +1,3 @@
-export enum MeetingRoute {
-  ROOT = 'api/meetings',
-  INSTANT = 'instant',
-  LIST = '',
-  JOIN_BY_TOKEN = 'join/:joinToken',
-  JOIN_REQUESTS = ':meetingId/join-requests',
-  APPROVE_JOIN_REQUEST = ':meetingId/join-requests/:userId/approve',
-  REJECT_JOIN_REQUEST = ':meetingId/join-requests/:userId/reject',
-  ACCESS = ':meetingId/access',
-}
-
 export enum MeetingClientRoute {
   MEETINGS = 'meetings',
 }
@@ -23,6 +12,7 @@ export enum MeetingSuccessMessage {
   JOIN_APPROVED = 'Join request approved successfully',
   JOIN_REJECTED = 'Join request rejected successfully',
   ACCESS_UPDATED = 'Meeting access updated successfully',
+  LIVEKIT_TOKEN_CREATED = 'Meeting LiveKit token created successfully',
 }
 
 export enum MeetingErrorMessage {
@@ -34,10 +24,12 @@ export enum MeetingErrorMessage {
   HOST_REQUIRED = 'Only the meeting host can perform this action',
   REQUEST_NOT_FOUND = 'Join request not found',
   SELF_REVIEW_NOT_ALLOWED = 'Host is already in the meeting',
+  PARTICIPANT_JOIN_REQUIRED = 'You must be approved to join this meeting',
 }
 
 export enum MeetingDefault {
   ROOM_PREFIX = 'meeting',
+  LIVEKIT_TOKEN_TTL_SECONDS = 21600,
 }
 
 export enum MeetingSocketRoomPrefix {

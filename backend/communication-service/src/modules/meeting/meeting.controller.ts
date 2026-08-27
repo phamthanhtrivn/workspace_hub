@@ -14,15 +14,14 @@ import { MeetingService } from './meeting.service';
 import {
   MeetingErrorMessage,
   MeetingParticipantStatusValue,
-  MeetingRoute,
   MeetingSuccessMessage,
 } from './types/meeting.enums';
 
-@Controller(MeetingRoute.ROOT)
+@Controller('api/meetings')
 export class MeetingController {
   constructor(private readonly meetingService: MeetingService) {}
 
-  @Post(MeetingRoute.INSTANT)
+  @Post('instant')
   async createInstantMeeting(
     @Headers('x-user-id') userId: string,
     @Body() body: CreateInstantMeetingDto,
@@ -37,7 +36,7 @@ export class MeetingController {
     };
   }
 
-  @Get(MeetingRoute.LIST)
+  @Get()
   async getUserMeetings(@Headers('x-user-id') userId: string) {
     if (!userId) {
       throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
@@ -49,7 +48,7 @@ export class MeetingController {
     };
   }
 
-  @Get(MeetingRoute.JOIN_BY_TOKEN)
+  @Get('join/:joinToken')
   async getJoinInfoByToken(
     @Headers('x-user-id') userId: string,
     @Param('joinToken') joinToken: string,
@@ -70,7 +69,7 @@ export class MeetingController {
     };
   }
 
-  @Post(MeetingRoute.JOIN_REQUESTS)
+  @Post(':meetingId/join-requests')
   async requestJoin(
     @Headers('x-user-id') userId: string,
     @Param('meetingId') meetingId: string,
@@ -91,7 +90,7 @@ export class MeetingController {
     };
   }
 
-  @Get(MeetingRoute.JOIN_REQUESTS)
+  @Get(':meetingId/join-requests')
   async getJoinRequests(
     @Headers('x-user-id') userId: string,
     @Param('meetingId') meetingId: string,
@@ -112,7 +111,7 @@ export class MeetingController {
     };
   }
 
-  @Post(MeetingRoute.APPROVE_JOIN_REQUEST)
+  @Post(':meetingId/join-requests/:userId/approve')
   async approveJoinRequest(
     @Headers('x-user-id') hostId: string,
     @Param('meetingId') meetingId: string,
@@ -132,7 +131,7 @@ export class MeetingController {
     };
   }
 
-  @Post(MeetingRoute.REJECT_JOIN_REQUEST)
+  @Post(':meetingId/join-requests/:userId/reject')
   async rejectJoinRequest(
     @Headers('x-user-id') hostId: string,
     @Param('meetingId') meetingId: string,
@@ -152,7 +151,7 @@ export class MeetingController {
     };
   }
 
-  @Patch(MeetingRoute.ACCESS)
+  @Patch(':meetingId/access')
   async updateAccess(
     @Headers('x-user-id') userId: string,
     @Param('meetingId') meetingId: string,
@@ -169,6 +168,27 @@ export class MeetingController {
     return {
       message: MeetingSuccessMessage.ACCESS_UPDATED,
       data: meeting,
+    };
+  }
+
+  @Post(':meetingId/livekit-token')
+  async createLiveKitToken(
+    @Headers('x-user-id') userId: string,
+    @Param('meetingId') meetingId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    const token = await this.meetingService.createLiveKitToken(
+      meetingId,
+      userId,
+    );
+    return {
+      message: MeetingSuccessMessage.LIVEKIT_TOKEN_CREATED,
+      data: token,
     };
   }
 }

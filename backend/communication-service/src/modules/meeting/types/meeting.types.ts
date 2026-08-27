@@ -44,3 +44,9 @@ export interface MeetingAccessUpdatedPayload {
   meetingId: string;
   allowJoinWithoutApproval: boolean;
 }
+
+export interface MeetingLiveKitTokenResponse {
+  serverUrl: string;
+  token: string;
+  roomName: string;
+}

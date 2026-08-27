@@ -1,11 +1,15 @@
 import {
   BadRequestException,
   ForbiddenException,
+  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Meeting, MeetingParticipant, Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { AccessToken } from 'livekit-server-sdk';
+import { LIVEKIT_CONFIG } from '../../infrastructure/livekit/livekit.constants';
+import type { LiveKitConfig } from '../../infrastructure/livekit/livekit.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChatGateway } from '../chat/chat.gateway';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
@@ -22,6 +26,7 @@ import {
 import {
   MeetingResponse,
   MeetingWithParticipantsAndPendingCount,
+  MeetingLiveKitTokenResponse,
   RequestJoinMeetingResult,
 } from './types/meeting.types';
 
@@ -30,6 +35,8 @@ export class MeetingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
+    @Inject(LIVEKIT_CONFIG)
+    private readonly liveKitConfig: LiveKitConfig,
   ) {}
 
   private buildJoinUrl(joinToken: string) {
@@ -423,5 +430,59 @@ export class MeetingService {
       allowJoinWithoutApproval,
     );
     return this.mapMeetingResponse(meeting, userId);
+  }
+
+  async createLiveKitToken(
+    meetingId: string,
+    userId: string,
+  ): Promise<MeetingLiveKitTokenResponse> {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+      include: {
+        participants: {
+          where: { userId },
+          take: 1,
+        },
+      },
+    });
+
+    if (!meeting) {
+      throw new NotFoundException(MeetingErrorMessage.MEETING_NOT_FOUND);
+    }
+    if (meeting.status !== MeetingStatusValue.LIVE) {
+      throw new BadRequestException(MeetingErrorMessage.MEETING_NOT_LIVE);
+    }
+
+    const participant = meeting.participants[0];
+    if (
+      !participant ||
+      participant.status !== MeetingParticipantStatusValue.JOINED
+    ) {
+      throw new ForbiddenException(
+        MeetingErrorMessage.PARTICIPANT_JOIN_REQUIRED,
+      );
+    }
+
+    const accessToken = new AccessToken(
+      this.liveKitConfig.apiKey,
+      this.liveKitConfig.apiSecret,
+      {
+        identity: userId,
+        ttl: MeetingDefault.LIVEKIT_TOKEN_TTL_SECONDS,
+      },
+    );
+    accessToken.addGrant({
+      room: meeting.roomName,
+      roomJoin: true,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true,
+    });
+
+    return {
+      serverUrl: this.liveKitConfig.url,
+      token: await accessToken.toJwt(),
+      roomName: meeting.roomName,
+    };
   }
 }
