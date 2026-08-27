@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ProjectTemplate, TaskPriority, TaskStatus } from './project.enums';
+import { ProjectTemplate, TaskPriority, TaskStatus, TaskType } from './project.enums';
 
 interface TemplateTask {
   title: string;
@@ -37,10 +37,13 @@ export class ProjectTemplateService {
     if (template === ProjectTemplate.EMPTY) return;
 
     for (const [rootIndex, root] of TEMPLATES[template].entries()) {
+      const parentNumber = await this.allocateTaskNumber(database, projectId);
       const parent = await database.task.create({
         data: {
           id: crypto.randomUUID(),
           projectId,
+          taskNumber: parentNumber,
+          taskType: TaskType.EPIC,
           title: root.title,
           description: 'Sample task from project template.',
           priority: rootIndex === 0 ? TaskPriority.HIGH : TaskPriority.MEDIUM,
@@ -59,11 +62,14 @@ export class ProjectTemplateService {
       });
 
       for (const [childIndex, title] of root.children.entries()) {
+        const childNumber = await this.allocateTaskNumber(database, projectId);
         const child = await database.task.create({
           data: {
             id: crypto.randomUUID(),
             projectId,
             parentTaskId: parent.id,
+            taskNumber: childNumber,
+            taskType: TaskType.SUBTASK,
             title,
             description: 'Sample subtask from project template.',
             priority: TaskPriority.MEDIUM,
@@ -109,5 +115,17 @@ export class ProjectTemplateService {
         rank: String(index + 1).padStart(3, '0'),
       })),
     });
+  }
+
+  private async allocateTaskNumber(
+    database: Prisma.TransactionClient,
+    projectId: string,
+  ): Promise<number> {
+    const project = await database.project.update({
+      where: { id: projectId },
+      data: { nextTaskNumber: { increment: 1 } },
+      select: { nextTaskNumber: true },
+    });
+    return project.nextTaskNumber - 1;
   }
 }

@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiResponse } from '../../common/api-response';
+import { PaginationQueryDto } from '../../common/pagination';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
@@ -22,8 +23,10 @@ export class TaskController {
   async findAll(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Query() query: PaginationQueryDto,
   ) {
-    return ApiResponse.success(await this.tasks.findAll(userId, projectId), 'Tasks loaded successfully');
+    const result = await this.tasks.findAll(userId, projectId, query);
+    return ApiResponse.success(result.items, 'Tasks loaded successfully', result.pagination);
   }
 
   @Get('tasks/:taskId')

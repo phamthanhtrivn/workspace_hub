@@ -13,7 +13,6 @@ import {
   Files,
   FolderKanban,
   LayoutDashboard,
-  Mail,
   MessageSquareText,
   Settings,
   X,
@@ -37,12 +36,6 @@ const menuItems = [
     labelId: "nav.projects",
     descriptionId: "nav.projects.description",
     icon: FolderKanban,
-  },
-  {
-    href: "/invitations",
-    labelId: "nav.invitations",
-    descriptionId: "nav.invitations.description",
-    icon: Mail,
   },
   {
     href: "/tasks",

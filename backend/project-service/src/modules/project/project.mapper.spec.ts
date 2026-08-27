@@ -17,15 +17,21 @@ describe('project mapper', () => {
       dueDate: null,
       archived: false,
       version: BigInt(0),
+      nextTaskNumber: 1,
       createdAt: new Date('2026-01-01T00:00:00.000Z'),
       updatedAt: new Date('2026-01-02T00:00:00.000Z'),
     };
 
-    expect(toProjectResponse(project)).toMatchObject({
+    expect(toProjectResponse(project, {
+      totalTaskCount: 5,
+      completedTaskCount: 2,
+    })).toMatchObject({
       id: 'project-id',
       projectType: ProjectType.SOFTWARE_DEVELOPMENT,
       visibility: ProjectVisibility.MEMBERS_ONLY,
       description: 'Project description',
+      totalTaskCount: 5,
+      completedTaskCount: 2,
     });
   });
 });

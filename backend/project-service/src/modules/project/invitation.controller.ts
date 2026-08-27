@@ -22,6 +22,29 @@ export class InvitationController {
     return ApiResponse.success(await this.invitations.findPending(userId), 'Pending invitations loaded successfully');
   }
 
+  @Get('projects/:projectId/invitations')
+  async findProjectPending(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return ApiResponse.success(
+      await this.invitations.findProjectPending(userId, projectId),
+      'Project invitations loaded successfully',
+    );
+  }
+
+  @Post('projects/:projectId/invitations/:invitationId/resend')
+  async resend(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Param('invitationId', new ParseUUIDPipe()) invitationId: string,
+  ) {
+    return ApiResponse.success(
+      await this.invitations.resend(userId, projectId, invitationId),
+      'Invitation resent successfully',
+    );
+  }
+
   @Post('project-invitations/:invitationId/accept')
   async accept(
     @CurrentUserId() userId: string,

@@ -1,0 +1,33 @@
+services:
+  project-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    image: wh_project_service
+    container_name: wh_project_service
+    expose:
+      - "8082"
+    env_file:
+      - .env.docker
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
+      JWT_ISSUER: ${JWT_ISSUER:-workspace-hub}
+      CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:-http://localhost:3000}
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    command: sh -c "npx prisma generate && npm run start:dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8082/ready >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - wh_network
+    restart: on-failure

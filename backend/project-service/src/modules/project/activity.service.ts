@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TaskPolicyService } from './task-policy.service';
+import { paginate, PaginationQueryDto } from '../../common/pagination';
 
 type ActivityDatabase = PrismaService | Prisma.TransactionClient;
 export type ActivityChange = [field: string, oldValue: unknown, newValue: unknown];
@@ -13,13 +14,18 @@ export class ActivityService {
     private readonly taskPolicy: TaskPolicyService,
   ) {}
 
-  async list(userId: string, taskId: string) {
+  async list(userId: string, taskId: string, query: PaginationQueryDto) {
     await this.taskPolicy.requireReadable(userId, taskId);
-    return this.prisma.taskActivity.findMany({
-      where: { taskId },
-      orderBy: { createdAt: 'desc' },
-      take: 100,
-    });
+    const [total, activities] = await this.prisma.$transaction([
+      this.prisma.taskActivity.count({ where: { taskId } }),
+      this.prisma.taskActivity.findMany({
+        where: { taskId },
+        orderBy: { createdAt: 'desc' },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+    ]);
+    return paginate(activities, total, query);
   }
 
   async record(
