@@ -87,6 +87,7 @@ integration('Project Service database integration', () => {
       data: {
         id: crypto.randomUUID(),
         projectId,
+        taskNumber: 1,
         title: 'Integration task',
         priority: 'MEDIUM',
         status: TaskStatus.TODO,

@@ -8,6 +8,7 @@ import {
   type ProjectMember,
   type ProjectSetting,
 } from "@/features/project/types/project";
+import { fetchAllPages, type PaginationMeta } from "./pagination";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -15,6 +16,7 @@ interface ApiResponse<T> {
   data: T;
   errors?: unknown;
   timestamp?: string;
+  meta?: PaginationMeta | null;
 }
 
 interface ProjectApiModel {
@@ -139,9 +141,14 @@ function normalizeMember(
 }
 
 export async function getProjects(): Promise<Project[]> {
-  const response =
-    await api.get<ApiResponse<ProjectApiModel[]>>("/api/projects");
-  const projects = (unwrap(response) || []).map(normalizeProject);
+  const projectModels = await fetchAllPages(async (page, limit) => {
+    const response = await api.get<ApiResponse<ProjectApiModel[]>>(
+      "/api/projects",
+      { params: { page, limit } },
+    );
+    return { items: unwrap(response) || [], meta: response.data.meta };
+  });
+  const projects = projectModels.map(normalizeProject);
   const profilesById = await getUserProfiles(
     projects.map((project) => project.ownerId),
   );

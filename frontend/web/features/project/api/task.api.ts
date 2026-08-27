@@ -9,11 +9,13 @@ import {
   type TaskLabel,
   type TaskActivity,
 } from "@/features/project/types/project";
+import { fetchAllPages, type PaginationMeta } from "./pagination";
 
 interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  meta?: PaginationMeta | null;
 }
 
 export interface TaskApiModel {
@@ -133,10 +135,14 @@ export function normalizeTask(task: TaskApiModel): Task {
 }
 
 export async function getProjectTasks(projectId: string): Promise<Task[]> {
-  const response = await api.get<ApiResponse<TaskApiModel[]>>(
-    `/api/projects/${projectId}/tasks`,
-  );
-  return (unwrap(response) || []).map(normalizeTask);
+  const taskModels = await fetchAllPages(async (page, limit) => {
+    const response = await api.get<ApiResponse<TaskApiModel[]>>(
+      `/api/projects/${projectId}/tasks`,
+      { params: { page, limit } },
+    );
+    return { items: unwrap(response) || [], meta: response.data.meta };
+  });
+  return taskModels.map(normalizeTask);
 }
 
 export async function getTask(taskId: string): Promise<Task> {
@@ -205,8 +211,11 @@ export async function deleteChecklist(checklistId: string): Promise<void> {
 export async function getTaskActivities(
   taskId: string,
 ): Promise<TaskActivity[]> {
-  const response = await api.get<ApiResponse<TaskActivity[]>>(
-    `/api/tasks/${taskId}/activities`,
-  );
-  return unwrap(response);
+  return fetchAllPages(async (page, limit) => {
+    const response = await api.get<ApiResponse<TaskActivity[]>>(
+      `/api/tasks/${taskId}/activities`,
+      { params: { page, limit } },
+    );
+    return { items: unwrap(response) || [], meta: response.data.meta };
+  });
 }
