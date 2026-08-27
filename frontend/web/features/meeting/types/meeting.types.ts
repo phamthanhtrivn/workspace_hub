@@ -77,6 +77,19 @@ export interface RequestJoinMeetingResponse {
   participant: MeetingParticipant;
 }
 
+export interface MeetingLiveKitTokenResponse {
+  serverUrl: string;
+  token: string;
+  roomName: string;
+}
+
+export interface MeetingDevicePreferences {
+  isCameraEnabled: boolean;
+  isMicEnabled: boolean;
+  cameraDeviceId?: string;
+  micDeviceId?: string;
+}
+
 export interface MeetingSocketPayload {
   meetingId: string;
   userId?: string;

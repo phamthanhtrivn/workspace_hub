@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { socketService } from "@/features/chat/api/chat-socket.service";
 import { useAppSelector } from "@/store/store";
-import { MeetingSocketEvent } from "../api/meeting-socket.events";
-import { meetingKeys } from "../types/meeting.constants";
-import { MeetingSocketPayload } from "../types/meeting.types";
+import { MeetingSocketEvent } from "../../api/meeting-socket.events";
+import { meetingKeys } from "../../types/meeting.constants";
+import { MeetingSocketPayload } from "../../types/meeting.types";
 
 export function useMeetingSocket(meetingId?: string, joinToken?: string) {
   const queryClient = useQueryClient();

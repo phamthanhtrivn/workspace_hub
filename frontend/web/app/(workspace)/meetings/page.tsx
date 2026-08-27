@@ -1,6 +1,6 @@
-import MeetingHub from "@/features/meeting/components/meeting-hub";
+import { MeetingPage } from "@/features/meeting/components/meeting-page";
+
 
 export default function MeetingsPage() {
-  return <MeetingHub />;
+  return <MeetingPage />;
 }
-

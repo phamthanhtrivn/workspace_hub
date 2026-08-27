@@ -1,6 +1,11 @@
-import { meetingRoutes } from "../types/meeting.constants";
+import {
+  MeetingStorageKey,
+  MeetingWindowTarget,
+  meetingRoutes,
+} from "../types/meeting.constants";
 import {
   ApiResponse,
+  MeetingDevicePreferences,
   MeetingParticipantStatus,
   MeetingResponse,
 } from "../types/meeting.types";
@@ -45,4 +50,81 @@ export function canRequestMeetingJoin(meeting?: MeetingResponse | null) {
 
 export function stopPreviewStream(stream: MediaStream | null) {
   stream?.getTracks().forEach((track) => track.stop());
+}
+
+function buildDevicePreferencesStorageKey(joinToken: string) {
+  return `${MeetingStorageKey.DEVICE_PREFERENCES}:${joinToken}`;
+}
+
+export function saveMeetingDevicePreferences(
+  joinToken: string,
+  preferences: MeetingDevicePreferences,
+) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(
+    buildDevicePreferencesStorageKey(joinToken),
+    JSON.stringify(preferences),
+  );
+}
+
+export function getMeetingDevicePreferences(
+  joinToken: string,
+): MeetingDevicePreferences {
+  const defaultPreferences: MeetingDevicePreferences = {
+    isCameraEnabled: true,
+    isMicEnabled: true,
+  };
+
+  if (typeof window === "undefined") {
+    return defaultPreferences;
+  }
+
+  const storedValue = window.localStorage.getItem(
+    buildDevicePreferencesStorageKey(joinToken),
+  );
+  if (!storedValue) {
+    return defaultPreferences;
+  }
+
+  try {
+    const preferences = JSON.parse(storedValue) as Partial<MeetingDevicePreferences>;
+    return {
+      isCameraEnabled:
+        typeof preferences.isCameraEnabled === "boolean"
+          ? preferences.isCameraEnabled
+          : defaultPreferences.isCameraEnabled,
+      isMicEnabled:
+        typeof preferences.isMicEnabled === "boolean"
+          ? preferences.isMicEnabled
+          : defaultPreferences.isMicEnabled,
+      cameraDeviceId:
+        typeof preferences.cameraDeviceId === "string"
+          ? preferences.cameraDeviceId
+          : undefined,
+      micDeviceId:
+        typeof preferences.micDeviceId === "string"
+          ? preferences.micDeviceId
+          : undefined,
+    };
+  } catch {
+    return defaultPreferences;
+  }
+}
+
+export function openMeetingWindow(): Window | null {
+  if (typeof window === "undefined") return null;
+  return window.open("", MeetingWindowTarget.NEW_TAB);
+}
+
+export function navigateMeetingWindow(
+  meetingWindow: Window | null,
+  joinToken: string,
+) {
+  const joinUrl = meetingRoutes.joinUrl(joinToken);
+  if (meetingWindow) {
+    meetingWindow.opener = null;
+    meetingWindow.location.href = joinUrl;
+    return;
+  }
+  window.location.href = joinUrl;
 }

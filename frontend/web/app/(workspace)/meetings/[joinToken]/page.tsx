@@ -1,4 +1,5 @@
-import { MeetingJoinPage } from "@/features/meeting/components/meeting-join-page";
+import { MeetingJoinPage } from "@/features/meeting/components/join/meeting-join-page";
+
 
 export default async function MeetingTokenPage({
   params,

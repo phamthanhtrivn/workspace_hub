@@ -6,6 +6,7 @@ import {
 import {
   ApiResponse,
   CreateInstantMeetingRequest,
+  MeetingLiveKitTokenResponse,
   MeetingParticipant,
   MeetingResponse,
   RequestJoinMeetingResponse,
@@ -72,4 +73,11 @@ export async function updateMeetingAccess(
 ): Promise<ApiResponse<MeetingResponse>> {
   const response = await api.patch(meetingApiRoutes.access(meetingId), payload);
   return normalizeMeetingResponse<MeetingResponse>(response.data);
+}
+
+export async function getMeetingLiveKitToken(
+  meetingId: string,
+): Promise<ApiResponse<MeetingLiveKitTokenResponse>> {
+  const response = await api.post(meetingApiRoutes.liveKitToken(meetingId));
+  return normalizeMeetingResponse<MeetingLiveKitTokenResponse>(response.data);
 }

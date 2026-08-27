@@ -2,18 +2,19 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   approveMeetingJoinRequest,
   createInstantMeeting,
+  getMeetingLiveKitToken,
   getMeetingJoinInfo,
   getMeetingJoinRequests,
   getMeetings,
   rejectMeetingJoinRequest,
   requestJoinMeeting,
   updateMeetingAccess,
-} from "../api/meeting.api";
-import { meetingKeys } from "../types/meeting.constants";
+} from "../../api/meeting.api";
+import { meetingKeys } from "../../types/meeting.constants";
 import {
   CreateInstantMeetingRequest,
   UpdateMeetingAccessRequest,
-} from "../types/meeting.types";
+} from "../../types/meeting.types";
 
 export function useMeetingsQuery() {
   return useQuery({
@@ -39,6 +40,18 @@ export function useMeetingJoinRequestsQuery(
     queryFn: () => getMeetingJoinRequests(meetingId ?? ""),
     enabled: Boolean(meetingId) && enabled,
     refetchInterval: enabled ? 15_000 : false,
+  });
+}
+
+export function useMeetingLiveKitTokenQuery(
+  meetingId: string | undefined,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: meetingKeys.liveKitToken(meetingId ?? ""),
+    queryFn: () => getMeetingLiveKitToken(meetingId ?? ""),
+    enabled: Boolean(meetingId) && enabled,
+    retry: false,
   });
 }
 

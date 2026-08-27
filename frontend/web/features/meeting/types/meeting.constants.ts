@@ -15,6 +15,8 @@ export const meetingApiRoutes = {
   rejectJoinRequest: (meetingId: string, userId: string) =>
     `${MeetingApiRoute.ROOT}/${meetingId}/join-requests/${userId}/reject`,
   access: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/access`,
+  liveKitToken: (meetingId: string) =>
+    `${MeetingApiRoute.ROOT}/${meetingId}/livekit-token`,
 };
 
 export enum MeetingRouteSegment {
@@ -25,6 +27,7 @@ export enum MeetingQueryRoot {
   MEETINGS = "meetings",
   JOIN = "meeting-join",
   REQUESTS = "meeting-join-requests",
+  LIVEKIT_TOKEN = "meeting-livekit-token",
 }
 
 export const meetingKeys = {
@@ -33,7 +36,17 @@ export const meetingKeys = {
     [MeetingQueryRoot.JOIN, joinToken] as const,
   requests: (meetingId: string) =>
     [MeetingQueryRoot.REQUESTS, meetingId] as const,
+  liveKitToken: (meetingId: string) =>
+    [MeetingQueryRoot.LIVEKIT_TOKEN, meetingId] as const,
 };
+
+export enum MeetingStorageKey {
+  DEVICE_PREFERENCES = "workspacehub.meeting.device-preferences",
+}
+
+export enum MeetingWindowTarget {
+  NEW_TAB = "_blank",
+}
 
 export const meetingRoutes = {
   listPath: `/${MeetingRouteSegment.MEETINGS}`,

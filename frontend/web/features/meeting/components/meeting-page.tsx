@@ -3,20 +3,15 @@
 import { useMemo, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
-import { useMeetingClock } from "../hooks/useMeetingClock";
-import { useMeetingSocket } from "../hooks/useMeetingSocket";
-import { useMeetingsQuery } from "../hooks/useMeetingQueries";
-import {
-  MeetingDashboardActionId,
-  meetingDashboardActions,
-} from "../types/meeting.constants";
-import { isMeetingHost } from "../utils/meeting.utils";
+import { useMeetingClock, useMeetingSocket, useMeetingsQuery } from "../hooks";
 import { MeetingSidebar } from "./sidebar/meeting-sidebar";
-import { InstantMeetingModal } from "./modal/instant-meeting-modal";
 import { MeetingHero } from "./common/meeting-hero";
+import { MeetingDashboardActionId, meetingDashboardActions } from "../types";
 import { MeetingActionTile } from "./common/meeting-action-tile";
+import { InstantMeetingModal } from "./instant/instant-meeting-modal";
+import { isMeetingHost } from "../utils/meeting.utils";
 
-export default function MeetingHub() {
+export function MeetingPage() {
   const intl = useAppIntl();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const meetingsQuery = useMeetingsQuery();
@@ -70,6 +65,7 @@ export default function MeetingHub() {
               />
             ))}
           </section>
+
         </div>
       </section>
 
