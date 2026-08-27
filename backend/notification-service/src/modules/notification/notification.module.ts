@@ -6,10 +6,11 @@ import { EmailService } from './email.service';
 import { PushService } from './push.service';
 import { SpaceNotificationEvent } from './events/space-notification.event';
 import { SpaceInvitationNotificationHandler } from './events/space-invitation-notification.service';
+import { CalendarReminderEvent } from './events/calendar-reminder.event';
 
 @Module({
   imports: [],
-  controllers: [NotificationController, SpaceNotificationEvent],
+  controllers: [NotificationController, SpaceNotificationEvent, CalendarReminderEvent],
   providers: [
     NotificationService,
     NotificationGateway,

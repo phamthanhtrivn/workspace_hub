@@ -6,6 +6,7 @@ import {
   Get,
   Headers,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
 } from '@nestjs/common';
@@ -49,7 +50,7 @@ export class CalendarController {
   @Patch(':calendarId')
   async updateCalendar(
     @Headers('x-user-id') userId: string,
-    @Param('calendarId') calendarId: string,
+    @Param('calendarId', new ParseUUIDPipe()) calendarId: string,
     @Body() dto: UpdateCalendarDto,
   ) {
     this.validateUserId(userId);
@@ -68,7 +69,7 @@ export class CalendarController {
   @Delete(':calendarId')
   async deleteCalendar(
     @Headers('x-user-id') userId: string,
-    @Param('calendarId') calendarId: string,
+    @Param('calendarId', new ParseUUIDPipe()) calendarId: string,
   ) {
     this.validateUserId(userId);
     await this.calendarService.deleteCalendar(userId, calendarId);

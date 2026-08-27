@@ -6,6 +6,12 @@ export const CALENDAR_DEFAULTS = {
   DEFAULT_REMINDER_MINUTES: 10,
   MAX_ATTENDEES: 100,
   MAX_REMINDERS: 5,
+  MAX_DOCUMENTS: 20,
+  DEFAULT_PAGE_SIZE: 100,
+  MAX_PAGE_SIZE: 200,
+  MAX_QUERY_RANGE_DAYS: 366,
+  RECURRENCE_GENERATION_MONTHS: 18,
+  MAX_RECURRENCE_OCCURRENCES: 1000,
 } as const;
 
 export const CALENDAR_ERROR_MESSAGES = {
@@ -21,6 +27,11 @@ export const CALENDAR_ERROR_MESSAGES = {
   INVALID_EVENT_RANGE: 'Event endAt must be after startAt',
   TOO_MANY_ATTENDEES: 'Too many attendees',
   TOO_MANY_REMINDERS: 'Too many reminders',
+  INVALID_QUERY_RANGE: 'Both startAt and endAt are required and the range must not exceed 366 days',
+  INVALID_RECURRENCE_RULE: 'Invalid recurrence rule',
+  EXTERNAL_EVENT_READ_ONLY: 'Task-synchronized events must be edited in the project',
+  PROJECT_ACCESS_DENIED: 'You do not have access to this project',
+  DOCUMENT_ACCESS_DENIED: 'You do not have access to one or more documents',
 } as const;
 
 export const CALENDAR_SUCCESS_MESSAGES = {

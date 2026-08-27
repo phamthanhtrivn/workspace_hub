@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  IsNotEmpty,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -15,6 +16,7 @@ import { EventStatus, EventVisibility } from '@prisma/client';
 import { CALENDAR_DEFAULTS } from '../../../common/constants/calendar.constants';
 import { CalendarEventAttendeeDto } from './calendar-event-attendee.dto';
 import { CalendarEventReminderDto } from './calendar-event-reminder.dto';
+import { RecurrenceScope } from '../../../common/enums/calendar.enum';
 
 export class UpdateCalendarEventDto {
   @IsOptional()
@@ -23,6 +25,7 @@ export class UpdateCalendarEventDto {
 
   @IsOptional()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   title?: string;
 
@@ -73,8 +76,13 @@ export class UpdateCalendarEventDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(CALENDAR_DEFAULTS.MAX_DOCUMENTS)
   @IsUUID(undefined, { each: true })
   documentIds?: string[];
+
+  @IsOptional()
+  @IsEnum(RecurrenceScope)
+  recurrenceScope: RecurrenceScope = RecurrenceScope.THIS;
 
   @IsOptional()
   @IsArray()

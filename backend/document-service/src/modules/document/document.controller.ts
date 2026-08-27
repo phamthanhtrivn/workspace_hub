@@ -298,6 +298,24 @@ export class DocumentController {
     };
   }
 
+  @Get(':id/access')
+  async getAccessibleItem(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id') id: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const item = await this.documentService.checkPermission(
+      id,
+      userId,
+      userEmail,
+    );
+    return {
+      message: 'Document access verified',
+      data: { id: item.id, name: item.name, type: item.type },
+    };
+  }
+
   @Get(':id/preview')
   async getPreviewUrl(
     @Headers('x-user-id') userId: string,

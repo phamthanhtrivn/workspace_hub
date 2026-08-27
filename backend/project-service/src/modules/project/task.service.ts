@@ -8,6 +8,7 @@ import { ProjectAccessService } from './project-access.service';
 import { toTaskResponse } from './project.mapper';
 import { ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
+import { TaskCalendarEventService } from './task-calendar-event.service';
 
 const taskWithCount = {
   _count: { select: { children: true } },
@@ -23,6 +24,7 @@ export class TaskService {
     private readonly access: ProjectAccessService,
     private readonly activities: ActivityService,
     private readonly notifications: NotificationEventService,
+    private readonly calendarEvents: TaskCalendarEventService,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
@@ -63,6 +65,7 @@ export class TaskService {
     });
 
     await this.activities.record(task.id, userId, 'created', null, task.title);
+    await this.calendarEvents.publishUpsert(task.id);
 
     return toTaskResponse(task);
   }
@@ -162,7 +165,9 @@ export class TaskService {
           metadata: { taskId: current.id, projectId: current.projectId },
         });
       }
-      return toTaskResponse(await this.findTask(task.id));
+      const updatedTask = await this.findTask(task.id);
+      await this.calendarEvents.publishUpsert(task.id);
+      return toTaskResponse(updatedTask);
     }
     if (dto.status !== undefined || dto.title !== undefined || dto.dueDate !== undefined) {
       for (const assignee of current.assignees) {
@@ -178,6 +183,7 @@ export class TaskService {
         });
       }
     }
+    await this.calendarEvents.publishUpsert(task.id);
     return toTaskResponse(task);
   }
 
@@ -188,6 +194,7 @@ export class TaskService {
       where: { id: taskId },
       data: { archived: true, deletedAt: new Date() },
     });
+    await this.calendarEvents.publishUpsert(taskId);
   }
 
   private async findTask(taskId: string) {

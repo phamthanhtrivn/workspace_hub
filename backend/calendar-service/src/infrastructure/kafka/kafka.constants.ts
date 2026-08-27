@@ -1,5 +1,8 @@
 export const KAFKA_CONFIG = {
   TOPIC: 'user-profile-events',
+  REMINDER_TOPIC: 'calendar-reminder-events',
+  TASK_TOPIC: 'project-task-events',
+  PRODUCER_CLIENT: 'CALENDAR_KAFKA_PRODUCER',
   CLIENT_ID: 'calendar-profile-snapshot-consumer',
   GROUP_ID: 'calendar-profile-snapshot-group',
   BROKER_ENV: 'KAFKA_BROKER',

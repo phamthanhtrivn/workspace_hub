@@ -38,14 +38,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
         let data = res;
         let pagination = undefined;
 
-        if (
-          res &&
-          typeof res === 'object' &&
-          'message' in res &&
-          'data' in res
-        ) {
+        if (res && typeof res === 'object' && 'message' in res) {
           message = res.message;
-          data = res.data;
+          data = 'data' in res ? res.data : null;
           if ('pagination' in res) {
             pagination = res.pagination;
           }

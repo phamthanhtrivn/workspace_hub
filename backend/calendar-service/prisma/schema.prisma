@@ -32,6 +32,19 @@ enum EventVisibility {
   PUBLIC
 }
 
+enum EventSourceType {
+  USER
+  TASK
+}
+
+enum ReminderDeliveryStatus {
+  PENDING
+  PROCESSING
+  DISPATCHED
+  FAILED
+  CANCELLED
+}
+
 model Calendar {
   id          String            @id @default(uuid()) @db.Uuid
   ownerUserId String            @map("owner_user_id") @db.Uuid
@@ -49,6 +62,7 @@ model Calendar {
 
   @@index([ownerUserId])
   @@index([projectId])
+  @@unique([ownerUserId, projectId])
   @@map("calendars")
 }
 
@@ -67,19 +81,30 @@ model CalendarEvent {
   status         EventStatus     @default(CONFIRMED)
   visibility     EventVisibility @default(DEFAULT)
   recurrenceRule String?         @map("recurrence_rule")
+  recurrenceParentId String?     @map("recurrence_parent_id") @db.Uuid
+  originalStartAt DateTime?      @map("original_start_at")
+  recurrenceGeneratedUntil DateTime? @map("recurrence_generated_until")
   exceptionDates DateTime[]      @default([]) @map("exception_dates")
   documentIds    String[]        @default([]) @map("document_ids") @db.Uuid
+  sourceType     EventSourceType @default(USER) @map("source_type")
+  sourceId       String?         @map("source_id") @db.Uuid
   cancelledAt    DateTime?       @map("cancelled_at")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
 
   calendar       Calendar        @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  recurrenceParent CalendarEvent? @relation("CalendarEventOccurrences", fields: [recurrenceParentId], references: [id], onDelete: Cascade)
+  occurrences    CalendarEvent[] @relation("CalendarEventOccurrences")
   attendees      CalendarEventAttendee[]
   reminders      Reminder[]
 
   @@index([calendarId, startAt])
   @@index([createdBy])
   @@index([startAt, endAt])
+  @@index([recurrenceParentId, startAt])
+  @@index([sourceType, sourceId])
+  @@unique([recurrenceParentId, originalStartAt])
+  @@unique([calendarId, sourceType, sourceId])
   @@map("calendar_events")
 }
 
@@ -104,12 +129,19 @@ model Reminder {
   eventId       String         @map("event_id") @db.Uuid
   minutesBefore Int            @map("minutes_before")
   method        ReminderMethod
+  scheduledAt   DateTime       @map("scheduled_at")
+  deliveryStatus ReminderDeliveryStatus @default(PENDING) @map("delivery_status")
+  attemptCount  Int            @default(0) @map("attempt_count")
+  nextAttemptAt DateTime?      @map("next_attempt_at")
+  dispatchedAt  DateTime?      @map("dispatched_at")
+  lastError     String?        @map("last_error")
   createdAt     DateTime       @default(now()) @map("created_at")
   updatedAt     DateTime       @updatedAt @map("updated_at")
 
   event         CalendarEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
+  @@index([deliveryStatus, scheduledAt, nextAttemptAt])
   @@map("reminders")
 }
 

@@ -3,11 +3,13 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  IsNotEmpty,
   MaxLength,
 } from 'class-validator';
 
 export class CreateCalendarDto {
   @IsString()
+  @IsNotEmpty()
   @MaxLength(120)
   name: string;
 

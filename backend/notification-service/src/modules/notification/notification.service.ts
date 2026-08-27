@@ -20,6 +20,7 @@ export class NotificationService {
 
   async createNotification(
     createDto: CreateNotificationDto,
+    options: { sendPush?: boolean } = {},
   ): Promise<Notification> {
     const saved = await this.prisma.notification.create({
       data: {
@@ -43,13 +44,15 @@ export class NotificationService {
       .emit("new_notification", saved);
 
     // Send push notification in the background
-    this.sendPushToUser(saved.recipientId, {
-      title: saved.title,
-      content: saved.content,
-      link: saved.link || undefined,
-      senderName: saved.senderName || undefined,
-      senderAvatar: saved.senderAvatar || undefined,
-    }).catch(err => console.error("Failed to send push notification:", err));
+    if (options.sendPush !== false) {
+      this.sendPushToUser(saved.recipientId, {
+        title: saved.title,
+        content: saved.content,
+        link: saved.link || undefined,
+        senderName: saved.senderName || undefined,
+        senderAvatar: saved.senderAvatar || undefined,
+      }).catch(err => console.error("Failed to send push notification:", err));
+    }
 
     return saved;
   }

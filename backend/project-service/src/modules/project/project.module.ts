@@ -22,6 +22,7 @@ import { ActivityService } from './activity.service';
 import { NotificationEventService } from './notification-event.service';
 import { DependencyController } from './dependency.controller';
 import { DependencyService } from './dependency.service';
+import { TaskCalendarEventService } from './task-calendar-event.service';
 
 @Module({
   controllers: [
@@ -50,6 +51,7 @@ import { DependencyService } from './dependency.service';
     ActivityService,
     NotificationEventService,
     DependencyService,
+    TaskCalendarEventService,
   ],
 })
 export class ProjectModule {}

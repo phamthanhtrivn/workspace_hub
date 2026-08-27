@@ -6,6 +6,7 @@ import {
   Get,
   Headers,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -18,6 +19,8 @@ import { CalendarEventService } from './calendar-event.service';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
 import { UpdateEventResponseDto } from './dto/update-event-response.dto';
+import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
+import { CancelCalendarEventDto } from './dto/cancel-calendar-event.dto';
 
 @Controller('api/calendar/events')
 export class CalendarEventController {
@@ -26,10 +29,15 @@ export class CalendarEventController {
   @Post()
   async createEvent(
     @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string | undefined,
     @Body() dto: CreateCalendarEventDto,
   ) {
     this.validateUserId(userId);
-    const event = await this.calendarEventService.createEvent(userId, dto);
+    const event = await this.calendarEventService.createEvent(
+      userId,
+      userEmail,
+      dto,
+    );
 
     return {
       message: CALENDAR_SUCCESS_MESSAGES.EVENT_CREATED,
@@ -40,29 +48,27 @@ export class CalendarEventController {
   @Get()
   async getEvents(
     @Headers('x-user-id') userId: string,
-    @Query('startAt') startAt?: string,
-    @Query('endAt') endAt?: string,
-    @Query('calendarId') calendarId?: string,
-    @Query('projectId') projectId?: string,
+    @Query() query: GetCalendarEventsQueryDto,
   ) {
     this.validateUserId(userId);
-    const events = await this.calendarEventService.getEvents(userId, {
-      startAt,
-      endAt,
-      calendarId,
-      projectId,
-    });
+    const result = await this.calendarEventService.getEvents(userId, query);
 
     return {
       message: CALENDAR_SUCCESS_MESSAGES.EVENTS_LISTED,
-      data: events,
+      data: result.items,
+      pagination: {
+        totalItems: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: Math.ceil(result.total / result.limit),
+      },
     };
   }
 
   @Get(':eventId')
   async getEvent(
     @Headers('x-user-id') userId: string,
-    @Param('eventId') eventId: string,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
   ) {
     this.validateUserId(userId);
     const event = await this.calendarEventService.getEventById(
@@ -79,12 +85,14 @@ export class CalendarEventController {
   @Patch(':eventId')
   async updateEvent(
     @Headers('x-user-id') userId: string,
-    @Param('eventId') eventId: string,
+    @Headers('x-user-email') userEmail: string | undefined,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
     @Body() dto: UpdateCalendarEventDto,
   ) {
     this.validateUserId(userId);
     const event = await this.calendarEventService.updateEvent(
       userId,
+      userEmail,
       eventId,
       dto,
     );
@@ -98,10 +106,11 @@ export class CalendarEventController {
   @Delete(':eventId')
   async cancelEvent(
     @Headers('x-user-id') userId: string,
-    @Param('eventId') eventId: string,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Query() query: CancelCalendarEventDto,
   ) {
     this.validateUserId(userId);
-    await this.calendarEventService.cancelEvent(userId, eventId);
+    await this.calendarEventService.cancelEvent(userId, eventId, query.scope);
 
     return {
       message: CALENDAR_SUCCESS_MESSAGES.EVENT_CANCELLED,
@@ -111,7 +120,7 @@ export class CalendarEventController {
   @Patch(':eventId/response')
   async updateResponse(
     @Headers('x-user-id') userId: string,
-    @Param('eventId') eventId: string,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
     @Body() dto: UpdateEventResponseDto,
   ) {
     this.validateUserId(userId);

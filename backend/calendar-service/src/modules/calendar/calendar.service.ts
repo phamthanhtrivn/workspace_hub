@@ -1,5 +1,10 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Calendar } from '@prisma/client';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { Calendar, Prisma } from '@prisma/client';
 import {
   CALENDAR_DEFAULTS,
   CALENDAR_ERROR_MESSAGES,
@@ -7,21 +12,39 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCalendarDto } from './dto/create-calendar.dto';
 import { UpdateCalendarDto } from './dto/update-calendar.dto';
+import { ResourceAccessService } from '../../infrastructure/integrations/resource-access.service';
 
 @Injectable()
 export class CalendarService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly resourceAccess: ResourceAccessService,
+  ) {}
 
   async createCalendar(
     userId: string,
     dto: CreateCalendarDto,
   ): Promise<Calendar> {
-    const calendarCount = await this.prisma.calendar.count({
-      where: { ownerUserId: userId },
-    });
-    const shouldBeDefault = dto.isDefault === true || calendarCount === 0;
+    await this.resourceAccess.assertProjectAccess(userId, dto.projectId);
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockUserCalendars(tx, userId);
+      const calendarCount = await tx.calendar.count({
+        where: { ownerUserId: userId },
+      });
+      const shouldBeDefault = dto.isDefault === true || calendarCount === 0;
+
+      if (dto.projectId) {
+        const existing = await tx.calendar.findUnique({
+          where: {
+            ownerUserId_projectId: { ownerUserId: userId, projectId: dto.projectId },
+          },
+        });
+        if (existing) {
+          throw new ConflictException('A calendar for this project already exists');
+        }
+      }
+
       if (shouldBeDefault) {
         await tx.calendar.updateMany({
           where: { ownerUserId: userId },
@@ -59,8 +82,10 @@ export class CalendarService {
     dto: UpdateCalendarDto,
   ): Promise<Calendar> {
     await this.assertCalendarOwner(userId, calendarId);
+    await this.resourceAccess.assertProjectAccess(userId, dto.projectId);
 
     return this.prisma.$transaction(async (tx) => {
+      await this.lockUserCalendars(tx, userId);
       const updateData = { ...dto };
 
       if (dto.isDefault === true) {
@@ -118,6 +143,7 @@ export class CalendarService {
 
   private async ensureDefaultCalendar(userId: string): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
+      await this.lockUserCalendars(tx, userId);
       const defaultCalendar = await tx.calendar.findFirst({
         where: { ownerUserId: userId, isDefault: true },
       });
@@ -148,5 +174,12 @@ export class CalendarService {
         },
       });
     });
+  }
+
+  private async lockUserCalendars(
+    tx: Prisma.TransactionClient,
+    userId: string,
+  ): Promise<void> {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
   }
 }

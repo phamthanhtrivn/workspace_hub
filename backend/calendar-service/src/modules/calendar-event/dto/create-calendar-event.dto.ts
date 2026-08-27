@@ -8,6 +8,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  IsNotEmpty,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -21,6 +22,7 @@ export class CreateCalendarEventDto {
   calendarId: string;
 
   @IsString()
+  @IsNotEmpty()
   @MaxLength(200)
   title: string;
 
@@ -69,6 +71,7 @@ export class CreateCalendarEventDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(CALENDAR_DEFAULTS.MAX_DOCUMENTS)
   @IsUUID(undefined, { each: true })
   documentIds?: string[];
 

@@ -8,10 +8,14 @@ import {
   AttendeeResponseStatus,
   Calendar,
   CalendarEvent,
+  EventSourceType,
   EventStatus,
+  EventVisibility,
   Prisma,
+  ReminderDeliveryStatus,
 } from '@prisma/client';
 import {
+  CALENDAR_DEFAULTS,
   CALENDAR_ERROR_MESSAGES,
 } from '../../common/constants/calendar.constants';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -20,6 +24,10 @@ import { CalendarEventAttendeeDto } from './dto/calendar-event-attendee.dto';
 import { CalendarEventReminderDto } from './dto/calendar-event-reminder.dto';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
+import { CalendarRecurrenceService } from './calendar-recurrence.service';
+import { ResourceAccessService } from '../../infrastructure/integrations/resource-access.service';
+import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
+import { RecurrenceScope } from '../../common/enums/calendar.enum';
 
 type EventWithRelations = CalendarEvent & {
   calendar: Calendar;
@@ -32,11 +40,23 @@ export class CalendarEventService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    private readonly recurrenceService: CalendarRecurrenceService,
+    private readonly resourceAccess: ResourceAccessService,
   ) {}
 
-  async createEvent(userId: string, dto: CreateCalendarEventDto) {
+  async createEvent(
+    userId: string,
+    userEmail: string | undefined,
+    dto: CreateCalendarEventDto,
+  ) {
     const calendar = await this.assertCalendarOwner(userId, dto.calendarId);
     this.assertValidRange(dto.startAt, dto.endAt);
+    this.recurrenceService.assertValidRule(dto.recurrenceRule);
+    await this.resourceAccess.assertDocumentAccess(
+      userId,
+      userEmail,
+      dto.documentIds,
+    );
 
     const attendeeInputs = this.normalizeAttendees(userId, dto.attendees);
     const reminderInputs = this.normalizeReminders(dto.reminders);
@@ -56,6 +76,7 @@ export class CalendarEventService {
           status: dto.status ?? EventStatus.CONFIRMED,
           visibility: dto.visibility,
           recurrenceRule: dto.recurrenceRule ?? null,
+          originalStartAt: dto.recurrenceRule ? new Date(dto.startAt) : null,
           exceptionDates: this.toDateArray(dto.exceptionDates),
           documentIds: dto.documentIds ?? [],
         },
@@ -80,6 +101,10 @@ export class CalendarEventService {
             eventId: createdEvent.id,
             minutesBefore: reminder.minutesBefore,
             method: reminder.method,
+            scheduledAt: this.getReminderScheduledAt(
+              new Date(dto.startAt),
+              reminder.minutesBefore,
+            ),
           })),
         });
       }
@@ -87,23 +112,33 @@ export class CalendarEventService {
       return createdEvent;
     });
 
+    if (dto.recurrenceRule) {
+      await this.recurrenceService.materializeSeriesThrough(
+        event.id,
+        this.recurrenceService.getDefaultGenerationEnd(event.startAt),
+      );
+    }
+
     return this.getEventById(userId, event.id);
   }
 
   async getEvents(
     userId: string,
-    filters: {
-      startAt?: string;
-      endAt?: string;
-      calendarId?: string;
-      projectId?: string;
-    },
+    filters: GetCalendarEventsQueryDto,
   ) {
+    this.assertValidQueryRange(filters.startAt, filters.endAt);
+    if (filters.endAt) {
+      await this.recurrenceService.materializeAllSeriesThrough(
+        new Date(filters.endAt),
+      );
+    }
+
     const where: Prisma.CalendarEventWhereInput = {
       status: { not: EventStatus.CANCELLED },
       OR: [
         { calendar: { ownerUserId: userId } },
         { attendees: { some: { userId } } },
+        { visibility: EventVisibility.PUBLIC },
       ],
     };
 
@@ -125,13 +160,25 @@ export class CalendarEventService {
       };
     }
 
-    const events = await this.prisma.calendarEvent.findMany({
-      where,
-      include: this.eventInclude(),
-      orderBy: { startAt: 'asc' },
-    });
+    const skip = (filters.page - 1) * filters.limit;
+    const [events, total] = await Promise.all([
+      this.prisma.calendarEvent.findMany({
+        where,
+        include: this.eventInclude(),
+        orderBy: { startAt: 'asc' },
+        skip,
+        take: filters.limit,
+      }),
+      this.prisma.calendarEvent.count({ where }),
+    ]);
 
-    return this.userProfileSnapshotService.attachProfilesToEvents(events);
+    return {
+      items:
+        await this.userProfileSnapshotService.attachProfilesToEvents(events),
+      total,
+      page: filters.page,
+      limit: filters.limit,
+    };
   }
 
   async getEventById(userId: string, eventId: string) {
@@ -145,11 +192,19 @@ export class CalendarEventService {
 
   async updateEvent(
     userId: string,
+    userEmail: string | undefined,
     eventId: string,
     dto: UpdateCalendarEventDto,
   ) {
     const event = await this.findEventOrThrow(eventId);
     this.assertCanManageEvent(userId, event);
+    this.assertUserManagedEvent(event);
+    this.recurrenceService.assertValidRule(dto.recurrenceRule);
+    await this.resourceAccess.assertDocumentAccess(
+      userId,
+      userEmail,
+      dto.documentIds,
+    );
 
     const targetCalendar = dto.calendarId
       ? await this.assertCalendarOwner(userId, dto.calendarId)
@@ -157,87 +212,167 @@ export class CalendarEventService {
     const startAt = dto.startAt ?? event.startAt.toISOString();
     const endAt = dto.endAt ?? event.endAt.toISOString();
     this.assertValidRange(startAt, endAt);
+    const scope = dto.recurrenceScope ?? RecurrenceScope.THIS;
+    const series = await this.getSeriesEvents(event);
+    const isRecurring = series.length > 1 || Boolean(event.recurrenceRule);
+    let targets = this.selectScopeEvents(series, event, scope);
+    let resultEventId = eventId;
+    let materializeRootId: string | null = null;
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.calendarEvent.update({
-        where: { id: eventId },
-        data: {
-          calendarId: targetCalendar.id,
-          updatedBy: userId,
-          title: dto.title,
-          description: dto.description,
-          location: dto.location,
-          startAt: dto.startAt ? new Date(dto.startAt) : undefined,
-          endAt: dto.endAt ? new Date(dto.endAt) : undefined,
-          allDay: dto.allDay,
-          color: dto.color,
-          status: dto.status,
-          visibility: dto.visibility,
-          recurrenceRule: dto.recurrenceRule,
-          exceptionDates: dto.exceptionDates
-            ? this.toDateArray(dto.exceptionDates)
-            : undefined,
-          documentIds: dto.documentIds,
-          cancelledAt:
-            dto.status === EventStatus.CANCELLED
-              ? new Date()
-              : dto.status
-                ? null
-                : undefined,
-        },
-      });
-
-      if (dto.attendees) {
-        const attendeeInputs = this.normalizeAttendees(
-          event.createdBy,
-          dto.attendees,
+      if (
+        isRecurring &&
+        scope === RecurrenceScope.THIS_AND_FOLLOWING &&
+        event.recurrenceParentId
+      ) {
+        const originalRoot = series.find(
+          (candidate) => candidate.id === event.recurrenceParentId,
         );
-        await tx.calendarEventAttendee.deleteMany({
-          where: { eventId },
-        });
-        await tx.calendarEventAttendee.createMany({
-          data: attendeeInputs.map((attendee) => ({
-            eventId,
-            userId: attendee.userId,
-            optional: attendee.optional ?? false,
-            responseStatus:
-              attendee.userId === event.createdBy
-                ? AttendeeResponseStatus.ACCEPTED
-                : AttendeeResponseStatus.NEEDS_ACTION,
-          })),
-          skipDuplicates: true,
-        });
+        if (originalRoot?.recurrenceRule) {
+          const nextRule = this.recurrenceService.remainingRule(
+            originalRoot.recurrenceRule,
+            originalRoot.startAt,
+            event.startAt,
+          );
+          await tx.calendarEvent.update({
+            where: { id: originalRoot.id },
+            data: {
+              recurrenceRule: this.recurrenceService.truncateBefore(
+                originalRoot.recurrenceRule,
+                event.startAt,
+              ),
+              recurrenceGeneratedUntil: event.startAt,
+            },
+          });
+          await tx.calendarEvent.update({
+            where: { id: event.id },
+            data: {
+              recurrenceParentId: null,
+              originalStartAt: event.startAt,
+              recurrenceRule: dto.recurrenceRule ?? nextRule,
+              recurrenceGeneratedUntil: null,
+            },
+          });
+          await tx.calendarEvent.updateMany({
+            where: {
+              id: { in: targets.map((target) => target.id), not: event.id },
+            },
+            data: {
+              recurrenceParentId: event.id,
+              recurrenceRule: dto.recurrenceRule ?? nextRule,
+            },
+          });
+          materializeRootId = event.id;
+        }
       }
 
-      if (dto.reminders) {
-        const reminderInputs = this.normalizeReminders(dto.reminders);
-        await tx.reminder.deleteMany({ where: { eventId } });
-        if (reminderInputs.length > 0) {
-          await tx.reminder.createMany({
-            data: reminderInputs.map((reminder) => ({
-              eventId,
-              minutesBefore: reminder.minutesBefore,
-              method: reminder.method,
-            })),
-          });
-        }
+      const regenerate =
+        isRecurring &&
+        dto.recurrenceRule !== undefined &&
+        scope !== RecurrenceScope.THIS;
+      if (regenerate) {
+        const rootId =
+          scope === RecurrenceScope.ALL
+            ? (event.recurrenceParentId ?? event.id)
+            : event.id;
+        await tx.calendarEvent.deleteMany({
+          where: { recurrenceParentId: rootId },
+        });
+        const rootTarget = series.find((target) => target.id === rootId) ?? event;
+        targets = [rootTarget];
+        resultEventId = rootId;
+        materializeRootId = rootId;
+      }
+
+      const startDelta = dto.startAt
+        ? new Date(dto.startAt).getTime() - event.startAt.getTime()
+        : 0;
+      const endDelta = dto.endAt
+        ? new Date(dto.endAt).getTime() - event.endAt.getTime()
+        : startDelta;
+
+      for (const target of targets) {
+        const nextStartAt = new Date(target.startAt.getTime() + startDelta);
+        const nextEndAt = new Date(target.endAt.getTime() + endDelta);
+        await tx.calendarEvent.update({
+          where: { id: target.id },
+          data: {
+            calendarId: targetCalendar.id,
+            updatedBy: userId,
+            title: dto.title,
+            description: dto.description,
+            location: dto.location,
+            startAt: dto.startAt ? nextStartAt : undefined,
+            endAt: dto.endAt ? nextEndAt : undefined,
+            originalStartAt:
+              target.originalStartAt && dto.startAt ? nextStartAt : undefined,
+            allDay: dto.allDay,
+            color: dto.color,
+            status: dto.status,
+            visibility: dto.visibility,
+            recurrenceRule:
+              isRecurring && scope === RecurrenceScope.THIS
+                ? undefined
+                : dto.recurrenceRule,
+            recurrenceGeneratedUntil:
+              dto.recurrenceRule !== undefined ? null : undefined,
+            exceptionDates: dto.exceptionDates
+              ? this.toDateArray(dto.exceptionDates)
+              : undefined,
+            documentIds: dto.documentIds,
+            cancelledAt:
+              dto.status === EventStatus.CANCELLED
+                ? new Date()
+                : dto.status
+                  ? null
+                  : undefined,
+          },
+        });
+
+        await this.replaceEventRelations(
+          tx,
+          target,
+          nextStartAt,
+          dto,
+        );
       }
     });
 
-    return this.getEventById(userId, eventId);
+    if (materializeRootId) {
+      await this.recurrenceService.materializeSeriesThrough(
+        materializeRootId,
+        this.recurrenceService.getDefaultGenerationEnd(new Date(startAt)),
+      );
+    }
+
+    return this.getEventById(userId, resultEventId);
   }
 
-  async cancelEvent(userId: string, eventId: string): Promise<void> {
+  async cancelEvent(
+    userId: string,
+    eventId: string,
+    scope: RecurrenceScope = RecurrenceScope.THIS,
+  ): Promise<void> {
     const event = await this.findEventOrThrow(eventId);
     this.assertCanManageEvent(userId, event);
+    this.assertUserManagedEvent(event);
+    const series = await this.getSeriesEvents(event);
+    const targets = this.selectScopeEvents(series, event, scope);
+    const targetIds = targets.map((target) => target.id);
 
-    await this.prisma.calendarEvent.update({
-      where: { id: eventId },
-      data: {
-        status: EventStatus.CANCELLED,
-        updatedBy: userId,
-        cancelledAt: new Date(),
-      },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.calendarEvent.updateMany({
+        where: { id: { in: targetIds } },
+        data: {
+          status: EventStatus.CANCELLED,
+          updatedBy: userId,
+          cancelledAt: new Date(),
+        },
+      });
+      await tx.reminder.updateMany({
+        where: { eventId: { in: targetIds } },
+        data: { deliveryStatus: ReminderDeliveryStatus.CANCELLED },
+      });
     });
   }
 
@@ -246,7 +381,10 @@ export class CalendarEventService {
     eventId: string,
     responseStatus: AttendeeResponseStatus,
   ) {
-    await this.findEventOrThrow(eventId);
+    const event = await this.findEventOrThrow(eventId);
+    if (event.status === EventStatus.CANCELLED) {
+      throw new BadRequestException('Cannot respond to a cancelled event');
+    }
 
     const attendee = await this.prisma.calendarEventAttendee.findUnique({
       where: {
@@ -307,7 +445,9 @@ export class CalendarEventService {
       (attendee) => attendee.userId === userId,
     );
 
-    if (!isCalendarOwner && !isAttendee) {
+    const isPublic = event.visibility === EventVisibility.PUBLIC;
+
+    if (!isCalendarOwner && !isAttendee && !isPublic) {
       throw new ForbiddenException(CALENDAR_ERROR_MESSAGES.FORBIDDEN_EVENT);
     }
   }
@@ -323,10 +463,134 @@ export class CalendarEventService {
     }
   }
 
+  private assertUserManagedEvent(event: EventWithRelations) {
+    if (event.sourceType !== EventSourceType.USER) {
+      throw new ForbiddenException(
+        CALENDAR_ERROR_MESSAGES.EXTERNAL_EVENT_READ_ONLY,
+      );
+    }
+  }
+
   private assertValidRange(startAt: string, endAt: string) {
     if (new Date(endAt) <= new Date(startAt)) {
       throw new BadRequestException(CALENDAR_ERROR_MESSAGES.INVALID_EVENT_RANGE);
     }
+  }
+
+  private assertValidQueryRange(startAt?: string, endAt?: string) {
+    if (!startAt && !endAt) return;
+    if (!startAt || !endAt) {
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.INVALID_QUERY_RANGE,
+      );
+    }
+
+    const start = new Date(startAt);
+    const end = new Date(endAt);
+    const maximumRange =
+      CALENDAR_DEFAULTS.MAX_QUERY_RANGE_DAYS * 24 * 60 * 60 * 1000;
+    if (end <= start || end.getTime() - start.getTime() > maximumRange) {
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.INVALID_QUERY_RANGE,
+      );
+    }
+  }
+
+  private async getSeriesEvents(
+    event: EventWithRelations,
+  ): Promise<EventWithRelations[]> {
+    const rootId = event.recurrenceParentId ?? event.id;
+    if (!event.recurrenceParentId && !event.recurrenceRule) return [event];
+
+    return this.prisma.calendarEvent.findMany({
+      where: { OR: [{ id: rootId }, { recurrenceParentId: rootId }] },
+      include: this.eventInclude(),
+      orderBy: { startAt: 'asc' },
+    });
+  }
+
+  private selectScopeEvents(
+    series: EventWithRelations[],
+    selected: EventWithRelations,
+    scope: RecurrenceScope,
+  ): EventWithRelations[] {
+    if (scope === RecurrenceScope.ALL) return series;
+    if (scope === RecurrenceScope.THIS_AND_FOLLOWING) {
+      return series.filter((event) => event.startAt >= selected.startAt);
+    }
+    return [selected];
+  }
+
+  private async replaceEventRelations(
+    tx: Prisma.TransactionClient,
+    target: EventWithRelations,
+    nextStartAt: Date,
+    dto: UpdateCalendarEventDto,
+  ): Promise<void> {
+    if (dto.attendees) {
+      const attendeeInputs = this.normalizeAttendees(
+        target.createdBy,
+        dto.attendees,
+      );
+      await tx.calendarEventAttendee.deleteMany({
+        where: { eventId: target.id },
+      });
+      await tx.calendarEventAttendee.createMany({
+        data: attendeeInputs.map((attendee) => ({
+          eventId: target.id,
+          userId: attendee.userId,
+          optional: attendee.optional ?? false,
+          responseStatus:
+            attendee.userId === target.createdBy
+              ? AttendeeResponseStatus.ACCEPTED
+              : AttendeeResponseStatus.NEEDS_ACTION,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    if (dto.reminders) {
+      const reminderInputs = this.normalizeReminders(dto.reminders);
+      await tx.reminder.deleteMany({ where: { eventId: target.id } });
+      if (reminderInputs.length > 0) {
+        await tx.reminder.createMany({
+          data: reminderInputs.map((reminder) => ({
+            eventId: target.id,
+            minutesBefore: reminder.minutesBefore,
+            method: reminder.method,
+            scheduledAt: this.getReminderScheduledAt(
+              nextStartAt,
+              reminder.minutesBefore,
+            ),
+            deliveryStatus: ReminderDeliveryStatus.PENDING,
+          })),
+        });
+      }
+    } else if (nextStartAt.getTime() !== target.startAt.getTime()) {
+      for (const reminder of target.reminders as Array<{
+        id: string;
+        minutesBefore: number;
+      }>) {
+        await tx.reminder.update({
+          where: { id: reminder.id },
+          data: {
+            scheduledAt: this.getReminderScheduledAt(
+              nextStartAt,
+              reminder.minutesBefore,
+            ),
+            deliveryStatus: ReminderDeliveryStatus.PENDING,
+            attemptCount: 0,
+            nextAttemptAt: null,
+            dispatchedAt: null,
+            lastError: null,
+          },
+        });
+      }
+    }
+  }
+
+  private getReminderScheduledAt(startAt: Date, minutesBefore: number): Date {
+    return new Date(startAt.getTime() - minutesBefore * 60_000);
   }
 
   private normalizeAttendees(

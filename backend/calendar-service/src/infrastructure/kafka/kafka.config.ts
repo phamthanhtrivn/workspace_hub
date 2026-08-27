@@ -1,13 +1,16 @@
 import { KafkaOptions, Transport } from '@nestjs/microservices';
 import { KAFKA_CONFIG } from './kafka.constants';
 
-export const getKafkaConfig = (): KafkaOptions => {
-  const kafkaBrokers = (
+export const getKafkaBrokers = (): string[] =>
+  (
     process.env[KAFKA_CONFIG.BROKER_ENV] ?? KAFKA_CONFIG.DEFAULT_BROKER
   )
     .split(',')
     .map((broker) => broker.trim())
     .filter(Boolean);
+
+export const getKafkaConfig = (): KafkaOptions => {
+  const kafkaBrokers = getKafkaBrokers();
 
   return {
     transport: Transport.KAFKA,
