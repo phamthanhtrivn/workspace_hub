@@ -3,18 +3,18 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
-} from "@nestjs/common";
+} from '@nestjs/common';
 import {
   InvitationStatus,
   ProjectMemberStatus,
   ProjectRole,
-} from "./project.enums";
-import { PrismaService } from "../../common/prisma/prisma.service";
-import { CreateInvitationDto } from "./dto/create-invitation.dto";
-import { ProjectAccessService } from "./project-access.service";
-import { toInvitationResponse } from "./project.mapper";
-import { isUniqueConstraintError } from "../../common/prisma/prisma-errors";
-import { NotificationOutboxService } from "./notification-outbox.service";
+} from './project.enums';
+import { PrismaService } from '../../common/prisma/prisma.service';
+import { CreateInvitationDto } from './dto/create-invitation.dto';
+import { ProjectAccessService } from './project-access.service';
+import { toInvitationResponse } from './project.mapper';
+import { isUniqueConstraintError } from '../../common/prisma/prisma-errors';
+import { NotificationOutboxService } from './notification-outbox.service';
 
 const EXPIRY_DAYS = 7;
 
@@ -29,10 +29,10 @@ export class InvitationService {
   async create(userId: string, projectId: string, dto: CreateInvitationDto) {
     await this.access.requireCanInvite(userId, projectId);
     if (userId === dto.invitedUserId) {
-      throw new ConflictException("You cannot invite yourself");
+      throw new ConflictException('You cannot invite yourself');
     }
     if (await this.access.isActiveMember(projectId, dto.invitedUserId)) {
-      throw new ConflictException("User is already a project member");
+      throw new ConflictException('User is already a project member');
     }
 
     const pending = await this.prisma.projectInvitation.findFirst({
@@ -44,7 +44,7 @@ export class InvitationService {
     });
     if (pending) {
       throw new ConflictException(
-        "A pending invitation already exists for this user",
+        'A pending invitation already exists for this user',
       );
     }
 
@@ -80,8 +80,8 @@ export class InvitationService {
           {
             recipientId: dto.invitedUserId,
             senderId: userId,
-            type: "PROJECT_INVITATION",
-            title: "Lời mời tham gia dự án",
+            type: 'PROJECT_INVITATION',
+            title: 'Lời mời tham gia dự án',
             content: `Bạn được mời tham gia dự án ${created.project.name}`,
             metadata: {
               invitationId: created.id,
@@ -98,7 +98,7 @@ export class InvitationService {
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         throw new ConflictException(
-          "A pending invitation already exists for this user",
+          'A pending invitation already exists for this user',
         );
       }
       throw error;
@@ -120,9 +120,109 @@ export class InvitationService {
     const invitations = await this.prisma.projectInvitation.findMany({
       where: { invitedUserId: userId, status: InvitationStatus.PENDING },
       include: { project: { select: { name: true } } },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
     return invitations.map(toInvitationResponse);
+  }
+
+  async findProjectPending(userId: string, projectId: string) {
+    await this.access.requireCanInvite(userId, projectId);
+    const now = new Date();
+    await this.prisma.projectInvitation.updateMany({
+      where: {
+        projectId,
+        status: InvitationStatus.PENDING,
+        expiresAt: { lt: now },
+      },
+      data: { status: InvitationStatus.EXPIRED, respondedAt: now },
+    });
+    const invitations = await this.prisma.projectInvitation.findMany({
+      where: { projectId, status: InvitationStatus.PENDING },
+      include: { project: { select: { name: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+    return invitations.map(toInvitationResponse);
+  }
+
+  async resend(userId: string, projectId: string, invitationId: string) {
+    await this.access.requireCanInvite(userId, projectId);
+    const invitation = await this.prisma.projectInvitation.findFirst({
+      where: { id: invitationId, projectId },
+      include: { project: { select: { name: true } } },
+    });
+    if (!invitation) throw new NotFoundException('Invitation not found');
+    await this.ensurePendingAndPersistExpiry(
+      invitation.id,
+      invitation.status,
+      invitation.expiresAt,
+    );
+    if (await this.access.isActiveMember(projectId, invitation.invitedUserId)) {
+      throw new ConflictException('User is already a project member');
+    }
+
+    const now = new Date();
+    const resent = await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.projectInvitation.updateMany({
+        where: { id: invitationId, status: InvitationStatus.PENDING },
+        data: { status: InvitationStatus.CANCELLED, respondedAt: now },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('Invitation has already been processed');
+      }
+
+      await this.notifications.enqueueProjectInvitationStatus(
+        invitationId,
+        invitation.invitedUserId,
+        InvitationStatus.CANCELLED,
+        tx,
+      );
+
+      const created = await tx.projectInvitation.create({
+        data: {
+          id: crypto.randomUUID(),
+          projectId,
+          invitedUserId: invitation.invitedUserId,
+          invitedBy: userId,
+          status: InvitationStatus.PENDING,
+          createdAt: now,
+          expiresAt: new Date(
+            now.getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000,
+          ),
+        },
+        include: { project: { select: { name: true } } },
+      });
+
+      await this.notifications.enqueueInvitationEmail(
+        {
+          invitationId: created.id,
+          projectName: created.project.name,
+          invitedUserId: created.invitedUserId,
+          inviterId: userId,
+          expiresAt: created.expiresAt,
+        },
+        tx,
+      );
+      await this.notifications.enqueueNotification(
+        {
+          recipientId: created.invitedUserId,
+          senderId: userId,
+          type: 'PROJECT_INVITATION',
+          title: 'Lời mời tham gia dự án',
+          content: `Bạn được mời tham gia dự án ${created.project.name}`,
+          metadata: {
+            invitationId: created.id,
+            projectId,
+            projectName: created.project.name,
+            status: InvitationStatus.PENDING,
+            expiresAt: created.expiresAt?.toISOString() ?? null,
+          },
+        },
+        tx,
+      );
+      return created;
+    });
+
+    return toInvitationResponse(resent);
   }
 
   async accept(userId: string, invitationId: string) {
@@ -140,7 +240,7 @@ export class InvitationService {
         where: { id: invitationId },
         include: { project: { select: { name: true } } },
       });
-      if (!invitation) throw new NotFoundException("Invitation not found");
+      if (!invitation) throw new NotFoundException('Invitation not found');
       this.requireInvitee(userId, invitation.invitedUserId);
       this.ensurePending(invitation.status, invitation.expiresAt);
 
@@ -149,7 +249,7 @@ export class InvitationService {
         data: { status: InvitationStatus.ACCEPTED, respondedAt: now },
       });
       if (claimed.count !== 1)
-        throw new ConflictException("Invitation has already been processed");
+        throw new ConflictException('Invitation has already been processed');
 
       const existing = await tx.projectMember.findUnique({
         where: {
@@ -160,7 +260,7 @@ export class InvitationService {
         },
       });
       if (existing?.status === ProjectMemberStatus.ACTIVE) {
-        throw new ConflictException("You are already a project member");
+        throw new ConflictException('You are already a project member');
       }
 
       if (existing) {
@@ -169,6 +269,12 @@ export class InvitationService {
           data: {
             role: ProjectRole.MEMBER,
             status: ProjectMemberStatus.ACTIVE,
+            canCreateTask: false,
+            canEditOwnTask: false,
+            canEditOthersTask: false,
+            canManageSprints: false,
+            canManageMembers: false,
+            canManageLabels: false,
             leftAt: null,
             updatedAt: now,
           },
@@ -218,7 +324,7 @@ export class InvitationService {
         data: { status: InvitationStatus.DECLINED, respondedAt: new Date() },
       });
       if (changed.count !== 1)
-        throw new ConflictException("Invitation has already been processed");
+        throw new ConflictException('Invitation has already been processed');
       await this.notifications.enqueueProjectInvitationStatus(
         invitationId,
         userId,
@@ -239,18 +345,27 @@ export class InvitationService {
     const invitation = await this.prisma.projectInvitation.findFirst({
       where: { id: invitationId, projectId },
     });
-    if (!invitation) throw new NotFoundException("Invitation not found");
+    if (!invitation) throw new NotFoundException('Invitation not found');
     await this.ensurePendingAndPersistExpiry(
       invitation.id,
       invitation.status,
       invitation.expiresAt,
     );
-    const changed = await this.prisma.projectInvitation.updateMany({
-      where: { id: invitationId, status: InvitationStatus.PENDING },
-      data: { status: InvitationStatus.CANCELLED, respondedAt: new Date() },
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.projectInvitation.updateMany({
+        where: { id: invitationId, status: InvitationStatus.PENDING },
+        data: { status: InvitationStatus.CANCELLED, respondedAt: new Date() },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('Invitation has already been processed');
+      }
+      await this.notifications.enqueueProjectInvitationStatus(
+        invitationId,
+        invitation.invitedUserId,
+        InvitationStatus.CANCELLED,
+        tx,
+      );
     });
-    if (changed.count !== 1)
-      throw new ConflictException("Invitation has already been processed");
   }
 
   private async findInvitation(id: string) {
@@ -258,20 +373,20 @@ export class InvitationService {
       where: { id },
       include: { project: { select: { name: true } } },
     });
-    if (!invitation) throw new NotFoundException("Invitation not found");
+    if (!invitation) throw new NotFoundException('Invitation not found');
     return invitation;
   }
 
   private requireInvitee(userId: string, invitedUserId: string): void {
     if (userId !== invitedUserId)
-      throw new ForbiddenException("You cannot manage this invitation");
+      throw new ForbiddenException('You cannot manage this invitation');
   }
 
   private ensurePending(status: string, expiresAt: Date | null): void {
     if (status !== InvitationStatus.PENDING)
-      throw new ConflictException("Invitation has already been processed");
+      throw new ConflictException('Invitation has already been processed');
     if (expiresAt && expiresAt < new Date())
-      throw new ConflictException("Invitation has expired");
+      throw new ConflictException('Invitation has expired');
   }
 
   private async ensurePendingAndPersistExpiry(
@@ -280,7 +395,7 @@ export class InvitationService {
     expiresAt: Date | null,
   ): Promise<void> {
     if (status !== InvitationStatus.PENDING) {
-      throw new ConflictException("Invitation has already been processed");
+      throw new ConflictException('Invitation has already been processed');
     }
     const now = new Date();
     if (!expiresAt || expiresAt >= now) return;
@@ -288,6 +403,6 @@ export class InvitationService {
       where: { id: invitationId, status: InvitationStatus.PENDING },
       data: { status: InvitationStatus.EXPIRED, respondedAt: now },
     });
-    throw new ConflictException("Invitation has expired");
+    throw new ConflictException('Invitation has expired');
   }
 }

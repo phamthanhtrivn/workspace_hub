@@ -1,4 +1,12 @@
-import { Prisma, Project, ProjectInvitation, ProjectMember, ProjectSetting, Task, TaskComment } from '@prisma/client';
+import {
+  Prisma,
+  Project,
+  ProjectInvitation,
+  ProjectMember,
+  ProjectSetting,
+  Task,
+  TaskComment,
+} from '@prisma/client';
 
 type ProjectWithOptionalSetting = Project & { setting?: ProjectSetting | null };
 
@@ -47,6 +55,12 @@ export function toMemberResponse(member: ProjectMember) {
     userId: member.userId,
     role: member.role,
     status: member.status,
+    canCreateTask: member.canCreateTask,
+    canEditOwnTask: member.canEditOwnTask,
+    canEditOthersTask: member.canEditOthersTask,
+    canManageSprints: member.canManageSprints,
+    canManageMembers: member.canManageMembers,
+    canManageLabels: member.canManageLabels,
     joinedAt: member.joinedAt,
     leftAt: member.leftAt,
     updatedAt: member.updatedAt,
@@ -85,7 +99,10 @@ export function toTaskResponse(task: TaskWithCount | Task) {
     updatedAt: task.updatedAt,
     checklists: 'checklists' in task ? task.checklists : [],
     assignees: 'assignees' in task ? task.assignees : [],
-    labels: 'labelMappings' in task ? task.labelMappings.map((mapping) => mapping.label) : [],
+    labels:
+      'labelMappings' in task
+        ? task.labelMappings.map((mapping) => mapping.label)
+        : [],
   };
 }
 

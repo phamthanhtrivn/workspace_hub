@@ -36,6 +36,6 @@ export interface NotificationGateway {
   updateProjectInvitationStatus(
     invitationId: string,
     recipientId: string,
-    status: "ACCEPTED" | "DECLINED",
+    status: "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED",
   ): Promise<void>;
 }

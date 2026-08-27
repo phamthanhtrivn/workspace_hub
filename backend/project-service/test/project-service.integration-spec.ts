@@ -36,11 +36,13 @@ integration('Project Service database integration', () => {
 
   afterAll(() => prisma.$disconnect());
 
-  async function createProject(options: {
-    projectType?: ProjectType;
-    visibility?: ProjectVisibility;
-    allowOwnEdit?: boolean;
-  } = {}) {
+  async function createProject(
+    options: {
+      projectType?: ProjectType;
+      visibility?: ProjectVisibility;
+      allowOwnEdit?: boolean;
+    } = {},
+  ) {
     const now = new Date();
     const ownerId = crypto.randomUUID();
     const project = await prisma.project.create({
@@ -97,28 +99,59 @@ integration('Project Service database integration', () => {
   }
 
   it('enforces the project permission matrix', async () => {
-    const { project, ownerId } = await createProject({ visibility: ProjectVisibility.PRIVATE });
-    const adminId = crypto.randomUUID();
+    const { project, ownerId } = await createProject({
+      visibility: ProjectVisibility.PRIVATE,
+    });
+    const delegatedMemberId = crypto.randomUUID();
     const memberId = crypto.randomUUID();
     const now = new Date();
-    await prisma.projectMember.createMany({ data: [
-      {
-        id: crypto.randomUUID(), projectId: project.id, userId: adminId,
-        role: ProjectRole.ADMIN, status: ProjectMemberStatus.ACTIVE, joinedAt: now, updatedAt: now,
-      },
-      {
-        id: crypto.randomUUID(), projectId: project.id, userId: memberId,
-        role: ProjectRole.MEMBER, status: ProjectMemberStatus.ACTIVE, joinedAt: now, updatedAt: now,
-      },
-    ] });
+    await prisma.projectMember.createMany({
+      data: [
+        {
+          id: crypto.randomUUID(),
+          projectId: project.id,
+          userId: delegatedMemberId,
+          role: ProjectRole.MEMBER,
+          status: ProjectMemberStatus.ACTIVE,
+          canManageSprints: true,
+          joinedAt: now,
+          updatedAt: now,
+        },
+        {
+          id: crypto.randomUUID(),
+          projectId: project.id,
+          userId: memberId,
+          role: ProjectRole.MEMBER,
+          status: ProjectMemberStatus.ACTIVE,
+          canEditOwnTask: true,
+          joinedAt: now,
+          updatedAt: now,
+        },
+      ],
+    });
     const access = new ProjectAccessService(database);
 
-    await expect(access.requireManager(ownerId, project.id)).resolves.toMatchObject({ id: project.id });
-    await expect(access.requireManager(adminId, project.id)).resolves.toMatchObject({ id: project.id });
-    await expect(access.requireManager(memberId, project.id)).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(access.requireReadAccess(crypto.randomUUID(), project.id)).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(access.requireCanEditTask(memberId, project.id, memberId)).resolves.toMatchObject({ id: project.id });
-    await expect(access.requireCanEditTask(memberId, project.id, ownerId)).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      access.requireOwner(ownerId, project.id),
+    ).resolves.toMatchObject({ id: project.id });
+    await expect(
+      access.requireOwner(delegatedMemberId, project.id),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      access.requireCanManageSprints(delegatedMemberId, project.id),
+    ).resolves.toMatchObject({ id: project.id });
+    await expect(
+      access.requireCanManageSprints(memberId, project.id),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      access.requireReadAccess(crypto.randomUUID(), project.id),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      access.requireCanEditTask(memberId, project.id, memberId),
+    ).resolves.toMatchObject({ id: project.id });
+    await expect(
+      access.requireCanEditTask(memberId, project.id, ownerId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('rolls back task creation when activity recording fails', async () => {
@@ -130,12 +163,19 @@ integration('Project Service database integration', () => {
       record: jest.fn().mockRejectedValue(new Error('activity insert failed')),
     } as unknown as ActivityService;
     const notifications = {} as NotificationOutboxService;
-    const service = new TaskService(database, access, activities, notifications);
-
-    await expect(service.create(ownerId, project.id, { title: 'Rollback me' })).rejects.toThrow(
-      'activity insert failed',
+    const service = new TaskService(
+      database,
+      access,
+      activities,
+      notifications,
     );
-    await expect(prisma.task.count({ where: { projectId: project.id } })).resolves.toBe(0);
+
+    await expect(
+      service.create(ownerId, project.id, { title: 'Rollback me' }),
+    ).rejects.toThrow('activity insert failed');
+    await expect(
+      prisma.task.count({ where: { projectId: project.id } }),
+    ).resolves.toBe(0);
   });
 
   it('accepts an invitation only once under concurrent requests', async () => {
@@ -163,41 +203,75 @@ integration('Project Service database integration', () => {
       service.accept(inviteeId, invitation.id),
     ]);
 
-    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
-    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
-    await expect(prisma.projectMember.count({
-      where: { projectId: project.id, userId: inviteeId, status: ProjectMemberStatus.ACTIVE },
-    })).resolves.toBe(1);
+    expect(
+      results.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
+    await expect(
+      prisma.projectMember.count({
+        where: {
+          projectId: project.id,
+          userId: inviteeId,
+          status: ProjectMemberStatus.ACTIVE,
+        },
+      }),
+    ).resolves.toBe(1);
   });
 
   it('allows only one active sprint under concurrent starts', async () => {
-    const { project, ownerId } = await createProject({ projectType: ProjectType.SOFTWARE_DEVELOPMENT });
+    const { project, ownerId } = await createProject({
+      projectType: ProjectType.SOFTWARE_DEVELOPMENT,
+    });
     const now = new Date();
-    const sprints = await Promise.all(['Sprint A', 'Sprint B'].map((name) => prisma.sprint.create({
-      data: {
-        id: crypto.randomUUID(), projectId: project.id, name, status: SprintStatus.PLANNED,
-        createdBy: ownerId, createdAt: now, updatedAt: now,
-      },
-    })));
+    const sprints = await Promise.all(
+      ['Sprint A', 'Sprint B'].map((name) =>
+        prisma.sprint.create({
+          data: {
+            id: crypto.randomUUID(),
+            projectId: project.id,
+            name,
+            status: SprintStatus.PLANNED,
+            createdBy: ownerId,
+            createdAt: now,
+            updatedAt: now,
+          },
+        }),
+      ),
+    );
     const access = {
-      requireManager: jest.fn().mockResolvedValue(project),
+      requireCanManageSprints: jest.fn().mockResolvedValue(project),
     } as unknown as ProjectAccessService;
     const service = new SprintService(database, access);
 
-    const results = await Promise.allSettled(sprints.map((sprint) => service.start(ownerId, sprint.id)));
+    const results = await Promise.allSettled(
+      sprints.map((sprint) => service.start(ownerId, sprint.id)),
+    );
 
-    expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
-    expect(results.filter((result) => result.status === 'rejected')).toHaveLength(1);
-    await expect(prisma.sprint.count({
-      where: { projectId: project.id, status: SprintStatus.ACTIVE },
-    })).resolves.toBe(1);
+    expect(
+      results.filter((result) => result.status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === 'rejected'),
+    ).toHaveLength(1);
+    await expect(
+      prisma.sprint.count({
+        where: { projectId: project.id, status: SprintStatus.ACTIVE },
+      }),
+    ).resolves.toBe(1);
   });
 
   it('keeps one label mapping under concurrent attachment', async () => {
     const { project, ownerId } = await createProject();
     const task = await createTask(project.id, ownerId);
     const label = await prisma.taskLabel.create({
-      data: { id: crypto.randomUUID(), projectId: project.id, name: 'Backend', color: '#0052CC' },
+      data: {
+        id: crypto.randomUUID(),
+        projectId: project.id,
+        name: 'Backend',
+        color: '#0052CC',
+      },
     });
     const taskPolicy = {
       requireEditable: jest.fn().mockResolvedValue(task),
@@ -217,10 +291,13 @@ integration('Project Service database integration', () => {
 
     expect(results.some((result) => result.status === 'fulfilled')).toBe(true);
     for (const result of results) {
-      if (result.status === 'rejected') expect(result.reason).toBeInstanceOf(ConflictException);
+      if (result.status === 'rejected')
+        expect(result.reason).toBeInstanceOf(ConflictException);
     }
-    await expect(prisma.taskLabelMapping.count({
-      where: { taskId: task.id, labelId: label.id },
-    })).resolves.toBe(1);
+    await expect(
+      prisma.taskLabelMapping.count({
+        where: { taskId: task.id, labelId: label.id },
+      }),
+    ).resolves.toBe(1);
   });
 });

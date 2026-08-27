@@ -40,11 +40,18 @@ interface ProjectMemberApiModel {
   id: string;
   userId: string;
   role: ProjectRole;
+  canCreateTask: boolean;
+  canEditOwnTask: boolean;
+  canEditOthersTask: boolean;
+  canManageSprints: boolean;
+  canManageMembers: boolean;
+  canManageLabels: boolean;
   joinedAt?: string | null;
 }
 
-interface UserProfileApiModel {
+export interface UserProfileApiModel {
   id: string;
+  email?: string | null;
   fullName?: string | null;
   avatarUrl?: string | null;
 }
@@ -121,6 +128,12 @@ function normalizeMember(
     displayName: profile?.fullName?.trim() || "Người dùng",
     avatarUrl: profile?.avatarUrl || undefined,
     role: member.role,
+    canCreateTask: member.canCreateTask ?? false,
+    canEditOwnTask: member.canEditOwnTask ?? false,
+    canEditOthersTask: member.canEditOthersTask ?? false,
+    canManageSprints: member.canManageSprints ?? false,
+    canManageMembers: member.canManageMembers ?? false,
+    canManageLabels: member.canManageLabels ?? false,
     joinedAt: member.joinedAt || new Date().toISOString(),
   };
 }
@@ -139,9 +152,16 @@ export async function getProjects(): Promise<Project[]> {
         id: `owner-${project.id}`,
         projectId: project.id,
         userId: project.ownerId,
-        displayName: profilesById.get(project.ownerId)?.fullName?.trim() || "Người dùng",
+        displayName:
+          profilesById.get(project.ownerId)?.fullName?.trim() || "Người dùng",
         avatarUrl: profilesById.get(project.ownerId)?.avatarUrl || undefined,
         role: ProjectRole.OWNER,
+        canCreateTask: true,
+        canEditOwnTask: true,
+        canEditOthersTask: true,
+        canManageSprints: true,
+        canManageMembers: true,
+        canManageLabels: true,
         joinedAt: project.createdAt,
       },
     ],
@@ -202,7 +222,7 @@ export async function getProjectMembers(
   );
 }
 
-async function getUserProfiles(
+export async function getUserProfiles(
   userIds: string[],
 ): Promise<Map<string, UserProfileApiModel>> {
   const uniqueIds = [...new Set(userIds.filter(Boolean))];

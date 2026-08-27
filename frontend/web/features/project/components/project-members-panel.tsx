@@ -9,8 +9,15 @@ import {
 } from "@/features/project/types/project";
 import { Avatar } from "./avatar-stack";
 import InviteMemberDialog from "./invite-member-dialog";
-import { useRemoveProjectMember } from "@/features/project/hooks/use-project-members";
-import { Crown, Shield, Trash2, User, UserPlus } from "lucide-react";
+import MemberPermissionsDialog from "./member-permissions-dialog";
+import PendingInvitationsList from "./pending-invitations-list";
+import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
+import {
+  useRemoveProjectMember,
+  useUpdateProjectMemberPermissions,
+} from "@/features/project/hooks/use-project-members";
+import type { ProjectMemberPermissions } from "@/features/project/types/project";
+import { Crown, Settings2, Trash2, User, UserPlus } from "lucide-react";
 
 const ROLE_CONFIG: Record<
   ProjectRole,
@@ -21,12 +28,6 @@ const ROLE_CONFIG: Record<
     color: "text-amber-600",
     bg: "bg-amber-50",
     icon: Crown,
-  },
-  [ProjectRole.ADMIN]: {
-    label: "Admin",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
-    icon: Shield,
   },
   [ProjectRole.MEMBER]: {
     label: "Member",
@@ -41,17 +42,28 @@ export default function ProjectMembersPanel({
   members,
   canInvite = false,
   canRemoveMembers = false,
+  canManagePermissions = false,
 }: {
   projectId: string;
   members: ProjectMember[];
   canInvite?: boolean;
   canRemoveMembers?: boolean;
+  canManagePermissions?: boolean;
 }) {
   const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [permissionMember, setPermissionMember] =
+    useState<ProjectMember | null>(null);
   const removeMemberMutation = useRemoveProjectMember(projectId);
+  const updatePermissionsMutation =
+    useUpdateProjectMemberPermissions(projectId);
+  const pendingInvitationsQuery = usePendingProjectInvitations(
+    projectId,
+    canInvite,
+  );
+  const pendingInvitations = pendingInvitationsQuery.data ?? [];
 
   const sorted = [...members].sort((a, b) => {
-    const order = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
+    const order = { OWNER: 0, MEMBER: 1 };
     return order[a.role] - order[b.role];
   });
 
@@ -69,27 +81,52 @@ export default function ProjectMembersPanel({
       onSuccess: () => toast.success("Đã xóa thành viên"),
       onError: (error) =>
         toast.error(
-          error instanceof Error
-            ? error.message
-            : "Không thể xóa thành viên",
+          error instanceof Error ? error.message : "Không thể xóa thành viên",
         ),
     });
+  };
+
+  const handleSavePermissions = async (
+    permissions: ProjectMemberPermissions,
+  ) => {
+    if (!permissionMember) return;
+    try {
+      await updatePermissionsMutation.mutateAsync({
+        memberUserId: permissionMember.userId,
+        permissions,
+      });
+      toast.success("Đã cập nhật quyền thành viên");
+      setPermissionMember(null);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật quyền",
+      );
+    }
   };
 
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black text-[var(--color-primary-dark)]">
-          Thành viên ({members.length})
-        </h3>
-        {canInvite && <button
-          type="button"
-          onClick={() => setShowInviteDialog(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/10"
-        >
-          <UserPlus className="h-3 w-3" strokeWidth={2.5} />
-          Mời
-        </button>}
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-black text-[var(--color-primary-dark)]">
+            Thành viên ({members.length})
+          </h3>
+          {pendingInvitations.length > 0 && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-700">
+              {pendingInvitations.length} đang chờ
+            </span>
+          )}
+        </div>
+        {canInvite && (
+          <button
+            type="button"
+            onClick={() => setShowInviteDialog(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/10"
+          >
+            <UserPlus className="h-3 w-3" strokeWidth={2.5} />
+            Mời
+          </button>
+        )}
       </div>
 
       <div className="mt-3 space-y-1.5">
@@ -120,27 +157,63 @@ export default function ProjectMembersPanel({
                   {roleCfg.label}
                 </span>
               </div>
-              {canRemoveMembers && member.role !== ProjectRole.OWNER && (
-                <button
-                  type="button"
-                  onClick={() => void handleRemoveMember(member)}
-                  disabled={removeMemberMutation.isPending}
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
-                  aria-label={`Xóa ${member.displayName}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+              {member.role !== ProjectRole.OWNER && (
+                <div className="flex shrink-0 items-center">
+                  {canManagePermissions && (
+                    <button
+                      type="button"
+                      onClick={() => setPermissionMember(member)}
+                      className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
+                      aria-label={`Cấp quyền cho ${member.displayName}`}
+                    >
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                  {canRemoveMembers && (
+                    <button
+                      type="button"
+                      onClick={() => void handleRemoveMember(member)}
+                      disabled={removeMemberMutation.isPending}
+                      className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
+                      aria-label={`Xóa ${member.displayName}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           );
         })}
       </div>
-      {canInvite && <InviteMemberDialog
-        key={showInviteDialog ? "invite-open" : "invite-closed"}
-        open={showInviteDialog}
+      {pendingInvitationsQuery.isLoading && canInvite && (
+        <div className="mt-4 space-y-2 border-t border-slate-100 pt-4" aria-label="Đang tải lời mời">
+          <div className="h-3 w-28 animate-pulse rounded bg-slate-100" />
+          <div className="h-14 animate-pulse rounded-xl bg-slate-50" />
+        </div>
+      )}
+      <PendingInvitationsList
         projectId={projectId}
-        onClose={() => setShowInviteDialog(false)}
-      />}
+        invitations={pendingInvitations}
+      />
+      {canInvite && (
+        <InviteMemberDialog
+          key={showInviteDialog ? "invite-open" : "invite-closed"}
+          open={showInviteDialog}
+          projectId={projectId}
+          members={members}
+          pendingInvitations={pendingInvitations}
+          onClose={() => setShowInviteDialog(false)}
+        />
+      )}
+      <MemberPermissionsDialog
+        key={permissionMember?.id ?? "permissions-closed"}
+        member={permissionMember}
+        open={Boolean(permissionMember)}
+        isSaving={updatePermissionsMutation.isPending}
+        onClose={() => setPermissionMember(null)}
+        onSave={handleSavePermissions}
+      />
     </div>
   );
 }

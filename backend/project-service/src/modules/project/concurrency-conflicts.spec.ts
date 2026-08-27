@@ -15,7 +15,8 @@ function prismaError(code: string): Prisma.PrismaClientKnownRequestError {
 
 describe('Concurrent write conflicts', () => {
   const access = {
-    requireManager: jest.fn(),
+    requireCanManageMembers: jest.fn(),
+    requireCanManageSprints: jest.fn(),
   } as unknown as ProjectAccessService;
 
   beforeEach(() => jest.clearAllMocks());
@@ -29,9 +30,11 @@ describe('Concurrent write conflicts', () => {
     } as unknown as PrismaService;
     const service = new MemberService(prisma, access);
 
-    await expect(service.add(crypto.randomUUID(), crypto.randomUUID(), {
-      userId: crypto.randomUUID(),
-    })).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.add(crypto.randomUUID(), crypto.randomUUID(), {
+        userId: crypto.randomUUID(),
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('maps the one-active-sprint unique constraint to HTTP 409', async () => {
@@ -49,7 +52,8 @@ describe('Concurrent write conflicts', () => {
     } as unknown as PrismaService;
     const service = new SprintService(prisma, access);
 
-    await expect(service.start(crypto.randomUUID(), crypto.randomUUID()))
-      .rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.start(crypto.randomUUID(), crypto.randomUUID()),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });

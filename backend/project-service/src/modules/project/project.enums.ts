@@ -25,7 +25,6 @@ export enum ProjectVisibility {
 
 export enum ProjectRole {
   OWNER = 'OWNER',
-  ADMIN = 'ADMIN',
   MEMBER = 'MEMBER',
 }
 

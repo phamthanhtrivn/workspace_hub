@@ -39,9 +39,9 @@ export class UpdateProjectDto {
 
   @IsOptional()
   @IsDateString()
-  startDate?: string;
+  startDate?: string | null;
 
   @IsOptional()
   @IsDateString()
-  dueDate?: string;
+  dueDate?: string | null;
 }

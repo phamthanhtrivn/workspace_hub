@@ -37,7 +37,7 @@ export class HttpNotificationAdapter implements NotificationGateway {
   async updateProjectInvitationStatus(
     invitationId: string,
     recipientId: string,
-    status: "ACCEPTED" | "DECLINED",
+    status: "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED",
   ): Promise<void> {
     await this.http.request({
       service: "Notification service",

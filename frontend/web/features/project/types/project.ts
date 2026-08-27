@@ -27,7 +27,6 @@ export enum SprintStatus {
 
 export enum ProjectRole {
   OWNER = "OWNER",
-  ADMIN = "ADMIN",
   MEMBER = "MEMBER",
 }
 
@@ -80,8 +79,24 @@ export interface ProjectMember {
   displayName: string;
   avatarUrl?: string;
   role: ProjectRole;
+  canCreateTask: boolean;
+  canEditOwnTask: boolean;
+  canEditOthersTask: boolean;
+  canManageSprints: boolean;
+  canManageMembers: boolean;
+  canManageLabels: boolean;
   joinedAt: string;
 }
+
+export type ProjectMemberPermissions = Pick<
+  ProjectMember,
+  | "canCreateTask"
+  | "canEditOwnTask"
+  | "canEditOthersTask"
+  | "canManageSprints"
+  | "canManageMembers"
+  | "canManageLabels"
+>;
 
 export interface TaskLabel {
   id: string;

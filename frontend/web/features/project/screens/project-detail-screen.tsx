@@ -31,12 +31,8 @@ import {
   useProjectTasks,
   useUpdateTask,
 } from "@/features/project/hooks/use-tasks";
-import {
-  useProjectLabels,
-} from "@/features/project/hooks/use-labels";
-import {
-  useProjectDependencies,
-} from "@/features/project/hooks/use-dependencies";
+import { useProjectLabels } from "@/features/project/hooks/use-labels";
+import { useProjectDependencies } from "@/features/project/hooks/use-dependencies";
 import ProjectDetailContent from "@/features/project/components/project-detail-content";
 import TaskDetailDrawer from "@/features/project/components/task-detail-drawer";
 import TaskChatDialog from "@/features/project/components/task-chat-dialog";
@@ -47,9 +43,15 @@ import ProjectDetailSidebar, {
   type ProjectViewMode,
 } from "@/features/project/components/project-detail-sidebar";
 import ProjectDetailToolbar from "@/features/project/components/project-detail-toolbar";
-import { ProjectDetailLoading, ProjectDetailNotFound } from "../components/project-detail-fallback";
+import {
+  ProjectDetailLoading,
+  ProjectDetailNotFound,
+} from "../components/project-detail-fallback";
 import { getProjectKey } from "@/features/project/utils/project.utils";
-import { getProjectPermissions, NO_PROJECT_PERMISSIONS } from "@/features/project/project-permissions";
+import {
+  getProjectPermissions,
+  NO_PROJECT_PERMISSIONS,
+} from "@/features/project/project-permissions";
 import { useProjectTaskFilters } from "@/features/project/hooks/use-project-task-filters";
 import { useProjectTaskFormState } from "@/features/project/hooks/use-project-task-form-state";
 import { useProjectResourceActions } from "@/features/project/hooks/use-project-resource-actions";
@@ -219,14 +221,12 @@ export default function ProjectDetailScreen() {
     members: "Thành viên dự án",
   };
 
-  const {
-    save: handleSaveProjectSettings,
-    archive: handleArchiveProject,
-  } = createProjectSettingsActions({
-    update: updateProjectMutation.mutateAsync,
-    archive: archiveProjectMutation.mutateAsync,
-    close: () => setShowProjectSettings(false),
-  });
+  const { save: handleSaveProjectSettings, archive: handleArchiveProject } =
+    createProjectSettingsActions({
+      update: updateProjectMutation.mutateAsync,
+      archive: archiveProjectMutation.mutateAsync,
+      close: () => setShowProjectSettings(false),
+    });
 
   const {
     editGroup: handleEditGroup,
@@ -275,7 +275,9 @@ export default function ProjectDetailScreen() {
         projectKey={projectKey}
         viewMode={viewMode}
         isCollapsed={isSidebarCollapsed}
-        canManageProject={permissions.canManageProject}
+        canOpenSettings={
+          permissions.canManageProject || permissions.canManageLabels
+        }
         onViewChange={setViewMode}
         onToggle={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
         onOpenSettings={() => setShowProjectSettings(true)}
@@ -374,34 +376,49 @@ export default function ProjectDetailScreen() {
           onCreateDependency={handleCreateDependency}
           onDeleteDependency={handleDeleteDependency}
           canEditTask={permissions.canEditTask(selectedTask)}
-          onCreateSubtask={permissions.canCreateTask ? (task) => {
-            if (rejectCompletedTaskChange(task.id)) return;
-            setSelectedTask(null);
-            openCreateTask(TaskStatus.TODO, undefined, false, task.id);
-          } : undefined}
-          onEdit={permissions.canEditTask(selectedTask) ? (task) => {
-            if (rejectCompletedTaskChange(task.id)) return;
-            setSelectedTask(null);
-            editTask(task);
-          } : undefined}
+          onCreateSubtask={
+            permissions.canCreateTask
+              ? (task) => {
+                  if (rejectCompletedTaskChange(task.id)) return;
+                  setSelectedTask(null);
+                  openCreateTask(TaskStatus.TODO, undefined, false, task.id);
+                }
+              : undefined
+          }
+          onEdit={
+            permissions.canEditTask(selectedTask)
+              ? (task) => {
+                  if (rejectCompletedTaskChange(task.id)) return;
+                  setSelectedTask(null);
+                  editTask(task);
+                }
+              : undefined
+          }
         />
       )}
 
       <TaskChatDialog task={chatTask} onClose={() => setChatTask(null)} />
 
-      {permissions.canManageProject && <ProjectSettingsDialog
-        project={project}
-        open={showProjectSettings}
-        isBusy={
-          updateProjectMutation.isPending || archiveProjectMutation.isPending
-        }
-        onClose={() => setShowProjectSettings(false)}
-        onSave={handleSaveProjectSettings}
-        onArchive={handleArchiveProject}
-        labels={labels}
-        onCreateLabel={handleCreateLabel}
-        onDeleteLabel={handleDeleteLabel}
-      />}
+      {(permissions.canManageProject || permissions.canManageLabels) && (
+        <ProjectSettingsDialog
+          project={project}
+          open={showProjectSettings}
+          isBusy={
+            updateProjectMutation.isPending || archiveProjectMutation.isPending
+          }
+          onClose={() => setShowProjectSettings(false)}
+          onSave={handleSaveProjectSettings}
+          onArchive={handleArchiveProject}
+          canEditProject={permissions.canManageProject}
+          labels={labels}
+          onCreateLabel={
+            permissions.canManageLabels ? handleCreateLabel : undefined
+          }
+          onDeleteLabel={
+            permissions.canManageLabels ? handleDeleteLabel : undefined
+          }
+        />
+      )}
 
       <TaskFormDialog
         key={`${showTaskForm}-${editingTask?.id ?? "new"}-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}-${newTaskIsParentTask}`}

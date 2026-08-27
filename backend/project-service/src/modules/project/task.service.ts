@@ -292,8 +292,8 @@ export class TaskService {
     }
   }
 
-  private toDate(value?: string): Date | undefined {
-    return value === undefined ? undefined : new Date(value);
+  private toDate(value?: string | null): Date | null | undefined {
+    return value == null ? value : new Date(value);
   }
 
   private validateDateRange(startDate?: Date | null, dueDate?: Date | null): void {

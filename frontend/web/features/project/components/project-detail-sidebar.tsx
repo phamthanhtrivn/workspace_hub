@@ -13,12 +13,7 @@ import { ProjectTypeBadge } from "./project-type-badge";
 import type { Project, ProjectMember } from "../types/project";
 
 export type ProjectViewMode =
-  | "summary"
-  | "board"
-  | "list"
-  | "calendar"
-  | "gantt"
-  | "members";
+  "summary" | "board" | "list" | "calendar" | "gantt" | "members";
 
 interface ProjectDetailSidebarProps {
   project: Project;
@@ -26,7 +21,7 @@ interface ProjectDetailSidebarProps {
   projectKey: string;
   viewMode: ProjectViewMode;
   isCollapsed: boolean;
-  canManageProject: boolean;
+  canOpenSettings: boolean;
   onViewChange: (view: ProjectViewMode) => void;
   onToggle: () => void;
   onOpenSettings: () => void;
@@ -49,7 +44,7 @@ export default function ProjectDetailSidebar({
   projectKey,
   viewMode,
   isCollapsed,
-  canManageProject,
+  canOpenSettings,
   onViewChange,
   onToggle,
   onOpenSettings,
@@ -120,7 +115,7 @@ export default function ProjectDetailSidebar({
             <span>
               Mã dự án: <strong>{projectKey}</strong>
             </span>
-            {canManageProject && (
+            {canOpenSettings && (
               <button
                 type="button"
                 onClick={onOpenSettings}

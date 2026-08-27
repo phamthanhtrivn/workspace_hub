@@ -82,7 +82,7 @@ export class NotificationOutboxService
   async enqueueProjectInvitationStatus(
     invitationId: string,
     recipientId: string,
-    status: "ACCEPTED" | "DECLINED",
+    status: "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED",
     database: OutboxDatabase = this.prisma,
   ): Promise<void> {
     await this.enqueue(
@@ -272,7 +272,7 @@ export class NotificationOutboxService
   private toProjectInvitationStatus(payload: Prisma.JsonValue): {
     invitationId: string;
     recipientId: string;
-    status: "ACCEPTED" | "DECLINED";
+    status: "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED";
   } {
     if (!this.isObject(payload))
       throw new Error("Invalid project invitation status payload");
@@ -280,7 +280,10 @@ export class NotificationOutboxService
     if (
       typeof invitationId !== "string" ||
       typeof recipientId !== "string" ||
-      (status !== "ACCEPTED" && status !== "DECLINED")
+      status !== "ACCEPTED" &&
+      status !== "DECLINED" &&
+      status !== "CANCELLED" &&
+      status !== "EXPIRED"
     ) {
       throw new Error("Invalid project invitation status payload");
     }

@@ -1,5 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { ProjectRole } from './project.enums';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -50,7 +53,14 @@ export class CommentService {
           updatedAt: now,
         },
       });
-      await this.activities.record(taskId, userId, 'comment_created', null, created.content, tx);
+      await this.activities.record(
+        taskId,
+        userId,
+        'comment_created',
+        null,
+        created.content,
+        tx,
+      );
       return created;
     });
     return toCommentResponse(comment);
@@ -73,7 +83,14 @@ export class CommentService {
             version: { increment: 1 },
           },
         });
-        await this.activities.record(comment.taskId, userId, 'comment_updated', comment.content, result.content, tx);
+        await this.activities.record(
+          comment.taskId,
+          userId,
+          'comment_updated',
+          comment.content,
+          result.content,
+          tx,
+        );
         return result;
       });
     } catch (error) {
@@ -89,42 +106,56 @@ export class CommentService {
     assertTaskEditable(task.status);
     try {
       await this.prisma.$transaction(async (tx) => {
-        await tx.taskComment.delete({ where: { id: commentId, version: comment.version } });
-        await this.activities.record(comment.taskId, userId, 'comment_deleted', comment.content, null, tx);
+        await tx.taskComment.delete({
+          where: { id: commentId, version: comment.version },
+        });
+        await this.activities.record(
+          comment.taskId,
+          userId,
+          'comment_deleted',
+          comment.content,
+          null,
+          tx,
+        );
       });
     } catch (error) {
       rethrowWriteConflict(error, 'Comment was changed by another request');
     }
   }
 
-  private async requireWriteAccess(userId: string, projectId: string): Promise<void> {
+  private async requireWriteAccess(
+    userId: string,
+    projectId: string,
+  ): Promise<void> {
     const project = await this.access.requireReadAccess(userId, projectId);
     if (project.ownerId === userId) return;
-    const member = await this.access.getActiveMember(projectId, userId);
-    if (member.role !== ProjectRole.ADMIN && member.role !== ProjectRole.MEMBER) {
-      throw new ForbiddenException('Project write access is required');
-    }
+    await this.access.getActiveMember(projectId, userId);
   }
 
-  private async requireCanManage(userId: string, projectId: string, authorId: string): Promise<void> {
+  private async requireCanManage(
+    userId: string,
+    projectId: string,
+    authorId: string,
+  ): Promise<void> {
     await this.requireWriteAccess(userId, projectId);
     if (userId === authorId) return;
     const project = await this.access.findProject(projectId);
     if (project.ownerId === userId) return;
-    const member = await this.access.getActiveMember(projectId, userId);
-    if (member.role !== ProjectRole.ADMIN) {
-      throw new ForbiddenException('You cannot manage this comment');
-    }
+    throw new ForbiddenException('You cannot manage this comment');
   }
 
   private async findTask(taskId: string) {
-    const task = await this.prisma.task.findFirst({ where: { id: taskId, deletedAt: null } });
+    const task = await this.prisma.task.findFirst({
+      where: { id: taskId, deletedAt: null },
+    });
     if (!task) throw new NotFoundException('Task not found');
     return task;
   }
 
   private async findComment(commentId: string) {
-    const comment = await this.prisma.taskComment.findUnique({ where: { id: commentId } });
+    const comment = await this.prisma.taskComment.findUnique({
+      where: { id: commentId },
+    });
     if (!comment) throw new NotFoundException('Comment not found');
     return comment;
   }
