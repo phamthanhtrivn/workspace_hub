@@ -1,32 +1,23 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
-  navigateMeetingWindow,
-  openMeetingWindow,
+  getMeetingDevicePreferences,
   saveMeetingDevicePreferences,
   stopPreviewStream,
 } from "../../utils/meeting.utils";
-import { useCreateInstantMeetingMutation } from "../queries/use-meeting-queries";
-
-interface UseInstantMeetingSetupParams {
-  open: boolean;
-  onClose: () => void;
-}
 
 interface MeetingDeviceOption {
   deviceId: string;
   label: string;
 }
 
-export function useInstantMeetingSetup({
-  open,
-  onClose,
-}: UseInstantMeetingSetupParams) {
+export function useMeetingJoinDeviceSetup(joinToken: string) {
   const intl = useAppIntl();
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const previewStreamRef = useRef<MediaStream | null>(null);
+  const storedPreferences = getMeetingDevicePreferences(joinToken);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [isCameraEnabled, setIsCameraEnabled] = useState(false);
   const [isMicEnabled, setIsMicEnabled] = useState(false);
@@ -34,16 +25,12 @@ export function useInstantMeetingSetup({
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [cameraDevices, setCameraDevices] = useState<MeetingDeviceOption[]>([]);
   const [micDevices, setMicDevices] = useState<MeetingDeviceOption[]>([]);
-  const [selectedCameraDeviceId, setSelectedCameraDeviceId] = useState("");
-  const [selectedMicDeviceId, setSelectedMicDeviceId] = useState("");
-  const createMeeting = useCreateInstantMeetingMutation();
-
-  const resetPreview = useCallback(() => {
-    stopPreviewStream(previewStreamRef.current);
-    previewStreamRef.current = null;
-    setPreviewStream(null);
-    setDeviceError(null);
-  }, []);
+  const [selectedCameraDeviceId, setSelectedCameraDeviceId] = useState(
+    storedPreferences.cameraDeviceId ?? "",
+  );
+  const [selectedMicDeviceId, setSelectedMicDeviceId] = useState(
+    storedPreferences.micDeviceId ?? "",
+  );
 
   const syncDevices = useCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
@@ -75,32 +62,33 @@ export function useInstantMeetingSetup({
     setCameraDevices(nextCameraDevices);
     setMicDevices(nextMicDevices);
     setSelectedCameraDeviceId((deviceId) =>
-      deviceId || nextCameraDevices[0]?.deviceId || "",
+      nextCameraDevices.some((device) => device.deviceId === deviceId)
+        ? deviceId
+        : nextCameraDevices[0]?.deviceId || "",
     );
     setSelectedMicDeviceId((deviceId) =>
-      deviceId || nextMicDevices[0]?.deviceId || "",
+      nextMicDevices.some((device) => device.deviceId === deviceId)
+        ? deviceId
+        : nextMicDevices[0]?.deviceId || "",
     );
   }, [intl]);
 
   useEffect(() => {
-    if (!open) return;
     const timeoutId = window.setTimeout(() => {
       void syncDevices();
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, [open, syncDevices]);
+  }, [syncDevices]);
 
   useEffect(() => {
-    if (!open) {
-      const timeoutId = window.setTimeout(resetPreview, 0);
-      return () => window.clearTimeout(timeoutId);
-    }
-
     let cancelled = false;
 
-    async function prepareDevices() {
-      resetPreview();
+    async function preparePreview() {
+      stopPreviewStream(previewStreamRef.current);
+      previewStreamRef.current = null;
+      setPreviewStream(null);
+      setDeviceError(null);
 
       if (!isCameraEnabled) {
         return;
@@ -152,19 +140,12 @@ export function useInstantMeetingSetup({
       }
     }
 
-    void prepareDevices();
+    void preparePreview();
 
     return () => {
       cancelled = true;
     };
-  }, [
-    intl,
-    isCameraEnabled,
-    open,
-    resetPreview,
-    selectedCameraDeviceId,
-    syncDevices,
-  ]);
+  }, [intl, isCameraEnabled, selectedCameraDeviceId, syncDevices]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -179,31 +160,13 @@ export function useInstantMeetingSetup({
     };
   }, []);
 
-  const closeSetup = () => {
-    resetPreview();
-    onClose();
-  };
-
-  const submitInstantMeeting = async (
-    event: FormEvent<HTMLFormElement>,
-  ) => {
-    event.preventDefault();
-    const meetingWindow = openMeetingWindow();
-    try {
-      const response = await createMeeting.mutateAsync({});
-      saveMeetingDevicePreferences(response.data.joinToken, {
-        isCameraEnabled,
-        isMicEnabled,
-        cameraDeviceId: selectedCameraDeviceId || undefined,
-        micDeviceId: selectedMicDeviceId || undefined,
-      });
-      navigateMeetingWindow(meetingWindow, response.data.joinToken);
-      resetPreview();
-      onClose();
-    } catch (error) {
-      meetingWindow?.close();
-      throw error;
-    }
+  const saveDevicePreferences = () => {
+    saveMeetingDevicePreferences(joinToken, {
+      isCameraEnabled,
+      isMicEnabled,
+      cameraDeviceId: selectedCameraDeviceId || undefined,
+      micDeviceId: selectedMicDeviceId || undefined,
+    });
   };
 
   return {
@@ -217,9 +180,7 @@ export function useInstantMeetingSetup({
     selectedMicDeviceId,
     isPreparingDevices,
     deviceError,
-    isCreatingMeeting: createMeeting.isPending,
-    closeSetup,
-    submitInstantMeeting,
+    saveDevicePreferences,
     setSelectedCameraDeviceId,
     setSelectedMicDeviceId,
     toggleMic: () => setIsMicEnabled((value) => !value),

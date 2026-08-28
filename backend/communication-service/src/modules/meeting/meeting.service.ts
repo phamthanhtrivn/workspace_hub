@@ -254,9 +254,22 @@ export class MeetingService {
     }
 
     const now = new Date();
-    const nextStatus = meeting.allowJoinWithoutApproval
-      ? MeetingParticipantStatusValue.JOINED
-      : MeetingParticipantStatusValue.REQUESTED;
+    const existingParticipant = await this.prisma.meetingParticipant.findUnique(
+      {
+        where: {
+          meetingId_userId: {
+            meetingId,
+            userId,
+          },
+        },
+      },
+    );
+    const wasAlreadyApproved =
+      existingParticipant?.status === PrismaMeetingParticipantStatus.JOINED;
+    const nextStatus =
+      meeting.allowJoinWithoutApproval || wasAlreadyApproved
+        ? MeetingParticipantStatusValue.JOINED
+        : MeetingParticipantStatusValue.REQUESTED;
 
     const participant = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
@@ -455,27 +468,93 @@ export class MeetingService {
     allowJoinWithoutApproval: boolean,
   ): Promise<MeetingResponse> {
     await this.assertHost(meetingId, userId);
-    const meeting = await this.prisma.meeting.update({
-      where: { id: meetingId },
-      data: { allowJoinWithoutApproval },
-      include: {
-        participants: true,
-        _count: {
-          select: {
-            participants: {
+    const now = new Date();
+    const { meeting, autoApprovedParticipants } = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        let approvedParticipants: MeetingParticipant[] = [];
+
+        if (allowJoinWithoutApproval) {
+          const pendingParticipants = await tx.meetingParticipant.findMany({
+            where: {
+              meetingId,
+              status: MeetingParticipantStatusValue.REQUESTED,
+            },
+          });
+          const pendingUserIds = pendingParticipants.map(
+            (participant) => participant.userId,
+          );
+
+          if (pendingUserIds.length > 0) {
+            await tx.meetingParticipant.updateMany({
               where: {
+                meetingId,
+                userId: { in: pendingUserIds },
                 status: MeetingParticipantStatusValue.REQUESTED,
+              },
+              data: {
+                status: MeetingParticipantStatusValue.JOINED,
+                joinedAt: now,
+                lastSeenAt: now,
+                leftAt: null,
+              },
+            });
+
+            await tx.meetingEvent.createMany({
+              data: pendingUserIds.map((pendingUserId) => ({
+                meetingId,
+                actorId: pendingUserId,
+                type: MeetingEventTypeValue.PARTICIPANT_JOINED,
+                metadata: { status: MeetingParticipantStatusValue.JOINED },
+              })),
+            });
+
+            approvedParticipants = await tx.meetingParticipant.findMany({
+              where: {
+                meetingId,
+                userId: { in: pendingUserIds },
+              },
+            });
+          }
+        }
+
+        const updatedMeeting = await tx.meeting.update({
+          where: { id: meetingId },
+          data: { allowJoinWithoutApproval },
+          include: {
+            participants: true,
+            _count: {
+              select: {
+                participants: {
+                  where: {
+                    status: MeetingParticipantStatusValue.REQUESTED,
+                  },
+                },
               },
             },
           },
-        },
+        });
+
+        return {
+          meeting: updatedMeeting,
+          autoApprovedParticipants: approvedParticipants,
+        };
       },
-    });
+    );
+    const enrichedAutoApprovedParticipants = await this.enrichParticipants(
+      autoApprovedParticipants,
+    );
 
     this.chatGateway.emitMeetingAccessUpdated(
       meetingId,
       allowJoinWithoutApproval,
     );
+    enrichedAutoApprovedParticipants.forEach((participant) => {
+      this.chatGateway.emitMeetingJoinApproved(
+        meetingId,
+        participant.userId,
+        participant,
+      );
+    });
     return this.mapMeetingResponse(meeting, userId);
   }
 

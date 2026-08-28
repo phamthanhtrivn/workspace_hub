@@ -19,11 +19,18 @@ import {
   PhoneOff,
   Settings,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useUpdateMeetingAccessMutation } from "../../../hooks/queries/use-meeting-queries";
-import { MeetingResponse } from "../../../types/meeting.types";
-import { resolveMeetingJoinUrl } from "../../../utils/meeting.utils";
+import {
+  MeetingDevicePreferences,
+  MeetingResponse,
+} from "../../../types/meeting.types";
+import {
+  getMeetingDevicePreferences,
+  resolveMeetingJoinUrl,
+  saveMeetingDevicePreferences,
+} from "../../../utils/meeting.utils";
 
 interface MeetingRoomControlBarProps {
   isHost: boolean;
@@ -48,7 +55,12 @@ export function MeetingRoomControlBar({
   const [hasCopiedLink, setHasCopiedLink] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const updateAccess = useUpdateMeetingAccessMutation(meeting.id, joinToken);
-  const { cameraTrack, microphoneTrack } = useLocalParticipant();
+  const {
+    cameraTrack,
+    isCameraEnabled,
+    isMicrophoneEnabled,
+    microphoneTrack,
+  } = useLocalParticipant();
   const audioTrack = microphoneTrack?.track as LocalAudioTrack | undefined;
   const videoTrack = cameraTrack?.track as LocalVideoTrack | undefined;
   const audioDeviceId = getInitialDeviceId(audioCaptureOptions?.deviceId);
@@ -70,6 +82,61 @@ export function MeetingRoomControlBar({
     document.addEventListener("pointerdown", handlePointerDown);
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [isSettingsOpen]);
+
+  const persistDevicePreferences = useCallback(
+    (updates: Partial<MeetingDevicePreferences>) => {
+      const currentPreferences = getMeetingDevicePreferences(joinToken);
+      saveMeetingDevicePreferences(joinToken, {
+        ...currentPreferences,
+        ...updates,
+      });
+    },
+    [joinToken],
+  );
+
+  const handleMicrophoneChange = useCallback(
+    (enabled: boolean, isUserInitiated: boolean) => {
+      if (!isUserInitiated) return;
+
+      persistDevicePreferences({
+        isMicEnabled: enabled,
+        micDeviceId: getTrackDeviceId(audioTrack) ?? audioDeviceId,
+      });
+    },
+    [audioDeviceId, audioTrack, persistDevicePreferences],
+  );
+
+  const handleCameraChange = useCallback(
+    (enabled: boolean, isUserInitiated: boolean) => {
+      if (!isUserInitiated) return;
+
+      persistDevicePreferences({
+        isCameraEnabled: enabled,
+        cameraDeviceId: getTrackDeviceId(videoTrack) ?? videoDeviceId,
+      });
+    },
+    [persistDevicePreferences, videoDeviceId, videoTrack],
+  );
+
+  const handleAudioDeviceChange = useCallback(
+    (_kind: MediaDeviceKind, deviceId: string) => {
+      persistDevicePreferences({
+        isMicEnabled: isMicrophoneEnabled,
+        micDeviceId: deviceId,
+      });
+    },
+    [isMicrophoneEnabled, persistDevicePreferences],
+  );
+
+  const handleVideoDeviceChange = useCallback(
+    (_kind: MediaDeviceKind, deviceId: string) => {
+      persistDevicePreferences({
+        isCameraEnabled,
+        cameraDeviceId: deviceId,
+      });
+    },
+    [isCameraEnabled, persistDevicePreferences],
+  );
 
   const handleCopyJoinLink = async () => {
     setSettingsError(null);
@@ -103,6 +170,7 @@ export function MeetingRoomControlBar({
         <TrackToggle
           source={Track.Source.Microphone}
           captureOptions={audioCaptureOptions}
+          onChange={handleMicrophoneChange}
           onDeviceError={onDeviceError}
           className="h-10 px-4 text-sm font-bold text-white hover:bg-white/10"
         >
@@ -113,6 +181,7 @@ export function MeetingRoomControlBar({
         <MediaDeviceMenu
           kind="audioinput"
           initialSelection={audioDeviceId}
+          onActiveDeviceChange={handleAudioDeviceChange}
           requestPermissions
           tracks={{ audioinput: audioTrack }}
           className="grid h-10 w-10 place-items-center border-l border-white/10 text-white hover:bg-white/10"
@@ -125,6 +194,7 @@ export function MeetingRoomControlBar({
         <TrackToggle
           source={Track.Source.Camera}
           captureOptions={videoCaptureOptions}
+          onChange={handleCameraChange}
           onDeviceError={onDeviceError}
           className="h-10 px-4 text-sm font-bold text-white hover:bg-white/10"
         >
@@ -135,6 +205,7 @@ export function MeetingRoomControlBar({
         <MediaDeviceMenu
           kind="videoinput"
           initialSelection={videoDeviceId}
+          onActiveDeviceChange={handleVideoDeviceChange}
           requestPermissions
           tracks={{ videoinput: videoTrack }}
           className="grid h-10 w-10 place-items-center border-l border-white/10 text-white hover:bg-white/10"
@@ -260,6 +331,10 @@ export function MeetingRoomControlBar({
 
 function getInitialDeviceId(deviceId: AudioCaptureOptions["deviceId"]) {
   return typeof deviceId === "string" ? deviceId : undefined;
+}
+
+function getTrackDeviceId(track?: LocalAudioTrack | LocalVideoTrack) {
+  return track?.mediaStreamTrack.getSettings().deviceId;
 }
 
 async function copyTextToClipboard(text: string) {

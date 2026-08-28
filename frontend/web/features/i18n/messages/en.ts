@@ -686,8 +686,8 @@ const en = {
   "meeting.loadingRequests": "Loading requests...",
   "meeting.noJoinRequests": "No pending requests.",
   "meeting.waitingApproval": "Waiting for host approval",
-  "meeting.approveRequest": "Approve request",
-  "meeting.rejectRequest": "Reject request",
+  "meeting.approveRequest": "Approve",
+  "meeting.rejectRequest": "Reject",
   "meeting.backToMeetings": "Back to meetings",
   "meeting.loadingMeeting": "Loading meeting...",
   "meeting.notFound": "Meeting not found.",
@@ -696,6 +696,10 @@ const en = {
   "meeting.requestRejected": "Your request was rejected",
   "meeting.openJoinReady": "This meeting is open to join",
   "meeting.approvalJoinReady": "Ask the host to approve your entry",
+  "meeting.joinSetup.description":
+    "Set your camera and microphone before sending the join request.",
+  "meeting.joinSetup.savePreferences":
+    "Your device choices will be used when you enter the room.",
   "meeting.videoPlaceholderDescription":
     "Open the room after the host approves your entry.",
   "meeting.room.connecting": "Connecting to LiveKit room...",
@@ -721,6 +725,7 @@ const en = {
   "meeting.room.chat": "Chat",
   "meeting.room.settings": "Settings",
   "meeting.room.meetingSettings": "Meeting settings",
+  "meeting.room.joinRequests": "Join requests",
   "meeting.room.joinLink": "Join link",
   "meeting.room.copyJoinLink": "Copy join link",
   "meeting.room.copyJoinLinkHelp": "Share this link with people you want to invite.",
@@ -728,6 +733,10 @@ const en = {
   "meeting.room.linkCopied": "Meeting link copied.",
   "meeting.room.allowWithoutApproval": "Allow joining without approval",
   "meeting.room.accessUpdateFailed": "Could not update meeting access.",
+  "meeting.room.openJoinRequests": "Open join requests",
+  "meeting.room.closeJoinRequests": "Close join requests",
+  "meeting.room.waitingApprovalHelp":
+    "This page will move into the room automatically after the host approves you.",
   "meeting.room.leave": "Leave",
   "meeting.room.endForEveryone": "End for everyone",
   "meeting.room.endDisabled": "Backend support for ending everyone will be added later.",

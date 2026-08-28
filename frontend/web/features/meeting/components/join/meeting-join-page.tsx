@@ -9,8 +9,9 @@ import {
 import { MeetingParticipantStatus } from "../../types/meeting.types";
 import { getMeetingParticipantStatus } from "../../utils/meeting.utils";
 import { MeetingRoomSurface } from "../room/meeting-room-surface";
+import { MeetingJoinRoomModal } from "./meeting-join-room-modal";
 import { MeetingJoinShell } from "./meeting-join-shell";
-import { MeetingJoinStatePanel } from "./meeting-join-state-panel";
+import { MeetingWaitingRoomSurface } from "./meeting-waiting-room-surface";
 
 interface MeetingJoinPageProps {
   joinToken: string;
@@ -64,9 +65,20 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
     );
   }
 
+  if (participantStatus === MeetingParticipantStatus.REQUESTED) {
+    return (
+      <MeetingJoinShell wide>
+        <div className="mt-4">
+          <MeetingWaitingRoomSurface meeting={meeting} />
+        </div>
+      </MeetingJoinShell>
+    );
+  }
+
   return (
     <MeetingJoinShell>
-      <MeetingJoinStatePanel
+      <MeetingJoinRoomModal
+        joinToken={joinToken}
         meeting={meeting}
         participantStatus={participantStatus}
         isRequestingJoin={requestJoin.isPending}

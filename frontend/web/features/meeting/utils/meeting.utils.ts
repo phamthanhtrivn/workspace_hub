@@ -10,6 +10,8 @@ import {
   MeetingResponse,
 } from "../types/meeting.types";
 
+const MEETING_DEVICE_PREFERENCES_VERSION = 1;
+
 export function normalizeMeetingResponse<T>(payload: unknown): ApiResponse<T> {
   const responsePayload =
     typeof payload === "object" && payload !== null
@@ -63,7 +65,10 @@ export function saveMeetingDevicePreferences(
   if (typeof window === "undefined") return;
   window.localStorage.setItem(
     buildDevicePreferencesStorageKey(joinToken),
-    JSON.stringify(preferences),
+    JSON.stringify({
+      ...preferences,
+      version: MEETING_DEVICE_PREFERENCES_VERSION,
+    }),
   );
 }
 
@@ -71,8 +76,8 @@ export function getMeetingDevicePreferences(
   joinToken: string,
 ): MeetingDevicePreferences {
   const defaultPreferences: MeetingDevicePreferences = {
-    isCameraEnabled: true,
-    isMicEnabled: true,
+    isCameraEnabled: false,
+    isMicEnabled: false,
   };
 
   if (typeof window === "undefined") {
@@ -88,12 +93,18 @@ export function getMeetingDevicePreferences(
 
   try {
     const preferences = JSON.parse(storedValue) as Partial<MeetingDevicePreferences>;
+    const canRestoreEnabledState =
+      preferences.version === MEETING_DEVICE_PREFERENCES_VERSION;
+
     return {
+      version: MEETING_DEVICE_PREFERENCES_VERSION,
       isCameraEnabled:
+        canRestoreEnabledState &&
         typeof preferences.isCameraEnabled === "boolean"
           ? preferences.isCameraEnabled
           : defaultPreferences.isCameraEnabled,
       isMicEnabled:
+        canRestoreEnabledState &&
         typeof preferences.isMicEnabled === "boolean"
           ? preferences.isMicEnabled
           : defaultPreferences.isMicEnabled,

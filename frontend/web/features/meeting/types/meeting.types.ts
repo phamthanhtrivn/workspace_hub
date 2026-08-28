@@ -93,6 +93,7 @@ export interface MeetingLiveKitTokenResponse {
 }
 
 export interface MeetingDevicePreferences {
+  version?: number;
   isCameraEnabled: boolean;
   isMicEnabled: boolean;
   cameraDeviceId?: string;

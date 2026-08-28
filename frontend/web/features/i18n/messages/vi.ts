@@ -681,8 +681,8 @@ const vi = {
   "meeting.loadingRequests": "Đang tải yêu cầu...",
   "meeting.noJoinRequests": "Không có yêu cầu đang chờ.",
   "meeting.waitingApproval": "Đang chờ host phê duyệt",
-  "meeting.approveRequest": "Duyệt yêu cầu",
-  "meeting.rejectRequest": "Từ chối yêu cầu",
+  "meeting.approveRequest": "Đồng ý",
+  "meeting.rejectRequest": "Từ chối",
   "meeting.backToMeetings": "Quay lại cuộc họp",
   "meeting.loadingMeeting": "Đang tải cuộc họp...",
   "meeting.notFound": "Không tìm thấy cuộc họp.",
@@ -691,6 +691,10 @@ const vi = {
   "meeting.requestRejected": "Yêu cầu của bạn đã bị từ chối",
   "meeting.openJoinReady": "Cuộc họp này cho phép tham gia ngay",
   "meeting.approvalJoinReady": "Gửi yêu cầu để host duyệt bạn vào phòng",
+  "meeting.joinSetup.description":
+    "Thiết lập camera và micro trước khi gửi yêu cầu tham gia.",
+  "meeting.joinSetup.savePreferences":
+    "Lựa chọn thiết bị sẽ được dùng khi bạn vào phòng.",
   "meeting.videoPlaceholderDescription":
     "Mở phòng sau khi host duyệt quyền vào của bạn.",
   "meeting.room.connecting": "Đang kết nối phòng LiveKit...",
@@ -716,6 +720,7 @@ const vi = {
   "meeting.room.chat": "Chat",
   "meeting.room.settings": "Cài đặt",
   "meeting.room.meetingSettings": "Cài đặt cuộc họp",
+  "meeting.room.joinRequests": "Yêu cầu tham gia",
   "meeting.room.joinLink": "Liên kết tham gia",
   "meeting.room.copyJoinLink": "Sao chép liên kết tham gia",
   "meeting.room.copyJoinLinkHelp": "Gửi liên kết này cho người bạn muốn mời.",
@@ -725,6 +730,10 @@ const vi = {
   "meeting.room.openAccessHelp": "Ai có liên kết đều có thể vào phòng trực tiếp.",
   "meeting.room.approvalRequiredHelp": "Người mới phải gửi yêu cầu trước khi vào.",
   "meeting.room.accessUpdateFailed": "Không thể cập nhật quyền vào phòng.",
+  "meeting.room.openJoinRequests": "Mở danh sách yêu cầu tham gia",
+  "meeting.room.closeJoinRequests": "Đóng danh sách yêu cầu tham gia",
+  "meeting.room.waitingApprovalHelp":
+    "Trang này sẽ tự chuyển vào phòng ngay sau khi host phê duyệt bạn.",
   "meeting.room.leave": "Rời phòng",
   "meeting.room.endForEveryone": "Kết thúc cho mọi người",
   "meeting.room.endDisabled": "Backend cho kết thúc tất cả sẽ được bổ sung sau.",

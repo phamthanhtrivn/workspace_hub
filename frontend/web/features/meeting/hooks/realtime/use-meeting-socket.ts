@@ -8,28 +8,60 @@ import { MeetingSocketEvent } from "../../api/meeting-socket.events";
 import { meetingKeys } from "../../types/meeting.constants";
 import { MeetingSocketPayload } from "../../types/meeting.types";
 
+interface MeetingRealtimeSocket {
+  emit: (
+    event: MeetingSocketEvent.JOIN_CONTROL_ROOM,
+    payload: { meetingId: string },
+  ) => void;
+  on: (
+    event:
+      | MeetingSocketEvent.JOIN_REQUESTED
+      | MeetingSocketEvent.JOIN_APPROVED
+      | MeetingSocketEvent.JOIN_REJECTED
+      | MeetingSocketEvent.ACCESS_UPDATED,
+    handler: (payload: MeetingSocketPayload) => void,
+  ) => void;
+  off: (
+    event:
+      | MeetingSocketEvent.JOIN_REQUESTED
+      | MeetingSocketEvent.JOIN_APPROVED
+      | MeetingSocketEvent.JOIN_REJECTED
+      | MeetingSocketEvent.ACCESS_UPDATED,
+    handler: (payload: MeetingSocketPayload) => void,
+  ) => void;
+}
+
 export function useMeetingSocket(meetingId?: string, joinToken?: string) {
   const queryClient = useQueryClient();
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const { accessToken, userId } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (!accessToken || !meetingId) return;
 
-    const socket = socketService.connect(accessToken) as any;
-    const invalidateMeetingData = () => {
+    const socket = socketService.connect(
+      accessToken,
+    ) as unknown as MeetingRealtimeSocket;
+    const invalidateMeetingData = (payload: MeetingSocketPayload) => {
+      if (payload.meetingId !== meetingId) return;
+
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       void queryClient.invalidateQueries({
         queryKey: meetingKeys.requests(meetingId),
       });
-      if (joinToken) {
+      if (
+        joinToken &&
+        (payload.allowJoinWithoutApproval !== undefined ||
+          !payload.userId ||
+          payload.userId === userId)
+      ) {
         void queryClient.invalidateQueries({
           queryKey: meetingKeys.join(joinToken),
         });
       }
     };
 
-    const handleMeetingEvent = (_payload: MeetingSocketPayload) => {
-      invalidateMeetingData();
+    const handleMeetingEvent = (payload: MeetingSocketPayload) => {
+      invalidateMeetingData(payload);
     };
 
     socket.emit(MeetingSocketEvent.JOIN_CONTROL_ROOM, { meetingId });
@@ -44,5 +76,5 @@ export function useMeetingSocket(meetingId?: string, joinToken?: string) {
       socket.off(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.ACCESS_UPDATED, handleMeetingEvent);
     };
-  }, [accessToken, joinToken, meetingId, queryClient]);
+  }, [accessToken, joinToken, meetingId, queryClient, userId]);
 }

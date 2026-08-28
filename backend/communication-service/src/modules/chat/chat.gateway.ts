@@ -811,9 +811,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
       participant,
     };
-    this.server
-      .to(getMeetingHostRoom(meetingId))
-      .emit(MeetingSocketEvent.JOIN_REQUESTED, payload);
+    this.server.to([
+      getMeetingHostRoom(meetingId),
+      getMeetingUserRoom(meetingId, userId),
+    ]).emit(MeetingSocketEvent.JOIN_REQUESTED, payload);
   }
 
   emitMeetingJoinApproved(
@@ -826,9 +827,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
       participant,
     };
-    this.server
-      .to(getMeetingUserRoom(meetingId, userId))
-      .emit(MeetingSocketEvent.JOIN_APPROVED, payload);
+    this.server.to([
+      getMeetingHostRoom(meetingId),
+      getMeetingUserRoom(meetingId, userId),
+    ]).emit(MeetingSocketEvent.JOIN_APPROVED, payload);
   }
 
   emitMeetingJoinRejected(
@@ -841,9 +843,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
       participant,
     };
-    this.server
-      .to(getMeetingUserRoom(meetingId, userId))
-      .emit(MeetingSocketEvent.JOIN_REJECTED, payload);
+    this.server.to([
+      getMeetingHostRoom(meetingId),
+      getMeetingUserRoom(meetingId, userId),
+    ]).emit(MeetingSocketEvent.JOIN_REJECTED, payload);
   }
 
   emitMeetingAccessUpdated(
