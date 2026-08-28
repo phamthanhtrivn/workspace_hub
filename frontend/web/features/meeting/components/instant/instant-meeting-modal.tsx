@@ -4,7 +4,6 @@ import { X } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useInstantMeetingSetup } from "../../hooks/instant/use-instant-meeting-setup";
 import { DeviceSelectionGroup } from "../common/device-selection-group";
-import { InstantMeetingAccessSettings } from "./instant-meeting-access-settings";
 import { InstantMeetingDeviceToggles } from "./instant-meeting-device-toggles";
 import { InstantMeetingPreview } from "./instant-meeting-preview";
 
@@ -29,11 +28,9 @@ export function InstantMeetingModal({
     selectedMicDeviceId,
     isPreparingDevices,
     deviceError,
-    allowJoinWithoutApproval,
     isCreatingMeeting,
     closeSetup,
     submitInstantMeeting,
-    setAllowJoinWithoutApproval,
     setSelectedCameraDeviceId,
     setSelectedMicDeviceId,
     toggleMic,
@@ -70,7 +67,7 @@ export function InstantMeetingModal({
           </button>
         </div>
 
-        <div className="grid gap-5 px-5 py-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="px-5 py-5">
           <section className="space-y-3">
             <InstantMeetingPreview
               videoRef={videoRef}
@@ -113,11 +110,6 @@ export function InstantMeetingModal({
               />
             </div>
           </section>
-
-          <InstantMeetingAccessSettings
-            allowJoinWithoutApproval={allowJoinWithoutApproval}
-            onAllowJoinWithoutApprovalChange={setAllowJoinWithoutApproval}
-          />
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-5 py-4">

@@ -36,8 +36,6 @@ export function useInstantMeetingSetup({
   const [micDevices, setMicDevices] = useState<MeetingDeviceOption[]>([]);
   const [selectedCameraDeviceId, setSelectedCameraDeviceId] = useState("");
   const [selectedMicDeviceId, setSelectedMicDeviceId] = useState("");
-  const [allowJoinWithoutApproval, setAllowJoinWithoutApproval] =
-    useState(true);
   const createMeeting = useCreateInstantMeetingMutation();
 
   const syncDevices = async () => {
@@ -172,7 +170,6 @@ export function useInstantMeetingSetup({
 
   const closeSetup = () => {
     resetPreview();
-    setAllowJoinWithoutApproval(false);
     onClose();
   };
 
@@ -182,9 +179,7 @@ export function useInstantMeetingSetup({
     event.preventDefault();
     const meetingWindow = openMeetingWindow();
     try {
-      const response = await createMeeting.mutateAsync({
-        allowJoinWithoutApproval,
-      });
+      const response = await createMeeting.mutateAsync({});
       saveMeetingDevicePreferences(response.data.joinToken, {
         isCameraEnabled,
         isMicEnabled,
@@ -193,7 +188,6 @@ export function useInstantMeetingSetup({
       });
       navigateMeetingWindow(meetingWindow, response.data.joinToken);
       resetPreview();
-      setAllowJoinWithoutApproval(false);
       onClose();
     } catch (error) {
       meetingWindow?.close();
@@ -212,11 +206,9 @@ export function useInstantMeetingSetup({
     selectedMicDeviceId,
     isPreparingDevices,
     deviceError,
-    allowJoinWithoutApproval,
     isCreatingMeeting: createMeeting.isPending,
     closeSetup,
     submitInstantMeeting,
-    setAllowJoinWithoutApproval,
     setSelectedCameraDeviceId,
     setSelectedMicDeviceId,
     toggleMic: () => setIsMicEnabled((value) => !value),
