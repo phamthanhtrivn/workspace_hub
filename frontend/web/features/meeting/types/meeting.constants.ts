@@ -15,6 +15,12 @@ export const meetingApiRoutes = {
   rejectJoinRequest: (meetingId: string, userId: string) =>
     `${MeetingApiRoute.ROOT}/${meetingId}/join-requests/${userId}/reject`,
   access: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/access`,
+  participants: (meetingId: string) =>
+    `${MeetingApiRoute.ROOT}/${meetingId}/participants`,
+  participantRole: (meetingId: string, userId: string) =>
+    `${MeetingApiRoute.ROOT}/${meetingId}/participants/${userId}/role`,
+  removeParticipant: (meetingId: string, userId: string) =>
+    `${MeetingApiRoute.ROOT}/${meetingId}/participants/${userId}/remove`,
   leave: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/leave`,
   end: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/end`,
   liveKitToken: (meetingId: string) =>
@@ -29,6 +35,7 @@ export enum MeetingQueryRoot {
   MEETINGS = "meetings",
   JOIN = "meeting-join",
   REQUESTS = "meeting-join-requests",
+  PARTICIPANTS = "meeting-participants",
   LIVEKIT_TOKEN = "meeting-livekit-token",
 }
 
@@ -38,6 +45,10 @@ export const meetingKeys = {
     [MeetingQueryRoot.JOIN, joinToken] as const,
   requests: (meetingId: string) =>
     [MeetingQueryRoot.REQUESTS, meetingId] as const,
+  participants: (meetingId: string, search: string) =>
+    [MeetingQueryRoot.PARTICIPANTS, meetingId, search] as const,
+  participantsRoot: (meetingId: string) =>
+    [MeetingQueryRoot.PARTICIPANTS, meetingId] as const,
   liveKitToken: (meetingId: string) =>
     [MeetingQueryRoot.LIVEKIT_TOKEN, meetingId] as const,
 };

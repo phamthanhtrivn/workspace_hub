@@ -11,6 +11,7 @@ interface MeetingParticipantTileProps {
   avatarUrl?: string | null;
   displayName: string;
   initials: string;
+  roleLabel?: string | null;
   trackRef: TrackReferenceOrPlaceholder;
   variant: "primary" | "secondary";
 }
@@ -19,6 +20,7 @@ export function MeetingParticipantTile({
   avatarUrl,
   displayName,
   initials,
+  roleLabel,
   trackRef,
   variant,
 }: MeetingParticipantTileProps) {
@@ -63,6 +65,11 @@ export function MeetingParticipantTile({
           show="muted"
         />
         <span className="truncate">{displayName}</span>
+        {roleLabel ? (
+          <span className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-black uppercase text-blue-100">
+            {roleLabel}
+          </span>
+        ) : null}
       </div>
     </div>
   );

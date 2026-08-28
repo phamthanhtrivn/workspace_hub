@@ -11,8 +11,11 @@ export enum MeetingSuccessMessage {
   LEFT = 'Left meeting successfully',
   ENDED = 'Meeting ended successfully',
   JOIN_REQUESTS_LISTED = 'Join requests retrieved successfully',
+  PARTICIPANTS_LISTED = 'Meeting participants retrieved successfully',
   JOIN_APPROVED = 'Join request approved successfully',
   JOIN_REJECTED = 'Join request rejected successfully',
+  PARTICIPANT_ROLE_UPDATED = 'Meeting participant role updated successfully',
+  PARTICIPANT_REMOVED = 'Meeting participant removed successfully',
   ACCESS_UPDATED = 'Meeting access updated successfully',
   LIVEKIT_TOKEN_CREATED = 'Meeting LiveKit token created successfully',
 }
@@ -27,6 +30,11 @@ export enum MeetingErrorMessage {
   REQUEST_NOT_FOUND = 'Join request not found',
   SELF_REVIEW_NOT_ALLOWED = 'Host is already in the meeting',
   PARTICIPANT_JOIN_REQUIRED = 'You must be approved to join this meeting',
+  PARTICIPANT_NOT_FOUND = 'Meeting participant not found',
+  PARTICIPANT_REMOVED = 'You were removed from this meeting',
+  INVALID_PARTICIPANT_ROLE = 'Invalid meeting participant role',
+  REMOVE_SELF_NOT_ALLOWED = 'You cannot remove yourself from the meeting',
+  REMOVE_HOST_NOT_ALLOWED = 'You cannot remove the current meeting host',
 }
 
 export enum MeetingDefault {
@@ -41,6 +49,7 @@ export enum MeetingSocketRoomPrefix {
 
 export enum MeetingParticipantRoleValue {
   HOST = 'HOST',
+  COHOST = 'COHOST',
   PARTICIPANT = 'PARTICIPANT',
 }
 
@@ -48,6 +57,7 @@ export enum MeetingParticipantStatusValue {
   REQUESTED = 'REQUESTED',
   JOINED = 'JOINED',
   LEFT = 'LEFT',
+  REMOVED = 'REMOVED',
   REJECTED = 'REJECTED',
 }
 

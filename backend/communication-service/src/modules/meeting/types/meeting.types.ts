@@ -57,6 +57,18 @@ export interface MeetingParticipantLeftPayload {
   participant: MeetingParticipantWithProfile;
 }
 
+export interface MeetingParticipantRoleUpdatedPayload {
+  meetingId: string;
+  userId: string;
+  participant: MeetingParticipantWithProfile;
+}
+
+export interface MeetingParticipantRemovedPayload {
+  meetingId: string;
+  userId: string;
+  participant: MeetingParticipantWithProfile;
+}
+
 export interface MeetingEndedPayload {
   meetingId: string;
   endedBy: string;

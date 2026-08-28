@@ -81,6 +81,10 @@ export interface UpdateMeetingAccessRequest {
   allowJoinWithoutApproval: boolean;
 }
 
+export interface UpdateMeetingParticipantRoleRequest {
+  role: MeetingRole;
+}
+
 export interface RequestJoinMeetingResponse {
   meeting: MeetingResponse;
   participant: MeetingParticipant;

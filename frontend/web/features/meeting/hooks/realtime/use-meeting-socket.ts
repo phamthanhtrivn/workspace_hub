@@ -20,6 +20,8 @@ interface MeetingRealtimeSocket {
       | MeetingSocketEvent.JOIN_REJECTED
       | MeetingSocketEvent.ACCESS_UPDATED
       | MeetingSocketEvent.PARTICIPANT_LEFT
+      | MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED
+      | MeetingSocketEvent.PARTICIPANT_REMOVED
       | MeetingSocketEvent.MEETING_ENDED,
     handler: (payload: MeetingSocketPayload) => void,
   ) => void;
@@ -30,6 +32,8 @@ interface MeetingRealtimeSocket {
       | MeetingSocketEvent.JOIN_REJECTED
       | MeetingSocketEvent.ACCESS_UPDATED
       | MeetingSocketEvent.PARTICIPANT_LEFT
+      | MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED
+      | MeetingSocketEvent.PARTICIPANT_REMOVED
       | MeetingSocketEvent.MEETING_ENDED,
     handler: (payload: MeetingSocketPayload) => void,
   ) => void;
@@ -37,6 +41,7 @@ interface MeetingRealtimeSocket {
 
 interface UseMeetingSocketOptions {
   onMeetingEnded?: () => void;
+  onParticipantRemoved?: (payload: MeetingSocketPayload) => void;
 }
 
 export function useMeetingSocket(
@@ -46,7 +51,7 @@ export function useMeetingSocket(
 ) {
   const queryClient = useQueryClient();
   const { accessToken } = useAppSelector((state) => state.auth);
-  const { onMeetingEnded } = options;
+  const { onMeetingEnded, onParticipantRemoved } = options;
 
   useEffect(() => {
     if (!accessToken || !meetingId) return;
@@ -60,6 +65,9 @@ export function useMeetingSocket(
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       void queryClient.invalidateQueries({
         queryKey: meetingKeys.requests(meetingId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(meetingId),
       });
       if (joinToken) {
         void queryClient.invalidateQueries({
@@ -77,6 +85,12 @@ export function useMeetingSocket(
 
       onMeetingEnded?.();
     };
+    const handleParticipantRemoved = (payload: MeetingSocketPayload) => {
+      invalidateMeetingData(payload);
+      if (payload.meetingId !== meetingId) return;
+
+      onParticipantRemoved?.(payload);
+    };
 
     socket.emit(MeetingSocketEvent.JOIN_CONTROL_ROOM, { meetingId });
     socket.on(MeetingSocketEvent.JOIN_REQUESTED, handleMeetingEvent);
@@ -84,6 +98,8 @@ export function useMeetingSocket(
     socket.on(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
     socket.on(MeetingSocketEvent.ACCESS_UPDATED, handleMeetingEvent);
     socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleMeetingEvent);
+    socket.on(MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED, handleMeetingEvent);
+    socket.on(MeetingSocketEvent.PARTICIPANT_REMOVED, handleParticipantRemoved);
     socket.on(MeetingSocketEvent.MEETING_ENDED, handleMeetingEnded);
 
     return () => {
@@ -92,7 +108,22 @@ export function useMeetingSocket(
       socket.off(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.ACCESS_UPDATED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.PARTICIPANT_LEFT, handleMeetingEvent);
+      socket.off(
+        MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED,
+        handleMeetingEvent,
+      );
+      socket.off(
+        MeetingSocketEvent.PARTICIPANT_REMOVED,
+        handleParticipantRemoved,
+      );
       socket.off(MeetingSocketEvent.MEETING_ENDED, handleMeetingEnded);
     };
-  }, [accessToken, joinToken, meetingId, onMeetingEnded, queryClient]);
+  }, [
+    accessToken,
+    joinToken,
+    meetingId,
+    onMeetingEnded,
+    onParticipantRemoved,
+    queryClient,
+  ]);
 }

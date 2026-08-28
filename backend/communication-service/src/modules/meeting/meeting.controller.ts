@@ -7,10 +7,12 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { MeetingParticipantStatus } from '@prisma/client';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import { UpdateMeetingAccessDto } from './dto/update-meeting-access.dto';
+import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
 import { MeetingService } from './meeting.service';
 import {
   MeetingErrorMessage,
@@ -171,6 +173,77 @@ export class MeetingController {
     return {
       message: MeetingSuccessMessage.ACCESS_UPDATED,
       data: meeting,
+    };
+  }
+
+  @Get(':meetingId/participants')
+  async getMeetingParticipants(
+    @Headers('x-user-id') userId: string,
+    @Param('meetingId') meetingId: string,
+    @Query('search') search?: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    const participants = await this.meetingService.getMeetingParticipants(
+      meetingId,
+      userId,
+      search,
+    );
+    return {
+      message: MeetingSuccessMessage.PARTICIPANTS_LISTED,
+      data: participants,
+    };
+  }
+
+  @Patch(':meetingId/participants/:userId/role')
+  async updateParticipantRole(
+    @Headers('x-user-id') hostId: string,
+    @Param('meetingId') meetingId: string,
+    @Param('userId') targetUserId: string,
+    @Body() body: UpdateMeetingParticipantRoleDto,
+  ) {
+    if (!hostId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    const participant = await this.meetingService.updateParticipantRole(
+      meetingId,
+      targetUserId,
+      hostId,
+      body.role,
+    );
+    return {
+      message: MeetingSuccessMessage.PARTICIPANT_ROLE_UPDATED,
+      data: participant,
+    };
+  }
+
+  @Post(':meetingId/participants/:userId/remove')
+  async removeParticipant(
+    @Headers('x-user-id') hostId: string,
+    @Param('meetingId') meetingId: string,
+    @Param('userId') targetUserId: string,
+  ) {
+    if (!hostId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    const participant = await this.meetingService.removeParticipant(
+      meetingId,
+      targetUserId,
+      hostId,
+    );
+    return {
+      message: MeetingSuccessMessage.PARTICIPANT_REMOVED,
+      data: participant,
     };
   }
 

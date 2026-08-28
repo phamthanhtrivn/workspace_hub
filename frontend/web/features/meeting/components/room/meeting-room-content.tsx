@@ -7,13 +7,19 @@ import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import type { AudioCaptureOptions, VideoCaptureOptions } from "livekit-client";
 import { Track } from "livekit-client";
 import { UserRoundPlus, Users } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { MeetingResponse, UserProfileSnapshot } from "../../types/meeting.types";
+import {
+  MeetingParticipant,
+  MeetingResponse,
+  MeetingRole,
+  UserProfileSnapshot,
+} from "../../types/meeting.types";
 import {
   MeetingAvatarTile,
   MeetingParticipantTile,
 } from "./participants/meeting-participant-tile";
+import { MeetingParticipantsModal } from "./participants/meeting-participants-modal";
 import { MeetingRoomControlBar } from "./controls/meeting-room-control-bar";
 import { HostJoinRequestsPanel } from "./host-join-requests-panel";
 import { buildParticipantInitials } from "./meeting-room.utils";
@@ -46,6 +52,8 @@ export function MeetingRoomContent({
   const intl = useAppIntl();
   const [isJoinRequestsPanelOpen, setIsJoinRequestsPanelOpen] =
     useState(false);
+  const [isParticipantsModalOpen, setIsParticipantsModalOpen] =
+    useState(false);
   const { localParticipant } = useLocalParticipant();
   const participants = useParticipants();
   const trackRefs = useTracks(
@@ -59,22 +67,42 @@ export function MeetingRoomContent({
   const remoteParticipants = participants.filter(
     (participant) => participant.identity !== localParticipant.identity,
   );
-  const profileByUserId = new Map(
-    (meeting.participants ?? []).map((participant) => [
-      participant.userId,
-      participant.profile ?? null,
-    ]),
+  const participantByUserId = useMemo(
+    () =>
+      new Map(
+        (meeting.participants ?? []).map((participant) => [
+          participant.userId,
+          participant,
+        ]),
+      ),
+    [meeting.participants],
+  );
+  const connectedParticipantIds = useMemo(
+    () => new Set(participants.map((participant) => participant.identity)),
+    [participants],
   );
   const pendingJoinRequestCount = meeting.pendingJoinRequestCount ?? 0;
+  const localRoleLabel = resolveRoleLabel(
+    meeting.currentParticipant,
+    meeting.hostId,
+    intl.formatMessage,
+  );
 
   return (
     <div className="flex h-screen min-h-0 bg-[#111827] text-white">
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs font-bold text-slate-100">
+          <button
+            type="button"
+            onClick={() => setIsParticipantsModalOpen(true)}
+            className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs font-bold text-slate-100 hover:bg-white/15"
+            aria-label={intl.formatMessage({
+              id: "meeting.room.participants.open",
+            })}
+          >
             <Users className="h-4 w-4 text-blue-300" />
             {participants.length}
-          </div>
+          </button>
 
           {isHost ? (
             <button
@@ -105,6 +133,7 @@ export function MeetingRoomContent({
                 avatarUrl={avatarUrl}
                 displayName={displayName}
                 initials={initials}
+                roleLabel={localRoleLabel}
                 trackRef={localTrack}
                 variant="primary"
               />
@@ -126,8 +155,13 @@ export function MeetingRoomContent({
                   participant.identity,
                 );
                 const participantProfile = resolveParticipantProfile(
-                  profileByUserId.get(participant.identity),
+                  participantByUserId.get(participant.identity)?.profile,
                   participant.metadata,
+                );
+                const participantRoleLabel = resolveRoleLabel(
+                  participantByUserId.get(participant.identity),
+                  meeting.hostId,
+                  intl.formatMessage,
                 );
                 const participantDisplayName =
                   participantProfile.fullName ||
@@ -144,6 +178,7 @@ export function MeetingRoomContent({
                     avatarUrl={participantProfile.avatarUrl}
                     displayName={participantDisplayName}
                     initials={participantInitials}
+                    roleLabel={participantRoleLabel}
                     trackRef={trackRef}
                     variant="secondary"
                   />
@@ -186,6 +221,14 @@ export function MeetingRoomContent({
         <HostJoinRequestsPanel
           meeting={meeting}
           onClose={() => setIsJoinRequestsPanelOpen(false)}
+        />
+      ) : null}
+
+      {isParticipantsModalOpen ? (
+        <MeetingParticipantsModal
+          connectedParticipantIds={connectedParticipantIds}
+          meeting={meeting}
+          onClose={() => setIsParticipantsModalOpen(false)}
         />
       ) : null}
     </div>
@@ -233,4 +276,19 @@ function parseParticipantMetadata(
   } catch {
     return {};
   }
+}
+
+function resolveRoleLabel(
+  participant: MeetingParticipant | null | undefined,
+  hostId: string,
+  formatMessage: (descriptor: { id: string }) => string,
+) {
+  if (!participant) return null;
+  if (participant.userId === hostId || participant.role === MeetingRole.HOST) {
+    return formatMessage({ id: "meeting.room.participants.host" });
+  }
+  if (participant.role === MeetingRole.COHOST) {
+    return formatMessage({ id: "meeting.room.participants.cohost" });
+  }
+  return null;
 }

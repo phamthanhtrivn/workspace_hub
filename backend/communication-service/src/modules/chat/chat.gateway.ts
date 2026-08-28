@@ -29,6 +29,8 @@ import {
   MeetingParticipantPayload,
   MeetingParticipantLeftPayload,
   MeetingJoinRequestPayload,
+  MeetingParticipantRemovedPayload,
+  MeetingParticipantRoleUpdatedPayload,
 } from '../meeting/types/meeting.types';
 import {
   getMeetingHostRoom,
@@ -877,6 +879,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server
       .to(getMeetingHostRoom(meetingId))
       .emit(MeetingSocketEvent.PARTICIPANT_LEFT, payload);
+  }
+
+  emitMeetingParticipantRoleUpdated(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ) {
+    const payload: MeetingParticipantRoleUpdatedPayload = {
+      meetingId,
+      userId,
+      participant,
+    };
+    this.server
+      .to(getMeetingHostRoom(meetingId))
+      .emit(MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED, payload);
+  }
+
+  emitMeetingParticipantRemoved(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ) {
+    const payload: MeetingParticipantRemovedPayload = {
+      meetingId,
+      userId,
+      participant,
+    };
+    this.server.to([
+      getMeetingHostRoom(meetingId),
+      getMeetingUserRoom(meetingId, userId),
+    ]).emit(MeetingSocketEvent.PARTICIPANT_REMOVED, payload);
   }
 
   emitMeetingEnded(meetingId: string, endedBy: string) {

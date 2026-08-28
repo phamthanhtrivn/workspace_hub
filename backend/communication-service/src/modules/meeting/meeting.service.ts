@@ -93,6 +93,35 @@ export class MeetingService {
     return meeting;
   }
 
+  private async assertApprovedParticipant(meetingId: string, userId: string) {
+    const participant = await this.prisma.meetingParticipant.findUnique({
+      where: {
+        meetingId_userId: {
+          meetingId,
+          userId,
+        },
+      },
+    });
+
+    if (!participant) {
+      throw new ForbiddenException(
+        MeetingErrorMessage.PARTICIPANT_JOIN_REQUIRED,
+      );
+    }
+
+    if (participant.status === PrismaMeetingParticipantStatus.REMOVED) {
+      throw new ForbiddenException(MeetingErrorMessage.PARTICIPANT_REMOVED);
+    }
+
+    if (participant.status !== PrismaMeetingParticipantStatus.JOINED) {
+      throw new ForbiddenException(
+        MeetingErrorMessage.PARTICIPANT_JOIN_REQUIRED,
+      );
+    }
+
+    return participant;
+  }
+
   private async enrichParticipants(
     participants: MeetingParticipant[],
   ): Promise<MeetingParticipantWithProfile[]> {
@@ -303,6 +332,11 @@ export class MeetingService {
     );
     const wasAlreadyApproved =
       existingParticipant?.status === PrismaMeetingParticipantStatus.JOINED;
+    if (
+      existingParticipant?.status === PrismaMeetingParticipantStatus.REMOVED
+    ) {
+      throw new ForbiddenException(MeetingErrorMessage.PARTICIPANT_REMOVED);
+    }
     const nextStatus =
       meeting.allowJoinWithoutApproval || wasAlreadyApproved
         ? MeetingParticipantStatusValue.JOINED
@@ -375,6 +409,236 @@ export class MeetingService {
       participant: enrichedParticipant,
       meeting: meetingResponse,
     };
+  }
+
+  async getMeetingParticipants(
+    meetingId: string,
+    userId: string,
+    search?: string,
+  ): Promise<MeetingParticipantWithProfile[]> {
+    await this.getMeetingOrThrow(meetingId);
+    await this.assertApprovedParticipant(meetingId, userId);
+
+    const participants = await this.prisma.meetingParticipant.findMany({
+      where: {
+        meetingId,
+        status: MeetingParticipantStatusValue.JOINED,
+      },
+      orderBy: [{ role: 'asc' }, { updatedAt: 'asc' }],
+    });
+
+    const normalizedSearch = search?.trim();
+    if (!normalizedSearch) {
+      return this.enrichParticipants(participants);
+    }
+
+    const snapshots = await this.prisma.userProfileSnapshot.findMany({
+      where: {
+        userId: {
+          in: participants.map((participant) => participant.userId),
+        },
+        OR: [
+          {
+            fullName: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+          {
+            email: {
+              contains: normalizedSearch,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+      select: { userId: true },
+    });
+    const matchedUserIds = new Set(
+      snapshots.map((snapshot) => snapshot.userId),
+    );
+
+    return this.enrichParticipants(
+      participants.filter((participant) =>
+        matchedUserIds.has(participant.userId),
+      ),
+    );
+  }
+
+  async updateParticipantRole(
+    meetingId: string,
+    targetUserId: string,
+    hostId: string,
+    role: MeetingParticipantRoleValue,
+  ): Promise<MeetingParticipantWithProfile> {
+    const meeting = await this.assertHost(meetingId, hostId);
+    if (!Object.values(MeetingParticipantRoleValue).includes(role)) {
+      throw new BadRequestException(
+        MeetingErrorMessage.INVALID_PARTICIPANT_ROLE,
+      );
+    }
+
+    const targetParticipant = await this.prisma.meetingParticipant.findUnique({
+      where: {
+        meetingId_userId: {
+          meetingId,
+          userId: targetUserId,
+        },
+      },
+    });
+    if (
+      !targetParticipant ||
+      targetParticipant.status !== PrismaMeetingParticipantStatus.JOINED
+    ) {
+      throw new NotFoundException(MeetingErrorMessage.PARTICIPANT_NOT_FOUND);
+    }
+    if (
+      role !== MeetingParticipantRoleValue.HOST &&
+      targetUserId === meeting.hostId
+    ) {
+      throw new BadRequestException(MeetingErrorMessage.HOST_REQUIRED);
+    }
+
+    const participant =
+      role === MeetingParticipantRoleValue.HOST
+        ? await this.transferHost(meetingId, hostId, targetUserId)
+        : await this.prisma.meetingParticipant.update({
+            where: {
+              meetingId_userId: {
+                meetingId,
+                userId: targetUserId,
+              },
+            },
+            data: { role },
+          });
+    const [enrichedParticipant] = await this.enrichParticipants([participant]);
+
+    this.chatGateway.emitMeetingParticipantRoleUpdated(
+      meetingId,
+      targetUserId,
+      enrichedParticipant,
+    );
+
+    return enrichedParticipant;
+  }
+
+  private async transferHost(
+    meetingId: string,
+    oldHostId: string,
+    newHostId: string,
+  ) {
+    if (oldHostId === newHostId) {
+      return this.prisma.meetingParticipant.update({
+        where: {
+          meetingId_userId: {
+            meetingId,
+            userId: newHostId,
+          },
+        },
+        data: { role: MeetingParticipantRoleValue.HOST },
+      });
+    }
+
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await tx.meeting.update({
+        where: { id: meetingId },
+        data: { hostId: newHostId },
+      });
+      await tx.meetingParticipant.update({
+        where: {
+          meetingId_userId: {
+            meetingId,
+            userId: oldHostId,
+          },
+        },
+        data: { role: MeetingParticipantRoleValue.PARTICIPANT },
+      });
+      return tx.meetingParticipant.update({
+        where: {
+          meetingId_userId: {
+            meetingId,
+            userId: newHostId,
+          },
+        },
+        data: { role: MeetingParticipantRoleValue.HOST },
+      });
+    });
+  }
+
+  async removeParticipant(
+    meetingId: string,
+    targetUserId: string,
+    hostId: string,
+  ): Promise<MeetingParticipantWithProfile> {
+    const meeting = await this.assertHost(meetingId, hostId);
+    if (targetUserId === hostId) {
+      throw new BadRequestException(
+        MeetingErrorMessage.REMOVE_SELF_NOT_ALLOWED,
+      );
+    }
+    if (targetUserId === meeting.hostId) {
+      throw new BadRequestException(
+        MeetingErrorMessage.REMOVE_HOST_NOT_ALLOWED,
+      );
+    }
+
+    const targetParticipant = await this.prisma.meetingParticipant.findUnique({
+      where: {
+        meetingId_userId: {
+          meetingId,
+          userId: targetUserId,
+        },
+      },
+    });
+    if (!targetParticipant) {
+      throw new NotFoundException(MeetingErrorMessage.PARTICIPANT_NOT_FOUND);
+    }
+
+    const now = new Date();
+    const removedParticipant = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const participant = await tx.meetingParticipant.update({
+          where: {
+            meetingId_userId: {
+              meetingId,
+              userId: targetUserId,
+            },
+          },
+          data: {
+            status: MeetingParticipantStatusValue.REMOVED,
+            role: MeetingParticipantRoleValue.PARTICIPANT,
+            leftAt: now,
+            lastSeenAt: now,
+          },
+        });
+
+        await tx.meetingEvent.create({
+          data: {
+            meetingId,
+            actorId: hostId,
+            type: MeetingEventTypeValue.PARTICIPANT_LEFT,
+            metadata: {
+              removedUserId: targetUserId,
+              status: MeetingParticipantStatusValue.REMOVED,
+            },
+          },
+        });
+
+        return participant;
+      },
+    );
+    const [enrichedParticipant] = await this.enrichParticipants([
+      removedParticipant,
+    ]);
+
+    await this.removeLiveKitParticipant(meeting.roomName, targetUserId);
+    this.chatGateway.emitMeetingParticipantRemoved(
+      meetingId,
+      targetUserId,
+      enrichedParticipant,
+    );
+
+    return enrichedParticipant;
   }
 
   async getJoinRequests(
@@ -742,6 +1006,9 @@ export class MeetingService {
     }
 
     const participant = meeting.participants[0];
+    if (participant?.status === PrismaMeetingParticipantStatus.REMOVED) {
+      throw new ForbiddenException(MeetingErrorMessage.PARTICIPANT_REMOVED);
+    }
     if (
       !participant ||
       participant.status !== PrismaMeetingParticipantStatus.JOINED

@@ -45,8 +45,7 @@ export function canRequestMeetingJoin(meeting?: MeetingResponse | null) {
   return (
     !status ||
     status === MeetingParticipantStatus.REJECTED ||
-    status === MeetingParticipantStatus.LEFT ||
-    status === MeetingParticipantStatus.REMOVED
+    status === MeetingParticipantStatus.LEFT
   );
 }
 

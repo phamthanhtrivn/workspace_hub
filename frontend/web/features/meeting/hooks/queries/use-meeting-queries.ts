@@ -7,16 +7,21 @@ import {
   getMeetingLiveKitToken,
   getMeetingJoinInfo,
   getMeetingJoinRequests,
+  getMeetingParticipants,
   getMeetings,
   leaveMeeting,
+  removeMeetingParticipant,
   rejectMeetingJoinRequest,
   requestJoinMeeting,
   updateMeetingAccess,
+  updateMeetingParticipantRole,
 } from "../../api/meeting.api";
 import { meetingKeys } from "../../types/meeting.constants";
 import {
   CreateInstantMeetingRequest,
+  MeetingRole,
   UpdateMeetingAccessRequest,
+  UpdateMeetingParticipantRoleRequest,
 } from "../../types/meeting.types";
 
 export function useMeetingsQuery() {
@@ -46,6 +51,18 @@ export function useMeetingJoinRequestsQuery(
     queryFn: () => getMeetingJoinRequests(meetingId ?? ""),
     enabled: Boolean(meetingId) && enabled,
     refetchInterval: enabled ? 15_000 : false,
+  });
+}
+
+export function useMeetingParticipantsQuery(
+  meetingId: string | undefined,
+  search: string,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: meetingKeys.participants(meetingId ?? "", search),
+    queryFn: () => getMeetingParticipants(meetingId ?? "", search),
+    enabled: Boolean(meetingId) && enabled,
   });
 }
 
@@ -175,3 +192,57 @@ export function useEndMeetingMutation(meetingId: string, joinToken?: string) {
     },
   });
 }
+
+export function useUpdateMeetingParticipantRoleMutation(
+  meetingId: string,
+  joinToken?: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      userId,
+      role,
+    }: { userId: string } & UpdateMeetingParticipantRoleRequest) =>
+      updateMeetingParticipantRole(meetingId, userId, { role }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(meetingId),
+      });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
+    },
+  });
+}
+
+export function useRemoveMeetingParticipantMutation(
+  meetingId: string,
+  joinToken?: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => removeMeetingParticipant(meetingId, userId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(meetingId),
+      });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
+    },
+  });
+}
+
+export const meetingRoleMutationValues = {
+  host: MeetingRole.HOST,
+  cohost: MeetingRole.COHOST,
+  participant: MeetingRole.PARTICIPANT,
+} as const;

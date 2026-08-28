@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useAppSelector } from "@/store/store";
 import { useMeetingSocket } from "../../hooks/realtime/use-meeting-socket";
 import {
   useMeetingJoinInfoQuery,
@@ -28,8 +29,10 @@ interface MeetingJoinPageProps {
 export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
   const intl = useAppIntl();
   const router = useRouter();
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const hasHandledMissingMeetingRef = useRef(false);
   const hasHandledEndedMeetingRef = useRef(false);
+  const hasHandledRemovedParticipantRef = useRef(false);
   const meetingQuery = useMeetingJoinInfoQuery(joinToken);
   const meeting = meetingQuery.data?.data;
   const requestJoin = useRequestJoinMeetingMutation(joinToken);
@@ -42,8 +45,23 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
     router.replace(meetingRoutes.listPath);
   }, [intl, router]);
 
+  const returnToMeetingsAfterRemoval = useCallback(() => {
+    if (hasHandledRemovedParticipantRef.current) return;
+    hasHandledRemovedParticipantRef.current = true;
+    toast.error(intl.formatMessage({ id: "meeting.room.removedToast" }));
+    router.replace(meetingRoutes.listPath);
+  }, [intl, router]);
+  const handleParticipantRemoved = useCallback(
+    (payload: { userId?: string }) => {
+      if (payload.userId !== currentUserId) return;
+      returnToMeetingsAfterRemoval();
+    },
+    [currentUserId, returnToMeetingsAfterRemoval],
+  );
+
   useMeetingSocket(meeting?.id, joinToken, {
     onMeetingEnded: returnToMeetingsAfterEnd,
+    onParticipantRemoved: handleParticipantRemoved,
   });
 
   useEffect(() => {
@@ -60,6 +78,12 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
       returnToMeetingsAfterEnd();
     }
   }, [meeting?.status, returnToMeetingsAfterEnd]);
+
+  useEffect(() => {
+    if (participantStatus === MeetingParticipantStatus.REMOVED) {
+      returnToMeetingsAfterRemoval();
+    }
+  }, [participantStatus, returnToMeetingsAfterRemoval]);
 
   const handleRequestJoin = () => {
     if (!meeting) return;
@@ -79,6 +103,10 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
   }
 
   if (meetingQuery.isError && isNotFoundError(meetingQuery.error)) {
+    return null;
+  }
+
+  if (participantStatus === MeetingParticipantStatus.REMOVED) {
     return null;
   }
 

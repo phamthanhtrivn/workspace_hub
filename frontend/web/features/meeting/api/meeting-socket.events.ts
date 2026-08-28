@@ -5,5 +5,7 @@ export enum MeetingSocketEvent {
   JOIN_REJECTED = "meeting:join-rejected",
   ACCESS_UPDATED = "meeting:access-updated",
   PARTICIPANT_LEFT = "meeting:participant-left",
+  PARTICIPANT_ROLE_UPDATED = "meeting:participant-role-updated",
+  PARTICIPANT_REMOVED = "meeting:participant-removed",
   MEETING_ENDED = "meeting:ended",
 }

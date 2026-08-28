@@ -11,6 +11,7 @@ import {
   MeetingResponse,
   RequestJoinMeetingResponse,
   UpdateMeetingAccessRequest,
+  UpdateMeetingParticipantRoleRequest,
 } from "../types/meeting.types";
 import { normalizeMeetingResponse } from "../utils/meeting.utils";
 
@@ -73,6 +74,38 @@ export async function updateMeetingAccess(
 ): Promise<ApiResponse<MeetingResponse>> {
   const response = await api.patch(meetingApiRoutes.access(meetingId), payload);
   return normalizeMeetingResponse<MeetingResponse>(response.data);
+}
+
+export async function getMeetingParticipants(
+  meetingId: string,
+  search: string,
+): Promise<ApiResponse<MeetingParticipant[]>> {
+  const response = await api.get(meetingApiRoutes.participants(meetingId), {
+    params: search ? { search } : undefined,
+  });
+  return normalizeMeetingResponse<MeetingParticipant[]>(response.data);
+}
+
+export async function updateMeetingParticipantRole(
+  meetingId: string,
+  userId: string,
+  payload: UpdateMeetingParticipantRoleRequest,
+): Promise<ApiResponse<MeetingParticipant>> {
+  const response = await api.patch(
+    meetingApiRoutes.participantRole(meetingId, userId),
+    payload,
+  );
+  return normalizeMeetingResponse<MeetingParticipant>(response.data);
+}
+
+export async function removeMeetingParticipant(
+  meetingId: string,
+  userId: string,
+): Promise<ApiResponse<MeetingParticipant>> {
+  const response = await api.post(
+    meetingApiRoutes.removeParticipant(meetingId, userId),
+  );
+  return normalizeMeetingResponse<MeetingParticipant>(response.data);
 }
 
 export async function leaveMeeting(
