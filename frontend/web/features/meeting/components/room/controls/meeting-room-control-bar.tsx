@@ -2,7 +2,14 @@ import {
   DisconnectButton,
   MediaDeviceMenu,
   TrackToggle,
+  useLocalParticipant,
 } from "@livekit/components-react";
+import type {
+  AudioCaptureOptions,
+  LocalAudioTrack,
+  LocalVideoTrack,
+  VideoCaptureOptions,
+} from "livekit-client";
 import { Track } from "livekit-client";
 import {
   ChevronUp,
@@ -15,16 +22,31 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MeetingRoomControlBarProps {
   isHost: boolean;
+  audioCaptureOptions?: AudioCaptureOptions;
+  videoCaptureOptions?: VideoCaptureOptions;
+  onDeviceError: (error: Error) => void;
 }
 
-export function MeetingRoomControlBar({ isHost }: MeetingRoomControlBarProps) {
+export function MeetingRoomControlBar({
+  isHost,
+  audioCaptureOptions,
+  videoCaptureOptions,
+  onDeviceError,
+}: MeetingRoomControlBarProps) {
   const intl = useAppIntl();
+  const { cameraTrack, microphoneTrack } = useLocalParticipant();
+  const audioTrack = microphoneTrack?.track as LocalAudioTrack | undefined;
+  const videoTrack = cameraTrack?.track as LocalVideoTrack | undefined;
+  const audioDeviceId = getInitialDeviceId(audioCaptureOptions?.deviceId);
+  const videoDeviceId = getInitialDeviceId(videoCaptureOptions?.deviceId);
 
   return (
     <footer className="flex flex-wrap items-center justify-center gap-2 border-t border-white/10 bg-black/25 px-4 py-3">
       <div className="flex overflow-hidden rounded-lg bg-white/10">
         <TrackToggle
           source={Track.Source.Microphone}
+          captureOptions={audioCaptureOptions}
+          onDeviceError={onDeviceError}
           className="h-10 px-4 text-sm font-bold text-white hover:bg-white/10"
         >
           <span className="ml-2 hidden sm:inline">
@@ -33,6 +55,9 @@ export function MeetingRoomControlBar({ isHost }: MeetingRoomControlBarProps) {
         </TrackToggle>
         <MediaDeviceMenu
           kind="audioinput"
+          initialSelection={audioDeviceId}
+          requestPermissions
+          tracks={{ audioinput: audioTrack }}
           className="grid h-10 w-10 place-items-center border-l border-white/10 text-white hover:bg-white/10"
         >
           <ChevronUp className="h-4 w-4" />
@@ -42,6 +67,8 @@ export function MeetingRoomControlBar({ isHost }: MeetingRoomControlBarProps) {
       <div className="flex overflow-hidden rounded-lg bg-white/10">
         <TrackToggle
           source={Track.Source.Camera}
+          captureOptions={videoCaptureOptions}
+          onDeviceError={onDeviceError}
           className="h-10 px-4 text-sm font-bold text-white hover:bg-white/10"
         >
           <span className="ml-2 hidden sm:inline">
@@ -50,6 +77,9 @@ export function MeetingRoomControlBar({ isHost }: MeetingRoomControlBarProps) {
         </TrackToggle>
         <MediaDeviceMenu
           kind="videoinput"
+          initialSelection={videoDeviceId}
+          requestPermissions
+          tracks={{ videoinput: videoTrack }}
           className="grid h-10 w-10 place-items-center border-l border-white/10 text-white hover:bg-white/10"
         >
           <ChevronUp className="h-4 w-4" />
@@ -102,4 +132,8 @@ export function MeetingRoomControlBar({ isHost }: MeetingRoomControlBarProps) {
       ) : null}
     </footer>
   );
+}
+
+function getInitialDeviceId(deviceId: AudioCaptureOptions["deviceId"]) {
+  return typeof deviceId === "string" ? deviceId : undefined;
 }

@@ -701,6 +701,8 @@ const en = {
   "meeting.room.connecting": "Connecting to LiveKit room...",
   "meeting.room.tokenFailed": "Could not connect to this meeting room.",
   "meeting.room.livekitConnected": "LiveKit room",
+  "meeting.room.deviceError":
+    "Could not access your camera or microphone. Check browser permissions and selected devices.",
   "meeting.room.avatarAlt": "Meeting avatar",
   "meeting.room.noOtherParticipants": "No one else is here yet",
   "meeting.room.microphone": "Microphone",

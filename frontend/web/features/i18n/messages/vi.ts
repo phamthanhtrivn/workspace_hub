@@ -696,6 +696,8 @@ const vi = {
   "meeting.room.connecting": "Đang kết nối phòng LiveKit...",
   "meeting.room.tokenFailed": "Không thể kết nối phòng họp này.",
   "meeting.room.livekitConnected": "Phòng LiveKit",
+  "meeting.room.deviceError":
+    "Không thể truy cập camera hoặc micro. Hãy kiểm tra quyền trình duyệt và thiết bị đã chọn.",
   "meeting.room.avatarAlt": "Avatar cuộc họp",
   "meeting.room.noOtherParticipants": "Chưa có ai khác trong phòng",
   "meeting.room.microphone": "Micro",

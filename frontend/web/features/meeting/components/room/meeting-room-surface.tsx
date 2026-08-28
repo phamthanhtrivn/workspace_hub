@@ -2,10 +2,12 @@
 
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingRoom } from "../../hooks/room/use-meeting-room";
 import { MeetingResponse } from "../../types/meeting.types";
 import { MeetingRoomContent } from "./meeting-room-content";
+import { buildParticipantInitials } from "./meeting-room.utils";
 
 interface MeetingRoomSurfaceProps {
   meeting: MeetingResponse;
@@ -17,6 +19,7 @@ export function MeetingRoomSurface({
   joinToken,
 }: MeetingRoomSurfaceProps) {
   const intl = useAppIntl();
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const { avatarUrl, devicePreferences, displayName, initials, tokenQuery } =
     useMeetingRoom({
       meetingId: meeting.id,
@@ -37,6 +40,17 @@ export function MeetingRoomSurface({
       ? { deviceId: devicePreferences.cameraDeviceId }
       : true
     : false;
+  const currentProfile = meeting.currentParticipant?.profile;
+  const resolvedDisplayName =
+    currentProfile?.fullName || currentProfile?.email || displayName;
+  const resolvedAvatarUrl = currentProfile?.avatarUrl || avatarUrl;
+  const resolvedInitials = currentProfile
+    ? buildParticipantInitials(resolvedDisplayName)
+    : initials;
+
+  const handleMediaDeviceError = () => {
+    setMediaError(intl.formatMessage({ id: "meeting.room.deviceError" }));
+  };
 
   if (tokenQuery.isLoading) {
     return (
@@ -65,14 +79,22 @@ export function MeetingRoomSurface({
         connect
         audio={audioCapture}
         video={videoCapture}
+        onConnected={() => setMediaError(null)}
+        onMediaDeviceFailure={handleMediaDeviceError}
+        onError={handleMediaDeviceError}
         data-lk-theme="default"
         className="min-h-[calc(100vh-160px)] bg-[#111827]"
       >
         <MeetingRoomContent
-          avatarUrl={avatarUrl}
-          displayName={displayName}
-          initials={initials}
+          avatarUrl={resolvedAvatarUrl}
+          displayName={resolvedDisplayName}
+          initials={resolvedInitials}
           isHost={isHost}
+          meeting={meeting}
+          mediaError={mediaError}
+          audioCaptureOptions={audioCapture === true ? undefined : audioCapture || undefined}
+          videoCaptureOptions={videoCapture === true ? undefined : videoCapture || undefined}
+          onDeviceError={handleMediaDeviceError}
         />
         <RoomAudioRenderer />
       </LiveKitRoom>

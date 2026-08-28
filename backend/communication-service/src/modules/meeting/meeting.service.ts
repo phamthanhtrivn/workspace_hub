@@ -5,13 +5,20 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Meeting, MeetingParticipant, Prisma } from '@prisma/client';
+import {
+  Meeting,
+  MeetingParticipant,
+  MeetingParticipantStatus as PrismaMeetingParticipantStatus,
+  MeetingStatus as PrismaMeetingStatus,
+  Prisma,
+} from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { AccessToken } from 'livekit-server-sdk';
 import { LIVEKIT_CONFIG } from '../../infrastructure/livekit/livekit.constants';
 import type { LiveKitConfig } from '../../infrastructure/livekit/livekit.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChatGateway } from '../chat/chat.gateway';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import {
   MeetingClientRoute,
@@ -25,8 +32,9 @@ import {
 } from './types/meeting.enums';
 import {
   MeetingResponse,
-  MeetingWithParticipantsAndPendingCount,
+  MeetingWithParticipantsAndPendingCountRaw,
   MeetingLiveKitTokenResponse,
+  MeetingParticipantWithProfile,
   RequestJoinMeetingResult,
 } from './types/meeting.types';
 
@@ -35,6 +43,7 @@ export class MeetingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly chatGateway: ChatGateway,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
     @Inject(LIVEKIT_CONFIG)
     private readonly liveKitConfig: LiveKitConfig,
   ) {}
@@ -79,22 +88,33 @@ export class MeetingService {
     return meeting;
   }
 
-  private mapMeetingResponse(
-    meeting: MeetingWithParticipantsAndPendingCount,
-    userId: string,
-  ): MeetingResponse {
-    const participant = meeting.participants?.find(
-      (item) => item.userId === userId,
+  private async enrichParticipants(
+    participants: MeetingParticipant[],
+  ): Promise<MeetingParticipantWithProfile[]> {
+    return this.userProfileSnapshotService.attachProfilesToMembers(
+      participants,
     );
+  }
+
+  private async mapMeetingResponse(
+    meeting: MeetingWithParticipantsAndPendingCountRaw,
+    userId: string,
+  ): Promise<MeetingResponse> {
+    const participants = await this.enrichParticipants(
+      meeting.participants ?? [],
+    );
+    const participant = participants.find((item) => item.userId === userId);
     const pendingJoinRequestCount =
       meeting._count?.participants ??
-      meeting.participants?.filter(
-        (item) => item.status === MeetingParticipantStatusValue.REQUESTED,
-      ).length ??
-      0;
+      participants.filter(
+        (item) => item.status === PrismaMeetingParticipantStatus.REQUESTED,
+      ).length;
+    const meetingData = { ...meeting };
+    delete (meetingData as Partial<typeof meeting>)._count;
 
     return {
-      ...meeting,
+      ...meetingData,
+      participants,
       joinUrl: this.buildJoinUrl(meeting.joinToken),
       currentParticipant: participant ?? null,
       pendingJoinRequestCount,
@@ -111,50 +131,50 @@ export class MeetingService {
     const meeting = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         const createdMeeting = await tx.meeting.create({
-        data: {
-          roomName: this.buildRoomName(),
-          joinToken: this.buildJoinToken(),
-          type: MeetingTypeValue.INSTANT,
-          status: MeetingStatusValue.LIVE,
-          createdBy: userId,
-          hostId: userId,
-          startedAt: now,
-          allowJoinWithoutApproval,
-          participants: {
-            create: {
-              userId,
-              role: MeetingParticipantRoleValue.HOST,
-              status: MeetingParticipantStatusValue.JOINED,
-              joinedAt: now,
-              lastSeenAt: now,
+          data: {
+            roomName: this.buildRoomName(),
+            joinToken: this.buildJoinToken(),
+            type: MeetingTypeValue.INSTANT,
+            status: MeetingStatusValue.LIVE,
+            createdBy: userId,
+            hostId: userId,
+            startedAt: now,
+            allowJoinWithoutApproval,
+            participants: {
+              create: {
+                userId,
+                role: MeetingParticipantRoleValue.HOST,
+                status: MeetingParticipantStatusValue.JOINED,
+                joinedAt: now,
+                lastSeenAt: now,
+              },
+            },
+            events: {
+              create: [
+                {
+                  actorId: userId,
+                  type: MeetingEventTypeValue.CREATED,
+                  metadata: { allowJoinWithoutApproval },
+                },
+                {
+                  actorId: userId,
+                  type: MeetingEventTypeValue.STARTED,
+                },
+              ],
             },
           },
-          events: {
-            create: [
-              {
-                actorId: userId,
-                type: MeetingEventTypeValue.CREATED,
-                metadata: { allowJoinWithoutApproval },
-              },
-              {
-                actorId: userId,
-                type: MeetingEventTypeValue.STARTED,
-              },
-            ],
-          },
-        },
-        include: {
-          participants: true,
-          _count: {
-            select: {
-              participants: {
-                where: {
-                  status: MeetingParticipantStatusValue.REQUESTED,
+          include: {
+            participants: true,
+            _count: {
+              select: {
+                participants: {
+                  where: {
+                    status: MeetingParticipantStatusValue.REQUESTED,
+                  },
                 },
               },
             },
           },
-        },
         });
 
         return createdMeeting;
@@ -188,7 +208,9 @@ export class MeetingService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return meetings.map((meeting) => this.mapMeetingResponse(meeting, userId));
+    return Promise.all(
+      meetings.map((meeting) => this.mapMeetingResponse(meeting, userId)),
+    );
   }
 
   async getJoinInfoByToken(
@@ -225,7 +247,7 @@ export class MeetingService {
     userId: string,
   ): Promise<RequestJoinMeetingResult> {
     const meeting = await this.getMeetingOrThrow(meetingId);
-    if (meeting.status !== MeetingStatusValue.LIVE) {
+    if (meeting.status !== PrismaMeetingStatus.LIVE) {
       throw new BadRequestException(MeetingErrorMessage.MEETING_NOT_LIVE);
     }
 
@@ -237,84 +259,97 @@ export class MeetingService {
     const participant = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
         const updatedParticipant = await tx.meetingParticipant.upsert({
-        where: {
-          meetingId_userId: {
+          where: {
+            meetingId_userId: {
+              meetingId,
+              userId,
+            },
+          },
+          create: {
             meetingId,
             userId,
+            role: MeetingParticipantRoleValue.PARTICIPANT,
+            status: nextStatus,
+            joinedAt:
+              nextStatus === MeetingParticipantStatusValue.JOINED
+                ? now
+                : undefined,
+            lastSeenAt: now,
           },
-        },
-        create: {
-          meetingId,
-          userId,
-          role: MeetingParticipantRoleValue.PARTICIPANT,
-          status: nextStatus,
-          joinedAt:
-            nextStatus === MeetingParticipantStatusValue.JOINED
-              ? now
-              : undefined,
-          lastSeenAt: now,
-        },
-        update: {
-          status: nextStatus,
-          joinedAt:
-            nextStatus === MeetingParticipantStatusValue.JOINED
-              ? now
-              : undefined,
-          lastSeenAt: now,
-          leftAt: null,
-        },
+          update: {
+            status: nextStatus,
+            joinedAt:
+              nextStatus === MeetingParticipantStatusValue.JOINED
+                ? now
+                : undefined,
+            lastSeenAt: now,
+            leftAt: null,
+          },
         });
 
         await tx.meetingEvent.create({
-        data: {
-          meetingId,
-          actorId: userId,
-          type: MeetingEventTypeValue.PARTICIPANT_JOINED,
-          metadata: { status: nextStatus },
-        },
+          data: {
+            meetingId,
+            actorId: userId,
+            type: MeetingEventTypeValue.PARTICIPANT_JOINED,
+            metadata: { status: nextStatus },
+          },
         });
 
         return updatedParticipant;
       },
     );
+    const [enrichedParticipant] = await this.enrichParticipants([participant]);
+    const meetingResponse = await this.getJoinInfoByToken(
+      meeting.joinToken,
+      userId,
+    );
 
     if (nextStatus === MeetingParticipantStatusValue.REQUESTED) {
-      this.chatGateway.emitMeetingJoinRequested(meetingId, userId, participant);
+      this.chatGateway.emitMeetingJoinRequested(
+        meetingId,
+        userId,
+        enrichedParticipant,
+      );
     } else {
-      this.chatGateway.emitMeetingJoinApproved(meetingId, userId, participant);
+      this.chatGateway.emitMeetingJoinApproved(
+        meetingId,
+        userId,
+        enrichedParticipant,
+      );
     }
 
     return {
-      participant,
-      meeting: {
-        ...meeting,
-        joinUrl: this.buildJoinUrl(meeting.joinToken),
-      },
+      participant: enrichedParticipant,
+      meeting: meetingResponse,
     };
   }
 
   async getJoinRequests(
     meetingId: string,
     userId: string,
-  ): Promise<MeetingParticipant[]> {
+  ): Promise<MeetingParticipantWithProfile[]> {
     await this.assertHost(meetingId, userId);
-    return this.prisma.meetingParticipant.findMany({
+    const participants = await this.prisma.meetingParticipant.findMany({
       where: {
         meetingId,
         status: MeetingParticipantStatusValue.REQUESTED,
       },
       orderBy: { updatedAt: 'asc' },
     });
+    return this.enrichParticipants(participants);
   }
 
   async approveJoinRequest(
     meetingId: string,
     requesterId: string,
     hostId: string,
-  ): Promise<MeetingParticipant> {
+  ): Promise<MeetingParticipantWithProfile> {
     await this.assertHost(meetingId, hostId);
     if (requesterId === hostId) {
-      throw new BadRequestException(MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED);
+      throw new BadRequestException(
+        MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED,
+      );
     }
 
     const participant = await this.prisma.meetingParticipant.findUnique({
@@ -328,7 +363,7 @@ export class MeetingService {
 
     if (
       !participant ||
-      participant.status !== MeetingParticipantStatusValue.REQUESTED
+      participant.status !== PrismaMeetingParticipantStatus.REQUESTED
     ) {
       throw new NotFoundException(MeetingErrorMessage.REQUEST_NOT_FOUND);
     }
@@ -348,22 +383,28 @@ export class MeetingService {
       },
     });
 
+    const [enrichedParticipant] = await this.enrichParticipants([
+      updatedParticipant,
+    ]);
+
     this.chatGateway.emitMeetingJoinApproved(
       meetingId,
       requesterId,
-      updatedParticipant,
+      enrichedParticipant,
     );
-    return updatedParticipant;
+    return enrichedParticipant;
   }
 
   async rejectJoinRequest(
     meetingId: string,
     requesterId: string,
     hostId: string,
-  ): Promise<MeetingParticipant> {
+  ): Promise<MeetingParticipantWithProfile> {
     await this.assertHost(meetingId, hostId);
     if (requesterId === hostId) {
-      throw new BadRequestException(MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED);
+      throw new BadRequestException(
+        MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED,
+      );
     }
 
     const participant = await this.prisma.meetingParticipant.findUnique({
@@ -377,7 +418,7 @@ export class MeetingService {
 
     if (
       !participant ||
-      participant.status !== MeetingParticipantStatusValue.REQUESTED
+      participant.status !== PrismaMeetingParticipantStatus.REQUESTED
     ) {
       throw new NotFoundException(MeetingErrorMessage.REQUEST_NOT_FOUND);
     }
@@ -394,12 +435,16 @@ export class MeetingService {
       },
     });
 
+    const [enrichedParticipant] = await this.enrichParticipants([
+      updatedParticipant,
+    ]);
+
     this.chatGateway.emitMeetingJoinRejected(
       meetingId,
       requesterId,
-      updatedParticipant,
+      enrichedParticipant,
     );
-    return updatedParticipant;
+    return enrichedParticipant;
   }
 
   async updateAccess(
@@ -449,25 +494,34 @@ export class MeetingService {
     if (!meeting) {
       throw new NotFoundException(MeetingErrorMessage.MEETING_NOT_FOUND);
     }
-    if (meeting.status !== MeetingStatusValue.LIVE) {
+    if (meeting.status !== PrismaMeetingStatus.LIVE) {
       throw new BadRequestException(MeetingErrorMessage.MEETING_NOT_LIVE);
     }
 
     const participant = meeting.participants[0];
     if (
       !participant ||
-      participant.status !== MeetingParticipantStatusValue.JOINED
+      participant.status !== PrismaMeetingParticipantStatus.JOINED
     ) {
       throw new ForbiddenException(
         MeetingErrorMessage.PARTICIPANT_JOIN_REQUIRED,
       );
     }
 
+    const profile = (
+      await this.userProfileSnapshotService.getProfilesByUserIds([userId])
+    ).get(userId);
+    const displayName = profile?.fullName || profile?.email || userId;
     const accessToken = new AccessToken(
       this.liveKitConfig.apiKey,
       this.liveKitConfig.apiSecret,
       {
         identity: userId,
+        name: displayName,
+        metadata: JSON.stringify({
+          email: profile?.email ?? null,
+          avatarUrl: profile?.avatarUrl ?? null,
+        }),
         ttl: MeetingDefault.LIVEKIT_TOKEN_TTL_SECONDS,
       },
     );

@@ -1,8 +1,13 @@
-import { Meeting, MeetingParticipant, Prisma } from '@prisma/client';
+import { MeetingParticipant, Prisma } from '@prisma/client';
+import { UserProfileSnapshotResponse } from '../../user-profile-snapshot/types/user-profile-snapshot.types';
 
-export type MeetingParticipantPayload = MeetingParticipant;
+export type MeetingParticipantWithProfile = MeetingParticipant & {
+  profile: UserProfileSnapshotResponse | null;
+};
 
-export type MeetingWithParticipantsAndPendingCount =
+export type MeetingParticipantPayload = MeetingParticipantWithProfile;
+
+export type MeetingWithParticipantsAndPendingCountRaw =
   Prisma.MeetingGetPayload<{
     include: {
       participants: true;
@@ -14,30 +19,31 @@ export type MeetingWithParticipantsAndPendingCount =
     };
   }>;
 
-export interface MeetingResponse
-  extends Omit<MeetingWithParticipantsAndPendingCount, '_count'> {
+export interface MeetingResponse extends Omit<
+  MeetingWithParticipantsAndPendingCountRaw,
+  '_count' | 'participants'
+> {
   joinUrl: string;
-  currentParticipant: MeetingParticipant | null;
+  participants: MeetingParticipantWithProfile[];
+  currentParticipant: MeetingParticipantWithProfile | null;
   pendingJoinRequestCount: number;
 }
 
 export interface RequestJoinMeetingResult {
-  participant: MeetingParticipant;
-  meeting: Meeting & {
-    joinUrl: string;
-  };
+  participant: MeetingParticipantWithProfile;
+  meeting: MeetingResponse;
 }
 
 export interface MeetingJoinRequestPayload {
   meetingId: string;
   userId: string;
-  participant: MeetingParticipant;
+  participant: MeetingParticipantWithProfile;
 }
 
 export interface MeetingJoinDecisionPayload {
   meetingId: string;
   userId: string;
-  participant: MeetingParticipant;
+  participant: MeetingParticipantWithProfile;
 }
 
 export interface MeetingAccessUpdatedPayload {

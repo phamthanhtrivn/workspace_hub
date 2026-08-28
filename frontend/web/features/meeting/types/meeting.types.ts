@@ -30,6 +30,14 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+export interface UserProfileSnapshot {
+  id: string;
+  userId: string;
+  email?: string | null;
+  fullName?: string | null;
+  avatarUrl?: string | null;
+}
+
 export interface MeetingParticipant {
   id: string;
   meetingId: string;
@@ -42,6 +50,7 @@ export interface MeetingParticipant {
   lastSeenAt?: string | null;
   createdAt: string;
   updatedAt: string;
+  profile?: UserProfileSnapshot | null;
 }
 
 export interface MeetingResponse {
