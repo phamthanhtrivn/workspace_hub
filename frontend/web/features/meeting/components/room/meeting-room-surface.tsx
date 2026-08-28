@@ -2,7 +2,8 @@
 
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingRoom } from "../../hooks/room/use-meeting-room";
 import { MeetingResponse } from "../../types/meeting.types";
@@ -20,6 +21,7 @@ export function MeetingRoomSurface({
 }: MeetingRoomSurfaceProps) {
   const intl = useAppIntl();
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const { avatarUrl, devicePreferences, displayName, initials, tokenQuery } =
     useMeetingRoom({
       meetingId: meeting.id,
@@ -52,6 +54,14 @@ export function MeetingRoomSurface({
     setMediaError(intl.formatMessage({ id: "meeting.room.deviceError" }));
   };
 
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setPortalTarget(document.body);
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
   if (tokenQuery.isLoading) {
     return (
       <section className="grid min-h-[520px] place-items-center rounded-lg border border-slate-200 bg-white">
@@ -71,8 +81,12 @@ export function MeetingRoomSurface({
     );
   }
 
-  return (
-    <section className="overflow-hidden rounded-lg border border-slate-800 bg-[#111827] shadow-sm">
+  if (!portalTarget) {
+    return null;
+  }
+
+  return createPortal(
+    <section className="fixed inset-0 z-50 bg-[#111827]">
       <LiveKitRoom
         token={liveKitToken.token}
         serverUrl={liveKitToken.serverUrl}
@@ -83,7 +97,7 @@ export function MeetingRoomSurface({
         onMediaDeviceFailure={handleMediaDeviceError}
         onError={handleMediaDeviceError}
         data-lk-theme="default"
-        className="min-h-[calc(100vh-160px)] bg-[#111827]"
+        className="h-screen w-screen bg-[#111827]"
       >
         <MeetingRoomContent
           avatarUrl={resolvedAvatarUrl}
@@ -98,6 +112,7 @@ export function MeetingRoomSurface({
         />
         <RoomAudioRenderer />
       </LiveKitRoom>
-    </section>
+    </section>,
+    portalTarget,
   );
 }

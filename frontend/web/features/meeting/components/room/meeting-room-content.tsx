@@ -55,7 +55,7 @@ export function MeetingRoomContent({
   );
 
   return (
-    <div className="flex min-h-[calc(100vh-160px)] flex-col bg-[#111827] text-white">
+    <div className="flex h-screen min-h-0 flex-col bg-[#111827] text-white">
       <header className="flex items-center justify-between border-b border-white/10 px-4 py-3">
         <span className="sr-only">
           {intl.formatMessage({ id: "nav.meetings" })}
@@ -73,7 +73,7 @@ export function MeetingRoomContent({
       ) : null}
 
       <main className="flex min-h-0 flex-1 flex-col gap-4 px-4 py-4 lg:flex-row">
-        <section className="flex min-h-[420px] min-w-0 flex-1 items-center justify-center">
+        <section className="flex min-h-0 min-w-0 flex-1 items-center justify-center">
           {localTrack ? (
             <MeetingParticipantTile
               avatarUrl={avatarUrl}
