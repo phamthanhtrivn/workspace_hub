@@ -33,7 +33,7 @@ interface MeetingRealtimeSocket {
 
 export function useMeetingSocket(meetingId?: string, joinToken?: string) {
   const queryClient = useQueryClient();
-  const { accessToken, userId } = useAppSelector((state) => state.auth);
+  const { accessToken } = useAppSelector((state) => state.auth);
 
   useEffect(() => {
     if (!accessToken || !meetingId) return;
@@ -48,12 +48,7 @@ export function useMeetingSocket(meetingId?: string, joinToken?: string) {
       void queryClient.invalidateQueries({
         queryKey: meetingKeys.requests(meetingId),
       });
-      if (
-        joinToken &&
-        (payload.allowJoinWithoutApproval !== undefined ||
-          !payload.userId ||
-          payload.userId === userId)
-      ) {
+      if (joinToken) {
         void queryClient.invalidateQueries({
           queryKey: meetingKeys.join(joinToken),
         });
@@ -76,5 +71,5 @@ export function useMeetingSocket(meetingId?: string, joinToken?: string) {
       socket.off(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.ACCESS_UPDATED, handleMeetingEvent);
     };
-  }, [accessToken, joinToken, meetingId, queryClient, userId]);
+  }, [accessToken, joinToken, meetingId, queryClient]);
 }

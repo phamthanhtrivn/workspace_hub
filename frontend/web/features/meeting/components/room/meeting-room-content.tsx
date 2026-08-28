@@ -79,17 +79,8 @@ export function MeetingRoomContent({
               type="button"
               onClick={() => setIsJoinRequestsPanelOpen((value) => !value)}
               className="relative flex h-9 items-center gap-2 rounded-md bg-white/10 px-3 text-xs font-bold text-slate-100 hover:bg-white/15"
-              aria-expanded={isJoinRequestsPanelOpen}
-              aria-label={intl.formatMessage({
-                id: isJoinRequestsPanelOpen
-                  ? "meeting.room.closeJoinRequests"
-                  : "meeting.room.openJoinRequests",
-              })}
             >
               <UserRoundPlus className="h-4 w-4 text-blue-300" />
-              <span className="hidden sm:inline">
-                {intl.formatMessage({ id: "meeting.room.joinRequests" })}
-              </span>
               {pendingJoinRequestCount > 0 ? (
                 <span className="grid min-w-5 place-items-center rounded-full bg-amber-400 px-1.5 py-0.5 text-[10px] font-black text-slate-950">
                   {pendingJoinRequestCount}
