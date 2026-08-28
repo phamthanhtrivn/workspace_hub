@@ -13,8 +13,11 @@ import {
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { AccessToken } from 'livekit-server-sdk';
-import { LIVEKIT_CONFIG } from '../../infrastructure/livekit/livekit.constants';
+import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
+import {
+  LIVEKIT_CONFIG,
+  LIVEKIT_ROOM_SERVICE_CLIENT,
+} from '../../infrastructure/livekit/livekit.constants';
 import type { LiveKitConfig } from '../../infrastructure/livekit/livekit.types';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ChatGateway } from '../chat/chat.gateway';
@@ -46,6 +49,8 @@ export class MeetingService {
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     @Inject(LIVEKIT_CONFIG)
     private readonly liveKitConfig: LiveKitConfig,
+    @Inject(LIVEKIT_ROOM_SERVICE_CLIENT)
+    private readonly liveKitRoomServiceClient: RoomServiceClient,
   ) {}
 
   private buildJoinUrl(joinToken: string) {
@@ -94,6 +99,38 @@ export class MeetingService {
     return this.userProfileSnapshotService.attachProfilesToMembers(
       participants,
     );
+  }
+
+  private async removeLiveKitParticipant(roomName: string, userId: string) {
+    try {
+      await this.liveKitRoomServiceClient.removeParticipant(roomName, userId);
+    } catch (error) {
+      console.warn('Could not remove LiveKit meeting participant', {
+        roomName,
+        userId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  private async deleteLiveKitRoom(roomName: string) {
+    try {
+      await this.liveKitRoomServiceClient.deleteRoom(roomName);
+    } catch (error) {
+      if (this.isLiveKitNotFoundError(error)) return;
+
+      console.warn('Could not delete LiveKit meeting room', {
+        roomName,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+  }
+
+  private isLiveKitNotFoundError(error: unknown) {
+    if (!(error instanceof Error)) return false;
+
+    return /not found|404/i.test(error.message);
   }
 
   private async mapMeetingResponse(
@@ -469,8 +506,8 @@ export class MeetingService {
   ): Promise<MeetingResponse> {
     await this.assertHost(meetingId, userId);
     const now = new Date();
-    const { meeting, autoApprovedParticipants } = await this.prisma.$transaction(
-      async (tx: Prisma.TransactionClient) => {
+    const { meeting, autoApprovedParticipants } =
+      await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         let approvedParticipants: MeetingParticipant[] = [];
 
         if (allowJoinWithoutApproval) {
@@ -538,8 +575,7 @@ export class MeetingService {
           meeting: updatedMeeting,
           autoApprovedParticipants: approvedParticipants,
         };
-      },
-    );
+      });
     const enrichedAutoApprovedParticipants = await this.enrichParticipants(
       autoApprovedParticipants,
     );
@@ -556,6 +592,132 @@ export class MeetingService {
       );
     });
     return this.mapMeetingResponse(meeting, userId);
+  }
+
+  async leaveMeeting(
+    meetingId: string,
+    userId: string,
+  ): Promise<MeetingParticipantWithProfile> {
+    const meeting = await this.getMeetingOrThrow(meetingId);
+    const participant = await this.prisma.meetingParticipant.findUnique({
+      where: {
+        meetingId_userId: {
+          meetingId,
+          userId,
+        },
+      },
+    });
+
+    if (!participant) {
+      throw new ForbiddenException(
+        MeetingErrorMessage.PARTICIPANT_JOIN_REQUIRED,
+      );
+    }
+
+    const now = new Date();
+    const updatedParticipant = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const leftParticipant = await tx.meetingParticipant.update({
+          where: {
+            meetingId_userId: {
+              meetingId,
+              userId,
+            },
+          },
+          data: {
+            leftAt: now,
+            lastSeenAt: now,
+          },
+        });
+
+        await tx.meetingEvent.create({
+          data: {
+            meetingId,
+            actorId: userId,
+            type: MeetingEventTypeValue.PARTICIPANT_LEFT,
+          },
+        });
+
+        return leftParticipant;
+      },
+    );
+    const [enrichedParticipant] = await this.enrichParticipants([
+      updatedParticipant,
+    ]);
+
+    await this.removeLiveKitParticipant(meeting.roomName, userId);
+    this.chatGateway.emitMeetingParticipantLeft(
+      meetingId,
+      userId,
+      enrichedParticipant,
+    );
+
+    return enrichedParticipant;
+  }
+
+  async endMeeting(
+    meetingId: string,
+    hostId: string,
+  ): Promise<MeetingResponse> {
+    const meeting = await this.assertHost(meetingId, hostId);
+    if (meeting.status !== PrismaMeetingStatus.LIVE) {
+      throw new BadRequestException(MeetingErrorMessage.MEETING_NOT_LIVE);
+    }
+
+    const now = new Date();
+    const endedMeeting = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        await tx.meetingParticipant.updateMany({
+          where: {
+            meetingId,
+            status: {
+              in: [
+                PrismaMeetingParticipantStatus.JOINED,
+                PrismaMeetingParticipantStatus.REQUESTED,
+              ],
+            },
+          },
+          data: {
+            status: MeetingParticipantStatusValue.LEFT,
+            leftAt: now,
+            lastSeenAt: now,
+          },
+        });
+
+        await tx.meetingEvent.create({
+          data: {
+            meetingId,
+            actorId: hostId,
+            type: MeetingEventTypeValue.ENDED,
+          },
+        });
+
+        return tx.meeting.update({
+          where: { id: meetingId },
+          data: {
+            status: MeetingStatusValue.ENDED,
+            endedAt: now,
+          },
+          include: {
+            participants: true,
+            _count: {
+              select: {
+                participants: {
+                  where: {
+                    status: MeetingParticipantStatusValue.REQUESTED,
+                  },
+                },
+              },
+            },
+          },
+        });
+      },
+    );
+
+    await this.deleteLiveKitRoom(meeting.roomName);
+    this.chatGateway.emitMeetingEnded(meetingId, hostId);
+
+    return this.mapMeetingResponse(endedMeeting, hostId);
   }
 
   async createLiveKitToken(

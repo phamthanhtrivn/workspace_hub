@@ -1,13 +1,15 @@
 "use client";
 
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
-import { MediaDeviceFailure } from "livekit-client";
+import { LogLevel, MediaDeviceFailure, setLogLevel } from "livekit-client";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useAppSelector } from "@/store/store";
 import { useMeetingRoom } from "../../hooks/room/use-meeting-room";
-import { MeetingResponse } from "../../types/meeting.types";
+import { meetingApiRoutes } from "../../types/meeting.constants";
+import { MeetingResponse, MeetingStatus } from "../../types/meeting.types";
 import { MeetingRoomContent } from "./meeting-room-content";
 import { buildParticipantInitials } from "./meeting-room.utils";
 
@@ -21,6 +23,9 @@ export function MeetingRoomSurface({
   joinToken,
 }: MeetingRoomSurfaceProps) {
   const intl = useAppIntl();
+  const { accessToken } = useAppSelector((state) => state.auth);
+  const hasReportedRoomExitRef = useRef(false);
+  const canConnectToLiveKit = meeting.status === MeetingStatus.LIVE;
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const {
@@ -33,7 +38,7 @@ export function MeetingRoomSurface({
   } = useMeetingRoom({
       meetingId: meeting.id,
       joinToken,
-      enabled: true,
+      enabled: canConnectToLiveKit,
     });
   const liveKitToken = tokenQuery.data?.data;
   const isHost =
@@ -79,6 +84,15 @@ export function MeetingRoomSurface({
       resolveMediaDeviceFailureMessage(failure, kind, intl.formatMessage),
     );
   };
+  const handleRoomExitReported = useCallback(() => {
+    hasReportedRoomExitRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    setLogLevel(LogLevel.silent);
+
+    return () => setLogLevel(LogLevel.info);
+  }, []);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
@@ -87,6 +101,28 @@ export function MeetingRoomSurface({
 
     return () => window.cancelAnimationFrame(frameId);
   }, []);
+
+  useEffect(() => {
+    if (!accessToken || !meeting.id) return;
+
+    const handlePageHide = () => {
+      if (hasReportedRoomExitRef.current) return;
+      hasReportedRoomExitRef.current = true;
+
+      void fetch(buildMeetingApiUrl(meetingApiRoutes.leave(meeting.id)), {
+        method: "POST",
+        keepalive: true,
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      });
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, [accessToken, meeting.id]);
 
   if (tokenQuery.isLoading || isPreparingDevicePreferences) {
     return (
@@ -135,12 +171,18 @@ export function MeetingRoomSurface({
           audioCaptureOptions={audioCapture === true ? undefined : audioCapture || undefined}
           videoCaptureOptions={videoCapture === true ? undefined : videoCapture || undefined}
           onDeviceError={handleDeviceError}
+          onRoomExitReported={handleRoomExitReported}
         />
         <RoomAudioRenderer />
       </LiveKitRoom>
     </section>,
     portalTarget,
   );
+}
+
+function buildMeetingApiUrl(path: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  return new URL(path, baseUrl).toString();
 }
 
 function resolveDeviceErrorMessage(

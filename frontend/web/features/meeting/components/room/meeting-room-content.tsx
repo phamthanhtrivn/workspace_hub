@@ -28,6 +28,7 @@ interface MeetingRoomContentProps {
   audioCaptureOptions?: AudioCaptureOptions;
   videoCaptureOptions?: VideoCaptureOptions;
   onDeviceError: (error: Error) => void;
+  onRoomExitReported: () => void;
 }
 
 export function MeetingRoomContent({
@@ -40,6 +41,7 @@ export function MeetingRoomContent({
   audioCaptureOptions,
   videoCaptureOptions,
   onDeviceError,
+  onRoomExitReported,
 }: MeetingRoomContentProps) {
   const intl = useAppIntl();
   const [isJoinRequestsPanelOpen, setIsJoinRequestsPanelOpen] =
@@ -176,6 +178,7 @@ export function MeetingRoomContent({
           audioCaptureOptions={audioCaptureOptions}
           videoCaptureOptions={videoCaptureOptions}
           onDeviceError={onDeviceError}
+          onRoomExitReported={onRoomExitReported}
         />
       </div>
 

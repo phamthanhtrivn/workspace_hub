@@ -1,10 +1,10 @@
 import {
-  DisconnectButton,
   MediaDeviceMenu,
   TrackToggle,
   useLocalParticipant,
+  useRoomContext,
 } from "@livekit/components-react";
-import { Copy, Link2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type {
   AudioCaptureOptions,
   LocalAudioTrack,
@@ -14,6 +14,9 @@ import type {
 import { Track } from "livekit-client";
 import {
   ChevronUp,
+  Copy,
+  Link2,
+  Loader2,
   MessageSquare,
   MonitorUp,
   PhoneOff,
@@ -21,7 +24,12 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { useUpdateMeetingAccessMutation } from "../../../hooks/queries/use-meeting-queries";
+import {
+  useEndMeetingMutation,
+  useLeaveMeetingMutation,
+  useUpdateMeetingAccessMutation,
+} from "../../../hooks/queries/use-meeting-queries";
+import { meetingRoutes } from "../../../types/meeting.constants";
 import {
   MeetingDevicePreferences,
   MeetingResponse,
@@ -39,6 +47,7 @@ interface MeetingRoomControlBarProps {
   audioCaptureOptions?: AudioCaptureOptions;
   videoCaptureOptions?: VideoCaptureOptions;
   onDeviceError: (error: Error) => void;
+  onRoomExitReported: () => void;
 }
 
 export function MeetingRoomControlBar({
@@ -48,13 +57,21 @@ export function MeetingRoomControlBar({
   audioCaptureOptions,
   videoCaptureOptions,
   onDeviceError,
+  onRoomExitReported,
 }: MeetingRoomControlBarProps) {
   const intl = useAppIntl();
+  const router = useRouter();
+  const room = useRoomContext();
   const settingsRef = useRef<HTMLDivElement | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [hasCopiedLink, setHasCopiedLink] = useState(false);
+  const [isDisconnectingForLeave, setIsDisconnectingForLeave] =
+    useState(false);
+  const [isDisconnectingForEnd, setIsDisconnectingForEnd] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const updateAccess = useUpdateMeetingAccessMutation(meeting.id, joinToken);
+  const leaveMeeting = useLeaveMeetingMutation(meeting.id, joinToken);
+  const endMeeting = useEndMeetingMutation(meeting.id, joinToken);
   const {
     cameraTrack,
     isCameraEnabled,
@@ -69,6 +86,9 @@ export function MeetingRoomControlBar({
   const allowJoinWithoutApproval =
     updateAccess.data?.data.allowJoinWithoutApproval ??
     meeting.allowJoinWithoutApproval;
+  const isLeaving = leaveMeeting.isPending || isDisconnectingForLeave;
+  const isEnding = endMeeting.isPending || isDisconnectingForEnd;
+  const isRoomActionPending = isLeaving || isEnding;
 
   useEffect(() => {
     if (!isSettingsOpen) return;
@@ -162,6 +182,44 @@ export function MeetingRoomControlBar({
           ),
       },
     );
+  };
+
+  const handleLeaveMeeting = async () => {
+    if (isRoomActionPending) return;
+
+    setSettingsError(null);
+    setIsDisconnectingForLeave(true);
+    try {
+      onRoomExitReported();
+      await room.disconnect();
+      await leaveMeeting.mutateAsync();
+      router.replace(meetingRoutes.listPath);
+    } catch {
+      setSettingsError(
+        intl.formatMessage({ id: "meeting.room.leaveFailed" }),
+      );
+    } finally {
+      setIsDisconnectingForLeave(false);
+    }
+  };
+
+  const handleEndMeeting = async () => {
+    if (isRoomActionPending) return;
+
+    setSettingsError(null);
+    setIsDisconnectingForEnd(true);
+    try {
+      onRoomExitReported();
+      await room.disconnect();
+      await endMeeting.mutateAsync();
+      router.replace(meetingRoutes.listPath);
+    } catch {
+      setSettingsError(
+        intl.formatMessage({ id: "meeting.room.endFailed" }),
+      );
+    } finally {
+      setIsDisconnectingForEnd(false);
+    }
   };
 
   return (
@@ -298,6 +356,14 @@ export function MeetingRoomControlBar({
                     className="h-5 w-5 accent-blue-500"
                   />
                 </label>
+                {updateAccess.isPending ? (
+                  <p className="mt-2 flex items-center gap-2 text-xs font-bold text-blue-200">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    {intl.formatMessage({
+                      id: "meeting.room.updatingAccess",
+                    })}
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
@@ -310,19 +376,35 @@ export function MeetingRoomControlBar({
         ) : null}
       </div>
 
-      <DisconnectButton className="flex h-10 items-center gap-2 rounded-lg bg-red-500 px-4 text-sm font-black text-white hover:bg-red-600">
-        <PhoneOff className="h-4 w-4" />
-        {intl.formatMessage({ id: "meeting.room.leave" })}
-      </DisconnectButton>
+      <button
+        type="button"
+        disabled={isRoomActionPending}
+        onClick={handleLeaveMeeting}
+        className="flex h-10 items-center gap-2 rounded-lg bg-red-500 px-4 text-sm font-black text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isLeaving ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <PhoneOff className="h-4 w-4" />
+        )}
+        {intl.formatMessage({
+          id: isLeaving ? "meeting.room.leaving" : "meeting.room.leave",
+        })}
+      </button>
 
       {isHost ? (
         <button
           type="button"
-          disabled
-          className="h-10 rounded-lg bg-red-500/45 px-4 text-sm font-black text-white opacity-70"
-          title={intl.formatMessage({ id: "meeting.room.endDisabled" })}
+          disabled={isRoomActionPending}
+          onClick={handleEndMeeting}
+          className="flex h-10 items-center gap-2 rounded-lg bg-red-500/45 px-4 text-sm font-black text-white hover:bg-red-500/60 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {intl.formatMessage({ id: "meeting.room.endForEveryone" })}
+          {isEnding ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {intl.formatMessage({
+            id: isEnding
+              ? "meeting.room.endingForEveryone"
+              : "meeting.room.endForEveryone",
+          })}
         </button>
       ) : null}
     </footer>

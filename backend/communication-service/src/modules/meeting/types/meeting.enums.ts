@@ -8,6 +8,8 @@ export enum MeetingSuccessMessage {
   DETAILS_RETRIEVED = 'Meeting details retrieved successfully',
   JOIN_REQUESTED = 'Join request submitted successfully',
   JOINED = 'Joined meeting successfully',
+  LEFT = 'Left meeting successfully',
+  ENDED = 'Meeting ended successfully',
   JOIN_REQUESTS_LISTED = 'Join requests retrieved successfully',
   JOIN_APPROVED = 'Join request approved successfully',
   JOIN_REJECTED = 'Join request rejected successfully',
@@ -45,11 +47,13 @@ export enum MeetingParticipantRoleValue {
 export enum MeetingParticipantStatusValue {
   REQUESTED = 'REQUESTED',
   JOINED = 'JOINED',
+  LEFT = 'LEFT',
   REJECTED = 'REJECTED',
 }
 
 export enum MeetingStatusValue {
   LIVE = 'LIVE',
+  ENDED = 'ENDED',
 }
 
 export enum MeetingTypeValue {
@@ -59,6 +63,7 @@ export enum MeetingTypeValue {
 export enum MeetingEventTypeValue {
   CREATED = 'CREATED',
   STARTED = 'STARTED',
+  ENDED = 'ENDED',
   PARTICIPANT_JOINED = 'PARTICIPANT_JOINED',
   PARTICIPANT_LEFT = 'PARTICIPANT_LEFT',
 }

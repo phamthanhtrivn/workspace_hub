@@ -1,12 +1,20 @@
 "use client";
 
+import axios from "axios";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingSocket } from "../../hooks/realtime/use-meeting-socket";
 import {
   useMeetingJoinInfoQuery,
   useRequestJoinMeetingMutation,
 } from "../../hooks/queries/use-meeting-queries";
-import { MeetingParticipantStatus } from "../../types/meeting.types";
+import { meetingRoutes } from "../../types/meeting.constants";
+import {
+  MeetingParticipantStatus,
+  MeetingStatus,
+} from "../../types/meeting.types";
 import { getMeetingParticipantStatus } from "../../utils/meeting.utils";
 import { MeetingRoomSurface } from "../room/meeting-room-surface";
 import { MeetingJoinRoomModal } from "./meeting-join-room-modal";
@@ -19,12 +27,39 @@ interface MeetingJoinPageProps {
 
 export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
   const intl = useAppIntl();
+  const router = useRouter();
+  const hasHandledMissingMeetingRef = useRef(false);
+  const hasHandledEndedMeetingRef = useRef(false);
   const meetingQuery = useMeetingJoinInfoQuery(joinToken);
   const meeting = meetingQuery.data?.data;
   const requestJoin = useRequestJoinMeetingMutation(joinToken);
   const participantStatus = getMeetingParticipantStatus(meeting);
 
-  useMeetingSocket(meeting?.id, joinToken);
+  const returnToMeetingsAfterEnd = useCallback(() => {
+    if (hasHandledEndedMeetingRef.current) return;
+    hasHandledEndedMeetingRef.current = true;
+    toast.info(intl.formatMessage({ id: "meeting.room.endedToast" }));
+    router.replace(meetingRoutes.listPath);
+  }, [intl, router]);
+
+  useMeetingSocket(meeting?.id, joinToken, {
+    onMeetingEnded: returnToMeetingsAfterEnd,
+  });
+
+  useEffect(() => {
+    if (!meetingQuery.isError || hasHandledMissingMeetingRef.current) return;
+    if (!isNotFoundError(meetingQuery.error)) return;
+
+    hasHandledMissingMeetingRef.current = true;
+    toast.error(intl.formatMessage({ id: "meeting.notFound" }));
+    router.replace(meetingRoutes.listPath);
+  }, [intl, meetingQuery.error, meetingQuery.isError, router]);
+
+  useEffect(() => {
+    if (meeting?.status === MeetingStatus.ENDED) {
+      returnToMeetingsAfterEnd();
+    }
+  }, [meeting?.status, returnToMeetingsAfterEnd]);
 
   const handleRequestJoin = () => {
     if (!meeting) return;
@@ -41,6 +76,10 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
         </section>
       </MeetingJoinShell>
     );
+  }
+
+  if (meetingQuery.isError && isNotFoundError(meetingQuery.error)) {
+    return null;
   }
 
   if (!meeting) {
@@ -86,4 +125,8 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
       />
     </MeetingJoinShell>
   );
+}
+
+function isNotFoundError(error: unknown) {
+  return axios.isAxiosError(error) && error.response?.status === 404;
 }

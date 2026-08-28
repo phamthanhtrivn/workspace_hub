@@ -75,6 +75,20 @@ export async function updateMeetingAccess(
   return normalizeMeetingResponse<MeetingResponse>(response.data);
 }
 
+export async function leaveMeeting(
+  meetingId: string,
+): Promise<ApiResponse<MeetingParticipant>> {
+  const response = await api.post(meetingApiRoutes.leave(meetingId));
+  return normalizeMeetingResponse<MeetingParticipant>(response.data);
+}
+
+export async function endMeeting(
+  meetingId: string,
+): Promise<ApiResponse<MeetingResponse>> {
+  const response = await api.post(meetingApiRoutes.end(meetingId));
+  return normalizeMeetingResponse<MeetingResponse>(response.data);
+}
+
 export async function getMeetingLiveKitToken(
   meetingId: string,
 ): Promise<ApiResponse<MeetingLiveKitTokenResponse>> {

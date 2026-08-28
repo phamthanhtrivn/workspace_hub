@@ -1,11 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import {
   approveMeetingJoinRequest,
   createInstantMeeting,
+  endMeeting,
   getMeetingLiveKitToken,
   getMeetingJoinInfo,
   getMeetingJoinRequests,
   getMeetings,
+  leaveMeeting,
   rejectMeetingJoinRequest,
   requestJoinMeeting,
   updateMeetingAccess,
@@ -28,6 +31,9 @@ export function useMeetingJoinInfoQuery(joinToken: string) {
     queryKey: meetingKeys.join(joinToken),
     queryFn: () => getMeetingJoinInfo(joinToken),
     enabled: Boolean(joinToken),
+    retry: (failureCount, error) =>
+      !(axios.isAxiosError(error) && error.response?.status === 404) &&
+      failureCount < 3,
   });
 }
 
@@ -123,6 +129,44 @@ export function useUpdateMeetingAccessMutation(
       updateMeetingAccess(meetingId, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
+    },
+  });
+}
+
+export function useLeaveMeetingMutation(meetingId: string, joinToken?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => leaveMeeting(meetingId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requests(meetingId),
+      });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
+    },
+  });
+}
+
+export function useEndMeetingMutation(meetingId: string, joinToken?: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => endMeeting(meetingId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requests(meetingId),
+      });
       if (joinToken) {
         void queryClient.invalidateQueries({
           queryKey: meetingKeys.join(joinToken),

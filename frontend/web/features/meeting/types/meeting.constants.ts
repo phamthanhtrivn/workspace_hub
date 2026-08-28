@@ -15,6 +15,8 @@ export const meetingApiRoutes = {
   rejectJoinRequest: (meetingId: string, userId: string) =>
     `${MeetingApiRoute.ROOT}/${meetingId}/join-requests/${userId}/reject`,
   access: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/access`,
+  leave: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/leave`,
+  end: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/end`,
   liveKitToken: (meetingId: string) =>
     `${MeetingApiRoute.ROOT}/${meetingId}/livekit-token`,
 };

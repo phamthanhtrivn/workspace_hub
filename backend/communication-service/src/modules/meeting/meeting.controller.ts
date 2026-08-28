@@ -8,12 +8,12 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { MeetingParticipantStatus } from '@prisma/client';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import { UpdateMeetingAccessDto } from './dto/update-meeting-access.dto';
 import { MeetingService } from './meeting.service';
 import {
   MeetingErrorMessage,
-  MeetingParticipantStatusValue,
   MeetingSuccessMessage,
 } from './types/meeting.enums';
 
@@ -29,7 +29,10 @@ export class MeetingController {
     if (!userId) {
       throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
     }
-    const meeting = await this.meetingService.createInstantMeeting(userId, body);
+    const meeting = await this.meetingService.createInstantMeeting(
+      userId,
+      body,
+    );
     return {
       message: MeetingSuccessMessage.CREATED,
       data: meeting,
@@ -83,7 +86,7 @@ export class MeetingController {
     const result = await this.meetingService.requestJoin(meetingId, userId);
     return {
       message:
-        result.participant.status === MeetingParticipantStatusValue.JOINED
+        result.participant.status === MeetingParticipantStatus.JOINED
           ? MeetingSuccessMessage.JOINED
           : MeetingSuccessMessage.JOIN_REQUESTED,
       data: result,
@@ -167,6 +170,45 @@ export class MeetingController {
     );
     return {
       message: MeetingSuccessMessage.ACCESS_UPDATED,
+      data: meeting,
+    };
+  }
+
+  @Post(':meetingId/leave')
+  async leaveMeeting(
+    @Headers('x-user-id') userId: string,
+    @Param('meetingId') meetingId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    const participant = await this.meetingService.leaveMeeting(
+      meetingId,
+      userId,
+    );
+    return {
+      message: MeetingSuccessMessage.LEFT,
+      data: participant,
+    };
+  }
+
+  @Post(':meetingId/end')
+  async endMeeting(
+    @Headers('x-user-id') userId: string,
+    @Param('meetingId') meetingId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    const meeting = await this.meetingService.endMeeting(meetingId, userId);
+    return {
+      message: MeetingSuccessMessage.ENDED,
       data: meeting,
     };
   }

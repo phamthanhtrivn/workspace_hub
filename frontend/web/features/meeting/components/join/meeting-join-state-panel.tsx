@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent } from "react";
-import { Clock3, ShieldCheck, Video, XCircle } from "lucide-react";
+import { Clock3, Loader2, ShieldCheck, Video, XCircle } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingJoinDeviceSetup } from "../../hooks/join/use-meeting-join-device-setup";
 import { MeetingParticipantStatus, MeetingResponse } from "../../types/meeting.types";
@@ -167,8 +167,11 @@ export function MeetingJoinStatePanel({
             <button
               type="submit"
               disabled={isRequestingJoin}
-              className="h-10 rounded-md bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
+              {isRequestingJoin ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : null}
               {isRequestingJoin
                 ? intl.formatMessage({ id: "meeting.requestingJoin" })
                 : intl.formatMessage({ id: "meeting.requestJoin" })}

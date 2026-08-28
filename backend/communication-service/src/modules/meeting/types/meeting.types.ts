@@ -51,6 +51,17 @@ export interface MeetingAccessUpdatedPayload {
   allowJoinWithoutApproval: boolean;
 }
 
+export interface MeetingParticipantLeftPayload {
+  meetingId: string;
+  userId: string;
+  participant: MeetingParticipantWithProfile;
+}
+
+export interface MeetingEndedPayload {
+  meetingId: string;
+  endedBy: string;
+}
+
 export interface MeetingLiveKitTokenResponse {
   serverUrl: string;
   token: string;

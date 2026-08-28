@@ -24,8 +24,10 @@ import { DirectMessageService } from '../direct-message/direct-message.service';
 import { MeetingSocketEvent } from '../meeting/meeting.events';
 import {
   MeetingAccessUpdatedPayload,
+  MeetingEndedPayload,
   MeetingJoinDecisionPayload,
   MeetingParticipantPayload,
+  MeetingParticipantLeftPayload,
   MeetingJoinRequestPayload,
 } from '../meeting/types/meeting.types';
 import {
@@ -860,6 +862,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server
       .to(getMeetingHostRoom(meetingId))
       .emit(MeetingSocketEvent.ACCESS_UPDATED, payload);
+  }
+
+  emitMeetingParticipantLeft(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ) {
+    const payload: MeetingParticipantLeftPayload = {
+      meetingId,
+      userId,
+      participant,
+    };
+    this.server
+      .to(getMeetingHostRoom(meetingId))
+      .emit(MeetingSocketEvent.PARTICIPANT_LEFT, payload);
+  }
+
+  emitMeetingEnded(meetingId: string, endedBy: string) {
+    const payload: MeetingEndedPayload = {
+      meetingId,
+      endedBy,
+    };
+    this.server
+      .to(getMeetingHostRoom(meetingId))
+      .emit(MeetingSocketEvent.MEETING_ENDED, payload);
   }
 
   @SubscribeMessage(ChatEvent.PIN_MESSAGE)

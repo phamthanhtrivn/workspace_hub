@@ -105,4 +105,5 @@ export interface MeetingSocketPayload {
   userId?: string;
   participant?: MeetingParticipant;
   allowJoinWithoutApproval?: boolean;
+  endedBy?: string;
 }

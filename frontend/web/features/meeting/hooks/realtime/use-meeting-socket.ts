@@ -18,7 +18,9 @@ interface MeetingRealtimeSocket {
       | MeetingSocketEvent.JOIN_REQUESTED
       | MeetingSocketEvent.JOIN_APPROVED
       | MeetingSocketEvent.JOIN_REJECTED
-      | MeetingSocketEvent.ACCESS_UPDATED,
+      | MeetingSocketEvent.ACCESS_UPDATED
+      | MeetingSocketEvent.PARTICIPANT_LEFT
+      | MeetingSocketEvent.MEETING_ENDED,
     handler: (payload: MeetingSocketPayload) => void,
   ) => void;
   off: (
@@ -26,14 +28,25 @@ interface MeetingRealtimeSocket {
       | MeetingSocketEvent.JOIN_REQUESTED
       | MeetingSocketEvent.JOIN_APPROVED
       | MeetingSocketEvent.JOIN_REJECTED
-      | MeetingSocketEvent.ACCESS_UPDATED,
+      | MeetingSocketEvent.ACCESS_UPDATED
+      | MeetingSocketEvent.PARTICIPANT_LEFT
+      | MeetingSocketEvent.MEETING_ENDED,
     handler: (payload: MeetingSocketPayload) => void,
   ) => void;
 }
 
-export function useMeetingSocket(meetingId?: string, joinToken?: string) {
+interface UseMeetingSocketOptions {
+  onMeetingEnded?: () => void;
+}
+
+export function useMeetingSocket(
+  meetingId?: string,
+  joinToken?: string,
+  options: UseMeetingSocketOptions = {},
+) {
   const queryClient = useQueryClient();
   const { accessToken } = useAppSelector((state) => state.auth);
+  const { onMeetingEnded } = options;
 
   useEffect(() => {
     if (!accessToken || !meetingId) return;
@@ -58,18 +71,28 @@ export function useMeetingSocket(meetingId?: string, joinToken?: string) {
     const handleMeetingEvent = (payload: MeetingSocketPayload) => {
       invalidateMeetingData(payload);
     };
+    const handleMeetingEnded = (payload: MeetingSocketPayload) => {
+      invalidateMeetingData(payload);
+      if (payload.meetingId !== meetingId) return;
+
+      onMeetingEnded?.();
+    };
 
     socket.emit(MeetingSocketEvent.JOIN_CONTROL_ROOM, { meetingId });
     socket.on(MeetingSocketEvent.JOIN_REQUESTED, handleMeetingEvent);
     socket.on(MeetingSocketEvent.JOIN_APPROVED, handleMeetingEvent);
     socket.on(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
     socket.on(MeetingSocketEvent.ACCESS_UPDATED, handleMeetingEvent);
+    socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleMeetingEvent);
+    socket.on(MeetingSocketEvent.MEETING_ENDED, handleMeetingEnded);
 
     return () => {
       socket.off(MeetingSocketEvent.JOIN_REQUESTED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.JOIN_APPROVED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.ACCESS_UPDATED, handleMeetingEvent);
+      socket.off(MeetingSocketEvent.PARTICIPANT_LEFT, handleMeetingEvent);
+      socket.off(MeetingSocketEvent.MEETING_ENDED, handleMeetingEnded);
     };
-  }, [accessToken, joinToken, meetingId, queryClient]);
+  }, [accessToken, joinToken, meetingId, onMeetingEnded, queryClient]);
 }

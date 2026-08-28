@@ -64,6 +64,12 @@ export function HostJoinRequestsPanel({
             const initials = buildParticipantInitials(displayName);
             const isBusy =
               approveRequest.isPending || rejectRequest.isPending;
+            const isApproving =
+              approveRequest.isPending &&
+              approveRequest.variables === participant.userId;
+            const isRejecting =
+              rejectRequest.isPending &&
+              rejectRequest.variables === participant.userId;
 
             return (
               <div
@@ -104,7 +110,11 @@ export function HostJoinRequestsPanel({
                     onClick={() => approveRequest.mutate(participant.userId)}
                     className="flex h-9 items-center justify-center gap-2 rounded-md bg-emerald-500 px-3 text-xs font-black text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Check className="h-4 w-4" />
+                    {isApproving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Check className="h-4 w-4" />
+                    )}
                     {intl.formatMessage({ id: "meeting.approveRequest" })}
                   </button>
                   <button
@@ -113,7 +123,11 @@ export function HostJoinRequestsPanel({
                     onClick={() => rejectRequest.mutate(participant.userId)}
                     className="flex h-9 items-center justify-center gap-2 rounded-md bg-white/10 px-3 text-xs font-black text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <X className="h-4 w-4" />
+                    {isRejecting ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <X className="h-4 w-4" />
+                    )}
                     {intl.formatMessage({ id: "meeting.rejectRequest" })}
                   </button>
                 </div>
