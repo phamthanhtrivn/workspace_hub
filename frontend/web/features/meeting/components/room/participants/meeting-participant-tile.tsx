@@ -22,7 +22,10 @@ export function MeetingParticipantTile({
   trackRef,
   variant,
 }: MeetingParticipantTileProps) {
-  const hasVideo = isTrackReference(trackRef);
+  const hasActiveVideo =
+    isTrackReference(trackRef) &&
+    !trackRef.publication.isMuted &&
+    Boolean(trackRef.publication.track);
   const sizeClass =
     variant === "primary"
       ? "h-full max-h-[620px] min-h-[360px] w-full max-w-4xl"
@@ -32,7 +35,7 @@ export function MeetingParticipantTile({
     <div
       className={`relative overflow-hidden rounded-lg border border-white/10 bg-[#1f2937] shadow-2xl ${sizeClass}`}
     >
-      {hasVideo ? (
+      {hasActiveVideo ? (
         <ParticipantTile
           trackRef={trackRef}
           className="h-full w-full [&_.lk-participant-metadata]:hidden [&_.lk-participant-placeholder]:hidden [&_video]:h-full [&_video]:w-full [&_video]:object-cover"

@@ -41,11 +41,12 @@ LIVEKIT_API_SECRET=replace_me
 
 ```env
 LIVEKIT_URL=ws://livekit:7880
+LIVEKIT_PUBLIC_URL=ws://localhost:7880
 LIVEKIT_API_KEY=replace_me
 LIVEKIT_API_SECRET=replace_me
 ```
 
-Use matching API key and secret values for LiveKit server and `communication-service`. Do not commit production credentials.
+Use matching API key and secret values for LiveKit server and `communication-service`. `LIVEKIT_URL` is used by backend infrastructure clients, while `LIVEKIT_PUBLIC_URL` is returned to the browser. Do not commit production credentials.
 
 ## Start
 
@@ -76,7 +77,7 @@ Check that:
 - LiveKit logs do not show invalid config, invalid API key config, Redis connection refused, network binding errors, or port conflicts.
 - TCP `7880` and `7881` are exposed.
 - UDP `7882` is mapped.
-- `communication-service` uses `ws://livekit:7880` inside Docker.
+- `communication-service` uses `ws://livekit:7880` inside Docker and returns `ws://localhost:7880` to local browsers.
 
 No LiveKit healthcheck is configured here because the official image does not provide a simple documented container-local health command for this setup. Avoid fake checks that depend on tools such as `curl` being present in the image.
 
@@ -92,4 +93,3 @@ This setup is for local single-node development. Production/public Internet depl
 - Reverse proxy or layer 4 networking for signaling and media as appropriate.
 
 Do not route WebRTC media ports `7881` or `7882/udp` through Kong HTTP routes. Kong should continue to serve WorkSpaceHub REST APIs; browser media traffic should connect to LiveKit directly.
-

@@ -1,6 +1,7 @@
 "use client";
 
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { MediaDeviceFailure } from "livekit-client";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -22,8 +23,14 @@ export function MeetingRoomSurface({
   const intl = useAppIntl();
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-  const { avatarUrl, devicePreferences, displayName, initials, tokenQuery } =
-    useMeetingRoom({
+  const {
+    avatarUrl,
+    devicePreferences,
+    displayName,
+    initials,
+    isPreparingDevicePreferences,
+    tokenQuery,
+  } = useMeetingRoom({
       meetingId: meeting.id,
       joinToken,
       enabled: true,
@@ -50,8 +57,27 @@ export function MeetingRoomSurface({
     ? buildParticipantInitials(resolvedDisplayName)
     : initials;
 
-  const handleMediaDeviceError = () => {
-    setMediaError(intl.formatMessage({ id: "meeting.room.deviceError" }));
+  const handleDeviceError = (error: Error) => {
+    setMediaError(resolveDeviceErrorMessage(error, intl.formatMessage));
+  };
+
+  const handleRoomError = (error: Error) => {
+    if (isMediaDeviceError(error)) {
+      handleDeviceError(error);
+      return;
+    }
+
+    console.error("Meeting room connection failed", error);
+    setMediaError(intl.formatMessage({ id: "meeting.room.connectionError" }));
+  };
+
+  const handleMediaDeviceFailure = (
+    failure?: MediaDeviceFailure,
+    kind?: MediaDeviceKind,
+  ) => {
+    setMediaError(
+      resolveMediaDeviceFailureMessage(failure, kind, intl.formatMessage),
+    );
   };
 
   useEffect(() => {
@@ -62,7 +88,7 @@ export function MeetingRoomSurface({
     return () => window.cancelAnimationFrame(frameId);
   }, []);
 
-  if (tokenQuery.isLoading) {
+  if (tokenQuery.isLoading || isPreparingDevicePreferences) {
     return (
       <section className="grid min-h-[520px] place-items-center rounded-lg border border-slate-200 bg-white">
         <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
@@ -94,8 +120,8 @@ export function MeetingRoomSurface({
         audio={audioCapture}
         video={videoCapture}
         onConnected={() => setMediaError(null)}
-        onMediaDeviceFailure={handleMediaDeviceError}
-        onError={handleMediaDeviceError}
+        onMediaDeviceFailure={handleMediaDeviceFailure}
+        onError={handleRoomError}
         data-lk-theme="default"
         className="h-screen w-screen bg-[#111827]"
       >
@@ -108,11 +134,52 @@ export function MeetingRoomSurface({
           mediaError={mediaError}
           audioCaptureOptions={audioCapture === true ? undefined : audioCapture || undefined}
           videoCaptureOptions={videoCapture === true ? undefined : videoCapture || undefined}
-          onDeviceError={handleMediaDeviceError}
+          onDeviceError={handleDeviceError}
         />
         <RoomAudioRenderer />
       </LiveKitRoom>
     </section>,
     portalTarget,
   );
+}
+
+function resolveDeviceErrorMessage(
+  error: Error,
+  formatMessage: (descriptor: { id: string }) => string,
+) {
+  if (error.name === "OverconstrainedError") {
+    return formatMessage({ id: "meeting.room.deviceInvalid" });
+  }
+
+  const failure = MediaDeviceFailure.getFailure(error);
+  return resolveMediaDeviceFailureMessage(failure, undefined, formatMessage);
+}
+
+function isMediaDeviceError(error: Error) {
+  return (
+    error.name === "OverconstrainedError" ||
+    MediaDeviceFailure.getFailure(error) !== undefined
+  );
+}
+
+function resolveMediaDeviceFailureMessage(
+  failure: MediaDeviceFailure | undefined,
+  kind: MediaDeviceKind | undefined,
+  formatMessage: (descriptor: { id: string }) => string,
+) {
+  switch (failure) {
+    case MediaDeviceFailure.PermissionDenied:
+      return formatMessage({ id: "meeting.room.devicePermissionDenied" });
+    case MediaDeviceFailure.NotFound:
+      return formatMessage({ id: "meeting.room.deviceNotFound" });
+    case MediaDeviceFailure.DeviceInUse:
+      return formatMessage({ id: "meeting.room.deviceInUse" });
+    default:
+      return formatMessage({
+        id:
+          kind === "audioinput" || kind === "videoinput"
+            ? "meeting.room.deviceError"
+            : "meeting.room.deviceError",
+      });
+  }
 }

@@ -1,4 +1,9 @@
-import { useLocalParticipant, useTracks } from "@livekit/components-react";
+import {
+  useLocalParticipant,
+  useParticipants,
+  useTracks,
+} from "@livekit/components-react";
+import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import type { AudioCaptureOptions, VideoCaptureOptions } from "livekit-client";
 import { Track } from "livekit-client";
 import { Users } from "lucide-react";
@@ -36,16 +41,17 @@ export function MeetingRoomContent({
 }: MeetingRoomContentProps) {
   const intl = useAppIntl();
   const { localParticipant } = useLocalParticipant();
+  const participants = useParticipants();
   const trackRefs = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
     { onlySubscribed: false },
   );
-  const localTrack =
-    trackRefs.find(
-      (trackRef) => trackRef.participant.identity === localParticipant.identity,
-    ) ?? trackRefs[0];
-  const otherTracks = trackRefs.filter(
-    (trackRef) => trackRef.participant.identity !== localParticipant.identity,
+  const localTrack = findParticipantCameraTrack(
+    trackRefs,
+    localParticipant.identity,
+  );
+  const remoteParticipants = participants.filter(
+    (participant) => participant.identity !== localParticipant.identity,
   );
   const profileByUserId = new Map(
     (meeting.participants ?? []).map((participant) => [
@@ -62,7 +68,7 @@ export function MeetingRoomContent({
         </span>
         <div className="flex items-center gap-2 rounded-md bg-white/10 px-3 py-2 text-xs font-bold text-slate-100">
           <Users className="h-4 w-4 text-blue-300" />
-          {trackRefs.length}
+          {participants.length}
         </div>
       </header>
 
@@ -93,27 +99,46 @@ export function MeetingRoomContent({
         </section>
 
         <aside className="grid shrink-0 gap-3 sm:grid-cols-2 lg:w-64 lg:grid-cols-1">
-          {otherTracks.length ? (
-            otherTracks.map((trackRef) => {
+          {remoteParticipants.length ? (
+            remoteParticipants.map((participant) => {
+              const trackRef = findParticipantCameraTrack(
+                trackRefs,
+                participant.identity,
+              );
               const participantProfile = resolveParticipantProfile(
-                profileByUserId.get(trackRef.participant.identity),
-                trackRef.participant.metadata,
+                profileByUserId.get(participant.identity),
+                participant.metadata,
               );
               const participantDisplayName =
                 participantProfile.fullName ||
                 participantProfile.email ||
-                trackRef.participant.name ||
-                trackRef.participant.identity;
+                participant.name ||
+                participant.identity;
+              const participantInitials = buildParticipantInitials(
+                participantDisplayName,
+              );
 
-              return (
+              return trackRef ? (
                 <MeetingParticipantTile
-                  key={trackRef.participant.identity}
+                  key={participant.identity}
                   avatarUrl={participantProfile.avatarUrl}
                   displayName={participantDisplayName}
-                  initials={buildParticipantInitials(participantDisplayName)}
+                  initials={participantInitials}
                   trackRef={trackRef}
                   variant="secondary"
                 />
+              ) : (
+                <div
+                  key={participant.identity}
+                  className="relative aspect-video min-h-32 w-full overflow-hidden rounded-lg border border-white/10 bg-[#1f2937] shadow-2xl"
+                >
+                  <MeetingAvatarTile
+                    avatarUrl={participantProfile.avatarUrl}
+                    displayName={participantDisplayName}
+                    initials={participantInitials}
+                    variant="secondary"
+                  />
+                </div>
               );
             })
           ) : (
@@ -126,11 +151,24 @@ export function MeetingRoomContent({
 
       <MeetingRoomControlBar
         isHost={isHost}
+        joinToken={meeting.joinToken}
+        meeting={meeting}
         audioCaptureOptions={audioCaptureOptions}
         videoCaptureOptions={videoCaptureOptions}
         onDeviceError={onDeviceError}
       />
     </div>
+  );
+}
+
+function findParticipantCameraTrack(
+  trackRefs: TrackReferenceOrPlaceholder[],
+  participantIdentity: string,
+) {
+  return trackRefs.find(
+    (trackRef) =>
+      trackRef.participant.identity === participantIdentity &&
+      trackRef.source === Track.Source.Camera,
   );
 }
 

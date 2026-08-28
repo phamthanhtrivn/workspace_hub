@@ -111,6 +111,48 @@ export function getMeetingDevicePreferences(
   }
 }
 
+export async function getSanitizedMeetingDevicePreferences(
+  joinToken: string,
+): Promise<MeetingDevicePreferences> {
+  const preferences = getMeetingDevicePreferences(joinToken);
+
+  if (typeof navigator === "undefined" || !navigator.mediaDevices?.enumerateDevices) {
+    return preferences;
+  }
+
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const cameraDevices = devices.filter((device) => device.kind === "videoinput");
+    const micDevices = devices.filter((device) => device.kind === "audioinput");
+    const cameraDeviceId =
+      preferences.cameraDeviceId &&
+      cameraDevices.some((device) => device.deviceId === preferences.cameraDeviceId)
+        ? preferences.cameraDeviceId
+        : undefined;
+    const micDeviceId =
+      preferences.micDeviceId &&
+      micDevices.some((device) => device.deviceId === preferences.micDeviceId)
+        ? preferences.micDeviceId
+        : undefined;
+    const sanitizedPreferences = {
+      ...preferences,
+      cameraDeviceId,
+      micDeviceId,
+    };
+
+    if (
+      sanitizedPreferences.cameraDeviceId !== preferences.cameraDeviceId ||
+      sanitizedPreferences.micDeviceId !== preferences.micDeviceId
+    ) {
+      saveMeetingDevicePreferences(joinToken, sanitizedPreferences);
+    }
+
+    return sanitizedPreferences;
+  } catch {
+    return preferences;
+  }
+}
+
 export function openMeetingWindow(): Window | null {
   if (typeof window === "undefined") return null;
   return window.open("", MeetingWindowTarget.NEW_TAB);

@@ -701,8 +701,18 @@ const en = {
   "meeting.room.connecting": "Connecting to LiveKit room...",
   "meeting.room.tokenFailed": "Could not connect to this meeting room.",
   "meeting.room.livekitConnected": "LiveKit room",
+  "meeting.room.connectionError":
+    "Could not connect to the LiveKit room. Check the room server and try again.",
   "meeting.room.deviceError":
     "Could not access your camera or microphone. Check browser permissions and selected devices.",
+  "meeting.room.devicePermissionDenied":
+    "Camera or microphone permission is blocked. Allow access in your browser settings.",
+  "meeting.room.deviceNotFound":
+    "No camera or microphone was found. Check that your device is connected.",
+  "meeting.room.deviceInUse":
+    "Your camera or microphone is already in use by another app.",
+  "meeting.room.deviceInvalid":
+    "The selected camera or microphone is no longer available. Falling back to the default device.",
   "meeting.room.avatarAlt": "Meeting avatar",
   "meeting.room.noOtherParticipants": "No one else is here yet",
   "meeting.room.microphone": "Microphone",
@@ -710,6 +720,14 @@ const en = {
   "meeting.room.shareScreen": "Share screen",
   "meeting.room.chat": "Chat",
   "meeting.room.settings": "Settings",
+  "meeting.room.meetingSettings": "Meeting settings",
+  "meeting.room.joinLink": "Join link",
+  "meeting.room.copyJoinLink": "Copy join link",
+  "meeting.room.copyJoinLinkHelp": "Share this link with people you want to invite.",
+  "meeting.room.copyLinkFailed": "Could not copy the meeting link.",
+  "meeting.room.linkCopied": "Meeting link copied.",
+  "meeting.room.allowWithoutApproval": "Allow joining without approval",
+  "meeting.room.accessUpdateFailed": "Could not update meeting access.",
   "meeting.room.leave": "Leave",
   "meeting.room.endForEveryone": "End for everyone",
   "meeting.room.endDisabled": "Backend support for ending everyone will be added later.",

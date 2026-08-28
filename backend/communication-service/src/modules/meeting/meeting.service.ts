@@ -221,7 +221,9 @@ export class MeetingService {
       where: { joinToken },
       include: {
         participants: {
-          where: { userId },
+          where: {
+            OR: [{ status: MeetingParticipantStatusValue.JOINED }, { userId }],
+          },
         },
         _count: {
           select: {
@@ -534,7 +536,7 @@ export class MeetingService {
     });
 
     return {
-      serverUrl: this.liveKitConfig.url,
+      serverUrl: this.liveKitConfig.publicUrl,
       token: await accessToken.toJwt(),
       roomName: meeting.roomName,
     };

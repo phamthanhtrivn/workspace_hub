@@ -696,8 +696,18 @@ const vi = {
   "meeting.room.connecting": "Đang kết nối phòng LiveKit...",
   "meeting.room.tokenFailed": "Không thể kết nối phòng họp này.",
   "meeting.room.livekitConnected": "Phòng LiveKit",
+  "meeting.room.connectionError":
+    "Không thể kết nối phòng LiveKit. Hãy kiểm tra máy chủ phòng họp rồi thử lại.",
   "meeting.room.deviceError":
     "Không thể truy cập camera hoặc micro. Hãy kiểm tra quyền trình duyệt và thiết bị đã chọn.",
+  "meeting.room.devicePermissionDenied":
+    "Quyền camera hoặc micro đang bị chặn. Hãy cho phép truy cập trong cài đặt trình duyệt.",
+  "meeting.room.deviceNotFound":
+    "Không tìm thấy camera hoặc micro. Hãy kiểm tra thiết bị đã được kết nối.",
+  "meeting.room.deviceInUse":
+    "Camera hoặc micro đang được ứng dụng khác sử dụng.",
+  "meeting.room.deviceInvalid":
+    "Camera hoặc micro đã chọn không còn khả dụng. Đang chuyển về thiết bị mặc định.",
   "meeting.room.avatarAlt": "Avatar cuộc họp",
   "meeting.room.noOtherParticipants": "Chưa có ai khác trong phòng",
   "meeting.room.microphone": "Micro",
@@ -705,6 +715,16 @@ const vi = {
   "meeting.room.shareScreen": "Chia sẻ màn hình",
   "meeting.room.chat": "Chat",
   "meeting.room.settings": "Cài đặt",
+  "meeting.room.meetingSettings": "Cài đặt cuộc họp",
+  "meeting.room.joinLink": "Liên kết tham gia",
+  "meeting.room.copyJoinLink": "Sao chép liên kết tham gia",
+  "meeting.room.copyJoinLinkHelp": "Gửi liên kết này cho người bạn muốn mời.",
+  "meeting.room.copyLinkFailed": "Không thể sao chép liên kết cuộc họp.",
+  "meeting.room.linkCopied": "Đã sao chép liên kết cuộc họp.",
+  "meeting.room.allowWithoutApproval": "Cho phép vào không cần phê duyệt",
+  "meeting.room.openAccessHelp": "Ai có liên kết đều có thể vào phòng trực tiếp.",
+  "meeting.room.approvalRequiredHelp": "Người mới phải gửi yêu cầu trước khi vào.",
+  "meeting.room.accessUpdateFailed": "Không thể cập nhật quyền vào phòng.",
   "meeting.room.leave": "Rời phòng",
   "meeting.room.endForEveryone": "Kết thúc cho mọi người",
   "meeting.room.endDisabled": "Backend cho kết thúc tất cả sẽ được bổ sung sau.",

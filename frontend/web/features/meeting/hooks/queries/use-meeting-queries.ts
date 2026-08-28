@@ -112,7 +112,10 @@ export function useRejectMeetingJoinRequestMutation(meetingId: string) {
   });
 }
 
-export function useUpdateMeetingAccessMutation(meetingId: string) {
+export function useUpdateMeetingAccessMutation(
+  meetingId: string,
+  joinToken?: string,
+) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -120,6 +123,11 @@ export function useUpdateMeetingAccessMutation(meetingId: string) {
       updateMeetingAccess(meetingId, payload),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
     },
   });
 }
