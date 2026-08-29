@@ -13,13 +13,12 @@ import {
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../../prisma/prisma.service';
-import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import { MeetingLiveKitService } from './livekit/meeting-livekit.service';
 import { MeetingRealtimePublisher } from './realtime/meeting-realtime.publisher';
 import { MeetingAuthorizationService } from './services/meeting-authorization.service';
+import { MeetingResponseMapper } from './services/meeting-response.mapper';
 import {
-  MeetingClientRoute,
   MeetingDefault,
   MeetingErrorMessage,
   MeetingEventTypeValue,
@@ -30,7 +29,6 @@ import {
 } from './types/meeting.enums';
 import {
   MeetingResponse,
-  MeetingWithParticipantsAndPendingCountRaw,
   MeetingLiveKitTokenResponse,
   MeetingParticipantWithProfile,
   RequestJoinMeetingResult,
@@ -41,16 +39,10 @@ export class MeetingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly realtimePublisher: MeetingRealtimePublisher,
-    private readonly userProfileSnapshotService: UserProfileSnapshotService,
     private readonly meetingLiveKitService: MeetingLiveKitService,
     private readonly meetingAuthorizationService: MeetingAuthorizationService,
+    private readonly meetingResponseMapper: MeetingResponseMapper,
   ) {}
-
-  private buildJoinUrl(joinToken: string) {
-    const frontendUrl = process.env.FRONTEND_URL?.replace(/\/$/, '');
-    const path = `/${MeetingClientRoute.MEETINGS}/${joinToken}`;
-    return frontendUrl ? `${frontendUrl}${path}` : path;
-  }
 
   private buildRoomName() {
     return `${MeetingDefault.ROOM_PREFIX}-${randomUUID()}`;
@@ -97,39 +89,6 @@ export class MeetingService {
     }
 
     return participant;
-  }
-
-  private async enrichParticipants(
-    participants: MeetingParticipant[],
-  ): Promise<MeetingParticipantWithProfile[]> {
-    return this.userProfileSnapshotService.attachProfilesToMembers(
-      participants,
-    );
-  }
-
-  private async mapMeetingResponse(
-    meeting: MeetingWithParticipantsAndPendingCountRaw,
-    userId: string,
-  ): Promise<MeetingResponse> {
-    const participants = await this.enrichParticipants(
-      meeting.participants ?? [],
-    );
-    const participant = participants.find((item) => item.userId === userId);
-    const pendingJoinRequestCount =
-      meeting._count?.participants ??
-      participants.filter(
-        (item) => item.status === PrismaMeetingParticipantStatus.REQUESTED,
-      ).length;
-    const meetingData = { ...meeting };
-    delete (meetingData as Partial<typeof meeting>)._count;
-
-    return {
-      ...meetingData,
-      participants,
-      joinUrl: this.buildJoinUrl(meeting.joinToken),
-      currentParticipant: participant ?? null,
-      pendingJoinRequestCount,
-    };
   }
 
   async createInstantMeeting(
@@ -192,7 +151,7 @@ export class MeetingService {
       },
     );
 
-    return this.mapMeetingResponse(meeting, userId);
+    return this.meetingResponseMapper.map(meeting, userId);
   }
 
   async getUserMeetings(userId: string): Promise<MeetingResponse[]> {
@@ -220,7 +179,9 @@ export class MeetingService {
     });
 
     return Promise.all(
-      meetings.map((meeting) => this.mapMeetingResponse(meeting, userId)),
+      meetings.map((meeting) =>
+        this.meetingResponseMapper.map(meeting, userId),
+      ),
     );
   }
 
@@ -252,7 +213,7 @@ export class MeetingService {
       throw new NotFoundException(MeetingErrorMessage.MEETING_NOT_FOUND);
     }
 
-    return this.mapMeetingResponse(meeting, userId);
+    return this.meetingResponseMapper.map(meeting, userId);
   }
 
   async requestJoin(
@@ -334,7 +295,8 @@ export class MeetingService {
         return updatedParticipant;
       },
     );
-    const [enrichedParticipant] = await this.enrichParticipants([participant]);
+    const [enrichedParticipant] =
+      await this.meetingResponseMapper.enrichParticipants([participant]);
     const meetingResponse = await this.getJoinInfoByToken(
       meeting.joinToken,
       userId,
@@ -381,7 +343,7 @@ export class MeetingService {
 
     const normalizedSearch = search?.trim();
     if (!normalizedSearch) {
-      return this.enrichParticipants(participants);
+      return this.meetingResponseMapper.enrichParticipants(participants);
     }
 
     const snapshots = await this.prisma.userProfileSnapshot.findMany({
@@ -410,7 +372,7 @@ export class MeetingService {
       snapshots.map((snapshot) => snapshot.userId),
     );
 
-    return this.enrichParticipants(
+    return this.meetingResponseMapper.enrichParticipants(
       participants.filter((participant) =>
         matchedUserIds.has(participant.userId),
       ),
@@ -477,7 +439,8 @@ export class MeetingService {
             });
             return updatedParticipant;
           });
-    const [enrichedParticipant] = await this.enrichParticipants([participant]);
+    const [enrichedParticipant] =
+      await this.meetingResponseMapper.enrichParticipants([participant]);
 
     this.realtimePublisher.participantRoleUpdated(
       meetingId,
@@ -612,9 +575,10 @@ export class MeetingService {
         return participant;
       },
     );
-    const [enrichedParticipant] = await this.enrichParticipants([
-      removedParticipant,
-    ]);
+    const [enrichedParticipant] =
+      await this.meetingResponseMapper.enrichParticipants([
+        removedParticipant,
+      ]);
 
     await this.meetingLiveKitService.removeParticipant(
       meeting.roomName,
@@ -641,7 +605,7 @@ export class MeetingService {
       },
       orderBy: { updatedAt: 'asc' },
     });
-    return this.enrichParticipants(participants);
+    return this.meetingResponseMapper.enrichParticipants(participants);
   }
 
   async approveJoinRequest(
@@ -702,9 +666,10 @@ export class MeetingService {
       },
     );
 
-    const [enrichedParticipant] = await this.enrichParticipants([
-      updatedParticipant,
-    ]);
+    const [enrichedParticipant] =
+      await this.meetingResponseMapper.enrichParticipants([
+        updatedParticipant,
+      ]);
 
     this.realtimePublisher.joinApproved(
       meetingId,
@@ -769,9 +734,10 @@ export class MeetingService {
       },
     );
 
-    const [enrichedParticipant] = await this.enrichParticipants([
-      updatedParticipant,
-    ]);
+    const [enrichedParticipant] =
+      await this.meetingResponseMapper.enrichParticipants([
+        updatedParticipant,
+      ]);
 
     this.realtimePublisher.joinRejected(
       meetingId,
@@ -867,9 +833,10 @@ export class MeetingService {
           autoApprovedParticipants: approvedParticipants,
         };
       });
-    const enrichedAutoApprovedParticipants = await this.enrichParticipants(
-      autoApprovedParticipants,
-    );
+    const enrichedAutoApprovedParticipants =
+      await this.meetingResponseMapper.enrichParticipants(
+        autoApprovedParticipants,
+      );
 
     this.realtimePublisher.accessUpdated(
       meetingId,
@@ -882,7 +849,7 @@ export class MeetingService {
         participant,
       );
     });
-    return this.mapMeetingResponse(meeting, userId);
+    return this.meetingResponseMapper.map(meeting, userId);
   }
 
   async leaveMeeting(
@@ -933,9 +900,10 @@ export class MeetingService {
         return leftParticipant;
       },
     );
-    const [enrichedParticipant] = await this.enrichParticipants([
-      updatedParticipant,
-    ]);
+    const [enrichedParticipant] =
+      await this.meetingResponseMapper.enrichParticipants([
+        updatedParticipant,
+      ]);
 
     await this.meetingLiveKitService.removeParticipant(meeting.roomName, userId);
     this.realtimePublisher.participantLeft(
@@ -1012,7 +980,7 @@ export class MeetingService {
     await this.meetingLiveKitService.deleteRoom(meeting.roomName);
     this.realtimePublisher.meetingEnded(meetingId, hostId);
 
-    return this.mapMeetingResponse(endedMeeting, hostId);
+    return this.meetingResponseMapper.map(endedMeeting, hostId);
   }
 
   async createLiveKitToken(
@@ -1055,3 +1023,4 @@ export class MeetingService {
     );
   }
 }
+

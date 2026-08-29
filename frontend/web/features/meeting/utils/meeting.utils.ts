@@ -1,8 +1,8 @@
 import {
-  MeetingStorageKey,
   MeetingWindowTarget,
   meetingRoutes,
-} from "../types/meeting.constants";
+} from "../constants/meeting-routes.constants";
+import { MeetingStorageKey } from "../constants/meeting-storage.constants";
 import {
   ApiResponse,
   MeetingDevicePreferences,

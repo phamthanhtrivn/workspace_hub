@@ -2,7 +2,11 @@
 
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
-import { MeetingDashboardNavItemId, meetingDashboardNavItems, meetingNavIconById } from "../../types/meeting.constants";
+import {
+  MeetingDashboardNavItemId,
+  meetingDashboardNavItems,
+  meetingNavIconById,
+} from "../../constants/meeting-dashboard.config";
 
 export function MeetingSidebar() {
   const intl = useAppIntl();

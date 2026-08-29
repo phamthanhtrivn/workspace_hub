@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import { useMeetingRoom } from "../../hooks/room/use-meeting-room";
-import { meetingApiRoutes } from "../../types/meeting.constants";
+import { meetingApiRoutes } from "../../api/meeting-api.routes";
 import { MeetingResponse, MeetingStatus } from "../../types/meeting.types";
 import { canModerateMeeting } from "../../utils/meeting.utils";
 import { MeetingRoomContent } from "./meeting-room-content";

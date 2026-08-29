@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { useAppSelector } from "@/store/store";
 import { MeetingSocketEvent } from "../../api/meeting-socket.events";
-import { meetingKeys } from "../../types/meeting.constants";
+import { meetingKeys } from "../../queries/meeting-query.keys";
 import { MeetingSocketPayload } from "../../types/meeting.types";
 
 interface UseMeetingSocketOptions {

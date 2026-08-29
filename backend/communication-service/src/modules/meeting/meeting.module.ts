@@ -7,6 +7,7 @@ import { MeetingController } from './meeting.controller';
 import { MeetingLiveKitService } from './livekit/meeting-livekit.service';
 import { MeetingRealtimePublisher } from './realtime/meeting-realtime.publisher';
 import { MeetingAuthorizationService } from './services/meeting-authorization.service';
+import { MeetingResponseMapper } from './services/meeting-response.mapper';
 import { MeetingService } from './meeting.service';
 
 @Module({
@@ -22,6 +23,7 @@ import { MeetingService } from './meeting.service';
     MeetingAuthorizationService,
     MeetingRealtimePublisher,
     MeetingLiveKitService,
+    MeetingResponseMapper,
   ],
   exports: [MeetingService],
 })

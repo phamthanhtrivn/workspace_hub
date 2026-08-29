@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { meetingRoutes } from "../../types/meeting.constants";
+import { meetingRoutes } from "../../constants/meeting-routes.constants";
 
 interface MeetingJoinShellProps {
   children: ReactNode;
