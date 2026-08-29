@@ -58,12 +58,6 @@ export function CalendarListItem({
         {calendar.name}
       </span>
 
-      {calendar.isDefault && (
-        <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-500">
-          {intl.formatMessage({ id: "calendar.default" })}
-        </span>
-      )}
-
       <button
         type="button"
         onClick={onOpenSettings}

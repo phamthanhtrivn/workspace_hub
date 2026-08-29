@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { WorkspaceCalendar } from "../../types/calendar.types";
 import { CalendarSettingsModal } from "../modal/calendar-settings-modal";
-import { CreateCalendarModal } from "../modal/create-calendar-modal";
 import { CalendarListItem } from "./calendar-list-item";
 import { MiniCalendar } from "./mini-calendar";
 
@@ -27,7 +26,6 @@ export function CalendarSidebar({
   onCreateEvent: () => void;
 }) {
   const intl = useAppIntl();
-  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [settingsCalendar, setSettingsCalendar] =
     useState<WorkspaceCalendar | null>(null);
 
@@ -57,14 +55,6 @@ export function CalendarSidebar({
             <h2 className="flex-1 text-sm font-semibold text-slate-700">
               {intl.formatMessage({ id: "calendar.myCalendars" })}
             </h2>
-            <button
-              type="button"
-              onClick={() => setCreateModalOpen(true)}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-              aria-label={intl.formatMessage({ id: "calendar.createCalendar" })}
-            >
-              <Plus className="h-4 w-4" />
-            </button>
           </div>
           {calendars.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center text-xs font-semibold text-slate-400">
@@ -89,10 +79,6 @@ export function CalendarSidebar({
         </div>
       </aside>
 
-      <CreateCalendarModal
-        open={createModalOpen}
-        onClose={() => setCreateModalOpen(false)}
-      />
       {settingsCalendar && (
         <CalendarSettingsModal
           key={settingsCalendar.id}
