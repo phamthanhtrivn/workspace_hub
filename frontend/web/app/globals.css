@@ -137,11 +137,11 @@ html {
 
 .calendar-shell .fc {
   height: 100%;
-  --fc-border-color: rgb(226 232 240);
+  --fc-border-color: rgb(218 220 224);
   --fc-page-bg-color: #ffffff;
   --fc-neutral-bg-color: rgb(248 250 252);
-  --fc-today-bg-color: rgb(189 232 245 / 0.24);
-  --fc-now-indicator-color: #dc2626;
+  --fc-today-bg-color: rgb(232 240 254 / 0.55);
+  --fc-now-indicator-color: #ea4335;
   --fc-event-border-color: transparent;
   --fc-event-bg-color: var(--color-primary);
   --fc-small-font-size: 0.75rem;
@@ -149,14 +149,15 @@ html {
 
 .calendar-shell .fc-scrollgrid {
   overflow: hidden;
-  border-radius: 0.75rem;
+  border-width: 0 0 1px;
+  border-radius: 0;
   background: #ffffff;
-  box-shadow: 0 1px 2px rgb(15 23 42 / 0.06);
+  box-shadow: none;
 }
 
 .calendar-shell .fc-col-header-cell {
-  background: rgb(248 250 252);
-  padding: 0.45rem 0;
+  background: #ffffff;
+  padding: 0.55rem 0;
 }
 
 .calendar-shell .fc-col-header-cell-cushion,
@@ -164,21 +165,22 @@ html {
 .calendar-shell .fc-timegrid-slot-label-cushion {
   color: rgb(100 116 139);
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 600;
   text-decoration: none;
 }
 
 .calendar-shell .fc-daygrid-day-number {
   color: rgb(71 85 105);
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 500;
   text-decoration: none;
 }
 
 .calendar-shell .fc-event {
-  border-radius: 0.45rem;
+  border-radius: 0.25rem;
   border: 0;
-  box-shadow: 0 2px 8px rgb(15 40 84 / 0.12);
+  box-shadow: none;
+  cursor: pointer;
 }
 
 .calendar-shell .fc-event-main {
@@ -190,9 +192,26 @@ html {
 }
 
 .calendar-shell .fc-list {
-  border-radius: 0.75rem;
+  border: 0;
+  border-radius: 0;
   overflow: hidden;
   background: #ffffff;
+}
+
+.calendar-shell .fc-timegrid-slot {
+  height: 2.6rem;
+}
+
+.calendar-shell .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  align-items: center;
+  background: #1a73e8;
+  border-radius: 9999px;
+  color: #ffffff;
+  display: inline-flex;
+  height: 1.75rem;
+  justify-content: center;
+  margin: 0.2rem;
+  width: 1.75rem;
 }
 
 .calendar-mini-shell .fc {

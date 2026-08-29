@@ -8,7 +8,7 @@ import {
   EventInput,
 } from "@fullcalendar/core";
 import FullCalendar from "@fullcalendar/react";
-import { RefObject, useEffect, useMemo, useState } from "react";
+import { RefObject, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
@@ -26,6 +26,7 @@ import {
   CalendarEventDraft,
   CalendarEventFormValues,
   EventStatus,
+  RecurrenceScope,
 } from "../types/calendar.types";
 import {
   createDefaultEventDraft,
@@ -54,15 +55,19 @@ export function useCalendarWorkspace(
   const [activeView, setActiveView] = useState(CALENDAR_INITIAL_VIEW);
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
-  const [selectedCalendarIds, setSelectedCalendarIds] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [selectedCalendarIds, setSelectedCalendarIds] =
+    useState<Set<string> | null>(null);
   const [draft, setDraft] = useState<CalendarEventDraft | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null);
+  const [pendingEventMove, setPendingEventMove] =
+    useState<CalendarEventMoveInfo | null>(null);
 
   const calendarsQuery = useCalendarCalendars();
-  const calendars = calendarsQuery.data || [];
+  const calendars = useMemo(
+    () => calendarsQuery.data ?? [],
+    [calendarsQuery.data],
+  );
   const eventsQuery = useCalendarEvents(range);
   const createEvent = useCreateCalendarEvent();
   const updateEvent = useUpdateCalendarEvent();
@@ -72,24 +77,23 @@ export function useCalendarWorkspace(
   const defaultCalendar =
     calendars.find((calendar) => calendar.isDefault) || calendars[0];
 
-  useEffect(() => {
-    if (calendars.length === 0) return;
-    setSelectedCalendarIds((current) => {
-      if (current.size > 0) return current;
-      return new Set(
+  const effectiveSelectedCalendarIds = useMemo(
+    () =>
+      selectedCalendarIds ??
+      new Set(
         calendars
           .filter((calendar) => calendar.isVisible)
           .map((calendar) => calendar.id),
-      );
-    });
-  }, [calendars]);
+      ),
+    [calendars, selectedCalendarIds],
+  );
 
   const fullCalendarEvents = useMemo<EventInput[]>(() => {
     const visibleIds = new Set(
       calendars
         .filter(
           (calendar) =>
-            calendar.isVisible && selectedCalendarIds.has(calendar.id),
+            calendar.isVisible && effectiveSelectedCalendarIds.has(calendar.id),
         )
         .map((calendar) => calendar.id),
     );
@@ -98,7 +102,7 @@ export function useCalendarWorkspace(
       .filter((event) => event.status !== EventStatus.CANCELLED)
       .filter((event) => visibleIds.has(event.calendarId))
       .map(mapCalendarEventToFullCalendar);
-  }, [calendars, eventsQuery.data, selectedCalendarIds]);
+  }, [calendars, effectiveSelectedCalendarIds, eventsQuery.data]);
 
   const handleDatesSet = (arg: DatesSetArg) => {
     setRange({
@@ -153,13 +157,24 @@ export function useCalendarWorkspace(
         setDraft(null);
       }
       toast.success(intl.formatMessage({ id: "calendar.eventSaved" }));
-    } catch (error) {
+    } catch {
       toast.error(intl.formatMessage({ id: "calendar.eventSaveFailed" }));
     }
   };
 
-  const handleEventMove = async (info: CalendarEventMoveInfo) => {
+  const persistEventMove = async (
+    info: CalendarEventMoveInfo,
+    recurrenceScope: RecurrenceScope,
+  ) => {
     if (!info.event.start) {
+      info.revert();
+      return;
+    }
+
+    const model = (eventsQuery.data || []).find(
+      (event) => event.id === info.event.id,
+    );
+    if (!model?.permissions?.canManage) {
       info.revert();
       return;
     }
@@ -172,13 +187,44 @@ export function useCalendarWorkspace(
           startAt: info.event.start.toISOString(),
           endAt: end.toISOString(),
           allDay: info.event.allDay,
+          recurrenceScope,
         },
       });
       toast.success(intl.formatMessage({ id: "calendar.eventMoved" }));
-    } catch (error) {
+    } catch {
       info.revert();
       toast.error(intl.formatMessage({ id: "calendar.eventMoveFailed" }));
     }
+  };
+
+  const handleEventMove = (info: CalendarEventMoveInfo) => {
+    const model = (eventsQuery.data || []).find(
+      (event) => event.id === info.event.id,
+    );
+
+    if (!model?.permissions?.canManage) {
+      info.revert();
+      return;
+    }
+
+    if (model.recurrenceRule || model.recurrenceParentId) {
+      setPendingEventMove(info);
+      return;
+    }
+
+    void persistEventMove(info, RecurrenceScope.THIS);
+  };
+
+  const confirmEventMove = (scope: RecurrenceScope) => {
+    if (!pendingEventMove) return;
+    const info = pendingEventMove;
+    setPendingEventMove(null);
+    void persistEventMove(info, scope);
+  };
+
+  const cancelPendingEventMove = () => {
+    pendingEventMove?.revert();
+    setPendingEventMove(null);
   };
 
   const closeForm = () => {
@@ -198,7 +244,7 @@ export function useCalendarWorkspace(
 
   const toggleCalendar = (calendarId: string) => {
     setSelectedCalendarIds((current) => {
-      const next = new Set(current);
+      const next = new Set(current ?? effectiveSelectedCalendarIds);
       if (next.has(calendarId)) next.delete(calendarId);
       else next.add(calendarId);
       return next;
@@ -231,13 +277,13 @@ export function useCalendarWorkspace(
     setCurrentDate(date);
   };
 
-  const handleCancelEvent = async () => {
+  const handleCancelEvent = async (scope: RecurrenceScope) => {
     if (!detailEvent) return;
     try {
-      await cancelEvent.mutateAsync(detailEvent.id);
+      await cancelEvent.mutateAsync({ eventId: detailEvent.id, scope });
       setDetailEvent(null);
       toast.success(intl.formatMessage({ id: "calendar.eventCancelled" }));
-    } catch (error) {
+    } catch {
       toast.error(intl.formatMessage({ id: "calendar.eventCancelFailed" }));
     }
   };
@@ -250,7 +296,7 @@ export function useCalendarWorkspace(
         responseStatus,
       });
       toast.success(intl.formatMessage({ id: "calendar.responseSaved" }));
-    } catch (error) {
+    } catch {
       toast.error(intl.formatMessage({ id: "calendar.responseSaveFailed" }));
     }
   };
@@ -259,8 +305,10 @@ export function useCalendarWorkspace(
     activeView,
     calendarApi,
     calendars,
+    cancelPendingEventMove,
     closeDetail,
     closeForm,
+    confirmEventMove,
     currentDate,
     detailBusy: cancelEvent.isPending || updateResponse.isPending,
     detailEvent,
@@ -283,7 +331,8 @@ export function useCalendarWorkspace(
     isPreparingDefaultCalendar: calendars.length === 0 && calendarsQuery.isLoading,
     loading: calendarsQuery.isLoading || eventsQuery.isLoading,
     openCreateModal,
-    selectedCalendarIds,
+    pendingEventMove,
+    selectedCalendarIds: effectiveSelectedCalendarIds,
     selectedDate,
     startEditingDetailEvent,
     title,

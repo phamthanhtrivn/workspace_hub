@@ -42,9 +42,9 @@ export function CalendarGrid({
   const intl = useAppIntl();
 
   return (
-    <div className="calendar-shell min-h-0 flex-1 p-3">
+    <div className="calendar-shell relative min-h-0 flex-1 bg-white">
       {loading && (
-        <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700">
+        <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm">
           {intl.formatMessage({ id: "app.loading" })}
         </div>
       )}
@@ -53,6 +53,7 @@ export function CalendarGrid({
         plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
         initialView={CALENDAR_INITIAL_VIEW}
         headerToolbar={false}
+        locale={intl.locale}
         firstDay={1}
         height="100%"
         nowIndicator
@@ -62,6 +63,11 @@ export function CalendarGrid({
         eventResizableFromStart
         dayMaxEvents
         expandRows
+        navLinks
+        slotDuration="00:30:00"
+        snapDuration="00:15:00"
+        scrollTime="08:00:00"
+        selectLongPressDelay={250}
         slotMinTime={CALENDAR_SLOT_MIN_TIME}
         slotMaxTime={CALENDAR_SLOT_MAX_TIME}
         allDayMaintainDuration

@@ -1,6 +1,7 @@
 import { api } from "@/lib/axios";
 import {
   ApiResponse,
+  ApiPagination,
   AttendeeResponseStatus,
   CalendarEvent,
   CalendarEventFilters,
@@ -9,6 +10,7 @@ import {
   UpdateCalendarEventPayload,
   UpdateCalendarPayload,
   WorkspaceCalendar,
+  RecurrenceScope,
 } from "../types/calendar.types";
 
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
@@ -57,11 +59,22 @@ export async function deleteCalendar(calendarId: string): Promise<void> {
 export async function getCalendarEvents(
   filters: CalendarEventFilters,
 ): Promise<CalendarEvent[]> {
-  const response = await api.get<ApiResponse<CalendarEvent[]>>(
-    "/api/calendar/events",
-    { params: filters },
-  );
-  return unwrap(response) || [];
+  const events: CalendarEvent[] = [];
+  const limit = 200;
+  let page = 1;
+  let pagination: ApiPagination | undefined;
+
+  do {
+    const response = await api.get<ApiResponse<CalendarEvent[]>>(
+      "/api/calendar/events",
+      { params: { ...filters, page, limit } },
+    );
+    events.push(...(unwrap(response) || []));
+    pagination = response.data.pagination;
+    page += 1;
+  } while (pagination && page <= pagination.totalPages);
+
+  return events;
 }
 
 export async function getCalendarEvent(
@@ -94,9 +107,13 @@ export async function updateCalendarEvent(
   return unwrap(response);
 }
 
-export async function cancelCalendarEvent(eventId: string): Promise<void> {
+export async function cancelCalendarEvent(
+  eventId: string,
+  scope: RecurrenceScope = RecurrenceScope.THIS,
+): Promise<void> {
   const response = await api.delete<ApiResponse<null>>(
     `/api/calendar/events/${eventId}`,
+    { params: { scope } },
   );
   unwrap(response);
 }

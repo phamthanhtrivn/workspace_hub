@@ -18,6 +18,7 @@ import {
   CreateCalendarPayload,
   UpdateCalendarEventPayload,
   UpdateCalendarPayload,
+  RecurrenceScope,
 } from "../types/calendar.types";
 
 export const calendarKeys = {
@@ -126,7 +127,8 @@ export function useCancelCalendarEvent() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (eventId: string) => cancelCalendarEvent(eventId),
+    mutationFn: ({ eventId, scope }: { eventId: string; scope: RecurrenceScope }) =>
+      cancelCalendarEvent(eventId, scope),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
     },

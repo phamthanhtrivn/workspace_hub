@@ -127,7 +127,10 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
         data: {
           deliveryStatus: ReminderDeliveryStatus.FAILED,
           nextAttemptAt: new Date(Date.now() + retryMinutes * 60_000),
-          lastError: error instanceof Error ? error.message.slice(0, 1000) : 'Unknown error',
+          lastError:
+            error instanceof Error
+              ? error.message.slice(0, 1000)
+              : 'Unknown error',
         },
       });
       this.logger.error(`Reminder ${reminder.id} dispatch failed`, error);

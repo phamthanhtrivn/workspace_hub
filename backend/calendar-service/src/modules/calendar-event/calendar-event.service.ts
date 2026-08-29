@@ -50,6 +50,7 @@ export class CalendarEventService {
     dto: CreateCalendarEventDto,
   ) {
     const calendar = await this.assertCalendarOwner(userId, dto.calendarId);
+    await this.resourceAccess.assertProjectAccess(userId, calendar.projectId);
     this.assertValidRange(dto.startAt, dto.endAt);
     this.recurrenceService.assertValidRule(dto.recurrenceRule);
     await this.resourceAccess.assertDocumentAccess(
@@ -122,11 +123,9 @@ export class CalendarEventService {
     return this.getEventById(userId, event.id);
   }
 
-  async getEvents(
-    userId: string,
-    filters: GetCalendarEventsQueryDto,
-  ) {
+  async getEvents(userId: string, filters: GetCalendarEventsQueryDto) {
     this.assertValidQueryRange(filters.startAt, filters.endAt);
+    await this.resourceAccess.assertProjectAccess(userId, filters.projectId);
     if (filters.endAt) {
       await this.recurrenceService.materializeAllSeriesThrough(
         new Date(filters.endAt),
@@ -142,11 +141,12 @@ export class CalendarEventService {
       ],
     };
 
+    const additionalFilters: Prisma.CalendarEventWhereInput[] = [];
     if (filters.startAt || filters.endAt) {
-      where.AND = [
+      additionalFilters.push(
         filters.endAt ? { startAt: { lte: new Date(filters.endAt) } } : {},
         filters.startAt ? { endAt: { gte: new Date(filters.startAt) } } : {},
-      ];
+      );
     }
 
     if (filters.calendarId) {
@@ -154,10 +154,11 @@ export class CalendarEventService {
     }
 
     if (filters.projectId) {
-      where.calendar = {
-        ...((where.calendar as Prisma.CalendarWhereInput | undefined) ?? {}),
-        projectId: filters.projectId,
-      };
+      additionalFilters.push({ calendar: { projectId: filters.projectId } });
+    }
+
+    if (additionalFilters.length > 0) {
+      where.AND = additionalFilters;
     }
 
     const skip = (filters.page - 1) * filters.limit;
@@ -172,9 +173,13 @@ export class CalendarEventService {
       this.prisma.calendarEvent.count({ where }),
     ]);
 
+    const enrichedEvents =
+      await this.userProfileSnapshotService.attachProfilesToEvents(events);
+
     return {
-      items:
-        await this.userProfileSnapshotService.attachProfilesToEvents(events),
+      items: enrichedEvents.map((event) =>
+        this.attachPermissions(userId, event),
+      ),
       total,
       page: filters.page,
       limit: filters.limit,
@@ -187,7 +192,7 @@ export class CalendarEventService {
 
     const [enrichedEvent] =
       await this.userProfileSnapshotService.attachProfilesToEvents([event]);
-    return enrichedEvent;
+    return this.attachPermissions(userId, enrichedEvent);
   }
 
   async updateEvent(
@@ -209,6 +214,10 @@ export class CalendarEventService {
     const targetCalendar = dto.calendarId
       ? await this.assertCalendarOwner(userId, dto.calendarId)
       : event.calendar;
+    await this.resourceAccess.assertProjectAccess(
+      userId,
+      targetCalendar.projectId,
+    );
     const startAt = dto.startAt ?? event.startAt.toISOString();
     const endAt = dto.endAt ?? event.endAt.toISOString();
     this.assertValidRange(startAt, endAt);
@@ -278,7 +287,8 @@ export class CalendarEventService {
         await tx.calendarEvent.deleteMany({
           where: { recurrenceParentId: rootId },
         });
-        const rootTarget = series.find((target) => target.id === rootId) ?? event;
+        const rootTarget =
+          series.find((target) => target.id === rootId) ?? event;
         targets = [rootTarget];
         resultEventId = rootId;
         materializeRootId = rootId;
@@ -329,12 +339,7 @@ export class CalendarEventService {
           },
         });
 
-        await this.replaceEventRelations(
-          tx,
-          target,
-          nextStartAt,
-          dto,
-        );
+        await this.replaceEventRelations(tx, target, nextStartAt, dto);
       }
     });
 
@@ -471,9 +476,30 @@ export class CalendarEventService {
     }
   }
 
+  private attachPermissions<T extends EventWithRelations>(
+    userId: string,
+    event: T,
+  ): T & {
+    permissions: { canManage: boolean; canRespond: boolean };
+  } {
+    const canManage =
+      event.sourceType === EventSourceType.USER &&
+      (event.calendar.ownerUserId === userId || event.createdBy === userId);
+    const canRespond = event.attendees.some(
+      (attendee) => attendee.userId === userId,
+    );
+
+    return {
+      ...event,
+      permissions: { canManage, canRespond },
+    };
+  }
+
   private assertValidRange(startAt: string, endAt: string) {
     if (new Date(endAt) <= new Date(startAt)) {
-      throw new BadRequestException(CALENDAR_ERROR_MESSAGES.INVALID_EVENT_RANGE);
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.INVALID_EVENT_RANGE,
+      );
     }
   }
 

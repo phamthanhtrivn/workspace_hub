@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -26,7 +26,7 @@ async function bootstrap() {
       transform: true,
       exceptionFactory: (errors) => {
         const formatErrors = (validationErrors: any[]) => {
-          const result: any = {};
+          const result: Record<string, unknown> = {};
           validationErrors.forEach((error) => {
             if (error.constraints) {
               result[error.property] = Object.values(error.constraints)[0];

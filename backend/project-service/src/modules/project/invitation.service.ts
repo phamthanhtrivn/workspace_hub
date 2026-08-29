@@ -5,6 +5,7 @@ import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toInvitationResponse } from './project.mapper';
 import { InvitationEmailService } from './invitation-email.service';
+import { TaskCalendarEventService } from './task-calendar-event.service';
 
 const EXPIRY_DAYS = 7;
 
@@ -14,6 +15,7 @@ export class InvitationService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly email: InvitationEmailService,
+    private readonly calendarEvents: TaskCalendarEventService,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateInvitationDto) {
@@ -124,6 +126,8 @@ export class InvitationService {
         include: { project: { select: { name: true } } },
       });
     });
+
+    await this.calendarEvents.publishProject(invitation.projectId);
 
     return toInvitationResponse(updated);
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
@@ -27,10 +27,6 @@ export function CustomRecurrenceModal({
 }) {
   const intl = useAppIntl();
   const [draft, setDraft] = useState(value);
-
-  useEffect(() => {
-    if (open) setDraft(value);
-  }, [open, value]);
 
   if (!open) return null;
 

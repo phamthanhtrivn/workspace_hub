@@ -50,7 +50,7 @@ export function CreateCalendarModal({
       setShowCustomColor(false);
       toast.success(intl.formatMessage({ id: "calendar.calendarCreated" }));
       onClose();
-    } catch (error) {
+    } catch {
       toast.error(intl.formatMessage({ id: "calendar.calendarCreateFailed" }));
     }
   };

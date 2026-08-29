@@ -71,10 +71,7 @@ export class CalendarEventController {
     @Param('eventId', new ParseUUIDPipe()) eventId: string,
   ) {
     this.validateUserId(userId);
-    const event = await this.calendarEventService.getEventById(
-      userId,
-      eventId,
-    );
+    const event = await this.calendarEventService.getEventById(userId, eventId);
 
     return {
       message: CALENDAR_SUCCESS_MESSAGES.EVENT_RETRIEVED,

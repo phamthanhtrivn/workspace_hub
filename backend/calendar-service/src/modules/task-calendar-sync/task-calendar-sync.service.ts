@@ -59,7 +59,7 @@ export class TaskCalendarSyncService {
             ownerUserId,
             projectId: task.projectId,
             name: task.projectName,
-            icon: '📁',
+            icon: '\u{1F4C1}',
             color: task.projectColor ?? CALENDAR_DEFAULTS.COLOR,
             isDefault: false,
             isVisible: true,

@@ -16,6 +16,7 @@ export function CalendarSidebar({
   selectedDate,
   onToggleCalendar,
   onSelectDate,
+  onCreateEvent,
 }: {
   calendars: WorkspaceCalendar[];
   currentDate: Date;
@@ -23,6 +24,7 @@ export function CalendarSidebar({
   selectedDate: Date | null;
   onToggleCalendar: (calendarId: string) => void;
   onSelectDate: (date: Date) => void;
+  onCreateEvent: () => void;
 }) {
   const intl = useAppIntl();
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -31,15 +33,15 @@ export function CalendarSidebar({
 
   return (
     <>
-      <aside className="flex h-full min-h-0 flex-col border-r border-slate-200 bg-white overflow-y-auto">
-        <div className="border-b border-slate-200 px-4 py-4">
+      <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-slate-200 bg-white">
+        <div className="px-4 pb-2 pt-4">
           <button
             type="button"
-            onClick={() => setCreateModalOpen(true)}
-            className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-dark)] px-4 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[var(--color-primary)]"
+            onClick={onCreateEvent}
+            className="inline-flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-md transition hover:bg-slate-50 hover:shadow-lg"
           >
-            <Plus className="h-4 w-4" />
-            {intl.formatMessage({ id: "calendar.createCalendar" })}
+            <Plus className="h-5 w-5 text-blue-600" />
+            {intl.formatMessage({ id: "calendar.newEvent" })}
           </button>
         </div>
 
@@ -52,9 +54,17 @@ export function CalendarSidebar({
         <div className="min-h-0 flex-1 px-3 py-3">
           <div className="mb-2 flex items-center gap-2 px-2">
             <CalendarPlus className="h-4 w-4 text-[var(--color-primary)]" />
-            <h2 className="text-sm font-black text-[var(--color-primary-dark)]">
+            <h2 className="flex-1 text-sm font-semibold text-slate-700">
               {intl.formatMessage({ id: "calendar.myCalendars" })}
             </h2>
+            <button
+              type="button"
+              onClick={() => setCreateModalOpen(true)}
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+              aria-label={intl.formatMessage({ id: "calendar.createCalendar" })}
+            >
+              <Plus className="h-4 w-4" />
+            </button>
           </div>
           {calendars.length === 0 ? (
             <div className="rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center text-xs font-semibold text-slate-400">
@@ -83,11 +93,14 @@ export function CalendarSidebar({
         open={createModalOpen}
         onClose={() => setCreateModalOpen(false)}
       />
-      <CalendarSettingsModal
-        calendar={settingsCalendar}
-        open={Boolean(settingsCalendar)}
-        onClose={() => setSettingsCalendar(null)}
-      />
+      {settingsCalendar && (
+        <CalendarSettingsModal
+          key={settingsCalendar.id}
+          calendar={settingsCalendar}
+          open
+          onClose={() => setSettingsCalendar(null)}
+        />
+      )}
     </>
   );
 }

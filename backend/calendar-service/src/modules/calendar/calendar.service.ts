@@ -37,11 +37,16 @@ export class CalendarService {
       if (dto.projectId) {
         const existing = await tx.calendar.findUnique({
           where: {
-            ownerUserId_projectId: { ownerUserId: userId, projectId: dto.projectId },
+            ownerUserId_projectId: {
+              ownerUserId: userId,
+              projectId: dto.projectId,
+            },
           },
         });
         if (existing) {
-          throw new ConflictException('A calendar for this project already exists');
+          throw new ConflictException(
+            'A calendar for this project already exists',
+          );
         }
       }
 
@@ -81,8 +86,11 @@ export class CalendarService {
     calendarId: string,
     dto: UpdateCalendarDto,
   ): Promise<Calendar> {
-    await this.assertCalendarOwner(userId, calendarId);
-    await this.resourceAccess.assertProjectAccess(userId, dto.projectId);
+    const calendar = await this.assertCalendarOwner(userId, calendarId);
+    await this.resourceAccess.assertProjectAccess(
+      userId,
+      dto.projectId === undefined ? calendar.projectId : dto.projectId,
+    );
 
     return this.prisma.$transaction(async (tx) => {
       await this.lockUserCalendars(tx, userId);
@@ -103,7 +111,8 @@ export class CalendarService {
           description: updateData.description,
           projectId: updateData.projectId,
           color: updateData.color,
-          isDefault: updateData.isDefault === false ? undefined : updateData.isDefault,
+          isDefault:
+            updateData.isDefault === false ? undefined : updateData.isDefault,
           isVisible: updateData.isVisible,
         },
       });

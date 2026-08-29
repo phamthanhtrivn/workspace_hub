@@ -10,6 +10,7 @@ import {
   Headers,
   BadRequestException,
   Res,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { DocumentService } from './document.service';
@@ -302,7 +303,7 @@ export class DocumentController {
   async getAccessibleItem(
     @Headers('x-user-id') userId: string,
     @Headers('x-user-email') userEmail: string,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     this.validateUserHeaders(userId, userEmail);
     const item = await this.documentService.checkPermission(

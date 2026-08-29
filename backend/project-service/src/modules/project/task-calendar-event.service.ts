@@ -25,7 +25,6 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
-        assignees: { select: { userId: true } },
         project: {
           select: {
             id: true,
@@ -42,14 +41,11 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
     });
     if (!task) return;
 
-    const recipientUserIds = [
-      ...new Set([
-        task.createdBy,
-        task.project.ownerId,
-        ...task.assignees.map((assignee) => assignee.userId),
-        ...task.project.members.map((member) => member.userId),
-      ]),
-    ];
+    const activeMemberIds = new Set(
+      task.project.members.map((member) => member.userId),
+    );
+    activeMemberIds.add(task.project.ownerId);
+    const recipientUserIds = [...activeMemberIds];
     const hasSchedule = Boolean(task.startDate || task.dueDate);
     const eventType =
       !hasSchedule || task.archived || task.deletedAt
@@ -76,5 +72,13 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
       }),
     );
     this.logger.debug(`Published calendar snapshot for task ${task.id}`);
+  }
+
+  async publishProject(projectId: string): Promise<void> {
+    const tasks = await this.prisma.task.findMany({
+      where: { projectId },
+      select: { id: true },
+    });
+    await Promise.all(tasks.map((task) => this.publishUpsert(task.id)));
   }
 }

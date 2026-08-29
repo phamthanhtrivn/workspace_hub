@@ -101,7 +101,9 @@ export class UserProfileSnapshotService {
     },
   >(
     events: T[],
-  ): Promise<Array<T & { creatorProfile: UserProfileSnapshotResponse | null }>> {
+  ): Promise<
+    Array<T & { creatorProfile: UserProfileSnapshotResponse | null }>
+  > {
     const userIds = events.flatMap((event) => [
       event.createdBy,
       event.updatedBy,

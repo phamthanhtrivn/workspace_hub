@@ -1,6 +1,5 @@
-import {
-  CALENDAR_RECURRENCE_PRESET_VALUES,
-} from "../types/calendar.constants";
+import { Frequency, RRule, Weekday } from "rrule";
+import { CALENDAR_RECURRENCE_PRESET_VALUES } from "../types/calendar.constants";
 import {
   CalendarCustomRecurrence,
   CalendarRecurrenceFrequency,
@@ -20,12 +19,64 @@ const weekdayCodes: CalendarRecurrenceWeekday[] = [
   "SA",
 ];
 
-const frequencyByUnit: Record<CalendarRecurrenceFrequency, string> = {
-  DAILY: "DAILY",
-  WEEKLY: "WEEKLY",
-  MONTHLY: "MONTHLY",
-  YEARLY: "YEARLY",
+const weekdayByCode: Record<CalendarRecurrenceWeekday, Weekday> = {
+  MO: RRule.MO,
+  TU: RRule.TU,
+  WE: RRule.WE,
+  TH: RRule.TH,
+  FR: RRule.FR,
+  SA: RRule.SA,
+  SU: RRule.SU,
 };
+
+const frequencyByUnit: Record<CalendarRecurrenceFrequency, Frequency> = {
+  DAILY: RRule.DAILY,
+  WEEKLY: RRule.WEEKLY,
+  MONTHLY: RRule.MONTHLY,
+  YEARLY: RRule.YEARLY,
+};
+
+const unitByFrequency: Partial<Record<Frequency, CalendarRecurrenceFrequency>> = {
+  [RRule.DAILY]: "DAILY",
+  [RRule.WEEKLY]: "WEEKLY",
+  [RRule.MONTHLY]: "MONTHLY",
+  [RRule.YEARLY]: "YEARLY",
+};
+
+function serializeRule(options: ConstructorParameters<typeof RRule>[0]): string {
+  const serialized = new RRule(options).toString();
+  const ruleLine = serialized
+    .split("\n")
+    .find((line) => line.startsWith("RRULE:"));
+
+  return (ruleLine || serialized).replace(/^RRULE:/, "");
+}
+
+function parseRule(rule: string) {
+  return RRule.parseString(rule.replace(/^RRULE:/, ""));
+}
+
+function getParsedWeekdays(
+  byweekday: ReturnType<typeof parseRule>["byweekday"],
+): CalendarRecurrenceWeekday[] {
+  const values =
+    byweekday == null
+      ? []
+      : Array.isArray(byweekday)
+        ? byweekday
+        : [byweekday];
+
+  return values
+    .map((value) => String(value).slice(0, 2))
+    .filter((value): value is CalendarRecurrenceWeekday =>
+      Object.hasOwn(weekdayByCode, value),
+    );
+}
+
+function toUntilDate(value: string): Date {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
+}
 
 export function getWeekdayCode(date: Date): CalendarRecurrenceWeekday {
   return weekdayCodes[date.getDay()];
@@ -48,15 +99,23 @@ export function getPresetRecurrenceRule(
 ): string | null {
   switch (preset) {
     case CALENDAR_RECURRENCE_PRESET_VALUES.DAILY:
-      return "FREQ=DAILY;INTERVAL=1";
+      return serializeRule({ freq: RRule.DAILY, interval: 1 });
     case CALENDAR_RECURRENCE_PRESET_VALUES.WEEKLY:
-      return `FREQ=WEEKLY;INTERVAL=1;BYDAY=${getWeekdayCode(startDate)}`;
+      return serializeRule({
+        freq: RRule.WEEKLY,
+        interval: 1,
+        byweekday: weekdayByCode[getWeekdayCode(startDate)],
+      });
     case CALENDAR_RECURRENCE_PRESET_VALUES.MONTHLY:
-      return "FREQ=MONTHLY;INTERVAL=1";
+      return serializeRule({ freq: RRule.MONTHLY, interval: 1 });
     case CALENDAR_RECURRENCE_PRESET_VALUES.YEARLY:
-      return "FREQ=YEARLY;INTERVAL=1";
+      return serializeRule({ freq: RRule.YEARLY, interval: 1 });
     case CALENDAR_RECURRENCE_PRESET_VALUES.WEEKDAYS:
-      return "FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,TU,WE,TH,FR";
+      return serializeRule({
+        freq: RRule.WEEKLY,
+        interval: 1,
+        byweekday: [RRule.MO, RRule.TU, RRule.WE, RRule.TH, RRule.FR],
+      });
     default:
       return null;
   }
@@ -65,27 +124,22 @@ export function getPresetRecurrenceRule(
 export function buildCustomRecurrenceRule(
   recurrence: CalendarCustomRecurrence,
 ): string {
-  const parts = [
-    `FREQ=${frequencyByUnit[recurrence.frequency]}`,
-    `INTERVAL=${Math.max(1, recurrence.interval)}`,
-  ];
-
-  if (
-    recurrence.frequency === "WEEKLY" &&
-    recurrence.weekdays.length > 0
-  ) {
-    parts.push(`BYDAY=${recurrence.weekdays.join(",")}`);
-  }
-
-  if (recurrence.endType === "on" && recurrence.until) {
-    parts.push(`UNTIL=${recurrence.until.replaceAll("-", "")}`);
-  }
-
-  if (recurrence.endType === "after" && recurrence.count) {
-    parts.push(`COUNT=${Math.max(1, recurrence.count)}`);
-  }
-
-  return parts.join(";");
+  return serializeRule({
+    freq: frequencyByUnit[recurrence.frequency],
+    interval: Math.max(1, recurrence.interval),
+    byweekday:
+      recurrence.frequency === "WEEKLY" && recurrence.weekdays.length > 0
+        ? recurrence.weekdays.map((weekday) => weekdayByCode[weekday])
+        : undefined,
+    until:
+      recurrence.endType === "on" && recurrence.until
+        ? toUntilDate(recurrence.until)
+        : undefined,
+    count:
+      recurrence.endType === "after" && recurrence.count
+        ? Math.max(1, recurrence.count)
+        : undefined,
+  });
 }
 
 export function parseCustomRecurrenceRule(
@@ -101,30 +155,25 @@ export function parseCustomRecurrenceRule(
 
   if (!rule) return fallback;
 
-  const entries = Object.fromEntries(
-    rule.split(";").map((part) => {
-      const [key, value] = part.split("=");
-      return [key, value];
-    }),
-  );
-  const frequency = (entries.FREQ as CalendarRecurrenceFrequency) || "WEEKLY";
-  const weekdays = entries.BYDAY
-    ? (entries.BYDAY.split(",") as CalendarRecurrenceWeekday[])
-    : fallback.weekdays;
+  try {
+    const parsed = parseRule(rule);
+    const frequency =
+      parsed.freq == null
+        ? fallback.frequency
+        : unitByFrequency[parsed.freq] || fallback.frequency;
+    const weekdays = getParsedWeekdays(parsed.byweekday);
 
-  return {
-    interval: Math.max(1, Number(entries.INTERVAL) || 1),
-    frequency,
-    weekdays,
-    endType: entries.COUNT ? "after" : entries.UNTIL ? "on" : "never",
-    until: entries.UNTIL
-      ? `${entries.UNTIL.slice(0, 4)}-${entries.UNTIL.slice(
-          4,
-          6,
-        )}-${entries.UNTIL.slice(6, 8)}`
-      : undefined,
-    count: entries.COUNT ? Math.max(1, Number(entries.COUNT) || 1) : undefined,
-  };
+    return {
+      interval: Math.max(1, parsed.interval || 1),
+      frequency,
+      weekdays: weekdays.length > 0 ? weekdays : fallback.weekdays,
+      endType: parsed.count ? "after" : parsed.until ? "on" : "never",
+      until: parsed.until?.toISOString().slice(0, 10),
+      count: parsed.count ? Math.max(1, parsed.count) : undefined,
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 export function getRecurrencePresetFromRule(
@@ -133,18 +182,51 @@ export function getRecurrencePresetFromRule(
 ): CalendarRecurrencePreset {
   if (!rule) return CALENDAR_RECURRENCE_PRESET_VALUES.NONE;
 
-  const presets = [
-    CALENDAR_RECURRENCE_PRESET_VALUES.DAILY,
-    CALENDAR_RECURRENCE_PRESET_VALUES.WEEKLY,
-    CALENDAR_RECURRENCE_PRESET_VALUES.MONTHLY,
-    CALENDAR_RECURRENCE_PRESET_VALUES.YEARLY,
-    CALENDAR_RECURRENCE_PRESET_VALUES.WEEKDAYS,
-  ];
+  try {
+    const parsed = parseRule(rule);
+    const interval = parsed.interval || 1;
+    const weekdays = getParsedWeekdays(parsed.byweekday);
+    const hasCustomEnd = Boolean(parsed.count || parsed.until);
 
-  return (
-    presets.find(
-      (preset) =>
-        getPresetRecurrenceRule(preset, startDate || new Date()) === rule,
-    ) || CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM
-  );
+    if (interval !== 1 || hasCustomEnd) {
+      return CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM;
+    }
+
+    if (parsed.freq === RRule.DAILY) {
+      return CALENDAR_RECURRENCE_PRESET_VALUES.DAILY;
+    }
+
+    if (parsed.freq === RRule.MONTHLY && weekdays.length === 0) {
+      return CALENDAR_RECURRENCE_PRESET_VALUES.MONTHLY;
+    }
+
+    if (parsed.freq === RRule.YEARLY && weekdays.length === 0) {
+      return CALENDAR_RECURRENCE_PRESET_VALUES.YEARLY;
+    }
+
+    if (parsed.freq === RRule.WEEKLY) {
+      const workdays: CalendarRecurrenceWeekday[] = [
+        "MO",
+        "TU",
+        "WE",
+        "TH",
+        "FR",
+      ];
+      if (
+        weekdays.length === workdays.length &&
+        workdays.every((weekday) => weekdays.includes(weekday))
+      ) {
+        return CALENDAR_RECURRENCE_PRESET_VALUES.WEEKDAYS;
+      }
+
+      const expectedWeekday = getWeekdayCode(startDate || new Date());
+      if (weekdays.length === 1 && weekdays[0] === expectedWeekday) {
+        return CALENDAR_RECURRENCE_PRESET_VALUES.WEEKLY;
+      }
+    }
+  } catch {
+    return CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM;
+  }
+
+  return CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM;
 }

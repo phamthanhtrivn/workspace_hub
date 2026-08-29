@@ -58,6 +58,9 @@ export function mapCalendarEventToFullCalendar(
     backgroundColor: eventColor,
     borderColor: eventColor,
     textColor: "#ffffff",
+    editable: event.permissions?.canManage ?? false,
+    durationEditable: event.permissions?.canManage ?? false,
+    startEditable: event.permissions?.canManage ?? false,
     extendedProps: {
       model: event,
       calendarId: event.calendarId,

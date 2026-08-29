@@ -1,7 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-return, @typescript-eslint/require-await */
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import {
   AttendeeResponseStatus,
   EventStatus,
+  EventSourceType,
+  EventVisibility,
   ReminderMethod,
 } from '@prisma/client';
 import { CalendarEventService } from './calendar-event.service';
@@ -39,8 +42,13 @@ describe('CalendarEventService', () => {
     allDay: false,
     color: '#2563eb',
     status: EventStatus.CONFIRMED,
-    visibility: 'DEFAULT',
+    visibility: EventVisibility.DEFAULT,
     recurrenceRule: null,
+    recurrenceParentId: null,
+    originalStartAt: null,
+    recurrenceGeneratedUntil: null,
+    sourceType: EventSourceType.USER,
+    sourceId: null,
     exceptionDates: [],
     documentIds: [],
     cancelledAt: null,
@@ -108,8 +116,23 @@ describe('CalendarEventService', () => {
       attachProfilesToEvents: jest.fn(async (events) => events),
     };
 
+    const recurrence = {
+      assertValidRule: jest.fn(),
+      materializeSeriesThrough: jest.fn(),
+      materializeAllSeriesThrough: jest.fn(),
+    };
+    const resourceAccess = {
+      assertDocumentAccess: jest.fn(),
+      assertProjectAccess: jest.fn(),
+    };
+
     return {
-      service: new CalendarEventService(prisma as any, userProfiles as any),
+      service: new CalendarEventService(
+        prisma as any,
+        userProfiles as any,
+        recurrence as any,
+        resourceAccess as any,
+      ),
       prisma,
       tx,
       userProfiles,
@@ -119,7 +142,7 @@ describe('CalendarEventService', () => {
   it('creates event attendees and reminders in one transaction', async () => {
     const { service, prisma, tx } = createService();
 
-    await service.createEvent(ownerId, {
+    await service.createEvent(ownerId, undefined, {
       calendarId,
       title: 'Planning',
       startAt: '2026-08-24T09:00:00.000Z',
@@ -149,6 +172,7 @@ describe('CalendarEventService', () => {
           eventId,
           minutesBefore: 10,
           method: ReminderMethod.ALERT,
+          scheduledAt: new Date('2026-08-24T08:50:00.000Z'),
         },
       ],
     });
@@ -158,7 +182,7 @@ describe('CalendarEventService', () => {
     const { service } = createService();
 
     await expect(
-      service.createEvent(ownerId, {
+      service.createEvent(ownerId, undefined, {
         calendarId,
         title: 'Bad range',
         startAt: '2026-08-24T10:00:00.000Z',
@@ -170,8 +194,8 @@ describe('CalendarEventService', () => {
   it('blocks users who are neither calendar owner nor attendee', async () => {
     const { service } = createService();
 
-    await expect(service.getEventById(outsiderId, eventId)).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      service.getEventById(outsiderId, eventId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });

@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   AttendeeResponseStatus,
-  CalendarEvent,
   EventSourceType,
   EventStatus,
   Prisma,
@@ -57,7 +56,10 @@ export class CalendarRecurrenceService {
     }
   }
 
-  async materializeSeriesThrough(eventId: string, through: Date): Promise<void> {
+  async materializeSeriesThrough(
+    eventId: string,
+    through: Date,
+  ): Promise<void> {
     const selected = await this.prisma.calendarEvent.findUnique({
       where: { id: eventId },
       select: { id: true, recurrenceParentId: true },
@@ -94,7 +96,9 @@ export class CalendarRecurrenceService {
     const until = new Date(occurrenceStart.getTime() - 1);
     const parts = rule
       .split(';')
-      .filter((part) => !part.startsWith('COUNT=') && !part.startsWith('UNTIL='));
+      .filter(
+        (part) => !part.startsWith('COUNT=') && !part.startsWith('UNTIL='),
+      );
     parts.push(`UNTIL=${this.toRRuleDate(until)}`);
     return parts.join(';');
   }
@@ -108,8 +112,9 @@ export class CalendarRecurrenceService {
     if (!countPart) return rule;
 
     const total = Number(countPart.slice('COUNT='.length));
-    const used = rrulestr(this.withStart(rule, seriesStart), { forceset: true })
-      .between(seriesStart, occurrenceStart, true).length;
+    const used = rrulestr(this.withStart(rule, seriesStart), {
+      forceset: true,
+    }).between(seriesStart, occurrenceStart, true).length;
     const remaining = Math.max(1, total - used + 1);
     return rule
       .split(';')
@@ -117,10 +122,7 @@ export class CalendarRecurrenceService {
       .join(';');
   }
 
-  private getOccurrenceStarts(
-    root: RecurrenceTemplate,
-    through: Date,
-  ): Date[] {
+  private getOccurrenceStarts(root: RecurrenceTemplate, through: Date): Date[] {
     const rule = rrulestr(this.withStart(root.recurrenceRule!, root.startAt), {
       forceset: true,
     });

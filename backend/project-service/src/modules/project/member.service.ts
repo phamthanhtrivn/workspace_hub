@@ -5,12 +5,14 @@ import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse } from './project.mapper';
+import { TaskCalendarEventService } from './task-calendar-event.service';
 
 @Injectable()
 export class MemberService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly calendarEvents: TaskCalendarEventService,
   ) {}
 
   async add(userId: string, projectId: string, dto: AddMemberDto) {
@@ -46,6 +48,8 @@ export class MemberService {
           updatedAt: now,
         },
       });
+
+    await this.calendarEvents.publishProject(projectId);
 
     return toMemberResponse(member);
   }
@@ -92,5 +96,6 @@ export class MemberService {
         updatedAt: new Date(),
       },
     });
+    await this.calendarEvents.publishProject(projectId);
   }
 }

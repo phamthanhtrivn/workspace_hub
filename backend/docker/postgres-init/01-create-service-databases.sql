@@ -5,3 +5,4 @@ SELECT 'CREATE DATABASE user_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE
 SELECT 'CREATE DATABASE notification_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'notification_db')\gexec
 SELECT 'CREATE DATABASE communication_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'communication_db')\gexec
 SELECT 'CREATE DATABASE document_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'document_db')\gexec
+SELECT 'CREATE DATABASE calendar_db' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'calendar_db')\gexec

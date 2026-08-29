@@ -1,7 +1,7 @@
 "use client";
 
 import { Eye, EyeOff, Trash2, X } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
@@ -20,29 +20,22 @@ export function CalendarSettingsModal({
   open,
   onClose,
 }: {
-  calendar: WorkspaceCalendar | null;
+  calendar: WorkspaceCalendar;
   open: boolean;
   onClose: () => void;
 }) {
   const intl = useAppIntl();
   const updateCalendar = useUpdateCalendar();
   const deleteCalendar = useDeleteCalendar();
-  const [name, setName] = useState("");
-  const [icon, setIcon] = useState<string | null>(null);
-  const [color, setColor] = useState(CALENDAR_DEFAULT_EVENT_COLOR);
-  const [isVisible, setIsVisible] = useState(true);
+  const [name, setName] = useState(calendar.name);
+  const [icon, setIcon] = useState<string | null>(calendar.icon || null);
+  const [color, setColor] = useState(
+    calendar.color || CALENDAR_DEFAULT_EVENT_COLOR,
+  );
+  const [isVisible, setIsVisible] = useState(calendar.isVisible);
   const [showCustomColor, setShowCustomColor] = useState(false);
 
-  useEffect(() => {
-    if (!calendar || !open) return;
-    setName(calendar.name);
-    setIcon(calendar.icon || null);
-    setColor(calendar.color || CALENDAR_DEFAULT_EVENT_COLOR);
-    setIsVisible(calendar.isVisible);
-    setShowCustomColor(false);
-  }, [calendar, open]);
-
-  if (!open || !calendar) return null;
+  if (!open) return null;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -64,7 +57,7 @@ export function CalendarSettingsModal({
       });
       toast.success(intl.formatMessage({ id: "calendar.calendarUpdated" }));
       onClose();
-    } catch (error) {
+    } catch {
       toast.error(intl.formatMessage({ id: "calendar.calendarUpdateFailed" }));
     }
   };
@@ -76,7 +69,7 @@ export function CalendarSettingsModal({
       await deleteCalendar.mutateAsync(calendar.id);
       toast.success(intl.formatMessage({ id: "calendar.calendarDeleted" }));
       onClose();
-    } catch (error) {
+    } catch {
       toast.error(intl.formatMessage({ id: "calendar.calendarDeleteFailed" }));
     }
   };

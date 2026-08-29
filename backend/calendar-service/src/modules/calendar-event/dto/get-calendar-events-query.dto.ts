@@ -10,13 +10,11 @@ import {
 import { CALENDAR_DEFAULTS } from '../../../common/constants/calendar.constants';
 
 export class GetCalendarEventsQueryDto {
-  @IsOptional()
   @IsDateString()
-  startAt?: string;
+  startAt: string;
 
-  @IsOptional()
   @IsDateString()
-  endAt?: string;
+  endAt: string;
 
   @IsOptional()
   @IsUUID()

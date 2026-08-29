@@ -1,7 +1,5 @@
 export interface ProjectTaskCalendarPayload {
-  eventType:
-    | 'PROJECT_TASK_CALENDAR_UPSERTED'
-    | 'PROJECT_TASK_CALENDAR_REMOVED';
+  eventType: 'PROJECT_TASK_CALENDAR_UPSERTED' | 'PROJECT_TASK_CALENDAR_REMOVED';
   occurredAt: string;
   task: {
     id: string;

@@ -23,12 +23,31 @@ export enum EventVisibility {
   PUBLIC = "PUBLIC",
 }
 
+export enum RecurrenceScope {
+  THIS = "THIS",
+  THIS_AND_FOLLOWING = "THIS_AND_FOLLOWING",
+  ALL = "ALL",
+}
+
+export enum EventSourceType {
+  USER = "USER",
+  TASK = "TASK",
+}
+
+export interface ApiPagination {
+  totalItems: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message?: string;
   data: T;
   errors?: unknown;
   timestamp?: string;
+  pagination?: ApiPagination;
 }
 
 export interface UserProfileSnapshot {
@@ -84,6 +103,10 @@ export interface CalendarEvent {
   status: EventStatus;
   visibility: EventVisibility;
   recurrenceRule: string | null;
+  recurrenceParentId: string | null;
+  originalStartAt: string | null;
+  sourceType: EventSourceType;
+  sourceId: string | null;
   exceptionDates: string[];
   documentIds: string[];
   cancelledAt: string | null;
@@ -94,6 +117,10 @@ export interface CalendarEvent {
   creatorProfile?: UserProfileSnapshot | null;
   updaterProfile?: UserProfileSnapshot | null;
   calendar?: WorkspaceCalendar;
+  permissions?: {
+    canManage: boolean;
+    canRespond: boolean;
+  };
 }
 
 export interface CalendarEventFilters {
@@ -176,6 +203,10 @@ export interface CalendarEventFormValues {
   allDay: boolean;
   color?: string | null;
   recurrenceRule?: string | null;
+  recurrenceScope?: RecurrenceScope;
+  status?: EventStatus;
+  visibility?: EventVisibility;
+  documentIds?: string[];
   attendees?: CalendarEventAttendeePayload[];
   reminders: CalendarEventReminderPayload[];
 }
@@ -198,4 +229,6 @@ export interface CreateCalendarEventPayload {
   reminders?: CalendarEventReminderPayload[];
 }
 
-export type UpdateCalendarEventPayload = Partial<CreateCalendarEventPayload>;
+export type UpdateCalendarEventPayload = Partial<CreateCalendarEventPayload> & {
+  recurrenceScope?: RecurrenceScope;
+};

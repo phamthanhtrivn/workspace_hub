@@ -11,9 +11,7 @@ export class TaskCalendarSyncConsumer {
   @EventPattern(KAFKA_CONFIG.TASK_TOPIC)
   async handle(
     @Payload()
-    message:
-      | ProjectTaskCalendarPayload
-      | { value: ProjectTaskCalendarPayload },
+    message: ProjectTaskCalendarPayload | { value: ProjectTaskCalendarPayload },
   ): Promise<void> {
     const payload = 'value' in message ? message.value : message;
     await this.taskCalendarSync.synchronize(payload);

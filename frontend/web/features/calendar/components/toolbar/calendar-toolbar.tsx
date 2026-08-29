@@ -4,8 +4,7 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
-  List,
-  Plus,
+  Menu,
 } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CALENDAR_VIEW_OPTIONS } from "../../types/calendar.constants";
@@ -15,33 +14,32 @@ export function CalendarToolbar({
   activeView,
   onViewChange,
   onNavigate,
-  onCreateEvent,
+  onToggleSidebar,
 }: {
   title: string;
   activeView: string;
   onViewChange: (view: string) => void;
   onNavigate: (direction: "prev" | "next" | "today") => void;
-  onCreateEvent: () => void;
+  onToggleSidebar: () => void;
 }) {
   const intl = useAppIntl();
 
   return (
-    <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
-      <div className="flex min-w-0 items-center gap-3">
+    <div className="flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white px-3 py-2 sm:px-4">
+      <div className="flex min-w-0 items-center gap-1 sm:gap-2">
         <button
           type="button"
-          onClick={onCreateEvent}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-[var(--color-primary-dark)] px-3.5 py-2 text-sm font-bold text-white shadow-sm transition hover:bg-[var(--color-primary)] active:translate-y-px"
+          onClick={onToggleSidebar}
+          className="grid h-10 w-10 cursor-pointer place-items-center rounded-full text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+          aria-label={intl.formatMessage({ id: "calendar.myCalendars" })}
         >
-          <Plus className="h-4 w-4" />
-          {intl.formatMessage({ id: "calendar.newEvent" })}
+          <Menu className="h-5 w-5" />
         </button>
-        <div className="hidden h-8 w-px bg-slate-200 sm:block" />
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => onNavigate("prev")}
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             aria-label={intl.formatMessage({ id: "app.previous" })}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -49,7 +47,7 @@ export function CalendarToolbar({
           <button
             type="button"
             onClick={() => onNavigate("next")}
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             aria-label={intl.formatMessage({ id: "app.next" })}
           >
             <ChevronRight className="h-4 w-4" />
@@ -58,40 +56,29 @@ export function CalendarToolbar({
         <button
           type="button"
           onClick={() => onNavigate("today")}
-          className="cursor-pointer rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
+          className="hidden cursor-pointer rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 sm:block"
         >
           {intl.formatMessage({ id: "calendar.today" })}
         </button>
-        <h2 className="truncate text-lg font-black capitalize text-[var(--color-primary-dark)]">
+        <h2 className="truncate px-1 text-base font-semibold capitalize text-slate-800 sm:text-xl">
           {title || intl.formatMessage({ id: "nav.calendar" })}
         </h2>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <CalendarDays className="hidden h-4 w-4 text-slate-400 sm:block" />
-        <div className="grid grid-cols-4 rounded-lg border border-slate-200 bg-slate-50 p-1">
+        <select
+          value={activeView}
+          onChange={(event) => onViewChange(event.target.value)}
+          className="h-10 cursor-pointer rounded-md border border-slate-300 bg-white px-2 text-sm font-semibold text-slate-700 outline-none transition hover:bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 sm:px-3"
+          aria-label={intl.formatMessage({ id: "nav.calendar" })}
+        >
           {CALENDAR_VIEW_OPTIONS.map((view) => (
-            <button
-              key={view.value}
-              type="button"
-              onClick={() => onViewChange(view.value)}
-              className={`cursor-pointer rounded-md px-3 py-1.5 text-xs font-bold transition ${
-                activeView === view.value
-                  ? "bg-white text-[var(--color-primary-dark)] shadow-sm"
-                  : "text-slate-500 hover:text-slate-800"
-              }`}
-            >
-              {view.value === "listWeek" ? (
-                <span className="inline-flex items-center gap-1">
-                  <List className="h-3.5 w-3.5" />
-                  {intl.formatMessage({ id: view.labelId })}
-                </span>
-              ) : (
-                intl.formatMessage({ id: view.labelId })
-              )}
-            </button>
+            <option key={view.value} value={view.value}>
+              {intl.formatMessage({ id: view.labelId })}
+            </option>
           ))}
-        </div>
+        </select>
       </div>
     </div>
   );

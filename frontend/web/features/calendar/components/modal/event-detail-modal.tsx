@@ -1,10 +1,14 @@
 "use client";
 
 import { Calendar, Clock, MapPin, Pencil, Trash2, User, X } from "lucide-react";
+import { useState } from "react";
+import Image from "next/image";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
+  EventSourceType,
+  RecurrenceScope,
 } from "../../types/calendar.types";
 import { formatCalendarEventRange } from "../../utils/calendar-date.utils";
 
@@ -21,11 +25,12 @@ export function EventDetailModal({
   open: boolean;
   onClose: () => void;
   onEdit: () => void;
-  onCancelEvent: () => void;
+  onCancelEvent: (scope: RecurrenceScope) => void;
   onRespond: (status: AttendeeResponseStatus) => void;
   busy?: boolean;
 }) {
   const intl = useAppIntl();
+  const [cancelScope, setCancelScope] = useState(RecurrenceScope.THIS);
 
   if (!open || !event) return null;
 
@@ -44,7 +49,7 @@ export function EventDetailModal({
               </h2>
             </div>
             <p className="mt-1 text-xs font-bold uppercase text-slate-400">
-              {event.status}
+              {event.status}{event.sourceType === EventSourceType.TASK ? " · TASK" : ""}
             </p>
           </div>
           <button
@@ -93,9 +98,12 @@ export function EventDetailModal({
                     <div className="flex min-w-0 items-center gap-2">
                       <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-slate-100">
                         {attendee.profile?.avatarUrl ? (
-                          <img
+                          <Image
                             src={attendee.profile.avatarUrl}
                             alt={attendee.profile.fullName || attendee.userId}
+                            width={32}
+                            height={32}
+                            unoptimized
                             className="h-full w-full object-cover"
                           />
                         ) : (
@@ -126,6 +134,7 @@ export function EventDetailModal({
             </div>
           </div>
 
+          {event.permissions?.canRespond && (
           <div className="grid grid-cols-3 gap-2">
             {[
               AttendeeResponseStatus.ACCEPTED,
@@ -143,12 +152,38 @@ export function EventDetailModal({
               </button>
             ))}
           </div>
+          )}
+
+          {event.documentIds.length > 0 && (
+            <div className="rounded-lg bg-slate-50 px-3 py-3 text-sm font-semibold text-slate-600">
+              {intl.formatMessage(
+                { id: "calendar.attachedDocuments" },
+                { count: event.documentIds.length },
+              )}
+            </div>
+          )}
         </div>
 
-        <div className="flex justify-between gap-2 border-t border-slate-200 px-5 py-4">
+        {event.permissions?.canManage && (
+        <div className="flex flex-wrap justify-between gap-2 border-t border-slate-200 px-5 py-4">
+          {(event.recurrenceRule || event.recurrenceParentId) && (
+            <select
+              value={cancelScope}
+              onChange={(changeEvent) =>
+                setCancelScope(changeEvent.target.value as RecurrenceScope)
+              }
+              className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600"
+            >
+              {Object.values(RecurrenceScope).map((value) => (
+                <option key={value} value={value}>
+                  {intl.formatMessage({ id: `calendar.scope.${value}` })}
+                </option>
+              ))}
+            </select>
+          )}
           <button
             type="button"
-            onClick={onCancelEvent}
+            onClick={() => onCancelEvent(cancelScope)}
             disabled={busy}
             className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -164,6 +199,7 @@ export function EventDetailModal({
             {intl.formatMessage({ id: "calendar.editEvent" })}
           </button>
         </div>
+        )}
       </div>
     </div>
   );
