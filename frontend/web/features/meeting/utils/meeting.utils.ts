@@ -8,6 +8,7 @@ import {
   MeetingDevicePreferences,
   MeetingParticipantStatus,
   MeetingResponse,
+  MeetingRole,
 } from "../types/meeting.types";
 
 const MEETING_DEVICE_PREFERENCES_VERSION = 1;
@@ -34,6 +35,17 @@ export function resolveMeetingJoinUrl(meeting: MeetingResponse) {
 
 export function isMeetingHost(meeting: MeetingResponse, userId?: string | null) {
   return Boolean(userId && meeting.hostId === userId);
+}
+
+export function canModerateMeeting(meeting: MeetingResponse) {
+  const participant = meeting.currentParticipant;
+  return Boolean(
+    participant &&
+      participant.status === MeetingParticipantStatus.JOINED &&
+      (participant.userId === meeting.hostId ||
+        participant.role === MeetingRole.HOST ||
+        participant.role === MeetingRole.COHOST),
+  );
 }
 
 export function getMeetingParticipantStatus(meeting?: MeetingResponse | null) {

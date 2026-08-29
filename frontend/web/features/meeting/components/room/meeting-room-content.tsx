@@ -28,7 +28,7 @@ interface MeetingRoomContentProps {
   avatarUrl?: string | null;
   displayName: string;
   initials: string;
-  isHost: boolean;
+  canModerate: boolean;
   meeting: MeetingResponse;
   mediaError: string | null;
   audioCaptureOptions?: AudioCaptureOptions;
@@ -41,7 +41,7 @@ export function MeetingRoomContent({
   avatarUrl,
   displayName,
   initials,
-  isHost,
+  canModerate,
   meeting,
   mediaError,
   audioCaptureOptions,
@@ -104,7 +104,7 @@ export function MeetingRoomContent({
             {participants.length}
           </button>
 
-          {isHost ? (
+          {canModerate ? (
             <button
               type="button"
               onClick={() => setIsJoinRequestsPanelOpen((value) => !value)}
@@ -207,7 +207,7 @@ export function MeetingRoomContent({
         </main>
 
         <MeetingRoomControlBar
-          isHost={isHost}
+          canModerate={canModerate}
           joinToken={meeting.joinToken}
           meeting={meeting}
           audioCaptureOptions={audioCaptureOptions}
@@ -217,7 +217,7 @@ export function MeetingRoomContent({
         />
       </div>
 
-      {isHost && isJoinRequestsPanelOpen ? (
+      {canModerate && isJoinRequestsPanelOpen ? (
         <HostJoinRequestsPanel
           meeting={meeting}
           onClose={() => setIsJoinRequestsPanelOpen(false)}

@@ -10,6 +10,7 @@ import { useAppSelector } from "@/store/store";
 import { useMeetingRoom } from "../../hooks/room/use-meeting-room";
 import { meetingApiRoutes } from "../../types/meeting.constants";
 import { MeetingResponse, MeetingStatus } from "../../types/meeting.types";
+import { canModerateMeeting } from "../../utils/meeting.utils";
 import { MeetingRoomContent } from "./meeting-room-content";
 import { buildParticipantInitials } from "./meeting-room.utils";
 
@@ -41,9 +42,7 @@ export function MeetingRoomSurface({
       enabled: canConnectToLiveKit,
     });
   const liveKitToken = tokenQuery.data?.data;
-  const isHost =
-    meeting.currentParticipant?.role === "HOST" ||
-    meeting.hostId === meeting.currentParticipant?.userId;
+  const canModerate = canModerateMeeting(meeting);
   const audioCapture = devicePreferences.isMicEnabled
     ? devicePreferences.micDeviceId
       ? { deviceId: devicePreferences.micDeviceId }
@@ -165,7 +164,7 @@ export function MeetingRoomSurface({
           avatarUrl={resolvedAvatarUrl}
           displayName={resolvedDisplayName}
           initials={resolvedInitials}
-          isHost={isHost}
+          canModerate={canModerate}
           meeting={meeting}
           mediaError={mediaError}
           audioCaptureOptions={audioCapture === true ? undefined : audioCapture || undefined}

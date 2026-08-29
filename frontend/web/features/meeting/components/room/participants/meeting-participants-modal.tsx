@@ -28,6 +28,7 @@ import {
   MeetingResponse,
   MeetingRole,
 } from "../../../types/meeting.types";
+import { canModerateMeeting } from "../../../utils/meeting.utils";
 import { buildParticipantInitials } from "../meeting-room.utils";
 
 interface MeetingParticipantsModalProps {
@@ -56,7 +57,8 @@ export function MeetingParticipantsModal({
   const [openMenu, setOpenMenu] = useState<OpenParticipantMenu | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const currentUserId = meeting.currentParticipant?.userId;
-  const isCurrentUserHost = currentUserId === meeting.hostId;
+  const isCurrentUserPrimaryHost = currentUserId === meeting.hostId;
+  const canCurrentUserModerate = canModerateMeeting(meeting);
   const participantsQuery = useMeetingParticipantsQuery(
     meeting.id,
     debouncedSearch,
@@ -339,7 +341,8 @@ export function MeetingParticipantsModal({
         ? createPortal(
             <ParticipantActionsMenu
               intl={intl}
-              isCurrentUserHost={isCurrentUserHost}
+              canCurrentUserModerate={canCurrentUserModerate}
+              isCurrentUserPrimaryHost={isCurrentUserPrimaryHost}
               meetingHostId={meeting.hostId}
               openMenu={openMenu}
               participant={activeMenuParticipant}
@@ -378,9 +381,10 @@ function RoleTag({
 }
 
 function ParticipantActionsMenu({
+  canCurrentUserModerate,
   currentUserId,
   intl,
-  isCurrentUserHost,
+  isCurrentUserPrimaryHost,
   meetingHostId,
   onClose,
   onComingSoonAction,
@@ -389,9 +393,10 @@ function ParticipantActionsMenu({
   openMenu,
   participant,
 }: {
+  canCurrentUserModerate: boolean;
   currentUserId?: string;
   intl: ReturnType<typeof useAppIntl>;
-  isCurrentUserHost: boolean;
+  isCurrentUserPrimaryHost: boolean;
   meetingHostId: string;
   onClose: () => void;
   onComingSoonAction: () => void;
@@ -404,8 +409,12 @@ function ParticipantActionsMenu({
   const isHost =
     participant.userId === meetingHostId || participant.role === MeetingRole.HOST;
   const isCohost = participant.role === MeetingRole.COHOST;
-  const canManageParticipant = isCurrentUserHost && !isSelf && !isHost;
-  const itemCount = canManageParticipant ? 5 : 2;
+  const isModerator = isHost || isCohost;
+  const canManageRoles = isCurrentUserPrimaryHost && !isSelf && !isHost;
+  const canRemoveParticipant =
+    canCurrentUserModerate && !isSelf && !isModerator;
+  const itemCount =
+    2 + (canManageRoles ? 2 : 0) + (canRemoveParticipant ? 1 : 0);
   const position = getMenuPosition(openMenu.rect, itemCount);
 
   return (
@@ -435,7 +444,7 @@ function ParticipantActionsMenu({
         >
           {intl.formatMessage({ id: "meeting.room.participants.mute" })}
         </MenuButton>
-        {canManageParticipant ? (
+        {canManageRoles ? (
           <>
             <MenuButton
               icon={isCohost ? ShieldMinus : ShieldPlus}
@@ -460,16 +469,18 @@ function ParticipantActionsMenu({
                 id: "meeting.room.participants.makeHost",
               })}
             </MenuButton>
-            <MenuButton
-              destructive
-              icon={UserX}
-              onClick={() => onRemoveParticipant(participant.userId)}
-            >
-              {intl.formatMessage({
-                id: "meeting.room.participants.removeParticipant",
-              })}
-            </MenuButton>
           </>
+        ) : null}
+        {canRemoveParticipant ? (
+          <MenuButton
+            destructive
+            icon={UserX}
+            onClick={() => onRemoveParticipant(participant.userId)}
+          >
+            {intl.formatMessage({
+              id: "meeting.room.participants.removeParticipant",
+            })}
+          </MenuButton>
         ) : null}
       </div>
     </div>

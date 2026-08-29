@@ -27,6 +27,7 @@ export enum MeetingErrorMessage {
   MEETING_NOT_FOUND = 'Meeting not found',
   MEETING_NOT_LIVE = 'Meeting is not live',
   HOST_REQUIRED = 'Only the meeting host can perform this action',
+  MODERATOR_REQUIRED = 'Only the meeting host or co-host can perform this action',
   REQUEST_NOT_FOUND = 'Join request not found',
   SELF_REVIEW_NOT_ALLOWED = 'Host is already in the meeting',
   PARTICIPANT_JOIN_REQUIRED = 'You must be approved to join this meeting',
@@ -35,6 +36,7 @@ export enum MeetingErrorMessage {
   INVALID_PARTICIPANT_ROLE = 'Invalid meeting participant role',
   REMOVE_SELF_NOT_ALLOWED = 'You cannot remove yourself from the meeting',
   REMOVE_HOST_NOT_ALLOWED = 'You cannot remove the current meeting host',
+  REMOVE_MODERATOR_NOT_ALLOWED = 'You cannot remove a meeting host or co-host',
 }
 
 export enum MeetingDefault {

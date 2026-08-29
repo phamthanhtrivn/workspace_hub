@@ -41,7 +41,7 @@ import {
 } from "../../../utils/meeting.utils";
 
 interface MeetingRoomControlBarProps {
-  isHost: boolean;
+  canModerate: boolean;
   joinToken: string;
   meeting: MeetingResponse;
   audioCaptureOptions?: AudioCaptureOptions;
@@ -51,7 +51,7 @@ interface MeetingRoomControlBarProps {
 }
 
 export function MeetingRoomControlBar({
-  isHost,
+  canModerate,
   joinToken,
   meeting,
   audioCaptureOptions,
@@ -338,7 +338,7 @@ export function MeetingRoomControlBar({
               </p>
             </div>
 
-            {isHost ? (
+            {canModerate ? (
               <div className="mt-4 rounded-md border border-white/10 bg-white/[0.04] p-3">
                 <label className="flex cursor-pointer items-start justify-between gap-3">
                   <span className="block text-sm font-bold text-white">
@@ -392,7 +392,7 @@ export function MeetingRoomControlBar({
         })}
       </button>
 
-      {isHost ? (
+      {canModerate ? (
         <button
           type="button"
           disabled={isRoomActionPending}

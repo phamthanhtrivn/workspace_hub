@@ -8,6 +8,7 @@ import {
 import {
   Meeting,
   MeetingParticipant,
+  MeetingRole as PrismaMeetingRole,
   MeetingParticipantStatus as PrismaMeetingParticipantStatus,
   MeetingStatus as PrismaMeetingStatus,
   Prisma,
@@ -81,6 +82,44 @@ export class MeetingService {
       throw new ForbiddenException(MeetingErrorMessage.HOST_REQUIRED);
     }
     return meeting;
+  }
+
+  private async assertMeetingModerator(
+    meetingId: string,
+    userId: string,
+  ): Promise<Meeting> {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+      include: {
+        participants: {
+          where: { userId },
+          take: 1,
+        },
+      },
+    });
+    if (!meeting) {
+      throw new NotFoundException(MeetingErrorMessage.MEETING_NOT_FOUND);
+    }
+
+    const participant = meeting.participants[0];
+    const isHost = meeting.hostId === userId;
+    const isCohost =
+      participant?.role === PrismaMeetingRole.COHOST &&
+      participant.status === PrismaMeetingParticipantStatus.JOINED;
+
+    if (!isHost && !isCohost) {
+      throw new ForbiddenException(MeetingErrorMessage.MODERATOR_REQUIRED);
+    }
+
+    const { participants, ...meetingData } = meeting;
+    void participants;
+    return meetingData;
+  }
+
+  private isMeetingModeratorRole(role: PrismaMeetingRole) {
+    return (
+      role === PrismaMeetingRole.HOST || role === PrismaMeetingRole.COHOST
+    );
   }
 
   private async getMeetingOrThrow(meetingId: string): Promise<Meeting> {
@@ -570,7 +609,7 @@ export class MeetingService {
     targetUserId: string,
     hostId: string,
   ): Promise<MeetingParticipantWithProfile> {
-    const meeting = await this.assertHost(meetingId, hostId);
+    const meeting = await this.assertMeetingModerator(meetingId, hostId);
     if (targetUserId === hostId) {
       throw new BadRequestException(
         MeetingErrorMessage.REMOVE_SELF_NOT_ALLOWED,
@@ -592,6 +631,11 @@ export class MeetingService {
     });
     if (!targetParticipant) {
       throw new NotFoundException(MeetingErrorMessage.PARTICIPANT_NOT_FOUND);
+    }
+    if (this.isMeetingModeratorRole(targetParticipant.role)) {
+      throw new BadRequestException(
+        MeetingErrorMessage.REMOVE_MODERATOR_NOT_ALLOWED,
+      );
     }
 
     const now = new Date();
@@ -645,7 +689,7 @@ export class MeetingService {
     meetingId: string,
     userId: string,
   ): Promise<MeetingParticipantWithProfile[]> {
-    await this.assertHost(meetingId, userId);
+    await this.assertMeetingModerator(meetingId, userId);
     const participants = await this.prisma.meetingParticipant.findMany({
       where: {
         meetingId,
@@ -661,7 +705,7 @@ export class MeetingService {
     requesterId: string,
     hostId: string,
   ): Promise<MeetingParticipantWithProfile> {
-    await this.assertHost(meetingId, hostId);
+    await this.assertMeetingModerator(meetingId, hostId);
     if (requesterId === hostId) {
       throw new BadRequestException(
         MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED,
@@ -716,7 +760,7 @@ export class MeetingService {
     requesterId: string,
     hostId: string,
   ): Promise<MeetingParticipantWithProfile> {
-    await this.assertHost(meetingId, hostId);
+    await this.assertMeetingModerator(meetingId, hostId);
     if (requesterId === hostId) {
       throw new BadRequestException(
         MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED,
@@ -768,7 +812,7 @@ export class MeetingService {
     userId: string,
     allowJoinWithoutApproval: boolean,
   ): Promise<MeetingResponse> {
-    await this.assertHost(meetingId, userId);
+    await this.assertMeetingModerator(meetingId, userId);
     const now = new Date();
     const { meeting, autoApprovedParticipants } =
       await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -923,7 +967,7 @@ export class MeetingService {
     meetingId: string,
     hostId: string,
   ): Promise<MeetingResponse> {
-    const meeting = await this.assertHost(meetingId, hostId);
+    const meeting = await this.assertMeetingModerator(meetingId, hostId);
     if (meeting.status !== PrismaMeetingStatus.LIVE) {
       throw new BadRequestException(MeetingErrorMessage.MEETING_NOT_LIVE);
     }
