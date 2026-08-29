@@ -16,6 +16,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import { MeetingLiveKitService } from './livekit/meeting-livekit.service';
 import { MeetingRealtimePublisher } from './realtime/meeting-realtime.publisher';
+import { MeetingAuditService } from './services/meeting-audit.service';
 import { MeetingAuthorizationService } from './services/meeting-authorization.service';
 import { MeetingResponseMapper } from './services/meeting-response.mapper';
 import {
@@ -42,6 +43,7 @@ export class MeetingService {
     private readonly meetingLiveKitService: MeetingLiveKitService,
     private readonly meetingAuthorizationService: MeetingAuthorizationService,
     private readonly meetingResponseMapper: MeetingResponseMapper,
+    private readonly meetingAuditService: MeetingAuditService,
   ) {}
 
   private buildRoomName() {
@@ -280,17 +282,12 @@ export class MeetingService {
           },
         });
 
-        await tx.meetingEvent.create({
-          data: {
-            meetingId,
-            actorId: userId,
-            type:
-              nextStatus === MeetingParticipantStatusValue.REQUESTED
-                ? MeetingEventTypeValue.JOIN_REQUESTED
-                : MeetingEventTypeValue.PARTICIPANT_JOINED,
-            metadata: { status: nextStatus },
-          },
-        });
+        await this.meetingAuditService.joinRequestStateChanged(
+          tx,
+          meetingId,
+          userId,
+          nextStatus,
+        );
 
         return updatedParticipant;
       },
@@ -429,14 +426,13 @@ export class MeetingService {
               },
               data: { role },
             });
-            await tx.meetingEvent.create({
-              data: {
-                meetingId,
-                actorId: hostId,
-                type: MeetingEventTypeValue.PARTICIPANT_ROLE_UPDATED,
-                metadata: { userId: targetUserId, role },
-              },
-            });
+            await this.meetingAuditService.participantRoleUpdated(
+              tx,
+              meetingId,
+              hostId,
+              targetUserId,
+              role,
+            );
             return updatedParticipant;
           });
     const [enrichedParticipant] =
@@ -492,14 +488,12 @@ export class MeetingService {
         data: { role: MeetingParticipantRoleValue.HOST },
       });
 
-      await tx.meetingEvent.create({
-        data: {
-          meetingId,
-          actorId: oldHostId,
-          type: MeetingEventTypeValue.HOST_TRANSFERRED,
-          metadata: { oldHostId, newHostId },
-        },
-      });
+      await this.meetingAuditService.hostTransferred(
+        tx,
+        meetingId,
+        oldHostId,
+        newHostId,
+      );
 
       return newHostParticipant;
     });
@@ -560,17 +554,12 @@ export class MeetingService {
           },
         });
 
-        await tx.meetingEvent.create({
-          data: {
-            meetingId,
-            actorId: hostId,
-            type: MeetingEventTypeValue.PARTICIPANT_REMOVED,
-            metadata: {
-              removedUserId: targetUserId,
-              status: MeetingParticipantStatusValue.REMOVED,
-            },
-          },
-        });
+        await this.meetingAuditService.participantRemoved(
+          tx,
+          meetingId,
+          hostId,
+          targetUserId,
+        );
 
         return participant;
       },
@@ -653,14 +642,13 @@ export class MeetingService {
           },
         });
 
-        await tx.meetingEvent.create({
-          data: {
-            meetingId,
-            actorId: hostId,
-            type: MeetingEventTypeValue.JOIN_APPROVED,
-            metadata: { userId: requesterId },
-          },
-        });
+        await this.meetingAuditService.joinDecision(
+          tx,
+          meetingId,
+          hostId,
+          requesterId,
+          MeetingEventTypeValue.JOIN_APPROVED,
+        );
 
         return nextParticipant;
       },
@@ -721,14 +709,13 @@ export class MeetingService {
           },
         });
 
-        await tx.meetingEvent.create({
-          data: {
-            meetingId,
-            actorId: hostId,
-            type: MeetingEventTypeValue.JOIN_REJECTED,
-            metadata: { userId: requesterId },
-          },
-        });
+        await this.meetingAuditService.joinDecision(
+          tx,
+          meetingId,
+          hostId,
+          requesterId,
+          MeetingEventTypeValue.JOIN_REJECTED,
+        );
 
         return nextParticipant;
       },
@@ -784,14 +771,12 @@ export class MeetingService {
               },
             });
 
-            await tx.meetingEvent.createMany({
-              data: pendingUserIds.map((pendingUserId) => ({
-                meetingId,
-                actorId: userId,
-                type: MeetingEventTypeValue.JOIN_APPROVED,
-                metadata: { userId: pendingUserId },
-              })),
-            });
+            await this.meetingAuditService.autoApprovedJoinRequests(
+              tx,
+              meetingId,
+              userId,
+              pendingUserIds,
+            );
 
             approvedParticipants = await tx.meetingParticipant.findMany({
               where: {
@@ -802,14 +787,12 @@ export class MeetingService {
           }
         }
 
-        await tx.meetingEvent.create({
-          data: {
-            meetingId,
-            actorId: userId,
-            type: MeetingEventTypeValue.ACCESS_UPDATED,
-            metadata: { allowJoinWithoutApproval },
-          },
-        });
+        await this.meetingAuditService.accessUpdated(
+          tx,
+          meetingId,
+          userId,
+          allowJoinWithoutApproval,
+        );
 
         const updatedMeeting = await tx.meeting.update({
           where: { id: meetingId },
@@ -889,13 +872,7 @@ export class MeetingService {
           },
         });
 
-        await tx.meetingEvent.create({
-          data: {
-            meetingId,
-            actorId: userId,
-            type: MeetingEventTypeValue.PARTICIPANT_LEFT,
-          },
-        });
+        await this.meetingAuditService.participantLeft(tx, meetingId, userId);
 
         return leftParticipant;
       },
@@ -947,13 +924,7 @@ export class MeetingService {
           },
         });
 
-        await tx.meetingEvent.create({
-          data: {
-            meetingId,
-            actorId: hostId,
-            type: MeetingEventTypeValue.ENDED,
-          },
-        });
+        await this.meetingAuditService.meetingEnded(tx, meetingId, hostId);
 
         return tx.meeting.update({
           where: { id: meetingId },

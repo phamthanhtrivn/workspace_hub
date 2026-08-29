@@ -6,6 +6,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
 import { MeetingController } from './meeting.controller';
 import { MeetingLiveKitService } from './livekit/meeting-livekit.service';
 import { MeetingRealtimePublisher } from './realtime/meeting-realtime.publisher';
+import { MeetingAuditService } from './services/meeting-audit.service';
 import { MeetingAuthorizationService } from './services/meeting-authorization.service';
 import { MeetingResponseMapper } from './services/meeting-response.mapper';
 import { MeetingService } from './meeting.service';
@@ -24,6 +25,7 @@ import { MeetingService } from './meeting.service';
     MeetingRealtimePublisher,
     MeetingLiveKitService,
     MeetingResponseMapper,
+    MeetingAuditService,
   ],
   exports: [MeetingService],
 })

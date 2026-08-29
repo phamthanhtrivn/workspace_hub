@@ -1,19 +1,58 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import { ChatGateway } from '../../chat/chat.gateway';
-import {
-  MeetingParticipantPayload,
-} from '../types/meeting.types';
+import { MeetingParticipantPayload } from '../types/meeting.types';
+
+interface MeetingRealtimeGatewayPort {
+  emitMeetingAccessUpdated(
+    meetingId: string,
+    allowJoinWithoutApproval: boolean,
+  ): void;
+  emitMeetingEnded(meetingId: string, endedBy: string): void;
+  emitMeetingJoinApproved(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ): void;
+  emitMeetingJoinRejected(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ): void;
+  emitMeetingJoinRequested(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ): void;
+  emitMeetingParticipantLeft(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ): void;
+  emitMeetingParticipantRemoved(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ): void;
+  emitMeetingParticipantRoleUpdated(
+    meetingId: string,
+    userId: string,
+    participant: MeetingParticipantPayload,
+  ): void;
+}
 
 @Injectable()
 export class MeetingRealtimePublisher {
-  constructor(private readonly chatGateway: ChatGateway) {}
+  constructor(
+    @Inject(forwardRef(() => ChatGateway))
+    private readonly gateway: MeetingRealtimeGatewayPort,
+  ) {}
 
   joinRequested(
     meetingId: string,
     userId: string,
     participant: MeetingParticipantPayload,
   ) {
-    this.chatGateway.emitMeetingJoinRequested(meetingId, userId, participant);
+    this.gateway.emitMeetingJoinRequested(meetingId, userId, participant);
   }
 
   joinApproved(
@@ -21,7 +60,7 @@ export class MeetingRealtimePublisher {
     userId: string,
     participant: MeetingParticipantPayload,
   ) {
-    this.chatGateway.emitMeetingJoinApproved(meetingId, userId, participant);
+    this.gateway.emitMeetingJoinApproved(meetingId, userId, participant);
   }
 
   joinRejected(
@@ -29,11 +68,11 @@ export class MeetingRealtimePublisher {
     userId: string,
     participant: MeetingParticipantPayload,
   ) {
-    this.chatGateway.emitMeetingJoinRejected(meetingId, userId, participant);
+    this.gateway.emitMeetingJoinRejected(meetingId, userId, participant);
   }
 
   accessUpdated(meetingId: string, allowJoinWithoutApproval: boolean) {
-    this.chatGateway.emitMeetingAccessUpdated(
+    this.gateway.emitMeetingAccessUpdated(
       meetingId,
       allowJoinWithoutApproval,
     );
@@ -44,7 +83,7 @@ export class MeetingRealtimePublisher {
     userId: string,
     participant: MeetingParticipantPayload,
   ) {
-    this.chatGateway.emitMeetingParticipantLeft(meetingId, userId, participant);
+    this.gateway.emitMeetingParticipantLeft(meetingId, userId, participant);
   }
 
   participantRemoved(
@@ -52,7 +91,7 @@ export class MeetingRealtimePublisher {
     userId: string,
     participant: MeetingParticipantPayload,
   ) {
-    this.chatGateway.emitMeetingParticipantRemoved(
+    this.gateway.emitMeetingParticipantRemoved(
       meetingId,
       userId,
       participant,
@@ -64,7 +103,7 @@ export class MeetingRealtimePublisher {
     userId: string,
     participant: MeetingParticipantPayload,
   ) {
-    this.chatGateway.emitMeetingParticipantRoleUpdated(
+    this.gateway.emitMeetingParticipantRoleUpdated(
       meetingId,
       userId,
       participant,
@@ -72,6 +111,6 @@ export class MeetingRealtimePublisher {
   }
 
   meetingEnded(meetingId: string, endedBy: string) {
-    this.chatGateway.emitMeetingEnded(meetingId, endedBy);
+    this.gateway.emitMeetingEnded(meetingId, endedBy);
   }
 }
