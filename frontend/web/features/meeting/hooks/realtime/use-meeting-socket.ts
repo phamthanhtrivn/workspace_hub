@@ -2,42 +2,11 @@
 
 import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { socketService } from "@/features/chat/api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { useAppSelector } from "@/store/store";
 import { MeetingSocketEvent } from "../../api/meeting-socket.events";
 import { meetingKeys } from "../../types/meeting.constants";
 import { MeetingSocketPayload } from "../../types/meeting.types";
-
-interface MeetingRealtimeSocket {
-  emit: (
-    event: MeetingSocketEvent.JOIN_CONTROL_ROOM,
-    payload: { meetingId: string },
-  ) => void;
-  on: (
-    event:
-      | MeetingSocketEvent.JOIN_REQUESTED
-      | MeetingSocketEvent.JOIN_APPROVED
-      | MeetingSocketEvent.JOIN_REJECTED
-      | MeetingSocketEvent.ACCESS_UPDATED
-      | MeetingSocketEvent.PARTICIPANT_LEFT
-      | MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED
-      | MeetingSocketEvent.PARTICIPANT_REMOVED
-      | MeetingSocketEvent.MEETING_ENDED,
-    handler: (payload: MeetingSocketPayload) => void,
-  ) => void;
-  off: (
-    event:
-      | MeetingSocketEvent.JOIN_REQUESTED
-      | MeetingSocketEvent.JOIN_APPROVED
-      | MeetingSocketEvent.JOIN_REJECTED
-      | MeetingSocketEvent.ACCESS_UPDATED
-      | MeetingSocketEvent.PARTICIPANT_LEFT
-      | MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED
-      | MeetingSocketEvent.PARTICIPANT_REMOVED
-      | MeetingSocketEvent.MEETING_ENDED,
-    handler: (payload: MeetingSocketPayload) => void,
-  ) => void;
-}
 
 interface UseMeetingSocketOptions {
   onMeetingEnded?: () => void;
@@ -56,9 +25,7 @@ export function useMeetingSocket(
   useEffect(() => {
     if (!accessToken || !meetingId) return;
 
-    const socket = socketService.connect(
-      accessToken,
-    ) as unknown as MeetingRealtimeSocket;
+    const socket = socketService.connect(accessToken);
     const invalidateMeetingData = (payload: MeetingSocketPayload) => {
       if (payload.meetingId !== meetingId) return;
 
@@ -103,6 +70,7 @@ export function useMeetingSocket(
     socket.on(MeetingSocketEvent.MEETING_ENDED, handleMeetingEnded);
 
     return () => {
+      socket.emit(MeetingSocketEvent.LEAVE_CONTROL_ROOM, { meetingId });
       socket.off(MeetingSocketEvent.JOIN_REQUESTED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.JOIN_APPROVED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);

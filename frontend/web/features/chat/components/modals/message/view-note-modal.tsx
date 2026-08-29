@@ -7,7 +7,7 @@ import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { NoteResponse } from "@/features/chat/types/chat.types";
 import NoteMessage from "../../message/note-message";
-import { socketService } from "@/features/chat/api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { ChatEvent } from "@/features/chat/api/chat.events";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 

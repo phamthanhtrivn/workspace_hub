@@ -1,8 +1,8 @@
-﻿import { useEffect } from "react";
+import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { noteApi } from "../api/note.api";
 import { ChatEvent } from "../api/chat.events";
-import { socketService } from "../api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { chatKeys, CHAT_DEFAULT_STALE_TIME_MS } from "../types/chat.constant";
 import { ChatMessageResponse, NoteResponse } from "../types/chat.types";
 

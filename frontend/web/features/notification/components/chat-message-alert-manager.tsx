@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
 import { ChatEvent } from "@/features/chat/api/chat.events";
-import { socketService } from "@/features/chat/api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { ChatQueryKey, ChatQueryRoot } from "@/features/chat/types/chat.constant";
 import {
   ChatMessageResponse,

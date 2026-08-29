@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { pollApi } from "../api/poll.api";
 import { ChatEvent } from "../api/chat.events";
-import { socketService } from "../api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { CHAT_DEFAULT_STALE_TIME_MS, chatKeys } from "../types/chat.constant";
 import { ChatMessageResponse, PollResponse } from "../types/chat.types";
 

@@ -45,8 +45,9 @@ export enum MeetingDefault {
 }
 
 export enum MeetingSocketRoomPrefix {
-  HOST = 'meeting-host',
-  USER = 'meeting-user',
+  MODERATORS = 'meeting:moderators',
+  PARTICIPANTS = 'meeting:participants',
+  USER = 'meeting:user',
 }
 
 export enum MeetingParticipantRoleValue {
@@ -76,6 +77,13 @@ export enum MeetingEventTypeValue {
   CREATED = 'CREATED',
   STARTED = 'STARTED',
   ENDED = 'ENDED',
+  JOIN_REQUESTED = 'JOIN_REQUESTED',
+  JOIN_APPROVED = 'JOIN_APPROVED',
+  JOIN_REJECTED = 'JOIN_REJECTED',
   PARTICIPANT_JOINED = 'PARTICIPANT_JOINED',
   PARTICIPANT_LEFT = 'PARTICIPANT_LEFT',
+  PARTICIPANT_REMOVED = 'PARTICIPANT_REMOVED',
+  PARTICIPANT_ROLE_UPDATED = 'PARTICIPANT_ROLE_UPDATED',
+  HOST_TRANSFERRED = 'HOST_TRANSFERRED',
+  ACCESS_UPDATED = 'ACCESS_UPDATED',
 }

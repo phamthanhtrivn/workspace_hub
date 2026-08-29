@@ -1,19 +1,11 @@
-import { io, Socket } from "socket.io-client";
-import {
-  ClientToServerChatEvents,
-  ServerToClientChatEvents,
-} from "../types/chat-socket.types";
+import { io } from "socket.io-client";
+import type { CommunicationSocket } from "./communication-socket.types";
 
-export type ChatSocket = Socket<
-  ServerToClientChatEvents,
-  ClientToServerChatEvents
->;
-
-class SocketService {
-  private socket: ChatSocket | null = null;
+class CommunicationSocketClient {
+  private socket: CommunicationSocket | null = null;
   private currentToken: string | null = null;
 
-  connect(token: string): ChatSocket {
+  connect(token: string): CommunicationSocket {
     if (this.socket && this.currentToken === token) {
       if (!this.socket.connected && !this.socket.active) {
         this.socket.connect();
@@ -35,9 +27,7 @@ class SocketService {
       auth: {
         token,
       },
-    }) as ChatSocket;
-
-    this.socket.on("connect", () => {});
+    });
 
     if (!this.socket.connected && !this.socket.active) {
       this.socket.connect();
@@ -54,9 +44,10 @@ class SocketService {
     this.currentToken = null;
   }
 
-  getSocket(): ChatSocket | null {
+  getSocket(): CommunicationSocket | null {
     return this.socket;
   }
 }
 
-export const socketService = new SocketService();
+export const communicationSocketClient = new CommunicationSocketClient();
+export const socketService = communicationSocketClient;

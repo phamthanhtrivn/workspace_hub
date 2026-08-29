@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { socketService } from "../../../api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { ChatEvent } from "../../../api/chat.events";
 import {
   getDirectConversationMedia,

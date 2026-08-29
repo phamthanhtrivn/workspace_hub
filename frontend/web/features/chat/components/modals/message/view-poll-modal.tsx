@@ -5,7 +5,7 @@ import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { PollResponse } from "@/features/chat/types/chat.types";
 import PollMessage from "../../message/poll-message";
-import { socketService } from "@/features/chat/api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { ChatEvent } from "@/features/chat/api/chat.events";
 
 interface ViewPollModalProps {

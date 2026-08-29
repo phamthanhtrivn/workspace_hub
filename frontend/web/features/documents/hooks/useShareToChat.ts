@@ -7,7 +7,7 @@ import {
 } from "@/features/chat/hooks/useChatQueries";
 import { documentsApi } from "../api/documents.api";
 import { getChannelMembers } from "@/features/chat/api/chat.api";
-import { socketService } from "@/features/chat/api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { ChatEvent } from "@/features/chat/api/chat.events";
 import { DocumentItem } from "../types/documents.types";
 import { ShareTabType } from "../types/documents.enums";

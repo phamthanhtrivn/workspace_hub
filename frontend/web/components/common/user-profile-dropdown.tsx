@@ -11,7 +11,7 @@ import { useLogoutMutation } from "@/features/auth/hooks/useAuthMutations";
 import { useQueryClient } from "@tanstack/react-query";
 import { AuthRouteTarget } from "@/features/auth/types/auth.constants";
 import { getAuthErrorMessage } from "@/features/auth/utils/auth-error";
-import { socketService } from "@/features/chat/api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { notificationSocketService } from "@/features/notification/api/notification-socket.service";
 import { useUserProfileQuery } from "@/features/user-setting/hooks/useUserSettingQueries";
 import { UserSettingTab } from "@/features/user-setting/types/settings.enums";

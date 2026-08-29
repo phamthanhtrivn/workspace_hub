@@ -5,7 +5,7 @@ import {
   setActiveConversation,
   setActiveSpaceId,
 } from "@/store/chat/chat-slice";
-import { socketService } from "../../api/chat-socket.service";
+import { socketService } from "@/infrastructure/realtime/communication-socket.client";
 import { ChatEvent } from "../../api/chat.events";
 import { chatKeys } from "../../types/chat.constant";
 import {

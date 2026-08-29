@@ -6,7 +6,6 @@ import {
   MicOff,
   MoreVertical,
   Pin,
-  Search,
   ShieldMinus,
   ShieldPlus,
   UserX,
@@ -30,6 +29,8 @@ import {
 } from "../../../types/meeting.types";
 import { canModerateMeeting } from "../../../utils/meeting.utils";
 import { buildParticipantInitials } from "../meeting-room.utils";
+import { ParticipantRoleBadge } from "./participant-role-badge";
+import { ParticipantSearch } from "./participant-search";
 
 interface MeetingParticipantsModalProps {
   connectedParticipantIds: Set<string>;
@@ -199,17 +200,13 @@ export function MeetingParticipantsModal({
         </header>
 
         <div className="border-b border-white/10 px-4 py-3">
-          <label className="flex h-10 items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-3 text-sm text-slate-200">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder={intl.formatMessage({
-                id: "meeting.room.participants.search",
-              })}
-              className="min-w-0 flex-1 bg-transparent font-semibold outline-none placeholder:text-slate-500"
-            />
-          </label>
+          <ParticipantSearch
+            value={searchInput}
+            onChange={setSearchInput}
+            placeholder={intl.formatMessage({
+              id: "meeting.room.participants.search",
+            })}
+          />
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
@@ -257,7 +254,7 @@ export function MeetingParticipantsModal({
                           {displayName}
                         </p>
                         {isHost ? (
-                          <RoleTag
+                          <ParticipantRoleBadge
                             label={intl.formatMessage({
                               id: "meeting.room.participants.host",
                             })}
@@ -265,7 +262,7 @@ export function MeetingParticipantsModal({
                           />
                         ) : null}
                         {!isHost && isCohost ? (
-                          <RoleTag
+                          <ParticipantRoleBadge
                             label={intl.formatMessage({
                               id: "meeting.room.participants.cohost",
                             })}
@@ -273,7 +270,7 @@ export function MeetingParticipantsModal({
                           />
                         ) : null}
                         {isSelf ? (
-                          <RoleTag
+                          <ParticipantRoleBadge
                             label={intl.formatMessage({
                               id: "meeting.room.participants.you",
                             })}
@@ -356,27 +353,6 @@ export function MeetingParticipantsModal({
           )
         : null}
     </div>
-  );
-}
-
-function RoleTag({
-  label,
-  tone,
-}: {
-  label: string;
-  tone: "host" | "cohost" | "self";
-}) {
-  const className =
-    tone === "host"
-      ? "bg-amber-400/15 text-amber-200"
-      : tone === "cohost"
-        ? "bg-blue-400/15 text-blue-200"
-        : "bg-emerald-400/15 text-emerald-200";
-
-  return (
-    <span className={`rounded px-1.5 py-0.5 text-[10px] font-black ${className}`}>
-      {label}
-    </span>
   );
 }
 

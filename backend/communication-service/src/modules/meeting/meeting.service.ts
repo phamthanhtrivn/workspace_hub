@@ -1,29 +1,23 @@
 import {
   BadRequestException,
   ForbiddenException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import {
   Meeting,
   MeetingParticipant,
-  MeetingRole as PrismaMeetingRole,
   MeetingParticipantStatus as PrismaMeetingParticipantStatus,
   MeetingStatus as PrismaMeetingStatus,
   Prisma,
 } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
-import {
-  LIVEKIT_CONFIG,
-  LIVEKIT_ROOM_SERVICE_CLIENT,
-} from '../../infrastructure/livekit/livekit.constants';
-import type { LiveKitConfig } from '../../infrastructure/livekit/livekit.types';
 import { PrismaService } from '../../prisma/prisma.service';
-import { ChatGateway } from '../chat/chat.gateway';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
+import { MeetingLiveKitService } from './livekit/meeting-livekit.service';
+import { MeetingRealtimePublisher } from './realtime/meeting-realtime.publisher';
+import { MeetingAuthorizationService } from './services/meeting-authorization.service';
 import {
   MeetingClientRoute,
   MeetingDefault,
@@ -46,12 +40,10 @@ import {
 export class MeetingService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly chatGateway: ChatGateway,
+    private readonly realtimePublisher: MeetingRealtimePublisher,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
-    @Inject(LIVEKIT_CONFIG)
-    private readonly liveKitConfig: LiveKitConfig,
-    @Inject(LIVEKIT_ROOM_SERVICE_CLIENT)
-    private readonly liveKitRoomServiceClient: RoomServiceClient,
+    private readonly meetingLiveKitService: MeetingLiveKitService,
+    private readonly meetingAuthorizationService: MeetingAuthorizationService,
   ) {}
 
   private buildJoinUrl(joinToken: string) {
@@ -66,60 +58,6 @@ export class MeetingService {
 
   private buildJoinToken() {
     return randomUUID();
-  }
-
-  private async assertHost(
-    meetingId: string,
-    userId: string,
-  ): Promise<Meeting> {
-    const meeting = await this.prisma.meeting.findUnique({
-      where: { id: meetingId },
-    });
-    if (!meeting) {
-      throw new NotFoundException(MeetingErrorMessage.MEETING_NOT_FOUND);
-    }
-    if (meeting.hostId !== userId) {
-      throw new ForbiddenException(MeetingErrorMessage.HOST_REQUIRED);
-    }
-    return meeting;
-  }
-
-  private async assertMeetingModerator(
-    meetingId: string,
-    userId: string,
-  ): Promise<Meeting> {
-    const meeting = await this.prisma.meeting.findUnique({
-      where: { id: meetingId },
-      include: {
-        participants: {
-          where: { userId },
-          take: 1,
-        },
-      },
-    });
-    if (!meeting) {
-      throw new NotFoundException(MeetingErrorMessage.MEETING_NOT_FOUND);
-    }
-
-    const participant = meeting.participants[0];
-    const isHost = meeting.hostId === userId;
-    const isCohost =
-      participant?.role === PrismaMeetingRole.COHOST &&
-      participant.status === PrismaMeetingParticipantStatus.JOINED;
-
-    if (!isHost && !isCohost) {
-      throw new ForbiddenException(MeetingErrorMessage.MODERATOR_REQUIRED);
-    }
-
-    const { participants, ...meetingData } = meeting;
-    void participants;
-    return meetingData;
-  }
-
-  private isMeetingModeratorRole(role: PrismaMeetingRole) {
-    return (
-      role === PrismaMeetingRole.HOST || role === PrismaMeetingRole.COHOST
-    );
   }
 
   private async getMeetingOrThrow(meetingId: string): Promise<Meeting> {
@@ -167,38 +105,6 @@ export class MeetingService {
     return this.userProfileSnapshotService.attachProfilesToMembers(
       participants,
     );
-  }
-
-  private async removeLiveKitParticipant(roomName: string, userId: string) {
-    try {
-      await this.liveKitRoomServiceClient.removeParticipant(roomName, userId);
-    } catch (error) {
-      console.warn('Could not remove LiveKit meeting participant', {
-        roomName,
-        userId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }
-
-  private async deleteLiveKitRoom(roomName: string) {
-    try {
-      await this.liveKitRoomServiceClient.deleteRoom(roomName);
-    } catch (error) {
-      if (this.isLiveKitNotFoundError(error)) return;
-
-      console.warn('Could not delete LiveKit meeting room', {
-        roomName,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      throw error;
-    }
-  }
-
-  private isLiveKitNotFoundError(error: unknown) {
-    if (!(error instanceof Error)) return false;
-
-    return /not found|404/i.test(error.message);
   }
 
   private async mapMeetingResponse(
@@ -370,7 +276,8 @@ export class MeetingService {
       },
     );
     const wasAlreadyApproved =
-      existingParticipant?.status === PrismaMeetingParticipantStatus.JOINED;
+      existingParticipant?.status === PrismaMeetingParticipantStatus.JOINED ||
+      existingParticipant?.status === PrismaMeetingParticipantStatus.LEFT;
     if (
       existingParticipant?.status === PrismaMeetingParticipantStatus.REMOVED
     ) {
@@ -416,7 +323,10 @@ export class MeetingService {
           data: {
             meetingId,
             actorId: userId,
-            type: MeetingEventTypeValue.PARTICIPANT_JOINED,
+            type:
+              nextStatus === MeetingParticipantStatusValue.REQUESTED
+                ? MeetingEventTypeValue.JOIN_REQUESTED
+                : MeetingEventTypeValue.PARTICIPANT_JOINED,
             metadata: { status: nextStatus },
           },
         });
@@ -431,13 +341,13 @@ export class MeetingService {
     );
 
     if (nextStatus === MeetingParticipantStatusValue.REQUESTED) {
-      this.chatGateway.emitMeetingJoinRequested(
+      this.realtimePublisher.joinRequested(
         meetingId,
         userId,
         enrichedParticipant,
       );
     } else {
-      this.chatGateway.emitMeetingJoinApproved(
+      this.realtimePublisher.joinApproved(
         meetingId,
         userId,
         enrichedParticipant,
@@ -456,7 +366,10 @@ export class MeetingService {
     search?: string,
   ): Promise<MeetingParticipantWithProfile[]> {
     await this.getMeetingOrThrow(meetingId);
-    await this.assertApprovedParticipant(meetingId, userId);
+    await this.meetingAuthorizationService.assertApprovedParticipant(
+      meetingId,
+      userId,
+    );
 
     const participants = await this.prisma.meetingParticipant.findMany({
       where: {
@@ -510,7 +423,10 @@ export class MeetingService {
     hostId: string,
     role: MeetingParticipantRoleValue,
   ): Promise<MeetingParticipantWithProfile> {
-    const meeting = await this.assertHost(meetingId, hostId);
+    const meeting = await this.meetingAuthorizationService.assertHost(
+      meetingId,
+      hostId,
+    );
     if (!Object.values(MeetingParticipantRoleValue).includes(role)) {
       throw new BadRequestException(
         MeetingErrorMessage.INVALID_PARTICIPANT_ROLE,
@@ -541,18 +457,29 @@ export class MeetingService {
     const participant =
       role === MeetingParticipantRoleValue.HOST
         ? await this.transferHost(meetingId, hostId, targetUserId)
-        : await this.prisma.meetingParticipant.update({
-            where: {
-              meetingId_userId: {
-                meetingId,
-                userId: targetUserId,
+        : await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+            const updatedParticipant = await tx.meetingParticipant.update({
+              where: {
+                meetingId_userId: {
+                  meetingId,
+                  userId: targetUserId,
+                },
               },
-            },
-            data: { role },
+              data: { role },
+            });
+            await tx.meetingEvent.create({
+              data: {
+                meetingId,
+                actorId: hostId,
+                type: MeetingEventTypeValue.PARTICIPANT_ROLE_UPDATED,
+                metadata: { userId: targetUserId, role },
+              },
+            });
+            return updatedParticipant;
           });
     const [enrichedParticipant] = await this.enrichParticipants([participant]);
 
-    this.chatGateway.emitMeetingParticipantRoleUpdated(
+    this.realtimePublisher.participantRoleUpdated(
       meetingId,
       targetUserId,
       enrichedParticipant,
@@ -592,7 +519,7 @@ export class MeetingService {
         },
         data: { role: MeetingParticipantRoleValue.PARTICIPANT },
       });
-      return tx.meetingParticipant.update({
+      const newHostParticipant = await tx.meetingParticipant.update({
         where: {
           meetingId_userId: {
             meetingId,
@@ -601,6 +528,17 @@ export class MeetingService {
         },
         data: { role: MeetingParticipantRoleValue.HOST },
       });
+
+      await tx.meetingEvent.create({
+        data: {
+          meetingId,
+          actorId: oldHostId,
+          type: MeetingEventTypeValue.HOST_TRANSFERRED,
+          metadata: { oldHostId, newHostId },
+        },
+      });
+
+      return newHostParticipant;
     });
   }
 
@@ -609,7 +547,10 @@ export class MeetingService {
     targetUserId: string,
     hostId: string,
   ): Promise<MeetingParticipantWithProfile> {
-    const meeting = await this.assertMeetingModerator(meetingId, hostId);
+    const meeting = await this.meetingAuthorizationService.assertModerator(
+      meetingId,
+      hostId,
+    );
     if (targetUserId === hostId) {
       throw new BadRequestException(
         MeetingErrorMessage.REMOVE_SELF_NOT_ALLOWED,
@@ -632,7 +573,7 @@ export class MeetingService {
     if (!targetParticipant) {
       throw new NotFoundException(MeetingErrorMessage.PARTICIPANT_NOT_FOUND);
     }
-    if (this.isMeetingModeratorRole(targetParticipant.role)) {
+    if (this.meetingAuthorizationService.isModeratorRole(targetParticipant.role)) {
       throw new BadRequestException(
         MeetingErrorMessage.REMOVE_MODERATOR_NOT_ALLOWED,
       );
@@ -660,7 +601,7 @@ export class MeetingService {
           data: {
             meetingId,
             actorId: hostId,
-            type: MeetingEventTypeValue.PARTICIPANT_LEFT,
+            type: MeetingEventTypeValue.PARTICIPANT_REMOVED,
             metadata: {
               removedUserId: targetUserId,
               status: MeetingParticipantStatusValue.REMOVED,
@@ -675,8 +616,11 @@ export class MeetingService {
       removedParticipant,
     ]);
 
-    await this.removeLiveKitParticipant(meeting.roomName, targetUserId);
-    this.chatGateway.emitMeetingParticipantRemoved(
+    await this.meetingLiveKitService.removeParticipant(
+      meeting.roomName,
+      targetUserId,
+    );
+    this.realtimePublisher.participantRemoved(
       meetingId,
       targetUserId,
       enrichedParticipant,
@@ -689,7 +633,7 @@ export class MeetingService {
     meetingId: string,
     userId: string,
   ): Promise<MeetingParticipantWithProfile[]> {
-    await this.assertMeetingModerator(meetingId, userId);
+    await this.meetingAuthorizationService.assertModerator(meetingId, userId);
     const participants = await this.prisma.meetingParticipant.findMany({
       where: {
         meetingId,
@@ -705,7 +649,7 @@ export class MeetingService {
     requesterId: string,
     hostId: string,
   ): Promise<MeetingParticipantWithProfile> {
-    await this.assertMeetingModerator(meetingId, hostId);
+    await this.meetingAuthorizationService.assertModerator(meetingId, hostId);
     if (requesterId === hostId) {
       throw new BadRequestException(
         MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED,
@@ -728,26 +672,41 @@ export class MeetingService {
       throw new NotFoundException(MeetingErrorMessage.REQUEST_NOT_FOUND);
     }
 
-    const updatedParticipant = await this.prisma.meetingParticipant.update({
-      where: {
-        meetingId_userId: {
-          meetingId,
-          userId: requesterId,
-        },
+    const updatedParticipant = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const nextParticipant = await tx.meetingParticipant.update({
+          where: {
+            meetingId_userId: {
+              meetingId,
+              userId: requesterId,
+            },
+          },
+          data: {
+            status: MeetingParticipantStatusValue.JOINED,
+            joinedAt: new Date(),
+            lastSeenAt: new Date(),
+            leftAt: null,
+          },
+        });
+
+        await tx.meetingEvent.create({
+          data: {
+            meetingId,
+            actorId: hostId,
+            type: MeetingEventTypeValue.JOIN_APPROVED,
+            metadata: { userId: requesterId },
+          },
+        });
+
+        return nextParticipant;
       },
-      data: {
-        status: MeetingParticipantStatusValue.JOINED,
-        joinedAt: new Date(),
-        lastSeenAt: new Date(),
-        leftAt: null,
-      },
-    });
+    );
 
     const [enrichedParticipant] = await this.enrichParticipants([
       updatedParticipant,
     ]);
 
-    this.chatGateway.emitMeetingJoinApproved(
+    this.realtimePublisher.joinApproved(
       meetingId,
       requesterId,
       enrichedParticipant,
@@ -760,7 +719,7 @@ export class MeetingService {
     requesterId: string,
     hostId: string,
   ): Promise<MeetingParticipantWithProfile> {
-    await this.assertMeetingModerator(meetingId, hostId);
+    await this.meetingAuthorizationService.assertModerator(meetingId, hostId);
     if (requesterId === hostId) {
       throw new BadRequestException(
         MeetingErrorMessage.SELF_REVIEW_NOT_ALLOWED,
@@ -783,23 +742,38 @@ export class MeetingService {
       throw new NotFoundException(MeetingErrorMessage.REQUEST_NOT_FOUND);
     }
 
-    const updatedParticipant = await this.prisma.meetingParticipant.update({
-      where: {
-        meetingId_userId: {
-          meetingId,
-          userId: requesterId,
-        },
+    const updatedParticipant = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const nextParticipant = await tx.meetingParticipant.update({
+          where: {
+            meetingId_userId: {
+              meetingId,
+              userId: requesterId,
+            },
+          },
+          data: {
+            status: MeetingParticipantStatusValue.REJECTED,
+          },
+        });
+
+        await tx.meetingEvent.create({
+          data: {
+            meetingId,
+            actorId: hostId,
+            type: MeetingEventTypeValue.JOIN_REJECTED,
+            metadata: { userId: requesterId },
+          },
+        });
+
+        return nextParticipant;
       },
-      data: {
-        status: MeetingParticipantStatusValue.REJECTED,
-      },
-    });
+    );
 
     const [enrichedParticipant] = await this.enrichParticipants([
       updatedParticipant,
     ]);
 
-    this.chatGateway.emitMeetingJoinRejected(
+    this.realtimePublisher.joinRejected(
       meetingId,
       requesterId,
       enrichedParticipant,
@@ -812,7 +786,7 @@ export class MeetingService {
     userId: string,
     allowJoinWithoutApproval: boolean,
   ): Promise<MeetingResponse> {
-    await this.assertMeetingModerator(meetingId, userId);
+    await this.meetingAuthorizationService.assertModerator(meetingId, userId);
     const now = new Date();
     const { meeting, autoApprovedParticipants } =
       await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -847,9 +821,9 @@ export class MeetingService {
             await tx.meetingEvent.createMany({
               data: pendingUserIds.map((pendingUserId) => ({
                 meetingId,
-                actorId: pendingUserId,
-                type: MeetingEventTypeValue.PARTICIPANT_JOINED,
-                metadata: { status: MeetingParticipantStatusValue.JOINED },
+                actorId: userId,
+                type: MeetingEventTypeValue.JOIN_APPROVED,
+                metadata: { userId: pendingUserId },
               })),
             });
 
@@ -861,6 +835,15 @@ export class MeetingService {
             });
           }
         }
+
+        await tx.meetingEvent.create({
+          data: {
+            meetingId,
+            actorId: userId,
+            type: MeetingEventTypeValue.ACCESS_UPDATED,
+            metadata: { allowJoinWithoutApproval },
+          },
+        });
 
         const updatedMeeting = await tx.meeting.update({
           where: { id: meetingId },
@@ -888,12 +871,12 @@ export class MeetingService {
       autoApprovedParticipants,
     );
 
-    this.chatGateway.emitMeetingAccessUpdated(
+    this.realtimePublisher.accessUpdated(
       meetingId,
       allowJoinWithoutApproval,
     );
     enrichedAutoApprovedParticipants.forEach((participant) => {
-      this.chatGateway.emitMeetingJoinApproved(
+      this.realtimePublisher.joinApproved(
         meetingId,
         participant.userId,
         participant,
@@ -933,6 +916,7 @@ export class MeetingService {
             },
           },
           data: {
+            status: MeetingParticipantStatusValue.LEFT,
             leftAt: now,
             lastSeenAt: now,
           },
@@ -953,8 +937,8 @@ export class MeetingService {
       updatedParticipant,
     ]);
 
-    await this.removeLiveKitParticipant(meeting.roomName, userId);
-    this.chatGateway.emitMeetingParticipantLeft(
+    await this.meetingLiveKitService.removeParticipant(meeting.roomName, userId);
+    this.realtimePublisher.participantLeft(
       meetingId,
       userId,
       enrichedParticipant,
@@ -967,7 +951,10 @@ export class MeetingService {
     meetingId: string,
     hostId: string,
   ): Promise<MeetingResponse> {
-    const meeting = await this.assertMeetingModerator(meetingId, hostId);
+    const meeting = await this.meetingAuthorizationService.assertModerator(
+      meetingId,
+      hostId,
+    );
     if (meeting.status !== PrismaMeetingStatus.LIVE) {
       throw new BadRequestException(MeetingErrorMessage.MEETING_NOT_LIVE);
     }
@@ -1022,8 +1009,8 @@ export class MeetingService {
       },
     );
 
-    await this.deleteLiveKitRoom(meeting.roomName);
-    this.chatGateway.emitMeetingEnded(meetingId, hostId);
+    await this.meetingLiveKitService.deleteRoom(meeting.roomName);
+    this.realtimePublisher.meetingEnded(meetingId, hostId);
 
     return this.mapMeetingResponse(endedMeeting, hostId);
   }
@@ -1062,35 +1049,9 @@ export class MeetingService {
       );
     }
 
-    const profile = (
-      await this.userProfileSnapshotService.getProfilesByUserIds([userId])
-    ).get(userId);
-    const displayName = profile?.fullName || profile?.email || userId;
-    const accessToken = new AccessToken(
-      this.liveKitConfig.apiKey,
-      this.liveKitConfig.apiSecret,
-      {
-        identity: userId,
-        name: displayName,
-        metadata: JSON.stringify({
-          email: profile?.email ?? null,
-          avatarUrl: profile?.avatarUrl ?? null,
-        }),
-        ttl: MeetingDefault.LIVEKIT_TOKEN_TTL_SECONDS,
-      },
+    return this.meetingLiveKitService.createParticipantToken(
+      meeting.roomName,
+      userId,
     );
-    accessToken.addGrant({
-      room: meeting.roomName,
-      roomJoin: true,
-      canPublish: true,
-      canSubscribe: true,
-      canPublishData: true,
-    });
-
-    return {
-      serverUrl: this.liveKitConfig.publicUrl,
-      token: await accessToken.toJwt(),
-      roomName: meeting.roomName,
-    };
   }
 }
