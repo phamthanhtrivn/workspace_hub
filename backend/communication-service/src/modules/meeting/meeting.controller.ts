@@ -149,6 +149,12 @@ export class MeetingController {
     if (!hostId) {
       throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
     }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    if (!requesterId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
     const participant = await this.meetingService.approveJoinRequest(
       meetingId,
       requesterId,
@@ -167,6 +173,12 @@ export class MeetingController {
     @Param('userId') requesterId: string,
   ) {
     if (!hostId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    if (!requesterId) {
       throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
     }
     const participant = await this.meetingService.rejectJoinRequest(
@@ -236,6 +248,9 @@ export class MeetingController {
     if (!meetingId) {
       throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
     }
+    if (!targetUserId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
     const participant = await this.meetingService.updateParticipantRole(
       meetingId,
       targetUserId,
@@ -259,6 +274,9 @@ export class MeetingController {
     }
     if (!meetingId) {
       throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    if (!targetUserId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
     }
     const participant = await this.meetingService.removeParticipant(
       meetingId,

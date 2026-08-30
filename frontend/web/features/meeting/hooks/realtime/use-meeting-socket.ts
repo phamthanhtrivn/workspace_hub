@@ -8,37 +8,30 @@ import { MeetingSocketEvent } from "../../api/meeting-socket.events";
 import { meetingKeys } from "../../types/meeting.constants";
 import { MeetingSocketPayload } from "../../types/meeting.types";
 
+const MEETING_REALTIME_EVENTS = [
+  MeetingSocketEvent.JOIN_REQUESTED,
+  MeetingSocketEvent.JOIN_APPROVED,
+  MeetingSocketEvent.JOIN_REJECTED,
+  MeetingSocketEvent.ACCESS_UPDATED,
+  MeetingSocketEvent.PARTICIPANT_LEFT,
+  MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED,
+  MeetingSocketEvent.PARTICIPANT_REMOVED,
+  MeetingSocketEvent.MEETING_ENDED,
+] as const;
+
+type MeetingRoomControlEvent =
+  | MeetingSocketEvent.JOIN_CONTROL_ROOM
+  | MeetingSocketEvent.LEAVE_CONTROL_ROOM;
+type MeetingRealtimeEvent = (typeof MEETING_REALTIME_EVENTS)[number];
+type MeetingSocketHandler = (payload: MeetingSocketPayload) => void;
+
 interface MeetingRealtimeSocket {
   emit: (
-    event:
-      | MeetingSocketEvent.JOIN_CONTROL_ROOM
-      | MeetingSocketEvent.LEAVE_CONTROL_ROOM,
+    event: MeetingRoomControlEvent,
     payload: { meetingId: string },
   ) => void;
-  on: (
-    event:
-      | MeetingSocketEvent.JOIN_REQUESTED
-      | MeetingSocketEvent.JOIN_APPROVED
-      | MeetingSocketEvent.JOIN_REJECTED
-      | MeetingSocketEvent.ACCESS_UPDATED
-      | MeetingSocketEvent.PARTICIPANT_LEFT
-      | MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED
-      | MeetingSocketEvent.PARTICIPANT_REMOVED
-      | MeetingSocketEvent.MEETING_ENDED,
-    handler: (payload: MeetingSocketPayload) => void,
-  ) => void;
-  off: (
-    event:
-      | MeetingSocketEvent.JOIN_REQUESTED
-      | MeetingSocketEvent.JOIN_APPROVED
-      | MeetingSocketEvent.JOIN_REJECTED
-      | MeetingSocketEvent.ACCESS_UPDATED
-      | MeetingSocketEvent.PARTICIPANT_LEFT
-      | MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED
-      | MeetingSocketEvent.PARTICIPANT_REMOVED
-      | MeetingSocketEvent.MEETING_ENDED,
-    handler: (payload: MeetingSocketPayload) => void,
-  ) => void;
+  on: (event: MeetingRealtimeEvent, handler: MeetingSocketHandler) => void;
+  off: (event: MeetingRealtimeEvent, handler: MeetingSocketHandler) => void;
 }
 
 interface UseMeetingSocketOptions {
@@ -93,33 +86,28 @@ export function useMeetingSocket(
 
       onParticipantRemoved?.(payload);
     };
+    const getHandlerForEvent = (
+      event: MeetingRealtimeEvent,
+    ): MeetingSocketHandler => {
+      if (event === MeetingSocketEvent.MEETING_ENDED) {
+        return handleMeetingEnded;
+      }
+      if (event === MeetingSocketEvent.PARTICIPANT_REMOVED) {
+        return handleParticipantRemoved;
+      }
+      return handleMeetingEvent;
+    };
 
     socket.emit(MeetingSocketEvent.JOIN_CONTROL_ROOM, { meetingId });
-    socket.on(MeetingSocketEvent.JOIN_REQUESTED, handleMeetingEvent);
-    socket.on(MeetingSocketEvent.JOIN_APPROVED, handleMeetingEvent);
-    socket.on(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
-    socket.on(MeetingSocketEvent.ACCESS_UPDATED, handleMeetingEvent);
-    socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleMeetingEvent);
-    socket.on(MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED, handleMeetingEvent);
-    socket.on(MeetingSocketEvent.PARTICIPANT_REMOVED, handleParticipantRemoved);
-    socket.on(MeetingSocketEvent.MEETING_ENDED, handleMeetingEnded);
+    MEETING_REALTIME_EVENTS.forEach((event) => {
+      socket.on(event, getHandlerForEvent(event));
+    });
 
     return () => {
       socket.emit(MeetingSocketEvent.LEAVE_CONTROL_ROOM, { meetingId });
-      socket.off(MeetingSocketEvent.JOIN_REQUESTED, handleMeetingEvent);
-      socket.off(MeetingSocketEvent.JOIN_APPROVED, handleMeetingEvent);
-      socket.off(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
-      socket.off(MeetingSocketEvent.ACCESS_UPDATED, handleMeetingEvent);
-      socket.off(MeetingSocketEvent.PARTICIPANT_LEFT, handleMeetingEvent);
-      socket.off(
-        MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED,
-        handleMeetingEvent,
-      );
-      socket.off(
-        MeetingSocketEvent.PARTICIPANT_REMOVED,
-        handleParticipantRemoved,
-      );
-      socket.off(MeetingSocketEvent.MEETING_ENDED, handleMeetingEnded);
+      MEETING_REALTIME_EVENTS.forEach((event) => {
+        socket.off(event, getHandlerForEvent(event));
+      });
     };
   }, [
     accessToken,

@@ -1084,6 +1084,14 @@ export class MeetingService {
         MeetingErrorMessage.PARTICIPANT_JOIN_REQUIRED,
       );
     }
+    if (participant.status === PrismaMeetingParticipantStatus.REMOVED) {
+      throw new ForbiddenException(MeetingErrorMessage.PARTICIPANT_REMOVED);
+    }
+    if (participant.status !== PrismaMeetingParticipantStatus.JOINED) {
+      throw new ForbiddenException(
+        MeetingErrorMessage.PARTICIPANT_JOIN_REQUIRED,
+      );
+    }
 
     const now = new Date();
     const updatedParticipant = await this.prisma.$transaction(
