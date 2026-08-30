@@ -53,6 +53,29 @@ export interface MeetingParticipant {
   profile?: UserProfileSnapshot | null;
 }
 
+export interface MeetingPaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedMeetingParticipantsResponse {
+  items: MeetingParticipant[];
+  pagination: MeetingPaginationMeta;
+}
+
+export interface MeetingListQueryParams {
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface ApproveAllMeetingJoinRequestsResponse {
+  approvedCount: number;
+  participants: MeetingParticipant[];
+}
+
 export interface MeetingResponse {
   id: string;
   roomName: string;

@@ -1,7 +1,9 @@
-import { Check, Loader2, UserRoundPlus, X } from "lucide-react";
+import { Check, Loader2, Search, UserRoundPlus, X } from "lucide-react";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
+  useApproveAllMeetingJoinRequestsMutation,
   useApproveMeetingJoinRequestMutation,
   useMeetingJoinRequestsQuery,
   useRejectMeetingJoinRequestMutation,
@@ -14,15 +16,49 @@ interface HostJoinRequestsPanelProps {
   onClose: () => void;
 }
 
+const JOIN_REQUESTS_PAGE_SIZE = 10;
+
 export function HostJoinRequestsPanel({
   meeting,
   onClose,
 }: HostJoinRequestsPanelProps) {
   const intl = useAppIntl();
-  const requestsQuery = useMeetingJoinRequestsQuery(meeting.id, true);
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const requestsQuery = useMeetingJoinRequestsQuery(
+    meeting.id,
+    {
+      search: debouncedSearch,
+      page,
+      limit: JOIN_REQUESTS_PAGE_SIZE,
+    },
+    true,
+  );
+  const approveAllRequests = useApproveAllMeetingJoinRequestsMutation(
+    meeting.id,
+  );
   const approveRequest = useApproveMeetingJoinRequestMutation(meeting.id);
   const rejectRequest = useRejectMeetingJoinRequestMutation(meeting.id);
-  const requests = requestsQuery.data?.data ?? [];
+  const requests = requestsQuery.data?.data.items ?? [];
+  const pagination = requestsQuery.data?.data.pagination;
+  const totalRequests = pagination?.total ?? requests.length;
+  const totalPages = pagination?.totalPages ?? 0;
+  const canGoPrevious = page > 1;
+  const canGoNext = totalPages > page;
+  const isMutating =
+    approveRequest.isPending ||
+    rejectRequest.isPending ||
+    approveAllRequests.isPending;
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setPage(1);
+      setDebouncedSearch(searchInput.trim());
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [searchInput]);
 
   return (
     <div
@@ -47,7 +83,7 @@ export function HostJoinRequestsPanel({
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded-md bg-white/10 px-2 py-1 text-xs font-bold text-slate-200">
-              {requests.length}
+              {totalRequests}
             </span>
             <button
               type="button"
@@ -61,6 +97,41 @@ export function HostJoinRequestsPanel({
             </button>
           </div>
         </header>
+
+        <div className="space-y-3 border-b border-white/10 px-4 py-3">
+          <label className="flex h-10 items-center gap-2 rounded-md border border-white/10 bg-white/[0.06] px-3 text-sm text-slate-200">
+            <Search className="h-4 w-4 text-slate-400" />
+            <input
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder={intl.formatMessage({
+                id: "meeting.room.joinRequests.search",
+              })}
+              className="min-w-0 flex-1 bg-transparent font-semibold outline-none placeholder:text-slate-500"
+            />
+          </label>
+          <button
+            type="button"
+            disabled={isMutating || totalRequests === 0}
+            onClick={() =>
+              approveAllRequests.mutate(undefined, {
+                onSuccess: () => setPage(1),
+              })
+            }
+            className="flex h-9 w-full items-center justify-center gap-2 rounded-md bg-emerald-500 px-3 text-xs font-black text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {approveAllRequests.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Check className="h-4 w-4" />
+            )}
+            {intl.formatMessage({
+              id: approveAllRequests.isPending
+                ? "meeting.approvingAllRequests"
+                : "meeting.approveAllRequests",
+            })}
+          </button>
+        </div>
 
         <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
           {requestsQuery.isLoading ? (
@@ -77,7 +148,9 @@ export function HostJoinRequestsPanel({
               );
               const initials = buildParticipantInitials(displayName);
               const isBusy =
-                approveRequest.isPending || rejectRequest.isPending;
+                approveRequest.isPending ||
+                rejectRequest.isPending ||
+                approveAllRequests.isPending;
               const isApproving =
                 approveRequest.isPending &&
                 approveRequest.variables === participant.userId;
@@ -121,7 +194,15 @@ export function HostJoinRequestsPanel({
                     <button
                       type="button"
                       disabled={isBusy}
-                      onClick={() => approveRequest.mutate(participant.userId)}
+                      onClick={() =>
+                        approveRequest.mutate(participant.userId, {
+                          onSuccess: () => {
+                            if (requests.length === 1 && page > 1) {
+                              setPage((value) => Math.max(1, value - 1));
+                            }
+                          },
+                        })
+                      }
                       className="flex h-9 items-center justify-center gap-2 rounded-md bg-emerald-500 px-3 text-xs font-black text-white hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isApproving ? (
@@ -134,7 +215,15 @@ export function HostJoinRequestsPanel({
                     <button
                       type="button"
                       disabled={isBusy}
-                      onClick={() => rejectRequest.mutate(participant.userId)}
+                      onClick={() =>
+                        rejectRequest.mutate(participant.userId, {
+                          onSuccess: () => {
+                            if (requests.length === 1 && page > 1) {
+                              setPage((value) => Math.max(1, value - 1));
+                            }
+                          },
+                        })
+                      }
                       className="flex h-9 items-center justify-center gap-2 rounded-md bg-white/10 px-3 text-xs font-black text-white hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isRejecting ? (
@@ -154,6 +243,37 @@ export function HostJoinRequestsPanel({
             </div>
           )}
         </div>
+
+        <footer className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3 text-xs font-bold text-slate-300">
+          <span>
+            {intl.formatMessage(
+              { id: "meeting.pagination.summary" },
+              {
+                page: totalPages === 0 ? 0 : page,
+                totalPages,
+                total: totalRequests,
+              },
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!canGoPrevious || requestsQuery.isFetching}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              className="h-8 rounded-md bg-white/10 px-3 text-slate-100 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {intl.formatMessage({ id: "app.previous" })}
+            </button>
+            <button
+              type="button"
+              disabled={!canGoNext || requestsQuery.isFetching}
+              onClick={() => setPage((value) => value + 1)}
+              className="h-8 rounded-md bg-white/10 px-3 text-slate-100 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {intl.formatMessage({ id: "app.next" })}
+            </button>
+          </div>
+        </footer>
       </section>
     </div>
   );

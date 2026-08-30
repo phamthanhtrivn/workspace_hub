@@ -45,6 +45,7 @@ interface OpenParticipantMenu {
 const PARTICIPANT_MENU_WIDTH = 208;
 const PARTICIPANT_MENU_PADDING = 8;
 const PARTICIPANT_MENU_ROW_HEIGHT = 40;
+const PARTICIPANTS_PAGE_SIZE = 10;
 
 export function MeetingParticipantsModal({
   connectedParticipantIds,
@@ -54,6 +55,7 @@ export function MeetingParticipantsModal({
   const intl = useAppIntl();
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [openMenu, setOpenMenu] = useState<OpenParticipantMenu | null>(null);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const currentUserId = meeting.currentParticipant?.userId;
@@ -61,7 +63,11 @@ export function MeetingParticipantsModal({
   const canCurrentUserModerate = canModerateMeeting(meeting);
   const participantsQuery = useMeetingParticipantsQuery(
     meeting.id,
-    debouncedSearch,
+    {
+      search: debouncedSearch,
+      page,
+      limit: PARTICIPANTS_PAGE_SIZE,
+    },
     true,
   );
   const updateRole = useUpdateMeetingParticipantRoleMutation(
@@ -73,15 +79,21 @@ export function MeetingParticipantsModal({
     meeting.joinToken,
   );
   const participants = useMemo(
-    () => participantsQuery.data?.data ?? [],
-    [participantsQuery.data?.data],
+    () => participantsQuery.data?.data.items ?? [],
+    [participantsQuery.data?.data.items],
   );
+  const pagination = participantsQuery.data?.data.pagination;
+  const totalParticipants = pagination?.total ?? participants.length;
+  const totalPages = pagination?.totalPages ?? 0;
+  const canGoPrevious = page > 1;
+  const canGoNext = totalPages > page;
   const actionUserId =
     updateRole.variables?.userId ?? removeParticipant.variables ?? null;
   const isActionPending = updateRole.isPending || removeParticipant.isPending;
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
+      setPage(1);
       setDebouncedSearch(searchInput.trim());
     }, 250);
 
@@ -138,6 +150,11 @@ export function MeetingParticipantsModal({
 
   const handleRemoveParticipant = (userId: string) => {
     removeParticipant.mutate(userId, {
+      onSuccess: () => {
+        if (sortedParticipants.length === 1 && page > 1) {
+          setPage((value) => Math.max(1, value - 1));
+        }
+      },
       onError: () =>
         toast.error(
           intl.formatMessage({ id: "meeting.room.participants.actionFailed" }),
@@ -182,7 +199,7 @@ export function MeetingParticipantsModal({
             <p className="mt-1 text-xs font-semibold text-slate-400">
               {intl.formatMessage(
                 { id: "meeting.room.participants.count" },
-                { count: participants.length },
+                { count: totalParticipants },
               )}
             </p>
           </div>
@@ -332,6 +349,37 @@ export function MeetingParticipantsModal({
             </div>
           )}
         </div>
+
+        <footer className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3 text-xs font-bold text-slate-300">
+          <span>
+            {intl.formatMessage(
+              { id: "meeting.pagination.summary" },
+              {
+                page: totalPages === 0 ? 0 : page,
+                totalPages,
+                total: totalParticipants,
+              },
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={!canGoPrevious || participantsQuery.isFetching}
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              className="h-8 rounded-md bg-white/10 px-3 text-slate-100 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {intl.formatMessage({ id: "app.previous" })}
+            </button>
+            <button
+              type="button"
+              disabled={!canGoNext || participantsQuery.isFetching}
+              onClick={() => setPage((value) => value + 1)}
+              className="h-8 rounded-md bg-white/10 px-3 text-slate-100 hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {intl.formatMessage({ id: "app.next" })}
+            </button>
+          </div>
+        </footer>
       </section>
 
       {portalTarget &&

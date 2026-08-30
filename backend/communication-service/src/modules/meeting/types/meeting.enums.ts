@@ -13,6 +13,7 @@ export enum MeetingSuccessMessage {
   JOIN_REQUESTS_LISTED = 'Join requests retrieved successfully',
   PARTICIPANTS_LISTED = 'Meeting participants retrieved successfully',
   JOIN_APPROVED = 'Join request approved successfully',
+  JOIN_REQUESTS_APPROVED = 'Join requests approved successfully',
   JOIN_REJECTED = 'Join request rejected successfully',
   PARTICIPANT_ROLE_UPDATED = 'Meeting participant role updated successfully',
   PARTICIPANT_REMOVED = 'Meeting participant removed successfully',
@@ -42,6 +43,8 @@ export enum MeetingErrorMessage {
 export enum MeetingDefault {
   ROOM_PREFIX = 'meeting',
   LIVEKIT_TOKEN_TTL_SECONDS = 21600,
+  LIST_PAGE_SIZE = 10,
+  LIST_MAX_PAGE_SIZE = 50,
 }
 
 export enum MeetingSocketRoomPrefix {

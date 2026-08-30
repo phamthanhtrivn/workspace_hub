@@ -7,6 +7,29 @@ export type MeetingParticipantWithProfile = MeetingParticipant & {
 
 export type MeetingParticipantPayload = MeetingParticipantWithProfile;
 
+export interface MeetingPaginationQuery {
+  search?: string;
+  page?: string;
+  limit?: string;
+}
+
+export interface MeetingPaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface PaginatedMeetingParticipantsResponse {
+  items: MeetingParticipantWithProfile[];
+  pagination: MeetingPaginationMeta;
+}
+
+export interface ApproveAllMeetingJoinRequestsResponse {
+  approvedCount: number;
+  participants: MeetingParticipantWithProfile[];
+}
+
 export type MeetingWithParticipantsAndPendingCountRaw =
   Prisma.MeetingGetPayload<{
     include: {

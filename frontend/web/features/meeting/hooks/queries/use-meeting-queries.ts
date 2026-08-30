@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
+  approveAllMeetingJoinRequests,
   approveMeetingJoinRequest,
   createInstantMeeting,
   endMeeting,
@@ -19,6 +20,7 @@ import {
 import { meetingKeys } from "../../types/meeting.constants";
 import {
   CreateInstantMeetingRequest,
+  MeetingListQueryParams,
   MeetingRole,
   UpdateMeetingAccessRequest,
   UpdateMeetingParticipantRoleRequest,
@@ -44,11 +46,17 @@ export function useMeetingJoinInfoQuery(joinToken: string) {
 
 export function useMeetingJoinRequestsQuery(
   meetingId: string | undefined,
+  params: MeetingListQueryParams,
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: meetingKeys.requests(meetingId ?? ""),
-    queryFn: () => getMeetingJoinRequests(meetingId ?? ""),
+    queryKey: meetingKeys.requests(
+      meetingId ?? "",
+      params.search ?? "",
+      params.page ?? 1,
+      params.limit ?? 10,
+    ),
+    queryFn: () => getMeetingJoinRequests(meetingId ?? "", params),
     enabled: Boolean(meetingId) && enabled,
     refetchInterval: enabled ? 15_000 : false,
   });
@@ -56,12 +64,17 @@ export function useMeetingJoinRequestsQuery(
 
 export function useMeetingParticipantsQuery(
   meetingId: string | undefined,
-  search: string,
+  params: MeetingListQueryParams,
   enabled: boolean,
 ) {
   return useQuery({
-    queryKey: meetingKeys.participants(meetingId ?? "", search),
-    queryFn: () => getMeetingParticipants(meetingId ?? "", search),
+    queryKey: meetingKeys.participants(
+      meetingId ?? "",
+      params.search ?? "",
+      params.page ?? 1,
+      params.limit ?? 10,
+    ),
+    queryFn: () => getMeetingParticipants(meetingId ?? "", params),
     enabled: Boolean(meetingId) && enabled,
   });
 }
@@ -115,7 +128,27 @@ export function useApproveMeetingJoinRequestMutation(meetingId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       void queryClient.invalidateQueries({
-        queryKey: meetingKeys.requests(meetingId),
+        queryKey: meetingKeys.requestsRoot(meetingId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(meetingId),
+      });
+    },
+  });
+}
+
+export function useApproveAllMeetingJoinRequestsMutation(meetingId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => approveAllMeetingJoinRequests(meetingId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requestsRoot(meetingId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(meetingId),
       });
     },
   });
@@ -129,7 +162,7 @@ export function useRejectMeetingJoinRequestMutation(meetingId: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       void queryClient.invalidateQueries({
-        queryKey: meetingKeys.requests(meetingId),
+        queryKey: meetingKeys.requestsRoot(meetingId),
       });
     },
   });
@@ -163,7 +196,7 @@ export function useLeaveMeetingMutation(meetingId: string, joinToken?: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       void queryClient.invalidateQueries({
-        queryKey: meetingKeys.requests(meetingId),
+        queryKey: meetingKeys.requestsRoot(meetingId),
       });
       if (joinToken) {
         void queryClient.invalidateQueries({
@@ -182,7 +215,7 @@ export function useEndMeetingMutation(meetingId: string, joinToken?: string) {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       void queryClient.invalidateQueries({
-        queryKey: meetingKeys.requests(meetingId),
+        queryKey: meetingKeys.requestsRoot(meetingId),
       });
       if (joinToken) {
         void queryClient.invalidateQueries({

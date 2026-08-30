@@ -10,6 +10,8 @@ export const meetingApiRoutes = {
   joinInfo: (joinToken: string) => `${MeetingApiRoute.ROOT}/join/${joinToken}`,
   joinRequests: (meetingId: string) =>
     `${MeetingApiRoute.ROOT}/${meetingId}/join-requests`,
+  approveAllJoinRequests: (meetingId: string) =>
+    `${MeetingApiRoute.ROOT}/${meetingId}/join-requests/approve-all`,
   approveJoinRequest: (meetingId: string, userId: string) =>
     `${MeetingApiRoute.ROOT}/${meetingId}/join-requests/${userId}/approve`,
   rejectJoinRequest: (meetingId: string, userId: string) =>
@@ -43,10 +45,20 @@ export const meetingKeys = {
   all: [MeetingQueryRoot.MEETINGS] as const,
   join: (joinToken: string) =>
     [MeetingQueryRoot.JOIN, joinToken] as const,
-  requests: (meetingId: string) =>
+  requests: (
+    meetingId: string,
+    search = "",
+    page = 1,
+    limit = 10,
+  ) => [MeetingQueryRoot.REQUESTS, meetingId, search, page, limit] as const,
+  requestsRoot: (meetingId: string) =>
     [MeetingQueryRoot.REQUESTS, meetingId] as const,
-  participants: (meetingId: string, search: string) =>
-    [MeetingQueryRoot.PARTICIPANTS, meetingId, search] as const,
+  participants: (
+    meetingId: string,
+    search = "",
+    page = 1,
+    limit = 10,
+  ) => [MeetingQueryRoot.PARTICIPANTS, meetingId, search, page, limit] as const,
   participantsRoot: (meetingId: string) =>
     [MeetingQueryRoot.PARTICIPANTS, meetingId] as const,
   liveKitToken: (meetingId: string) =>

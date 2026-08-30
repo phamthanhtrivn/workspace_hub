@@ -66,7 +66,7 @@ export function useMeetingSocket(
 
       void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
       void queryClient.invalidateQueries({
-        queryKey: meetingKeys.requests(meetingId),
+        queryKey: meetingKeys.requestsRoot(meetingId),
       });
       void queryClient.invalidateQueries({
         queryKey: meetingKeys.participantsRoot(meetingId),

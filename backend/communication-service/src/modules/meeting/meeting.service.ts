@@ -37,8 +37,12 @@ import {
 import {
   MeetingResponse,
   MeetingWithParticipantsAndPendingCountRaw,
+  ApproveAllMeetingJoinRequestsResponse,
   MeetingLiveKitTokenResponse,
+  MeetingPaginationMeta,
+  MeetingPaginationQuery,
   MeetingParticipantWithProfile,
+  PaginatedMeetingParticipantsResponse,
   RequestJoinMeetingResult,
 } from './types/meeting.types';
 
@@ -117,9 +121,7 @@ export class MeetingService {
   }
 
   private isMeetingModeratorRole(role: PrismaMeetingRole) {
-    return (
-      role === PrismaMeetingRole.HOST || role === PrismaMeetingRole.COHOST
-    );
+    return role === PrismaMeetingRole.HOST || role === PrismaMeetingRole.COHOST;
   }
 
   private async getMeetingOrThrow(meetingId: string): Promise<Meeting> {
@@ -167,6 +169,97 @@ export class MeetingService {
     return this.userProfileSnapshotService.attachProfilesToMembers(
       participants,
     );
+  }
+
+  private normalizePagination(query?: MeetingPaginationQuery) {
+    const parsedPage = Number(query?.page);
+    const parsedLimit = Number(query?.limit);
+    const page =
+      Number.isFinite(parsedPage) && parsedPage > 0
+        ? Math.floor(parsedPage)
+        : 1;
+    const requestedLimit =
+      Number.isFinite(parsedLimit) && parsedLimit > 0
+        ? Math.floor(parsedLimit)
+        : MeetingDefault.LIST_PAGE_SIZE;
+    const limit = Math.min(requestedLimit, MeetingDefault.LIST_MAX_PAGE_SIZE);
+
+    return {
+      page,
+      limit,
+      skip: (page - 1) * limit,
+      search: query?.search?.trim() || undefined,
+    };
+  }
+
+  private buildPaginationMeta(
+    total: number,
+    page: number,
+    limit: number,
+  ): MeetingPaginationMeta {
+    return {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  private async findMeetingSearchUserIds(search?: string) {
+    if (!search) return undefined;
+
+    const snapshots = await this.prisma.userProfileSnapshot.findMany({
+      where: {
+        OR: [
+          {
+            fullName: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            email: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+      select: { userId: true },
+    });
+
+    return snapshots.map((snapshot) => snapshot.userId);
+  }
+
+  private async getPaginatedMeetingParticipants(
+    meetingId: string,
+    status: MeetingParticipantStatusValue,
+    query?: MeetingPaginationQuery,
+  ): Promise<PaginatedMeetingParticipantsResponse> {
+    const { page, limit, skip, search } = this.normalizePagination(query);
+    const matchedUserIds = await this.findMeetingSearchUserIds(search);
+    const where: Prisma.MeetingParticipantWhereInput = {
+      meetingId,
+      status,
+      ...(matchedUserIds ? { userId: { in: matchedUserIds } } : {}),
+    };
+    const [total, participants] = await this.prisma.$transaction([
+      this.prisma.meetingParticipant.count({ where }),
+      this.prisma.meetingParticipant.findMany({
+        where,
+        orderBy:
+          status === MeetingParticipantStatusValue.JOINED
+            ? [{ role: 'asc' }, { updatedAt: 'asc' }]
+            : { updatedAt: 'asc' },
+        skip,
+        take: limit,
+      }),
+    ]);
+
+    return {
+      items: await this.enrichParticipants(participants),
+      pagination: this.buildPaginationMeta(total, page, limit),
+    };
   }
 
   private async removeLiveKitParticipant(roomName: string, userId: string) {
@@ -370,7 +463,8 @@ export class MeetingService {
       },
     );
     const wasAlreadyApproved =
-      existingParticipant?.status === PrismaMeetingParticipantStatus.JOINED;
+      existingParticipant?.status === PrismaMeetingParticipantStatus.JOINED ||
+      existingParticipant?.status === PrismaMeetingParticipantStatus.LEFT;
     if (
       existingParticipant?.status === PrismaMeetingParticipantStatus.REMOVED
     ) {
@@ -453,54 +547,15 @@ export class MeetingService {
   async getMeetingParticipants(
     meetingId: string,
     userId: string,
-    search?: string,
-  ): Promise<MeetingParticipantWithProfile[]> {
+    query?: MeetingPaginationQuery,
+  ): Promise<PaginatedMeetingParticipantsResponse> {
     await this.getMeetingOrThrow(meetingId);
     await this.assertApprovedParticipant(meetingId, userId);
 
-    const participants = await this.prisma.meetingParticipant.findMany({
-      where: {
-        meetingId,
-        status: MeetingParticipantStatusValue.JOINED,
-      },
-      orderBy: [{ role: 'asc' }, { updatedAt: 'asc' }],
-    });
-
-    const normalizedSearch = search?.trim();
-    if (!normalizedSearch) {
-      return this.enrichParticipants(participants);
-    }
-
-    const snapshots = await this.prisma.userProfileSnapshot.findMany({
-      where: {
-        userId: {
-          in: participants.map((participant) => participant.userId),
-        },
-        OR: [
-          {
-            fullName: {
-              contains: normalizedSearch,
-              mode: 'insensitive',
-            },
-          },
-          {
-            email: {
-              contains: normalizedSearch,
-              mode: 'insensitive',
-            },
-          },
-        ],
-      },
-      select: { userId: true },
-    });
-    const matchedUserIds = new Set(
-      snapshots.map((snapshot) => snapshot.userId),
-    );
-
-    return this.enrichParticipants(
-      participants.filter((participant) =>
-        matchedUserIds.has(participant.userId),
-      ),
+    return this.getPaginatedMeetingParticipants(
+      meetingId,
+      MeetingParticipantStatusValue.JOINED,
+      query,
     );
   }
 
@@ -709,16 +764,14 @@ export class MeetingService {
   async getJoinRequests(
     meetingId: string,
     userId: string,
-  ): Promise<MeetingParticipantWithProfile[]> {
+    query?: MeetingPaginationQuery,
+  ): Promise<PaginatedMeetingParticipantsResponse> {
     await this.assertMeetingModerator(meetingId, userId);
-    const participants = await this.prisma.meetingParticipant.findMany({
-      where: {
-        meetingId,
-        status: MeetingParticipantStatusValue.REQUESTED,
-      },
-      orderBy: { updatedAt: 'asc' },
-    });
-    return this.enrichParticipants(participants);
+    return this.getPaginatedMeetingParticipants(
+      meetingId,
+      MeetingParticipantStatusValue.REQUESTED,
+      query,
+    );
   }
 
   async approveJoinRequest(
@@ -749,20 +802,36 @@ export class MeetingService {
       throw new NotFoundException(MeetingErrorMessage.REQUEST_NOT_FOUND);
     }
 
-    const updatedParticipant = await this.prisma.meetingParticipant.update({
-      where: {
-        meetingId_userId: {
-          meetingId,
-          userId: requesterId,
-        },
+    const now = new Date();
+    const updatedParticipant = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const approvedParticipant = await tx.meetingParticipant.update({
+          where: {
+            meetingId_userId: {
+              meetingId,
+              userId: requesterId,
+            },
+          },
+          data: {
+            status: MeetingParticipantStatusValue.JOINED,
+            joinedAt: now,
+            lastSeenAt: now,
+            leftAt: null,
+          },
+        });
+
+        await tx.meetingEvent.create({
+          data: {
+            meetingId,
+            actorId: requesterId,
+            type: MeetingEventTypeValue.PARTICIPANT_JOINED,
+            metadata: { approvedBy: hostId },
+          },
+        });
+
+        return approvedParticipant;
       },
-      data: {
-        status: MeetingParticipantStatusValue.JOINED,
-        joinedAt: new Date(),
-        lastSeenAt: new Date(),
-        leftAt: null,
-      },
-    });
+    );
 
     const [enrichedParticipant] = await this.enrichParticipants([
       updatedParticipant,
@@ -774,6 +843,79 @@ export class MeetingService {
       enrichedParticipant,
     );
     return enrichedParticipant;
+  }
+
+  async approveAllJoinRequests(
+    meetingId: string,
+    hostId: string,
+  ): Promise<ApproveAllMeetingJoinRequestsResponse> {
+    await this.assertMeetingModerator(meetingId, hostId);
+
+    const now = new Date();
+    const approvedParticipants = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const pendingParticipants = await tx.meetingParticipant.findMany({
+          where: {
+            meetingId,
+            status: MeetingParticipantStatusValue.REQUESTED,
+            userId: { not: hostId },
+          },
+        });
+        const pendingUserIds = pendingParticipants.map(
+          (participant) => participant.userId,
+        );
+
+        if (pendingUserIds.length === 0) {
+          return [];
+        }
+
+        await tx.meetingParticipant.updateMany({
+          where: {
+            meetingId,
+            userId: { in: pendingUserIds },
+            status: MeetingParticipantStatusValue.REQUESTED,
+          },
+          data: {
+            status: MeetingParticipantStatusValue.JOINED,
+            joinedAt: now,
+            lastSeenAt: now,
+            leftAt: null,
+          },
+        });
+
+        await tx.meetingEvent.createMany({
+          data: pendingUserIds.map((pendingUserId) => ({
+            meetingId,
+            actorId: pendingUserId,
+            type: MeetingEventTypeValue.PARTICIPANT_JOINED,
+            metadata: { approvedBy: hostId },
+          })),
+        });
+
+        return tx.meetingParticipant.findMany({
+          where: {
+            meetingId,
+            userId: { in: pendingUserIds },
+          },
+        });
+      },
+    );
+
+    const enrichedParticipants =
+      await this.enrichParticipants(approvedParticipants);
+
+    enrichedParticipants.forEach((participant) => {
+      this.chatGateway.emitMeetingJoinApproved(
+        meetingId,
+        participant.userId,
+        participant,
+      );
+    });
+
+    return {
+      approvedCount: enrichedParticipants.length,
+      participants: enrichedParticipants,
+    };
   }
 
   async rejectJoinRequest(

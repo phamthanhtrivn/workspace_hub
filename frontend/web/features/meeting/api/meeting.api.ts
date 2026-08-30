@@ -5,9 +5,12 @@ import {
 } from "../types/meeting.constants";
 import {
   ApiResponse,
+  ApproveAllMeetingJoinRequestsResponse,
   CreateInstantMeetingRequest,
+  MeetingListQueryParams,
   MeetingLiveKitTokenResponse,
   MeetingParticipant,
+  PaginatedMeetingParticipantsResponse,
   MeetingResponse,
   RequestJoinMeetingResponse,
   UpdateMeetingAccessRequest,
@@ -43,9 +46,14 @@ export async function requestJoinMeeting(
 
 export async function getMeetingJoinRequests(
   meetingId: string,
-): Promise<ApiResponse<MeetingParticipant[]>> {
-  const response = await api.get(meetingApiRoutes.joinRequests(meetingId));
-  return normalizeMeetingResponse<MeetingParticipant[]>(response.data);
+  params?: MeetingListQueryParams,
+): Promise<ApiResponse<PaginatedMeetingParticipantsResponse>> {
+  const response = await api.get(meetingApiRoutes.joinRequests(meetingId), {
+    params: buildMeetingListParams(params),
+  });
+  return normalizeMeetingResponse<PaginatedMeetingParticipantsResponse>(
+    response.data,
+  );
 }
 
 export async function approveMeetingJoinRequest(
@@ -56,6 +64,17 @@ export async function approveMeetingJoinRequest(
     meetingApiRoutes.approveJoinRequest(meetingId, userId),
   );
   return normalizeMeetingResponse<MeetingParticipant>(response.data);
+}
+
+export async function approveAllMeetingJoinRequests(
+  meetingId: string,
+): Promise<ApiResponse<ApproveAllMeetingJoinRequestsResponse>> {
+  const response = await api.post(
+    meetingApiRoutes.approveAllJoinRequests(meetingId),
+  );
+  return normalizeMeetingResponse<ApproveAllMeetingJoinRequestsResponse>(
+    response.data,
+  );
 }
 
 export async function rejectMeetingJoinRequest(
@@ -78,12 +97,14 @@ export async function updateMeetingAccess(
 
 export async function getMeetingParticipants(
   meetingId: string,
-  search: string,
-): Promise<ApiResponse<MeetingParticipant[]>> {
+  params?: MeetingListQueryParams,
+): Promise<ApiResponse<PaginatedMeetingParticipantsResponse>> {
   const response = await api.get(meetingApiRoutes.participants(meetingId), {
-    params: search ? { search } : undefined,
+    params: buildMeetingListParams(params),
   });
-  return normalizeMeetingResponse<MeetingParticipant[]>(response.data);
+  return normalizeMeetingResponse<PaginatedMeetingParticipantsResponse>(
+    response.data,
+  );
 }
 
 export async function updateMeetingParticipantRole(
@@ -127,4 +148,14 @@ export async function getMeetingLiveKitToken(
 ): Promise<ApiResponse<MeetingLiveKitTokenResponse>> {
   const response = await api.post(meetingApiRoutes.liveKitToken(meetingId));
   return normalizeMeetingResponse<MeetingLiveKitTokenResponse>(response.data);
+}
+
+function buildMeetingListParams(params?: MeetingListQueryParams) {
+  const search = params?.search?.trim();
+
+  return {
+    ...(search ? { search } : {}),
+    ...(params?.page ? { page: params.page } : {}),
+    ...(params?.limit ? { limit: params.limit } : {}),
+  };
 }

@@ -18,6 +18,7 @@ import {
   MeetingErrorMessage,
   MeetingSuccessMessage,
 } from './types/meeting.enums';
+import type { MeetingPaginationQuery } from './types/meeting.types';
 
 @Controller('api/meetings')
 export class MeetingController {
@@ -99,6 +100,7 @@ export class MeetingController {
   async getJoinRequests(
     @Headers('x-user-id') userId: string,
     @Param('meetingId') meetingId: string,
+    @Query() query: MeetingPaginationQuery,
   ) {
     if (!userId) {
       throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
@@ -109,10 +111,32 @@ export class MeetingController {
     const requests = await this.meetingService.getJoinRequests(
       meetingId,
       userId,
+      query,
     );
     return {
       message: MeetingSuccessMessage.JOIN_REQUESTS_LISTED,
       data: requests,
+    };
+  }
+
+  @Post(':meetingId/join-requests/approve-all')
+  async approveAllJoinRequests(
+    @Headers('x-user-id') hostId: string,
+    @Param('meetingId') meetingId: string,
+  ) {
+    if (!hostId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    const result = await this.meetingService.approveAllJoinRequests(
+      meetingId,
+      hostId,
+    );
+    return {
+      message: MeetingSuccessMessage.JOIN_REQUESTS_APPROVED,
+      data: result,
     };
   }
 
@@ -180,7 +204,7 @@ export class MeetingController {
   async getMeetingParticipants(
     @Headers('x-user-id') userId: string,
     @Param('meetingId') meetingId: string,
-    @Query('search') search?: string,
+    @Query() query: MeetingPaginationQuery,
   ) {
     if (!userId) {
       throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
@@ -191,7 +215,7 @@ export class MeetingController {
     const participants = await this.meetingService.getMeetingParticipants(
       meetingId,
       userId,
-      search,
+      query,
     );
     return {
       message: MeetingSuccessMessage.PARTICIPANTS_LISTED,
