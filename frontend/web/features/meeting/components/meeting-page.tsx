@@ -1,32 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { useAppSelector } from "@/store/store";
-import { useMeetingClock, useMeetingSocket, useMeetingsQuery } from "../hooks";
-import { MeetingSidebar } from "./sidebar/meeting-sidebar";
 import { MeetingHero } from "./common/meeting-hero";
-import { MeetingDashboardActionId, meetingDashboardActions } from "../types";
 import { MeetingActionTile } from "./common/meeting-action-tile";
-import { InstantMeetingModal } from "./instant/instant-meeting-modal";
-import { isMeetingHost } from "../utils/meeting.utils";
+import { meetingDashboardActions } from "../types/meeting.constants";
+import { useMeetingClock } from "../hooks/use-meeting-clock";
+import { MeetingSidebar } from "./meeting-sidebar";
 
 export function MeetingPage() {
   const intl = useAppIntl();
-  const currentUserId = useAppSelector((state) => state.auth.userId);
-  const meetingsQuery = useMeetingsQuery();
-  const meetings = useMemo(
-    () => meetingsQuery.data?.data ?? [],
-    [meetingsQuery.data?.data],
-  );
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-
-  const firstHostMeeting = useMemo(
-    () => meetings.find((meeting) => isMeetingHost(meeting, currentUserId)),
-    [currentUserId, meetings],
-  );
-
-  useMeetingSocket(firstHostMeeting?.id);
   const clock = useMeetingClock();
 
   return (
@@ -38,7 +20,7 @@ export function MeetingPage() {
           <MeetingHero
             dateLabel={clock.dateLabel}
             timeLabel={clock.timeLabel}
-            liveMeetingCount={meetings.length}
+            liveMeetingCount={2}
           />
 
           <section
@@ -55,22 +37,12 @@ export function MeetingPage() {
                 descriptionId={action.descriptionId}
                 tone={action.tone}
                 enabled={action.enabled}
-                onClick={
-                  action.id === MeetingDashboardActionId.NEW_MEETING
-                    ? () => setIsCreateOpen(true)
-                    : undefined
-                }
               />
             ))}
           </section>
 
         </div>
       </section>
-
-      <InstantMeetingModal
-        open={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-      />
     </div>
   );
 }

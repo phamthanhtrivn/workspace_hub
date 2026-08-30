@@ -1,8 +1,5 @@
 version: '3.8'
 
-include:
-  - path: ../livekit/docker-compose.yml
-
 services:
   kong:
     build: 

@@ -532,9 +532,8 @@ model Meeting {
   startedAt                DateTime?               @map("started_at")
   endedAt                  DateTime?               @map("ended_at")
   cancelledAt              DateTime?               @map("cancelled_at")
-  hasPassword              Boolean                 @default(false) @map("has_password")
   passwordHash             String?                 @map("password_hash")
-  allowJoinWithoutApproval Boolean                 @default(false) @map("allow_join_without_approval")
+  autoAdmit                Boolean                 @default(false) @map("auto_admit")
   createdAt                DateTime                @default(now()) @map("created_at")
   updatedAt                DateTime                @updatedAt @map("updated_at")
 
@@ -614,7 +613,6 @@ model MeetingRecording {
   startedAt       DateTime               @default(now()) @map("started_at")
   stoppedAt       DateTime?              @map("stopped_at")
   completedAt     DateTime?              @map("completed_at")
-  errorMessage    String?                @map("error_message")
 
   meeting         Meeting                @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 

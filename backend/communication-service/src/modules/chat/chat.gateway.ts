@@ -8,11 +8,7 @@ import {
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import {
-  MessageType,
-  MeetingParticipantStatus,
-  MeetingRole,
-} from '@prisma/client';
+import { MessageType } from '@prisma/client';
 import {
   ChatEvent,
   CHAT_CONTEXT_TYPE,
@@ -25,22 +21,6 @@ import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { PollService } from '../poll/poll.service';
 import { NoteService } from '../note/note.service';
 import { DirectMessageService } from '../direct-message/direct-message.service';
-import { MeetingSocketEvent } from '../meeting/meeting.events';
-import {
-  MeetingAccessUpdatedPayload,
-  MeetingEndedPayload,
-  MeetingJoinDecisionPayload,
-  MeetingParticipantPayload,
-  MeetingParticipantLeftPayload,
-  MeetingJoinRequestPayload,
-  MeetingParticipantRemovedPayload,
-  MeetingParticipantRoleUpdatedPayload,
-} from '../meeting/types/meeting.types';
-import {
-  getMeetingHostRoom,
-  getMeetingUserRoom,
-} from '../meeting/utils/meeting-room.util';
-import { PrismaService } from '../../prisma/prisma.service';
 
 @WebSocketGateway({
   path: '/communication.io',
@@ -58,7 +38,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly directMessageService: DirectMessageService,
     private readonly pollService: PollService,
     private readonly noteService: NoteService,
-    private readonly prisma: PrismaService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -82,71 +61,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(_: Socket) {}
-
-  @SubscribeMessage(MeetingSocketEvent.JOIN_CONTROL_ROOM)
-  async handleJoinMeetingControlRoom(
-    @MessageBody() data: { meetingId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const userId = client.data.userId;
-    if (!userId || !data.meetingId) return;
-
-    client.join(getMeetingUserRoom(data.meetingId, userId));
-    if (await this.canJoinMeetingHostRoom(data.meetingId, userId)) {
-      client.join(getMeetingHostRoom(data.meetingId));
-    }
-
-    return {
-      status: CHAT_RESPONSE_STATUS.JOINED,
-      meetingId: data.meetingId,
-    };
-  }
-
-  @SubscribeMessage(MeetingSocketEvent.LEAVE_CONTROL_ROOM)
-  handleLeaveMeetingControlRoom(
-    @MessageBody() data: { meetingId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const userId = client.data.userId;
-    if (!userId || !data.meetingId) return;
-
-    client.leave(getMeetingHostRoom(data.meetingId));
-    client.leave(getMeetingUserRoom(data.meetingId, userId));
-
-    return {
-      status: CHAT_RESPONSE_STATUS.SUCCESS,
-      meetingId: data.meetingId,
-    };
-  }
-
-  private async canJoinMeetingHostRoom(meetingId: string, userId: string) {
-    const meeting = await this.prisma.meeting.findUnique({
-      where: { id: meetingId },
-      select: {
-        hostId: true,
-        participants: {
-          where: { userId },
-          select: { role: true, status: true },
-          take: 1,
-        },
-      },
-    });
-    if (!meeting) return false;
-    if (meeting.hostId === userId) return true;
-
-    const participant = meeting.participants[0];
-    return (
-      participant?.status === MeetingParticipantStatus.JOINED &&
-      (participant.role === MeetingRole.HOST ||
-        participant.role === MeetingRole.COHOST)
-    );
-  }
-
-  private getMeetingUserRooms(meetingId: string, userIds: string[]) {
-    return Array.from(new Set(userIds)).map((userId) =>
-      getMeetingUserRoom(meetingId, userId),
-    );
-  }
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
   handleJoinConversation(
@@ -857,142 +771,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   emitMemberJoin(targetRooms: string[], payload: any) {
     this.server.to(targetRooms).emit(ChatEvent.JOIN_CONVERSATION, payload);
-  }
-
-  emitMeetingJoinRequested(
-    meetingId: string,
-    userId: string,
-    participant: MeetingParticipantPayload,
-  ) {
-    const payload: MeetingJoinRequestPayload = {
-      meetingId,
-      userId,
-      participant,
-    };
-    this.server.to([
-      getMeetingHostRoom(meetingId),
-      getMeetingUserRoom(meetingId, userId),
-    ]).emit(MeetingSocketEvent.JOIN_REQUESTED, payload);
-  }
-
-  emitMeetingJoinApproved(
-    meetingId: string,
-    userId: string,
-    participant: MeetingParticipantPayload,
-  ) {
-    const payload: MeetingJoinDecisionPayload = {
-      meetingId,
-      userId,
-      participant,
-    };
-    this.server.to([
-      getMeetingHostRoom(meetingId),
-      getMeetingUserRoom(meetingId, userId),
-    ]).emit(MeetingSocketEvent.JOIN_APPROVED, payload);
-  }
-
-  emitMeetingJoinRejected(
-    meetingId: string,
-    userId: string,
-    participant: MeetingParticipantPayload,
-  ) {
-    const payload: MeetingJoinDecisionPayload = {
-      meetingId,
-      userId,
-      participant,
-    };
-    this.server.to([
-      getMeetingHostRoom(meetingId),
-      getMeetingUserRoom(meetingId, userId),
-    ]).emit(MeetingSocketEvent.JOIN_REJECTED, payload);
-  }
-
-  emitMeetingAccessUpdated(
-    meetingId: string,
-    allowJoinWithoutApproval: boolean,
-  ) {
-    const payload: MeetingAccessUpdatedPayload = {
-      meetingId,
-      allowJoinWithoutApproval,
-    };
-    this.server
-      .to(getMeetingHostRoom(meetingId))
-      .emit(MeetingSocketEvent.ACCESS_UPDATED, payload);
-  }
-
-  emitMeetingParticipantLeft(
-    meetingId: string,
-    userId: string,
-    participant: MeetingParticipantPayload,
-  ) {
-    const payload: MeetingParticipantLeftPayload = {
-      meetingId,
-      userId,
-      participant,
-    };
-    this.server
-      .to([
-        getMeetingHostRoom(meetingId),
-        getMeetingUserRoom(meetingId, userId),
-      ])
-      .emit(MeetingSocketEvent.PARTICIPANT_LEFT, payload);
-  }
-
-  emitMeetingParticipantRoleUpdated(
-    meetingId: string,
-    userId: string,
-    participant: MeetingParticipantPayload,
-  ) {
-    const payload: MeetingParticipantRoleUpdatedPayload = {
-      meetingId,
-      userId,
-      participant,
-    };
-    const targetUserRoom = getMeetingUserRoom(meetingId, userId);
-    const targetHostRoom = getMeetingHostRoom(meetingId);
-
-    if (
-      participant.status === MeetingParticipantStatus.JOINED &&
-      (participant.role === MeetingRole.HOST ||
-        participant.role === MeetingRole.COHOST)
-    ) {
-      this.server.in(targetUserRoom).socketsJoin(targetHostRoom);
-    } else {
-      this.server.in(targetUserRoom).socketsLeave(targetHostRoom);
-    }
-
-    this.server
-      .to([targetHostRoom, targetUserRoom])
-      .emit(MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED, payload);
-  }
-
-  emitMeetingParticipantRemoved(
-    meetingId: string,
-    userId: string,
-    participant: MeetingParticipantPayload,
-  ) {
-    const payload: MeetingParticipantRemovedPayload = {
-      meetingId,
-      userId,
-      participant,
-    };
-    this.server.to([
-      getMeetingHostRoom(meetingId),
-      getMeetingUserRoom(meetingId, userId),
-    ]).emit(MeetingSocketEvent.PARTICIPANT_REMOVED, payload);
-  }
-
-  emitMeetingEnded(meetingId: string, endedBy: string, userIds: string[]) {
-    const payload: MeetingEndedPayload = {
-      meetingId,
-      endedBy,
-    };
-    this.server
-      .to([
-        getMeetingHostRoom(meetingId),
-        ...this.getMeetingUserRooms(meetingId, userIds),
-      ])
-      .emit(MeetingSocketEvent.MEETING_ENDED, payload);
   }
 
   @SubscribeMessage(ChatEvent.PIN_MESSAGE)

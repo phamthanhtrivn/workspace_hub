@@ -1,95 +1,4 @@
 import { CalendarDays, History, Plus, Radio, UserRoundPlus, Video } from "lucide-react";
-import { MeetingParticipantStatus } from "./meeting.types";
-
-export enum MeetingApiRoute {
-  ROOT = "/api/meetings",
-  INSTANT = "/api/meetings/instant",
-}
-
-export const meetingApiRoutes = {
-  joinInfo: (joinToken: string) => `${MeetingApiRoute.ROOT}/join/${joinToken}`,
-  joinRequests: (meetingId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/join-requests`,
-  approveAllJoinRequests: (meetingId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/join-requests/approve-all`,
-  approveJoinRequest: (meetingId: string, userId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/join-requests/${userId}/approve`,
-  rejectJoinRequest: (meetingId: string, userId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/join-requests/${userId}/reject`,
-  access: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/access`,
-  participants: (meetingId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/participants`,
-  participantRole: (meetingId: string, userId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/participants/${userId}/role`,
-  removeParticipant: (meetingId: string, userId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/participants/${userId}/remove`,
-  leave: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/leave`,
-  end: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/end`,
-  liveKitToken: (meetingId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/livekit-token`,
-  liveKitConnected: (meetingId: string) =>
-    `${MeetingApiRoute.ROOT}/${meetingId}/livekit-connected`,
-};
-
-export enum MeetingRouteSegment {
-  MEETINGS = "meetings",
-}
-
-export enum MeetingQueryRoot {
-  MEETINGS = "meetings",
-  JOIN = "meeting-join",
-  REQUESTS = "meeting-join-requests",
-  PARTICIPANTS = "meeting-participants",
-  LIVEKIT_TOKEN = "meeting-livekit-token",
-}
-
-export const meetingKeys = {
-  all: [MeetingQueryRoot.MEETINGS] as const,
-  join: (joinToken: string) =>
-    [MeetingQueryRoot.JOIN, joinToken] as const,
-  requests: (
-    meetingId: string,
-    search = "",
-    page = 1,
-    limit = 10,
-  ) => [MeetingQueryRoot.REQUESTS, meetingId, search, page, limit] as const,
-  requestsRoot: (meetingId: string) =>
-    [MeetingQueryRoot.REQUESTS, meetingId] as const,
-  participants: (
-    meetingId: string,
-    search = "",
-    page = 1,
-    limit = 10,
-  ) => [MeetingQueryRoot.PARTICIPANTS, meetingId, search, page, limit] as const,
-  participantsRoot: (meetingId: string) =>
-    [MeetingQueryRoot.PARTICIPANTS, meetingId] as const,
-  liveKitToken: (meetingId: string) =>
-    [MeetingQueryRoot.LIVEKIT_TOKEN, meetingId] as const,
-};
-
-export enum MeetingStorageKey {
-  DEVICE_PREFERENCES = "workspacehub.meeting.device-preferences",
-}
-
-export enum MeetingWindowTarget {
-  NEW_TAB = "_blank",
-}
-
-export const meetingRoutes = {
-  listPath: `/${MeetingRouteSegment.MEETINGS}`,
-  joinPath: (joinToken: string) =>
-    `/${MeetingRouteSegment.MEETINGS}/${joinToken}`,
-  joinUrl: (joinToken: string) => {
-    if (typeof window === "undefined") {
-      return `/${MeetingRouteSegment.MEETINGS}/${joinToken}`;
-    }
-    return `${window.location.origin}/${MeetingRouteSegment.MEETINGS}/${joinToken}`;
-  },
-};
-
-export const joinedMeetingStatuses = new Set<MeetingParticipantStatus>([
-  MeetingParticipantStatus.JOINED,
-]);
 
 export enum MeetingDashboardNavItemId {
   OVERVIEW = "overview",
@@ -142,7 +51,7 @@ export const meetingDashboardActions = [
     titleId: "meeting.dashboard.action.newMeeting.title",
     descriptionId: "meeting.dashboard.action.newMeeting.description",
     tone: MeetingDashboardTone.PRIMARY,
-    enabled: true,
+    enabled: false,
   },
   {
     id: MeetingDashboardActionId.JOIN_MEETING,
