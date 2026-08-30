@@ -106,6 +106,32 @@ export class UserProfileSnapshotService {
     }));
   }
 
+  async attachProfilesToInvitations<
+    T extends { invitedBy: string; invitedUserId: string },
+  >(
+    invitations: T[],
+  ): Promise<
+    Array<
+      T & {
+        inviter: UserProfileSnapshotResponse | null;
+        invitee: UserProfileSnapshotResponse | null;
+      }
+    >
+  > {
+    const profileByUserId = await this.getProfilesByUserIds(
+      invitations.flatMap((invitation) => [
+        invitation.invitedBy,
+        invitation.invitedUserId,
+      ]),
+    );
+
+    return invitations.map((invitation) => ({
+      ...invitation,
+      inviter: profileByUserId.get(invitation.invitedBy) ?? null,
+      invitee: profileByUserId.get(invitation.invitedUserId) ?? null,
+    }));
+  }
+
   async attachCreatorProfilesToPolls<T extends { createdBy: string }>(
     polls: T[],
   ): Promise<

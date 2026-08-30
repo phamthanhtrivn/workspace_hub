@@ -160,10 +160,6 @@ model SpaceInvitation {
   spaceId       String           @map("space_id") @db.Uuid
   invitedUserId String           @map("invited_user_id") @db.Uuid
   invitedBy     String           @map("invited_by") @db.Uuid
-  invitedByName String?          @map("invited_by_name")
-  invitedByAvatar String?        @map("invited_by_avatar")
-  invitedUserName String?        @map("invited_user_name")
-  invitedUserAvatar String?      @map("invited_user_avatar")
   status        InvitationStatus @default(PENDING)
   createdAt     DateTime         @default(now()) @map("created_at")
   respondedAt   DateTime?        @map("responded_at")

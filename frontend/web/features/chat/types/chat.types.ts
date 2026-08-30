@@ -328,20 +328,8 @@ export interface SpaceInvitation {
   spaceId: string;
   invitedUserId: string;
   invitedBy: string;
-  invitedByName?: string;
-  invitedByAvatar?: string;
-  invitedUserName?: string;
-  invitedUserAvatar?: string;
-  inviter?: {
-    userId: string;
-    fullName: string;
-    avatarUrl: string;
-  };
-  invitee?: {
-    userId: string;
-    fullName: string;
-    avatarUrl: string;
-  };
+  inviter?: UserProfileSnapshotResponse | null;
+  invitee?: UserProfileSnapshotResponse | null;
   status: InvitationStatus;
   createdAt: string;
   respondedAt?: string;

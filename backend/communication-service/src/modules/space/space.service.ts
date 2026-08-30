@@ -20,6 +20,7 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { ChatEvent } from '../chat/chat.events';
 import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
 import {
   SPACE_ERROR_MESSAGES,
   SPACE_MEMBER_SEARCH_DEFAULT_LIMIT,
@@ -204,23 +205,30 @@ export class SpaceService {
     invitation: {
       invitedUserId: string;
       invitedBy: string;
-      invitedByName?: string | null;
-      invitedByAvatar?: string | null;
       id: string;
       spaceId: string;
     },
     spaceName?: string | null,
+    inviterProfile?: Pick<
+      UserProfileSnapshotResponse,
+      'email' | 'fullName' | 'avatarUrl'
+    > | null,
   ) {
+    const inviterName = this.getProfileDisplayName(
+      inviterProfile,
+      invitation.invitedBy,
+    );
+
     this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
       key: invitation.invitedUserId,
       value: {
         recipientId: invitation.invitedUserId,
         senderId: invitation.invitedBy,
-        senderName: invitation.invitedByName,
-        senderAvatar: invitation.invitedByAvatar,
+        senderName: inviterName,
+        senderAvatar: inviterProfile?.avatarUrl,
         type: KAFKA_EVENTS.NOTIFICATION.SPACE_INVITATION,
         title: 'Space invitation',
-        content: `You were invited to join ${spaceName} by ${invitation.invitedByName ?? 'Someone'}`,
+        content: `You were invited to join ${spaceName} by ${inviterName}`,
         link: '/chat',
         metadata: {
           invitationId: invitation.id,
@@ -996,10 +1004,13 @@ export class SpaceService {
 
   async getSpaceInvitations(userId: string, spaceId: string) {
     await this.assertSpaceAdmin(spaceId, userId);
-    return this.prisma.spaceInvitation.findMany({
+    const invitations = await this.prisma.spaceInvitation.findMany({
       where: { spaceId, status: InvitationStatus.PENDING },
       orderBy: { createdAt: 'desc' },
     });
+    return this.userProfileSnapshotService.attachProfilesToInvitations(
+      invitations,
+    );
   }
 
   async cancelSpaceInvitation(
@@ -1045,8 +1056,13 @@ export class SpaceService {
       },
     });
 
-    this.emitSpaceInvitation(invitation, space?.name);
-    return invitation;
+    const inviterProfile = (await this.getProfileMap([userId])).get(userId);
+    this.emitSpaceInvitation(invitation, space?.name, inviterProfile);
+    const [enrichedInvitation] =
+      await this.userProfileSnapshotService.attachProfilesToInvitations([
+        invitation,
+      ]);
+    return enrichedInvitation;
   }
 
   async createChannel(userId: string, spaceId: string, name: string) {
@@ -1260,8 +1276,6 @@ export class SpaceService {
         const invitationsToNotify: {
           userId: string;
           invitationId: string;
-          invitedByName?: string | null;
-          invitedByAvatar?: string | null;
         }[] = [];
         const alreadyMembers: string[] = [];
         const alreadyPending: string[] = [];
@@ -1304,10 +1318,6 @@ export class SpaceService {
               where: { id: existingInvitation.id },
               data: {
                 invitedBy: userId,
-                invitedByName: invitedBySnapshot.fullName,
-                invitedByAvatar: invitedBySnapshot.avatarUrl,
-                invitedUserName: invitee.fullName,
-                invitedUserAvatar: invitee.avatarUrl,
                 status: InvitationStatus.PENDING,
                 respondedAt: null,
               },
@@ -1315,8 +1325,6 @@ export class SpaceService {
             invitationsToNotify.push({
               userId: invitedId,
               invitationId: invitation.id,
-              invitedByName: invitation.invitedByName,
-              invitedByAvatar: invitation.invitedByAvatar,
             });
           } else {
             const invitation = await tx.spaceInvitation.create({
@@ -1324,17 +1332,11 @@ export class SpaceService {
                 spaceId,
                 invitedUserId: invitedId,
                 invitedBy: userId,
-                invitedByName: invitedBySnapshot.fullName,
-                invitedByAvatar: invitedBySnapshot.avatarUrl,
-                invitedUserName: invitee.fullName,
-                invitedUserAvatar: invitee.avatarUrl,
               },
             });
             invitationsToNotify.push({
               userId: invitedId,
               invitationId: invitation.id,
-              invitedByName: invitation.invitedByName,
-              invitedByAvatar: invitation.invitedByAvatar,
             });
           }
         }
@@ -1346,7 +1348,17 @@ export class SpaceService {
           pendingCount: alreadyPending.length,
         };
       })
-      .then((result) => {
+      .then(async (result) => {
+        const inviterProfile =
+          (await this.getProfileMap([userId])).get(userId) ??
+          ({
+            id: userId,
+            userId,
+            email: null,
+            fullName: invitedBySnapshot.fullName ?? null,
+            avatarUrl: invitedBySnapshot.avatarUrl ?? null,
+          } satisfies UserProfileSnapshotResponse);
+
         for (const invitation of result.invitationsToNotify) {
           this.emitSpaceInvitation(
             {
@@ -1354,10 +1366,9 @@ export class SpaceService {
               spaceId,
               invitedUserId: invitation.userId,
               invitedBy: userId,
-              invitedByName: invitation.invitedByName,
-              invitedByAvatar: invitation.invitedByAvatar,
             },
             space?.name,
+            inviterProfile,
           );
         }
 

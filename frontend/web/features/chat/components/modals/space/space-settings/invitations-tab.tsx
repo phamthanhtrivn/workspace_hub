@@ -74,8 +74,8 @@ export function InvitationsTab({
           >
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-slate-800">
-                {invitation.invitedUserName ||
-                  invitation.invitee?.fullName ||
+                {invitation.invitee?.fullName ||
+                  invitation.invitee?.email ||
                   invitation.invitedUserId}
               </p>
               <p className="text-xs text-slate-400">
