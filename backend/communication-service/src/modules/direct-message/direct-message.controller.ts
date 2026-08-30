@@ -13,12 +13,12 @@ import {
   forwardRef,
 } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
-import { ChatGateway } from '../chat/chat.gateway';
+import { CommunicationGateway } from '../socket/communication.gateway';
 import {
   ChatEvent,
   CHAT_CONTEXT_TYPE,
   CHAT_REACTION_ACTION,
-} from '../chat/types/chat.enums';
+} from '../chat/chat.enums';
 import { DirectMessageService } from './direct-message.service';
 import {
   MESSAGE_CONSTANTS,
@@ -31,8 +31,8 @@ import {
 export class DirectMessageController {
   constructor(
     private readonly directMessageService: DirectMessageService,
-    @Inject(forwardRef(() => ChatGateway))
-    private readonly chatGateway: ChatGateway,
+    @Inject(forwardRef(() => CommunicationGateway))
+    private readonly chatGateway: CommunicationGateway,
   ) {}
 
   @Post(':id/messages')

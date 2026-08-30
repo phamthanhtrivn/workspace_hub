@@ -6,12 +6,11 @@ import {
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { SpaceRole } from '@prisma/client';
-import { ChatGateway } from '../chat/chat.gateway';
+import { CommunicationGateway } from '../socket/communication.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
-import { ChatEvent } from '../chat/chat.events';
-import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
+import { ChatEvent, CHAT_CONTEXT_TYPE } from '../chat/chat.enums';
 import { getMediaUrl } from 'src/common/utils/file.util';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
 import {
@@ -33,7 +32,7 @@ import {
 export class ChannelService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly chatGateway: ChatGateway,
+    private readonly chatGateway: CommunicationGateway,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,

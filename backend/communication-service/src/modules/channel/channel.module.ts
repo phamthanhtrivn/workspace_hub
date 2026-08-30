@@ -1,6 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common';
 import { ChannelController } from './channel.controller';
-import { ChatModule } from '../chat/chat.module';
+import { SocketModule } from '../socket/socket.module';
 import { MessageModule } from '../message/message.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
@@ -10,7 +10,7 @@ import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.m
 
 @Module({
   imports: [
-    forwardRef(() => ChatModule),
+    forwardRef(() => SocketModule),
     forwardRef(() => MessageModule),
     PrismaModule,
     S3Module,

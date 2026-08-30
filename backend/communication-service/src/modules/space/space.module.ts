@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.module';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { ChatModule } from '../chat/chat.module';
+import { SocketModule } from '../socket/socket.module';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 import { SpaceController } from './space.controller';
 import { SpaceService } from './space.service';
@@ -10,7 +10,7 @@ import { SpaceService } from './space.service';
   imports: [
     PrismaModule,
     KafkaProducerModule,
-    ChatModule,
+    SocketModule,
     UserProfileSnapshotModule,
   ],
   controllers: [SpaceController],

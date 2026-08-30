@@ -1,8 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { SpaceRole } from '@prisma/client';
-import { ChatGateway } from '../chat/chat.gateway';
-import { ChatEvent } from '../chat/chat.events';
-import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
+import { CommunicationGateway } from '../socket/communication.gateway';
+import { ChatEvent, CHAT_CONTEXT_TYPE } from '../chat/chat.enums';
 import { CHANNEL_ERROR_MESSAGES } from '../channel/types/channel.enums';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
@@ -11,7 +10,7 @@ import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profil
 export class DirectConversationService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly chatGateway: ChatGateway,
+    private readonly chatGateway: CommunicationGateway,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 

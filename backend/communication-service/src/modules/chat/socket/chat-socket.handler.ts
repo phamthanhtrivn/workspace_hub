@@ -1,11 +1,8 @@
+﻿import { Injectable } from '@nestjs/common';
 import {
-  WebSocketGateway,
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
-  WebSocketServer,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { MessageType } from '@prisma/client';
@@ -15,22 +12,15 @@ import {
   CHAT_RESPONSE_STATUS,
   CHAT_REACTION_ACTION,
   CHAT_ERROR_MESSAGES,
-} from './types/chat.enums';
-import { MessageService } from '../message/message.service';
-import { mapMediaWithUrl } from '../../common/utils/file.util';
-import { PollService } from '../poll/poll.service';
-import { NoteService } from '../note/note.service';
-import { DirectMessageService } from '../direct-message/direct-message.service';
+} from '../chat.enums';
+import { MessageService } from '../../message/message.service';
+import { mapMediaWithUrl } from '../../../common/utils/file.util';
+import { PollService } from '../../poll/poll.service';
+import { NoteService } from '../../note/note.service';
+import { DirectMessageService } from '../../direct-message/direct-message.service';
 
-@WebSocketGateway({
-  path: '/communication.io',
-  cors: {
-    origin: true,
-    credentials: true,
-  },
-})
-export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer()
+@Injectable()
+export class ChatSocketHandler {
   server: Server;
 
   constructor(
@@ -40,27 +30,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly noteService: NoteService,
   ) {}
 
-  async handleConnection(client: Socket) {
-    const token = client.handshake.auth?.token || client.handshake.query?.token;
-    if (!token) {
-      client.disconnect();
-      return;
-    }
-    try {
-      const payloadBase64 = token.split('.')[1];
-      const decoded = JSON.parse(
-        Buffer.from(payloadBase64, 'base64').toString(),
-      );
-      const userId = decoded.sub || decoded.id;
-      client.data.userId = userId; // standard fields
-
-      client.join(userId);
-    } catch (e) {
-      client.disconnect();
-    }
-  }
-
-  handleDisconnect(_: Socket) {}
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
   handleJoinConversation(
@@ -847,3 +816,4 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 }
+

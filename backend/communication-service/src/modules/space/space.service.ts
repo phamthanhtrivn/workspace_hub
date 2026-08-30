@@ -16,9 +16,8 @@ import { DefaultSpaceChannelNames } from './types/space.types';
 import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { UserProfileSnapshot } from 'src/common/types/user.types';
-import { ChatGateway } from '../chat/chat.gateway';
-import { ChatEvent } from '../chat/chat.events';
-import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
+import { CommunicationGateway } from '../socket/communication.gateway';
+import { ChatEvent, CHAT_CONTEXT_TYPE } from '../chat/chat.enums';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
 import {
@@ -33,7 +32,7 @@ export class SpaceService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
-    private readonly chatGateway: ChatGateway,
+    private readonly chatGateway: CommunicationGateway,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 

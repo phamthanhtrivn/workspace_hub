@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SpaceRole } from '@prisma/client';
-import { ChatGateway } from '../chat/chat.gateway';
+import { CommunicationGateway } from '../socket/communication.gateway';
 import { MessageService } from '../message/message.service';
 import { INVITATION_STATUS } from './types/invitation.enums';
 import { InvitationPublisher } from './events/invitation.publisher';
@@ -17,7 +17,7 @@ export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly conversationPublisher: InvitationPublisher,
-    private readonly chatGateway: ChatGateway,
+    private readonly chatGateway: CommunicationGateway,
     private readonly messageService: MessageService,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
