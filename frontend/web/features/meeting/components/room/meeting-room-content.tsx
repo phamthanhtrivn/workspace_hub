@@ -23,12 +23,10 @@ import {
 import { MeetingParticipantsModal } from "./participants/meeting-participants-modal";
 import { MeetingRoomControlBar } from "./controls/meeting-room-control-bar";
 import { HostJoinRequestsPanel } from "./host-join-requests-panel";
-import { buildParticipantInitials } from "./meeting-room.utils";
 
 interface MeetingRoomContentProps {
   avatarUrl?: string | null;
   displayName: string;
-  initials: string;
   canModerate: boolean;
   meeting: MeetingResponse;
   mediaError: string | null;
@@ -41,7 +39,6 @@ interface MeetingRoomContentProps {
 export function MeetingRoomContent({
   avatarUrl,
   displayName,
-  initials,
   canModerate,
   meeting,
   mediaError,
@@ -144,7 +141,6 @@ export function MeetingRoomContent({
               <MeetingParticipantTile
                 avatarUrl={avatarUrl}
                 displayName={displayName}
-                initials={initials}
                 roleLabel={localRoleLabel}
                 trackRef={localTrack}
                 variant="primary"
@@ -153,7 +149,6 @@ export function MeetingRoomContent({
               <MeetingAvatarTile
                 avatarUrl={avatarUrl}
                 displayName={displayName}
-                initials={initials}
                 variant="primary"
               />
             )}
@@ -178,19 +173,14 @@ export function MeetingRoomContent({
                   );
                   const participantDisplayName =
                     participantProfile.fullName ||
-                    participantProfile.email ||
                     participant.name ||
+                    participantProfile.email ||
                     participant.identity;
-                  const participantInitials = buildParticipantInitials(
-                    participantDisplayName,
-                  );
-
                   return trackRef ? (
                     <MeetingParticipantTile
                       key={participant.identity}
                       avatarUrl={participantProfile.avatarUrl}
                       displayName={participantDisplayName}
-                      initials={participantInitials}
                       roleLabel={participantRoleLabel}
                       trackRef={trackRef}
                       variant="secondary"
@@ -203,7 +193,6 @@ export function MeetingRoomContent({
                       <MeetingAvatarTile
                         avatarUrl={participantProfile.avatarUrl}
                         displayName={participantDisplayName}
-                        initials={participantInitials}
                         variant="secondary"
                       />
                     </div>
@@ -305,13 +294,13 @@ function resolveParticipantProfile(
   return {
     avatarUrl: snapshot?.avatarUrl ?? metadataProfile.avatarUrl ?? null,
     email: snapshot?.email ?? metadataProfile.email ?? null,
-    fullName: snapshot?.fullName ?? null,
+    fullName: snapshot?.fullName ?? metadataProfile.fullName ?? null,
   };
 }
 
 function parseParticipantMetadata(
   metadata?: string,
-): Pick<UserProfileSnapshot, "avatarUrl" | "email"> {
+): Pick<UserProfileSnapshot, "avatarUrl" | "email" | "fullName"> {
   if (!metadata) {
     return {};
   }
@@ -322,6 +311,8 @@ function parseParticipantMetadata(
       avatarUrl:
         typeof parsed.avatarUrl === "string" ? parsed.avatarUrl : undefined,
       email: typeof parsed.email === "string" ? parsed.email : undefined,
+      fullName:
+        typeof parsed.fullName === "string" ? parsed.fullName : undefined,
     };
   } catch {
     return {};

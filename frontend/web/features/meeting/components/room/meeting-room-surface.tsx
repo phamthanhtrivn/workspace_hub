@@ -12,7 +12,6 @@ import { meetingApiRoutes } from "../../types/meeting.constants";
 import { MeetingResponse, MeetingStatus } from "../../types/meeting.types";
 import { canModerateMeeting } from "../../utils/meeting.utils";
 import { MeetingRoomContent } from "./meeting-room-content";
-import { buildParticipantInitials } from "./meeting-room.utils";
 
 interface MeetingRoomSurfaceProps {
   meeting: MeetingResponse;
@@ -33,7 +32,6 @@ export function MeetingRoomSurface({
     avatarUrl,
     devicePreferences,
     displayName,
-    initials,
     isPreparingDevicePreferences,
     tokenQuery,
   } = useMeetingRoom({
@@ -57,9 +55,6 @@ export function MeetingRoomSurface({
   const resolvedDisplayName =
     currentProfile?.fullName || currentProfile?.email || displayName;
   const resolvedAvatarUrl = currentProfile?.avatarUrl || avatarUrl;
-  const resolvedInitials = currentProfile
-    ? buildParticipantInitials(resolvedDisplayName)
-    : initials;
 
   const handleDeviceError = (error: Error) => {
     setMediaError(resolveDeviceErrorMessage(error, intl.formatMessage));
@@ -163,7 +158,6 @@ export function MeetingRoomSurface({
         <MeetingRoomContent
           avatarUrl={resolvedAvatarUrl}
           displayName={resolvedDisplayName}
-          initials={resolvedInitials}
           canModerate={canModerate}
           meeting={meeting}
           mediaError={mediaError}

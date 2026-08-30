@@ -1099,6 +1099,7 @@ export class MeetingService {
         identity: userId,
         name: displayName,
         metadata: JSON.stringify({
+          fullName: profile?.fullName ?? null,
           email: profile?.email ?? null,
           avatarUrl: profile?.avatarUrl ?? null,
         }),

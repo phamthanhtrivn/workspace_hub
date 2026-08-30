@@ -6,12 +6,12 @@ import {
 } from "@livekit/components-react";
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import { Track } from "livekit-client";
+import { User } from "lucide-react";
 import { useState } from "react";
 
 interface MeetingParticipantTileProps {
   avatarUrl?: string | null;
   displayName: string;
-  initials: string;
   roleLabel?: string | null;
   trackRef: TrackReferenceOrPlaceholder;
   variant: "primary" | "secondary";
@@ -20,7 +20,6 @@ interface MeetingParticipantTileProps {
 export function MeetingParticipantTile({
   avatarUrl,
   displayName,
-  initials,
   roleLabel,
   trackRef,
   variant,
@@ -52,7 +51,6 @@ export function MeetingParticipantTile({
         <MeetingAvatarTile
           avatarUrl={avatarUrl}
           displayName={displayName}
-          initials={initials}
           variant={variant}
         />
       )}
@@ -79,19 +77,17 @@ export function MeetingParticipantTile({
 interface MeetingAvatarTileProps {
   avatarUrl?: string | null;
   displayName: string;
-  initials: string;
   variant: "primary" | "secondary";
 }
 
 export function MeetingAvatarTile({
   avatarUrl,
   displayName,
-  initials,
   variant,
 }: MeetingAvatarTileProps) {
   const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
-  const avatarSize =
-    variant === "primary" ? "h-28 w-28 text-3xl" : "h-16 w-16 text-lg";
+  const avatarSize = variant === "primary" ? "h-28 w-28" : "h-16 w-16";
+  const iconSize = variant === "primary" ? 44 : 26;
   const imageUrl =
     typeof avatarUrl === "string" && avatarUrl !== failedAvatarUrl
       ? avatarUrl
@@ -100,7 +96,7 @@ export function MeetingAvatarTile({
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#20242b]">
       <div
-        className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-blue-600 text-center font-black leading-none text-white ${avatarSize}`}
+        className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-gradient-to-br from-blue-50 to-slate-200 text-slate-400 shadow-sm ring-1 ring-slate-200/50 ${avatarSize}`}
         aria-label={displayName}
       >
         {imageUrl ? (
@@ -112,7 +108,7 @@ export function MeetingAvatarTile({
             onError={() => setFailedAvatarUrl(imageUrl)}
           />
         ) : (
-          <span className="max-w-full px-2">{initials}</span>
+          <User size={iconSize} aria-hidden="true" />
         )}
       </div>
     </div>
