@@ -33,6 +33,7 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
   const hasHandledMissingMeetingRef = useRef(false);
   const hasHandledEndedMeetingRef = useRef(false);
   const hasHandledRemovedParticipantRef = useRef(false);
+  const hasAutoRejoinedRef = useRef(false);
   const meetingQuery = useMeetingJoinInfoQuery(joinToken);
   const meeting = meetingQuery.data?.data;
   const requestJoin = useRequestJoinMeetingMutation(joinToken);
@@ -84,6 +85,19 @@ export function MeetingJoinPage({ joinToken }: MeetingJoinPageProps) {
       returnToMeetingsAfterRemoval();
     }
   }, [participantStatus, returnToMeetingsAfterRemoval]);
+
+  useEffect(() => {
+    if (!meeting || requestJoin.isPending || hasAutoRejoinedRef.current) {
+      return;
+    }
+    if (
+      meeting.status === MeetingStatus.LIVE &&
+      participantStatus === MeetingParticipantStatus.LEFT
+    ) {
+      hasAutoRejoinedRef.current = true;
+      requestJoin.mutate(meeting.id);
+    }
+  }, [meeting, participantStatus, requestJoin]);
 
   const handleRequestJoin = () => {
     if (!meeting) return;

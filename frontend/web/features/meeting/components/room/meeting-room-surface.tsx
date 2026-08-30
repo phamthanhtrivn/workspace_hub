@@ -6,7 +6,9 @@ import { Loader2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useAppSelector } from "@/store/store";
 import { useMeetingRoom } from "../../hooks/room/use-meeting-room";
+import { meetingApiRoutes } from "../../types/meeting.constants";
 import { MeetingResponse, MeetingStatus } from "../../types/meeting.types";
 import { canModerateMeeting } from "../../utils/meeting.utils";
 import { MeetingRoomContent } from "./meeting-room-content";
@@ -21,6 +23,7 @@ export function MeetingRoomSurface({
   joinToken,
 }: MeetingRoomSurfaceProps) {
   const intl = useAppIntl();
+  const { accessToken } = useAppSelector((state) => state.auth);
   const hasReportedRoomExitRef = useRef(false);
   const canConnectToLiveKit = meeting.status === MeetingStatus.LIVE;
   const [mediaError, setMediaError] = useState<string | null>(null);
@@ -93,6 +96,28 @@ export function MeetingRoomSurface({
     return () => window.cancelAnimationFrame(frameId);
   }, []);
 
+  useEffect(() => {
+    if (!accessToken || !meeting.id) return;
+
+    const handlePageHide = (event: PageTransitionEvent) => {
+      if (event.persisted || hasReportedRoomExitRef.current) return;
+      hasReportedRoomExitRef.current = true;
+
+      void fetch(buildMeetingApiUrl(meetingApiRoutes.leave(meeting.id)), {
+        method: "POST",
+        keepalive: true,
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      });
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    return () => window.removeEventListener("pagehide", handlePageHide);
+  }, [accessToken, meeting.id]);
+
   if (tokenQuery.isLoading || isPreparingDevicePreferences) {
     return (
       <section className="grid min-h-[520px] place-items-center rounded-lg border border-slate-200 bg-white">
@@ -146,6 +171,11 @@ export function MeetingRoomSurface({
     </section>,
     portalTarget,
   );
+}
+
+function buildMeetingApiUrl(path: string) {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+  return new URL(path, baseUrl).toString();
 }
 
 function resolveDeviceErrorMessage(
