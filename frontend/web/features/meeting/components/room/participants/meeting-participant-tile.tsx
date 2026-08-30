@@ -114,3 +114,45 @@ export function MeetingAvatarTile({
     </div>
   );
 }
+
+interface MeetingParticipantAvatarProps {
+  avatarUrl?: string | null;
+  displayName: string;
+  className?: string;
+  iconSize?: number;
+}
+
+export function MeetingParticipantAvatar({
+  avatarUrl,
+  displayName,
+  className = "h-10 w-10",
+  iconSize = 18,
+}: MeetingParticipantAvatarProps) {
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
+  const imageUrl =
+    typeof avatarUrl === "string" &&
+    avatarUrl.trim() &&
+    avatarUrl !== failedAvatarUrl
+      ? avatarUrl
+      : undefined;
+
+  return (
+    <div
+      className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-slate-700 text-slate-300 ring-1 ring-white/10 ${className}`}
+      aria-label={displayName}
+    >
+      {imageUrl ? (
+        <img
+          src={imageUrl}
+          alt=""
+          aria-hidden="true"
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-cover"
+          onError={() => setFailedAvatarUrl(imageUrl)}
+        />
+      ) : (
+        <User size={iconSize} aria-hidden="true" />
+      )}
+    </div>
+  );
+}

@@ -29,7 +29,7 @@ import {
   MeetingRole,
 } from "../../../types/meeting.types";
 import { canModerateMeeting } from "../../../utils/meeting.utils";
-import { buildParticipantInitials } from "../meeting-room.utils";
+import { MeetingParticipantAvatar } from "./meeting-participant-tile";
 
 interface MeetingParticipantsModalProps {
   connectedParticipantIds: Set<string>;
@@ -249,7 +249,6 @@ export function MeetingParticipantsModal({
               const displayName = getParticipantName(participant);
               const email = participant.profile?.email;
               const avatarUrl = participant.profile?.avatarUrl;
-              const initials = buildParticipantInitials(displayName);
 
               return (
                 <article
@@ -257,17 +256,10 @@ export function MeetingParticipantsModal({
                   className="relative rounded-md px-2 py-2 hover:bg-white/[0.04]"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-blue-600 text-sm font-black text-white">
-                      {avatarUrl ? (
-                        <img
-                          src={avatarUrl}
-                          alt={displayName}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        initials
-                      )}
-                    </div>
+                    <MeetingParticipantAvatar
+                      avatarUrl={avatarUrl}
+                      displayName={displayName}
+                    />
                     <div className="min-w-0 flex-1">
                       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                         <p className="truncate text-sm font-black text-white">

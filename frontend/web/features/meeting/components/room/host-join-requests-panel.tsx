@@ -1,5 +1,4 @@
 import { Check, Loader2, Search, UserRoundPlus, X } from "lucide-react";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
@@ -9,7 +8,7 @@ import {
   useRejectMeetingJoinRequestMutation,
 } from "../../hooks/queries/use-meeting-queries";
 import { MeetingResponse, UserProfileSnapshot } from "../../types/meeting.types";
-import { buildParticipantInitials } from "./meeting-room.utils";
+import { MeetingParticipantAvatar } from "./participants/meeting-participant-tile";
 
 interface HostJoinRequestsPanelProps {
   meeting: MeetingResponse;
@@ -146,7 +145,6 @@ export function HostJoinRequestsPanel({
                 profile,
                 participant.userId,
               );
-              const initials = buildParticipantInitials(displayName);
               const isBusy =
                 approveRequest.isPending ||
                 rejectRequest.isPending ||
@@ -164,22 +162,10 @@ export function HostJoinRequestsPanel({
                   className="rounded-lg border border-white/10 bg-white/[0.04] p-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-blue-600 text-sm font-black text-white"
-                      aria-label={displayName}
-                    >
-                      {profile?.avatarUrl ? (
-                        <Image
-                          src={profile.avatarUrl}
-                          alt={displayName}
-                          fill
-                          sizes="40px"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        initials
-                      )}
-                    </div>
+                    <MeetingParticipantAvatar
+                      avatarUrl={profile?.avatarUrl}
+                      displayName={displayName}
+                    />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-bold text-white">
                         {displayName}
