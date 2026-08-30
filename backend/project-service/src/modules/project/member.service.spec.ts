@@ -1,10 +1,11 @@
-import { ConflictException } from '@nestjs/common';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { MemberService } from './member.service';
-import { ProjectAccessService } from './project-access.service';
-import { ProjectMemberStatus, ProjectRole } from './project.enums';
+import { ConflictException } from "@nestjs/common";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { MemberService } from "./member.service";
+import { ProjectAccessService } from "./project-access.service";
+import { ProjectMemberStatus, ProjectRole } from "./project.enums";
+import { TaskCalendarEventService } from "./task-calendar-event.service";
 
-describe('MemberService.updatePermissions', () => {
+describe("MemberService.updatePermissions", () => {
   const projectId = crypto.randomUUID();
   const ownerId = crypto.randomUUID();
   const memberUserId = crypto.randomUUID();
@@ -16,6 +17,7 @@ describe('MemberService.updatePermissions', () => {
       projectMember: { findUnique, update },
     } as unknown as PrismaService,
     { requireOwner } as unknown as ProjectAccessService,
+    { publishProject: jest.fn() } as unknown as TaskCalendarEventService,
   );
   const permissions = {
     canCreateTask: true,
@@ -57,7 +59,7 @@ describe('MemberService.updatePermissions', () => {
     );
   });
 
-  it('allows only the project owner to update member permissions', async () => {
+  it("allows only the project owner to update member permissions", async () => {
     await service.updatePermissions(
       ownerId,
       projectId,
@@ -71,7 +73,7 @@ describe('MemberService.updatePermissions', () => {
     );
   });
 
-  it('does not allow changing owner permissions', async () => {
+  it("does not allow changing owner permissions", async () => {
     findUnique.mockResolvedValue({
       role: ProjectRole.OWNER,
       status: ProjectMemberStatus.ACTIVE,

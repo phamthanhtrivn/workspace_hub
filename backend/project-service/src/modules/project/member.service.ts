@@ -2,23 +2,25 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
-} from '@nestjs/common';
-import { ProjectMemberStatus, ProjectRole } from './project.enums';
-import { PrismaService } from '../../common/prisma/prisma.service';
-import { AddMemberDto } from './dto/add-member.dto';
-import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
-import { ProjectAccessService } from './project-access.service';
-import { toMemberResponse } from './project.mapper';
+} from "@nestjs/common";
+import { ProjectMemberStatus, ProjectRole } from "./project.enums";
+import { PrismaService } from "../../common/prisma/prisma.service";
+import { AddMemberDto } from "./dto/add-member.dto";
+import { UpdateMemberPermissionsDto } from "./dto/update-member-permissions.dto";
+import { ProjectAccessService } from "./project-access.service";
+import { toMemberResponse } from "./project.mapper";
+import { TaskCalendarEventService } from "./task-calendar-event.service";
 import {
   isUniqueConstraintError,
   rethrowWriteConflict,
-} from '../../common/prisma/prisma-errors';
+} from "../../common/prisma/prisma-errors";
 
 @Injectable()
 export class MemberService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly calendarEvents: TaskCalendarEventService,
   ) {}
 
   async add(userId: string, projectId: string, dto: AddMemberDto) {
@@ -49,6 +51,7 @@ export class MemberService {
       const member = await this.prisma.projectMember.findUniqueOrThrow({
         where: { projectId_userId: { projectId, userId: dto.userId } },
       });
+      await this.calendarEvents.publishProject(projectId);
       return toMemberResponse(member);
     }
 
@@ -64,10 +67,11 @@ export class MemberService {
           updatedAt: now,
         },
       });
+      await this.calendarEvents.publishProject(projectId);
       return toMemberResponse(member);
     } catch (error) {
       if (isUniqueConstraintError(error)) {
-        throw new ConflictException('User is already an active project member');
+        throw new ConflictException("User is already an active project member");
       }
       throw error;
     }
@@ -85,11 +89,11 @@ export class MemberService {
     });
 
     if (!member || member.status !== ProjectMemberStatus.ACTIVE) {
-      throw new NotFoundException('Project member not found');
+      throw new NotFoundException("Project member not found");
     }
     if (member.role === ProjectRole.OWNER) {
       throw new ConflictException(
-        'Project owner permissions cannot be changed',
+        "Project owner permissions cannot be changed",
       );
     }
 
@@ -102,7 +106,7 @@ export class MemberService {
     } catch (error) {
       rethrowWriteConflict(
         error,
-        'Project member was changed by another request',
+        "Project member was changed by another request",
       );
     }
 
@@ -120,10 +124,10 @@ export class MemberService {
     });
 
     if (!member || member.status !== ProjectMemberStatus.ACTIVE) {
-      throw new NotFoundException('Project member not found');
+      throw new NotFoundException("Project member not found");
     }
     if (member.role === ProjectRole.OWNER) {
-      throw new ConflictException('Project owner cannot be removed');
+      throw new ConflictException("Project owner cannot be removed");
     }
 
     try {
@@ -139,8 +143,9 @@ export class MemberService {
     } catch (error) {
       rethrowWriteConflict(
         error,
-        'Project member was changed by another request',
+        "Project member was changed by another request",
       );
     }
+    await this.calendarEvents.publishProject(projectId);
   }
 }

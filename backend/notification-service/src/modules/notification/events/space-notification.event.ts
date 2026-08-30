@@ -26,11 +26,7 @@ export class SpaceNotificationEvent {
       return;
     }
 
-    try {
-      await this.spaceInvitationHandler.handle(payload);
-    } catch (error) {
-      this.logger.error("Failed to process space notification event", error);
-    }
+    await this.spaceInvitationHandler.handle(payload);
   }
 
   private toPayload(data: KafkaNotificationMessage): KafkaNotificationPayload {

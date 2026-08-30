@@ -1,10 +1,10 @@
-import { ConflictException, ForbiddenException } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-import { ActivityService } from '../src/modules/project/activity.service';
-import { InvitationService } from '../src/modules/project/invitation.service';
-import { LabelService } from '../src/modules/project/label.service';
-import { NotificationOutboxService } from '../src/modules/project/notification-outbox.service';
-import { ProjectAccessService } from '../src/modules/project/project-access.service';
+import { ConflictException, ForbiddenException } from "@nestjs/common";
+import { PrismaClient } from "@prisma/client";
+import { ActivityService } from "../src/modules/project/activity.service";
+import { InvitationService } from "../src/modules/project/invitation.service";
+import { LabelService } from "../src/modules/project/label.service";
+import { NotificationOutboxService } from "../src/modules/project/notification-outbox.service";
+import { ProjectAccessService } from "../src/modules/project/project-access.service";
 import {
   InvitationStatus,
   ProjectMemberStatus,
@@ -14,16 +14,17 @@ import {
   ProjectVisibility,
   SprintStatus,
   TaskStatus,
-} from '../src/modules/project/project.enums';
-import { SprintService } from '../src/modules/project/sprint.service';
-import { TaskPolicyService } from '../src/modules/project/task-policy.service';
-import { TaskService } from '../src/modules/project/task.service';
-import { PrismaService } from '../src/common/prisma/prisma.service';
+} from "../src/modules/project/project.enums";
+import { SprintService } from "../src/modules/project/sprint.service";
+import { TaskPolicyService } from "../src/modules/project/task-policy.service";
+import { TaskCalendarEventService } from "../src/modules/project/task-calendar-event.service";
+import { TaskService } from "../src/modules/project/task.service";
+import { PrismaService } from "../src/common/prisma/prisma.service";
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
 
-integration('Project Service database integration', () => {
+integration("Project Service database integration", () => {
   const prisma = new PrismaClient({ datasourceUrl: databaseUrl });
   const database = prisma as unknown as PrismaService;
 
@@ -48,7 +49,7 @@ integration('Project Service database integration', () => {
     const project = await prisma.project.create({
       data: {
         id: crypto.randomUUID(),
-        name: 'Integration project',
+        name: "Integration project",
         ownerId,
         status: ProjectStatus.ACTIVE,
         projectType: options.projectType ?? ProjectType.GENERAL,
@@ -88,8 +89,8 @@ integration('Project Service database integration', () => {
         id: crypto.randomUUID(),
         projectId,
         taskNumber: 1,
-        title: 'Integration task',
-        priority: 'MEDIUM',
+        title: "Integration task",
+        priority: "MEDIUM",
         status: TaskStatus.TODO,
         createdBy,
         reporterId: createdBy,
@@ -99,7 +100,7 @@ integration('Project Service database integration', () => {
     });
   }
 
-  it('enforces the project permission matrix', async () => {
+  it("enforces the project permission matrix", async () => {
     const { project, ownerId } = await createProject({
       visibility: ProjectVisibility.PRIVATE,
     });
@@ -155,13 +156,13 @@ integration('Project Service database integration', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('rolls back task creation when activity recording fails', async () => {
+  it("rolls back task creation when activity recording fails", async () => {
     const { project, ownerId } = await createProject();
     const access = {
       requireCanCreateTask: jest.fn().mockResolvedValue(project),
     } as unknown as ProjectAccessService;
     const activities = {
-      record: jest.fn().mockRejectedValue(new Error('activity insert failed')),
+      record: jest.fn().mockRejectedValue(new Error("activity insert failed")),
     } as unknown as ActivityService;
     const notifications = {} as NotificationOutboxService;
     const service = new TaskService(
@@ -169,17 +170,18 @@ integration('Project Service database integration', () => {
       access,
       activities,
       notifications,
+      { publishUpsert: jest.fn() } as unknown as TaskCalendarEventService,
     );
 
     await expect(
-      service.create(ownerId, project.id, { title: 'Rollback me' }),
-    ).rejects.toThrow('activity insert failed');
+      service.create(ownerId, project.id, { title: "Rollback me" }),
+    ).rejects.toThrow("activity insert failed");
     await expect(
       prisma.task.count({ where: { projectId: project.id } }),
     ).resolves.toBe(0);
   });
 
-  it('accepts an invitation only once under concurrent requests', async () => {
+  it("accepts an invitation only once under concurrent requests", async () => {
     const { project, ownerId } = await createProject();
     const inviteeId = crypto.randomUUID();
     const invitation = await prisma.projectInvitation.create({
@@ -196,6 +198,9 @@ integration('Project Service database integration', () => {
     const service = new InvitationService(
       database,
       {} as ProjectAccessService,
+      {
+        publishProject: jest.fn().mockResolvedValue(undefined),
+      } as unknown as TaskCalendarEventService,
       {} as NotificationOutboxService,
     );
 
@@ -205,10 +210,10 @@ integration('Project Service database integration', () => {
     ]);
 
     expect(
-      results.filter((result) => result.status === 'fulfilled'),
+      results.filter((result) => result.status === "fulfilled"),
     ).toHaveLength(1);
     expect(
-      results.filter((result) => result.status === 'rejected'),
+      results.filter((result) => result.status === "rejected"),
     ).toHaveLength(1);
     await expect(
       prisma.projectMember.count({
@@ -221,13 +226,13 @@ integration('Project Service database integration', () => {
     ).resolves.toBe(1);
   });
 
-  it('allows only one active sprint under concurrent starts', async () => {
+  it("allows only one active sprint under concurrent starts", async () => {
     const { project, ownerId } = await createProject({
       projectType: ProjectType.SOFTWARE_DEVELOPMENT,
     });
     const now = new Date();
     const sprints = await Promise.all(
-      ['Sprint A', 'Sprint B'].map((name) =>
+      ["Sprint A", "Sprint B"].map((name) =>
         prisma.sprint.create({
           data: {
             id: crypto.randomUUID(),
@@ -251,10 +256,10 @@ integration('Project Service database integration', () => {
     );
 
     expect(
-      results.filter((result) => result.status === 'fulfilled'),
+      results.filter((result) => result.status === "fulfilled"),
     ).toHaveLength(1);
     expect(
-      results.filter((result) => result.status === 'rejected'),
+      results.filter((result) => result.status === "rejected"),
     ).toHaveLength(1);
     await expect(
       prisma.sprint.count({
@@ -263,15 +268,15 @@ integration('Project Service database integration', () => {
     ).resolves.toBe(1);
   });
 
-  it('keeps one label mapping under concurrent attachment', async () => {
+  it("keeps one label mapping under concurrent attachment", async () => {
     const { project, ownerId } = await createProject();
     const task = await createTask(project.id, ownerId);
     const label = await prisma.taskLabel.create({
       data: {
         id: crypto.randomUUID(),
         projectId: project.id,
-        name: 'Backend',
-        color: '#0052CC',
+        name: "Backend",
+        color: "#0052CC",
       },
     });
     const taskPolicy = {
@@ -290,9 +295,9 @@ integration('Project Service database integration', () => {
       service.attach(ownerId, task.id, label.id),
     ]);
 
-    expect(results.some((result) => result.status === 'fulfilled')).toBe(true);
+    expect(results.some((result) => result.status === "fulfilled")).toBe(true);
     for (const result of results) {
-      if (result.status === 'rejected')
+      if (result.status === "rejected")
         expect(result.reason).toBeInstanceOf(ConflictException);
     }
     await expect(

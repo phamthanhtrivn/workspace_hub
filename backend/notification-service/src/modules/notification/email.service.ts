@@ -7,34 +7,37 @@ import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-em
 
 @Injectable()
 export class EmailService {
+  async sendCalendarReminderEmail(input: {
+    recipientEmail: string;
+    recipientName?: string | null;
+    eventTitle: string;
+    startAt: string;
+    location?: string | null;
+    eventUrl: string;
+  }): Promise<void> {
+    const transporter = this.createTransporter();
+    const from = process.env.MAIL_FROM || process.env.MAIL_USERNAME!;
+    const recipientName = input.recipientName || "there";
+    const eventTitle = this.escapeHtml(input.eventTitle);
+    const startAt = new Date(input.startAt).toLocaleString();
+    const location = input.location
+      ? `<p><strong>Location:</strong> ${this.escapeHtml(input.location)}</p>`
+      : "";
+
+    await transporter.sendMail({
+      from,
+      to: input.recipientEmail,
+      subject: `Reminder: ${input.eventTitle}`,
+      text: `Hello ${recipientName},\n\n${input.eventTitle} starts at ${startAt}.${input.location ? ` Location: ${input.location}.` : ""}\n\n${input.eventUrl}`,
+      html: `<div style="font-family:Arial,sans-serif;line-height:1.6;color:#1f2937"><h2>Calendar reminder</h2><p>Hello ${this.escapeHtml(recipientName)},</p><p><strong>${eventTitle}</strong> starts at ${this.escapeHtml(startAt)}.</p>${location}<p><a href="${this.escapeHtml(input.eventUrl)}">Open calendar</a></p></div>`,
+    });
+  }
+
   async sendProjectInvitationEmail(
     dto: SendProjectInvitationEmailDto,
   ): Promise<void> {
-    const host = process.env.MAIL_HOST;
-    const port = Number(process.env.MAIL_PORT || 587);
-    const username = process.env.MAIL_USERNAME;
-    const password = process.env.MAIL_PASSWORD;
-    const from = process.env.MAIL_FROM || username;
-
-    if (!host || !username || !password || !from) {
-      throw new ServiceUnavailableException(
-        "SMTP email configuration is incomplete",
-      );
-    }
-
-    if (!Number.isInteger(port) || port <= 0) {
-      throw new ServiceUnavailableException("MAIL_PORT is invalid");
-    }
-
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: {
-        user: username,
-        pass: password,
-      },
-    });
+    const transporter = this.createTransporter();
+    const from = process.env.MAIL_FROM || process.env.MAIL_USERNAME!;
 
     const recipientName = dto.recipientName || "there";
     const inviterName = dto.inviterName || "A Workspace Hub member";
@@ -59,6 +62,28 @@ export class EmailService {
         "Workspace Hub",
       ].join("\n"),
       html: this.buildInvitationHtml(dto, recipientName, inviterName, expiresText),
+    });
+  }
+
+  private createTransporter() {
+    const host = process.env.MAIL_HOST;
+    const port = Number(process.env.MAIL_PORT || 587);
+    const username = process.env.MAIL_USERNAME;
+    const password = process.env.MAIL_PASSWORD;
+    const from = process.env.MAIL_FROM || username;
+    if (!host || !username || !password || !from) {
+      throw new ServiceUnavailableException(
+        "SMTP email configuration is incomplete",
+      );
+    }
+    if (!Number.isInteger(port) || port <= 0) {
+      throw new ServiceUnavailableException("MAIL_PORT is invalid");
+    }
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user: username, pass: password },
     });
   }
 

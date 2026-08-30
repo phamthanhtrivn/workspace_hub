@@ -1,0 +1,34 @@
+services:
+  calendar-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: wh_calendar_service
+    container_name: wh_calendar_service
+    expose:
+      - "8086"
+    environment:
+      PORT: 8086
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/calendar_db?schema=public
+      KAFKA_BROKER: kafka:29092
+      PROJECT_SERVICE_URL: http://project-service:8082
+      DOCUMENT_SERVICE_URL: http://document-service:8085
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run start:dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 8086"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      - wh_network
+    restart: unless-stopped

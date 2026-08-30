@@ -5,6 +5,7 @@ include:
   - path: ../project-service/docker-compose.stack.yml
   - path: ../communication-service/docker-compose.yml
   - path: ../document-service/docker-compose.yml
+  - path: ../calendar-service/docker-compose.yml
   - path: ../notification-service/docker-compose.yml
   - path: ../../frontend/web/docker-compose.yml
 
@@ -36,6 +37,9 @@ services:
       - "8444:8444" # Admin HTTPS Port
     volumes:
       - ../kong-gateway/kong.docker.yml:/usr/local/kong/declarative/kong.yml
+    depends_on:
+      calendar-service:
+        condition: service_healthy
     networks:
       - wh_network
     restart: on-failure
@@ -108,7 +112,10 @@ services:
       echo 'Waiting for Kafka to be ready...' &&
       sleep 10 &&
       /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic notification-topic --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
-      echo 'Kafka topic notification-topic created successfully.'
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic user-profile-events --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic calendar-reminder-events --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic project-task-events --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
+      echo 'Kafka topics created successfully.'
       "
     networks:
       - wh_network
