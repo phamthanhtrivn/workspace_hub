@@ -14,14 +14,6 @@ interface UseMeetingRoomParams {
   enabled: boolean;
 }
 
-function buildInitials(name?: string | null, email?: string | null) {
-  const source = name?.trim() || email?.trim() || "";
-  if (!source) return "ME";
-
-  const [firstPart, secondPart] = source.split(/[\s@.]+/).filter(Boolean);
-  return `${firstPart?.[0] ?? ""}${secondPart?.[0] ?? ""}`.toUpperCase();
-}
-
 export function useMeetingRoom({
   meetingId,
   joinToken,
@@ -35,7 +27,6 @@ export function useMeetingRoom({
     preferences: getMeetingDevicePreferences(joinToken),
   }));
   const displayName = fullName || email || "Meeting participant";
-  const initials = buildInitials(fullName, email);
   const isPreparingDevicePreferences =
     !devicePreferencesState.isSanitized ||
     devicePreferencesState.joinToken !== joinToken;
@@ -57,7 +48,6 @@ export function useMeetingRoom({
     avatarUrl,
     devicePreferences: devicePreferencesState.preferences,
     displayName,
-    initials,
     isPreparingDevicePreferences,
     tokenQuery,
   };

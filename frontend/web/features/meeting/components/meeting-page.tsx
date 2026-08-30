@@ -15,20 +15,18 @@ export function MeetingPage() {
   const intl = useAppIntl();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const meetingsQuery = useMeetingsQuery();
-  const meetings = meetingsQuery.data?.data ?? [];
+  const meetings = useMemo(
+    () => meetingsQuery.data?.data ?? [],
+    [meetingsQuery.data?.data],
+  );
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [selectedRequestMeetingId, setSelectedRequestMeetingId] = useState<
-    string | undefined
-  >(undefined);
 
   const firstHostMeeting = useMemo(
     () => meetings.find((meeting) => isMeetingHost(meeting, currentUserId)),
     [currentUserId, meetings],
   );
-  const activeRequestMeetingId =
-    selectedRequestMeetingId ?? firstHostMeeting?.id;
 
-  useMeetingSocket(activeRequestMeetingId);
+  useMeetingSocket(firstHostMeeting?.id);
   const clock = useMeetingClock();
 
   return (

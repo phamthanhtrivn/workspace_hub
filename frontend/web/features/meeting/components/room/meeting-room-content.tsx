@@ -7,7 +7,7 @@ import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import type { AudioCaptureOptions, VideoCaptureOptions } from "livekit-client";
 import { Track } from "livekit-client";
 import { Loader2, UserRoundPlus, Users } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   MeetingParticipant,
@@ -16,13 +16,13 @@ import {
   MeetingRole,
   UserProfileSnapshot,
 } from "../../types/meeting.types";
+import { MeetingRoomControlBar } from "./controls/meeting-room-control-bar";
+import { HostJoinRequestsPanel } from "./host-join-requests-panel";
 import {
   MeetingAvatarTile,
   MeetingParticipantTile,
 } from "./participants/meeting-participant-tile";
 import { MeetingParticipantsModal } from "./participants/meeting-participants-modal";
-import { MeetingRoomControlBar } from "./controls/meeting-room-control-bar";
-import { HostJoinRequestsPanel } from "./host-join-requests-panel";
 
 interface MeetingRoomContentProps {
   avatarUrl?: string | null;
@@ -35,6 +35,9 @@ interface MeetingRoomContentProps {
   onDeviceError: (error: Error) => void;
   onRoomExitReported: () => void;
 }
+
+const PENDING_LIVEKIT_PARTICIPANT_GRACE_MS = 15_000;
+const PENDING_LIVEKIT_PARTICIPANT_TICK_MS = 1_000;
 
 export function MeetingRoomContent({
   avatarUrl,
@@ -52,6 +55,7 @@ export function MeetingRoomContent({
     useState(false);
   const [isParticipantsModalOpen, setIsParticipantsModalOpen] =
     useState(false);
+  const [presenceNow, setPresenceNow] = useState(() => Date.now());
   const { localParticipant } = useLocalParticipant();
   const participants = useParticipants();
   const trackRefs = useTracks(
@@ -79,23 +83,37 @@ export function MeetingRoomContent({
     () => new Set(participants.map((participant) => participant.identity)),
     [participants],
   );
-  const pendingLiveKitParticipants = useMemo(
-    () =>
-      (meeting.participants ?? []).filter(
-        (participant) =>
-          participant.status === MeetingParticipantStatus.JOINED &&
-          !participant.leftAt &&
-          participant.userId !== localParticipant.identity &&
-          !connectedParticipantIds.has(participant.userId),
-      ),
-    [connectedParticipantIds, localParticipant.identity, meeting.participants],
-  );
+  const pendingLiveKitParticipants = useMemo(() => {
+    return (meeting.participants ?? []).filter(
+      (participant) =>
+        participant.status === MeetingParticipantStatus.JOINED &&
+        !participant.leftAt &&
+        participant.userId !== localParticipant.identity &&
+        !connectedParticipantIds.has(participant.userId) &&
+        isWithinPendingLiveKitGrace(participant, presenceNow),
+    );
+  }, [
+    connectedParticipantIds,
+    localParticipant.identity,
+    meeting.participants,
+    presenceNow,
+  ]);
+  const hasVisibleSidebarParticipants =
+    remoteParticipants.length > 0 || pendingLiveKitParticipants.length > 0;
   const pendingJoinRequestCount = meeting.pendingJoinRequestCount ?? 0;
   const localRoleLabel = resolveRoleLabel(
     meeting.currentParticipant,
     meeting.hostId,
     intl.formatMessage,
   );
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setPresenceNow(Date.now());
+    }, PENDING_LIVEKIT_PARTICIPANT_TICK_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   return (
     <div className="flex h-screen min-h-0 bg-[#111827] text-white">
@@ -155,7 +173,7 @@ export function MeetingRoomContent({
           </section>
 
           <aside className="grid shrink-0 content-start gap-3 sm:grid-cols-2 lg:w-72 lg:grid-cols-1">
-            {remoteParticipants.length || pendingLiveKitParticipants.length ? (
+            {hasVisibleSidebarParticipants ? (
               <>
                 {remoteParticipants.map((participant) => {
                   const trackRef = findParticipantCameraTrack(
@@ -252,7 +270,9 @@ export function MeetingRoomContent({
 
 function MeetingParticipantConnectingTile({
   displayName,
-}: { displayName: string }) {
+}: {
+  displayName: string;
+}) {
   const intl = useAppIntl();
 
   return (
@@ -282,6 +302,20 @@ function findParticipantCameraTrack(
     (trackRef) =>
       trackRef.participant.identity === participantIdentity &&
       trackRef.source === Track.Source.Camera,
+  );
+}
+
+function isWithinPendingLiveKitGrace(
+  participant: MeetingParticipant,
+  now: number,
+) {
+  const candidateTimestamp =
+    participant.joinedAt ?? participant.updatedAt ?? participant.createdAt;
+  const joinedAt = Date.parse(candidateTimestamp);
+
+  return (
+    Number.isFinite(joinedAt) &&
+    now - joinedAt <= PENDING_LIVEKIT_PARTICIPANT_GRACE_MS
   );
 }
 
