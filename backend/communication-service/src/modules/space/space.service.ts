@@ -201,7 +201,7 @@ export class SpaceService {
       });
   }
 
-  private emitSpaceInvitation(
+  private async emitSpaceInvitation(
     invitation: {
       invitedUserId: string;
       invitedBy: string;
@@ -209,11 +209,19 @@ export class SpaceService {
       spaceId: string;
     },
     spaceName?: string | null,
-    inviterProfile?: Pick<
-      UserProfileSnapshotResponse,
-      'email' | 'fullName' | 'avatarUrl'
-    > | null,
+    fallbackSnapshot?: UserProfileSnapshot | null,
   ) {
+    const inviterProfile =
+      (await this.getProfileMap([invitation.invitedBy])).get(
+        invitation.invitedBy,
+      ) ??
+      ({
+        id: invitation.invitedBy,
+        userId: invitation.invitedBy,
+        email: null,
+        fullName: fallbackSnapshot?.fullName ?? null,
+        avatarUrl: fallbackSnapshot?.avatarUrl ?? null,
+      } satisfies UserProfileSnapshotResponse);
     const inviterName = this.getProfileDisplayName(
       inviterProfile,
       invitation.invitedBy,
@@ -234,6 +242,11 @@ export class SpaceService {
           invitationId: invitation.id,
           spaceId: invitation.spaceId,
           spaceName,
+          senderProfile: {
+            userId: invitation.invitedBy,
+            fullName: inviterProfile.fullName,
+            avatarUrl: inviterProfile.avatarUrl,
+          },
         },
       },
     });
@@ -1056,8 +1069,7 @@ export class SpaceService {
       },
     });
 
-    const inviterProfile = (await this.getProfileMap([userId])).get(userId);
-    this.emitSpaceInvitation(invitation, space?.name, inviterProfile);
+    await this.emitSpaceInvitation(invitation, space?.name);
     const [enrichedInvitation] =
       await this.userProfileSnapshotService.attachProfilesToInvitations([
         invitation,
@@ -1349,28 +1361,20 @@ export class SpaceService {
         };
       })
       .then(async (result) => {
-        const inviterProfile =
-          (await this.getProfileMap([userId])).get(userId) ??
-          ({
-            id: userId,
-            userId,
-            email: null,
-            fullName: invitedBySnapshot.fullName ?? null,
-            avatarUrl: invitedBySnapshot.avatarUrl ?? null,
-          } satisfies UserProfileSnapshotResponse);
-
-        for (const invitation of result.invitationsToNotify) {
-          this.emitSpaceInvitation(
-            {
-              id: invitation.invitationId,
-              spaceId,
-              invitedUserId: invitation.userId,
-              invitedBy: userId,
-            },
-            space?.name,
-            inviterProfile,
-          );
-        }
+        await Promise.all(
+          result.invitationsToNotify.map((invitation) =>
+            this.emitSpaceInvitation(
+              {
+                id: invitation.invitationId,
+                spaceId,
+                invitedUserId: invitation.userId,
+                invitedBy: userId,
+              },
+              space?.name,
+              invitedBySnapshot,
+            ),
+          ),
+        );
 
         return result;
       });
