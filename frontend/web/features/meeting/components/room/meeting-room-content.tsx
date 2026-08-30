@@ -6,11 +6,12 @@ import {
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import type { AudioCaptureOptions, VideoCaptureOptions } from "livekit-client";
 import { Track } from "livekit-client";
-import { UserRoundPlus, Users } from "lucide-react";
+import { Loader2, UserRoundPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   MeetingParticipant,
+  MeetingParticipantStatus,
   MeetingResponse,
   MeetingRole,
   UserProfileSnapshot,
@@ -81,6 +82,17 @@ export function MeetingRoomContent({
     () => new Set(participants.map((participant) => participant.identity)),
     [participants],
   );
+  const pendingLiveKitParticipants = useMemo(
+    () =>
+      (meeting.participants ?? []).filter(
+        (participant) =>
+          participant.status === MeetingParticipantStatus.JOINED &&
+          !participant.leftAt &&
+          participant.userId !== localParticipant.identity &&
+          !connectedParticipantIds.has(participant.userId),
+      ),
+    [connectedParticipantIds, localParticipant.identity, meeting.participants],
+  );
   const pendingJoinRequestCount = meeting.pendingJoinRequestCount ?? 0;
   const localRoleLabel = resolveRoleLabel(
     meeting.currentParticipant,
@@ -147,55 +159,69 @@ export function MeetingRoomContent({
             )}
           </section>
 
-          <aside className="grid shrink-0 gap-3 sm:grid-cols-2 lg:w-64 lg:grid-cols-1">
-            {remoteParticipants.length ? (
-              remoteParticipants.map((participant) => {
-                const trackRef = findParticipantCameraTrack(
-                  trackRefs,
-                  participant.identity,
-                );
-                const participantProfile = resolveParticipantProfile(
-                  participantByUserId.get(participant.identity)?.profile,
-                  participant.metadata,
-                );
-                const participantRoleLabel = resolveRoleLabel(
-                  participantByUserId.get(participant.identity),
-                  meeting.hostId,
-                  intl.formatMessage,
-                );
-                const participantDisplayName =
-                  participantProfile.fullName ||
-                  participantProfile.email ||
-                  participant.name ||
-                  participant.identity;
-                const participantInitials = buildParticipantInitials(
-                  participantDisplayName,
-                );
+          <aside className="grid shrink-0 content-start gap-3 sm:grid-cols-2 lg:w-72 lg:grid-cols-1">
+            {remoteParticipants.length || pendingLiveKitParticipants.length ? (
+              <>
+                {remoteParticipants.map((participant) => {
+                  const trackRef = findParticipantCameraTrack(
+                    trackRefs,
+                    participant.identity,
+                  );
+                  const participantProfile = resolveParticipantProfile(
+                    participantByUserId.get(participant.identity)?.profile,
+                    participant.metadata,
+                  );
+                  const participantRoleLabel = resolveRoleLabel(
+                    participantByUserId.get(participant.identity),
+                    meeting.hostId,
+                    intl.formatMessage,
+                  );
+                  const participantDisplayName =
+                    participantProfile.fullName ||
+                    participantProfile.email ||
+                    participant.name ||
+                    participant.identity;
+                  const participantInitials = buildParticipantInitials(
+                    participantDisplayName,
+                  );
 
-                return trackRef ? (
-                  <MeetingParticipantTile
-                    key={participant.identity}
-                    avatarUrl={participantProfile.avatarUrl}
-                    displayName={participantDisplayName}
-                    initials={participantInitials}
-                    roleLabel={participantRoleLabel}
-                    trackRef={trackRef}
-                    variant="secondary"
-                  />
-                ) : (
-                  <div
-                    key={participant.identity}
-                    className="relative aspect-video min-h-32 w-full overflow-hidden rounded-lg border border-white/10 bg-[#1f2937] shadow-2xl"
-                  >
-                    <MeetingAvatarTile
+                  return trackRef ? (
+                    <MeetingParticipantTile
+                      key={participant.identity}
                       avatarUrl={participantProfile.avatarUrl}
                       displayName={participantDisplayName}
                       initials={participantInitials}
+                      roleLabel={participantRoleLabel}
+                      trackRef={trackRef}
                       variant="secondary"
                     />
-                  </div>
-                );
-              })
+                  ) : (
+                    <div
+                      key={participant.identity}
+                      className="relative aspect-video min-h-32 w-full overflow-hidden rounded-lg border border-white/10 bg-[#1f2937] shadow-2xl"
+                    >
+                      <MeetingAvatarTile
+                        avatarUrl={participantProfile.avatarUrl}
+                        displayName={participantDisplayName}
+                        initials={participantInitials}
+                        variant="secondary"
+                      />
+                    </div>
+                  );
+                })}
+                {pendingLiveKitParticipants.map((participant) => (
+                  <MeetingParticipantConnectingTile
+                    key={participant.userId}
+                    displayName={
+                      participant.profile?.fullName ||
+                      participant.profile?.email ||
+                      intl.formatMessage({
+                        id: "meeting.room.participantConnecting",
+                      })
+                    }
+                  />
+                ))}
+              </>
             ) : (
               <div className="grid min-h-32 place-items-center rounded-lg border border-dashed border-white/15 bg-white/[0.04] px-4 text-center text-sm font-semibold text-slate-400">
                 {intl.formatMessage({
@@ -231,6 +257,30 @@ export function MeetingRoomContent({
           onClose={() => setIsParticipantsModalOpen(false)}
         />
       ) : null}
+    </div>
+  );
+}
+
+function MeetingParticipantConnectingTile({
+  displayName,
+}: { displayName: string }) {
+  const intl = useAppIntl();
+
+  return (
+    <div className="relative grid aspect-video min-h-32 w-full place-items-center overflow-hidden rounded-lg border border-white/10 bg-[#1f2937] shadow-2xl">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <div className="grid h-14 w-14 place-items-center rounded-full bg-white/10">
+          <Loader2 className="h-5 w-5 animate-spin text-blue-300" />
+        </div>
+        <div className="px-3">
+          <p className="max-w-48 truncate text-sm font-black text-white">
+            {displayName}
+          </p>
+          <p className="mt-1 text-xs font-semibold text-slate-400">
+            {intl.formatMessage({ id: "meeting.room.participantConnecting" })}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

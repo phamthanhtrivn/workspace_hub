@@ -714,6 +714,7 @@ const vi = {
     "Camera hoặc micro đã chọn không còn khả dụng. Đang chuyển về thiết bị mặc định.",
   "meeting.room.avatarAlt": "Avatar cuộc họp",
   "meeting.room.noOtherParticipants": "Chưa có ai khác trong phòng",
+  "meeting.room.participantConnecting": "Đang vào phòng...",
   "meeting.room.microphone": "Micro",
   "meeting.room.camera": "Camera",
   "meeting.room.shareScreen": "Chia sẻ màn hình",

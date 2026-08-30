@@ -719,6 +719,7 @@ const en = {
     "The selected camera or microphone is no longer available. Falling back to the default device.",
   "meeting.room.avatarAlt": "Meeting avatar",
   "meeting.room.noOtherParticipants": "No one else is here yet",
+  "meeting.room.participantConnecting": "Joining room...",
   "meeting.room.microphone": "Microphone",
   "meeting.room.camera": "Camera",
   "meeting.room.shareScreen": "Share screen",

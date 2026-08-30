@@ -6,6 +6,7 @@ import {
 } from "@livekit/components-react";
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import { Track } from "livekit-client";
+import { useState } from "react";
 
 interface MeetingParticipantTileProps {
   avatarUrl?: string | null;
@@ -88,23 +89,30 @@ export function MeetingAvatarTile({
   initials,
   variant,
 }: MeetingAvatarTileProps) {
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState<string | null>(null);
   const avatarSize =
     variant === "primary" ? "h-28 w-28 text-3xl" : "h-16 w-16 text-lg";
+  const imageUrl =
+    typeof avatarUrl === "string" && avatarUrl !== failedAvatarUrl
+      ? avatarUrl
+      : undefined;
 
   return (
     <div className="flex h-full w-full items-center justify-center bg-[#20242b]">
       <div
-        className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-blue-600 font-black text-white ${avatarSize}`}
+        className={`grid shrink-0 place-items-center overflow-hidden rounded-full bg-blue-600 text-center font-black leading-none text-white ${avatarSize}`}
         aria-label={displayName}
       >
-        {avatarUrl ? (
+        {imageUrl ? (
           <img
-            src={avatarUrl}
-            alt={displayName}
+            src={imageUrl}
+            alt=""
+            aria-hidden="true"
             className="h-full w-full object-cover"
+            onError={() => setFailedAvatarUrl(imageUrl)}
           />
         ) : (
-          initials
+          <span className="max-w-full px-2">{initials}</span>
         )}
       </div>
     </div>

@@ -954,6 +954,7 @@ export class MeetingService {
             },
           },
           data: {
+            status: MeetingParticipantStatusValue.LEFT,
             leftAt: now,
             lastSeenAt: now,
           },
