@@ -1,8 +1,11 @@
 "use client";
 
-import { Check, MoreVertical } from "lucide-react";
+import { Check } from "lucide-react";
+import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useUpdateCalendar } from "../../hooks/use-calendar-queries";
 import { WorkspaceCalendar } from "../../types/calendar.types";
+import { CalendarColorPopover } from "./calendar-color-popover";
 
 function CalendarSelectionCheckbox({
   calendar,
@@ -33,17 +36,29 @@ export function CalendarListItem({
   calendar,
   selected,
   onToggle,
-  onOpenSettings,
 }: {
   calendar: WorkspaceCalendar;
   selected: boolean;
   onToggle: () => void;
-  onOpenSettings: () => void;
 }) {
   const intl = useAppIntl();
+  const updateCalendar = useUpdateCalendar();
+
+  const changeColor = async (color: string) => {
+    if (color === calendar.color) return;
+
+    try {
+      await updateCalendar.mutateAsync({
+        calendarId: calendar.id,
+        payload: { color },
+      });
+    } catch {
+      toast.error(intl.formatMessage({ id: "calendar.calendarUpdateFailed" }));
+    }
+  };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg px-2 py-2 transition hover:bg-slate-50">
+    <div className="relative flex items-center gap-2 rounded-lg px-2 py-2 transition hover:bg-slate-50">
       <CalendarSelectionCheckbox
         calendar={calendar}
         selected={selected}
@@ -58,16 +73,12 @@ export function CalendarListItem({
         {calendar.name}
       </span>
 
-      <button
-        type="button"
-        onClick={onOpenSettings}
-        className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
-        aria-label={intl.formatMessage({
-          id: "calendar.settings",
-        })}
-      >
-        <MoreVertical className="h-3.5 w-3.5" />
-      </button>
+      <CalendarColorPopover
+        value={calendar.color}
+        label={intl.formatMessage({ id: "calendar.color" })}
+        pending={updateCalendar.isPending}
+        onChange={changeColor}
+      />
     </div>
   );
 }

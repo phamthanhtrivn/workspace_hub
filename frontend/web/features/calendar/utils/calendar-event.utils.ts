@@ -3,6 +3,7 @@ import {
   CalendarEvent,
   CalendarEventDraft,
   CalendarEventFilters,
+  EventSourceType,
 } from "../types/calendar.types";
 import {
   CALENDAR_DEFAULT_EVENT_COLOR,
@@ -10,6 +11,11 @@ import {
   CALENDAR_INITIAL_RANGE_LOOKAHEAD_DAYS,
   CALENDAR_INITIAL_RANGE_LOOKBACK_DAYS,
 } from "../types/calendar.constants";
+import {
+  formatLocalDateKey,
+  getExclusiveAllDayEndDateKey,
+  isAllDayDateTimeRange,
+} from "./calendar-date.utils";
 
 export function createInitialCalendarRange(): CalendarEventFilters {
   const now = new Date();
@@ -45,24 +51,37 @@ export function createEventEndFromStart(startAt: Date): Date {
 
 export function mapCalendarEventToFullCalendar(
   event: CalendarEvent,
+  colorOverride?: string,
 ): EventInput {
-  const calendarColor = event.calendar?.color || CALENDAR_DEFAULT_EVENT_COLOR;
-  const eventColor = event.color || calendarColor;
+  const calendarColor =
+    colorOverride || event.calendar?.color || CALENDAR_DEFAULT_EVENT_COLOR;
+  const eventColor = colorOverride || event.color || calendarColor;
+  const allDay =
+    event.allDay || isAllDayDateTimeRange(event.startAt, event.endAt);
+  const normalizedEvent =
+    allDay === event.allDay ? event : { ...event, allDay: true };
 
   return {
     id: event.id,
     title: event.title,
-    start: event.startAt,
-    end: event.endAt,
-    allDay: event.allDay,
+    start: allDay ? formatLocalDateKey(event.startAt) : event.startAt,
+    end: allDay
+      ? getExclusiveAllDayEndDateKey(event.endAt)
+      : event.endAt,
+    allDay,
     backgroundColor: eventColor,
     borderColor: eventColor,
     textColor: "#ffffff",
+    classNames: [
+      event.sourceType === EventSourceType.TASK
+        ? "calendar-task-event"
+        : "calendar-user-event",
+    ],
     editable: event.permissions?.canManage ?? false,
     durationEditable: event.permissions?.canManage ?? false,
     startEditable: event.permissions?.canManage ?? false,
     extendedProps: {
-      model: event,
+      model: normalizedEvent,
       calendarId: event.calendarId,
       attendees: event.attendees,
       reminders: event.reminders,
@@ -70,9 +89,10 @@ export function mapCalendarEventToFullCalendar(
       status: event.status,
       location: event.location,
       description: event.description,
+      sourceType: event.sourceType,
       calendarColor,
       eventColor,
-      hasCustomEventColor: Boolean(event.color),
+      hasCustomEventColor: !colorOverride && Boolean(event.color),
     },
   };
 }

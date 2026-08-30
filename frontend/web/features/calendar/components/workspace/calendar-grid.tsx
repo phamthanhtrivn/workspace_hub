@@ -19,6 +19,7 @@ import {
   CALENDAR_SLOT_MIN_TIME,
 } from "../../types/calendar.constants";
 import { CalendarEventMoveInfo } from "../../hooks/use-calendar-workspace";
+import { EventSourceType } from "../../types/calendar.types";
 
 export function CalendarGrid({
   calendarRef,
@@ -54,7 +55,7 @@ export function CalendarGrid({
         initialView={CALENDAR_INITIAL_VIEW}
         headerToolbar={false}
         locale={intl.locale}
-        firstDay={1}
+        firstDay={0}
         height="100%"
         nowIndicator
         selectable
@@ -85,21 +86,28 @@ export function CalendarGrid({
           const hasCustomEventColor = Boolean(
             arg.event.extendedProps.hasCustomEventColor,
           );
+          const isTask =
+            arg.event.extendedProps.sourceType === EventSourceType.TASK;
 
           return (
-            <div className="relative min-h-full min-w-0 overflow-hidden rounded-md px-2 py-1">
-              {hasCustomEventColor && (
+            <div
+              className={`relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-white ${
+                isTask ? "calendar-task-event-content" : ""
+              }`}
+              title={`${arg.event.title}${arg.timeText ? `, ${arg.timeText}` : ""}`}
+            >
+              {hasCustomEventColor && !isTask && (
                 <span
                   className="absolute inset-y-0 left-0 w-1"
                   style={{ backgroundColor: calendarColor }}
                 />
               )}
-              <div className={hasCustomEventColor ? "pl-1" : ""}>
-                <p className="truncate text-[11px] font-black">
+              <div className={hasCustomEventColor && !isTask ? "pl-1" : ""}>
+                <p className="truncate text-xs font-semibold leading-[1.25]">
                   {arg.event.title}
                 </p>
                 {!arg.event.allDay && (
-                  <p className="truncate text-[10px] font-semibold opacity-90">
+                  <p className="mt-0.5 truncate text-[11px] font-medium leading-[1.2] opacity-95 tabular-nums">
                     {arg.timeText}
                   </p>
                 )}

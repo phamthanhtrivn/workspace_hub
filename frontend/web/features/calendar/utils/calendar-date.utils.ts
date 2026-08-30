@@ -13,6 +13,50 @@ export function fromDateTimeLocal(value: string): string {
   return new Date(value).toISOString();
 }
 
+export function isAllDayDateTimeRange(
+  startValue: Date | string,
+  endValue: Date | string,
+): boolean {
+  const start =
+    typeof startValue === "string" ? new Date(startValue) : startValue;
+  const end = typeof endValue === "string" ? new Date(endValue) : endValue;
+
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end.getTime() <= start.getTime()
+  ) {
+    return false;
+  }
+
+  return (
+    start.getHours() === 0 &&
+    start.getMinutes() === 0 &&
+    start.getSeconds() === 0 &&
+    end.getHours() === 23 &&
+    end.getMinutes() === 59
+  );
+}
+
+export function formatLocalDateKey(value: Date | string): string {
+  const date = typeof value === "string" ? new Date(value) : value;
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+export function getExclusiveAllDayEndDateKey(value: Date | string): string {
+  const end = typeof value === "string" ? new Date(value) : new Date(value);
+  if (Number.isNaN(end.getTime())) return "";
+
+  end.setDate(end.getDate() + 1);
+  end.setHours(0, 0, 0, 0);
+  return formatLocalDateKey(end);
+}
+
 export function getDateInputValue(value: string): string {
   return value.split("T")[0] || "";
 }

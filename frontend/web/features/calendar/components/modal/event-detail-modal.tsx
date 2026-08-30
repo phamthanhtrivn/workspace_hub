@@ -1,14 +1,16 @@
 "use client";
 
 import { Calendar, Clock, MapPin, Pencil, Trash2, User, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
+import { getPublicProfile } from "@/features/chat/api/chat.api";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
   EventSourceType,
   RecurrenceScope,
+  UserProfileSnapshot,
 } from "../../types/calendar.types";
 import { formatCalendarEventRange } from "../../utils/calendar-date.utils";
 
@@ -31,8 +33,59 @@ export function EventDetailModal({
 }) {
   const intl = useAppIntl();
   const [cancelScope, setCancelScope] = useState(RecurrenceScope.THIS);
+  const [resolvedProfiles, setResolvedProfiles] = useState<
+    Record<string, UserProfileSnapshot>
+  >({});
+
+  useEffect(() => {
+    if (!open || !event?.attendees?.length) return;
+
+    const missingUserIds = event.attendees
+      .filter(
+        (attendee) =>
+          attendee.userId !== event.createdBy &&
+          !attendee.profile?.fullName,
+      )
+      .map((attendee) => attendee.userId);
+    if (missingUserIds.length === 0) return;
+
+    let active = true;
+    void Promise.allSettled(
+      missingUserIds.map(async (userId) => {
+        const response = await getPublicProfile(userId);
+        return [userId, response.data] as const;
+      }),
+    ).then((results) => {
+      if (!active) return;
+
+      setResolvedProfiles((current) => {
+        const next = { ...current };
+        results.forEach((result) => {
+          if (result.status !== "fulfilled") return;
+          const [userId, profile] = result.value;
+          next[userId] = {
+            id: userId,
+            userId,
+            email: profile.email,
+            fullName: profile.fullName,
+            avatarUrl: profile.avatarUrl,
+          };
+        });
+        return next;
+      });
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [event, open]);
 
   if (!open || !event) return null;
+
+  const guestAttendees =
+    event.attendees?.filter(
+      (attendee) => attendee.userId !== event.createdBy,
+    ) || [];
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
@@ -84,74 +137,82 @@ export function EventDetailModal({
             </p>
           )}
 
-          <div>
-            <h3 className="text-xs font-black uppercase text-slate-400">
-              {intl.formatMessage({ id: "calendar.attendees" })}
-            </h3>
-            <div className="mt-2 space-y-2">
-              {event.attendees && event.attendees.length > 0 ? (
-                event.attendees.map((attendee) => (
-                  <div
-                    key={attendee.userId}
-                    className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-slate-100">
-                        {attendee.profile?.avatarUrl ? (
-                          <Image
-                            src={attendee.profile.avatarUrl}
-                            alt={attendee.profile.fullName || attendee.userId}
-                            width={32}
-                            height={32}
-                            unoptimized
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <User className="h-4 w-4 text-slate-400" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-bold text-slate-700">
-                          {attendee.profile?.fullName ||
-                            attendee.profile?.email ||
-                            attendee.userId}
-                        </p>
-                        <p className="truncate text-xs font-semibold text-slate-400">
-                          {attendee.profile?.email || attendee.userId}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500">
-                      {attendee.responseStatus || AttendeeResponseStatus.NEEDS_ACTION}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm font-semibold text-slate-400">
-                  {intl.formatMessage({ id: "calendar.noAttendees" })}
-                </p>
-              )}
-            </div>
-          </div>
+          {guestAttendees.length > 0 && (
+            <div>
+              <h3 className="text-xs font-black uppercase text-slate-400">
+                {intl.formatMessage({ id: "calendar.attendees" })}
+              </h3>
+              <div className="mt-2 space-y-2">
+                {guestAttendees.map((attendee) => {
+                  const profile =
+                    attendee.profile?.fullName
+                      ? attendee.profile
+                      : resolvedProfiles[attendee.userId] || attendee.profile;
+                  const displayName =
+                    profile?.fullName ||
+                    profile?.email ||
+                    intl.formatMessage({ id: "app.user" });
 
-          {event.permissions?.canRespond && (
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              AttendeeResponseStatus.ACCEPTED,
-              AttendeeResponseStatus.TENTATIVE,
-              AttendeeResponseStatus.DECLINED,
-            ].map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => onRespond(status)}
-                disabled={busy}
-                className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 transition hover:border-[var(--color-secondary)] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {intl.formatMessage({ id: `calendar.response.${status}` })}
-              </button>
-            ))}
-          </div>
+                  return (
+                    <div
+                      key={attendee.userId}
+                      className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2"
+                    >
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-slate-100">
+                          {profile?.avatarUrl ? (
+                            <Image
+                              src={profile.avatarUrl}
+                              alt={displayName}
+                              width={32}
+                              height={32}
+                              unoptimized
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <User className="h-4 w-4 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-700">
+                            {displayName}
+                          </p>
+                          {profile?.email && profile.email !== displayName && (
+                            <p className="truncate text-xs font-semibold text-slate-400">
+                              {profile.email}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500">
+                        {attendee.responseStatus ||
+                          AttendeeResponseStatus.NEEDS_ACTION}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {event.permissions?.canRespond && !event.permissions.canManage && (
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                AttendeeResponseStatus.ACCEPTED,
+                AttendeeResponseStatus.TENTATIVE,
+                AttendeeResponseStatus.DECLINED,
+              ].map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => onRespond(status)}
+                  disabled={busy}
+                  className="cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-xs font-black text-slate-600 transition hover:border-[var(--color-secondary)] hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {intl.formatMessage({ id: `calendar.response.${status}` })}
+                </button>
+              ))}
+            </div>
           )}
 
           {event.documentIds.length > 0 && (

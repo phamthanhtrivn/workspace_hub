@@ -8,7 +8,7 @@ import {
   EventInput,
 } from "@fullcalendar/core";
 import FullCalendar from "@fullcalendar/react";
-import { RefObject, useMemo, useState } from "react";
+import { RefObject, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
@@ -19,13 +19,18 @@ import {
   useUpdateCalendarEvent,
   useUpdateCalendarEventResponse,
 } from "./use-calendar-queries";
-import { CALENDAR_INITIAL_VIEW } from "../types/calendar.constants";
+import {
+  CALENDAR_DEFAULT_TASK_COLOR,
+  CALENDAR_INITIAL_VIEW,
+  CALENDAR_TASK_COLOR_STORAGE_KEY,
+} from "../types/calendar.constants";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
   CalendarEventDraft,
   CalendarEventFormValues,
   EventStatus,
+  EventSourceType,
   RecurrenceScope,
 } from "../types/calendar.types";
 import {
@@ -57,6 +62,8 @@ export function useCalendarWorkspace(
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => new Date());
   const [selectedCalendarIds, setSelectedCalendarIds] =
     useState<Set<string> | null>(null);
+  const [tasksVisible, setTasksVisible] = useState(true);
+  const [tasksColor, setTasksColor] = useState(CALENDAR_DEFAULT_TASK_COLOR);
   const [draft, setDraft] = useState<CalendarEventDraft | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null);
@@ -73,6 +80,24 @@ export function useCalendarWorkspace(
   const updateEvent = useUpdateCalendarEvent();
   const cancelEvent = useCancelCalendarEvent();
   const updateResponse = useUpdateCalendarEventResponse();
+
+  useEffect(() => {
+    const storedColor = window.localStorage.getItem(
+      CALENDAR_TASK_COLOR_STORAGE_KEY,
+    );
+    if (!/^#[0-9a-f]{6}$/i.test(storedColor || "")) return;
+
+    const frameId = window.requestAnimationFrame(() => {
+      setTasksColor(storedColor as string);
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  const changeTasksColor = (color: string) => {
+    if (!/^#[0-9a-f]{6}$/i.test(color)) return;
+    setTasksColor(color);
+    window.localStorage.setItem(CALENDAR_TASK_COLOR_STORAGE_KEY, color);
+  };
 
   const defaultCalendar =
     calendars.find((calendar) => calendar.isDefault) || calendars[0];
@@ -97,12 +122,32 @@ export function useCalendarWorkspace(
         )
         .map((calendar) => calendar.id),
     );
+    const calendarColors = new Map(
+      calendars.map((calendar) => [calendar.id, calendar.color]),
+    );
 
     return (eventsQuery.data || [])
       .filter((event) => event.status !== EventStatus.CANCELLED)
-      .filter((event) => visibleIds.has(event.calendarId))
-      .map(mapCalendarEventToFullCalendar);
-  }, [calendars, effectiveSelectedCalendarIds, eventsQuery.data]);
+      .filter((event) =>
+        event.sourceType === EventSourceType.TASK
+          ? tasksVisible
+          : visibleIds.has(event.calendarId),
+      )
+      .map((event) =>
+        mapCalendarEventToFullCalendar(
+          event,
+          event.sourceType === EventSourceType.TASK
+            ? tasksColor
+            : calendarColors.get(event.calendarId),
+        ),
+      );
+  }, [
+    calendars,
+    effectiveSelectedCalendarIds,
+    eventsQuery.data,
+    tasksColor,
+    tasksVisible,
+  ]);
 
   const handleDatesSet = (arg: DatesSetArg) => {
     setRange({
@@ -335,7 +380,11 @@ export function useCalendarWorkspace(
     selectedCalendarIds: effectiveSelectedCalendarIds,
     selectedDate,
     startEditingDetailEvent,
+    changeTasksColor,
+    tasksColor,
+    tasksVisible,
     title,
     toggleCalendar,
+    toggleTasks: () => setTasksVisible((current) => !current),
   };
 }

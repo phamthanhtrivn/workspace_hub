@@ -71,7 +71,11 @@ export function CalendarWorkspace() {
             currentDate={calendar.currentDate}
             selectedCalendarIds={calendar.selectedCalendarIds}
             selectedDate={calendar.selectedDate}
+            tasksVisible={calendar.tasksVisible}
+            tasksColor={calendar.tasksColor}
             onToggleCalendar={calendar.toggleCalendar}
+            onToggleTasks={calendar.toggleTasks}
+            onTasksColorChange={calendar.changeTasksColor}
             onSelectDate={(date) => {
               calendar.handleMiniCalendarDateSelect(date);
               setSidebarOpen(false);

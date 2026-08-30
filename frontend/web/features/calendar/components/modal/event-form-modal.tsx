@@ -1,15 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { Bell, ChevronDown, FileText, Plus, Trash2, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { Bell, FileText, Plus, Trash2, X } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import type { FieldErrors } from "react-hook-form";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { documentsApi } from "@/features/documents/api/documents.api";
-import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import {
   CalendarEventAttendeePayload,
   CalendarEvent,
@@ -34,6 +31,7 @@ import {
   getDateInputValue,
   getTimeInputValue,
   hasMinimumEventDuration,
+  isAllDayDateTimeRange,
   toDateTimeLocal,
 } from "../../utils/calendar-date.utils";
 import {
@@ -45,9 +43,13 @@ import {
   getWeekdayName,
   parseCustomRecurrenceRule,
 } from "../../utils/calendar-recurrence.utils";
+import {
+  createEndTimeOptions,
+  createStartTimeOptions,
+} from "../../utils/calendar-time-options";
 import { CustomRecurrenceModal } from "./custom-recurrence-modal";
+import { CalendarSelect } from "./calendar-select";
 import { CalendarColorPicker } from "../sidebar/calendar-style-fields";
-import { AttendeePicker } from "../workspace/attendee-picker";
 import {
   CalendarEventEditorValues,
   calendarEventFormSchema,
@@ -88,6 +90,11 @@ export function EventFormModal({
     next.setHours(next.getHours() + 1);
     return next;
   })();
+  const defaultAllDay =
+    event?.allDay ||
+    (event && isAllDayDateTimeRange(defaultStart, defaultEnd)) ||
+    initialDraft?.allDay ||
+    false;
 
   const form = useForm<CalendarEventEditorValues>({
     resolver: zodResolver(calendarEventFormSchema),
@@ -98,7 +105,7 @@ export function EventFormModal({
       location: event?.location || "",
       startAt: toDateTimeLocal(defaultStart),
       endAt: toDateTimeLocal(defaultEnd),
-      allDay: event?.allDay || initialDraft?.allDay || false,
+      allDay: defaultAllDay,
       useEventColor: Boolean(event?.color),
       color: event?.color || null,
       visibility: event?.visibility ?? EventVisibility.DEFAULT,
@@ -121,8 +128,25 @@ export function EventFormModal({
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const allDay = useWatch({ control, name: "allDay" });
+  const allDayRegistration = register("allDay");
   const useEventColor = useWatch({ control, name: "useEventColor" });
   const color = useWatch({ control, name: "color" });
+  const startTime = getTimeInputValue(startAt);
+  const startTimeOptions = useMemo(
+    () => createStartTimeOptions(intl.locale, startTime),
+    [intl.locale, startTime],
+  );
+  const endTimeOptions = useMemo(
+    () => createEndTimeOptions(startAt, endAt, intl.locale),
+    [endAt, intl.locale, startAt],
+  );
+  const selectedEndTimeLabel = useMemo(
+    () =>
+      endTimeOptions
+        .find((option) => option.value === endAt)
+        ?.label.replace(/\s+\(.+\)$/, ""),
+    [endAt, endTimeOptions],
+  );
   const {
     fields: reminderFields,
     append: appendReminder,
@@ -136,15 +160,15 @@ export function EventFormModal({
   );
   const [attendees, setAttendees] = useState<CalendarEventAttendeePayload[]>(
     () =>
-      (event?.attendees || []).map(({ userId, optional }) => ({
-        userId,
-        optional: optional ?? false,
-      })),
+      (event?.attendees || [])
+        .filter((attendee) => attendee.userId !== event?.createdBy)
+        .map(({ userId, optional }) => ({
+          userId,
+          optional: optional ?? false,
+        })),
   );
-  const [documentIds, setDocumentIds] = useState<string[]>(
-    event?.documentIds ?? [],
-  );
-  const [documentSearch, setDocumentSearch] = useState("");
+  const [documentIds] = useState<string[]>(event?.documentIds ?? []);
+  const [attachmentNames, setAttachmentNames] = useState<string[]>([]);
   const [recurrenceRule, setRecurrenceRule] = useState<string | null>(
     event?.recurrenceRule || null,
   );
@@ -165,12 +189,6 @@ export function EventFormModal({
   const [showMoreOptions, setShowMoreOptions] = useState(Boolean(event));
   const [quickCreateKind, setQuickCreateKind] =
     useState<QuickCreateKind>("event");
-  const documentsQuery = useQuery({
-    queryKey: ["calendar", "document-options", documentSearch],
-    queryFn: () =>
-      documentsApi.getDocuments({ page: 1, limit: 50, search: documentSearch }),
-    enabled: open,
-  });
 
   const handleStartDateChange = (nextDate: string) => {
     const nextStartAt = composeDateTimeLocal(
@@ -217,8 +235,7 @@ export function EventFormModal({
     setValue("endAt", nextEndAt, { shouldDirty: true, shouldValidate: true });
   };
 
-  const handleEndTimeChange = (nextTime: string) => {
-    const nextEndAt = composeDateTimeLocal(getDateInputValue(endAt), nextTime);
+  const handleEndDateTimeChange = (nextEndAt: string) => {
     if (!hasMinimumEventDuration(startAt, nextEndAt)) {
       toast.error(intl.formatMessage({ id: "calendar.invalidMinimumRange" }));
       return;
@@ -380,7 +397,7 @@ export function EventFormModal({
           }
           onStartDateChange={handleStartDateChange}
           onStartTimeChange={handleStartTimeChange}
-          onEndTimeChange={handleEndTimeChange}
+          onEndDateTimeChange={handleEndDateTimeChange}
           onAllDayChange={handleAllDayChange}
           onRecurrenceChange={handleRecurrenceChange}
         />
@@ -398,13 +415,13 @@ export function EventFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/45 p-3 backdrop-blur-[1px] sm:p-5">
       <form
         onSubmit={handleSubmit(submitValidForm, submitInvalidForm)}
-        className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
+        className="flex max-h-[94dvh] w-full max-w-[36rem] flex-col overflow-hidden rounded-2xl bg-[#f3f6fb] shadow-[0_18px_48px_rgba(15,40,84,0.26)]"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-lg font-black text-[var(--color-primary-dark)]">
+        <div className="flex h-12 shrink-0 items-center justify-between bg-[#e2e8f0] px-5">
+          <h2 className="text-base font-semibold text-slate-800">
             {intl.formatMessage({
               id: event ? "calendar.editEvent" : "calendar.createEvent",
             })}
@@ -412,21 +429,22 @@ export function EventFormModal({
           <button
             type="button"
             onClick={onClose}
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-300/70 hover:text-slate-800"
+            aria-label={intl.formatMessage({ id: "app.close" })}
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-7">
           <input
             {...register("title")}
             placeholder={intl.formatMessage({ id: "calendar.titlePlaceholder" })}
             aria-invalid={Boolean(errors.title)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-base font-bold text-slate-800 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+            className="w-full border-0 border-b-[3px] border-blue-600 bg-transparent px-0 pb-1 text-2xl font-normal text-slate-800 outline-none placeholder:text-slate-500 focus:ring-0"
           />
 
-          <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
             <label className="space-y-2">
               <span className="text-xs font-black uppercase text-slate-400">
                 {intl.formatMessage({ id: "nav.calendar" })}
@@ -490,26 +508,27 @@ export function EventFormModal({
                 className="h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
               />
               {!allDay && (
-                <input
-                  type="time"
-                  value={getTimeInputValue(startAt)}
-                  onChange={(changeEvent) =>
-                    handleStartTimeChange(changeEvent.target.value)
-                  }
-                  className="h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+                <CalendarSelect
+                  value={startTime}
+                  options={startTimeOptions}
+                  ariaLabel={intl.formatMessage({ id: "calendar.start" })}
+                  onChange={handleStartTimeChange}
+                  triggerClassName="h-10 min-w-[6.6rem] border border-slate-200 bg-white px-3"
+                  popupClassName="min-w-[11.75rem]"
                 />
               )}
               <span className="px-1 text-sm font-black text-slate-400">
                 {intl.formatMessage({ id: "calendar.to" })}
               </span>
               {!allDay && (
-                <input
-                  type="time"
-                  value={getTimeInputValue(endAt)}
-                  onChange={(changeEvent) =>
-                    handleEndTimeChange(changeEvent.target.value)
-                  }
-                  className="h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+                <CalendarSelect
+                  value={endAt}
+                  options={endTimeOptions}
+                  ariaLabel={intl.formatMessage({ id: "calendar.end" })}
+                  onChange={handleEndDateTimeChange}
+                  triggerLabel={selectedEndTimeLabel}
+                  triggerClassName="h-10 min-w-[6.6rem] border border-slate-200 bg-white px-3"
+                  popupClassName="min-w-[11.75rem]"
                 />
               )}
               <input
@@ -525,77 +544,31 @@ export function EventFormModal({
             <div className="flex flex-wrap items-center gap-3">
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-slate-600">
                 <input
+                  {...allDayRegistration}
                   type="checkbox"
                   checked={allDay}
-                  onChange={(changeEvent) =>
-                    handleAllDayChange(changeEvent.target.checked)
-                  }
+                  onChange={(changeEvent) => {
+                    void allDayRegistration.onChange(changeEvent);
+                    handleAllDayChange(changeEvent.target.checked);
+                  }}
                   className="h-4 w-4 cursor-pointer rounded border-slate-300"
                 />
                 {intl.formatMessage({ id: "calendar.allDay" })}
               </label>
-              <select
+              <CalendarSelect
                 value={recurrencePreset}
-                onChange={(event) =>
+                options={recurrenceOptions}
+                ariaLabel={intl.formatMessage({ id: "calendar.recurrence" })}
+                onChange={(value) =>
                   handleRecurrenceChange(
-                    event.target.value as CalendarRecurrencePreset,
+                    value as CalendarRecurrencePreset,
                   )
                 }
-                className="h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
-              >
-                {recurrenceOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className={`grid gap-4 ${showMoreOptions ? "md:grid-cols-3" : ""}`}>
-            <label className="space-y-2">
-              <span className="text-xs font-black uppercase text-slate-400">
-                {intl.formatMessage({ id: "calendar.location" })}
-              </span>
-              <input
-                {...register("location")}
-                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+                alignItemWithTrigger={false}
+                triggerClassName="h-10 min-w-[10.5rem] border border-slate-200 bg-white px-3"
+                popupClassName="min-w-[15.5rem]"
               />
-            </label>
-            {showMoreOptions && (
-              <>
-                <label className="space-y-2">
-                  <span className="text-xs font-black uppercase text-slate-400">
-                    {intl.formatMessage({ id: "calendar.visibility" })}
-                  </span>
-                  <select
-                    {...register("visibility")}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
-                  >
-                    {Object.values(EventVisibility).map((value) => (
-                      <option key={value} value={value}>
-                        {intl.formatMessage({ id: `calendar.visibility.${value}` })}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="space-y-2">
-                  <span className="text-xs font-black uppercase text-slate-400">
-                    {intl.formatMessage({ id: "calendar.status" })}
-                  </span>
-                  <select
-                    {...register("status")}
-                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
-                  >
-                    {[EventStatus.CONFIRMED, EventStatus.TENTATIVE].map((value) => (
-                      <option key={value} value={value}>
-                        {intl.formatMessage({ id: `calendar.status.${value}` })}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </>
-            )}
+            </div>
           </div>
 
           {event && (event.recurrenceRule || event.recurrenceParentId) && (
@@ -615,8 +588,6 @@ export function EventFormModal({
               </select>
             </label>
           )}
-
-          <AttendeePicker attendees={attendees} onChange={setAttendees} />
 
           <div className="space-y-3 rounded-xl border border-slate-200 p-3">
             <div className="flex items-center justify-between">
@@ -679,74 +650,62 @@ export function EventFormModal({
             </datalist>
           </div>
 
-          {!showMoreOptions && (
-            <button
-              type="button"
-              onClick={() => setShowMoreOptions(true)}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
-            >
-              <ChevronDown className="h-4 w-4" />
-              {intl.formatMessage({ id: "calendar.moreOptions" })}
-            </button>
-          )}
-
-          {showMoreOptions && (
-            <>
-              <div className="space-y-3 rounded-xl border border-slate-200 p-3">
-                <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-slate-400">
-                  <FileText className="h-4 w-4" />
-                  {intl.formatMessage({ id: "calendar.documents" })}
-                </label>
-                <input
-                  value={documentSearch}
-                  onChange={(changeEvent) => setDocumentSearch(changeEvent.target.value)}
-                  placeholder={intl.formatMessage({ id: "calendar.searchDocuments" })}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700"
-                />
-                <div className="max-h-36 space-y-1 overflow-y-auto">
-                  {(documentsQuery.data?.data || [])
-                    .filter((document) => document.type === DocumentItemType.FILE)
-                    .map((document) => (
-                      <label key={document.id} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 hover:bg-slate-50">
-                        <input
-                          type="checkbox"
-                          checked={documentIds.includes(document.id)}
-                          onChange={(changeEvent) =>
-                            setDocumentIds((current) =>
-                              changeEvent.target.checked
-                                ? [...new Set([...current, document.id])]
-                                : current.filter((id) => id !== document.id),
-                            )
-                          }
-                        />
-                        <span className="truncate text-sm font-semibold text-slate-600">{document.name}</span>
-                      </label>
-                    ))}
-                </div>
-              </div>
-
-              <textarea
-                {...register("description")}
-                placeholder={intl.formatMessage({ id: "calendar.descriptionPlaceholder" })}
-                rows={3}
-                className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+          <div className="space-y-3 rounded-xl border border-slate-200 p-3">
+            <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-slate-400">
+              <FileText className="h-4 w-4" />
+              {intl.formatMessage({ id: "calendar.quick.addFile" })}
+            </label>
+            <label className="block cursor-pointer rounded-lg border border-dashed border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-600 transition hover:border-blue-400 hover:bg-blue-50/50">
+              <input
+                type="file"
+                multiple
+                className="sr-only"
+                aria-label={intl.formatMessage({ id: "calendar.quick.addFile" })}
+                onChange={(changeEvent) =>
+                  setAttachmentNames(
+                    Array.from(changeEvent.target.files || []).map(
+                      (file) => file.name,
+                    ),
+                  )
+                }
               />
-            </>
-          )}
+              {intl.formatMessage({ id: "calendar.quick.addFile" })}
+              {attachmentNames.length > 0 && (
+                <span className="mt-1 block truncate text-xs font-medium text-slate-500">
+                  {attachmentNames.join(", ")}
+                </span>
+              )}
+              {documentIds.length > 0 && attachmentNames.length === 0 && (
+                <span className="mt-1 block text-xs font-medium text-slate-500">
+                  {intl.formatMessage(
+                    { id: "calendar.attachedDocuments" },
+                    { count: documentIds.length },
+                  )}
+                </span>
+              )}
+            </label>
+          </div>
+
+          <textarea
+            {...register("description")}
+            placeholder={intl.formatMessage({ id: "calendar.descriptionPlaceholder" })}
+            rows={3}
+            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-3 text-sm font-semibold text-slate-700 outline-none placeholder:text-slate-400 focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+          />
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+        <div className="flex shrink-0 justify-end gap-2 border-t border-slate-200 px-5 py-4 sm:px-7">
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
+            className="cursor-pointer rounded-full px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-200/70"
           >
             {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             type="submit"
             disabled={submitting || isSubmitting}
-            className="cursor-pointer rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="cursor-pointer rounded-full bg-blue-700 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60"
           >
             {submitting
               ? intl.formatMessage({ id: "app.saving" })

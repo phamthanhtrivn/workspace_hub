@@ -1,4 +1,6 @@
 export const CALENDAR_DEFAULT_EVENT_COLOR = "#2563eb";
+export const CALENDAR_DEFAULT_TASK_COLOR = "#4285f4";
+export const CALENDAR_TASK_COLOR_STORAGE_KEY = "calendar.taskColor";
 export const CALENDAR_DEFAULT_NAME = "Personal";
 export const CALENDAR_DEFAULT_ICON = "📅";
 export const CALENDAR_DEFAULT_EVENT_DURATION_MS = 60 * 60 * 1000;

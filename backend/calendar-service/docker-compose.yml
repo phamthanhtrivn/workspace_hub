@@ -31,4 +31,4 @@ services:
       start_period: 30s
     networks:
       - wh_network
-    restart: on-failure
+    restart: unless-stopped
