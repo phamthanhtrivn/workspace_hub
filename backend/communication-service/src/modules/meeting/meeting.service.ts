@@ -557,6 +557,27 @@ export class MeetingService {
       targetUserId,
       enrichedParticipant,
     );
+    if (role === MeetingParticipantRoleValue.HOST && targetUserId !== hostId) {
+      const oldHostParticipant =
+        await this.prisma.meetingParticipant.findUnique({
+          where: {
+            meetingId_userId: {
+              meetingId,
+              userId: hostId,
+            },
+          },
+        });
+      if (oldHostParticipant) {
+        const [enrichedOldHostParticipant] = await this.enrichParticipants([
+          oldHostParticipant,
+        ]);
+        this.chatGateway.emitMeetingParticipantRoleUpdated(
+          meetingId,
+          hostId,
+          enrichedOldHostParticipant,
+        );
+      }
+    }
 
     return enrichedParticipant;
   }
@@ -1023,7 +1044,11 @@ export class MeetingService {
     );
 
     await this.deleteLiveKitRoom(meeting.roomName);
-    this.chatGateway.emitMeetingEnded(meetingId, hostId);
+    this.chatGateway.emitMeetingEnded(
+      meetingId,
+      hostId,
+      endedMeeting.participants.map((participant) => participant.userId),
+    );
 
     return this.mapMeetingResponse(endedMeeting, hostId);
   }

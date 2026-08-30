@@ -10,7 +10,9 @@ import { MeetingSocketPayload } from "../../types/meeting.types";
 
 interface MeetingRealtimeSocket {
   emit: (
-    event: MeetingSocketEvent.JOIN_CONTROL_ROOM,
+    event:
+      | MeetingSocketEvent.JOIN_CONTROL_ROOM
+      | MeetingSocketEvent.LEAVE_CONTROL_ROOM,
     payload: { meetingId: string },
   ) => void;
   on: (
@@ -103,6 +105,7 @@ export function useMeetingSocket(
     socket.on(MeetingSocketEvent.MEETING_ENDED, handleMeetingEnded);
 
     return () => {
+      socket.emit(MeetingSocketEvent.LEAVE_CONTROL_ROOM, { meetingId });
       socket.off(MeetingSocketEvent.JOIN_REQUESTED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.JOIN_APPROVED, handleMeetingEvent);
       socket.off(MeetingSocketEvent.JOIN_REJECTED, handleMeetingEvent);
