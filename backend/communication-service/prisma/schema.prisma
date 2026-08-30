@@ -554,19 +554,21 @@ model Meeting {
  * ========================================================= */
 
 model MeetingParticipant {
-  id          String                   @id @default(uuid()) @db.Uuid
-  meetingId   String                   @map("meeting_id") @db.Uuid
-  userId      String                   @map("user_id") @db.Uuid
-  role        MeetingRole
-  status      MeetingParticipantStatus
-  invitedAt   DateTime?                @map("invited_at")
-  joinedAt    DateTime?                @map("joined_at")
-  leftAt      DateTime?                @map("left_at")
-  lastSeenAt  DateTime?                @map("last_seen_at")
-  createdAt   DateTime                 @default(now()) @map("created_at")
-  updatedAt   DateTime                 @updatedAt @map("updated_at")
+  id                String                   @id @default(uuid()) @db.Uuid
+  meetingId         String                   @map("meeting_id") @db.Uuid
+  userId            String                   @map("user_id") @db.Uuid
+  role              MeetingRole
+  status            MeetingParticipantStatus
+  invitedAt         DateTime?                @map("invited_at")
+  joinedAt          DateTime?                @map("joined_at")
+  leftAt            DateTime?                @map("left_at")
+  lastSeenAt        DateTime?                @map("last_seen_at")
+  lastReadMessageId String?                  @map("last_read_message_id") @db.Uuid
+  lastReadAt        DateTime?                @map("last_read_at")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
 
-  meeting     Meeting                  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meeting           Meeting                  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
 
   @@unique([meetingId, userId])
   @@index([userId])
@@ -579,19 +581,60 @@ model MeetingParticipant {
  * ========================================================= */
 
 model MeetingMessage {
-  id        String    @id @default(uuid()) @db.Uuid
-  meetingId String    @map("meeting_id") @db.Uuid
-  senderId  String    @map("sender_id") @db.Uuid
-  content   String
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id        String      @id @default(uuid()) @db.Uuid
+  meetingId String      @map("meeting_id") @db.Uuid
+  senderId  String      @map("sender_id") @db.Uuid
+  content   String?
+  type      MessageType @default(TEXT)
+  edited    Boolean     @default(false)
+  recalled  Boolean     @default(false)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  deletedAt DateTime?   @map("deleted_at")
 
-  meeting   Meeting   @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meeting   Meeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  reactions MeetingReaction[]
+  medias    MeetingMedia[]
 
   @@index([meetingId, createdAt])
   @@index([senderId])
   @@map("meeting_messages")
+}
+
+/* =========================================================
+ * MEETING MEDIA
+ * ========================================================= */
+
+model MeetingMedia {
+  id        String         @id @default(uuid()) @db.Uuid
+  messageId String         @map("message_id") @db.Uuid
+  name      String
+  s3Key     String         @map("s3_key")
+  mimeType  String         @map("mime_type")
+  sizeBytes Int            @map("size_bytes")
+  type      MediaType
+
+  message   MeetingMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("meeting_medias")
+}
+
+/* =========================================================
+ * MEETING REACTION
+ * ========================================================= */
+
+model MeetingReaction {
+  id        String         @id @default(uuid()) @db.Uuid
+  messageId String         @map("message_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  emoji     String
+
+  message   MeetingMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("meeting_reactions")
 }
 
 /* =========================================================
