@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "npm run test:calendar && npm run test:project",
+    "test:calendar": "vitest run --exclude features/project/api/pagination.test.mjs",
+    "test:project": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test features/project/api/pagination.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

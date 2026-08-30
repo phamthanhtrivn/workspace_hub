@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "prisma generate",
     "build": "nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -11,12 +12,13 @@
     "format": "prettier --write \"src/**/*.ts\"",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "test:integration": "jest --config jest.integration.config.js --runInBand"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
-    "@nestjs/microservices": "^11.2.1",
+    "@nestjs/microservices": "11.1.28",
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/client": "^6.19.3",
     "class-transformer": "^0.5.1",

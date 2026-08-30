@@ -2,22 +2,27 @@ import { api } from "@/lib/axios";
 import {
   TaskPriority,
   TaskStatus,
+  TaskType,
   type Task,
   type TaskChecklist,
   type TaskAssignee,
   type TaskLabel,
   type TaskActivity,
 } from "@/features/project/types/project";
+import { fetchAllPages, type PaginationMeta } from "./pagination";
 
 interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  meta?: PaginationMeta | null;
 }
 
 export interface TaskApiModel {
   id: string;
   projectId: string;
+  taskNumber: number;
+  taskType: TaskType;
   parentTaskId?: string | null;
   childCount?: number;
   isParentTask?: boolean;
@@ -50,6 +55,7 @@ export interface CreateTaskPayload {
   description?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
+  taskType?: TaskType;
   startDate?: string;
   dueDate?: string;
   allDay?: boolean;
@@ -66,8 +72,9 @@ export interface UpdateTaskPayload {
   description?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
+  taskType?: TaskType;
   startDate?: string;
-  dueDate?: string;
+  dueDate?: string | null;
   allDay?: boolean;
   estimatedMinutes?: number;
   rank?: string;
@@ -92,6 +99,8 @@ export function normalizeTask(task: TaskApiModel): Task {
   return {
     id: task.id,
     projectId: task.projectId,
+    taskNumber: task.taskNumber,
+    taskType: task.taskType || TaskType.TASK,
     parentTaskId: task.parentTaskId || undefined,
     childCount: task.childCount || 0,
     isParentTask: task.isParentTask || false,
@@ -126,10 +135,14 @@ export function normalizeTask(task: TaskApiModel): Task {
 }
 
 export async function getProjectTasks(projectId: string): Promise<Task[]> {
-  const response = await api.get<ApiResponse<TaskApiModel[]>>(
-    `/api/projects/${projectId}/tasks`,
-  );
-  return (unwrap(response) || []).map(normalizeTask);
+  const taskModels = await fetchAllPages(async (page, limit) => {
+    const response = await api.get<ApiResponse<TaskApiModel[]>>(
+      `/api/projects/${projectId}/tasks`,
+      { params: { page, limit } },
+    );
+    return { items: unwrap(response) || [], meta: response.data.meta };
+  });
+  return taskModels.map(normalizeTask);
 }
 
 export async function getTask(taskId: string): Promise<Task> {
@@ -198,8 +211,11 @@ export async function deleteChecklist(checklistId: string): Promise<void> {
 export async function getTaskActivities(
   taskId: string,
 ): Promise<TaskActivity[]> {
-  const response = await api.get<ApiResponse<TaskActivity[]>>(
-    `/api/tasks/${taskId}/activities`,
-  );
-  return unwrap(response);
+  return fetchAllPages(async (page, limit) => {
+    const response = await api.get<ApiResponse<TaskActivity[]>>(
+      `/api/tasks/${taskId}/activities`,
+      { params: { page, limit } },
+    );
+    return { items: unwrap(response) || [], meta: response.data.meta };
+  });
 }

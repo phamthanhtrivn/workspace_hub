@@ -21,6 +21,7 @@ import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-em
 import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
+import { ResolveProjectInvitationDto } from "./dtos/resolve-project-invitation.dto";
 
 @Controller("api/notifications")
 export class NotificationController {
@@ -54,12 +55,39 @@ export class NotificationController {
     @Headers("x-internal-service-key") serviceKey: string,
     @Body() dto: CreateNotificationDto,
   ) {
-    const expectedKey = process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
+    const expectedKey =
+      process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
     if (serviceKey !== expectedKey) {
       throw new UnauthorizedException("Invalid internal service key");
     }
     const notification = await this.notificationService.createNotification(dto);
     return { message: "Notification created successfully", data: notification };
+  }
+
+  @Patch("internal/project-invitations/:invitationId")
+  async resolveProjectInvitation(
+    @Headers("x-internal-service-key") serviceKey: string,
+    @Param("invitationId") invitationId: string,
+    @Body() dto: ResolveProjectInvitationDto,
+  ) {
+    const expectedKey =
+      process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
+    if (serviceKey !== expectedKey) {
+      throw new UnauthorizedException("Invalid internal service key");
+    }
+    const notification =
+      await this.notificationService.resolveProjectInvitation(
+        invitationId,
+        dto.recipientId,
+        dto.status,
+      );
+    if (!notification) {
+      throw new NotFoundException("Project invitation notification not found");
+    }
+    return {
+      message: "Project invitation notification updated",
+      data: notification,
+    };
   }
 
   @Get()
@@ -216,7 +244,10 @@ export class NotificationController {
       throw new BadRequestException("Missing endpoint in request body");
     }
 
-    const success = await this.notificationService.unsubscribe(userId, endpoint);
+    const success = await this.notificationService.unsubscribe(
+      userId,
+      endpoint,
+    );
 
     return {
       message: "Push notification subscription removed successfully",

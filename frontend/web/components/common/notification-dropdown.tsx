@@ -41,6 +41,10 @@ import {
   InvitationDeclinedListItemRenderer,
   InvitationDeclinedModalRenderer,
 } from "@/features/notification/components/renderers/invitation-declined-renderer";
+import {
+  ProjectInvitationListItemRenderer,
+  ProjectInvitationModalRenderer,
+} from "@/features/notification/components/renderers/project-invitation-renderer";
 
 // Initialize Registry
 let isRegistryInitialized = false;
@@ -65,6 +69,11 @@ if (!isRegistryInitialized) {
     InvitationDeclinedModalRenderer,
     InvitationDeclinedListItemRenderer,
   );
+  registerNotificationRenderer(
+    NotificationType.PROJECT_INVITATION,
+    ProjectInvitationModalRenderer,
+    ProjectInvitationListItemRenderer,
+  );
   isRegistryInitialized = true;
 }
 
@@ -82,7 +91,6 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const [tab, setTab] = useState<"ALL" | "UNREAD">("ALL");
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
-    
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -234,12 +242,6 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
               onItemClick={handleItemClick}
               isLoading={loading}
             />
-          </div>
-
-          <div className="p-2 border-t border-slate-100 bg-slate-50/50 rounded-b-2xl">
-            <button className="w-full py-2 text-sm font-semibold text-slate-500 hover:text-slate-800 transition cursor-pointer">
-              {intl.formatMessage({ id: "notifications.viewAll" })}
-            </button>
           </div>
         </div>
       )}

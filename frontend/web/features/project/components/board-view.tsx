@@ -3,7 +3,7 @@
 import { type Task, TaskStatus } from "@/features/project/types/project";
 import { getTasksByStatus } from "@/lib/mock-data";
 import TaskCard from "./task-card";
-import { Plus, Circle, Loader2, Eye, CheckCircle2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const COLUMNS: {
@@ -41,6 +41,13 @@ const COLUMNS: {
     badgeBg: "bg-[#E3FCEF]",
     badgeText: "text-[#006644]",
   },
+  {
+    status: TaskStatus.CANCELLED,
+    labelId: "project.task.status.cancelledUpper",
+    headerColor: "text-[#5E6C84]",
+    badgeBg: "bg-[#E2E8F0]",
+    badgeText: "text-[#475569]",
+  },
 ];
 
 export default function BoardView({
@@ -49,17 +56,19 @@ export default function BoardView({
   onTaskMove,
   onAddTask,
   onOpenChat,
+  canEditTask = () => false,
 }: {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void;
   onAddTask?: (status: TaskStatus) => void;
   onOpenChat?: (task: Task) => void;
+  canEditTask?: (task: Task) => boolean;
 }) {
   const intl = useAppIntl();
 
   return (
-    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4 items-start h-full">
+    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-5 items-start h-full">
       {COLUMNS.map((col) => {
         const columnTasks = getTasksByStatus(tasks, col.status);
         const columnLabel = intl.formatMessage({ id: col.labelId });
@@ -68,7 +77,9 @@ export default function BoardView({
           <div
             key={col.status}
             className="flex flex-col rounded bg-[#F4F5F7] p-2 min-h-[500px]"
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => {
+              if (onTaskMove) e.preventDefault();
+            }}
             onDrop={(e) => {
               e.preventDefault();
               const taskId = e.dataTransfer.getData("text/plain");
@@ -91,7 +102,7 @@ export default function BoardView({
                   {columnTasks.length}
                 </span>
               </div>
-              <button
+              {col.status !== TaskStatus.CANCELLED && <button
                 type="button"
                 onClick={() => onAddTask?.(col.status)}
                 className="grid h-6 w-6 place-items-center rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition"
@@ -101,7 +112,7 @@ export default function BoardView({
                 )}
               >
                 <Plus className="h-4 w-4" strokeWidth={2} />
-              </button>
+              </button>}
             </div>
 
             {/* Task cards list */}
@@ -112,13 +123,14 @@ export default function BoardView({
                   task={task}
                   onClick={() => onTaskClick?.(task)}
                   onOpenChat={onOpenChat}
+                  canDrag={Boolean(onTaskMove) && canEditTask(task)}
                 />
               ))}
 
               {columnTasks.length === 0 && (
                 <div className="flex flex-1 flex-col items-center justify-center rounded border border-dashed border-slate-300 py-10 text-xs font-medium text-slate-400 bg-slate-50/50">
                   <span>{intl.formatMessage({ id: "project.task.empty" })}</span>
-                  {onAddTask && (
+                  {onAddTask && col.status !== TaskStatus.CANCELLED && (
                     <button
                       type="button"
                       onClick={() => onAddTask(col.status)}
@@ -133,7 +145,7 @@ export default function BoardView({
             </div>
 
             {/* Inline quick create button at bottom (if tasks exist) */}
-            {columnTasks.length > 0 && onAddTask && (
+            {columnTasks.length > 0 && onAddTask && col.status !== TaskStatus.CANCELLED && (
               <button
                 type="button"
                 onClick={() => onAddTask(col.status)}

@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ProjectAccessService } from './project-access.service';
@@ -7,6 +12,12 @@ import { CreateSprintDto } from './dto/create-sprint.dto';
 import { AddSprintTasksDto } from './dto/add-sprint-tasks.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
 import { toTaskResponse } from './project.mapper';
+import { assertTaskEditable } from './task-edit.guard';
+import {
+  isRecordNotFoundError,
+  isUniqueConstraintError,
+  rethrowWriteConflict,
+} from '../../common/prisma/prisma-errors';
 
 const sprintInclude = {
   tasks: {
@@ -35,7 +46,10 @@ export class SprintService {
   }
 
   async create(userId: string, projectId: string, dto: CreateSprintDto) {
-    const project = await this.access.requireManager(userId, projectId);
+    const project = await this.access.requireCanManageSprints(
+      userId,
+      projectId,
+    );
     this.assertSoftwareProject(project.projectType);
     await this.validateDateRange(dto.startDate, dto.endDate);
     const now = new Date();
@@ -60,7 +74,9 @@ export class SprintService {
   async addTasks(userId: string, sprintId: string, dto: AddSprintTasksDto) {
     const sprint = await this.getSprintForManager(userId, sprintId);
     if (sprint.status !== SprintStatus.PLANNED) {
-      throw new ConflictException('Tasks can only be added to a planned sprint');
+      throw new ConflictException(
+        'Tasks can only be added to a planned sprint',
+      );
     }
 
     const tasks = await this.prisma.task.findMany({
@@ -70,18 +86,29 @@ export class SprintService {
         deletedAt: null,
         id: { in: dto.taskIds },
       },
-      select: { id: true, parentTaskId: true },
+      select: { id: true, parentTaskId: true, status: true },
     });
     if (tasks.length !== dto.taskIds.length) {
-      throw new NotFoundException('One or more tasks were not found in this project');
+      throw new NotFoundException(
+        'One or more tasks were not found in this project',
+      );
     }
+    tasks.forEach((task) => assertTaskEditable(task.status));
 
     const selectedIds = tasks.map((task) => task.id);
     const childTasks = await this.prisma.task.findMany({
-      where: { projectId: sprint.projectId, parentTaskId: { in: selectedIds }, archived: false, deletedAt: null },
-      select: { id: true },
+      where: {
+        projectId: sprint.projectId,
+        parentTaskId: { in: selectedIds },
+        archived: false,
+        deletedAt: null,
+      },
+      select: { id: true, status: true },
     });
-    const allTaskIds = [...new Set([...selectedIds, ...childTasks.map((task) => task.id)])];
+    childTasks.forEach((task) => assertTaskEditable(task.status));
+    const allTaskIds = [
+      ...new Set([...selectedIds, ...childTasks.map((task) => task.id)]),
+    ];
     await this.prisma.task.updateMany({
       where: { id: { in: allTaskIds } },
       data: { sprintId: sprint.id, updatedAt: new Date() },
@@ -92,19 +119,35 @@ export class SprintService {
   async removeTask(userId: string, sprintId: string, taskId: string) {
     const sprint = await this.getSprintForManager(userId, sprintId);
     if (sprint.status !== SprintStatus.PLANNED) {
-      throw new ConflictException('Tasks can only be moved back from a planned sprint');
+      throw new ConflictException(
+        'Tasks can only be moved back from a planned sprint',
+      );
     }
 
     const task = await this.prisma.task.findFirst({
-      where: { id: taskId, projectId: sprint.projectId, sprintId: sprint.id, archived: false, deletedAt: null },
-      select: { id: true },
+      where: {
+        id: taskId,
+        projectId: sprint.projectId,
+        sprintId: sprint.id,
+        archived: false,
+        deletedAt: null,
+      },
+      select: { id: true, status: true },
     });
     if (!task) throw new NotFoundException('Task not found in this sprint');
+    assertTaskEditable(task.status);
 
     const childTasks = await this.prisma.task.findMany({
-      where: { projectId: sprint.projectId, parentTaskId: task.id, sprintId: sprint.id, archived: false, deletedAt: null },
-      select: { id: true },
+      where: {
+        projectId: sprint.projectId,
+        parentTaskId: task.id,
+        sprintId: sprint.id,
+        archived: false,
+        deletedAt: null,
+      },
+      select: { id: true, status: true },
     });
+    childTasks.forEach((child) => assertTaskEditable(child.status));
     await this.prisma.task.updateMany({
       where: { id: { in: [task.id, ...childTasks.map((child) => child.id)] } },
       data: { sprintId: null, updatedAt: new Date() },
@@ -117,40 +160,65 @@ export class SprintService {
     if (sprint.status !== SprintStatus.PLANNED) {
       throw new ConflictException('Only a planned sprint can be started');
     }
-    const activeSprint = await this.prisma.sprint.findFirst({
-      where: { projectId: sprint.projectId, status: SprintStatus.ACTIVE },
-      select: { id: true },
-    });
-    if (activeSprint) throw new ConflictException('This project already has an active sprint');
-
     const now = new Date();
-    const updated = await this.prisma.sprint.update({
-      where: { id: sprint.id },
-      data: { status: SprintStatus.ACTIVE, startedAt: now, updatedAt: now },
-      include: sprintInclude,
-    });
-    return this.toResponse(updated);
+    try {
+      const updated = await this.prisma.sprint.update({
+        where: { id: sprint.id, version: sprint.version },
+        data: {
+          status: SprintStatus.ACTIVE,
+          startedAt: now,
+          updatedAt: now,
+          version: { increment: 1 },
+        },
+        include: sprintInclude,
+      });
+      return this.toResponse(updated);
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        throw new ConflictException(
+          'This project already has an active sprint',
+        );
+      }
+      if (isRecordNotFoundError(error)) {
+        throw new ConflictException('Sprint was changed by another request');
+      }
+      throw error;
+    }
   }
 
   async update(userId: string, sprintId: string, dto: UpdateSprintDto) {
     const sprint = await this.getSprintForManager(userId, sprintId);
 
-    const startDate = dto.startDate ? new Date(dto.startDate) : sprint.startDate;
+    const startDate = dto.startDate
+      ? new Date(dto.startDate)
+      : sprint.startDate;
     const endDate = dto.endDate ? new Date(dto.endDate) : sprint.endDate;
-    await this.validateDateRange(startDate?.toISOString(), endDate?.toISOString());
+    await this.validateDateRange(
+      startDate?.toISOString(),
+      endDate?.toISOString(),
+    );
 
-    const updated = await this.prisma.sprint.update({
-      where: { id: sprint.id },
-      data: {
-        ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
-        ...(dto.goal !== undefined ? { goal: dto.goal.trim() || null } : {}),
-        ...(dto.startDate !== undefined ? { startDate: new Date(dto.startDate) } : {}),
-        ...(dto.endDate !== undefined ? { endDate: new Date(dto.endDate) } : {}),
-        updatedAt: new Date(),
-      },
-      include: sprintInclude,
-    });
-    return this.toResponse(updated);
+    try {
+      const updated = await this.prisma.sprint.update({
+        where: { id: sprint.id, version: sprint.version },
+        data: {
+          ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+          ...(dto.goal !== undefined ? { goal: dto.goal.trim() || null } : {}),
+          ...(dto.startDate !== undefined
+            ? { startDate: new Date(dto.startDate) }
+            : {}),
+          ...(dto.endDate !== undefined
+            ? { endDate: new Date(dto.endDate) }
+            : {}),
+          updatedAt: new Date(),
+          version: { increment: 1 },
+        },
+        include: sprintInclude,
+      });
+      return this.toResponse(updated);
+    } catch (error) {
+      rethrowWriteConflict(error, 'Sprint was changed by another request');
+    }
   }
 
   async complete(userId: string, sprintId: string) {
@@ -160,22 +228,36 @@ export class SprintService {
     }
 
     const now = new Date();
-    const result = await this.prisma.$transaction(async (tx) => {
-      const unfinished = await tx.task.findMany({
-        where: { sprintId: sprint.id, archived: false, deletedAt: null, status: { not: TaskStatus.DONE } },
-        select: { id: true },
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const unfinished = await tx.task.findMany({
+          where: {
+            sprintId: sprint.id,
+            archived: false,
+            deletedAt: null,
+            status: { notIn: [TaskStatus.DONE, TaskStatus.CANCELLED] },
+          },
+          select: { id: true },
+        });
+        await tx.task.updateMany({
+          where: { id: { in: unfinished.map((task) => task.id) } },
+          data: { sprintId: null, updatedAt: now },
+        });
+        return tx.sprint.update({
+          where: { id: sprint.id, version: sprint.version },
+          data: {
+            status: SprintStatus.COMPLETED,
+            completedAt: now,
+            updatedAt: now,
+            version: { increment: 1 },
+          },
+          include: sprintInclude,
+        });
       });
-      await tx.task.updateMany({
-        where: { id: { in: unfinished.map((task) => task.id) } },
-        data: { sprintId: null, updatedAt: now },
-      });
-      return tx.sprint.update({
-        where: { id: sprint.id },
-        data: { status: SprintStatus.COMPLETED, completedAt: now, updatedAt: now },
-        include: sprintInclude,
-      });
-    });
-    return this.toResponse(result);
+      return this.toResponse(result);
+    } catch (error) {
+      rethrowWriteConflict(error, 'Sprint was changed by another request');
+    }
   }
 
   async reopen(userId: string, sprintId: string) {
@@ -184,45 +266,64 @@ export class SprintService {
       throw new ConflictException('Only a completed sprint can be reopened');
     }
 
-    const updated = await this.prisma.sprint.update({
-      where: { id: sprint.id },
-      data: {
-        status: SprintStatus.PLANNED,
-        startedAt: null,
-        completedAt: null,
-        updatedAt: new Date(),
-      },
-      include: sprintInclude,
-    });
-    return this.toResponse(updated);
+    try {
+      const updated = await this.prisma.sprint.update({
+        where: { id: sprint.id, version: sprint.version },
+        data: {
+          status: SprintStatus.PLANNED,
+          startedAt: null,
+          completedAt: null,
+          updatedAt: new Date(),
+          version: { increment: 1 },
+        },
+        include: sprintInclude,
+      });
+      return this.toResponse(updated);
+    } catch (error) {
+      rethrowWriteConflict(error, 'Sprint was changed by another request');
+    }
   }
 
   private async getById(sprintId: string) {
-    const sprint = await this.prisma.sprint.findUnique({ where: { id: sprintId }, include: sprintInclude });
+    const sprint = await this.prisma.sprint.findUnique({
+      where: { id: sprintId },
+      include: sprintInclude,
+    });
     if (!sprint) throw new NotFoundException('Sprint not found');
     return this.toResponse(sprint);
   }
 
   private async getSprintForManager(userId: string, sprintId: string) {
-    const sprint = await this.prisma.sprint.findUnique({ where: { id: sprintId } });
+    const sprint = await this.prisma.sprint.findUnique({
+      where: { id: sprintId },
+    });
     if (!sprint) throw new NotFoundException('Sprint not found');
-    await this.access.requireManager(userId, sprint.projectId);
+    await this.access.requireCanManageSprints(userId, sprint.projectId);
     return sprint;
   }
 
   private assertSoftwareProject(projectType: string): void {
     if (projectType !== ProjectType.SOFTWARE_DEVELOPMENT) {
-      throw new BadRequestException('Sprints are available only for software development projects');
+      throw new BadRequestException(
+        'Sprints are available only for software development projects',
+      );
     }
   }
 
-  private async validateDateRange(startDate?: string, endDate?: string): Promise<void> {
+  private async validateDateRange(
+    startDate?: string,
+    endDate?: string,
+  ): Promise<void> {
     if (startDate && endDate && new Date(startDate) > new Date(endDate)) {
-      throw new ConflictException('Sprint start date cannot be after its end date');
+      throw new ConflictException(
+        'Sprint start date cannot be after its end date',
+      );
     }
   }
 
-  private toResponse(sprint: Prisma.SprintGetPayload<{ include: typeof sprintInclude }>) {
+  private toResponse(
+    sprint: Prisma.SprintGetPayload<{ include: typeof sprintInclude }>,
+  ) {
     return {
       id: sprint.id,
       projectId: sprint.projectId,

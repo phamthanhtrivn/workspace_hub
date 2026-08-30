@@ -1,18 +1,20 @@
 "use client";
 
+import { useState } from "react";
+
 import {
   Activity,
   CalendarClock,
   CheckCircle2,
   CircleDot,
-  Clock3,
-  Flag,
   ListChecks,
   Users,
 } from "lucide-react";
 import {
   TaskPriority,
   TaskStatus,
+  TaskType,
+  isTerminalTaskStatus,
   type ProjectMember,
   type Task,
   type Sprint,
@@ -40,17 +42,9 @@ function formatRelative(value?: string): string {
   return `${Math.floor(hours / 24)} ngày trước`;
 }
 
-function formatDate(value?: string): string {
-  if (!value) return "Chưa đặt";
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-  }).format(new Date(value));
-}
-
 function getTaskType(task: Task): "Task" | "Epic" | "Subtask" {
-  if (task.isParentTask) return "Epic";
-  if (task.parentTaskId) return "Subtask";
+  if (task.taskType === TaskType.EPIC) return "Epic";
+  if (task.taskType === TaskType.SUBTASK) return "Subtask";
   return "Task";
 }
 
@@ -104,9 +98,14 @@ export default function SummaryView({
   members: ProjectMember[];
   sprints?: Sprint[];
 }) {
+  const [now] = useState(() => Date.now());
   const activeTasks = tasks.filter((task) => !task.archived);
   const workItems = activeTasks.filter((task) => !task.isParentTask);
   const completed = workItems.filter((task) => task.status === TaskStatus.DONE);
+  const cancelled = workItems.filter(
+    (task) => task.status === TaskStatus.CANCELLED,
+  );
+  const terminal = workItems.filter((task) => isTerminalTaskStatus(task.status));
   const completedRecently = completed.filter((task) =>
     isWithinLastDays(task.updatedAt),
   );
@@ -117,9 +116,9 @@ export default function SummaryView({
     isWithinLastDays(task.createdAt),
   );
   const dueSoon = workItems.filter((task) => {
-    if (!task.dueDate || task.status === TaskStatus.DONE) return false;
+    if (!task.dueDate || isTerminalTaskStatus(task.status)) return false;
     const due = new Date(task.dueDate).getTime();
-    return due >= Date.now() && due <= Date.now() + 7 * DAY;
+    return due >= now && due <= now + 7 * DAY;
   });
 
   const statusItems = [
@@ -141,10 +140,11 @@ export default function SummaryView({
       color: "#FFAB00",
     },
     { label: "Done", value: completed.length, color: "#36B37E" },
+    { label: "Đã hủy", value: cancelled.length, color: "#64748B" },
   ];
   const totalStatus = statusItems.reduce((sum, item) => sum + item.value, 0);
   const donePercent = totalStatus
-    ? Math.round((completed.length / totalStatus) * 100)
+    ? Math.round((terminal.length / totalStatus) * 100)
     : 0;
 
   const priorityItems = [
@@ -209,8 +209,8 @@ export default function SummaryView({
       const children = activeTasks.filter(
         (task) => task.parentTaskId === sprint.id,
       );
-      const done = children.filter(
-        (task) => task.status === TaskStatus.DONE,
+      const done = children.filter((task) =>
+        isTerminalTaskStatus(task.status),
       ).length;
       return {
         sprint,

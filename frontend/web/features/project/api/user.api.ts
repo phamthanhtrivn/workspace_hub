@@ -13,12 +13,12 @@ interface ApiResponse<T> {
   data: T;
 }
 
-export async function searchUsersByEmail(
-  email: string,
+export async function searchUsers(
+  query: string,
 ): Promise<UserSearchResult[]> {
   const response = await api.get<ApiResponse<UserSearchResult[]>>(
     "/api/users/search",
-    { params: { email } },
+    { params: { query } },
   );
 
   if (!response.data.success) {

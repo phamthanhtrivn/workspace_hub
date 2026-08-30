@@ -1,84 +1,155 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ProjectMemberStatus, ProjectRole, ProjectStatus, ProjectTemplate, ProjectType, ProjectVisibility } from './project.enums';
+import {
+  ProjectMemberStatus,
+  ProjectRole,
+  ProjectStatus,
+  ProjectTemplate,
+  ProjectType,
+  ProjectVisibility,
+  TaskStatus,
+} from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse, toProjectResponse } from './project.mapper';
+import { ProjectTemplateService } from './project-template.service';
+import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
+import { paginate, PaginationQueryDto } from '../../common/pagination';
 
 @Injectable()
 export class ProjectService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly templates: ProjectTemplateService,
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
     const now = new Date();
-    const startDate = this.toDate(dto.startDate);
+    const startDate = this.toDate(dto.startDate) ?? now;
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
 
-    const project = await this.prisma.project.create({
-      data: {
-        id: crypto.randomUUID(),
-        name: dto.name.trim(),
-        color: dto.color,
-        icon: dto.icon,
-        description: dto.description,
-        projectType: dto.projectType ?? ProjectType.GENERAL,
-        visibility: dto.visibility ?? ProjectVisibility.MEMBERS_ONLY,
-        status: ProjectStatus.ACTIVE,
-        ownerId: userId,
-        archived: false,
-        startDate,
-        dueDate,
-        createdAt: now,
-        updatedAt: now,
-        setting: {
-          create: {
-            id: crypto.randomUUID(),
-            allowMemberCreateTask: true,
-            allowMemberEditOthersTask: false,
-            allowMemberEditOwnTask: true,
-            allowMemberInvite: false,
+    const project = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.project.create({
+        data: {
+          id: crypto.randomUUID(),
+          name: dto.name.trim(),
+          color: dto.color,
+          icon: dto.icon,
+          description: dto.description,
+          projectType: dto.projectType ?? ProjectType.GENERAL,
+          visibility: dto.visibility ?? ProjectVisibility.MEMBERS_ONLY,
+          status: ProjectStatus.ACTIVE,
+          ownerId: userId,
+          archived: false,
+          startDate,
+          dueDate,
+          createdAt: now,
+          updatedAt: now,
+          setting: {
+            create: {
+              id: crypto.randomUUID(),
+              allowMemberCreateTask: true,
+              allowMemberEditOthersTask: false,
+              allowMemberEditOwnTask: true,
+              allowMemberInvite: false,
+            },
+          },
+          members: {
+            create: {
+              id: crypto.randomUUID(),
+              userId,
+              role: ProjectRole.OWNER,
+              status: ProjectMemberStatus.ACTIVE,
+              canCreateTask: true,
+              canEditOwnTask: true,
+              canEditOthersTask: true,
+              canManageSprints: true,
+              canManageMembers: true,
+              canManageLabels: true,
+              joinedAt: now,
+              updatedAt: now,
+            },
           },
         },
-        members: {
-          create: {
-            id: crypto.randomUUID(),
-            userId,
-            role: ProjectRole.OWNER,
-            status: ProjectMemberStatus.ACTIVE,
-            joinedAt: now,
-            updatedAt: now,
-          },
-        },
-      },
+      });
+      await this.templates.initialize(
+        tx,
+        created.id,
+        userId,
+        dto.template ?? ProjectTemplate.EMPTY,
+        now,
+      );
+      return created;
     });
-
-    if (dto.template && dto.template !== ProjectTemplate.EMPTY) {
-      await this.createTemplateTasks(project.id, userId, dto.template);
-    }
 
     return toProjectResponse(project);
   }
 
-  async findAll(userId: string) {
-    const projects = await this.prisma.project.findMany({
-      where: {
-        archived: false,
-        OR: [
-          { visibility: ProjectVisibility.PUBLIC },
-          { ownerId: userId },
-          { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
-        ],
-      },
-      orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
-    });
-
-    return projects.map(toProjectResponse);
+  async findAll(userId: string, query: PaginationQueryDto) {
+    const where: Prisma.ProjectWhereInput = {
+      archived: false,
+      OR: [
+        { visibility: ProjectVisibility.PUBLIC },
+        { ownerId: userId },
+        { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
+      ],
+    };
+    const [total, projects] = await this.prisma.$transaction([
+      this.prisma.project.count({ where }),
+      this.prisma.project.findMany({
+        where,
+        orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
+        include: { setting: true },
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+    ]);
+    const projectIds = projects.map((project) => project.id);
+    const taskCounts =
+      projectIds.length === 0
+        ? []
+        : await this.prisma.task.groupBy({
+            by: ['projectId', 'status'],
+            where: {
+              projectId: { in: projectIds },
+              archived: false,
+              deletedAt: null,
+            },
+            _count: { _all: true },
+          });
+    const statsByProject = new Map<
+      string,
+      { total: number; completed: number }
+    >();
+    for (const count of taskCounts) {
+      const stats = statsByProject.get(count.projectId) ?? {
+        total: 0,
+        completed: 0,
+      };
+      stats.total += count._count._all;
+      if (count.status === TaskStatus.DONE)
+        stats.completed += count._count._all;
+      statsByProject.set(count.projectId, stats);
+    }
+    return paginate(
+      projects.map((project) => {
+        const stats = statsByProject.get(project.id);
+        return toProjectResponse(project, {
+          totalTaskCount: stats?.total ?? 0,
+          completedTaskCount: stats?.completed ?? 0,
+        });
+      }),
+      total,
+      query,
+    );
   }
 
   async findOne(userId: string, projectId: string) {
@@ -87,7 +158,7 @@ export class ProjectService {
   }
 
   async update(userId: string, projectId: string, dto: UpdateProjectDto) {
-    const current = await this.access.requireManager(userId, projectId);
+    const current = await this.access.requireOwner(userId, projectId);
     const data: Prisma.ProjectUpdateInput = {};
 
     if (dto.name !== undefined) {
@@ -102,11 +173,16 @@ export class ProjectService {
     if (dto.description !== undefined) data.description = dto.description;
     if (dto.projectType !== undefined) data.projectType = dto.projectType;
     if (dto.visibility !== undefined) data.visibility = dto.visibility;
-    if (dto.startDate !== undefined) data.startDate = this.toDate(dto.startDate);
+    if (dto.startDate !== undefined)
+      data.startDate = this.toDate(dto.startDate);
     if (dto.dueDate !== undefined) data.dueDate = this.toDate(dto.dueDate);
 
-    const startDate = dto.startDate !== undefined ? this.toDate(dto.startDate) : current.startDate;
-    const dueDate = dto.dueDate !== undefined ? this.toDate(dto.dueDate) : current.dueDate;
+    const startDate =
+      dto.startDate !== undefined
+        ? this.toDate(dto.startDate)
+        : current.startDate;
+    const dueDate =
+      dto.dueDate !== undefined ? this.toDate(dto.dueDate) : current.dueDate;
     this.validateDateRange(startDate, dueDate);
 
     if (dto.status !== undefined) {
@@ -114,20 +190,33 @@ export class ProjectService {
       data.archived = dto.status === ProjectStatus.ARCHIVED;
     }
 
-    const project = await this.prisma.project.update({
-      where: { id: projectId },
-      data,
-    });
+    let project;
+    try {
+      project = await this.prisma.project.update({
+        where: { id: projectId, version: current.version },
+        data: { ...data, version: { increment: 1 } },
+      });
+    } catch (error) {
+      rethrowWriteConflict(error, 'Project was changed by another request');
+    }
 
     return toProjectResponse(project);
   }
 
   async archive(userId: string, projectId: string): Promise<void> {
-    await this.access.requireManager(userId, projectId);
-    await this.prisma.project.update({
-      where: { id: projectId },
-      data: { status: ProjectStatus.ARCHIVED, archived: true },
-    });
+    const project = await this.access.requireOwner(userId, projectId);
+    try {
+      await this.prisma.project.update({
+        where: { id: projectId, version: project.version },
+        data: {
+          status: ProjectStatus.ARCHIVED,
+          archived: true,
+          version: { increment: 1 },
+        },
+      });
+    } catch (error) {
+      rethrowWriteConflict(error, 'Project was changed by another request');
+    }
   }
 
   async listMembers(userId: string, projectId: string) {
@@ -140,51 +229,16 @@ export class ProjectService {
     return members.map(toMemberResponse);
   }
 
-  private toDate(value?: string): Date | undefined {
-    return value === undefined ? undefined : new Date(value);
+  private toDate(value?: string | null): Date | null | undefined {
+    return value == null ? value : new Date(value);
   }
 
-  private validateDateRange(startDate?: Date | null, dueDate?: Date | null): void {
+  private validateDateRange(
+    startDate?: Date | null,
+    dueDate?: Date | null,
+  ): void {
     if (startDate && dueDate && startDate > dueDate) {
       throw new ConflictException('Start date cannot be after due date');
-    }
-  }
-
-  private async createTemplateTasks(projectId: string, userId: string, template: ProjectTemplate): Promise<void> {
-    const roots = template === ProjectTemplate.SOFTWARE_SCRUM
-      ? [['Define product backlog', ['Write user stories', 'Prioritize MVP scope']], ['Build first increment', ['Implement core flow', 'Review with team']], ['Quality and release', ['Prepare test plan', 'Create release notes']]]
-      : template === ProjectTemplate.MARKETING_CAMPAIGN
-        ? [['Campaign goals', ['Define audience', 'Set success metrics']], ['Content production', ['Create content calendar', 'Review campaign assets']], ['Launch and measure', ['Publish campaign', 'Track performance']]]
-        : [['Event objectives', ['Confirm target audience', 'Define event scope']], ['Event preparation', ['Book venue and vendors', 'Prepare communication plan']], ['Event execution', ['Run event checklist', 'Collect feedback']]];
-    const now = new Date();
-
-    for (const [rootIndex, root] of roots.entries()) {
-      const parent = await this.prisma.task.create({
-        data: {
-          id: crypto.randomUUID(), projectId, title: root[0] as string, description: 'Sample task from project template.',
-          priority: rootIndex === 0 ? 'HIGH' : 'MEDIUM', status: 'TODO', createdBy: userId, reporterId: userId,
-          allDay: false, estimatedMinutes: 180, rank: String((rootIndex + 1) * 1000), archived: false,
-          isParentTask: true, autoCompleteSprint: false, createdAt: now, updatedAt: now,
-        },
-      });
-      for (const [childIndex, childTitle] of (root[1] as string[]).entries()) {
-        const child = await this.prisma.task.create({
-          data: {
-            id: crypto.randomUUID(), projectId, parentTaskId: parent.id, title: childTitle,
-            description: 'Sample subtask from project template.', priority: 'MEDIUM', status: 'TODO', createdBy: userId,
-            reporterId: userId, allDay: false, estimatedMinutes: 60, rank: String((childIndex + 1) * 100), archived: false,
-            isParentTask: false, autoCompleteSprint: false, createdAt: now, updatedAt: now,
-          },
-        });
-        await this.prisma.taskChecklist.createMany({ data: [
-          { id: crypto.randomUUID(), taskId: child.id, title: 'Define work scope', completed: false, createdAt: now, rank: '001' },
-          { id: crypto.randomUUID(), taskId: child.id, title: 'Update execution result', completed: false, createdAt: now, rank: '002' },
-        ] });
-      }
-      await this.prisma.taskChecklist.createMany({ data: [
-        { id: crypto.randomUUID(), taskId: parent.id, title: 'Review task objective', completed: false, createdAt: now, rank: '001' },
-        { id: crypto.randomUUID(), taskId: parent.id, title: 'Confirm completion', completed: false, createdAt: now, rank: '002' },
-      ] });
     }
   }
 }

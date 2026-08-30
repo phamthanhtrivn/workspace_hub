@@ -8,28 +8,18 @@ import {
   Clock3,
   Flag,
   Timer,
+  CheckSquare2,
   X,
 } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from "@/features/project/constants/task.constants";
 import {
   TaskPriority,
   TaskStatus,
+  TaskType,
   type Task,
 } from "@/features/project/types/project";
 
-const STATUS_OPTIONS = [
-  { value: TaskStatus.TODO, labelId: "project.task.status.todo" },
-  { value: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress" },
-  { value: TaskStatus.IN_REVIEW, labelId: "project.task.status.inReview" },
-  { value: TaskStatus.DONE, labelId: "project.task.status.done" },
-];
-
-const PRIORITY_OPTIONS = [
-  { value: TaskPriority.LOW, labelId: "project.task.priority.low" },
-  { value: TaskPriority.MEDIUM, labelId: "project.task.priority.medium" },
-  { value: TaskPriority.HIGH, labelId: "project.task.priority.high" },
-  { value: TaskPriority.URGENT, labelId: "project.task.priority.urgent" },
-];
 
 function toDateInput(value?: string): string {
   return value?.slice(0, 10) || "";
@@ -50,6 +40,7 @@ export interface TaskFormValues {
   description: string;
   priority: TaskPriority;
   status: TaskStatus;
+  taskType: TaskType;
   startDate?: string;
   dueDate?: string;
   allDay: boolean;
@@ -109,6 +100,14 @@ export default function TaskFormDialog({
   const [status, setStatus] = useState<TaskStatus>(
     task?.status || initialStatus,
   );
+  const [taskType, setTaskType] = useState<TaskType>(
+    task?.taskType ||
+      (initialParentTaskId
+        ? TaskType.SUBTASK
+        : initialIsParentTask
+          ? TaskType.EPIC
+          : TaskType.TASK),
+  );
   const [startDate, setStartDate] = useState(
     task?.allDay || initialAllDay
       ? toDateInput(task?.startDate || initialStartDate)
@@ -148,6 +147,7 @@ export default function TaskFormDialog({
       description: description.trim(),
       priority,
       status,
+      taskType,
       startDate: toApiDateTime(startDate, allDay),
       dueDate: toApiDateTime(dueDate, allDay),
       allDay,
@@ -265,6 +265,26 @@ export default function TaskFormDialog({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="block">
+                <FieldLabel icon={CheckSquare2}>
+                  Loại công việc
+                </FieldLabel>
+                <div className="relative">
+                  <select
+                    value={taskType}
+                    disabled={Boolean(parentTaskId) || isParentTask}
+                    onChange={(event) => setTaskType(event.target.value as TaskType)}
+                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10 disabled:bg-slate-50"
+                  >
+                    <option value={TaskType.TASK}>Task</option>
+                    <option value={TaskType.BUG}>Bug</option>
+                    <option value={TaskType.STORY}>Story</option>
+                    <option value={TaskType.EPIC}>Epic</option>
+                    <option value={TaskType.SUBTASK}>Subtask</option>
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                </div>
+              </label>
+              <label className="block">
                 <FieldLabel icon={ChevronDown}>
                   {intl.formatMessage({ id: "project.task.status" })}
                 </FieldLabel>
@@ -276,7 +296,7 @@ export default function TaskFormDialog({
                     }
                     className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
                   >
-                    {STATUS_OPTIONS.map((item) => (
+                    {TASK_STATUS_OPTIONS.map((item) => (
                       <option key={item.value} value={item.value}>
                         {intl.formatMessage({ id: item.labelId })}
                       </option>
@@ -298,7 +318,7 @@ export default function TaskFormDialog({
                     }
                     className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
                   >
-                    {PRIORITY_OPTIONS.map((item) => (
+                    {TASK_PRIORITY_OPTIONS.map((item) => (
                       <option key={item.value} value={item.value}>
                         {intl.formatMessage({ id: item.labelId })}
                       </option>
@@ -316,7 +336,13 @@ export default function TaskFormDialog({
                   <select
                     value={parentTaskId}
                     disabled={isParentTask}
-                    onChange={(event) => setParentTaskId(event.target.value)}
+                    onChange={(event) => {
+                      const nextParentId = event.target.value;
+                      setParentTaskId(nextParentId);
+                      setTaskType(
+                        nextParentId ? TaskType.SUBTASK : TaskType.TASK,
+                      );
+                    }}
                     className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
                   >
                     <option value="">

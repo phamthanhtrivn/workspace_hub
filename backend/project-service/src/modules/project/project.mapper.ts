@@ -1,4 +1,19 @@
-import { Prisma, Project, ProjectInvitation, ProjectMember, Task, TaskComment } from '@prisma/client';
+import {
+  Prisma,
+  Project,
+  ProjectInvitation,
+  ProjectMember,
+  ProjectSetting,
+  Task,
+  TaskComment,
+} from '@prisma/client';
+
+type ProjectWithOptionalSetting = Project & { setting?: ProjectSetting | null };
+
+interface ProjectResponseStats {
+  totalTaskCount?: number;
+  completedTaskCount?: number;
+}
 
 type TaskWithCount = Prisma.TaskGetPayload<{
   include: {
@@ -9,7 +24,10 @@ type TaskWithCount = Prisma.TaskGetPayload<{
   };
 }>;
 
-export function toProjectResponse(project: Project) {
+export function toProjectResponse(
+  project: ProjectWithOptionalSetting,
+  stats: ProjectResponseStats = {},
+) {
   return {
     id: project.id,
     name: project.name,
@@ -25,6 +43,9 @@ export function toProjectResponse(project: Project) {
     archived: project.archived,
     createdAt: project.createdAt,
     updatedAt: project.updatedAt,
+    projectSetting: project.setting ?? undefined,
+    totalTaskCount: stats.totalTaskCount ?? 0,
+    completedTaskCount: stats.completedTaskCount ?? 0,
   };
 }
 
@@ -34,6 +55,12 @@ export function toMemberResponse(member: ProjectMember) {
     userId: member.userId,
     role: member.role,
     status: member.status,
+    canCreateTask: member.canCreateTask,
+    canEditOwnTask: member.canEditOwnTask,
+    canEditOthersTask: member.canEditOthersTask,
+    canManageSprints: member.canManageSprints,
+    canManageMembers: member.canManageMembers,
+    canManageLabels: member.canManageLabels,
     joinedAt: member.joinedAt,
     leftAt: member.leftAt,
     updatedAt: member.updatedAt,
@@ -47,6 +74,8 @@ export function toTaskResponse(task: TaskWithCount | Task) {
     id: task.id,
     projectId: task.projectId,
     parentTaskId: task.parentTaskId,
+    taskNumber: task.taskNumber,
+    taskType: task.taskType,
     childCount,
     title: task.title,
     description: task.description,
@@ -70,7 +99,10 @@ export function toTaskResponse(task: TaskWithCount | Task) {
     updatedAt: task.updatedAt,
     checklists: 'checklists' in task ? task.checklists : [],
     assignees: 'assignees' in task ? task.assignees : [],
-    labels: 'labelMappings' in task ? task.labelMappings.map((mapping) => mapping.label) : [],
+    labels:
+      'labelMappings' in task
+        ? task.labelMappings.map((mapping) => mapping.label)
+        : [],
   };
 }
 

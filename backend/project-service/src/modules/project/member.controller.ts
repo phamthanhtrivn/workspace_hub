@@ -1,8 +1,17 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { ApiResponse } from '../../common/api-response';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { AddMemberDto } from './dto/add-member.dto';
-import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
+import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';
 import { MemberService } from './member.service';
 import { ProjectService } from './project.service';
 
@@ -18,7 +27,10 @@ export class MemberController {
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
   ) {
-    return ApiResponse.success(await this.projects.listMembers(userId, projectId), 'Members loaded successfully');
+    return ApiResponse.success(
+      await this.projects.listMembers(userId, projectId),
+      'Members loaded successfully',
+    );
   }
 
   @Post()
@@ -27,19 +39,27 @@ export class MemberController {
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
     @Body() dto: AddMemberDto,
   ) {
-    return ApiResponse.success(await this.members.add(userId, projectId, dto), 'Member added successfully');
+    return ApiResponse.success(
+      await this.members.add(userId, projectId, dto),
+      'Member added successfully',
+    );
   }
 
   @Patch(':memberUserId')
-  async updateRole(
+  async updatePermissions(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
     @Param('memberUserId', new ParseUUIDPipe()) memberUserId: string,
-    @Body() dto: UpdateMemberRoleDto,
+    @Body() dto: UpdateMemberPermissionsDto,
   ) {
     return ApiResponse.success(
-      await this.members.updateRole(userId, projectId, memberUserId, dto),
-      'Member role updated successfully',
+      await this.members.updatePermissions(
+        userId,
+        projectId,
+        memberUserId,
+        dto,
+      ),
+      'Member permissions updated successfully',
     );
   }
 

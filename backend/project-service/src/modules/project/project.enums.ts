@@ -25,7 +25,6 @@ export enum ProjectVisibility {
 
 export enum ProjectRole {
   OWNER = 'OWNER',
-  ADMIN = 'ADMIN',
   MEMBER = 'MEMBER',
 }
 
@@ -46,6 +45,11 @@ export enum TaskStatus {
   IN_PROGRESS = 'IN_PROGRESS',
   IN_REVIEW = 'IN_REVIEW',
   DONE = 'DONE',
+  CANCELLED = 'CANCELLED',
+}
+
+export function isTerminalTaskStatus(status: string): boolean {
+  return status === TaskStatus.DONE || status === TaskStatus.CANCELLED;
 }
 
 export enum TaskPriority {
@@ -53,6 +57,14 @@ export enum TaskPriority {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
   URGENT = 'URGENT',
+}
+
+export enum TaskType {
+  TASK = 'TASK',
+  BUG = 'BUG',
+  STORY = 'STORY',
+  EPIC = 'EPIC',
+  SUBTASK = 'SUBTASK',
 }
 
 export enum InvitationStatus {

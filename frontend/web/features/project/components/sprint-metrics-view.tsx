@@ -3,7 +3,7 @@
 import { Activity, Gauge } from "lucide-react";
 import {
   SprintStatus,
-  TaskStatus,
+  isTerminalTaskStatus,
   type Sprint,
   type Task,
 } from "@/features/project/types/project";
@@ -46,8 +46,8 @@ export default function SprintMetricsView({
               ? sprint.tasks
               : tasks.filter((task) => task.sprintId === sprint.id);
           const total = sprintTasks.length;
-          const done = sprintTasks.filter(
-            (task) => task.status === TaskStatus.DONE,
+          const done = sprintTasks.filter((task) =>
+            isTerminalTaskStatus(task.status),
           ).length;
           const estimate = sprintTasks.reduce(
             (sum, task) => sum + (task.estimatedMinutes || 0),

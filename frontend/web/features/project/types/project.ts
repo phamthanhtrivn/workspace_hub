@@ -27,7 +27,6 @@ export enum SprintStatus {
 
 export enum ProjectRole {
   OWNER = "OWNER",
-  ADMIN = "ADMIN",
   MEMBER = "MEMBER",
 }
 
@@ -36,6 +35,11 @@ export enum TaskStatus {
   IN_PROGRESS = "IN_PROGRESS",
   IN_REVIEW = "IN_REVIEW",
   DONE = "DONE",
+  CANCELLED = "CANCELLED",
+}
+
+export function isTerminalTaskStatus(status: TaskStatus): boolean {
+  return status === TaskStatus.DONE || status === TaskStatus.CANCELLED;
 }
 
 export enum TaskPriority {
@@ -75,8 +79,24 @@ export interface ProjectMember {
   displayName: string;
   avatarUrl?: string;
   role: ProjectRole;
+  canCreateTask: boolean;
+  canEditOwnTask: boolean;
+  canEditOthersTask: boolean;
+  canManageSprints: boolean;
+  canManageMembers: boolean;
+  canManageLabels: boolean;
   joinedAt: string;
 }
+
+export type ProjectMemberPermissions = Pick<
+  ProjectMember,
+  | "canCreateTask"
+  | "canEditOwnTask"
+  | "canEditOthersTask"
+  | "canManageSprints"
+  | "canManageMembers"
+  | "canManageLabels"
+>;
 
 export interface TaskLabel {
   id: string;
@@ -120,12 +140,20 @@ export interface TaskComment {
 export interface TaskActivity {
   id: string;
   taskId: string;
-  actorId: string;
-  actorName: string;
+  actorId?: string | null;
+  actorName?: string;
   field: string;
-  oldValue: string;
-  newValue: string;
+  oldValue?: string | null;
+  newValue?: string | null;
   createdAt: string;
+}
+
+export enum TaskType {
+  TASK = "TASK",
+  BUG = "BUG",
+  STORY = "STORY",
+  EPIC = "EPIC",
+  SUBTASK = "SUBTASK",
 }
 
 export interface TaskAssignee {
@@ -158,6 +186,8 @@ export interface PomodoroSession {
 export interface Task {
   id: string;
   projectId: string;
+  taskNumber: number;
+  taskType: TaskType;
   parentTaskId?: string;
   childCount?: number;
   isParentTask?: boolean;
@@ -203,6 +233,8 @@ export interface Project {
   archived: boolean;
   createdAt: string;
   updatedAt: string;
+  totalTaskCount: number;
+  completedTaskCount: number;
 
   // Relations (populated)
   projectSetting: ProjectSetting;

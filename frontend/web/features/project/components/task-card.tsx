@@ -1,6 +1,10 @@
 "use client";
 
-import { type Task, TaskPriority } from "@/features/project/types/project";
+import {
+  type Task,
+  TaskPriority,
+  isTerminalTaskStatus,
+} from "@/features/project/types/project";
 import { LabelBadge } from "./status-badge";
 import { AvatarStack } from "./avatar-stack";
 import TaskChatButton from "./task-chat-button";
@@ -13,11 +17,9 @@ import {
   ChevronUp,
   ChevronsUp,
   Equal,
-  Bug,
-  Bookmark,
   CheckSquare2,
-  FileText,
 } from "lucide-react";
+import { TASK_TYPE_LABELS } from "../constants/task.constants";
 
 function isOverdue(dueDate?: string): boolean {
   if (!dueDate) return false;
@@ -32,57 +34,18 @@ function formatDate(iso: string): string {
 }
 
 export function getIssueKey(task: Task): string {
-  const suffix = task.id.replace(/-/g, "").slice(0, 3).toUpperCase();
-  return `TASK-${suffix}`;
+  return `TASK-${task.taskNumber}`;
 }
 
 export function getIssueTypeDetails(task: Task): {
   icon: React.ReactNode;
   label: string;
 } {
-  const titleLower = task.title.toLowerCase();
-  const hasBugLabel = task.labels.some((l) =>
-    l.name.toLowerCase().includes("bug"),
-  );
-  const hasDesignOrStoryLabel = task.labels.some(
-    (l) =>
-      l.name.toLowerCase().includes("design") ||
-      l.name.toLowerCase().includes("story"),
-  );
-
-  if (titleLower.includes("bug") || hasBugLabel) {
-    return {
-      icon: (
-        <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />
-      ),
-      label: "Bug",
-    };
-  }
-  if (
-    titleLower.includes("thiết kế") ||
-    titleLower.includes("ui") ||
-    hasDesignOrStoryLabel
-  ) {
-    return {
-      icon: (
-        <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />
-      ),
-      label: "Story",
-    };
-  }
-  if (task.parentTaskId) {
-    return {
-      icon: (
-        <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />
-      ),
-      label: "Subtask",
-    };
-  }
   return {
     icon: (
       <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />
     ),
-    label: "Task",
+    label: TASK_TYPE_LABELS[task.taskType],
   };
 }
 
@@ -119,17 +82,20 @@ export default function TaskCard({
   task,
   onClick,
   onOpenChat,
+  canDrag = true,
 }: {
   task: Task;
   onClick?: () => void;
   onOpenChat?: (task: Task) => void;
+  canDrag?: boolean;
 }) {
   const checklistTotal = task.checklists.length;
   const checklistDone = task.checklists.filter((c) => c.completed).length;
-  const overdue = isOverdue(task.dueDate) && task.status !== "DONE";
+  const overdue = isOverdue(task.dueDate) && !isTerminalTaskStatus(task.status);
   const issueKey = getIssueKey(task);
   const issueType = getIssueTypeDetails(task);
   const priorityIcon = getPriorityIcon(task.priority);
+  const isDraggable = canDrag && !isTerminalTaskStatus(task.status);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("text/plain", task.id);
@@ -140,7 +106,7 @@ export default function TaskCard({
     <div
       role="button"
       tabIndex={0}
-      draggable
+      draggable={isDraggable}
       onDragStart={handleDragStart}
       onClick={onClick}
       onKeyDown={(event) => {
@@ -149,7 +115,7 @@ export default function TaskCard({
           onClick?.();
         }
       }}
-      className="group w-full rounded border border-slate-200 bg-white p-3 text-left shadow-[0_1px_1px_rgba(9,30,66,0.25)] hover:bg-[#F4F5F7] cursor-grab active:cursor-grabbing transition duration-150 focus-visible:outline-none"
+      className={`group w-full rounded border border-slate-200 bg-white p-3 text-left shadow-[0_1px_1px_rgba(9,30,66,0.25)] transition duration-150 hover:bg-[#F4F5F7] focus-visible:outline-none ${isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
     >
       {/* Title */}
       <p className="text-sm font-medium leading-normal text-[#172B4D] group-hover:text-[#0052CC] break-words">
