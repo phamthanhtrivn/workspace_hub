@@ -10,7 +10,7 @@ import DirectMessageInput, {
 import ChatHeader from "../header/chat-header";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { getSpaceDetails } from "../../api/chat.api";
-import { socketService } from "@/infrastructure/realtime/communication-socket.client";
+import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import CreatePollModal from "../modals/message/create-poll-modal";

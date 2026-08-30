@@ -6,8 +6,6 @@ import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.m
 import { PollModule } from '../poll/poll.module';
 import { NoteModule } from '../note/note.module';
 import { DirectMessageModule } from '../direct-message/direct-message.module';
-import { SocketAuthService } from '../../infrastructure/realtime/socket-auth.service';
-import { MeetingRealtimeHandler } from '../meeting/realtime/meeting-realtime.handler';
 
 @Module({
   imports: [
@@ -19,7 +17,7 @@ import { MeetingRealtimeHandler } from '../meeting/realtime/meeting-realtime.han
     forwardRef(() => DirectMessageModule),
   ],
   controllers: [],
-  providers: [ChatGateway, SocketAuthService, MeetingRealtimeHandler],
+  providers: [ChatGateway],
   exports: [ChatGateway],
 })
 export class ChatModule {}

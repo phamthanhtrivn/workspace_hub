@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { QueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import {
   approveMeetingJoinRequest,
@@ -17,50 +16,13 @@ import {
   updateMeetingAccess,
   updateMeetingParticipantRole,
 } from "../../api/meeting.api";
-import { meetingKeys } from "../../queries/meeting-query.keys";
+import { meetingKeys } from "../../types/meeting.constants";
 import {
   CreateInstantMeetingRequest,
   MeetingRole,
   UpdateMeetingAccessRequest,
   UpdateMeetingParticipantRoleRequest,
 } from "../../types/meeting.types";
-
-interface InvalidateMeetingCacheOptions {
-  includeParticipants?: boolean;
-  includeRequests?: boolean;
-  joinToken?: string;
-  meetingId?: string;
-}
-
-function invalidateMeetingCache(
-  queryClient: QueryClient,
-  {
-    includeParticipants,
-    includeRequests,
-    joinToken,
-    meetingId,
-  }: InvalidateMeetingCacheOptions = {},
-) {
-  void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
-
-  if (meetingId && includeParticipants) {
-    void queryClient.invalidateQueries({
-      queryKey: meetingKeys.participantsRoot(meetingId),
-    });
-  }
-
-  if (meetingId && includeRequests) {
-    void queryClient.invalidateQueries({
-      queryKey: meetingKeys.requests(meetingId),
-    });
-  }
-
-  if (joinToken) {
-    void queryClient.invalidateQueries({
-      queryKey: meetingKeys.join(joinToken),
-    });
-  }
-}
 
 export function useMeetingsQuery() {
   return useQuery({
@@ -123,7 +85,7 @@ export function useCreateInstantMeetingMutation() {
     mutationFn: (payload: CreateInstantMeetingRequest) =>
       createInstantMeeting(payload),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient);
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
     },
   });
 }
@@ -134,7 +96,12 @@ export function useRequestJoinMeetingMutation(joinToken?: string) {
   return useMutation({
     mutationFn: (meetingId: string) => requestJoinMeeting(meetingId),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient, { joinToken });
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
     },
   });
 }
@@ -146,9 +113,9 @@ export function useApproveMeetingJoinRequestMutation(meetingId: string) {
     mutationFn: (userId: string) =>
       approveMeetingJoinRequest(meetingId, userId),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient, {
-        includeRequests: true,
-        meetingId,
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requests(meetingId),
       });
     },
   });
@@ -160,9 +127,9 @@ export function useRejectMeetingJoinRequestMutation(meetingId: string) {
   return useMutation({
     mutationFn: (userId: string) => rejectMeetingJoinRequest(meetingId, userId),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient, {
-        includeRequests: true,
-        meetingId,
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requests(meetingId),
       });
     },
   });
@@ -178,7 +145,12 @@ export function useUpdateMeetingAccessMutation(
     mutationFn: (payload: UpdateMeetingAccessRequest) =>
       updateMeetingAccess(meetingId, payload),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient, { joinToken });
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
     },
   });
 }
@@ -189,11 +161,15 @@ export function useLeaveMeetingMutation(meetingId: string, joinToken?: string) {
   return useMutation({
     mutationFn: () => leaveMeeting(meetingId),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient, {
-        includeRequests: true,
-        joinToken,
-        meetingId,
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requests(meetingId),
       });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
     },
   });
 }
@@ -204,11 +180,15 @@ export function useEndMeetingMutation(meetingId: string, joinToken?: string) {
   return useMutation({
     mutationFn: () => endMeeting(meetingId),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient, {
-        includeRequests: true,
-        joinToken,
-        meetingId,
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.requests(meetingId),
       });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
     },
   });
 }
@@ -226,11 +206,15 @@ export function useUpdateMeetingParticipantRoleMutation(
     }: { userId: string } & UpdateMeetingParticipantRoleRequest) =>
       updateMeetingParticipantRole(meetingId, userId, { role }),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient, {
-        includeParticipants: true,
-        joinToken,
-        meetingId,
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(meetingId),
       });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
     },
   });
 }
@@ -244,11 +228,15 @@ export function useRemoveMeetingParticipantMutation(
   return useMutation({
     mutationFn: (userId: string) => removeMeetingParticipant(meetingId, userId),
     onSuccess: () => {
-      invalidateMeetingCache(queryClient, {
-        includeParticipants: true,
-        joinToken,
-        meetingId,
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(meetingId),
       });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
     },
   });
 }

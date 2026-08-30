@@ -11,7 +11,7 @@ import {
   useMeetingJoinInfoQuery,
   useRequestJoinMeetingMutation,
 } from "../../hooks/queries/use-meeting-queries";
-import { meetingRoutes } from "../../constants/meeting-routes.constants";
+import { meetingRoutes } from "../../types/meeting.constants";
 import {
   MeetingParticipantStatus,
   MeetingStatus,

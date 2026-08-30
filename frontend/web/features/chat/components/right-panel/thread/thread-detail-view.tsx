@@ -21,7 +21,7 @@ import {
   getThreadMessages,
   getSpaceDetails,
 } from "../../../api/chat.api";
-import { socketService } from "@/infrastructure/realtime/communication-socket.client";
+import { socketService } from "../../../api/chat-socket.service";
 import { ChatEvent } from "../../../api/chat.events";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";

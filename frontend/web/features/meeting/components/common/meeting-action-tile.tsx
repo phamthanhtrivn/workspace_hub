@@ -2,12 +2,7 @@
 
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
-import {
-  MeetingDashboardActionId,
-  MeetingDashboardTone,
-  meetingActionIconById,
-  meetingActionToneClassByTone,
-} from "../../constants/meeting-dashboard.config";
+import { meetingActionIconById, meetingActionToneClassByTone, MeetingDashboardActionId, MeetingDashboardTone } from "../../types/meeting.constants";
 
 interface MeetingActionTileProps {
   actionId: MeetingDashboardActionId;

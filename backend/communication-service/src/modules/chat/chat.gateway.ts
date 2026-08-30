@@ -21,9 +21,7 @@ import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { PollService } from '../poll/poll.service';
 import { NoteService } from '../note/note.service';
 import { DirectMessageService } from '../direct-message/direct-message.service';
-import { SocketAuthService } from '../../infrastructure/realtime/socket-auth.service';
 import { MeetingSocketEvent } from '../meeting/meeting.events';
-import { MeetingRealtimeHandler } from '../meeting/realtime/meeting-realtime.handler';
 import {
   MeetingAccessUpdatedPayload,
   MeetingEndedPayload,
@@ -36,7 +34,6 @@ import {
 } from '../meeting/types/meeting.types';
 import {
   getMeetingHostRoom,
-  getMeetingParticipantRoom,
   getMeetingUserRoom,
 } from '../meeting/utils/meeting-room.util';
 
@@ -56,8 +53,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly directMessageService: DirectMessageService,
     private readonly pollService: PollService,
     private readonly noteService: NoteService,
-    private readonly socketAuthService: SocketAuthService,
-    private readonly meetingRealtimeHandler: MeetingRealtimeHandler,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -66,47 +61,37 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.disconnect();
       return;
     }
-    const auth = this.socketAuthService.verifyToken(String(token));
-    if (!auth) {
-      client.disconnect();
-      return;
-    }
+    try {
+      const payloadBase64 = token.split('.')[1];
+      const decoded = JSON.parse(
+        Buffer.from(payloadBase64, 'base64').toString(),
+      );
+      const userId = decoded.sub || decoded.id;
+      client.data.userId = userId; // standard fields
 
-    client.data.auth = auth;
-    client.data.userId = auth.userId;
-    client.join(auth.userId);
+      client.join(userId);
+    } catch (e) {
+      client.disconnect();
+    }
   }
 
   handleDisconnect(_: Socket) {}
 
   @SubscribeMessage(MeetingSocketEvent.JOIN_CONTROL_ROOM)
-  async handleJoinMeetingControlRoom(
+  handleJoinMeetingControlRoom(
     @MessageBody() data: { meetingId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    const userId = client.data.auth?.userId ?? client.data.userId;
+    const userId = client.data.userId;
     if (!userId || !data.meetingId) return;
 
-    return this.meetingRealtimeHandler.joinControlRooms(
-      data.meetingId,
-      userId,
-      client,
-    );
-  }
+    client.join(getMeetingHostRoom(data.meetingId));
+    client.join(getMeetingUserRoom(data.meetingId, userId));
 
-  @SubscribeMessage(MeetingSocketEvent.LEAVE_CONTROL_ROOM)
-  handleLeaveMeetingControlRoom(
-    @MessageBody() data: { meetingId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const userId = client.data.auth?.userId ?? client.data.userId;
-    if (!userId || !data.meetingId) return;
-
-    return this.meetingRealtimeHandler.leaveControlRooms(
-      data.meetingId,
-      userId,
-      client,
-    );
+    return {
+      status: CHAT_RESPONSE_STATUS.JOINED,
+      meetingId: data.meetingId,
+    };
   }
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
@@ -832,7 +817,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
     this.server.to([
       getMeetingHostRoom(meetingId),
-      getMeetingParticipantRoom(meetingId),
       getMeetingUserRoom(meetingId, userId),
     ]).emit(MeetingSocketEvent.JOIN_REQUESTED, payload);
   }
@@ -849,7 +833,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
     this.server.to([
       getMeetingHostRoom(meetingId),
-      getMeetingParticipantRoom(meetingId),
       getMeetingUserRoom(meetingId, userId),
     ]).emit(MeetingSocketEvent.JOIN_APPROVED, payload);
   }
@@ -866,7 +849,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
     this.server.to([
       getMeetingHostRoom(meetingId),
-      getMeetingParticipantRoom(meetingId),
       getMeetingUserRoom(meetingId, userId),
     ]).emit(MeetingSocketEvent.JOIN_REJECTED, payload);
   }
@@ -880,7 +862,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       allowJoinWithoutApproval,
     };
     this.server
-      .to([getMeetingHostRoom(meetingId), getMeetingParticipantRoom(meetingId)])
+      .to(getMeetingHostRoom(meetingId))
       .emit(MeetingSocketEvent.ACCESS_UPDATED, payload);
   }
 
@@ -895,7 +877,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       participant,
     };
     this.server
-      .to([getMeetingHostRoom(meetingId), getMeetingParticipantRoom(meetingId)])
+      .to(getMeetingHostRoom(meetingId))
       .emit(MeetingSocketEvent.PARTICIPANT_LEFT, payload);
   }
 
@@ -910,7 +892,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       participant,
     };
     this.server
-      .to([getMeetingHostRoom(meetingId), getMeetingParticipantRoom(meetingId)])
+      .to(getMeetingHostRoom(meetingId))
       .emit(MeetingSocketEvent.PARTICIPANT_ROLE_UPDATED, payload);
   }
 
@@ -926,7 +908,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     };
     this.server.to([
       getMeetingHostRoom(meetingId),
-      getMeetingParticipantRoom(meetingId),
       getMeetingUserRoom(meetingId, userId),
     ]).emit(MeetingSocketEvent.PARTICIPANT_REMOVED, payload);
   }
@@ -937,7 +918,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       endedBy,
     };
     this.server
-      .to([getMeetingHostRoom(meetingId), getMeetingParticipantRoom(meetingId)])
+      .to(getMeetingHostRoom(meetingId))
       .emit(MeetingSocketEvent.MEETING_ENDED, payload);
   }
 

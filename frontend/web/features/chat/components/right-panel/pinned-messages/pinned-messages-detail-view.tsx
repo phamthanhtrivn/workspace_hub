@@ -6,7 +6,7 @@ import {
   getDirectPinnedMessages,
   getPinnedMessages,
 } from "../../../api/chat.api";
-import { socketService } from "@/infrastructure/realtime/communication-socket.client";
+import { socketService } from "../../../api/chat-socket.service";
 import { ChatEvent } from "../../../api/chat.events";
 import { formatDateTime } from "@/lib/date";
 import { useDirectMessageActions } from "../../../hooks/useDirectMessageActions";

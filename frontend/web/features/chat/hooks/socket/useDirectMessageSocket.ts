@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { toast } from "sonner";
-import { socketService } from "@/infrastructure/realtime/communication-socket.client";
+import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import { ChatContextType, ChatMessageResponse } from "../../types/chat.types";
 import {

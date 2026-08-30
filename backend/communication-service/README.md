@@ -31,12 +31,6 @@
 $ npm install
 ```
 
-## Runtime environment
-
-`JWT_SECRET_KEY` must match `user-service` and Kong JWT configuration. The
-Socket.IO gateway verifies `/communication.io` connection tokens with this
-secret before joining user, chat, or meeting realtime rooms.
-
 ## Compile and run the project
 
 ```bash

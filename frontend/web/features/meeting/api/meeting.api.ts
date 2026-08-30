@@ -2,7 +2,7 @@ import { api } from "@/lib/axios";
 import {
   MeetingApiRoute,
   meetingApiRoutes,
-} from "./meeting-api.routes";
+} from "../types/meeting.constants";
 import {
   ApiResponse,
   CreateInstantMeetingRequest,
