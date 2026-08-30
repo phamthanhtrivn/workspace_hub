@@ -8,6 +8,7 @@ import { createPortal } from "react-dom";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import { useMeetingRoom } from "../../hooks/room/use-meeting-room";
+import { useReportMeetingLiveKitConnectedMutation } from "../../hooks/queries/use-meeting-queries";
 import { meetingApiRoutes } from "../../types/meeting.constants";
 import { MeetingResponse, MeetingStatus } from "../../types/meeting.types";
 import { canModerateMeeting } from "../../utils/meeting.utils";
@@ -25,8 +26,10 @@ export function MeetingRoomSurface({
   const intl = useAppIntl();
   const { accessToken } = useAppSelector((state) => state.auth);
   const hasReportedRoomExitRef = useRef(false);
+  const hasReportedLiveKitConnectionRef = useRef(false);
   const canConnectToLiveKit = meeting.status === MeetingStatus.LIVE;
   const [mediaError, setMediaError] = useState<string | null>(null);
+  const [hasLiveKitConnected, setHasLiveKitConnected] = useState(false);
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
   const {
     avatarUrl,
@@ -40,6 +43,10 @@ export function MeetingRoomSurface({
       enabled: canConnectToLiveKit,
     });
   const liveKitToken = tokenQuery.data?.data;
+  const reportLiveKitConnected = useReportMeetingLiveKitConnectedMutation(
+    meeting.id,
+    joinToken,
+  );
   const canModerate = canModerateMeeting(meeting);
   const audioCapture = devicePreferences.isMicEnabled
     ? devicePreferences.micDeviceId
@@ -67,6 +74,7 @@ export function MeetingRoomSurface({
     }
 
     console.error("Meeting room connection failed", error);
+    setHasLiveKitConnected(false);
     setMediaError(intl.formatMessage({ id: "meeting.room.connectionError" }));
   };
 
@@ -81,6 +89,18 @@ export function MeetingRoomSurface({
   const handleRoomExitReported = useCallback(() => {
     hasReportedRoomExitRef.current = true;
   }, []);
+  const handleRoomConnected = useCallback(() => {
+    setHasLiveKitConnected(true);
+    setMediaError(null);
+
+    if (hasReportedLiveKitConnectionRef.current) return;
+    hasReportedLiveKitConnectionRef.current = true;
+    reportLiveKitConnected.mutate(undefined, {
+      onError: () => {
+        hasReportedLiveKitConnectionRef.current = false;
+      },
+    });
+  }, [reportLiveKitConnected]);
 
   useEffect(() => {
     setLogLevel(LogLevel.silent);
@@ -118,6 +138,11 @@ export function MeetingRoomSurface({
     return () => window.removeEventListener("pagehide", handlePageHide);
   }, [accessToken, meeting.id]);
 
+  useEffect(() => {
+    setHasLiveKitConnected(false);
+    hasReportedLiveKitConnectionRef.current = false;
+  }, [liveKitToken?.roomName, liveKitToken?.serverUrl, liveKitToken?.token]);
+
   if (tokenQuery.isLoading || isPreparingDevicePreferences) {
     return (
       <section className="grid min-h-[520px] place-items-center rounded-lg border border-slate-200 bg-white">
@@ -149,27 +174,51 @@ export function MeetingRoomSurface({
         connect
         audio={audioCapture}
         video={videoCapture}
-        onConnected={() => setMediaError(null)}
+        onConnected={handleRoomConnected}
         onMediaDeviceFailure={handleMediaDeviceFailure}
         onError={handleRoomError}
         data-lk-theme="default"
         className="h-screen w-screen bg-[#111827]"
       >
-        <MeetingRoomContent
-          avatarUrl={resolvedAvatarUrl}
-          displayName={resolvedDisplayName}
-          canModerate={canModerate}
-          meeting={meeting}
-          mediaError={mediaError}
-          audioCaptureOptions={audioCapture === true ? undefined : audioCapture || undefined}
-          videoCaptureOptions={videoCapture === true ? undefined : videoCapture || undefined}
-          onDeviceError={handleDeviceError}
-          onRoomExitReported={handleRoomExitReported}
-        />
+        {hasLiveKitConnected ? (
+          <MeetingRoomContent
+            avatarUrl={resolvedAvatarUrl}
+            displayName={resolvedDisplayName}
+            canModerate={canModerate}
+            meeting={meeting}
+            mediaError={mediaError}
+            audioCaptureOptions={audioCapture === true ? undefined : audioCapture || undefined}
+            videoCaptureOptions={videoCapture === true ? undefined : videoCapture || undefined}
+            onDeviceError={handleDeviceError}
+            onRoomExitReported={handleRoomExitReported}
+          />
+        ) : (
+          <MeetingRoomLoading mediaError={mediaError} />
+        )}
         <RoomAudioRenderer />
       </LiveKitRoom>
     </section>,
     portalTarget,
+  );
+}
+
+function MeetingRoomLoading({ mediaError }: { mediaError: string | null }) {
+  const intl = useAppIntl();
+
+  return (
+    <div className="grid h-screen w-screen place-items-center bg-[#111827] px-4 text-center text-white">
+      <div>
+        <Loader2 className="mx-auto h-7 w-7 animate-spin text-blue-300" />
+        <p className="mt-3 text-sm font-bold text-slate-100">
+          {intl.formatMessage({ id: "meeting.room.connecting" })}
+        </p>
+        {mediaError ? (
+          <p className="mt-2 max-w-md text-sm font-semibold text-red-200">
+            {mediaError}
+          </p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 

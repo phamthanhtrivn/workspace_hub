@@ -27,6 +27,8 @@ export const meetingApiRoutes = {
   end: (meetingId: string) => `${MeetingApiRoute.ROOT}/${meetingId}/end`,
   liveKitToken: (meetingId: string) =>
     `${MeetingApiRoute.ROOT}/${meetingId}/livekit-token`,
+  liveKitConnected: (meetingId: string) =>
+    `${MeetingApiRoute.ROOT}/${meetingId}/livekit-connected`,
 };
 
 export enum MeetingRouteSegment {

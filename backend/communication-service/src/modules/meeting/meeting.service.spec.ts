@@ -53,6 +53,7 @@ describe('MeetingService', () => {
     chatGateway = {
       emitMeetingJoinApproved: jest.fn(),
       emitMeetingParticipantLeft: jest.fn(),
+      emitMeetingParticipantRoleUpdated: jest.fn(),
     };
     userProfileSnapshotService = {
       attachProfilesToMembers: jest.fn(async (participants: unknown[]) =>
@@ -274,6 +275,65 @@ describe('MeetingService', () => {
       await expect(
         service.approveAllJoinRequests(meetingId, userId),
       ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+  });
+
+  describe('reportLiveKitConnected', () => {
+    it('updates presence after LiveKit connection is established', async () => {
+      const participant = buildParticipant({
+        status: MeetingParticipantStatus.JOINED,
+        joinedAt: null,
+        leftAt: now,
+      });
+      const connectedParticipant = {
+        ...participant,
+        joinedAt: now,
+        leftAt: null,
+        lastSeenAt: now,
+      };
+      prisma.meeting.findUnique.mockResolvedValue(buildMeeting());
+      prisma.meetingParticipant.findUnique.mockResolvedValue(participant);
+      prisma.meetingParticipant.update.mockResolvedValue(connectedParticipant);
+
+      await expect(
+        service.reportLiveKitConnected(meetingId, userId),
+      ).resolves.toEqual({
+        ...connectedParticipant,
+        profile: null,
+      });
+
+      expect(prisma.meetingParticipant.update).toHaveBeenCalledWith({
+        where: {
+          meetingId_userId: {
+            meetingId,
+            userId,
+          },
+        },
+        data: {
+          joinedAt: now,
+          lastSeenAt: now,
+          leftAt: null,
+        },
+      });
+      expect(chatGateway.emitMeetingParticipantRoleUpdated).toHaveBeenCalledWith(
+        meetingId,
+        userId,
+        { ...connectedParticipant, profile: null },
+      );
+    });
+
+    it('rejects participants that are not approved in the meeting', async () => {
+      prisma.meeting.findUnique.mockResolvedValue(buildMeeting());
+      prisma.meetingParticipant.findUnique.mockResolvedValue(
+        buildParticipant({ status: MeetingParticipantStatus.REQUESTED }),
+      );
+
+      await expect(
+        service.reportLiveKitConnected(meetingId, userId),
+      ).rejects.toThrow(MeetingErrorMessage.PARTICIPANT_JOIN_REQUIRED);
+
+      expect(prisma.meetingParticipant.update).not.toHaveBeenCalled();
+      expect(chatGateway.emitMeetingParticipantRoleUpdated).not.toHaveBeenCalled();
     });
   });
 

@@ -19,6 +19,7 @@ export enum MeetingSuccessMessage {
   PARTICIPANT_REMOVED = 'Meeting participant removed successfully',
   ACCESS_UPDATED = 'Meeting access updated successfully',
   LIVEKIT_TOKEN_CREATED = 'Meeting LiveKit token created successfully',
+  LIVEKIT_CONNECTED = 'Meeting LiveKit connection reported successfully',
 }
 
 export enum MeetingErrorMessage {

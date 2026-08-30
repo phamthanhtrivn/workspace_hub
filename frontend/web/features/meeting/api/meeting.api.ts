@@ -150,6 +150,13 @@ export async function getMeetingLiveKitToken(
   return normalizeMeetingResponse<MeetingLiveKitTokenResponse>(response.data);
 }
 
+export async function reportMeetingLiveKitConnected(
+  meetingId: string,
+): Promise<ApiResponse<MeetingParticipant>> {
+  const response = await api.post(meetingApiRoutes.liveKitConnected(meetingId));
+  return normalizeMeetingResponse<MeetingParticipant>(response.data);
+}
+
 function buildMeetingListParams(params?: MeetingListQueryParams) {
   const search = params?.search?.trim();
 

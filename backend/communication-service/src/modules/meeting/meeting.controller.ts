@@ -348,4 +348,25 @@ export class MeetingController {
       data: token,
     };
   }
+
+  @Post(':meetingId/livekit-connected')
+  async reportLiveKitConnected(
+    @Headers('x-user-id') userId: string,
+    @Param('meetingId') meetingId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_USER_ID);
+    }
+    if (!meetingId) {
+      throw new BadRequestException(MeetingErrorMessage.MISSING_MEETING_ID);
+    }
+    const participant = await this.meetingService.reportLiveKitConnected(
+      meetingId,
+      userId,
+    );
+    return {
+      message: MeetingSuccessMessage.LIVEKIT_CONNECTED,
+      data: participant,
+    };
+  }
 }

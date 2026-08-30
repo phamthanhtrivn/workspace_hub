@@ -1270,4 +1270,41 @@ export class MeetingService {
       roomName: meeting.roomName,
     };
   }
+
+  async reportLiveKitConnected(
+    meetingId: string,
+    userId: string,
+  ): Promise<MeetingParticipantWithProfile> {
+    const meeting = await this.getMeetingOrThrow(meetingId);
+    if (meeting.status !== PrismaMeetingStatus.LIVE) {
+      throw new BadRequestException(MeetingErrorMessage.MEETING_NOT_LIVE);
+    }
+
+    const participant = await this.assertApprovedParticipant(meetingId, userId);
+    const now = new Date();
+    const connectedParticipant = await this.prisma.meetingParticipant.update({
+      where: {
+        meetingId_userId: {
+          meetingId,
+          userId,
+        },
+      },
+      data: {
+        joinedAt: participant.joinedAt ?? now,
+        lastSeenAt: now,
+        leftAt: null,
+      },
+    });
+    const [enrichedParticipant] = await this.enrichParticipants([
+      connectedParticipant,
+    ]);
+
+    this.chatGateway.emitMeetingParticipantRoleUpdated(
+      meetingId,
+      userId,
+      enrichedParticipant,
+    );
+
+    return enrichedParticipant;
+  }
 }

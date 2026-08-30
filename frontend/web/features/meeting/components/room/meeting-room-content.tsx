@@ -6,12 +6,11 @@ import {
 import type { TrackReferenceOrPlaceholder } from "@livekit/components-react";
 import type { AudioCaptureOptions, VideoCaptureOptions } from "livekit-client";
 import { Track } from "livekit-client";
-import { Loader2, UserRoundPlus, Users } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { UserRoundPlus, Users } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   MeetingParticipant,
-  MeetingParticipantStatus,
   MeetingResponse,
   MeetingRole,
   UserProfileSnapshot,
@@ -36,9 +35,6 @@ interface MeetingRoomContentProps {
   onRoomExitReported: () => void;
 }
 
-const PENDING_LIVEKIT_PARTICIPANT_GRACE_MS = 15_000;
-const PENDING_LIVEKIT_PARTICIPANT_TICK_MS = 1_000;
-
 export function MeetingRoomContent({
   avatarUrl,
   displayName,
@@ -55,7 +51,6 @@ export function MeetingRoomContent({
     useState(false);
   const [isParticipantsModalOpen, setIsParticipantsModalOpen] =
     useState(false);
-  const [presenceNow, setPresenceNow] = useState(() => Date.now());
   const { localParticipant } = useLocalParticipant();
   const participants = useParticipants();
   const trackRefs = useTracks(
@@ -83,37 +78,13 @@ export function MeetingRoomContent({
     () => new Set(participants.map((participant) => participant.identity)),
     [participants],
   );
-  const pendingLiveKitParticipants = useMemo(() => {
-    return (meeting.participants ?? []).filter(
-      (participant) =>
-        participant.status === MeetingParticipantStatus.JOINED &&
-        !participant.leftAt &&
-        participant.userId !== localParticipant.identity &&
-        !connectedParticipantIds.has(participant.userId) &&
-        isWithinPendingLiveKitGrace(participant, presenceNow),
-    );
-  }, [
-    connectedParticipantIds,
-    localParticipant.identity,
-    meeting.participants,
-    presenceNow,
-  ]);
-  const hasVisibleSidebarParticipants =
-    remoteParticipants.length > 0 || pendingLiveKitParticipants.length > 0;
+  const hasVisibleSidebarParticipants = remoteParticipants.length > 0;
   const pendingJoinRequestCount = meeting.pendingJoinRequestCount ?? 0;
   const localRoleLabel = resolveRoleLabel(
     meeting.currentParticipant,
     meeting.hostId,
     intl.formatMessage,
   );
-
-  useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      setPresenceNow(Date.now());
-    }, PENDING_LIVEKIT_PARTICIPANT_TICK_MS);
-
-    return () => window.clearInterval(intervalId);
-  }, []);
 
   return (
     <div className="flex h-screen min-h-0 bg-[#111827] text-white">
@@ -216,18 +187,6 @@ export function MeetingRoomContent({
                     </div>
                   );
                 })}
-                {pendingLiveKitParticipants.map((participant) => (
-                  <MeetingParticipantConnectingTile
-                    key={participant.userId}
-                    displayName={
-                      participant.profile?.fullName ||
-                      participant.profile?.email ||
-                      intl.formatMessage({
-                        id: "meeting.room.participantConnecting",
-                      })
-                    }
-                  />
-                ))}
               </>
             ) : (
               <div className="grid min-h-32 place-items-center rounded-lg border border-dashed border-white/15 bg-white/[0.04] px-4 text-center text-sm font-semibold text-slate-400">
@@ -268,32 +227,6 @@ export function MeetingRoomContent({
   );
 }
 
-function MeetingParticipantConnectingTile({
-  displayName,
-}: {
-  displayName: string;
-}) {
-  const intl = useAppIntl();
-
-  return (
-    <div className="relative grid aspect-video min-h-32 w-full place-items-center overflow-hidden rounded-lg border border-white/10 bg-[#1f2937] shadow-2xl">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <div className="grid h-14 w-14 place-items-center rounded-full bg-white/10">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-300" />
-        </div>
-        <div className="px-3">
-          <p className="max-w-48 truncate text-sm font-black text-white">
-            {displayName}
-          </p>
-          <p className="mt-1 text-xs font-semibold text-slate-400">
-            {intl.formatMessage({ id: "meeting.room.participantConnecting" })}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function findParticipantCameraTrack(
   trackRefs: TrackReferenceOrPlaceholder[],
   participantIdentity: string,
@@ -302,20 +235,6 @@ function findParticipantCameraTrack(
     (trackRef) =>
       trackRef.participant.identity === participantIdentity &&
       trackRef.source === Track.Source.Camera,
-  );
-}
-
-function isWithinPendingLiveKitGrace(
-  participant: MeetingParticipant,
-  now: number,
-) {
-  const candidateTimestamp =
-    participant.joinedAt ?? participant.updatedAt ?? participant.createdAt;
-  const joinedAt = Date.parse(candidateTimestamp);
-
-  return (
-    Number.isFinite(joinedAt) &&
-    now - joinedAt <= PENDING_LIVEKIT_PARTICIPANT_GRACE_MS
   );
 }
 

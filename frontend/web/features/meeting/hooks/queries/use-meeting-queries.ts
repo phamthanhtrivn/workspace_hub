@@ -13,6 +13,7 @@ import {
   leaveMeeting,
   removeMeetingParticipant,
   rejectMeetingJoinRequest,
+  reportMeetingLiveKitConnected,
   requestJoinMeeting,
   updateMeetingAccess,
   updateMeetingParticipantRole,
@@ -133,6 +134,28 @@ export function useApproveMeetingJoinRequestMutation(meetingId: string) {
       void queryClient.invalidateQueries({
         queryKey: meetingKeys.participantsRoot(meetingId),
       });
+    },
+  });
+}
+
+export function useReportMeetingLiveKitConnectedMutation(
+  meetingId: string,
+  joinToken?: string,
+) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => reportMeetingLiveKitConnected(meetingId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: meetingKeys.all });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.participantsRoot(meetingId),
+      });
+      if (joinToken) {
+        void queryClient.invalidateQueries({
+          queryKey: meetingKeys.join(joinToken),
+        });
+      }
     },
   });
 }
