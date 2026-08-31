@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { SocketEventEmitter } from '../../socket/services/socket-event-emitter';
-import { SocketRoomService } from '../../socket/services/socket-room.service';
+import { SocketEventEmitter } from '../services/socket-event-emitter';
+import { SocketRoomService } from '../services/socket-room.service';
 
 @Injectable()
 export class MeetingSocketHandler {

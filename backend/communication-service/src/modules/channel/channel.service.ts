@@ -10,7 +10,8 @@ import { CommunicationGateway } from '../socket/communication.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
-import { ChatEvent, CHAT_CONTEXT_TYPE } from '../chat/chat.enums';
+import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
+import { ChatEvent } from '../socket/chat/chat-socket.events';
 import { getMediaUrl } from 'src/common/utils/file.util';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
 import {

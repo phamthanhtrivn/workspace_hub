@@ -8,7 +8,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CHAT_CONTEXT_TYPE } from '../../chat/chat.enums';
+import { CHAT_CONTEXT_TYPE } from '../../../common/types/chat.enums';
 
 class FileDto {
   @IsString()

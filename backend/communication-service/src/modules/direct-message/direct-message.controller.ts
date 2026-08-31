@@ -15,10 +15,10 @@ import {
 import { MessageType } from '@prisma/client';
 import { CommunicationGateway } from '../socket/communication.gateway';
 import {
-  ChatEvent,
   CHAT_CONTEXT_TYPE,
   CHAT_REACTION_ACTION,
-} from '../chat/chat.enums';
+} from '../../common/types/chat.enums';
+import { ChatEvent } from '../socket/chat/chat-socket.events';
 import { DirectMessageService } from './direct-message.service';
 import {
   MESSAGE_CONSTANTS,

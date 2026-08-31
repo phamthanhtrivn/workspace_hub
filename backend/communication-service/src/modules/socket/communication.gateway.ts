@@ -6,11 +6,10 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { MessageService } from '../message/message.service';
-import { PollService } from '../poll/poll.service';
-import { NoteService } from '../note/note.service';
-import { DirectMessageService } from '../direct-message/direct-message.service';
-import { ChatSocketHandler } from '../chat/socket/chat-socket.handler';
+import { ChatSocketHandler } from './chat/chat-socket.handler';
+import { ChatMessageInteractionHandler } from './chat/handlers/chat-message-interaction.handler';
+import { ChatMessageHandler } from './chat/handlers/chat-message.handler';
+import { ChatRoomHandler } from './chat/handlers/chat-room.handler';
 import { SocketEventEmitter } from './services/socket-event-emitter';
 import { SocketRoomService } from './services/socket-room.service';
 
@@ -29,14 +28,17 @@ export class CommunicationGateway
   declare server: Server;
 
   constructor(
-    messageService: MessageService,
-    directMessageService: DirectMessageService,
-    pollService: PollService,
-    noteService: NoteService,
+    chatRoomHandler: ChatRoomHandler,
+    chatMessageHandler: ChatMessageHandler,
+    chatMessageInteractionHandler: ChatMessageInteractionHandler,
     private readonly socketEventEmitter: SocketEventEmitter,
     private readonly socketRoomService: SocketRoomService,
   ) {
-    super(messageService, directMessageService, pollService, noteService);
+    super(
+      chatRoomHandler,
+      chatMessageHandler,
+      chatMessageInteractionHandler,
+    );
   }
 
   afterInit(server: Server): void {

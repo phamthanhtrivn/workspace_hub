@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { SpaceRole } from '@prisma/client';
 import { CommunicationGateway } from '../socket/communication.gateway';
-import { ChatEvent, CHAT_CONTEXT_TYPE } from '../chat/chat.enums';
+import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
+import { ChatEvent } from '../socket/chat/chat-socket.events';
 import { CHANNEL_ERROR_MESSAGES } from '../channel/types/channel.enums';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';

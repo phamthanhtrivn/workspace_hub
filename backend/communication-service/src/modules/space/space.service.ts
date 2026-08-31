@@ -17,7 +17,8 @@ import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { UserProfileSnapshot } from 'src/common/types/user.types';
 import { CommunicationGateway } from '../socket/communication.gateway';
-import { ChatEvent, CHAT_CONTEXT_TYPE } from '../chat/chat.enums';
+import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
+import { ChatEvent } from '../socket/chat/chat-socket.events';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
 import {

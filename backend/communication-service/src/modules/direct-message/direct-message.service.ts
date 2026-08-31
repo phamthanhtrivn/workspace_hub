@@ -12,7 +12,7 @@ import {
   MESSAGE_DIRECTION,
   MESSAGE_ERROR_MESSAGES,
 } from '../message/types/message.enums';
-import { CHAT_CONTEXT_TYPE } from '../chat/chat.enums';
+import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()

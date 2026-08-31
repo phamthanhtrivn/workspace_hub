@@ -6,6 +6,11 @@ import { NoteModule } from '../note/note.module';
 import { DirectMessageModule } from '../direct-message/direct-message.module';
 import { SocketEventEmitter } from './services/socket-event-emitter';
 import { SocketRoomService } from './services/socket-room.service';
+import { ChatSocketHandler } from './chat/chat-socket.handler';
+import { ChatMessageInteractionHandler } from './chat/handlers/chat-message-interaction.handler';
+import { ChatMessageHandler } from './chat/handlers/chat-message.handler';
+import { ChatRoomHandler } from './chat/handlers/chat-room.handler';
+import { MeetingSocketHandler } from './meeting/meeting-socket.handler';
 
 @Module({
   imports: [
@@ -14,7 +19,25 @@ import { SocketRoomService } from './services/socket-room.service';
     NoteModule,
     forwardRef(() => DirectMessageModule),
   ],
-  providers: [CommunicationGateway, SocketEventEmitter, SocketRoomService],
-  exports: [CommunicationGateway, SocketEventEmitter, SocketRoomService],
+  providers: [
+    CommunicationGateway,
+    {
+      provide: ChatSocketHandler,
+      useExisting: CommunicationGateway,
+    },
+    SocketEventEmitter,
+    SocketRoomService,
+    ChatRoomHandler,
+    ChatMessageHandler,
+    ChatMessageInteractionHandler,
+    MeetingSocketHandler,
+  ],
+  exports: [
+    CommunicationGateway,
+    SocketEventEmitter,
+    SocketRoomService,
+    ChatSocketHandler,
+    MeetingSocketHandler,
+  ],
 })
 export class SocketModule {}

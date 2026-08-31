@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { CHAT_CONTEXT_TYPE } from '../chat/chat.enums';
+import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { MessageType, Prisma, SpaceRole } from '@prisma/client';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
