@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SpaceRole } from '@prisma/client';
-import { CommunicationGateway } from '../socket/communication.gateway';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { MessageService } from '../message/message.service';
 import { INVITATION_STATUS } from './types/invitation.enums';
 import { InvitationPublisher } from './events/invitation.publisher';
@@ -17,7 +17,7 @@ export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly conversationPublisher: InvitationPublisher,
-    private readonly chatGateway: CommunicationGateway,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly messageService: MessageService,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
@@ -148,7 +148,7 @@ export class InvitationService {
     });
 
     for (const channel of spaceChannels) {
-      await this.chatGateway.sendSystemMessage(
+      await this.chatSocketPublisher.sendSystemMessage(
         channel.id,
         userId,
         `${responderSnapshot.fullName || userId} joined the chat channel`,
@@ -159,7 +159,7 @@ export class InvitationService {
       );
       const targetRooms = [channel.id, ...memberUserIds];
 
-      this.chatGateway.emitMemberJoin(targetRooms, {
+      this.chatSocketPublisher.publishMemberJoin(targetRooms, {
         channelId: channel.id,
         member: {
           channelId: channel.id,

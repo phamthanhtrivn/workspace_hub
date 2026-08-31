@@ -7,6 +7,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatSocketHandler } from './chat/chat-socket.handler';
+import { ChatSocketPublisher } from './chat/chat-socket.publisher';
 import { ChatMessageInteractionHandler } from './chat/handlers/chat-message-interaction.handler';
 import { ChatMessageHandler } from './chat/handlers/chat-message.handler';
 import { ChatRoomHandler } from './chat/handlers/chat-room.handler';
@@ -31,6 +32,7 @@ export class CommunicationGateway
     chatRoomHandler: ChatRoomHandler,
     chatMessageHandler: ChatMessageHandler,
     chatMessageInteractionHandler: ChatMessageInteractionHandler,
+    chatSocketPublisher: ChatSocketPublisher,
     private readonly socketEventEmitter: SocketEventEmitter,
     private readonly socketRoomService: SocketRoomService,
   ) {
@@ -38,6 +40,7 @@ export class CommunicationGateway
       chatRoomHandler,
       chatMessageHandler,
       chatMessageInteractionHandler,
+      chatSocketPublisher,
     );
   }
 

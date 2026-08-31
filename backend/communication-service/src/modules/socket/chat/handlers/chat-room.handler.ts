@@ -1,19 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import {
   CHAT_CONTEXT_TYPE,
   CHAT_RESPONSE_STATUS,
 } from '../../../../common/types/chat.enums';
-import { DirectMessageService } from '../../../direct-message/direct-message.service';
-import { MessageService } from '../../../message/message.service';
-import { ChatEvent } from '../chat-socket.events';
+import { ChatSocketPublisher } from '../chat-socket.publisher';
 
 @Injectable()
 export class ChatRoomHandler {
-  constructor(
-    private readonly messageService: MessageService,
-    private readonly directMessageService: DirectMessageService,
-  ) {}
+  constructor(private readonly chatSocketPublisher: ChatSocketPublisher) {}
 
   handleJoinConversation(data: { channelId: string }, client: Socket) {
     if (data.channelId) {
@@ -45,24 +40,19 @@ export class ChatRoomHandler {
   async handleTyping(
     data: { channelId: string; isTyping: boolean },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.channelId) return;
 
     try {
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishTyping(
+        CHAT_CONTEXT_TYPE.CHANNEL,
         data.channelId,
+        {
+          userId,
+          isTyping: data.isTyping,
+        },
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.TYPING, {
-        chatId: data.channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId: data.channelId,
-        userId,
-        isTyping: data.isTyping,
-      });
     } catch (error) {
       console.error(error);
     }
@@ -71,25 +61,19 @@ export class ChatRoomHandler {
   async handleDirectTyping(
     data: { conversationId: string; isTyping: boolean },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.conversationId) return;
 
     try {
-      const memberUserIds =
-        await this.directMessageService.getDirectConversationMemberIds(
-          data.conversationId,
-        );
-      const targetRooms = [data.conversationId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.TYPING, {
-        chatId: data.conversationId,
-        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-        conversationId: data.conversationId,
-        userId,
-        isTyping: data.isTyping,
-      });
+      await this.chatSocketPublisher.publishTyping(
+        CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
+        data.conversationId,
+        {
+          userId,
+          isTyping: data.isTyping,
+        },
+      );
     } catch (error) {
       console.error(error);
     }

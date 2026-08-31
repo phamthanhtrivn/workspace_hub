@@ -5,20 +5,12 @@ import {
   Delete,
   Get,
   Headers,
-  Inject,
   Param,
   Patch,
   Post,
   Query,
-  forwardRef,
 } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
-import { CommunicationGateway } from '../socket/communication.gateway';
-import {
-  CHAT_CONTEXT_TYPE,
-  CHAT_REACTION_ACTION,
-} from '../../common/types/chat.enums';
-import { ChatEvent } from '../socket/chat/chat-socket.events';
 import { DirectMessageService } from './direct-message.service';
 import {
   MESSAGE_CONSTANTS,
@@ -31,8 +23,6 @@ import {
 export class DirectMessageController {
   constructor(
     private readonly directMessageService: DirectMessageService,
-    @Inject(forwardRef(() => CommunicationGateway))
-    private readonly chatGateway: CommunicationGateway,
   ) {}
 
   @Post(':id/messages')
@@ -67,13 +57,6 @@ export class DirectMessageController {
       data.type || MessageType.TEXT,
       data.medias,
       data.threadParentId,
-    );
-
-    await this.broadcastDirectMessageCreated(
-      conversationId,
-      userId,
-      message,
-      data,
     );
 
     return {
@@ -257,20 +240,12 @@ export class DirectMessageController {
       throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
     }
 
-    const result = await this.directMessageService.markDirectConversationAsRead(
-      conversationId,
-      userId,
-      messageId,
-    );
-    const targetRooms = await this.getDirectTargetRooms(conversationId);
-    this.chatGateway.server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
-      chatId: conversationId,
-      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-      conversationId,
-      messageId,
-      userId,
-      readAt: result.lastReadAt,
-    });
+    const result =
+      await this.directMessageService.markDirectConversationAsRead(
+        conversationId,
+        userId,
+        messageId,
+      );
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
@@ -293,7 +268,6 @@ export class DirectMessageController {
       content,
       userId,
     );
-    await this.broadcastDirectMessageUpdate(ChatEvent.MESSAGE_UPDATED, message);
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.UPDATED,
@@ -314,7 +288,6 @@ export class DirectMessageController {
       messageId,
       userId,
     );
-    await this.broadcastDirectMessageUpdate(ChatEvent.MESSAGE_UPDATED, message);
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.RECALLED,
@@ -335,7 +308,6 @@ export class DirectMessageController {
       messageId,
       userId,
     );
-    await this.broadcastDirectMessageUpdate(ChatEvent.MESSAGE_UPDATED, message);
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.DELETED,
@@ -358,18 +330,6 @@ export class DirectMessageController {
       userId,
       emoji,
     );
-    const conversationId =
-      await this.directMessageService.getDirectMessageConversationId(messageId);
-    const targetRooms = await this.getDirectTargetRooms(conversationId);
-    this.chatGateway.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
-      chatId: conversationId,
-      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-      conversationId,
-      messageId,
-      userId,
-      emoji: result.emoji,
-      action: result.action,
-    });
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.REACTION_UPDATED,
@@ -392,18 +352,6 @@ export class DirectMessageController {
       userId,
       emoji,
     );
-    const conversationId =
-      await this.directMessageService.getDirectMessageConversationId(messageId);
-    const targetRooms = await this.getDirectTargetRooms(conversationId);
-    this.chatGateway.server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
-      chatId: conversationId,
-      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-      conversationId,
-      messageId,
-      userId,
-      emoji,
-      action: CHAT_REACTION_ACTION.REMOVE,
-    });
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.REACTION_UPDATED,
@@ -424,7 +372,6 @@ export class DirectMessageController {
       messageId,
       userId,
     );
-    await this.broadcastDirectMessageUpdate(ChatEvent.MESSAGE_PINNED, message);
 
     return {
       message: MESSAGE_SUCCESS_MESSAGES.PINNED,
@@ -444,10 +391,6 @@ export class DirectMessageController {
     const message = await this.directMessageService.unpinDirectMessage(
       messageId,
       userId,
-    );
-    await this.broadcastDirectMessageUpdate(
-      ChatEvent.MESSAGE_UNPINNED,
-      message,
     );
 
     return {
@@ -513,73 +456,4 @@ export class DirectMessageController {
     };
   }
 
-  private async getDirectTargetRooms(conversationId: string) {
-    const memberUserIds =
-      await this.directMessageService.getDirectConversationMemberIds(
-        conversationId,
-      );
-    return [conversationId, ...memberUserIds];
-  }
-
-  private async broadcastDirectMessageUpdate(event: ChatEvent, message: any) {
-    const conversationId = message.conversationId ?? message.channelId;
-    const targetRooms = await this.getDirectTargetRooms(conversationId);
-    this.chatGateway.server.to(targetRooms).emit(event, {
-      ...message,
-      chatId: conversationId,
-      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-      conversationId,
-    });
-  }
-
-  private async broadcastDirectMessageCreated(
-    conversationId: string,
-    senderId: string,
-    message: any,
-    data: {
-      content?: string;
-      type?: MessageType;
-      medias?: {
-        name: string;
-        s3Key: string;
-        mimeType: string;
-        sizeBytes: number;
-      }[];
-      threadParentId?: string;
-      mentions?: string[];
-    },
-  ) {
-    const targetRooms = await this.getDirectTargetRooms(conversationId);
-    let threadFollowers: string[] = [];
-
-    if (data.threadParentId) {
-      threadFollowers =
-        await this.directMessageService.getDirectThreadFollowers(
-          data.threadParentId,
-        );
-    }
-
-    const messagePayload = {
-      ...message,
-      chatId: conversationId,
-      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-      conversationId,
-      mentions: data.mentions,
-      threadFollowers: data.threadParentId ? threadFollowers : undefined,
-    };
-
-    this.chatGateway.server
-      .to(targetRooms)
-      .emit(ChatEvent.NEW_MESSAGE, messagePayload);
-
-    if (data.medias && data.medias.length > 0) {
-      this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
-        chatId: conversationId,
-        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-        conversationId,
-        messageId: message.id,
-        media: messagePayload.medias,
-      });
-    }
-  }
 }

@@ -8,6 +8,7 @@ import { MessageType } from '@prisma/client';
 import { Server, Socket } from 'socket.io';
 import { CHAT_REACTION_ACTION } from '../../../common/types/chat.enums';
 import { ChatEvent } from './chat-socket.events';
+import { ChatSocketPublisher } from './chat-socket.publisher';
 import { ChatMessageInteractionHandler } from './handlers/chat-message-interaction.handler';
 import { ChatMessageHandler } from './handlers/chat-message.handler';
 import { ChatRoomHandler } from './handlers/chat-room.handler';
@@ -20,6 +21,7 @@ export class ChatSocketHandler {
     private readonly chatRoomHandler: ChatRoomHandler,
     private readonly chatMessageHandler: ChatMessageHandler,
     private readonly chatMessageInteractionHandler: ChatMessageInteractionHandler,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
   ) {}
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
@@ -67,11 +69,7 @@ export class ChatSocketHandler {
     },
     @ConnectedSocket() client: Socket,
   ) {
-    return this.chatMessageHandler.handleSendMessage(
-      data,
-      client,
-      this.server,
-    );
+    return this.chatMessageHandler.handleSendMessage(data, client);
   }
 
   @SubscribeMessage(ChatEvent.SEND_DIRECT_MESSAGE)
@@ -92,20 +90,11 @@ export class ChatSocketHandler {
     },
     @ConnectedSocket() client: Socket,
   ) {
-    return this.chatMessageHandler.handleSendDirectMessage(
-      data,
-      client,
-      this.server,
-    );
+    return this.chatMessageHandler.handleSendDirectMessage(data, client);
   }
 
   async sendSystemMessage(channelId: string, userId: string, content: string) {
-    return this.chatMessageHandler.sendSystemMessage(
-      channelId,
-      userId,
-      content,
-      this.server,
-    );
+    return this.chatMessageHandler.sendSystemMessage(channelId, userId, content);
   }
 
   @SubscribeMessage(ChatEvent.REACT_MESSAGE)
@@ -122,7 +111,6 @@ export class ChatSocketHandler {
     return this.chatMessageInteractionHandler.handleReactMessage(
       data,
       client,
-      this.server,
     );
   }
 
@@ -135,7 +123,6 @@ export class ChatSocketHandler {
     return this.chatMessageInteractionHandler.handleVotePoll(
       data,
       client,
-      this.server,
     );
   }
 
@@ -148,7 +135,6 @@ export class ChatSocketHandler {
     return this.chatMessageInteractionHandler.handleAddPollOption(
       data,
       client,
-      this.server,
     );
   }
 
@@ -169,7 +155,6 @@ export class ChatSocketHandler {
     return this.chatMessageInteractionHandler.handleEditPoll(
       data,
       client,
-      this.server,
     );
   }
 
@@ -187,7 +172,6 @@ export class ChatSocketHandler {
     return this.chatMessageInteractionHandler.handleEditNote(
       data,
       client,
-      this.server,
     );
   }
 
@@ -200,7 +184,6 @@ export class ChatSocketHandler {
     return this.chatMessageHandler.handleEditMessage(
       data,
       client,
-      this.server,
     );
   }
 
@@ -212,7 +195,6 @@ export class ChatSocketHandler {
     return this.chatMessageHandler.handleRecallMessage(
       data,
       client,
-      this.server,
     );
   }
 
@@ -221,7 +203,7 @@ export class ChatSocketHandler {
     @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    return this.chatMessageHandler.handleReadMessage(data, client, this.server);
+    return this.chatMessageHandler.handleReadMessage(data, client);
   }
 
   @SubscribeMessage(ChatEvent.READ_DIRECT_MESSAGE)
@@ -233,7 +215,6 @@ export class ChatSocketHandler {
     return this.chatMessageHandler.handleReadDirectMessage(
       data,
       client,
-      this.server,
     );
   }
 
@@ -242,7 +223,7 @@ export class ChatSocketHandler {
     @MessageBody() data: { channelId: string; isTyping: boolean },
     @ConnectedSocket() client: Socket,
   ) {
-    return this.chatRoomHandler.handleTyping(data, client, this.server);
+    return this.chatRoomHandler.handleTyping(data, client);
   }
 
   @SubscribeMessage(ChatEvent.TYPING_DIRECT)
@@ -253,12 +234,11 @@ export class ChatSocketHandler {
     return this.chatRoomHandler.handleDirectTyping(
       data,
       client,
-      this.server,
     );
   }
 
-  emitMemberJoin(targetRooms: string[], payload: any) {
-    this.server.to(targetRooms).emit(ChatEvent.JOIN_CONVERSATION, payload);
+  emitMemberJoin(targetRooms: string[], payload: Record<string, unknown>) {
+    this.chatSocketPublisher.publishMemberJoin(targetRooms, payload);
   }
 
   @SubscribeMessage(ChatEvent.PIN_MESSAGE)
@@ -266,7 +246,7 @@ export class ChatSocketHandler {
     @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    return this.chatMessageHandler.handlePinMessage(data, client, this.server);
+    return this.chatMessageHandler.handlePinMessage(data, client);
   }
 
   @SubscribeMessage(ChatEvent.UNPIN_MESSAGE)
@@ -274,6 +254,6 @@ export class ChatSocketHandler {
     @MessageBody() data: { channelId: string; messageId: string },
     @ConnectedSocket() client: Socket,
   ) {
-    return this.chatMessageHandler.handleUnpinMessage(data, client, this.server);
+    return this.chatMessageHandler.handleUnpinMessage(data, client);
   }
 }

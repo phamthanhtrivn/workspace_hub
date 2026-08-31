@@ -1,8 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { SpaceRole } from '@prisma/client';
-import { CommunicationGateway } from '../socket/communication.gateway';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
-import { ChatEvent } from '../socket/chat/chat-socket.events';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { CHANNEL_ERROR_MESSAGES } from '../channel/types/channel.enums';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
@@ -11,7 +10,7 @@ import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profil
 export class DirectConversationService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly chatGateway: CommunicationGateway,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
@@ -223,16 +222,12 @@ export class DirectConversationService {
         data: { muted },
       });
 
-    if (this.chatGateway?.server) {
-      this.chatGateway.server
-        .to(userId)
-        .emit(ChatEvent.CONVERSATION_MUTE_UPDATED, {
-          chatId: conversationId,
-          chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-          conversationId,
-          muted,
-        });
-    }
+    await this.chatSocketPublisher.publishConversationMuteUpdated(
+      userId,
+      CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
+      conversationId,
+      muted,
+    );
 
     return updatedParticipant;
   }

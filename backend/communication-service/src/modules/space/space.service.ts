@@ -16,9 +16,9 @@ import { DefaultSpaceChannelNames } from './types/space.types';
 import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { UserProfileSnapshot } from 'src/common/types/user.types';
-import { CommunicationGateway } from '../socket/communication.gateway';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatEvent } from '../socket/chat/chat-socket.events';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
 import {
@@ -33,7 +33,7 @@ export class SpaceService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
-    private readonly chatGateway: CommunicationGateway,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
@@ -186,19 +186,15 @@ export class SpaceService {
     userId: string,
     leftSpace: boolean,
   ) {
-    this.chatGateway.server
-      .to([userId, ...channelIds])
-      .emit(ChatEvent.MEMBER_LEFT, {
-        eventType: leftSpace
-          ? SPACE_SOCKET_EVENT_TYPE.MEMBER_LEFT
-          : 'member_left',
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        spaceId,
-        channelId: channelIds[0] ?? null,
-        userId,
-        affectedUserIds: [userId],
-        leftSpace,
-      });
+    this.chatSocketPublisher.publishMemberLeft([userId, ...channelIds], {
+      eventType: leftSpace ? SPACE_SOCKET_EVENT_TYPE.MEMBER_LEFT : 'member_left',
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+      spaceId,
+      channelId: channelIds[0] ?? null,
+      userId,
+      affectedUserIds: [userId],
+      leftSpace,
+    });
   }
 
   private async emitSpaceInvitation(
@@ -503,7 +499,7 @@ export class SpaceService {
         await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
       const actorProfile = profileMap.get(userId);
       const content = `Space name was updated to "${updatedSpace.name}" by ${actorProfile?.fullName || 'an admin'}`;
-      await this.chatGateway.sendSystemMessage(
+      await this.chatSocketPublisher.sendSystemMessage(
         defaultChannel.id,
         userId,
         content,
@@ -515,13 +511,15 @@ export class SpaceService {
       select: { userId: true },
     });
 
-    this.chatGateway.server
-      .to(members.map((member) => member.userId))
-      .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
+    this.chatSocketPublisher.publishToRooms(
+      members.map((member) => member.userId),
+      ChatEvent.CHANNEL_SETTING_UPDATED,
+      {
         eventType: 'space_updated',
         spaceId,
         name: updatedSpace.name,
-      });
+      },
+    );
 
     return updatedSpace;
   }
@@ -558,19 +556,21 @@ export class SpaceService {
         where: { id: spaceId },
         select: { name: true },
       });
-      this.chatGateway.server
-        .to([
+      this.chatSocketPublisher.publishToRooms(
+        [
           ...channels.map((channel) => channel.id),
           ...members.map((member) => member.userId),
-        ])
-        .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
+        ],
+        ChatEvent.CHANNEL_SETTING_UPDATED,
+        {
           eventType: SPACE_SOCKET_EVENT_TYPE.SETTING_UPDATED,
           chatType: CHAT_CONTEXT_TYPE.CHANNEL,
           spaceId,
           spaceName: space?.name ?? null,
           affectedUserIds: members.map((member) => member.userId),
           setting: updatedSetting,
-        });
+        },
+      );
       return updatedSetting;
     } catch (error) {
       if (this.isMissingSpaceSettingTableError(error)) {
@@ -696,20 +696,20 @@ export class SpaceService {
     });
     if (defaultChannel) {
       const content = `${targetProfile?.fullName || 'Someone'} is now the Owner of this space (transferred by ${actorProfile?.fullName || 'an admin'})`;
-      await this.chatGateway.sendSystemMessage(
+      await this.chatSocketPublisher.sendSystemMessage(
         defaultChannel.id,
         userId,
         content,
       );
     }
 
-    this.chatGateway.server
-      .to([
+    // Notify all clients that the new owner is now ADMIN (owner)
+    this.chatSocketPublisher.publishMemberRoleUpdated(
+      [
         ...channels.map((channel) => channel.id),
         ...members.map((member) => member.userId),
-      ])
-      // Notify all clients that the new owner is now ADMIN (owner)
-      .emit(ChatEvent.MEMBER_ROLE_UPDATED, {
+      ],
+      {
         eventType: SPACE_SOCKET_EVENT_TYPE.MEMBER_ROLE_UPDATED,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
@@ -727,7 +727,8 @@ export class SpaceService {
           userId: targetUserId,
           role: SpaceRole.ADMIN,
         },
-      });
+      },
+    );
 
     this.publishSpaceActionNotifications({
       recipientIds: members.map((member) => member.userId),
@@ -793,19 +794,19 @@ export class SpaceService {
     if (defaultChannel) {
       const roleName = newRole === SpaceRole.ADMIN ? 'Admin' : 'Member';
       const content = `${targetProfile?.fullName || 'Someone'} is now the ${roleName} of this space (set by ${actorProfile?.fullName || 'an admin'})`;
-      await this.chatGateway.sendSystemMessage(
+      await this.chatSocketPublisher.sendSystemMessage(
         defaultChannel.id,
         userId,
         content,
       );
     }
 
-    this.chatGateway.server
-      .to([
+    this.chatSocketPublisher.publishMemberRoleUpdated(
+      [
         ...channels.map((channel) => channel.id),
         ...members.map((member) => member.userId),
-      ])
-      .emit(ChatEvent.MEMBER_ROLE_UPDATED, {
+      ],
+      {
         eventType: SPACE_SOCKET_EVENT_TYPE.MEMBER_ROLE_UPDATED,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
@@ -818,7 +819,8 @@ export class SpaceService {
           userId: targetUserId,
           role: newRole,
         },
-      });
+      },
+    );
 
     return updatedMember;
   }
@@ -860,7 +862,7 @@ export class SpaceService {
     const actorName = this.getProfileDisplayName(actorProfile, userId);
     const targetName = this.getProfileDisplayName(targetProfile, targetUserId);
     if (defaultChannel) {
-      await this.chatGateway.sendSystemMessage(
+      await this.chatSocketPublisher.sendSystemMessage(
         defaultChannel.id,
         userId,
         `${targetName} was removed from the space`,
@@ -879,9 +881,9 @@ export class SpaceService {
       });
     });
 
-    this.chatGateway.server
-      .to([targetUserId, ...channels.map((channel) => channel.id)])
-      .emit(ChatEvent.MEMBER_KICKED, {
+    this.chatSocketPublisher.publishMemberKicked(
+      [targetUserId, ...channels.map((channel) => channel.id)],
+      {
         eventType: SPACE_SOCKET_EVENT_TYPE.MEMBER_REMOVED,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
@@ -893,7 +895,8 @@ export class SpaceService {
         leftSpace: true,
         actorProfile,
         targetProfile,
-      });
+      },
+    );
 
     this.publishSpaceActionNotification({
       recipientId: targetUserId,
@@ -932,7 +935,7 @@ export class SpaceService {
     const defaultChannel = await this.getDefaultChannel(spaceId);
     if (defaultChannel) {
       const displayName = await this.getUserDisplayName(userId);
-      await this.chatGateway.sendSystemMessage(
+      await this.chatSocketPublisher.sendSystemMessage(
         defaultChannel.id,
         userId,
         `${displayName} left the space`,
@@ -980,12 +983,12 @@ export class SpaceService {
 
     await this.prisma.space.delete({ where: { id: spaceId } });
 
-    this.chatGateway.server
-      .to([
+    this.chatSocketPublisher.publishConversationDisbanded(
+      [
         ...channels.map((channel) => channel.id),
         ...members.map((member) => member.userId),
-      ])
-      .emit(ChatEvent.CONVERSATION_DISBANDED, {
+      ],
+      {
         eventType: SPACE_SOCKET_EVENT_TYPE.DISBANDED,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
@@ -994,7 +997,8 @@ export class SpaceService {
         affectedUserIds: members.map((member) => member.userId),
         leftSpace: true,
         actorProfile,
-      });
+      },
+    );
 
     this.publishSpaceActionNotifications({
       recipientIds: members.map((member) => member.userId),
@@ -1183,12 +1187,14 @@ export class SpaceService {
       select: { userId: true },
     });
 
-    this.chatGateway.server
-      .to(spaceMembers.map((m) => m.userId))
-      .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
+    this.chatSocketPublisher.publishToRooms(
+      spaceMembers.map((m) => m.userId),
+      ChatEvent.CHANNEL_SETTING_UPDATED,
+      {
         eventType: 'channel_created',
         spaceId,
-      });
+      },
+    );
 
     return result;
   }

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MessageType } from '@prisma/client';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import {
   CHAT_CONTEXT_TYPE,
   CHAT_ERROR_MESSAGES,
@@ -9,13 +9,14 @@ import {
 import { MessageService } from '../../../message/message.service';
 import { DirectMessageService } from '../../../direct-message/direct-message.service';
 import { mapMediaWithUrl } from '../../../../common/utils/file.util';
-import { ChatEvent } from '../chat-socket.events';
+import { ChatSocketPublisher } from '../chat-socket.publisher';
 
 @Injectable()
 export class ChatMessageHandler {
   constructor(
     private readonly messageService: MessageService,
     private readonly directMessageService: DirectMessageService,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
   ) {}
 
   async handleSendMessage(
@@ -44,7 +45,6 @@ export class ChatMessageHandler {
       mentions?: string[];
     },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (
@@ -73,10 +73,6 @@ export class ChatMessageHandler {
         data.threadParentId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.channelId,
-      );
-
       let threadFollowers: string[] = [];
       if (data.threadParentId) {
         threadFollowers = await this.messageService.getThreadFollowers(
@@ -93,38 +89,15 @@ export class ChatMessageHandler {
         threadFollowers: data.threadParentId ? threadFollowers : undefined,
       };
 
-      const targetRooms = [data.channelId, ...memberUserIds];
-      server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
-
-      if (data.medias && data.medias.length > 0) {
-        server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
-          chatId: data.channelId,
-          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-          channelId: data.channelId,
-          messageId: message.id,
-          media: messageWithUrls.medias,
-        });
-      }
-
-      if (data.pollData && messageWithUrls.poll) {
-        server.to(targetRooms).emit(ChatEvent.POLL_UPDATED, {
-          chatId: data.channelId,
-          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-          channelId: data.channelId,
-          messageId: message.id,
-          poll: messageWithUrls.poll,
-        });
-      }
-
-      if (data.noteData && messageWithUrls.note) {
-        server.to(targetRooms).emit(ChatEvent.NOTE_UPDATED, {
-          chatId: data.channelId,
-          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-          channelId: data.channelId,
-          messageId: message.id,
-          note: messageWithUrls.note,
-        });
-      }
+      await this.chatSocketPublisher.publishChannelMessageCreated(
+        data.channelId,
+        messageWithUrls,
+        {
+          medias: data.medias,
+          pollData: data.pollData,
+          noteData: data.noteData,
+        },
+      );
 
       return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
@@ -151,7 +124,6 @@ export class ChatMessageHandler {
       mentions?: string[];
     },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (
@@ -173,12 +145,8 @@ export class ChatMessageHandler {
         data.type || MessageType.TEXT,
         data.medias,
         data.threadParentId,
+        data.mentions,
       );
-
-      const memberUserIds =
-        await this.directMessageService.getDirectConversationMemberIds(
-          data.conversationId,
-        );
 
       let threadFollowers: string[] = [];
       if (data.threadParentId) {
@@ -197,19 +165,6 @@ export class ChatMessageHandler {
         threadFollowers: data.threadParentId ? threadFollowers : undefined,
       };
 
-      const targetRooms = [data.conversationId, ...memberUserIds];
-      server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
-
-      if (data.medias && data.medias.length > 0) {
-        server.to(targetRooms).emit(ChatEvent.MEDIA_UPDATED, {
-          chatId: data.conversationId,
-          chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-          conversationId: data.conversationId,
-          messageId: message.id,
-          media: messageWithUrls.medias,
-        });
-      }
-
       return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
       console.error(error);
@@ -224,28 +179,13 @@ export class ChatMessageHandler {
     channelId: string,
     userId: string,
     content: string,
-    server: Server,
   ) {
     try {
-      const message = await this.messageService.createMessage(
+      const messageWithUrls = await this.chatSocketPublisher.sendSystemMessage(
         channelId,
         userId,
         content,
-        MessageType.SYSTEM,
       );
-
-      const memberUserIds =
-        await this.messageService.getConversationMemberIds(channelId);
-
-      const messageWithUrls = {
-        ...message,
-        chatId: channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        medias: [],
-      };
-
-      const targetRooms = [channelId, ...memberUserIds];
-      server.to(targetRooms).emit(ChatEvent.NEW_MESSAGE, messageWithUrls);
       return { status: CHAT_RESPONSE_STATUS.SUCCESS, data: messageWithUrls };
     } catch (error) {
       console.error(error);
@@ -259,7 +199,6 @@ export class ChatMessageHandler {
   async handleEditMessage(
     data: { channelId: string; messageId: string; content: string },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (
@@ -277,12 +216,10 @@ export class ChatMessageHandler {
         userId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishChannelMessageUpdated(
         data.channelId,
+        updatedMessage,
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -296,7 +233,6 @@ export class ChatMessageHandler {
   async handleRecallMessage(
     data: { channelId: string; messageId: string },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.channelId) return;
@@ -307,12 +243,10 @@ export class ChatMessageHandler {
         userId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishChannelMessageUpdated(
         data.channelId,
+        updatedMessage,
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_UPDATED, updatedMessage);
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -326,7 +260,6 @@ export class ChatMessageHandler {
   async handleReadMessage(
     data: { channelId: string; messageId: string },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.channelId) return;
@@ -338,19 +271,14 @@ export class ChatMessageHandler {
         data.messageId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishChannelMessageRead(
         data.channelId,
+        {
+          messageId: data.messageId,
+          userId,
+          readAt: readReceipt.lastReadAt,
+        },
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
-        chatId: data.channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId: data.channelId,
-        messageId: data.messageId,
-        userId,
-        readAt: readReceipt.lastReadAt,
-      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -364,33 +292,17 @@ export class ChatMessageHandler {
   async handleReadDirectMessage(
     data: { conversationId: string; messageId: string },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.conversationId) return;
 
     try {
-      const readReceipt =
-        await this.directMessageService.markDirectConversationAsRead(
-          data.conversationId,
-          userId,
-          data.messageId,
-        );
-
-      const memberUserIds =
-        await this.directMessageService.getDirectConversationMemberIds(
-          data.conversationId,
-        );
-      const targetRooms = [data.conversationId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_READ, {
-        chatId: data.conversationId,
-        chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
-        conversationId: data.conversationId,
-        messageId: data.messageId,
+      await this.directMessageService.markDirectConversationAsRead(
+        data.conversationId,
         userId,
-        readAt: readReceipt.lastReadAt,
-      });
+        data.messageId,
+      );
+
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -404,7 +316,6 @@ export class ChatMessageHandler {
   async handlePinMessage(
     data: { channelId: string; messageId: string },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.channelId) return;
@@ -415,17 +326,15 @@ export class ChatMessageHandler {
         userId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.channelId,
-      );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
       const messageWithUrls = {
         ...updatedMessage,
         medias: mapMediaWithUrl(updatedMessage.medias),
       };
 
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_PINNED, messageWithUrls);
+      await this.chatSocketPublisher.publishChannelMessagePinned(
+        data.channelId,
+        messageWithUrls,
+      );
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -439,7 +348,6 @@ export class ChatMessageHandler {
   async handleUnpinMessage(
     data: { channelId: string; messageId: string },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.channelId) return;
@@ -450,17 +358,15 @@ export class ChatMessageHandler {
         userId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
-        data.channelId,
-      );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
       const messageWithUrls = {
         ...updatedMessage,
         medias: mapMediaWithUrl(updatedMessage.medias),
       };
 
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_UNPINNED, messageWithUrls);
+      await this.chatSocketPublisher.publishChannelMessageUnpinned(
+        data.channelId,
+        messageWithUrls,
+      );
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);

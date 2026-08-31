@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import {
-  CHAT_CONTEXT_TYPE,
   CHAT_ERROR_MESSAGES,
   CHAT_REACTION_ACTION,
   CHAT_RESPONSE_STATUS,
@@ -9,7 +8,7 @@ import {
 import { MessageService } from '../../../message/message.service';
 import { NoteService } from '../../../note/note.service';
 import { PollService } from '../../../poll/poll.service';
-import { ChatEvent } from '../chat-socket.events';
+import { ChatSocketPublisher } from '../chat-socket.publisher';
 
 @Injectable()
 export class ChatMessageInteractionHandler {
@@ -17,6 +16,7 @@ export class ChatMessageInteractionHandler {
     private readonly messageService: MessageService,
     private readonly pollService: PollService,
     private readonly noteService: NoteService,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
   ) {}
 
   async handleReactMessage(
@@ -27,13 +27,12 @@ export class ChatMessageInteractionHandler {
       action: CHAT_REACTION_ACTION.ADD | CHAT_REACTION_ACTION.REMOVE;
     },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.channelId || !data.emoji) return;
 
     try {
-      let finalAction = data.action;
+      let finalAction: string | CHAT_REACTION_ACTION = data.action;
       let finalEmoji = data.emoji;
 
       if (data.action === CHAT_REACTION_ACTION.ADD) {
@@ -42,7 +41,7 @@ export class ChatMessageInteractionHandler {
           userId,
           data.emoji,
         );
-        finalAction = result.action as any;
+        finalAction = result.action;
         finalEmoji = result.emoji;
       } else {
         await this.messageService.removeReaction(
@@ -52,20 +51,15 @@ export class ChatMessageInteractionHandler {
         );
       }
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishChannelReactionUpdated(
         data.channelId,
+        {
+          messageId: data.messageId,
+          userId,
+          emoji: finalEmoji,
+          action: finalAction,
+        },
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.REACTION_UPDATED, {
-        chatId: data.channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId: data.channelId,
-        messageId: data.messageId,
-        userId,
-        emoji: finalEmoji,
-        action: finalAction,
-      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -79,7 +73,6 @@ export class ChatMessageInteractionHandler {
   async handleVotePoll(
     data: { channelId: string; messageId: string; pollOptionId: string },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.channelId || !data.pollOptionId)
@@ -93,17 +86,10 @@ export class ChatMessageInteractionHandler {
         userId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishMessageMoved(
         data.channelId,
+        updatedMessage,
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
-        ...updatedMessage,
-        chatId: data.channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId: data.channelId,
-      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -117,7 +103,6 @@ export class ChatMessageInteractionHandler {
   async handleAddPollOption(
     data: { channelId: string; messageId: string; text: string },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.channelId || !data.text) return;
@@ -130,17 +115,10 @@ export class ChatMessageInteractionHandler {
         userId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishMessageMoved(
         data.channelId,
+        updatedMessage,
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
-        ...updatedMessage,
-        chatId: data.channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId: data.channelId,
-      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -162,7 +140,6 @@ export class ChatMessageInteractionHandler {
       isLocked?: boolean;
     },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (!userId || !data.messageId || !data.channelId || !data.title) return;
@@ -179,17 +156,10 @@ export class ChatMessageInteractionHandler {
         data.isLocked,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishMessageMoved(
         data.channelId,
+        updatedMessage,
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
-        ...updatedMessage,
-        chatId: data.channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId: data.channelId,
-      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);
@@ -208,7 +178,6 @@ export class ChatMessageInteractionHandler {
       content: string;
     },
     client: Socket,
-    server: Server,
   ) {
     const userId = client.data.userId;
     if (
@@ -229,17 +198,10 @@ export class ChatMessageInteractionHandler {
         userId,
       );
 
-      const memberUserIds = await this.messageService.getConversationMemberIds(
+      await this.chatSocketPublisher.publishMessageMoved(
         data.channelId,
+        updatedMessage,
       );
-      const targetRooms = [data.channelId, ...memberUserIds];
-
-      server.to(targetRooms).emit(ChatEvent.MESSAGE_MOVED, {
-        ...updatedMessage,
-        chatId: data.channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId: data.channelId,
-      });
       return { status: CHAT_RESPONSE_STATUS.SUCCESS };
     } catch (error) {
       console.error(error);

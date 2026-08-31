@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MessageType } from '@prisma/client';
+import { MessageType, Prisma } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from 'src/common/utils/file.util';
@@ -12,8 +12,26 @@ import {
   MESSAGE_DIRECTION,
   MESSAGE_ERROR_MESSAGES,
 } from '../message/types/message.enums';
-import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
+import {
+  CHAT_CONTEXT_TYPE,
+  CHAT_REACTION_ACTION,
+} from '../../common/types/chat.enums';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { ChatEvent } from '../socket/chat/chat-socket.events';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
+
+type DirectMessageWithMedia = Prisma.DirectMessageGetPayload<{
+  include: { medias: true };
+}> &
+  Record<string, unknown>;
+
+type DirectMessageSocketPayload = Record<string, unknown> & {
+  id: string;
+  medias?: unknown[];
+} & (
+    | { conversationId: string; channelId?: string | null }
+    | { channelId: string; conversationId?: string | null }
+  );
 
 @Injectable()
 export class DirectMessageService {
@@ -21,6 +39,7 @@ export class DirectMessageService {
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
   ) {}
 
   async createDirectMessage(
@@ -35,6 +54,7 @@ export class DirectMessageService {
       sizeBytes: number;
     }[],
     threadParentId?: string,
+    mentions?: string[],
   ) {
     const createdMessage = await this.prisma.$transaction(async (tx) => {
       const participant = await tx.directConversationParticipant.findUnique({
@@ -147,9 +167,18 @@ export class DirectMessageService {
       return this.mapDirectMessage(message);
     });
 
-    return this.userProfileSnapshotService.attachSenderProfileToMessage(
-      createdMessage,
-    );
+    const message =
+      await this.userProfileSnapshotService.attachSenderProfileToMessage(
+        createdMessage,
+      );
+
+    await this.publishDirectMessageCreated(conversationId, message, {
+      medias,
+      threadParentId,
+      mentions,
+    });
+
+    return message;
   }
 
   async getDirectConversationMessages(
@@ -422,7 +451,7 @@ export class DirectMessageService {
     senderId?: string,
     type?: string,
   ) {
-    const whereClause: any = {
+    const whereClause: Prisma.DirectMessageWhereInput = {
       conversationId,
       deletedAt: null,
       recalled: false,
@@ -441,7 +470,7 @@ export class DirectMessageService {
     }
 
     if (type) {
-      whereClause.type = type;
+      whereClause.type = type as MessageType;
     }
 
     const messages = await this.prisma.directMessage.findMany({
@@ -548,7 +577,7 @@ export class DirectMessageService {
 
     return Promise.all(
       followers.map(async (follower) => {
-        const unreadSince = (follower as any).lastReadAt ?? follower.createdAt;
+        const unreadSince = follower.lastReadAt ?? follower.createdAt;
         const unreadReplyCount = await this.prisma.directMessage.count({
           where: {
             threadParentId: follower.messageId,
@@ -556,7 +585,7 @@ export class DirectMessageService {
             senderId: { not: userId },
           },
         });
-        const { conversation, ...message } = follower.message as any;
+        const { conversation, ...message } = follower.message;
         const rootMessage =
           await this.userProfileSnapshotService.attachSenderProfileToMessage(
             this.mapDirectMessage(message),
@@ -658,12 +687,12 @@ export class DirectMessageService {
     return message.conversationId;
   }
 
-  markDirectConversationAsRead(
+  async markDirectConversationAsRead(
     conversationId: string,
     userId: string,
     messageId: string,
   ) {
-    return this.prisma.directConversationParticipant.update({
+    const result = await this.prisma.directConversationParticipant.update({
       where: {
         conversationId_userId: {
           conversationId,
@@ -675,6 +704,14 @@ export class DirectMessageService {
         lastReadAt: new Date(),
       },
     });
+
+    await this.chatSocketPublisher.publishDirectMessageRead(conversationId, {
+      messageId,
+      userId,
+      readAt: result.lastReadAt,
+    });
+
+    return result;
   }
 
   async addDirectReaction(messageId: string, userId: string, emoji: string) {
@@ -686,27 +723,43 @@ export class DirectMessageService {
     if (existing) {
       if (existing.emoji === emoji) {
         await this.prisma.directReaction.delete({ where: { id: existing.id } });
-        return { action: 'remove', emoji };
+        const result = { action: 'remove', emoji };
+        await this.publishDirectReactionUpdated(messageId, userId, result);
+        return result;
       }
 
       await this.prisma.directReaction.update({
         where: { id: existing.id },
         data: { emoji },
       });
-      return { action: 'update', emoji };
+      const result = { action: 'update', emoji };
+      await this.publishDirectReactionUpdated(messageId, userId, result);
+      return result;
     }
 
     await this.prisma.directReaction.create({
       data: { messageId, userId, emoji },
     });
-    return { action: 'add', emoji };
+    const result = { action: 'add', emoji };
+    await this.publishDirectReactionUpdated(messageId, userId, result);
+    return result;
   }
 
   async removeDirectReaction(messageId: string, userId: string, emoji: string) {
     await this.assertDirectMessageMember(messageId, userId);
-    return this.prisma.directReaction.deleteMany({
+    const result = await this.prisma.directReaction.deleteMany({
       where: { messageId, userId, emoji },
     });
+    const conversationId = await this.getDirectMessageConversationId(messageId);
+
+    await this.chatSocketPublisher.publishDirectReactionUpdated(conversationId, {
+      messageId,
+      userId,
+      emoji,
+      action: CHAT_REACTION_ACTION.REMOVE,
+    });
+
+    return result;
   }
 
   async editDirectMessage(messageId: string, content: string, userId: string) {
@@ -731,7 +784,12 @@ export class DirectMessageService {
         threadFollowers: true,
       },
     });
-    return this.mapDirectMessage(updatedMessage);
+    const mappedMessage = this.mapDirectMessage(updatedMessage);
+    await this.publishDirectMessageUpdate(
+      ChatEvent.MESSAGE_UPDATED,
+      mappedMessage,
+    );
+    return mappedMessage;
   }
 
   async recallDirectMessage(messageId: string, userId: string) {
@@ -767,7 +825,12 @@ export class DirectMessageService {
         threadFollowers: true,
       },
     });
-    return this.mapDirectMessage(updatedMessage);
+    const mappedMessage = this.mapDirectMessage(updatedMessage);
+    await this.publishDirectMessageUpdate(
+      ChatEvent.MESSAGE_UPDATED,
+      mappedMessage,
+    );
+    return mappedMessage;
   }
 
   async deleteDirectMessage(messageId: string, userId: string) {
@@ -781,7 +844,12 @@ export class DirectMessageService {
         threadFollowers: true,
       },
     });
-    return this.mapDirectMessage(deletedMessage);
+    const mappedMessage = this.mapDirectMessage(deletedMessage);
+    await this.publishDirectMessageUpdate(
+      ChatEvent.MESSAGE_UPDATED,
+      mappedMessage,
+    );
+    return mappedMessage;
   }
 
   async pinDirectMessage(messageId: string, userId: string) {
@@ -799,7 +867,12 @@ export class DirectMessageService {
         threadFollowers: true,
       },
     });
-    return this.mapDirectMessage(updatedMessage);
+    const mappedMessage = this.mapDirectMessage(updatedMessage);
+    await this.publishDirectMessageUpdate(
+      ChatEvent.MESSAGE_PINNED,
+      mappedMessage,
+    );
+    return mappedMessage;
   }
 
   async unpinDirectMessage(messageId: string, userId: string) {
@@ -817,7 +890,12 @@ export class DirectMessageService {
         threadFollowers: true,
       },
     });
-    return this.mapDirectMessage(updatedMessage);
+    const mappedMessage = this.mapDirectMessage(updatedMessage);
+    await this.publishDirectMessageUpdate(
+      ChatEvent.MESSAGE_UNPINNED,
+      mappedMessage,
+    );
+    return mappedMessage;
   }
 
   async followDirectThread(messageId: string, userId: string) {
@@ -829,8 +907,8 @@ export class DirectMessageService {
           userId,
         },
       },
-      update: { lastReadAt: new Date() } as any,
-      create: { messageId, userId, lastReadAt: new Date() } as any,
+      update: { lastReadAt: new Date() },
+      create: { messageId, userId, lastReadAt: new Date() },
     });
     return { following: true };
   }
@@ -848,18 +926,97 @@ export class DirectMessageService {
     const lastReadAt = new Date();
     await this.prisma.directThreadFollower.updateMany({
       where: { messageId, userId },
-      data: { lastReadAt } as any,
+      data: { lastReadAt },
     });
     return { messageId, lastReadAt };
   }
 
-  private mapDirectMessage(message: any) {
+  private mapDirectMessage(message: DirectMessageWithMedia) {
     return {
       ...message,
       chatId: message.conversationId,
       chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
       medias: mapMediaWithUrl(message.medias || []),
     };
+  }
+
+  private async publishDirectReactionUpdated(
+    messageId: string,
+    userId: string,
+    result: { action: string; emoji: string },
+  ) {
+    const conversationId = await this.getDirectMessageConversationId(messageId);
+
+    await this.chatSocketPublisher.publishDirectReactionUpdated(conversationId, {
+      messageId,
+      userId,
+      emoji: result.emoji,
+      action: result.action,
+    });
+  }
+
+  private async publishDirectMessageUpdate(
+    event: ChatEvent,
+    message: DirectMessageSocketPayload,
+  ) {
+    const conversationId = this.getConversationIdFromMessage(message);
+    await this.chatSocketPublisher.publishDirectMessageUpdated(
+      conversationId,
+      event,
+      message,
+    );
+  }
+
+  private getConversationIdFromMessage(
+    message: DirectMessageSocketPayload,
+  ): string {
+    if (typeof message.conversationId === 'string') {
+      return message.conversationId;
+    }
+
+    if (typeof message.channelId === 'string') {
+      return message.channelId;
+    }
+
+    throw new Error('Direct message payload is missing conversationId');
+  }
+
+  private async publishDirectMessageCreated(
+    conversationId: string,
+    message: DirectMessageSocketPayload,
+    data: {
+      medias?: {
+        name: string;
+        s3Key: string;
+        mimeType: string;
+        sizeBytes: number;
+      }[];
+      threadParentId?: string;
+      mentions?: string[];
+    },
+  ) {
+    let threadFollowers: string[] = [];
+
+    if (data.threadParentId) {
+      threadFollowers = await this.getDirectThreadFollowers(
+        data.threadParentId,
+      );
+    }
+
+    const messagePayload = {
+      ...message,
+      chatId: conversationId,
+      chatType: CHAT_CONTEXT_TYPE.DIRECT_MESSAGE,
+      conversationId,
+      mentions: data.mentions,
+      threadFollowers: data.threadParentId ? threadFollowers : undefined,
+    };
+
+    await this.chatSocketPublisher.publishDirectMessageCreated(
+      conversationId,
+      messagePayload,
+      { medias: data.medias },
+    );
   }
 
   private async assertDirectMessageMember(messageId: string, userId: string) {
@@ -890,7 +1047,16 @@ export class DirectMessageService {
   private async getOwnedDirectMessage(
     messageId: string,
     userId: string,
-    include?: any,
+  ): Promise<Prisma.DirectMessageGetPayload<Record<string, never>>>;
+  private async getOwnedDirectMessage<TInclude extends Prisma.DirectMessageInclude>(
+    messageId: string,
+    userId: string,
+    include: TInclude,
+  ): Promise<Prisma.DirectMessageGetPayload<{ include: TInclude }>>;
+  private async getOwnedDirectMessage(
+    messageId: string,
+    userId: string,
+    include?: Prisma.DirectMessageInclude,
   ) {
     const message = await this.prisma.directMessage.findUnique({
       where: { id: messageId },
@@ -902,7 +1068,7 @@ export class DirectMessageService {
     if (message.senderId !== userId) {
       throw new BadRequestException('You can only modify your own messages');
     }
-    return message as any;
+    return message;
   }
 
   private assertWithin24Hours(createdAt: Date, errorMessage: string) {
@@ -913,7 +1079,9 @@ export class DirectMessageService {
     }
   }
 
-  private getMediaTypeWhere(mediaType?: string): any {
+  private getMediaTypeWhere(
+    mediaType?: string,
+  ): Prisma.DirectMediaWhereInput {
     switch (mediaType) {
       case 'image':
         return { mimeType: { startsWith: 'image/' } };
