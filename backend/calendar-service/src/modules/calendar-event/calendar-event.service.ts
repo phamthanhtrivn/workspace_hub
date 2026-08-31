@@ -33,6 +33,8 @@ type EventWithRelations = CalendarEvent & {
   calendar: Calendar;
   attendees: Array<{ userId: string } & Record<string, unknown>>;
   reminders: Array<Record<string, unknown>>;
+  documents: Array<{ documentId: string }>;
+  recurrenceExceptions: Array<{ occurrenceStart: Date }>;
 };
 
 @Injectable()
@@ -78,10 +80,26 @@ export class CalendarEventService {
           visibility: dto.visibility,
           recurrenceRule: dto.recurrenceRule ?? null,
           originalStartAt: dto.recurrenceRule ? new Date(dto.startAt) : null,
-          exceptionDates: this.toDateArray(dto.exceptionDates),
-          documentIds: dto.documentIds ?? [],
         },
       });
+
+      if (dto.documentIds?.length) {
+        await tx.calendarEventDocument.createMany({
+          data: [...new Set(dto.documentIds)].map((documentId) => ({
+            eventId: createdEvent.id,
+            documentId,
+          })),
+        });
+      }
+
+      if (dto.exceptionDates?.length) {
+        await tx.recurrenceException.createMany({
+          data: [...new Set(dto.exceptionDates)].map((occurrenceStart) => ({
+            seriesId: createdEvent.id,
+            occurrenceStart: new Date(occurrenceStart),
+          })),
+        });
+      }
 
       await tx.calendarEventAttendee.createMany({
         data: attendeeInputs.map((attendee) => ({
@@ -126,11 +144,6 @@ export class CalendarEventService {
   async getEvents(userId: string, filters: GetCalendarEventsQueryDto) {
     this.assertValidQueryRange(filters.startAt, filters.endAt);
     await this.resourceAccess.assertProjectAccess(userId, filters.projectId);
-    if (filters.endAt) {
-      await this.recurrenceService.materializeAllSeriesThrough(
-        new Date(filters.endAt),
-      );
-    }
 
     const where: Prisma.CalendarEventWhereInput = {
       status: { not: EventStatus.CANCELLED },
@@ -227,6 +240,7 @@ export class CalendarEventService {
     let targets = this.selectScopeEvents(series, event, scope);
     let resultEventId = eventId;
     let materializeRootId: string | null = null;
+    let materializeThrough: Date | null = null;
 
     await this.prisma.$transaction(async (tx) => {
       if (
@@ -270,6 +284,13 @@ export class CalendarEventService {
               recurrenceParentId: event.id,
               recurrenceRule: dto.recurrenceRule ?? nextRule,
             },
+          });
+          await tx.recurrenceException.updateMany({
+            where: {
+              seriesId: originalRoot.id,
+              occurrenceStart: { gte: event.startAt },
+            },
+            data: { seriesId: event.id },
           });
           materializeRootId = event.id;
         }
@@ -326,10 +347,12 @@ export class CalendarEventService {
                 : dto.recurrenceRule,
             recurrenceGeneratedUntil:
               dto.recurrenceRule !== undefined ? null : undefined,
-            exceptionDates: dto.exceptionDates
-              ? this.toDateArray(dto.exceptionDates)
-              : undefined,
-            documentIds: dto.documentIds,
+            isRecurrenceOverride:
+              isRecurring &&
+              scope === RecurrenceScope.THIS &&
+              Boolean(target.recurrenceParentId)
+                ? true
+                : undefined,
             cancelledAt:
               dto.status === EventStatus.CANCELLED
                 ? new Date()
@@ -341,12 +364,76 @@ export class CalendarEventService {
 
         await this.replaceEventRelations(tx, target, nextStartAt, dto);
       }
+
+      if (
+        dto.exceptionDates !== undefined &&
+        isRecurring &&
+        scope !== RecurrenceScope.THIS
+      ) {
+        const seriesId =
+          materializeRootId ?? event.recurrenceParentId ?? event.id;
+        const existingExceptions = await tx.recurrenceException.findMany({
+          where: { seriesId },
+          select: { occurrenceStart: true },
+        });
+        const affectedDates = [
+          ...existingExceptions.map((exception) => exception.occurrenceStart),
+          ...dto.exceptionDates.map(
+            (occurrenceStart) => new Date(occurrenceStart),
+          ),
+        ];
+        await tx.recurrenceException.deleteMany({ where: { seriesId } });
+        if (dto.exceptionDates.length > 0) {
+          await tx.recurrenceException.createMany({
+            data: [...new Set(dto.exceptionDates)].map((occurrenceStart) => ({
+              seriesId,
+              occurrenceStart: new Date(occurrenceStart),
+            })),
+          });
+        }
+
+        await tx.calendarEvent.deleteMany({
+          where: {
+            recurrenceParentId: seriesId,
+            originalStartAt: {
+              in: dto.exceptionDates.map(
+                (occurrenceStart) => new Date(occurrenceStart),
+              ),
+            },
+            isRecurrenceOverride: false,
+          },
+        });
+        if (affectedDates.length > 0) {
+          const earliestAffectedAt = Math.min(
+            ...affectedDates.map((date) => date.getTime()),
+          );
+          const latestAffectedAt = Math.max(
+            ...affectedDates.map((date) => date.getTime()),
+          );
+          await tx.calendarEvent.update({
+            where: { id: seriesId },
+            data: {
+              recurrenceGeneratedUntil: new Date(earliestAffectedAt - 1),
+            },
+          });
+          materializeRootId = seriesId;
+          materializeThrough = new Date(
+            Math.max(
+              latestAffectedAt,
+              this.recurrenceService
+                .getDefaultGenerationEnd(new Date())
+                .getTime(),
+            ),
+          );
+        }
+      }
     });
 
     if (materializeRootId) {
       await this.recurrenceService.materializeSeriesThrough(
         materializeRootId,
-        this.recurrenceService.getDefaultGenerationEnd(new Date(startAt)),
+        materializeThrough ??
+          this.recurrenceService.getDefaultGenerationEnd(new Date(startAt)),
       );
     }
 
@@ -372,6 +459,10 @@ export class CalendarEventService {
           status: EventStatus.CANCELLED,
           updatedBy: userId,
           cancelledAt: new Date(),
+          isRecurrenceOverride:
+            scope === RecurrenceScope.THIS && event.recurrenceParentId
+              ? true
+              : undefined,
         },
       });
       await tx.reminder.updateMany({
@@ -479,7 +570,9 @@ export class CalendarEventService {
   private attachPermissions<T extends EventWithRelations>(
     userId: string,
     event: T,
-  ): T & {
+  ): Omit<T, 'documents' | 'recurrenceExceptions'> & {
+    documentIds: string[];
+    exceptionDates: string[];
     permissions: { canManage: boolean; canRespond: boolean };
   } {
     const canManage =
@@ -488,9 +581,14 @@ export class CalendarEventService {
     const canRespond = event.attendees.some(
       (attendee) => attendee.userId === userId,
     );
+    const { documents, recurrenceExceptions, ...publicEvent } = event;
 
     return {
-      ...event,
+      ...publicEvent,
+      documentIds: documents.map((document) => document.documentId),
+      exceptionDates: recurrenceExceptions.map((exception) =>
+        exception.occurrenceStart.toISOString(),
+      ),
       permissions: { canManage, canRespond },
     };
   }
@@ -553,6 +651,20 @@ export class CalendarEventService {
     nextStartAt: Date,
     dto: UpdateCalendarEventDto,
   ): Promise<void> {
+    if (dto.documentIds !== undefined) {
+      await tx.calendarEventDocument.deleteMany({
+        where: { eventId: target.id },
+      });
+      if (dto.documentIds.length > 0) {
+        await tx.calendarEventDocument.createMany({
+          data: [...new Set(dto.documentIds)].map((documentId) => ({
+            eventId: target.id,
+            documentId,
+          })),
+        });
+      }
+    }
+
     if (dto.attendees) {
       const attendeeInputs = this.normalizeAttendees(
         target.createdBy,
@@ -647,10 +759,6 @@ export class CalendarEventService {
     });
   }
 
-  private toDateArray(values?: string[]): Date[] {
-    return (values ?? []).map((value) => new Date(value));
-  }
-
   private eventInclude() {
     return {
       calendar: true,
@@ -659,6 +767,12 @@ export class CalendarEventService {
       },
       reminders: {
         orderBy: { minutesBefore: 'asc' },
+      },
+      documents: {
+        orderBy: { createdAt: 'asc' },
+      },
+      recurrenceExceptions: {
+        orderBy: { occurrenceStart: 'asc' },
       },
     } satisfies Prisma.CalendarEventInclude;
   }

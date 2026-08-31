@@ -10,6 +10,12 @@ describe('CalendarRecurrenceService', () => {
     );
   });
 
+  it('rejects high-frequency rules that could grow the database unboundedly', () => {
+    expect(() => service.assertValidRule('RRULE:FREQ=HOURLY')).toThrow(
+      BadRequestException,
+    );
+  });
+
   it('truncates a series immediately before the selected occurrence', () => {
     const result = service.truncateBefore(
       'RRULE:FREQ=WEEKLY;COUNT=10',

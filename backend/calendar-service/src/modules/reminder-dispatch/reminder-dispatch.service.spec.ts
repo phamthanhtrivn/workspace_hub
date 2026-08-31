@@ -25,12 +25,17 @@ describe('ReminderDispatchService', () => {
     },
   };
 
-  function setup(emitResult = of(undefined)) {
+  function setup(
+    emitResult = of(undefined),
+    reminderOverride: Partial<typeof reminder> = {},
+  ) {
+    const selectedReminder = { ...reminder, ...reminderOverride };
     const prisma = {
       reminder: {
-        findMany: jest.fn().mockResolvedValue([reminder]),
+        findMany: jest.fn().mockResolvedValue([selectedReminder]),
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
         update: jest.fn().mockResolvedValue(undefined),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       },
       userProfileSnapshot: {
         findMany: jest.fn().mockResolvedValue([
@@ -83,6 +88,43 @@ describe('ReminderDispatchService', () => {
         data: expect.objectContaining({
           deliveryStatus: ReminderDeliveryStatus.FAILED,
           lastError: 'Kafka unavailable',
+        }),
+      }),
+    );
+  });
+
+  it('moves a reminder to dead letter after the final failed attempt', async () => {
+    const { service, prisma } = setup(
+      throwError(() => new Error('Kafka unavailable')),
+      { attemptCount: 9 },
+    );
+
+    await service.dispatchDueReminders();
+
+    expect(prisma.reminder.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          deliveryStatus: ReminderDeliveryStatus.DEAD_LETTER,
+          nextAttemptAt: null,
+        }),
+      }),
+    );
+  });
+
+  it('cleans terminal reminders after the retention period', async () => {
+    const { service, prisma } = setup();
+
+    await service.cleanupCompletedReminders();
+
+    expect(prisma.reminder.deleteMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          deliveryStatus: {
+            in: expect.arrayContaining([
+              ReminderDeliveryStatus.DISPATCHED,
+              ReminderDeliveryStatus.DEAD_LETTER,
+            ]),
+          },
         }),
       }),
     );

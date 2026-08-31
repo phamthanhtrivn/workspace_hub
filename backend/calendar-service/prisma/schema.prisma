@@ -43,68 +43,75 @@ enum ReminderDeliveryStatus {
   DISPATCHED
   FAILED
   CANCELLED
+  DEAD_LETTER
+}
+
+enum RecurrenceExceptionType {
+  EXCLUDED
 }
 
 model Calendar {
-  id          String            @id @default(uuid()) @db.Uuid
-  ownerUserId String            @map("owner_user_id") @db.Uuid
-  projectId   String?           @map("project_id") @db.Uuid
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerUserId String   @map("owner_user_id") @db.Uuid
+  projectId   String?  @map("project_id") @db.Uuid
   name        String
   icon        String?
   description String?
   color       String
-  isDefault   Boolean           @default(false) @map("is_default")
-  isVisible   Boolean           @default(true) @map("is_visible")
-  createdAt   DateTime          @default(now()) @map("created_at")
-  updatedAt   DateTime          @updatedAt @map("updated_at")
+  timeZone    String   @default("Asia/Ho_Chi_Minh") @map("time_zone")
+  isDefault   Boolean  @default(false) @map("is_default")
+  isVisible   Boolean  @default(true) @map("is_visible")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  events      CalendarEvent[]
+  events CalendarEvent[]
 
+  @@unique([ownerUserId, projectId])
   @@index([ownerUserId])
   @@index([projectId])
-  @@unique([ownerUserId, projectId])
   @@map("calendars")
 }
 
 model CalendarEvent {
-  id             String          @id @default(uuid()) @db.Uuid
-  calendarId     String          @map("calendar_id") @db.Uuid
-  createdBy      String          @map("created_by") @db.Uuid
-  updatedBy      String?         @map("updated_by") @db.Uuid
-  title          String
-  description    String?
-  location       String?
-  startAt        DateTime        @map("start_at")
-  endAt          DateTime        @map("end_at")
-  allDay         Boolean         @default(false) @map("all_day")
-  color          String?
-  status         EventStatus     @default(CONFIRMED)
-  visibility     EventVisibility @default(DEFAULT)
-  recurrenceRule String?         @map("recurrence_rule")
-  recurrenceParentId String?     @map("recurrence_parent_id") @db.Uuid
-  originalStartAt DateTime?      @map("original_start_at")
-  recurrenceGeneratedUntil DateTime? @map("recurrence_generated_until")
-  exceptionDates DateTime[]      @default([]) @map("exception_dates")
-  documentIds    String[]        @default([]) @map("document_ids") @db.Uuid
-  sourceType     EventSourceType @default(USER) @map("source_type")
-  sourceId       String?         @map("source_id") @db.Uuid
-  cancelledAt    DateTime?       @map("cancelled_at")
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
+  id                       String          @id @default(uuid()) @db.Uuid
+  calendarId               String          @map("calendar_id") @db.Uuid
+  createdBy                String          @map("created_by") @db.Uuid
+  updatedBy                String?         @map("updated_by") @db.Uuid
+  title                    String
+  description              String?
+  location                 String?
+  startAt                  DateTime        @map("start_at") @db.Timestamptz(3)
+  endAt                    DateTime        @map("end_at") @db.Timestamptz(3)
+  allDay                   Boolean         @default(false) @map("all_day")
+  color                    String?
+  status                   EventStatus     @default(CONFIRMED)
+  visibility               EventVisibility @default(DEFAULT)
+  recurrenceRule           String?         @map("recurrence_rule")
+  recurrenceParentId       String?         @map("recurrence_parent_id") @db.Uuid
+  originalStartAt          DateTime?       @map("original_start_at") @db.Timestamptz(3)
+  recurrenceGeneratedUntil DateTime?       @map("recurrence_generated_until") @db.Timestamptz(3)
+  isRecurrenceOverride     Boolean         @default(false) @map("is_recurrence_override")
+  sourceType               EventSourceType @default(USER) @map("source_type")
+  sourceId                 String?         @map("source_id") @db.Uuid
+  cancelledAt              DateTime?       @map("cancelled_at") @db.Timestamptz(3)
+  createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  calendar       Calendar        @relation(fields: [calendarId], references: [id], onDelete: Cascade)
-  recurrenceParent CalendarEvent? @relation("CalendarEventOccurrences", fields: [recurrenceParentId], references: [id], onDelete: Cascade)
-  occurrences    CalendarEvent[] @relation("CalendarEventOccurrences")
-  attendees      CalendarEventAttendee[]
-  reminders      Reminder[]
+  calendar             Calendar                @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  recurrenceParent     CalendarEvent?          @relation("CalendarEventOccurrences", fields: [recurrenceParentId], references: [id], onDelete: Cascade)
+  occurrences          CalendarEvent[]         @relation("CalendarEventOccurrences")
+  attendees            CalendarEventAttendee[]
+  reminders            Reminder[]
+  documents            CalendarEventDocument[]
+  recurrenceExceptions RecurrenceException[]   @relation("RecurrenceExceptions")
 
+  @@unique([recurrenceParentId, originalStartAt])
+  @@unique([calendarId, sourceType, sourceId])
   @@index([calendarId, startAt])
   @@index([createdBy])
   @@index([startAt, endAt])
   @@index([recurrenceParentId, startAt])
   @@index([sourceType, sourceId])
-  @@unique([recurrenceParentId, originalStartAt])
-  @@unique([calendarId, sourceType, sourceId])
   @@map("calendar_events")
 }
 
@@ -114,10 +121,10 @@ model CalendarEventAttendee {
   userId         String                 @map("user_id") @db.Uuid
   responseStatus AttendeeResponseStatus @default(NEEDS_ACTION) @map("response_status")
   optional       Boolean                @default(false)
-  createdAt      DateTime               @default(now()) @map("created_at")
-  updatedAt      DateTime               @updatedAt @map("updated_at")
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  event          CalendarEvent          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
   @@index([userId])
@@ -125,24 +132,50 @@ model CalendarEventAttendee {
 }
 
 model Reminder {
-  id            String         @id @default(uuid()) @db.Uuid
-  eventId       String         @map("event_id") @db.Uuid
-  minutesBefore Int            @map("minutes_before")
-  method        ReminderMethod
-  scheduledAt   DateTime       @map("scheduled_at")
+  id             String                 @id @default(uuid()) @db.Uuid
+  eventId        String                 @map("event_id") @db.Uuid
+  minutesBefore  Int                    @map("minutes_before")
+  method         ReminderMethod
+  scheduledAt    DateTime               @map("scheduled_at") @db.Timestamptz(3)
   deliveryStatus ReminderDeliveryStatus @default(PENDING) @map("delivery_status")
-  attemptCount  Int            @default(0) @map("attempt_count")
-  nextAttemptAt DateTime?      @map("next_attempt_at")
-  dispatchedAt  DateTime?      @map("dispatched_at")
-  lastError     String?        @map("last_error")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
+  attemptCount   Int                    @default(0) @map("attempt_count")
+  nextAttemptAt  DateTime?              @map("next_attempt_at") @db.Timestamptz(3)
+  dispatchedAt   DateTime?              @map("dispatched_at") @db.Timestamptz(3)
+  lastError      String?                @map("last_error")
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  event         CalendarEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@index([eventId])
   @@index([deliveryStatus, scheduledAt, nextAttemptAt])
   @@map("reminders")
+}
+
+model CalendarEventDocument {
+  eventId    String   @map("event_id") @db.Uuid
+  documentId String   @map("document_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  event CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, documentId])
+  @@index([documentId])
+  @@map("calendar_event_documents")
+}
+
+model RecurrenceException {
+  id              String                  @id @default(uuid()) @db.Uuid
+  seriesId        String                  @map("series_id") @db.Uuid
+  occurrenceStart DateTime                @map("occurrence_start") @db.Timestamptz(3)
+  type            RecurrenceExceptionType @default(EXCLUDED)
+  createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  series CalendarEvent @relation("RecurrenceExceptions", fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@unique([seriesId, occurrenceStart])
+  @@index([seriesId, occurrenceStart])
+  @@map("recurrence_exceptions")
 }
 
 model UserProfileSnapshot {
@@ -150,7 +183,17 @@ model UserProfileSnapshot {
   email     String?
   fullName  String?  @map("full_name")
   avatarUrl String?  @map("avatar_url")
-  syncedAt  DateTime @default(now()) @updatedAt @map("synced_at")
+  syncedAt  DateTime @default(now()) @updatedAt @map("synced_at") @db.Timestamptz(3)
 
   @@map("user_profile_snapshots")
+}
+
+model TaskCalendarSyncCheckpoint {
+  taskId     String   @id @map("task_id") @db.Uuid
+  occurredAt DateTime @map("occurred_at") @db.Timestamptz(3)
+  eventType  String   @map("event_type")
+  syncedAt   DateTime @default(now()) @updatedAt @map("synced_at") @db.Timestamptz(3)
+
+  @@index([occurredAt])
+  @@map("task_calendar_sync_checkpoints")
 }

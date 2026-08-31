@@ -65,6 +65,7 @@ export class CalendarService {
           icon: dto.icon === undefined ? CALENDAR_DEFAULTS.ICON : dto.icon,
           description: dto.description ?? null,
           color: dto.color ?? CALENDAR_DEFAULTS.COLOR,
+          timeZone: dto.timeZone ?? CALENDAR_DEFAULTS.TIMEZONE,
           isDefault: shouldBeDefault,
           isVisible: dto.isVisible ?? true,
         },
@@ -111,6 +112,7 @@ export class CalendarService {
           description: updateData.description,
           projectId: updateData.projectId,
           color: updateData.color,
+          timeZone: updateData.timeZone,
           isDefault:
             updateData.isDefault === false ? undefined : updateData.isDefault,
           isVisible: updateData.isVisible,
@@ -178,6 +180,7 @@ export class CalendarService {
           name: CALENDAR_DEFAULTS.NAME,
           icon: CALENDAR_DEFAULTS.ICON,
           color: CALENDAR_DEFAULTS.COLOR,
+          timeZone: CALENDAR_DEFAULTS.TIMEZONE,
           isDefault: true,
           isVisible: true,
         },

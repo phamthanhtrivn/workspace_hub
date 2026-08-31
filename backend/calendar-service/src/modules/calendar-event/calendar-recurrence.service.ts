@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import {
   AttendeeResponseStatus,
   EventSourceType,
@@ -16,6 +17,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 const recurrenceTemplateInclude = {
   attendees: true,
   reminders: true,
+  documents: true,
+  recurrenceExceptions: true,
 } satisfies Prisma.CalendarEventInclude;
 
 type RecurrenceTemplate = Prisma.CalendarEventGetPayload<{
@@ -24,10 +27,24 @@ type RecurrenceTemplate = Prisma.CalendarEventGetPayload<{
 
 @Injectable()
 export class CalendarRecurrenceService {
+  private readonly logger = new Logger(CalendarRecurrenceService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   assertValidRule(rule?: string | null): void {
     if (!rule) return;
+    const frequency = rule
+      .match(/(?:^|[:;])FREQ=([^;\r\n]+)/i)?.[1]
+      ?.toUpperCase();
+    if (
+      /[\r\n]/.test(rule) ||
+      !frequency ||
+      !['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(frequency)
+    ) {
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.UNSUPPORTED_RECURRENCE_FREQUENCY,
+      );
+    }
     try {
       rrulestr(this.withStart(rule, new Date()), { forceset: true });
     } catch {
@@ -37,7 +54,9 @@ export class CalendarRecurrenceService {
     }
   }
 
-  async materializeAllSeriesThrough(through: Date): Promise<void> {
+  @Cron('0 5 * * * *')
+  async materializeRollingWindow(): Promise<void> {
+    const through = this.getDefaultGenerationEnd(new Date());
     const roots = await this.prisma.calendarEvent.findMany({
       where: {
         recurrenceRule: { not: null },
@@ -49,10 +68,19 @@ export class CalendarRecurrenceService {
         ],
       },
       select: { id: true },
+      orderBy: [{ recurrenceGeneratedUntil: 'asc' }, { id: 'asc' }],
+      take: CALENDAR_DEFAULTS.RECURRENCE_WORKER_BATCH_SIZE,
     });
 
     for (const root of roots) {
-      await this.materializeSeriesThrough(root.id, through);
+      try {
+        await this.materializeSeriesThrough(root.id, through);
+      } catch (error) {
+        this.logger.error(
+          `Failed to materialize recurrence series ${root.id}`,
+          error,
+        );
+      }
     }
   }
 
@@ -73,23 +101,25 @@ export class CalendarRecurrenceService {
     });
     if (!root?.recurrenceRule || root.status === EventStatus.CANCELLED) return;
 
-    const occurrenceStarts = this.getOccurrenceStarts(root, through);
+    const { occurrenceStarts, generatedThrough } = this.getOccurrenceStarts(
+      root,
+      through,
+    );
     for (const occurrenceStart of occurrenceStarts) {
       await this.createOccurrence(root, occurrenceStart);
     }
 
     await this.prisma.calendarEvent.update({
       where: { id: root.id },
-      data: { recurrenceGeneratedUntil: through },
+      data: { recurrenceGeneratedUntil: generatedThrough },
     });
   }
 
   getDefaultGenerationEnd(startAt: Date): Date {
-    const end = new Date(startAt);
-    end.setUTCMonth(
-      end.getUTCMonth() + CALENDAR_DEFAULTS.RECURRENCE_GENERATION_MONTHS,
+    return new Date(
+      startAt.getTime() +
+        CALENDAR_DEFAULTS.RECURRENCE_GENERATION_DAYS * 24 * 60 * 60_000,
     );
-    return end;
   }
 
   truncateBefore(rule: string, occurrenceStart: Date): string {
@@ -122,19 +152,34 @@ export class CalendarRecurrenceService {
       .join(';');
   }
 
-  private getOccurrenceStarts(root: RecurrenceTemplate, through: Date): Date[] {
+  private getOccurrenceStarts(
+    root: RecurrenceTemplate,
+    through: Date,
+  ): { occurrenceStarts: Date[]; generatedThrough: Date } {
     const rule = rrulestr(this.withStart(root.recurrenceRule!, root.startAt), {
       forceset: true,
     });
     const exceptions = new Set(
-      root.exceptionDates.map((date) => date.toISOString()),
+      root.recurrenceExceptions.map((exception) =>
+        exception.occurrenceStart.toISOString(),
+      ),
     );
-
-    return rule
-      .between(root.startAt, through, true)
-      .filter((date) => date.getTime() > root.startAt.getTime())
+    const cursor = root.recurrenceGeneratedUntil ?? root.startAt;
+    const candidates = rule.between(cursor, through, false);
+    const occurrenceStarts = candidates
       .filter((date) => !exceptions.has(date.toISOString()))
-      .slice(0, CALENDAR_DEFAULTS.MAX_RECURRENCE_OCCURRENCES);
+      .slice(0, CALENDAR_DEFAULTS.MAX_RECURRENCE_OCCURRENCES_PER_BATCH);
+    const wasTruncated =
+      candidates.length >
+      CALENDAR_DEFAULTS.MAX_RECURRENCE_OCCURRENCES_PER_BATCH;
+
+    return {
+      occurrenceStarts,
+      generatedThrough:
+        wasTruncated && occurrenceStarts.length > 0
+          ? occurrenceStarts[occurrenceStarts.length - 1]
+          : through,
+    };
   }
 
   private async createOccurrence(
@@ -174,11 +219,19 @@ export class CalendarRecurrenceService {
             recurrenceRule: root.recurrenceRule,
             recurrenceParentId: root.id,
             originalStartAt: occurrenceStart,
-            exceptionDates: [],
-            documentIds: root.documentIds,
+            isRecurrenceOverride: false,
             sourceType: EventSourceType.USER,
           },
         });
+
+        if (root.documents.length > 0) {
+          await tx.calendarEventDocument.createMany({
+            data: root.documents.map((document) => ({
+              eventId: occurrence.id,
+              documentId: document.documentId,
+            })),
+          });
+        }
 
         if (root.attendees.length > 0) {
           await tx.calendarEventAttendee.createMany({

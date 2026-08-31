@@ -2,7 +2,7 @@ export const CALENDAR_DEFAULTS = {
   NAME: 'Personal',
   ICON: '📅',
   COLOR: '#2563eb',
-  TIMEZONE: 'Asia/Bangkok',
+  TIMEZONE: 'Asia/Ho_Chi_Minh',
   DEFAULT_REMINDER_MINUTES: 10,
   MAX_ATTENDEES: 100,
   MAX_REMINDERS: 5,
@@ -10,8 +10,11 @@ export const CALENDAR_DEFAULTS = {
   DEFAULT_PAGE_SIZE: 100,
   MAX_PAGE_SIZE: 200,
   MAX_QUERY_RANGE_DAYS: 366,
-  RECURRENCE_GENERATION_MONTHS: 18,
-  MAX_RECURRENCE_OCCURRENCES: 1000,
+  RECURRENCE_GENERATION_DAYS: 180,
+  RECURRENCE_WORKER_BATCH_SIZE: 50,
+  MAX_RECURRENCE_OCCURRENCES_PER_BATCH: 200,
+  REMINDER_RETENTION_DAYS: 90,
+  MAX_REMINDER_ATTEMPTS: 10,
 } as const;
 
 export const CALENDAR_ERROR_MESSAGES = {
@@ -31,6 +34,8 @@ export const CALENDAR_ERROR_MESSAGES = {
   INVALID_QUERY_RANGE:
     'Both startAt and endAt are required and the range must not exceed 366 days',
   INVALID_RECURRENCE_RULE: 'Invalid recurrence rule',
+  UNSUPPORTED_RECURRENCE_FREQUENCY:
+    'Recurrence supports daily, weekly, monthly, and yearly frequencies only',
   EXTERNAL_EVENT_READ_ONLY:
     'Task-synchronized events must be edited in the project',
   PROJECT_ACCESS_DENIED: 'You do not have access to this project',

@@ -14,6 +14,7 @@ services:
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY is required}
       JWT_ISSUER: ${JWT_ISSUER:-workspace-hub}
       CORS_ALLOWED_ORIGINS: ${FRONTEND_URL:-http://localhost:3000}
+      KAFKA_BROKER: kafka:29092
     volumes:
       - .:/app
       - /app/node_modules
@@ -22,6 +23,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      kafka:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8082/ready >/dev/null 2>&1"]
       interval: 5s

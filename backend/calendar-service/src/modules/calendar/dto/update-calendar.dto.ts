@@ -5,6 +5,7 @@ import {
   IsUUID,
   IsNotEmpty,
   MaxLength,
+  IsTimeZone,
 } from 'class-validator';
 
 export class UpdateCalendarDto {
@@ -32,6 +33,10 @@ export class UpdateCalendarDto {
   @IsString()
   @MaxLength(32)
   color?: string;
+
+  @IsOptional()
+  @IsTimeZone()
+  timeZone?: string;
 
   @IsOptional()
   @IsBoolean()
