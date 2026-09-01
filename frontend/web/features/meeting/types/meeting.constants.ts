@@ -1,4 +1,17 @@
-import { CalendarDays, History, Plus, Radio, UserRoundPlus, Video } from "lucide-react";
+import {
+  CalendarDays,
+  History,
+  Mic,
+  MessageSquareText,
+  MonitorUp,
+  Plus,
+  Radio,
+  Settings,
+  UserRoundPlus,
+  UsersRound,
+  Video,
+} from "lucide-react";
+import { MeetingRoomPanel, MeetingRoomSetting } from "./meeting.types";
 
 export enum MeetingDashboardNavItemId {
   OVERVIEW = "overview",
@@ -51,7 +64,7 @@ export const meetingDashboardActions = [
     titleId: "meeting.dashboard.action.newMeeting.title",
     descriptionId: "meeting.dashboard.action.newMeeting.description",
     tone: MeetingDashboardTone.PRIMARY,
-    enabled: false,
+    enabled: true,
   },
   {
     id: MeetingDashboardActionId.JOIN_MEETING,
@@ -83,6 +96,68 @@ export const meetingNavIconById = {
   [MeetingDashboardNavItemId.RECORDINGS]: Radio,
   [MeetingDashboardNavItemId.PERSONAL_ROOM]: Plus,
 } as const;
+
+export const meetingRoomSettings = [
+  {
+    id: MeetingRoomSetting.AUTO_ADMIN,
+    labelId: "meeting.prejoin.roomSettings.autoAdmin",
+    descriptionId: "meeting.prejoin.roomSettings.autoAdminDescription",
+  },
+] as const;
+
+export const meetingRoomControlItems = [
+  {
+    id: "microphone",
+    labelId: "meeting.room.control.microphone",
+    icon: Mic,
+  },
+  {
+    id: "camera",
+    labelId: "meeting.room.control.camera",
+    icon: Video,
+  },
+  {
+    id: MeetingRoomPanel.PARTICIPANTS,
+    labelId: "meeting.room.control.participants",
+    icon: UsersRound,
+  },
+  {
+    id: MeetingRoomPanel.CHAT,
+    labelId: "meeting.room.control.chat",
+    icon: MessageSquareText,
+  },
+  {
+    id: "share",
+    labelId: "meeting.room.control.share",
+    icon: MonitorUp,
+  },
+  {
+    id: MeetingRoomPanel.SETTINGS,
+    labelId: "meeting.room.control.settings",
+    icon: Settings,
+  },
+] as const;
+
+export const meetingMockParticipants = [
+  {
+    id: "local-user",
+    nameId: "meeting.room.participant.you",
+    roleId: "meeting.room.participant.host",
+    initials: "YU",
+  },
+  {
+    id: "design-lead",
+    nameId: "meeting.room.participant.designLead",
+    roleId: "meeting.room.participant.guest",
+    initials: "DL",
+  },
+  {
+    id: "backend-lead",
+    nameId: "meeting.room.participant.backendLead",
+    roleId: "meeting.room.participant.guest",
+    initials: "BE",
+  },
+] as const;
 
 
 export const meetingActionIconById = {
