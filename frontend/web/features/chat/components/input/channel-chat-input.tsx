@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { useChannelMembersSearch } from "../../hooks/useChannelMembersSearch";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import { toast } from "sonner";
 import MentionDropdown from "./mention-dropdown";
@@ -53,6 +54,7 @@ import { useSpeechToText } from "../../hooks/input/useSpeechToText";
 import { useAudioRecorder } from "../../hooks/input/useAudioRecorder";
 import MyFilesSelectModal from "../modals/shared/my-files-select-modal";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { getChannelMentionOptions } from "../../utils/mention-member-utils";
 
 interface ChannelChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -123,6 +125,13 @@ const ChannelChatInput = React.memo(
 
       const activeChannelId = activeChannel?.id;
       const isUploading = uploadingMedia.some((m) => m.status === "uploading");
+      const { membersResponse } = useChannelMembersSearch({
+        channelId: activeChannelId,
+        searchQuery: mentionQuery ?? "",
+        enabled:
+          mentionQuery !== null &&
+          activeChatType === ChatContextType.CHANNEL,
+      });
 
       // Close options on outside click
       useEffect(() => {
@@ -258,38 +267,21 @@ const ChannelChatInput = React.memo(
         textarea.style.height = `${newHeight}px`;
       }, [message, interimMessage]);
 
-      // Handle members filter for mentions
       const filteredMembers = React.useMemo(() => {
-        if (mentionQuery === null || !activeChannel?.members || !memberProfiles)
-          return [];
-        const query = mentionQuery.toLowerCase();
-        const members = activeChannel.members
-          .map((m: any) => m.userId)
-          .filter((id: string) => id !== authUserId)
-          .map((id: string) => ({
-            id,
-            name: memberProfiles[id]?.fullName || "Someone",
-            avatarUrl: memberProfiles[id]?.avatarUrl,
-          }))
-          .filter((m: any) => m.name.toLowerCase().includes(query));
+        if (mentionQuery === null) return [];
 
-        if (
-          activeChatType === ChatContextType.CHANNEL &&
-          ("all".includes(query) || "everyone".includes(query) || query === "")
-        ) {
-          return [
-            {
-              id: "all",
-              name: "All",
-              avatarUrl: undefined,
-              isAll: true,
-            },
-            ...members.slice(0, 3),
-          ];
+        return getChannelMentionOptions(membersResponse, authUserId, {
+          includeAll: true,
+          searchQuery: mentionQuery,
+          limit: 4,
+        });
+      }, [mentionQuery, membersResponse, authUserId]);
+
+      useEffect(() => {
+        if (selectedIndex >= filteredMembers.length) {
+          setSelectedIndex(0);
         }
-
-        return members.slice(0, 4);
-      }, [mentionQuery, activeChannel, memberProfiles, authUserId]);
+      }, [filteredMembers.length, selectedIndex]);
 
       const handleEmojiSelect = useCallback(
         (emoji: string) => {
