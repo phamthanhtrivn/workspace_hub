@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import {
   Check,
-  ChevronDown,
   Loader2,
   Mic,
   MicOff,
@@ -14,14 +13,22 @@ import {
 } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
-import { useMeetingDevicePreview } from "../../hooks/useMeetingDevicePreview";
-import type { MeetingPreJoinSettings } from "../../types/meeting.types";
+import type {
+  MeetingDeviceOption,
+  MeetingPreJoinSettings,
+} from "../../types/meeting.types";
 import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
 import { MeetingDeviceSelect } from "../common/meeting-device-select";
 
 interface MeetingPreJoinProps {
   settings: MeetingPreJoinSettings;
   onSettingsChange: (settings: MeetingPreJoinSettings) => void;
+  cameras: MeetingDeviceOption[];
+  microphones: MeetingDeviceOption[];
+  previewStream: MediaStream | null;
+  isPreviewLoading: boolean;
+  permissionError: string | null;
+  stopPreview: () => void;
   onCancel: () => void;
   onStart: () => void;
 }
@@ -29,22 +36,17 @@ interface MeetingPreJoinProps {
 export function MeetingPreJoin({
   settings,
   onSettingsChange,
+  cameras,
+  microphones,
+  previewStream,
+  isPreviewLoading,
+  permissionError,
+  stopPreview,
   onCancel,
   onStart,
 }: MeetingPreJoinProps) {
   const intl = useAppIntl();
   const videoRef = useRef<HTMLVideoElement>(null);
-  const settingsRef = useRef<HTMLDivElement>(null);
-  const [isRoomSettingsOpen, setIsRoomSettingsOpen] = useState(false);
-
-  const {
-    cameras,
-    microphones,
-    previewStream,
-    isPreviewLoading,
-    permissionError,
-    stopPreview,
-  } = useMeetingDevicePreview(settings);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -64,24 +66,13 @@ export function MeetingPreJoin({
   }, [stopPreview]);
 
   useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (
-        settingsRef.current &&
-        !settingsRef.current.contains(event.target as Node)
-      ) {
-        setIsRoomSettingsOpen(false);
-      }
-    }
-
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") onCancel();
     }
 
-    document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleEscape);
 
     return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [onCancel]);

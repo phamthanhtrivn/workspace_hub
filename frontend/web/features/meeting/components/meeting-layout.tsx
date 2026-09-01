@@ -14,7 +14,7 @@ import { MeetingFlowStep } from "../types/meeting.types";
 import { MeetingPreJoin } from "./room/meeting-prejoin";
 import { MeetingCreatingOverlay } from "./room/meeting-fullscreen-overlay";
 import { useCreateInstantMeeting } from "../hooks/useCreateInstantMeeting";
-import { useMeetingDeviceSettings } from "../hooks/useMeetingDeviceSettings";
+import { usePreJoinMeetingDevices } from "../hooks/usePreJoinMeetingDevices";
 
 export function MeetingLayout() {
   const intl = useAppIntl();
@@ -24,7 +24,13 @@ export function MeetingLayout() {
     settings: preJoinSettings,
     setSettings: setPreJoinSettings,
     reloadSettings,
-  } = useMeetingDeviceSettings();
+    cameras,
+    microphones,
+    previewStream,
+    isPreviewLoading,
+    permissionError,
+    stopPreview,
+  } = usePreJoinMeetingDevices();
   const handleCreateStarted = useCallback(
     () => setFlowStep(MeetingFlowStep.CREATING),
     [],
@@ -95,6 +101,12 @@ export function MeetingLayout() {
         <MeetingPreJoin
           settings={preJoinSettings}
           onSettingsChange={setPreJoinSettings}
+          cameras={cameras}
+          microphones={microphones}
+          previewStream={previewStream}
+          isPreviewLoading={isPreviewLoading}
+          permissionError={permissionError}
+          stopPreview={stopPreview}
           onCancel={handleCancelPreJoin}
           onStart={handleStartMeeting}
         />

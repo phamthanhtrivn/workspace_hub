@@ -5,6 +5,10 @@ import type {
   MeetingDeviceOption,
   MeetingPreJoinSettings,
 } from "../types/meeting.types";
+import {
+  loadMeetingDeviceSettings,
+  saveMeetingDeviceSettings,
+} from "../utils/meeting-device-storage";
 
 const fallbackCameraDevice: MeetingDeviceOption = {
   deviceId: "",
@@ -16,16 +20,6 @@ const fallbackMicrophoneDevice: MeetingDeviceOption = {
   label: "Default microphone",
 };
 
-interface MeetingDevicePreviewState {
-  cameras: MeetingDeviceOption[];
-  microphones: MeetingDeviceOption[];
-  previewStream: MediaStream | null;
-  isPreviewLoading: boolean;
-  permissionError: string | null;
-  refreshDevices: () => Promise<void>;
-  stopPreview: () => void;
-}
-
 function toDeviceOption(device: MediaDeviceInfo, fallbackLabel: string) {
   return {
     deviceId: device.deviceId,
@@ -33,15 +27,27 @@ function toDeviceOption(device: MediaDeviceInfo, fallbackLabel: string) {
   };
 }
 
-export function useMeetingDevicePreview(
-  settings: MeetingPreJoinSettings,
-): MeetingDevicePreviewState {
+export function usePreJoinMeetingDevices() {
   const previewStreamRef = useRef<MediaStream | null>(null);
+  const [settings, setSettingsState] = useState<MeetingPreJoinSettings>(
+    loadMeetingDeviceSettings,
+  );
   const [cameras, setCameras] = useState<MeetingDeviceOption[]>([]);
   const [microphones, setMicrophones] = useState<MeetingDeviceOption[]>([]);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
+
+  const setSettings = useCallback((nextSettings: MeetingPreJoinSettings) => {
+    setSettingsState(nextSettings);
+    saveMeetingDeviceSettings(nextSettings);
+  }, []);
+
+  const reloadSettings = useCallback(() => {
+    const storedSettings = loadMeetingDeviceSettings();
+    setSettingsState(storedSettings);
+    return storedSettings;
+  }, []);
 
   const stopPreview = useCallback(() => {
     previewStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -158,6 +164,10 @@ export function useMeetingDevicePreview(
   ]);
 
   return {
+    settings,
+    setSettings,
+    reloadSettings,
+    saveSettings: saveMeetingDeviceSettings,
     cameras,
     microphones,
     previewStream,
