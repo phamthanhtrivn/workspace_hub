@@ -15,7 +15,6 @@ import {
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { useMeetingDevicePreview } from "../../hooks/useMeetingDevicePreview";
-import { meetingRoomSettings } from "../../types/meeting.constants";
 import type { MeetingPreJoinSettings } from "../../types/meeting.types";
 import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
 import { MeetingDeviceSelect } from "../common/meeting-device-select";
@@ -93,8 +92,6 @@ export function MeetingPreJoin({
       ...nextSettings,
     });
   };
-
-  const selectedRoomSetting = meetingRoomSettings[0];
 
   return (
     <MeetingFullscreenPortal>

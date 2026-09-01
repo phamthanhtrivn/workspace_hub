@@ -102,14 +102,25 @@ export function useMeetingDevicePreview(
       setPermissionError(null);
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            deviceId: settings.cameraDeviceId
-              ? { exact: settings.cameraDeviceId }
-              : undefined,
-          },
-          audio: false,
-        });
+        let stream: MediaStream;
+
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              deviceId: settings.cameraDeviceId
+                ? { exact: settings.cameraDeviceId }
+                : undefined,
+            },
+            audio: false,
+          });
+        } catch (error) {
+          if (!settings.cameraDeviceId) throw error;
+
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: false,
+          });
+        }
 
         if (!isCurrent) {
           stream.getTracks().forEach((track) => track.stop());

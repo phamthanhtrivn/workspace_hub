@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
@@ -10,49 +10,43 @@ import {
 } from "../types/meeting.constants";
 import { MeetingSidebar } from "./meeting-sidebar";
 import { useMeetingClock } from "../hooks/useMeetingClock";
-import {
-  MeetingFlowStep,
-  type MeetingPreJoinSettings,
-} from "../types/meeting.types";
+import { MeetingFlowStep } from "../types/meeting.types";
 import { MeetingPreJoin } from "./room/meeting-prejoin";
 import { MeetingCreatingOverlay } from "./room/meeting-fullscreen-overlay";
-
-const defaultPreJoinSettings: MeetingPreJoinSettings = {
-  cameraEnabled: true,
-  microphoneEnabled: true,
-  cameraDeviceId: "",
-  microphoneDeviceId: "",
-  autoAdmin: true,
-};
-
-function createTemporaryJoinToken() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID().slice(0, 8);
-  }
-
-  return Math.random().toString(36).slice(2, 10);
-}
+import { useCreateInstantMeeting } from "../hooks/useCreateInstantMeeting";
+import { useMeetingDeviceSettings } from "../hooks/useMeetingDeviceSettings";
 
 export function MeetingLayout() {
   const intl = useAppIntl();
   const clock = useMeetingClock();
-  const creatingTimeoutRef = useRef<number | null>(null);
   const [flowStep, setFlowStep] = useState(MeetingFlowStep.DASHBOARD);
-  const [preJoinSettings, setPreJoinSettings] =
-    useState<MeetingPreJoinSettings>(defaultPreJoinSettings);
-
-  useEffect(() => {
-    return () => {
-      if (creatingTimeoutRef.current !== null) {
-        window.clearTimeout(creatingTimeoutRef.current);
-      }
-    };
-  }, []);
+  const {
+    settings: preJoinSettings,
+    setSettings: setPreJoinSettings,
+    reloadSettings,
+  } = useMeetingDeviceSettings();
+  const handleCreateStarted = useCallback(
+    () => setFlowStep(MeetingFlowStep.CREATING),
+    [],
+  );
+  const handleCreateSucceeded = useCallback(
+    () => setFlowStep(MeetingFlowStep.DASHBOARD),
+    [],
+  );
+  const handleCreateFailed = useCallback(
+    () => setFlowStep(MeetingFlowStep.PREJOIN),
+    [],
+  );
+  const { createMeeting } = useCreateInstantMeeting({
+    onCreating: handleCreateStarted,
+    onCreated: handleCreateSucceeded,
+    onError: handleCreateFailed,
+  });
 
   const handleActionClick = (actionId: MeetingDashboardActionId) => {
     if (actionId !== MeetingDashboardActionId.NEW_MEETING) return;
 
-    setPreJoinSettings(defaultPreJoinSettings);
+    reloadSettings();
     setFlowStep(MeetingFlowStep.PREJOIN);
   };
 
@@ -61,20 +55,7 @@ export function MeetingLayout() {
   };
 
   const handleStartMeeting = () => {
-    const joinToken = createTemporaryJoinToken();
-    const roomUrl = `${window.location.origin}/meetings/${joinToken}`;
-    const roomWindow = window.open(roomUrl, "_blank", "noopener,noreferrer");
-
-    setFlowStep(MeetingFlowStep.CREATING);
-
-    creatingTimeoutRef.current = window.setTimeout(() => {
-      if (!roomWindow) {
-        window.location.assign(roomUrl);
-        return;
-      }
-
-      setFlowStep(MeetingFlowStep.DASHBOARD);
-    }, 900);
+    createMeeting(preJoinSettings);
   };
 
   return (
@@ -110,18 +91,16 @@ export function MeetingLayout() {
         </div>
       </section>
 
-      {flowStep === MeetingFlowStep.PREJOIN ? (
+      {flowStep === MeetingFlowStep.PREJOIN && (
         <MeetingPreJoin
           settings={preJoinSettings}
           onSettingsChange={setPreJoinSettings}
           onCancel={handleCancelPreJoin}
           onStart={handleStartMeeting}
         />
-      ) : null}
+      )}
 
-      {flowStep === MeetingFlowStep.CREATING ? (
-        <MeetingCreatingOverlay />
-      ) : null}
+      {flowStep === MeetingFlowStep.CREATING && <MeetingCreatingOverlay />}
     </div>
   );
 }

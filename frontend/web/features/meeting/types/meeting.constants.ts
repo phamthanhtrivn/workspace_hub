@@ -11,7 +11,7 @@ import {
   UsersRound,
   Video,
 } from "lucide-react";
-import { MeetingRoomPanel, MeetingRoomSetting } from "./meeting.types";
+import { MeetingRoomPanel } from "./meeting.types";
 
 export enum MeetingDashboardNavItemId {
   OVERVIEW = "overview",
@@ -96,14 +96,6 @@ export const meetingNavIconById = {
   [MeetingDashboardNavItemId.RECORDINGS]: Radio,
   [MeetingDashboardNavItemId.PERSONAL_ROOM]: Plus,
 } as const;
-
-export const meetingRoomSettings = [
-  {
-    id: MeetingRoomSetting.AUTO_ADMIN,
-    labelId: "meeting.prejoin.roomSettings.autoAdmin",
-    descriptionId: "meeting.prejoin.roomSettings.autoAdminDescription",
-  },
-] as const;
 
 export const meetingRoomControlItems = [
   {
