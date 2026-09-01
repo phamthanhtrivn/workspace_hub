@@ -20,6 +20,7 @@ export function MeetingLayout() {
   const intl = useAppIntl();
   const clock = useMeetingClock();
   const [flowStep, setFlowStep] = useState(MeetingFlowStep.DASHBOARD);
+  const isPreJoinOpen = flowStep === MeetingFlowStep.PREJOIN;
   const {
     settings: preJoinSettings,
     setSettings: setPreJoinSettings,
@@ -30,7 +31,7 @@ export function MeetingLayout() {
     isPreviewLoading,
     permissionError,
     stopPreview,
-  } = usePreJoinMeetingDevices();
+  } = usePreJoinMeetingDevices({ previewEnabled: isPreJoinOpen });
   const handleCreateStarted = useCallback(
     () => setFlowStep(MeetingFlowStep.CREATING),
     [],
@@ -97,7 +98,7 @@ export function MeetingLayout() {
         </div>
       </section>
 
-      {flowStep === MeetingFlowStep.PREJOIN && (
+      {isPreJoinOpen && (
         <MeetingPreJoin
           settings={preJoinSettings}
           onSettingsChange={setPreJoinSettings}

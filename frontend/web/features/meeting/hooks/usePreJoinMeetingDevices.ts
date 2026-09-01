@@ -27,7 +27,13 @@ function toDeviceOption(device: MediaDeviceInfo, fallbackLabel: string) {
   };
 }
 
-export function usePreJoinMeetingDevices() {
+interface UsePreJoinMeetingDevicesOptions {
+  previewEnabled: boolean;
+}
+
+export function usePreJoinMeetingDevices({
+  previewEnabled,
+}: UsePreJoinMeetingDevicesOptions) {
   const previewStreamRef = useRef<MediaStream | null>(null);
   const [settings, setSettingsState] = useState<MeetingPreJoinSettings>(
     loadMeetingDeviceSettings,
@@ -81,16 +87,24 @@ export function usePreJoinMeetingDevices() {
   }, []);
 
   useEffect(() => {
+    if (!previewEnabled) return;
+
     queueMicrotask(() => {
       void refreshDevices();
     });
-  }, [refreshDevices]);
+  }, [previewEnabled, refreshDevices]);
 
   useEffect(() => {
     let isCurrent = true;
 
     async function startPreview() {
       stopPreview();
+
+      if (!previewEnabled) {
+        setIsPreviewLoading(false);
+        setPermissionError(null);
+        return;
+      }
 
       if (!settings.cameraEnabled) {
         setIsPreviewLoading(false);
@@ -157,6 +171,7 @@ export function usePreJoinMeetingDevices() {
       stopPreview();
     };
   }, [
+    previewEnabled,
     refreshDevices,
     settings.cameraDeviceId,
     settings.cameraEnabled,
@@ -167,13 +182,11 @@ export function usePreJoinMeetingDevices() {
     settings,
     setSettings,
     reloadSettings,
-    saveSettings: saveMeetingDeviceSettings,
     cameras,
     microphones,
     previewStream,
     isPreviewLoading,
     permissionError,
-    refreshDevices,
     stopPreview,
   };
 }
