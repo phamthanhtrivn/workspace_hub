@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
+  NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import {
@@ -21,6 +23,10 @@ interface CreateInstantMeetingParams {
   userName?: string;
   avatarUrl?: string;
   dto?: CreateInstantMeetingDto;
+}
+
+interface JoinMeetingParams extends CreateInstantMeetingParams {
+  joinToken: string;
 }
 
 @Injectable()
@@ -117,6 +123,116 @@ export class MeetingService {
       deviceSettings: instantMeetingDto.deviceSettings,
     });
 
+    return this.toMeetingRoomResponse(meeting, MeetingRole.HOST, token);
+  }
+
+  async joinMeeting({
+    joinToken,
+    userId,
+    userName,
+    avatarUrl,
+    dto,
+  }: JoinMeetingParams) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    if (!this.liveKitService.isConfigured()) {
+      throw new ServiceUnavailableException(
+        MEETING_ERROR_MESSAGES.LIVEKIT_NOT_CONFIGURED,
+      );
+    }
+
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { joinToken },
+      include: {
+        participants: {
+          where: { userId },
+          take: 1,
+        },
+      },
+    });
+
+    if (!meeting) {
+      throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
+    }
+
+    if (meeting.status !== MeetingStatus.LIVE) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE);
+    }
+
+    const existingParticipant = meeting.participants[0];
+
+    if (!meeting.autoAdmit && !existingParticipant && meeting.hostId !== userId) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.MEETING_JOIN_REQUIRES_APPROVAL,
+      );
+    }
+
+    const now = new Date();
+    const role =
+      existingParticipant?.role ??
+      (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
+
+    await this.prisma.meetingParticipant.upsert({
+      where: {
+        meetingId_userId: {
+          meetingId: meeting.id,
+          userId,
+        },
+      },
+      create: {
+        meetingId: meeting.id,
+        userId,
+        role,
+        status: MeetingParticipantStatus.JOINED,
+        joinedAt: now,
+        lastSeenAt: now,
+      },
+      update: {
+        status: MeetingParticipantStatus.JOINED,
+        joinedAt: existingParticipant?.joinedAt ?? now,
+        leftAt: null,
+        lastSeenAt: now,
+      },
+    });
+
+    if (!existingParticipant) {
+      await this.prisma.meetingEvent.create({
+        data: {
+          meetingId: meeting.id,
+          actorId: userId,
+          type: MeetingEventType.PARTICIPANT_JOINED,
+        },
+      });
+    }
+
+    const token = await this.liveKitService.createParticipantToken({
+      roomName: meeting.roomName,
+      userId,
+      displayName: userName,
+      avatarUrl,
+      role,
+      deviceSettings: dto?.deviceSettings,
+    });
+
+    return this.toMeetingRoomResponse(meeting, role, token);
+  }
+
+  private toMeetingRoomResponse(
+    meeting: {
+      id: string;
+      roomName: string;
+      joinToken: string;
+      type: MeetingType;
+      status: MeetingStatus;
+      autoAdmit: boolean;
+      startedAt: Date | null;
+      createdAt: Date;
+    },
+    participantRole: MeetingRole,
+    token: string,
+  ) {
     return {
       meeting: {
         id: meeting.id,
@@ -127,7 +243,7 @@ export class MeetingService {
         autoAdmit: meeting.autoAdmit,
         startedAt: meeting.startedAt?.toISOString() ?? null,
         createdAt: meeting.createdAt.toISOString(),
-        participantRole: MeetingRole.HOST,
+        participantRole,
       },
       livekit: {
         serverUrl: this.liveKitService.getServerUrl(),

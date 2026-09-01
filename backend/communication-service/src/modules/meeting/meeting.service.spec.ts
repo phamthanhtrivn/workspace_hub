@@ -1,4 +1,9 @@
-import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import {
   MeetingEventType,
   MeetingParticipantStatus,
@@ -22,6 +27,15 @@ interface CreatedMeetingMock {
   createdAt: Date;
 }
 
+interface MeetingParticipantMock {
+  id: string;
+  meetingId: string;
+  userId: string;
+  role: MeetingRole;
+  status: MeetingParticipantStatus;
+  joinedAt: Date | null;
+}
+
 type MeetingTransactionMock = {
   meeting: {
     create: jest.Mock<Promise<CreatedMeetingMock>>;
@@ -36,7 +50,19 @@ type MeetingTransactionMock = {
 
 describe('MeetingService', () => {
   const userId = '3d3538b6-3a0d-44a4-9979-fec1ff2b5c11';
+  const guestUserId = '10f62ad8-624d-4fc0-98f1-45e9c7f2db37';
   const createdAt = new Date('2026-09-01T00:00:00.000Z');
+  const meetingRecord = {
+    id: 'd4b80433-ad39-4e45-b79b-1e94fe8d0b95',
+    roomName: 'meeting_room',
+    joinToken: 'join-token',
+    type: MeetingType.INSTANT,
+    status: MeetingStatus.LIVE,
+    autoAdmit: true,
+    startedAt: createdAt,
+    createdAt,
+    hostId: userId,
+  };
 
   function createService() {
     const tx: MeetingTransactionMock = {
@@ -64,6 +90,18 @@ describe('MeetingService', () => {
         (handler: (transaction: MeetingTransactionMock) => Promise<CreatedMeetingMock>) =>
           handler(tx),
       ),
+      meeting: {
+        findUnique: jest.fn().mockResolvedValue({
+          ...meetingRecord,
+          participants: [],
+        }),
+      },
+      meetingParticipant: {
+        upsert: jest.fn(),
+      },
+      meetingEvent: {
+        create: jest.fn(),
+      },
     } as PrismaService;
     const liveKitService = {
       isConfigured: jest.fn().mockReturnValue(true),
@@ -197,6 +235,169 @@ describe('MeetingService', () => {
     ).rejects.toThrow(
       new ServiceUnavailableException(
         MEETING_ERROR_MESSAGES.LIVEKIT_NOT_CONFIGURED,
+      ),
+    );
+  });
+
+  it('joins a live meeting and creates a LiveKit participant token', async () => {
+    const { service, prisma, liveKitService } = createService();
+    const deviceSettings = {
+      cameraEnabled: false,
+      microphoneEnabled: true,
+      cameraDeviceId: 'camera-1',
+      microphoneDeviceId: 'mic-1',
+    };
+
+    const result = await service.joinMeeting({
+      joinToken: 'join-token',
+      userId: guestUserId,
+      userName: 'Guest User',
+      avatarUrl: 'https://cdn.test/guest.png',
+      dto: { deviceSettings },
+    });
+
+    expect(prisma.meeting.findUnique).toHaveBeenCalledWith({
+      where: { joinToken: 'join-token' },
+      include: {
+        participants: {
+          where: { userId: guestUserId },
+          take: 1,
+        },
+      },
+    });
+    expect(prisma.meetingParticipant.upsert).toHaveBeenCalledWith({
+      where: {
+        meetingId_userId: {
+          meetingId: meetingRecord.id,
+          userId: guestUserId,
+        },
+      },
+      create: expect.objectContaining({
+        meetingId: meetingRecord.id,
+        userId: guestUserId,
+        role: MeetingRole.PARTICIPANT,
+        status: MeetingParticipantStatus.JOINED,
+      }),
+      update: expect.objectContaining({
+        status: MeetingParticipantStatus.JOINED,
+        leftAt: null,
+      }),
+    });
+    expect(prisma.meetingEvent.create).toHaveBeenCalledWith({
+      data: {
+        meetingId: meetingRecord.id,
+        actorId: guestUserId,
+        type: MeetingEventType.PARTICIPANT_JOINED,
+      },
+    });
+    expect(liveKitService.createParticipantToken).toHaveBeenCalledWith(
+      expect.objectContaining({
+        roomName: meetingRecord.roomName,
+        userId: guestUserId,
+        displayName: 'Guest User',
+        avatarUrl: 'https://cdn.test/guest.png',
+        role: MeetingRole.PARTICIPANT,
+        deviceSettings,
+      }),
+    );
+    expect(result.meeting.participantRole).toBe(MeetingRole.PARTICIPANT);
+    expect(result.livekit.token).toBe('livekit-token');
+  });
+
+  it('keeps the host role when the host joins by token', async () => {
+    const { service } = createService();
+
+    const result = await service.joinMeeting({
+      joinToken: 'join-token',
+      userId,
+      dto: {},
+    });
+
+    expect(result.meeting.participantRole).toBe(MeetingRole.HOST);
+  });
+
+  it('keeps an existing participant role when joining again', async () => {
+    const { service, prisma } = createService();
+    const existingParticipant: MeetingParticipantMock = {
+      id: 'participant-id',
+      meetingId: meetingRecord.id,
+      userId: guestUserId,
+      role: MeetingRole.COHOST,
+      status: MeetingParticipantStatus.LEFT,
+      joinedAt: createdAt,
+    };
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      participants: [existingParticipant],
+    });
+
+    const result = await service.joinMeeting({
+      joinToken: 'join-token',
+      userId: guestUserId,
+      dto: {},
+    });
+
+    expect(prisma.meetingParticipant.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({ role: MeetingRole.COHOST }),
+        update: expect.objectContaining({ joinedAt: createdAt }),
+      }),
+    );
+    expect(prisma.meetingEvent.create).not.toHaveBeenCalled();
+    expect(result.meeting.participantRole).toBe(MeetingRole.COHOST);
+  });
+
+  it('throws when the meeting join token is not found', async () => {
+    const { service, prisma } = createService();
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue(null);
+
+    await expect(
+      service.joinMeeting({
+        joinToken: 'missing-token',
+        userId,
+        dto: {},
+      }),
+    ).rejects.toThrow(
+      new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND),
+    );
+  });
+
+  it('throws when the meeting is not live', async () => {
+    const { service, prisma } = createService();
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      status: MeetingStatus.ENDED,
+      participants: [],
+    });
+
+    await expect(
+      service.joinMeeting({
+        joinToken: 'join-token',
+        userId,
+        dto: {},
+      }),
+    ).rejects.toThrow(
+      new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE),
+    );
+  });
+
+  it('throws when a locked meeting requires approval', async () => {
+    const { service, prisma } = createService();
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      autoAdmit: false,
+      participants: [],
+    });
+
+    await expect(
+      service.joinMeeting({
+        joinToken: 'join-token',
+        userId: guestUserId,
+        dto: {},
+      }),
+    ).rejects.toThrow(
+      new ForbiddenException(
+        MEETING_ERROR_MESSAGES.MEETING_JOIN_REQUIRES_APPROVAL,
       ),
     );
   });

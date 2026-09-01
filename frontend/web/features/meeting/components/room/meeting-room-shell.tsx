@@ -3,6 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  VideoTrack,
+  isTrackReference,
+  useConnectionState,
+  useParticipants,
+  useRoomContext,
+  useTrackToggle,
+  useTracks,
+  type TrackReferenceOrPlaceholder,
+} from "@livekit/components-react";
+import type { Participant } from "livekit-client";
+import { ConnectionState, Track } from "livekit-client";
+import {
+  type LucideIcon,
+  Loader2,
   LogOut,
   Mic,
   MicOff,
@@ -13,15 +29,23 @@ import {
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import { cn } from "@/lib/utils";
-import {
-  meetingMockParticipants,
-  meetingRoomControlItems,
-} from "../../types/meeting.constants";
+import { meetingRoomControlItems } from "../../types/meeting.constants";
 import { MeetingRoomPanel } from "../../types/meeting.types";
+import type { MeetingPreJoinSettings } from "../../types/meeting.types";
+import { useJoinMeetingRoom } from "../../hooks/useJoinMeetingRoom";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 
 interface MeetingRoomShellProps {
   joinToken: string;
+}
+
+interface MeetingRoomContentProps {
+  joinToken: string;
+}
+
+interface ParticipantMetadata {
+  role?: string;
+  avatarUrl?: string | null;
 }
 
 function formatElapsedTime(totalSeconds: number) {
@@ -34,14 +58,260 @@ function formatElapsedTime(totalSeconds: number) {
   return parts.map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
+function getInitials(name: string) {
+  const letters = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  return letters || "U";
+}
+
+function parseParticipantMetadata(participant: Participant): ParticipantMetadata {
+  if (!participant.metadata) return {};
+
+  try {
+    return JSON.parse(participant.metadata) as ParticipantMetadata;
+  } catch {
+    return {};
+  }
+}
+
+function getRoleLabelId(role?: string) {
+  return role === "HOST"
+    ? "meeting.room.participant.host"
+    : "meeting.room.participant.guest";
+}
+
+function getRoomStatusLabelId(connectionState: ConnectionState) {
+  if (connectionState === ConnectionState.Connected) {
+    return "meeting.room.statusConnected";
+  }
+
+  if (connectionState === ConnectionState.Reconnecting) {
+    return "meeting.room.statusReconnecting";
+  }
+
+  return "meeting.room.statusConnecting";
+}
+
+function MeetingRoomLoading({ joinToken }: { joinToken: string }) {
+  const intl = useAppIntl();
+
+  return (
+    <div className="fixed inset-0 z-[90] grid min-h-[100dvh] place-items-center bg-[#070b12] px-4 text-white">
+      <div className="flex w-full max-w-sm flex-col items-center rounded-lg border border-white/10 bg-white/8 px-6 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+        <Loader2 className="h-9 w-9 animate-spin text-blue-200" />
+        <h1 className="mt-4 text-lg font-black">
+          {intl.formatMessage({ id: "meeting.room.joining" })}
+        </h1>
+        <p className="mt-2 text-sm font-semibold text-slate-300">
+          {intl.formatMessage(
+            { id: "meeting.room.token" },
+            { token: joinToken },
+          )}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function MeetingRoomError({ onBack }: { onBack: () => void }) {
+  const intl = useAppIntl();
+
+  return (
+    <div className="fixed inset-0 z-[90] grid min-h-[100dvh] place-items-center bg-[#070b12] px-4 text-white">
+      <div className="w-full max-w-sm rounded-lg border border-white/10 bg-white/8 px-6 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
+        <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-red-500/16 text-red-200 ring-1 ring-red-300/20">
+          <VideoOff className="h-7 w-7" />
+        </span>
+        <h1 className="mt-4 text-lg font-black">
+          {intl.formatMessage({ id: "meeting.room.joinFailed" })}
+        </h1>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
+          {intl.formatMessage({ id: "meeting.room.joinFailedDescription" })}
+        </p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="mt-5 h-11 rounded-lg bg-white px-5 text-sm font-black text-[#172B4D] transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
+          {intl.formatMessage({ id: "meeting.room.backToMeetings" })}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MeetingParticipantTile({
+  trackRef,
+  isMainTile,
+}: {
+  trackRef: TrackReferenceOrPlaceholder;
+  isMainTile: boolean;
+}) {
+  const intl = useAppIntl();
+  const authUser = useAppSelector((state) => state.auth);
+  const participant = trackRef.participant;
+  const metadata = parseParticipantMetadata(participant);
+  const isLocalUser = participant.isLocal;
+  const displayName =
+    participant.name ||
+    (isLocalUser ? authUser.fullName || authUser.email : null) ||
+    participant.identity ||
+    intl.formatMessage({ id: "app.user" });
+  const avatarUrl = isLocalUser
+    ? authUser.avatarUrl || metadata.avatarUrl
+    : metadata.avatarUrl;
+  const hasVideo =
+    isTrackReference(trackRef) &&
+    Boolean(trackRef.publication.track) &&
+    !trackRef.publication.isMuted;
+
+  return (
+    <article
+      className={cn(
+        "relative flex min-h-[220px] overflow-hidden rounded-lg border border-white/10 bg-[#121a28] shadow-[0_18px_48px_rgba(0,0,0,0.24)]",
+        isMainTile ? "lg:col-span-2 lg:row-span-2" : "",
+      )}
+    >
+      {hasVideo && isTrackReference(trackRef) ? (
+        <VideoTrack trackRef={trackRef} className="h-full w-full object-cover" />
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,#20304a,transparent_38%),#0c121d] text-center">
+          {avatarUrl ? (
+            <span
+              aria-label={displayName}
+              role="img"
+              className="h-24 w-24 rounded-full bg-cover bg-center ring-2 ring-white/14"
+              style={{ backgroundImage: `url("${avatarUrl}")` }}
+            />
+          ) : (
+            <span className="grid h-24 w-24 place-items-center rounded-full bg-white/12 text-3xl font-black text-white ring-1 ring-white/14">
+              {getInitials(displayName)}
+            </span>
+          )}
+          <p className="text-sm font-bold text-slate-300">
+            {intl.formatMessage({ id: "meeting.room.cameraPaused" })}
+          </p>
+        </div>
+      )}
+
+      <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
+        <div className="min-w-0 rounded-md bg-black/45 px-3 py-2 backdrop-blur">
+          <p className="truncate text-sm font-black">{displayName}</p>
+          <p className="text-xs font-semibold text-slate-300">
+            {intl.formatMessage({ id: getRoleLabelId(metadata.role) })}
+          </p>
+        </div>
+        {isLocalUser ? (
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-black/45 text-white backdrop-blur">
+            {participant.isMicrophoneEnabled ? (
+              <Mic className="h-4 w-4" />
+            ) : (
+              <MicOff className="h-4 w-4 text-red-300" />
+            )}
+          </span>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function MeetingParticipantsPanel() {
+  const intl = useAppIntl();
+  const authUser = useAppSelector((state) => state.auth);
+  const participants = useParticipants();
+
+  return (
+    <div className="mt-4 space-y-2">
+      {participants.map((participant) => {
+        const metadata = parseParticipantMetadata(participant);
+        const displayName =
+          participant.name ||
+          (participant.isLocal ? authUser.fullName || authUser.email : null) ||
+          participant.identity ||
+          intl.formatMessage({ id: "app.user" });
+        const avatarUrl = participant.isLocal
+          ? authUser.avatarUrl || metadata.avatarUrl
+          : metadata.avatarUrl;
+
+        return (
+          <div
+            key={participant.identity}
+            className="flex items-center gap-3 rounded-lg bg-white/6 p-3 ring-1 ring-white/8"
+          >
+            {avatarUrl ? (
+              <span
+                aria-label={displayName}
+                role="img"
+                className="h-10 w-10 rounded-full bg-cover bg-center"
+                style={{ backgroundImage: `url("${avatarUrl}")` }}
+              />
+            ) : (
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-white/12 text-xs font-black">
+                {getInitials(displayName)}
+              </span>
+            )}
+            <span className="min-w-0">
+              <span className="block truncate text-sm font-black">
+                {displayName}
+              </span>
+              <span className="block text-xs font-semibold text-slate-400">
+                {intl.formatMessage({ id: getRoleLabelId(metadata.role) })}
+              </span>
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function MeetingMediaToggleButton({
+  source,
+  enabledLabelId,
+  disabledLabelId,
+  enabledIcon,
+  disabledIcon,
+}: {
+  source: Track.Source.Camera | Track.Source.Microphone;
+  enabledLabelId: string;
+  disabledLabelId: string;
+  enabledIcon: LucideIcon;
+  disabledIcon: LucideIcon;
+}) {
+  const intl = useAppIntl();
+  const { enabled, pending, toggle } = useTrackToggle({ source });
+
+  return (
+    <MeetingRoomControlButton
+      label={intl.formatMessage({
+        id: enabled ? enabledLabelId : disabledLabelId,
+      })}
+      icon={enabled ? enabledIcon : disabledIcon}
+      active={enabled}
+      disabled={pending}
+      onClick={() => void toggle()}
+    />
+  );
+}
+
+function MeetingRoomContent({ joinToken }: MeetingRoomContentProps) {
   const intl = useAppIntl();
   const router = useRouter();
-  const authUser = useAppSelector((state) => state.auth);
-  const [microphoneEnabled, setMicrophoneEnabled] = useState(true);
-  const [cameraEnabled, setCameraEnabled] = useState(true);
+  const room = useRoomContext();
+  const connectionState = useConnectionState();
+  const participants = useParticipants();
   const [activePanel, setActivePanel] = useState(MeetingRoomPanel.NONE);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const cameraTracks = useTracks(
+    [{ source: Track.Source.Camera, withPlaceholder: true }],
+    { onlySubscribed: false },
+  );
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -51,30 +321,21 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
     return () => window.clearInterval(timerId);
   }, []);
 
-  const displayName =
-    authUser.fullName || authUser.email || intl.formatMessage({ id: "chat.you" });
-
-  const participants = useMemo(
+  const sortedCameraTracks = useMemo(
     () =>
-      meetingMockParticipants.map((participant) =>
-        participant.id === "local-user"
-          ? {
-              ...participant,
-              name: displayName,
-            }
-          : {
-              ...participant,
-              name: intl.formatMessage({ id: participant.nameId }),
-            },
-      ),
-    [displayName, intl],
+      [...cameraTracks].sort((first, second) => {
+        if (first.participant.isLocal) return -1;
+        if (second.participant.isLocal) return 1;
+        return first.participant.identity.localeCompare(
+          second.participant.identity,
+        );
+      }),
+    [cameraTracks],
   );
 
   const handleLeave = () => {
-    window.close();
-    window.setTimeout(() => {
-      router.push("/meetings");
-    }, 160);
+    room.disconnect();
+    router.push("/meetings");
   };
 
   return (
@@ -99,7 +360,9 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
 
         <div className="flex shrink-0 items-center gap-2">
           <span className="hidden rounded-md bg-emerald-500/12 px-3 py-1.5 text-xs font-black text-emerald-200 ring-1 ring-emerald-300/15 sm:inline-flex">
-            {intl.formatMessage({ id: "meeting.room.statusConnected" })}
+            {intl.formatMessage({
+              id: getRoomStatusLabelId(connectionState),
+            })}
           </span>
           <span className="rounded-md bg-white/8 px-3 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/10">
             {formatElapsedTime(elapsedSeconds)}
@@ -117,59 +380,16 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
                 : "lg:grid-cols-2",
             )}
           >
-            {participants.map((participant, index) => {
-              const isLocalUser = participant.id === "local-user";
-              const isCameraVisible = isLocalUser ? cameraEnabled : index !== 1;
-
-              return (
-                <article
-                  key={participant.id}
-                  className={cn(
-                    "relative flex min-h-[220px] overflow-hidden rounded-lg border border-white/10 bg-[#121a28] shadow-[0_18px_48px_rgba(0,0,0,0.24)]",
-                    isLocalUser && activePanel === MeetingRoomPanel.NONE
-                      ? "lg:col-span-2 lg:row-span-2"
-                      : "",
-                  )}
-                >
-                  {isCameraVisible ? (
-                    <div className="flex flex-1 items-center justify-center bg-[radial-gradient(circle_at_top,#304260,transparent_42%),linear-gradient(135deg,#152033,#0b111d)]">
-                      <span className="grid h-24 w-24 place-items-center rounded-full bg-white/12 text-3xl font-black text-white ring-1 ring-white/14">
-                        {participant.initials}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[#0c121d] text-center">
-                      <span className="grid h-20 w-20 place-items-center rounded-full bg-white/8 text-slate-300 ring-1 ring-white/10">
-                        <VideoOff className="h-8 w-8" />
-                      </span>
-                      <p className="text-sm font-bold text-slate-300">
-                        {intl.formatMessage({ id: "meeting.room.cameraPaused" })}
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
-                    <div className="min-w-0 rounded-md bg-black/45 px-3 py-2 backdrop-blur">
-                      <p className="truncate text-sm font-black">
-                        {participant.name}
-                      </p>
-                      <p className="text-xs font-semibold text-slate-300">
-                        {intl.formatMessage({ id: participant.roleId })}
-                      </p>
-                    </div>
-                    {isLocalUser ? (
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-black/45 text-white backdrop-blur">
-                        {microphoneEnabled ? (
-                          <Mic className="h-4 w-4" />
-                        ) : (
-                          <MicOff className="h-4 w-4 text-red-300" />
-                        )}
-                      </span>
-                    ) : null}
-                  </div>
-                </article>
-              );
-            })}
+            {sortedCameraTracks.map((trackRef) => (
+              <MeetingParticipantTile
+                key={`${trackRef.participant.identity}-${trackRef.source}`}
+                trackRef={trackRef}
+                isMainTile={
+                  trackRef.participant.isLocal &&
+                  activePanel === MeetingRoomPanel.NONE
+                }
+              />
+            ))}
           </div>
         </section>
 
@@ -178,7 +398,7 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-base font-black">
                 {intl.formatMessage({
-                id:
+                  id:
                     activePanel === MeetingRoomPanel.PARTICIPANTS
                       ? "meeting.room.panel.participants"
                       : activePanel === MeetingRoomPanel.CHAT
@@ -197,26 +417,7 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
             </div>
 
             {activePanel === MeetingRoomPanel.PARTICIPANTS ? (
-              <div className="mt-4 space-y-2">
-                {participants.map((participant) => (
-                  <div
-                    key={participant.id}
-                    className="flex items-center gap-3 rounded-lg bg-white/6 p-3 ring-1 ring-white/8"
-                  >
-                    <span className="grid h-10 w-10 place-items-center rounded-full bg-white/12 text-xs font-black">
-                      {participant.initials}
-                    </span>
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-black">
-                        {participant.name}
-                      </span>
-                      <span className="block text-xs font-semibold text-slate-400">
-                        {intl.formatMessage({ id: participant.roleId })}
-                      </span>
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <MeetingParticipantsPanel />
             ) : activePanel === MeetingRoomPanel.CHAT ? (
               <div className="mt-4 flex h-[calc(100%-3.5rem)] flex-col rounded-lg bg-white/6 p-4 ring-1 ring-white/8">
                 <div className="flex flex-1 items-center justify-center text-center text-sm font-semibold leading-6 text-slate-400">
@@ -237,9 +438,12 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
                     })}
                   </p>
                   <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">
-                    {intl.formatMessage({
-                      id: "meeting.room.panel.autoAdminDescription",
-                    })}
+                    {intl.formatMessage(
+                      {
+                        id: "meeting.room.panel.autoAdminDescription",
+                      },
+                      { count: participants.length },
+                    )}
                   </p>
                 </div>
               </div>
@@ -250,25 +454,19 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
 
       <footer className="flex shrink-0 items-center justify-center border-t border-white/10 bg-[#0d1420]/95 px-3 py-3 backdrop-blur">
         <div className="flex max-w-full items-center gap-2 overflow-x-auto">
-          <MeetingRoomControlButton
-            label={intl.formatMessage({
-              id: microphoneEnabled
-                ? "meeting.room.control.mute"
-                : "meeting.room.control.unmute",
-            })}
-            icon={microphoneEnabled ? Mic : MicOff}
-            active={microphoneEnabled}
-            onClick={() => setMicrophoneEnabled((current) => !current)}
+          <MeetingMediaToggleButton
+            source={Track.Source.Microphone}
+            enabledLabelId="meeting.room.control.mute"
+            disabledLabelId="meeting.room.control.unmute"
+            enabledIcon={Mic}
+            disabledIcon={MicOff}
           />
-          <MeetingRoomControlButton
-            label={intl.formatMessage({
-              id: cameraEnabled
-                ? "meeting.room.control.stopVideo"
-                : "meeting.room.control.startVideo",
-            })}
-            icon={cameraEnabled ? Video : VideoOff}
-            active={cameraEnabled}
-            onClick={() => setCameraEnabled((current) => !current)}
+          <MeetingMediaToggleButton
+            source={Track.Source.Camera}
+            enabledLabelId="meeting.room.control.stopVideo"
+            disabledLabelId="meeting.room.control.startVideo"
+            enabledIcon={Video}
+            disabledIcon={VideoOff}
           />
 
           {meetingRoomControlItems.slice(2).map((control) => {
@@ -331,6 +529,52 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
           </div>
         </div>
       ) : null}
+
+      <RoomAudioRenderer />
     </div>
+  );
+}
+
+function getAudioSetting(settings: MeetingPreJoinSettings) {
+  if (!settings.microphoneEnabled) return false;
+
+  return {
+    deviceId: settings.microphoneDeviceId || undefined,
+  };
+}
+
+function getVideoSetting(settings: MeetingPreJoinSettings) {
+  if (!settings.cameraEnabled) return false;
+
+  return {
+    deviceId: settings.cameraDeviceId || undefined,
+  };
+}
+
+export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
+  const router = useRouter();
+  const { room, settings, isLoading, isError } = useJoinMeetingRoom(joinToken);
+
+  if (isLoading) {
+    return <MeetingRoomLoading joinToken={joinToken} />;
+  }
+
+  if (isError || !room) {
+    return <MeetingRoomError onBack={() => router.push("/meetings")} />;
+  }
+
+  return (
+    <LiveKitRoom
+      serverUrl={room.livekit.serverUrl}
+      token={room.livekit.token}
+      connect
+      audio={getAudioSetting(settings)}
+      video={getVideoSetting(settings)}
+      onDisconnected={() => router.push("/meetings")}
+      onMediaDeviceFailure={() => undefined}
+      className="contents"
+    >
+      <MeetingRoomContent joinToken={joinToken} />
+    </LiveKitRoom>
   );
 }

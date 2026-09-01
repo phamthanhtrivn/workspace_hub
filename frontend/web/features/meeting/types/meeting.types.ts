@@ -32,6 +32,8 @@ export interface CreateInstantMeetingPayload {
   };
 }
 
+export type MeetingParticipantRole = "HOST" | "COHOST" | "PARTICIPANT";
+
 export interface InstantMeetingResponse {
   meeting: {
     id: string;
@@ -42,13 +44,18 @@ export interface InstantMeetingResponse {
     autoAdmit: boolean;
     startedAt: string | null;
     createdAt: string;
-    participantRole: "HOST";
+    participantRole: MeetingParticipantRole;
   };
   livekit: {
     serverUrl: string;
     token: string;
   };
 }
+
+export type JoinMeetingPayload = Pick<
+  CreateInstantMeetingPayload,
+  "deviceSettings"
+>;
 
 export enum MeetingRoomPanel {
   NONE = "none",

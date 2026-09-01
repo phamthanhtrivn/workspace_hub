@@ -1,4 +1,11 @@
-import { BadRequestException, Body, Controller, Headers, Post } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Headers,
+  Param,
+  Post,
+} from '@nestjs/common';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import { MeetingService } from './meeting.service';
@@ -31,6 +38,32 @@ export class MeetingController {
 
     return {
       message: MEETING_SUCCESS_MESSAGES.INSTANT_CREATED,
+      data: meeting,
+    };
+  }
+
+  @Post(':joinToken/join')
+  async joinMeeting(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-name') userName: string,
+    @Headers('x-user-avatar') avatarUrl: string,
+    @Body() joinMeetingDto: CreateInstantMeetingDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.meetingService.joinMeeting({
+      joinToken,
+      userId,
+      userName: decodeHeaderUtf8(userName),
+      avatarUrl: decodeHeaderUtf8(avatarUrl),
+      dto: joinMeetingDto ?? {},
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.JOINED,
       data: meeting,
     };
   }
