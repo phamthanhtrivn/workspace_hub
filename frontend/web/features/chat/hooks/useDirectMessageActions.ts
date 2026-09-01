@@ -5,8 +5,10 @@ import {
   addDirectReaction,
   editDirectMessage,
   getDirectConversationMessages,
+  markDirectConversationAsRead,
   pinDirectMessage,
   recallDirectMessage,
+  sendDirectMessage,
   unpinDirectMessage,
 } from "../api/chat.api";
 import { ChatQueryKey, ChatScope, chatKeys } from "../types/chat.constant";
@@ -59,8 +61,6 @@ export function useDirectMessageActions() {
   const intl = useAppIntl();
   const queryClient = useQueryClient();
   const {
-    markAsRead: markDirectSocketAsRead,
-    sendMessage: sendDirectSocketMessage,
     sendTyping: sendDirectSocketTyping,
   } = useDirectMessageSocket();
 
@@ -103,8 +103,7 @@ export function useDirectMessageActions() {
       onSent,
     }: SendDirectMessageParams): Promise<ChatMessageResponse | null> => {
       try {
-        const sentMessage = await sendDirectSocketMessage({
-          conversationId,
+        const sentMessage = await sendDirectMessage(conversationId, {
           content,
           medias,
           threadParentId,
@@ -115,7 +114,7 @@ export function useDirectMessageActions() {
           queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
         });
         onSent?.();
-        return sentMessage;
+        return sentMessage.data;
       } catch (error: unknown) {
         if (!hasErrorMessage(error)) {
           toast.error(intl.formatMessage({ id: "chat.failedSendMessage" }));
@@ -123,7 +122,7 @@ export function useDirectMessageActions() {
         return null;
       }
     },
-    [intl, queryClient, sendDirectSocketMessage],
+    [intl, queryClient],
   );
 
   const editMessage = useCallback(
@@ -250,10 +249,14 @@ export function useDirectMessageActions() {
   );
 
   const markAsRead = useCallback(
-    (conversationId: string, messageId: string) => {
-      markDirectSocketAsRead(conversationId, messageId);
+    async (conversationId: string, messageId: string) => {
+      try {
+        await markDirectConversationAsRead(conversationId, messageId);
+      } catch {
+        // Read receipts are best-effort; socket events keep the rest of the UI in sync.
+      }
     },
-    [markDirectSocketAsRead],
+    [],
   );
 
   const sendTyping = useCallback(

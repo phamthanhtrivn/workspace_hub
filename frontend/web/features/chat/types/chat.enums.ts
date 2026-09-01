@@ -66,17 +66,6 @@ export enum ReactionAction {
   UPDATE = "update",
 }
 
-// ─── Socket ACK ────────────────────────────────────────────────────────────
-
-/**
- * Trạng thái phản hồi từ socket ACK.
- * Dùng thay cho magic string "success" | "error".
- */
-export enum SocketAckStatus {
-  SUCCESS = "success",
-  ERROR = "error",
-}
-
 // ─── Invitation ────────────────────────────────────────────────────────────
 
 export enum InvitationStatus {

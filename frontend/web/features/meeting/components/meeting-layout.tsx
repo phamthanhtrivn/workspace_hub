@@ -4,10 +4,10 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
 import { meetingDashboardActions } from "../types/meeting.constants";
-import { useMeetingClock } from "../hooks/use-meeting-clock";
 import { MeetingSidebar } from "./meeting-sidebar";
+import { useMeetingClock } from "../hooks/useMeetingClock";
 
-export function MeetingPage() {
+export function MeetingLayout() {
   const intl = useAppIntl();
   const clock = useMeetingClock();
 

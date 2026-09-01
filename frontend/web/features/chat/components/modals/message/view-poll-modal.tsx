@@ -5,8 +5,11 @@ import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { PollResponse } from "@/features/chat/types/chat.types";
 import PollMessage from "../../message/poll-message";
-import { socketService } from "@/features/chat/api/chat-socket.service";
-import { ChatEvent } from "@/features/chat/api/chat.events";
+import {
+  addChannelPollOption,
+  editChannelPoll,
+  voteChannelPoll,
+} from "@/features/chat/api/chat.api";
 
 interface ViewPollModalProps {
   isOpen: boolean;
@@ -43,24 +46,10 @@ export default function ViewPollModal({
           <PollMessage
             poll={poll}
             onVote={(pollOptionId) => {
-              const socket = socketService.getSocket();
-              if (socket) {
-                socket.emit(ChatEvent.VOTE_POLL, {
-                  channelId: conversationId,
-                  messageId: poll.messageId,
-                  pollOptionId,
-                });
-              }
+              void voteChannelPoll(conversationId, poll.messageId, pollOptionId);
             }}
             onAddOption={(text) => {
-              const socket = socketService.getSocket();
-              if (socket) {
-                socket.emit(ChatEvent.ADD_POLL_OPTION, {
-                  channelId: conversationId,
-                  messageId: poll.messageId,
-                  text,
-                });
-              }
+              void addChannelPollOption(conversationId, poll.messageId, text);
             }}
             onEditPoll={(
               title,
@@ -69,18 +58,13 @@ export default function ViewPollModal({
               anonymous,
               isLocked,
             ) => {
-              const socket = socketService.getSocket();
-              if (socket) {
-                socket.emit(ChatEvent.EDIT_POLL, {
-                  channelId: conversationId,
-                  messageId: poll.messageId,
+              void editChannelPoll(conversationId, poll.messageId, {
                   title,
                   multipleChoice,
                   allowAddOptions,
                   anonymous,
                   isLocked,
                 });
-              }
             }}
             onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
           />

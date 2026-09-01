@@ -58,6 +58,7 @@ export const sendDirectMessage = async (
       sizeBytes: number;
     }[];
     threadParentId?: string;
+    mentions?: string[];
   },
 ): Promise<ApiResponse<ChatMessageResponse>> => {
   const response = await api.post(

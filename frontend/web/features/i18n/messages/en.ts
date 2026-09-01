@@ -538,6 +538,8 @@
   "chat.failedUpdatePin": "Failed to update pin",
   "chat.failedUnpinMessage": "Failed to unpin message",
   "chat.failedReact": "Failed to react",
+  "chat.failedUpdatePoll": "Failed to update poll",
+  "chat.failedUpdateNote": "Failed to update note",
   "chat.directMessageSocketNotConnected":
     "Direct message socket is not connected",
   "chat.microphoneRecordingNotSupported":

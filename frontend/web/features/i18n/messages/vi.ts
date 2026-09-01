@@ -534,6 +534,8 @@
   "chat.failedUpdatePin": "KhÃ´ng thá»ƒ cáº­p nháº­t ghim",
   "chat.failedUnpinMessage": "KhÃ´ng thá»ƒ bá» ghim tin nháº¯n",
   "chat.failedReact": "KhÃ´ng thá»ƒ tháº£ cáº£m xÃºc",
+  "chat.failedUpdatePoll": "KhÃ´ng thá»ƒ cáº­p nháº­t bÃ¬nh chá»n",
+  "chat.failedUpdateNote": "KhÃ´ng thá»ƒ cáº­p nháº­t ghi chÃº",
   "chat.directMessageSocketNotConnected":
     "Socket tin nháº¯n trá»±c tiáº¿p chÆ°a káº¿t ná»‘i",
   "chat.microphoneRecordingNotSupported":

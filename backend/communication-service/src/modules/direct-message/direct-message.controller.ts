@@ -40,6 +40,7 @@ export class DirectMessageController {
         sizeBytes: number;
       }[];
       threadParentId?: string;
+      mentions?: string[];
     },
   ) {
     if (
@@ -57,6 +58,7 @@ export class DirectMessageController {
       data.type || MessageType.TEXT,
       data.medias,
       data.threadParentId,
+      data.mentions,
     );
 
     return {

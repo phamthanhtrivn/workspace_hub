@@ -6,8 +6,12 @@ import {
   Param,
   Query,
   BadRequestException,
+  Body,
+  Patch,
+  Delete,
 } from '@nestjs/common';
 import { MessageService } from './message.service';
+import { MessageType } from '@prisma/client';
 import {
   MESSAGE_DIRECTION,
   THREAD_FOLLOW_LABEL,
@@ -19,6 +23,64 @@ import {
 @Controller('api/channels')
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
+
+  @Post(':id/messages')
+  async createMessage(
+    @Param('id') channelId: string,
+    @Headers('x-user-id') userId: string,
+    @Body()
+    data: {
+      content?: string;
+      type?: MessageType;
+      medias?: {
+        name: string;
+        s3Key: string;
+        mimeType: string;
+        sizeBytes: number;
+      }[];
+      pollData?: {
+        title: string;
+        multipleChoice?: boolean;
+        allowAddOptions?: boolean;
+        anonymous?: boolean;
+        options: string[];
+      };
+      noteData?: {
+        title: string;
+        content: string;
+      };
+      threadParentId?: string;
+      mentions?: string[];
+    },
+  ) {
+    if (
+      !channelId ||
+      !userId ||
+      (data.content === undefined &&
+        (!data.medias || data.medias.length === 0) &&
+        !data.pollData &&
+        !data.noteData)
+    ) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.messageService.createMessageAndPublish(
+      channelId,
+      userId,
+      data.content || '',
+      data.type || MessageType.TEXT,
+      data.medias,
+      data.pollData,
+      data.noteData,
+      data.threadParentId,
+      data.mentions,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.CREATED,
+      data: message,
+    };
+  }
 
   @Get('threads/followed')
   async getFollowedThreads(@Headers('x-user-id') userId: string) {
@@ -140,6 +202,154 @@ export class MessageController {
     return {
       message: MESSAGE_SUCCESS_MESSAGES.THREAD_RETRIEVED,
       data: result,
+    };
+  }
+
+  @Patch('messages/:id')
+  async editMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('content') content: string,
+  ) {
+    if (!messageId || !userId || content === undefined) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.messageService.editMessageAndPublish(
+      messageId,
+      content,
+      userId,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.UPDATED,
+      data: message,
+    };
+  }
+
+  @Patch('messages/:id/recall')
+  async recallMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.messageService.recallMessageAndPublish(
+      messageId,
+      userId,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.RECALLED,
+      data: message,
+    };
+  }
+
+  @Post(':id/messages/read')
+  async markConversationAsRead(
+    @Param('id') channelId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('messageId') messageId: string,
+  ) {
+    if (!channelId || !userId || !messageId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result = await this.messageService.markConversationAsReadAndPublish(
+      channelId,
+      userId,
+      messageId,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.READ_RECEIPT_UPDATED,
+      data: result,
+    };
+  }
+
+  @Post('messages/:id/reactions')
+  async addReaction(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('emoji') emoji: string,
+  ) {
+    if (!messageId || !userId || !emoji) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result = await this.messageService.addReactionAndPublish(
+      messageId,
+      userId,
+      emoji,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.REACTION_UPDATED,
+      data: result,
+    };
+  }
+
+  @Delete('messages/:id/reactions')
+  async removeReaction(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body('emoji') emoji: string,
+  ) {
+    if (!messageId || !userId || !emoji) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const result = await this.messageService.removeReactionAndPublish(
+      messageId,
+      userId,
+      emoji,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.REACTION_UPDATED,
+      data: result,
+    };
+  }
+
+  @Patch('messages/:id/pin')
+  async pinMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.messageService.pinMessageAndPublish(
+      messageId,
+      userId,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.PINNED,
+      data: message,
+    };
+  }
+
+  @Patch('messages/:id/unpin')
+  async unpinMessage(
+    @Param('id') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!messageId || !userId) {
+      throw new BadRequestException(MESSAGE_ERROR_MESSAGES.INVALID_DATA);
+    }
+
+    const message = await this.messageService.unpinMessageAndPublish(
+      messageId,
+      userId,
+    );
+
+    return {
+      message: MESSAGE_SUCCESS_MESSAGES.UNPINNED,
+      data: message,
     };
   }
 

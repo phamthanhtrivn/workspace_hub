@@ -1,6 +1,5 @@
-import { MeetingPage } from "@/features/meeting/components/meeting-page";
-
+import { MeetingLayout } from "@/features/meeting/components/meeting-layout";
 
 export default function MeetingsPage() {
-  return <MeetingPage />;
+  return <MeetingLayout />;
 }

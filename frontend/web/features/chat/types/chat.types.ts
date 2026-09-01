@@ -4,7 +4,6 @@ export {
   SpaceRole,
   MessageType,
   ReactionAction,
-  SocketAckStatus,
   InvitationStatus,
 } from "./chat.enums";
 

@@ -7,9 +7,6 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatSocketHandler } from './chat/chat-socket.handler';
-import { ChatSocketPublisher } from './chat/chat-socket.publisher';
-import { ChatMessageInteractionHandler } from './chat/handlers/chat-message-interaction.handler';
-import { ChatMessageHandler } from './chat/handlers/chat-message.handler';
 import { ChatRoomHandler } from './chat/handlers/chat-room.handler';
 import { SocketEventEmitter } from './services/socket-event-emitter';
 import { SocketRoomService } from './services/socket-room.service';
@@ -30,18 +27,10 @@ export class CommunicationGateway
 
   constructor(
     chatRoomHandler: ChatRoomHandler,
-    chatMessageHandler: ChatMessageHandler,
-    chatMessageInteractionHandler: ChatMessageInteractionHandler,
-    chatSocketPublisher: ChatSocketPublisher,
     private readonly socketEventEmitter: SocketEventEmitter,
     private readonly socketRoomService: SocketRoomService,
   ) {
-    super(
-      chatRoomHandler,
-      chatMessageHandler,
-      chatMessageInteractionHandler,
-      chatSocketPublisher,
-    );
+    super(chatRoomHandler);
   }
 
   afterInit(server: Server): void {

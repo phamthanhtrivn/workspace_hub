@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MessageController } from './message.controller';
 
 import { MessageService } from './message.service';
@@ -6,9 +6,15 @@ import { MessageService } from './message.service';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
+import { SocketModule } from '../socket/socket.module';
 
 @Module({
-  imports: [PrismaModule, S3Module, UserProfileSnapshotModule],
+  imports: [
+    PrismaModule,
+    S3Module,
+    UserProfileSnapshotModule,
+    forwardRef(() => SocketModule),
+  ],
   controllers: [MessageController],
   providers: [MessageService],
   exports: [MessageService],

@@ -1,14 +1,22 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { NOTE_ERROR_MESSAGES } from './types/note.enums';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 
 @Injectable()
 export class NoteService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    @Inject(forwardRef(() => ChatSocketPublisher))
+    private readonly chatSocketPublisher: ChatSocketPublisher,
   ) {}
 
   async getNotesInConversation(channelId: string, userId: string, q?: string) {
@@ -89,6 +97,29 @@ export class NoteService {
         },
       })
       .then((message) => this.enrichMessage(message));
+  }
+
+  async updateNoteAndPublish(
+    channelId: string,
+    messageId: string,
+    title: string,
+    content: string,
+    userId: string,
+  ) {
+    const updatedMessage = await this.updateNote(
+      channelId,
+      messageId,
+      title,
+      content,
+      userId,
+    );
+
+    await this.chatSocketPublisher.publishMessageMoved(
+      channelId,
+      updatedMessage,
+    );
+
+    return updatedMessage;
   }
 
   private async assertNoteChannelMember(

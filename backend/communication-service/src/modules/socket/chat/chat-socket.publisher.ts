@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, forwardRef } from '@nestjs/common';
 import {
   CHAT_CONTEXT_TYPE,
   CHAT_REACTION_ACTION,
@@ -25,6 +25,7 @@ export class ChatSocketPublisher {
   constructor(
     private readonly socketEventEmitter: SocketEventEmitter,
     private readonly roomResolver: ChatSocketRoomResolver,
+    @Inject(forwardRef(() => MessageService))
     private readonly messageService: MessageService,
   ) {}
 

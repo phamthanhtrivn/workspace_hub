@@ -2,12 +2,15 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { MessageType, Prisma, SpaceRole } from '@prisma/client';
 import { S3Service } from '../../infrastructure/s3/s3.service';
 import { getMediaType, mapMediaWithUrl } from '../../common/utils/file.util';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import {
   MESSAGE_DIRECTION,
   MESSAGE_CONSTANTS,
@@ -21,6 +24,8 @@ export class MessageService {
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    @Inject(forwardRef(() => ChatSocketPublisher))
+    private readonly chatSocketPublisher: ChatSocketPublisher,
   ) {}
 
   async createMessage(
@@ -219,6 +224,64 @@ export class MessageService {
     return this.userProfileSnapshotService.attachSenderProfileToMessage(
       createdMessage,
     );
+  }
+
+  async createMessageAndPublish(
+    channelId: string,
+    senderId: string,
+    content: string,
+    type: MessageType = MessageType.TEXT,
+    medias?: {
+      name: string;
+      s3Key: string;
+      mimeType: string;
+      sizeBytes: number;
+    }[],
+    pollData?: {
+      title: string;
+      multipleChoice?: boolean;
+      allowAddOptions?: boolean;
+      anonymous?: boolean;
+      options: string[];
+    },
+    noteData?: {
+      title: string;
+      content: string;
+    },
+    threadParentId?: string,
+    mentions?: string[],
+  ) {
+    const message = await this.createMessage(
+      channelId,
+      senderId,
+      content,
+      type,
+      medias,
+      pollData,
+      noteData,
+      threadParentId,
+    );
+
+    const threadFollowers = threadParentId
+      ? await this.getThreadFollowers(threadParentId)
+      : undefined;
+    const messagePayload = {
+      ...message,
+      chatId: channelId,
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+      channelId,
+      medias: mapMediaWithUrl(message.medias),
+      mentions,
+      threadFollowers,
+    };
+
+    await this.chatSocketPublisher.publishChannelMessageCreated(
+      channelId,
+      messagePayload,
+      { medias, pollData, noteData },
+    );
+
+    return messagePayload;
   }
 
   async getConversationMessages(
@@ -866,6 +929,20 @@ export class MessageService {
     }
   }
 
+  async addReactionAndPublish(messageId: string, userId: string, emoji: string) {
+    const result = await this.addReaction(messageId, userId, emoji);
+    const channelId = await this.getMessageChannelId(messageId);
+
+    await this.chatSocketPublisher.publishChannelReactionUpdated(channelId, {
+      messageId,
+      userId,
+      emoji: result.emoji,
+      action: result.action,
+    });
+
+    return result;
+  }
+
   async removeReaction(messageId: string, userId: string, emoji: string) {
     return this.prisma.reaction.deleteMany({
       where: {
@@ -874,6 +951,24 @@ export class MessageService {
         emoji,
       },
     });
+  }
+
+  async removeReactionAndPublish(
+    messageId: string,
+    userId: string,
+    emoji: string,
+  ) {
+    const result = await this.removeReaction(messageId, userId, emoji);
+    const channelId = await this.getMessageChannelId(messageId);
+
+    await this.chatSocketPublisher.publishChannelReactionUpdated(channelId, {
+      messageId,
+      userId,
+      emoji,
+      action: 'remove',
+    });
+
+    return result;
   }
 
   async markConversationAsRead(
@@ -893,6 +988,26 @@ export class MessageService {
         lastReadAt: new Date(),
       },
     });
+  }
+
+  async markConversationAsReadAndPublish(
+    channelId: string,
+    userId: string,
+    messageId: string,
+  ) {
+    const readReceipt = await this.markConversationAsRead(
+      channelId,
+      userId,
+      messageId,
+    );
+
+    await this.chatSocketPublisher.publishChannelMessageRead(channelId, {
+      messageId,
+      userId,
+      readAt: readReceipt.lastReadAt,
+    });
+
+    return readReceipt;
   }
 
   async editMessage(messageId: string, content: string, userId: string) {
@@ -936,6 +1051,22 @@ export class MessageService {
         note: true,
       },
     });
+  }
+
+  async editMessageAndPublish(
+    messageId: string,
+    content: string,
+    userId: string,
+  ) {
+    const updatedMessage = await this.editMessage(messageId, content, userId);
+    const messagePayload = this.mapChannelMessagePayload(updatedMessage);
+
+    await this.chatSocketPublisher.publishChannelMessageUpdated(
+      updatedMessage.channelId,
+      messagePayload,
+    );
+
+    return messagePayload;
   }
 
   async recallMessage(messageId: string, userId: string) {
@@ -996,6 +1127,18 @@ export class MessageService {
     });
   }
 
+  async recallMessageAndPublish(messageId: string, userId: string) {
+    const updatedMessage = await this.recallMessage(messageId, userId);
+    const messagePayload = this.mapChannelMessagePayload(updatedMessage);
+
+    await this.chatSocketPublisher.publishChannelMessageUpdated(
+      updatedMessage.channelId,
+      messagePayload,
+    );
+
+    return messagePayload;
+  }
+
   async pinMessage(messageId: string, userId: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
@@ -1052,6 +1195,18 @@ export class MessageService {
     });
   }
 
+  async pinMessageAndPublish(messageId: string, userId: string) {
+    const updatedMessage = await this.pinMessage(messageId, userId);
+    const messagePayload = this.mapChannelMessagePayload(updatedMessage);
+
+    await this.chatSocketPublisher.publishChannelMessagePinned(
+      updatedMessage.channelId,
+      messagePayload,
+    );
+
+    return messagePayload;
+  }
+
   async unpinMessage(messageId: string, userId: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
@@ -1106,6 +1261,18 @@ export class MessageService {
         note: true,
       },
     });
+  }
+
+  async unpinMessageAndPublish(messageId: string, userId: string) {
+    const updatedMessage = await this.unpinMessage(messageId, userId);
+    const messagePayload = this.mapChannelMessagePayload(updatedMessage);
+
+    await this.chatSocketPublisher.publishChannelMessageUnpinned(
+      updatedMessage.channelId,
+      messagePayload,
+    );
+
+    return messagePayload;
   }
 
   async getPinnedMessages(
@@ -1205,5 +1372,30 @@ export class MessageService {
         },
       });
     }
+  }
+
+  private mapChannelMessagePayload<T extends { channelId: string; medias?: any[] }>(
+    message: T,
+  ) {
+    return {
+      ...message,
+      chatId: message.channelId,
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+      channelId: message.channelId,
+      medias: mapMediaWithUrl(message.medias ?? []),
+    };
+  }
+
+  private async getMessageChannelId(messageId: string): Promise<string> {
+    const message = await this.prisma.message.findUnique({
+      where: { id: messageId },
+      select: { channelId: true },
+    });
+
+    if (!message) {
+      throw new NotFoundException(MESSAGE_ERROR_MESSAGES.MESSAGE_NOT_FOUND);
+    }
+
+    return message.channelId;
   }
 }

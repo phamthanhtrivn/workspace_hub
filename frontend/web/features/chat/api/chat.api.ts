@@ -177,6 +177,17 @@ export {
   getThreadMessages,
   followThread,
   unfollowThread,
+  sendChannelMessage,
+  markChannelMessageAsRead,
+  editChannelMessage,
+  recallChannelMessage,
+  reactChannelMessage,
+  pinChannelMessage,
+  unpinChannelMessage,
+  voteChannelPoll,
+  addChannelPollOption,
+  editChannelPoll,
+  editChannelNote,
 } from "./channel.api";
 
 export {

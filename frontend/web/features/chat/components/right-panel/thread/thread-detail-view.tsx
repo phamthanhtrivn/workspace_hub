@@ -19,6 +19,7 @@ import {
   unfollowThread,
   getDirectThreadMessages,
   getThreadMessages,
+  sendChannelMessage,
   getSpaceDetails,
 } from "../../../api/chat.api";
 import { socketService } from "../../../api/chat-socket.service";
@@ -37,16 +38,14 @@ import {
   FollowedThreadResponse,
   ThreadMessagesResponse,
 } from "../../../types/chat.types";
-import {
-  ChatSocketAckResponse,
-  SendSocketMessageMedia,
-} from "../../../types/chat-socket.types";
+import { SendSocketMessageMedia } from "../../../types/chat-socket.types";
 import ThreadChatInput, {
   ThreadChatInputRef,
 } from "../../input/thread-chat-input";
 import { renderMessageContent } from "../../../utils/message-formatter";
 import MediaLightbox from "../../message/media-lightbox";
 import MessageAvatar from "../../message/message-avatar";
+import { upsertMessageById } from "../../../utils/message-state-utils";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
@@ -237,16 +236,13 @@ export default function ThreadDetailView({
         ),
         (oldData) => {
           const currentReplies = oldData?.data?.replies || [];
-          if (currentReplies.some((item) => item.id === reply.id)) {
-            return oldData;
-          }
 
           return {
             success: oldData?.success ?? true,
             message: oldData?.message,
             data: {
               rootMessage: oldData?.data?.rootMessage ?? rootMessage,
-              replies: [...currentReplies, reply],
+              replies: upsertMessageById(currentReplies, reply),
             },
           };
         },
@@ -355,8 +351,6 @@ export default function ThreadDetailView({
     media?: SendSocketMessageMedia[],
     mentions?: string[],
   ) => {
-    const socket = socketService.getSocket();
-
     if (isDirect) {
       if (!rootChatId) return;
 
@@ -386,36 +380,27 @@ export default function ThreadDetailView({
       return;
     }
 
-    if (!socket || !rootChatId) return;
+    if (!rootChatId) return;
     if (!canReplyInThread) {
       toast.error(intl.formatMessage({ id: "chat.onlyAdminsCanReplyThread" }));
       return;
     }
 
-    socket.emit(
-      ChatEvent.SEND_MESSAGE,
-      {
-        channelId: rootChatId,
-        chatId: rootChatId,
-        chatType: ChatContextType.CHANNEL,
+    sendChannelMessage(rootChatId, {
         content,
         medias: media,
         threadParentId: rootMessage.id,
         mentions,
-      },
-      (response: ChatSocketAckResponse<ChatMessageResponse>) => {
-        if (response?.status === "success" && response.data) {
+      })
+      .then((response) => {
+        if (response.data) {
           appendThreadReply(response.data);
           chatInputRef.current?.focus();
-          return;
         }
-
-        toast.error(
-          response?.message ||
-            intl.formatMessage({ id: "chat.failedSendReply" }),
-        );
-      },
-    );
+      })
+      .catch(() =>
+        toast.error(intl.formatMessage({ id: "chat.failedSendReply" })),
+      );
   };
 
   const getProfile = (userId: string) => {

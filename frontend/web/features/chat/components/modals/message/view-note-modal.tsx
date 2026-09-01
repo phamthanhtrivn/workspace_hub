@@ -7,8 +7,7 @@ import { useAppDispatch } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { NoteResponse } from "@/features/chat/types/chat.types";
 import NoteMessage from "../../message/note-message";
-import { socketService } from "@/features/chat/api/chat-socket.service";
-import { ChatEvent } from "@/features/chat/api/chat.events";
+import { editChannelNote } from "@/features/chat/api/chat.api";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ViewNoteModalProps {
@@ -53,15 +52,10 @@ export default function ViewNoteModal({
             note={note}
             onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
             onEditNote={(title, content) => {
-              const socket = socketService.getSocket();
-              if (socket) {
-                socket.emit(ChatEvent.EDIT_NOTE, {
-                  channelId: conversationId,
-                  messageId: note.messageId,
+              void editChannelNote(conversationId, note.messageId, {
                   title,
                   content,
                 });
-              }
             }}
           />
         </div>
