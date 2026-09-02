@@ -1,5 +1,6 @@
 export interface LiveKitConfig {
   url: string;
+  publicUrl: string;
   apiKey: string;
   apiSecret: string;
 }
@@ -7,6 +8,7 @@ export interface LiveKitConfig {
 export function getLiveKitConfig(): LiveKitConfig {
   return {
     url: process.env.LIVEKIT_URL!,
+    publicUrl: process.env.LIVEKIT_PUBLIC_URL || process.env.LIVEKIT_URL!,
     apiKey: process.env.LIVEKIT_API_KEY!,
     apiSecret: process.env.LIVEKIT_API_SECRET!,
   };

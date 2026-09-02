@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createInstantMeeting } from "../api/meeting.api";
 import type { MeetingPreJoinSettings } from "../types/meeting.types";
+import { meetingKeys } from "../types/meeting.query-keys";
 import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
 interface UseCreateInstantMeetingOptions {
@@ -17,6 +19,8 @@ export function useCreateInstantMeeting({
   onCreated,
   onError,
 }: UseCreateInstantMeetingOptions) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
   const { isPending, mutate } = useMutation({
     mutationFn: (settings: MeetingPreJoinSettings) =>
       createInstantMeeting({
@@ -29,14 +33,9 @@ export function useCreateInstantMeeting({
         },
       }),
     onSuccess: (response) => {
-      const roomUrl = `${window.location.origin}/meetings/${response.data.meeting.joinToken}`;
-      const roomWindow = window.open(roomUrl, "_blank", "noopener,noreferrer");
-
-      if (!roomWindow) {
-        window.location.assign(roomUrl);
-        return;
-      }
-
+      const joinToken = response.data.meeting.joinToken;
+      queryClient.setQueryData(meetingKeys.room(joinToken), response);
+      router.push(`/meetings/${encodeURIComponent(joinToken)}`);
       onCreated();
     },
     onError,

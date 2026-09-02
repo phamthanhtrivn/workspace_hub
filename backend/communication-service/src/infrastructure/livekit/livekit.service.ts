@@ -46,7 +46,7 @@ export class LiveKitService {
   }
 
   getServerUrl(): string {
-    return this.config.url;
+    return this.config.publicUrl;
   }
 
   async createRoom(roomName: string, metadata?: LiveKitRoomMetadata) {
