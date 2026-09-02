@@ -37,7 +37,7 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
       onMediaDeviceFailure={() => undefined}
       className="contents"
     >
-      <MeetingRoomContent joinToken={joinToken} />
+      <MeetingRoomContent settings={settings} />
     </LiveKitRoom>
   );
 }

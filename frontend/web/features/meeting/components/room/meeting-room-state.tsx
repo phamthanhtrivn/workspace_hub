@@ -14,10 +14,7 @@ export function MeetingRoomLoading({ joinToken }: { joinToken: string }) {
           {intl.formatMessage({ id: "meeting.room.joining" })}
         </h1>
         <p className="mt-2 text-sm font-semibold text-slate-300">
-          {intl.formatMessage(
-            { id: "meeting.room.token" },
-            { token: joinToken },
-          )}
+          {joinToken}
         </p>
       </div>
     </div>

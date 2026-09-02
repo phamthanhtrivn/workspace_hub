@@ -1,15 +1,22 @@
 "use client";
 
+import { useCallback, useMemo } from "react";
 import { type LucideIcon, LogOut, Mic, MicOff, Video, VideoOff } from "lucide-react";
 import { useTrackToggle } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { meetingRoomControlItems } from "../../types/meeting.constants";
+import type { MeetingPreJoinSettings } from "../../types/meeting.types";
 import { MeetingRoomPanel } from "../../types/meeting.types";
+import {
+  loadMeetingDeviceSettings,
+  saveMeetingDeviceSettings,
+} from "../../utils/meeting-device-storage";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
 
 interface MeetingRoomFooterProps {
   activePanel: MeetingRoomPanel;
+  settings: MeetingPreJoinSettings;
   onPanelChange: (panel: MeetingRoomPanel) => void;
   onLeave: () => void;
 }
@@ -26,19 +33,55 @@ function isMeetingRoomPanelControl(
 
 function MeetingMediaToggleButton({
   source,
+  settings,
   enabledLabelId,
   disabledLabelId,
   enabledIcon,
   disabledIcon,
 }: {
   source: Track.Source.Camera | Track.Source.Microphone;
+  settings: MeetingPreJoinSettings;
   enabledLabelId: string;
   disabledLabelId: string;
   enabledIcon: LucideIcon;
   disabledIcon: LucideIcon;
 }) {
   const intl = useAppIntl();
-  const { enabled, pending, toggle } = useTrackToggle({ source });
+  const selectedDeviceId =
+    source === Track.Source.Camera
+      ? settings.cameraDeviceId
+      : settings.microphoneDeviceId;
+  const captureOptions = useMemo(
+    () => ({
+      deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
+    }),
+    [selectedDeviceId],
+  );
+  const handleChange = useCallback(
+    (enabled: boolean, isUserInitiated: boolean) => {
+      if (!isUserInitiated) return;
+
+      const storedSettings = loadMeetingDeviceSettings();
+
+      saveMeetingDeviceSettings({
+        ...storedSettings,
+        cameraEnabled:
+          source === Track.Source.Camera
+            ? enabled
+            : storedSettings.cameraEnabled,
+        microphoneEnabled:
+          source === Track.Source.Microphone
+            ? enabled
+            : storedSettings.microphoneEnabled,
+      });
+    },
+    [source],
+  );
+  const { enabled, pending, buttonProps } = useTrackToggle({
+    source,
+    captureOptions,
+    onChange: handleChange,
+  });
 
   return (
     <MeetingRoomControlButton
@@ -48,13 +91,14 @@ function MeetingMediaToggleButton({
       icon={enabled ? enabledIcon : disabledIcon}
       active={enabled}
       disabled={pending}
-      onClick={() => void toggle()}
+      onClick={buttonProps.onClick}
     />
   );
 }
 
 export function MeetingRoomFooter({
   activePanel,
+  settings,
   onPanelChange,
   onLeave,
 }: MeetingRoomFooterProps) {
@@ -65,6 +109,7 @@ export function MeetingRoomFooter({
       <div className="flex max-w-full items-center gap-2 overflow-x-auto">
         <MeetingMediaToggleButton
           source={Track.Source.Microphone}
+          settings={settings}
           enabledLabelId="meeting.room.control.mute"
           disabledLabelId="meeting.room.control.unmute"
           enabledIcon={Mic}
@@ -72,6 +117,7 @@ export function MeetingRoomFooter({
         />
         <MeetingMediaToggleButton
           source={Track.Source.Camera}
+          settings={settings}
           enabledLabelId="meeting.room.control.stopVideo"
           disabledLabelId="meeting.room.control.startVideo"
           enabledIcon={Video}

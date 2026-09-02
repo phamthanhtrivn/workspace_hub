@@ -13,6 +13,7 @@ import { Track } from "livekit-client";
 import { Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
+import type { MeetingPreJoinSettings } from "../../types/meeting.types";
 import { MeetingRoomPanel } from "../../types/meeting.types";
 import {
   formatElapsedTime,
@@ -26,10 +27,10 @@ import {
 } from "./meeting-room-side-panel";
 
 interface MeetingRoomContentProps {
-  joinToken: string;
+  settings: MeetingPreJoinSettings;
 }
 
-export function MeetingRoomContent({ joinToken }: MeetingRoomContentProps) {
+export function MeetingRoomContent({ settings }: MeetingRoomContentProps) {
   const intl = useAppIntl();
   const router = useRouter();
   const room = useRoomContext();
@@ -128,6 +129,7 @@ export function MeetingRoomContent({ joinToken }: MeetingRoomContentProps) {
 
       <MeetingRoomFooter
         activePanel={activePanel}
+        settings={settings}
         onPanelChange={setActivePanel}
         onLeave={handleLeave}
       />
