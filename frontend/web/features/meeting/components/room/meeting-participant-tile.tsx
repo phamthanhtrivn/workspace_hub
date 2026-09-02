@@ -5,12 +5,11 @@ import {
   isTrackReference,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, User } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
 import {
-  getInitials,
   getRoleLabelId,
   parseParticipantMetadata,
 } from "../../utils/meeting-room.utils";
@@ -61,13 +60,10 @@ export function MeetingParticipantTile({
               style={{ backgroundImage: `url("${avatarUrl}")` }}
             />
           ) : (
-            <span className="grid h-24 w-24 place-items-center rounded-full bg-white/12 text-3xl font-black text-white ring-1 ring-white/14">
-              {getInitials(displayName)}
+            <span className="grid h-24 w-24 place-items-center rounded-full bg-white/12 text-white ring-1 ring-white/14">
+              <User className="h-11 w-11 text-slate-300" />
             </span>
           )}
-          <p className="text-sm font-bold text-slate-300">
-            {intl.formatMessage({ id: "meeting.room.cameraPaused" })}
-          </p>
         </div>
       )}
 

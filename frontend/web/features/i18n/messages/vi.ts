@@ -643,8 +643,7 @@
   "meeting.creating.title": "Đang tạo phòng họp",
   "meeting.creating.description":
     "Đang chuẩn bị phòng LiveKit và mở trong tab mới.",
-  "meeting.room.title": "Cuộc họp tức thì Workspace",
-  "meeting.room.token": "Phòng {token}",
+  "meeting.room.title": "Cuộc họp tức thì",
   "meeting.room.joining": "Đang vào phòng họp",
   "meeting.room.joinFailed": "Không thể vào phòng họp",
   "meeting.room.joinFailedDescription":
@@ -653,7 +652,6 @@
   "meeting.room.statusConnected": "Đã kết nối",
   "meeting.room.statusConnecting": "Đang kết nối",
   "meeting.room.statusReconnecting": "Đang kết nối lại",
-  "meeting.room.cameraPaused": "Camera đã tạm dừng",
   "meeting.room.participant.you": "Bạn",
   "meeting.room.participant.host": "Chủ phòng",
   "meeting.room.participant.guest": "Khách",

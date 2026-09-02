@@ -81,12 +81,6 @@ export function MeetingRoomContent({ joinToken }: MeetingRoomContentProps) {
             <h1 className="truncate text-sm font-black sm:text-base">
               {intl.formatMessage({ id: "meeting.room.title" })}
             </h1>
-            <p className="truncate text-xs font-semibold text-slate-400">
-              {intl.formatMessage(
-                { id: "meeting.room.token" },
-                { token: joinToken },
-              )}
-            </p>
           </div>
         </div>
 

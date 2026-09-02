@@ -648,8 +648,7 @@
   "meeting.creating.title": "Creating meeting room",
   "meeting.creating.description":
     "Preparing the LiveKit room and opening it in a new tab.",
-  "meeting.room.title": "Workspace instant meeting",
-  "meeting.room.token": "Room {token}",
+  "meeting.room.title": "Instant meeting",
   "meeting.room.joining": "Joining meeting",
   "meeting.room.joinFailed": "Could not join meeting",
   "meeting.room.joinFailedDescription":
@@ -658,7 +657,6 @@
   "meeting.room.statusConnected": "Connected",
   "meeting.room.statusConnecting": "Connecting",
   "meeting.room.statusReconnecting": "Reconnecting",
-  "meeting.room.cameraPaused": "Camera paused",
   "meeting.room.participant.you": "You",
   "meeting.room.participant.host": "Host",
   "meeting.room.participant.guest": "Guest",
