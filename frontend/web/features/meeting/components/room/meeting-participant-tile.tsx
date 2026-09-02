@@ -3,6 +3,7 @@
 import {
   VideoTrack,
   isTrackReference,
+  useIsSpeaking,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
 import { Mic, MicOff, User } from "lucide-react";
@@ -26,6 +27,7 @@ export function MeetingParticipantTile({
   const intl = useAppIntl();
   const authUser = useAppSelector((state) => state.auth);
   const participant = trackRef.participant;
+  const isSpeaking = useIsSpeaking(participant);
   const metadata = parseParticipantMetadata(participant);
   const isLocalUser = participant.isLocal;
   const displayName =
@@ -44,7 +46,10 @@ export function MeetingParticipantTile({
   return (
     <article
       className={cn(
-        "relative flex min-h-[220px] overflow-hidden rounded-lg border border-white/10 bg-[#121a28] shadow-[0_18px_48px_rgba(0,0,0,0.24)]",
+        "relative flex min-h-[220px] overflow-hidden rounded-lg border border-white/10 bg-[#121a28] shadow-[0_18px_48px_rgba(0,0,0,0.24)] transition-[border-color,box-shadow] duration-200",
+        isSpeaking
+          ? "border-emerald-300/70 shadow-[0_0_0_1px_rgba(110,231,183,0.42),0_0_34px_rgba(16,185,129,0.36),0_18px_48px_rgba(0,0,0,0.24)] ring-2 ring-emerald-300/45"
+          : "",
         isMainTile ? "lg:col-span-2 lg:row-span-2" : "",
       )}
     >
