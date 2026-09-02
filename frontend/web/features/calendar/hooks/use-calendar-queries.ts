@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   cancelCalendarEvent,
   createCalendar,
@@ -33,6 +38,7 @@ export function useCalendarCalendars() {
   return useQuery({
     queryKey: calendarKeys.calendars,
     queryFn: getCalendars,
+    staleTime: 60_000,
   });
 }
 
@@ -80,6 +86,8 @@ export function useCalendarEvents(filters: CalendarEventFilters) {
     queryKey: calendarKeys.events(filters),
     queryFn: () => getCalendarEvents(filters),
     enabled: Boolean(filters.startAt && filters.endAt),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
   });
 }
 
@@ -88,6 +96,7 @@ export function useCalendarEvent(eventId?: string | null) {
     queryKey: calendarKeys.event(eventId || ""),
     queryFn: () => getCalendarEvent(eventId!),
     enabled: Boolean(eventId),
+    staleTime: 30_000,
   });
 }
 

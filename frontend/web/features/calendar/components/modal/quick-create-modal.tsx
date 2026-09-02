@@ -1,28 +1,19 @@
 "use client";
 
-import {
-  AlignLeft,
-  CalendarDays,
-  ChevronDown,
-  ListTodo,
-  MapPin,
-  Paperclip,
-  Target,
-  Users,
-  Video,
-  X,
-} from "lucide-react";
-import { FormEventHandler, useEffect, useState } from "react";
+import { AlignLeft, CalendarDays, ChevronDown, X } from "lucide-react";
+import { FormEventHandler, useRef } from "react";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useModalDialog } from "../../hooks/use-modal-dialog";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
 import {
   CalendarEventAttendeePayload,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
-import { getDateInputValue } from "../../utils/calendar-date.utils";
 import { CalendarRecurrencePreset } from "../../utils/calendar-recurrence.utils";
-import { AttendeePicker } from "../workspace/attendee-picker";
+import { QuickCreateAppointmentFields } from "./quick-create-appointment-fields";
+import { QuickCreateEventFields } from "./quick-create-event-fields";
+import { QuickCreateTaskFields } from "./quick-create-task-fields";
 import {
   QuickCreateKind,
   QuickCreateTimeSection,
@@ -31,12 +22,21 @@ import {
 
 export type { QuickCreateKind } from "./quick-create-time-section";
 
+interface QuickCreateTimeEditor {
+  recurrencePreset: CalendarRecurrencePreset;
+  recurrenceOptions: Array<{ value: string; label: string }>;
+  onStartDateChange: (date: string) => void;
+  onStartTimeChange: (time: string) => void;
+  onEndDateTimeChange: (dateTime: string) => void;
+  onAllDayChange: (checked: boolean) => void;
+  onRecurrenceChange: (preset: CalendarRecurrencePreset) => void;
+}
+
 interface QuickCreateModalProps {
   form: UseFormReturn<CalendarEventEditorValues>;
   calendars: WorkspaceCalendar[];
   kind: QuickCreateKind;
-  recurrencePreset: CalendarRecurrencePreset;
-  recurrenceOptions: Array<{ value: string; label: string }>;
+  timeEditor: QuickCreateTimeEditor;
   attendees: CalendarEventAttendeePayload[];
   submitting?: boolean;
   onKindChange: (kind: QuickCreateKind) => void;
@@ -46,19 +46,19 @@ interface QuickCreateModalProps {
   onSubmitEvent: FormEventHandler<HTMLFormElement>;
   onSubmitUiOnly: (kind: Exclude<QuickCreateKind, "event">) => void;
   onUnavailableFeature: (feature: "conference") => void;
-  onStartDateChange: (date: string) => void;
-  onStartTimeChange: (time: string) => void;
-  onEndDateTimeChange: (dateTime: string) => void;
-  onAllDayChange: (checked: boolean) => void;
-  onRecurrenceChange: (preset: CalendarRecurrencePreset) => void;
 }
+
+const QUICK_CREATE_TABS: Array<{ value: QuickCreateKind; labelId: string }> = [
+  { value: "event", labelId: "calendar.quick.event" },
+  { value: "task", labelId: "calendar.quick.task" },
+  { value: "appointment", labelId: "calendar.quick.appointment" },
+];
 
 export function QuickCreateModal({
   form,
   calendars,
   kind,
-  recurrencePreset,
-  recurrenceOptions,
+  timeEditor,
   attendees,
   submitting,
   onKindChange,
@@ -68,34 +68,19 @@ export function QuickCreateModal({
   onSubmitEvent,
   onSubmitUiOnly,
   onUnavailableFeature,
-  onStartDateChange,
-  onStartTimeChange,
-  onEndDateTimeChange,
-  onAllDayChange,
-  onRecurrenceChange,
 }: QuickCreateModalProps) {
   const intl = useAppIntl();
+  const dialogRef = useRef<HTMLFormElement>(null);
   const { control, formState, getValues, register } = form;
   const startAt = useWatch({ control, name: "startAt" });
   const calendarId = useWatch({ control, name: "calendarId" });
   const reminders = useWatch({ control, name: "reminders" });
-  const [taskDeadline, setTaskDeadline] = useState(getDateInputValue(startAt));
-  const [taskList, setTaskList] = useState("my-tasks");
-  const [taskFiles, setTaskFiles] = useState<string[]>([]);
-  const [appointmentDuration, setAppointmentDuration] = useState("30");
   const selectedCalendar =
-    calendars.find((calendar) => calendar.id === calendarId) || calendars[0];
+    calendars.find((calendar) => calendar.id === calendarId) ?? calendars[0];
+  useModalDialog({ dialogRef, onClose });
 
-  useEffect(() => {
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [onClose]);
-
-  const submitUiOnly: FormEventHandler<HTMLFormElement> = (event) => {
-    event.preventDefault();
+  const submitUiOnly: FormEventHandler<HTMLFormElement> = (submitEvent) => {
+    submitEvent.preventDefault();
     if (!getValues("title").trim()) {
       form.setError("title", { message: "calendar.requiredFields" });
       return;
@@ -103,15 +88,10 @@ export function QuickCreateModal({
     onSubmitUiOnly(kind as Exclude<QuickCreateKind, "event">);
   };
 
-  const tabItems: Array<{ value: QuickCreateKind; labelId: string }> = [
-    { value: "event", labelId: "calendar.quick.event" },
-    { value: "task", labelId: "calendar.quick.task" },
-    { value: "appointment", labelId: "calendar.quick.appointment" },
-  ];
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/35 p-3 backdrop-blur-[1px] sm:p-5">
       <form
+        ref={dialogRef}
         onSubmit={kind === "event" ? onSubmitEvent : submitUiOnly}
         role="dialog"
         aria-modal="true"
@@ -136,8 +116,8 @@ export function QuickCreateModal({
         <div className="shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
           <input
             {...register("title")}
+            data-modal-initial-focus
             id="calendar-quick-create-title"
-            autoFocus
             aria-label={intl.formatMessage({ id: "calendar.quick.addTitle" })}
             placeholder={intl.formatMessage({ id: "calendar.quick.addTitle" })}
             aria-invalid={Boolean(formState.errors.title)}
@@ -150,7 +130,7 @@ export function QuickCreateModal({
           )}
 
           <div className="ml-10 mt-3 flex flex-wrap gap-1.5" role="tablist">
-            {tabItems.map((tab) => (
+            {QUICK_CREATE_TABS.map((tab) => (
               <button
                 key={tab.value}
                 type="button"
@@ -171,119 +151,21 @@ export function QuickCreateModal({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3 sm:px-7">
           <div className="mt-4 space-y-2.5">
-            <QuickCreateTimeSection
-              form={form}
-              kind={kind}
-              recurrencePreset={recurrencePreset}
-              recurrenceOptions={recurrenceOptions}
-              onStartDateChange={onStartDateChange}
-              onStartTimeChange={onStartTimeChange}
-              onEndDateTimeChange={onEndDateTimeChange}
-              onAllDayChange={onAllDayChange}
-              onRecurrenceChange={onRecurrenceChange}
-            />
+            <QuickCreateTimeSection form={form} kind={kind} {...timeEditor} />
 
             {kind === "event" && (
-              <>
-                <QuickRow icon={<Users className="h-5 w-5" />}>
-                  <AttendeePicker
-                    compact
-                    attendees={attendees}
-                    onChange={onAttendeesChange}
-                  />
-                </QuickRow>
-                <QuickRow icon={<Video className="h-5 w-5" />}>
-                  <button
-                    type="button"
-                    onClick={() => onUnavailableFeature("conference")}
-                    className="w-full cursor-pointer rounded-lg px-2 py-2.5 text-left text-sm text-slate-600 transition hover:bg-slate-200/60"
-                  >
-                    {intl.formatMessage({ id: "calendar.quick.addConference" })}
-                  </button>
-                </QuickRow>
-                <QuickRow icon={<MapPin className="h-5 w-5" />}>
-                  <input
-                    {...register("location")}
-                    aria-label={intl.formatMessage({ id: "calendar.location" })}
-                    placeholder={intl.formatMessage({ id: "calendar.quick.addLocation" })}
-                    className="w-full rounded-lg border-0 bg-transparent px-2 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-600 hover:bg-slate-200/60 focus:bg-white"
-                  />
-                </QuickRow>
-              </>
+              <QuickCreateEventFields
+                attendees={attendees}
+                onAttendeesChange={onAttendeesChange}
+                onUnavailableConference={() =>
+                  onUnavailableFeature("conference")
+                }
+                register={register}
+              />
             )}
-
-            {kind === "task" && (
-              <>
-                <QuickRow icon={<Target className="h-5 w-5" />}>
-                  <label className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-200/60">
-                    <span className="text-sm text-slate-600">
-                      {intl.formatMessage({ id: "calendar.quick.deadline" })}
-                    </span>
-                    <input
-                      type="date"
-                      aria-label={intl.formatMessage({ id: "calendar.quick.deadline" })}
-                      value={taskDeadline}
-                      onChange={(event) => setTaskDeadline(event.target.value)}
-                      className="min-w-0 flex-1 border-0 bg-transparent text-sm text-slate-700 outline-none"
-                    />
-                  </label>
-                </QuickRow>
-                <QuickRow icon={<ListTodo className="h-5 w-5" />}>
-                  <select
-                    value={taskList}
-                    aria-label={intl.formatMessage({ id: "calendar.quick.myTasks" })}
-                    onChange={(event) => setTaskList(event.target.value)}
-                    className="w-full cursor-pointer rounded-lg border-0 bg-slate-200 px-3 py-2.5 text-sm text-slate-700 outline-none"
-                  >
-                    <option value="my-tasks">
-                      {intl.formatMessage({ id: "calendar.quick.myTasks" })}
-                    </option>
-                    <option value="project-tasks">
-                      {intl.formatMessage({ id: "calendar.quick.projectTasks" })}
-                    </option>
-                  </select>
-                </QuickRow>
-              </>
-            )}
-
+            {kind === "task" && <QuickCreateTaskFields startAt={startAt} />}
             {kind === "appointment" && (
-              <>
-                <QuickRow icon={<Target className="h-5 w-5" />}>
-                  <label className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-slate-200/60">
-                    <span className="text-sm text-slate-600">
-                      {intl.formatMessage({ id: "calendar.quick.duration" })}
-                    </span>
-                    <select
-                      value={appointmentDuration}
-                      aria-label={intl.formatMessage({ id: "calendar.quick.duration" })}
-                      onChange={(event) => setAppointmentDuration(event.target.value)}
-                      className="cursor-pointer border-0 bg-transparent text-sm text-slate-700 outline-none"
-                    >
-                      {[15, 30, 45, 60].map((minutes) => (
-                        <option key={minutes} value={minutes}>
-                          {intl.formatMessage(
-                            { id: "calendar.quick.minutes" },
-                            { minutes },
-                          )}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </QuickRow>
-                <QuickRow icon={<Users className="h-5 w-5" />}>
-                  <p className="rounded-lg px-2 py-2.5 text-sm text-slate-600">
-                    {intl.formatMessage({ id: "calendar.quick.bookingPage" })}
-                  </p>
-                </QuickRow>
-                <QuickRow icon={<MapPin className="h-5 w-5" />}>
-                  <input
-                    {...register("location")}
-                    aria-label={intl.formatMessage({ id: "calendar.location" })}
-                    placeholder={intl.formatMessage({ id: "calendar.quick.addLocation" })}
-                    className="w-full rounded-lg border-0 bg-transparent px-2 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-600 hover:bg-slate-200/60 focus:bg-white"
-                  />
-                </QuickRow>
-              </>
+              <QuickCreateAppointmentFields register={register} />
             )}
 
             <QuickRow icon={<AlignLeft className="h-5 w-5" />}>
@@ -301,34 +183,6 @@ export function QuickCreateModal({
               />
             </QuickRow>
 
-            {kind === "task" && (
-              <QuickRow icon={<Paperclip className="h-5 w-5" />}>
-                <label className="block cursor-pointer rounded-lg px-2 py-2.5 text-sm text-slate-600 transition hover:bg-slate-200/60">
-                  <input
-                    type="file"
-                    multiple
-                    className="sr-only"
-                    aria-label={intl.formatMessage({ id: "calendar.quick.addFile" })}
-                    onChange={(event) =>
-                      setTaskFiles(
-                        Array.from(event.target.files || []).map(
-                          (file) => file.name,
-                        ),
-                      )
-                    }
-                  />
-                  <span className="font-medium">
-                    {intl.formatMessage({ id: "calendar.quick.addFile" })}
-                  </span>
-                  {taskFiles.length > 0 && (
-                    <span className="mt-1 block truncate text-xs text-slate-500">
-                      {taskFiles.join(", ")}
-                    </span>
-                  )}
-                </label>
-              </QuickRow>
-            )}
-
             <QuickRow icon={<CalendarDays className="h-5 w-5" />}>
               <div className="rounded-lg px-2 py-2 hover:bg-slate-200/50">
                 <div className="flex items-center gap-2">
@@ -345,7 +199,9 @@ export function QuickCreateModal({
                   </select>
                   <span
                     className="h-3.5 w-3.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: selectedCalendar?.color || "#2563eb" }}
+                    style={{
+                      backgroundColor: selectedCalendar?.color || "#2563eb",
+                    }}
                   />
                 </div>
                 <p className="mt-0.5 truncate text-xs text-slate-500">

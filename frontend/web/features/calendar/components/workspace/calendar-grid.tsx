@@ -19,7 +19,7 @@ import {
   CALENDAR_SLOT_MAX_TIME,
   CALENDAR_SLOT_MIN_TIME,
 } from "../../types/calendar.constants";
-import { CalendarEventMoveInfo } from "../../hooks/use-calendar-workspace";
+import { CalendarEventMoveInfo } from "../../hooks/calendar-workspace.types";
 import { EventSourceType } from "../../types/calendar.types";
 
 export function CalendarGrid({

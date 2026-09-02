@@ -9,6 +9,10 @@ import {
 } from '@prisma/client';
 import { CalendarEventService } from './calendar-event.service';
 import { RecurrenceScope } from '../../common/enums/calendar.enum';
+import { EventAccessPolicy } from './event-access.policy';
+import { EventMapper } from './event.mapper';
+import { EventRelationService } from './event-relation.service';
+import { RecurrenceMutationService } from './recurrence-mutation.service';
 
 describe('CalendarEventService', () => {
   const ownerId = '11111111-1111-1111-1111-111111111111';
@@ -164,12 +168,25 @@ describe('CalendarEventService', () => {
       assertProjectAccess: jest.fn(),
     };
 
+    const accessPolicy = new EventAccessPolicy(prisma as any);
+    const mapper = new EventMapper();
+    const relations = new EventRelationService();
+    const recurrenceMutations = new RecurrenceMutationService(
+      prisma as any,
+      recurrence as any,
+      relations,
+    );
+
     return {
       service: new CalendarEventService(
         prisma as any,
         userProfiles as any,
         recurrence as any,
         resourceAccess as any,
+        accessPolicy,
+        mapper,
+        relations,
+        recurrenceMutations,
       ),
       prisma,
       tx,
