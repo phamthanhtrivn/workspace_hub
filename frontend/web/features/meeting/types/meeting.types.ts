@@ -63,3 +63,8 @@ export enum MeetingRoomPanel {
   CHAT = "chat",
   SETTINGS = "settings",
 }
+
+export interface ParticipantMetadata {
+  role?: string;
+  avatarUrl?: string | null;
+}

@@ -1,7 +1,6 @@
 import type { Participant } from "livekit-client";
 import { ConnectionState } from "livekit-client";
-import type { MeetingPreJoinSettings } from "../types/meeting.types";
-import type { ParticipantMetadata } from "../types/meeting-room.types";
+import type { MeetingPreJoinSettings, ParticipantMetadata } from "../types/meeting.types";
 
 export function formatElapsedTime(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
