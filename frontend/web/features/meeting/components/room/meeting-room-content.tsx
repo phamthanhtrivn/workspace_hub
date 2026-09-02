@@ -13,7 +13,10 @@ import { Track } from "livekit-client";
 import { Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
-import type { MeetingPreJoinSettings } from "../../types/meeting.types";
+import type {
+  MeetingParticipantRole,
+  MeetingPreJoinSettings,
+} from "../../types/meeting.types";
 import { MeetingRoomPanel } from "../../types/meeting.types";
 import {
   formatElapsedTime,
@@ -21,16 +24,20 @@ import {
 } from "../../utils/meeting-room.utils";
 import { MeetingParticipantTile } from "./meeting-participant-tile";
 import { MeetingRoomFooter } from "./meeting-room-footer";
-import {
-  MeetingRoomDesktopSidePanel,
-  MeetingRoomMobilePanelHeader,
-} from "./meeting-room-side-panel";
+import { MeetingRoomDesktopSidePanel } from "./side-panel/meeting-room-desktop-side-panel";
+import { MeetingRoomMobilePanelHeader } from "./side-panel/meeting-room-mobile-panel";
 
 interface MeetingRoomContentProps {
+  joinToken: string;
+  participantRole: MeetingParticipantRole;
   settings: MeetingPreJoinSettings;
 }
 
-export function MeetingRoomContent({ settings }: MeetingRoomContentProps) {
+export function MeetingRoomContent({
+  joinToken,
+  participantRole,
+  settings,
+}: MeetingRoomContentProps) {
   const intl = useAppIntl();
   const router = useRouter();
   const room = useRoomContext();
@@ -122,6 +129,8 @@ export function MeetingRoomContent({ settings }: MeetingRoomContentProps) {
 
         <MeetingRoomDesktopSidePanel
           activePanel={activePanel}
+          joinToken={joinToken}
+          participantRole={participantRole}
           participantCount={participants.length}
           onClose={closePanel}
         />
@@ -136,6 +145,9 @@ export function MeetingRoomContent({ settings }: MeetingRoomContentProps) {
 
       <MeetingRoomMobilePanelHeader
         activePanel={activePanel}
+        joinToken={joinToken}
+        participantRole={participantRole}
+        participantCount={participants.length}
         onClose={closePanel}
       />
 

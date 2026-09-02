@@ -1,6 +1,6 @@
 import type { Participant } from "livekit-client";
 import { ConnectionState } from "livekit-client";
-import type { MeetingPreJoinSettings, ParticipantMetadata } from "../types/meeting.types";
+import { MeetingPreJoinSettings, MeetingRoomPanel, ParticipantMetadata } from "../types/meeting.types";
 
 export function formatElapsedTime(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
@@ -68,4 +68,16 @@ export function getVideoSetting(settings: MeetingPreJoinSettings) {
   return {
     deviceId: settings.cameraDeviceId || undefined,
   };
+}
+
+export function getPanelTitleLabelId(activePanel: MeetingRoomPanel) {
+  if (activePanel === MeetingRoomPanel.PARTICIPANTS) {
+    return "meeting.room.panel.participants";
+  }
+
+  if (activePanel === MeetingRoomPanel.CHAT) {
+    return "meeting.room.panel.chat";
+  }
+
+  return "meeting.room.panel.settings";
 }

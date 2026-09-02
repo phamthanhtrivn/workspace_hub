@@ -64,6 +64,24 @@ export enum MeetingRoomPanel {
   SETTINGS = "settings",
 }
 
+export interface MeetingRoomSidePanelProps {
+  activePanel: MeetingRoomPanel;
+  joinToken: string;
+  participantRole: MeetingParticipantRole;
+  participantCount: number;
+  onClose: () => void;
+}
+
+export type MeetingRoomPanelContentProps = Pick<
+  MeetingRoomSidePanelProps,
+  "activePanel" | "joinToken" | "participantRole" | "participantCount"
+>;
+
+export type MeetingRoomSettingsPanelProps = Pick<
+  MeetingRoomSidePanelProps,
+  "joinToken" | "participantRole" | "participantCount"
+>;
+
 export interface ParticipantMetadata {
   role?: string;
   avatarUrl?: string | null;

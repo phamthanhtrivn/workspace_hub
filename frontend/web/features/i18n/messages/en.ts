@@ -678,6 +678,11 @@
   "meeting.room.panel.settings": "Room settings",
   "meeting.room.panel.chatEmpty": "Meeting chat is not available yet.",
   "meeting.room.panel.chatInput": "Messages are coming soon",
+  "meeting.room.share.title": "Invite link",
+  "meeting.room.share.linkLabel": "Meeting invite link",
+  "meeting.room.share.copy": "Copy invite link",
+  "meeting.room.share.copied": "Meeting link copied",
+  "meeting.room.share.copyFailed": "Could not copy meeting link",
   "meeting.room.panel.autoAdminTitle": "Auto admin is enabled",
   "meeting.room.panel.autoAdminDescription":
     "{count, plural, one {# participant is connected} other {# participants are connected}}.",

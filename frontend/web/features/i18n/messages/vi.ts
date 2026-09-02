@@ -673,6 +673,11 @@
   "meeting.room.panel.settings": "Cài đặt phòng",
   "meeting.room.panel.chatEmpty": "Chat cuộc họp chưa khả dụng.",
   "meeting.room.panel.chatInput": "Tin nhắn sắp có",
+  "meeting.room.share.title": "Liên kết mời",
+  "meeting.room.share.linkLabel": "Liên kết mời vào cuộc họp",
+  "meeting.room.share.copy": "Sao chép liên kết mời",
+  "meeting.room.share.copied": "Đã sao chép liên kết cuộc họp",
+  "meeting.room.share.copyFailed": "Không thể sao chép liên kết cuộc họp",
   "meeting.room.panel.autoAdminTitle": "Auto admin đang bật",
   "meeting.room.panel.autoAdminDescription":
     "{count, plural, one {# thành viên đang kết nối} other {# thành viên đang kết nối}}.",

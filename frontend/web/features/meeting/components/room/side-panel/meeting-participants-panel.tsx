@@ -3,11 +3,7 @@
 import { useParticipants } from "@livekit/components-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
-import {
-  getInitials,
-  getRoleLabelId,
-  parseParticipantMetadata,
-} from "../../utils/meeting-room.utils";
+import { getInitials, getRoleLabelId, parseParticipantMetadata } from "@/features/meeting/utils/meeting-room.utils";
 
 export function MeetingParticipantsPanel() {
   const intl = useAppIntl();

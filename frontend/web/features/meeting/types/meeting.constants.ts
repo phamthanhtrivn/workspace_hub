@@ -3,7 +3,6 @@ import {
   History,
   Mic,
   MessageSquareText,
-  MonitorUp,
   Plus,
   Radio,
   Settings,
@@ -12,6 +11,12 @@ import {
   Video,
 } from "lucide-react";
 import { MeetingRoomPanel } from "./meeting.types";
+
+export enum PARTICIPANT_ROLE {
+  HOST = "HOST",
+  COHOST = "COHOST",
+  PARTICIPANT = "PARTICIPANT",
+}
 
 export enum MeetingDashboardNavItemId {
   OVERVIEW = "overview",
@@ -117,11 +122,6 @@ export const meetingRoomControlItems = [
     id: MeetingRoomPanel.CHAT,
     labelId: "meeting.room.control.chat",
     icon: MessageSquareText,
-  },
-  {
-    id: "share",
-    labelId: "meeting.room.control.share",
-    icon: MonitorUp,
   },
   {
     id: MeetingRoomPanel.SETTINGS,

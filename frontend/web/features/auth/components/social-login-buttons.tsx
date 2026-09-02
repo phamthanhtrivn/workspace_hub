@@ -10,12 +10,12 @@ import { setCredentials } from "@/store/auth/auth-slice";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { AppDispatch } from "@/store/store";
 import { useSocialLoginMutation } from "../hooks/useAuthMutations";
-import {
-  AuthProvider,
-  AuthRouteTarget,
-  USER_ROLES,
-} from "../types/auth.constants";
+import { AuthProvider } from "../types/auth.constants";
 import { getAuthErrorMessage } from "../utils/auth-error";
+import {
+  getAuthenticatedHomePath,
+  getReturnToFromSearch,
+} from "../utils/auth-redirect";
 
 const SocialLoginButtons = React.memo(function SocialLoginButtons() {
   const intl = useAppIntl();
@@ -50,9 +50,8 @@ const SocialLoginButtons = React.memo(function SocialLoginButtons() {
                 intl.formatMessage({ id: "auth.googleSignInSuccess" }),
             );
             router.replace(
-              data.role === USER_ROLES.ADMIN
-                ? AuthRouteTarget.ADMIN_HOME
-                : AuthRouteTarget.USER_DASHBOARD,
+              getReturnToFromSearch(window.location.search) ??
+                getAuthenticatedHomePath(data.role),
             );
           },
           onError: (error) => {
