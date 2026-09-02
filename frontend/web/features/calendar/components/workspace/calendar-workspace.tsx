@@ -109,6 +109,7 @@ export function CalendarWorkspace() {
             <CalendarGrid
               calendarRef={calendarRef}
               events={calendar.fullCalendarEvents}
+              timeZone={calendar.displayTimeZone}
               loading={calendar.loading}
               onDatesSet={calendar.handleDatesSet}
               onSelect={calendar.handleSelect}

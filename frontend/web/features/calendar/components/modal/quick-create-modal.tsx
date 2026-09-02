@@ -4,7 +4,6 @@ import {
   AlignLeft,
   CalendarDays,
   ChevronDown,
-  Clock3,
   ListTodo,
   MapPin,
   Paperclip,
@@ -13,7 +12,7 @@ import {
   Video,
   X,
 } from "lucide-react";
-import { FormEventHandler, useEffect, useMemo, useState } from "react";
+import { FormEventHandler, useEffect, useState } from "react";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
@@ -21,19 +20,16 @@ import {
   CalendarEventAttendeePayload,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
-import {
-  getDateInputValue,
-  getTimeInputValue,
-} from "../../utils/calendar-date.utils";
+import { getDateInputValue } from "../../utils/calendar-date.utils";
 import { CalendarRecurrencePreset } from "../../utils/calendar-recurrence.utils";
-import {
-  createEndTimeOptions,
-  createStartTimeOptions,
-} from "../../utils/calendar-time-options";
 import { AttendeePicker } from "../workspace/attendee-picker";
-import { CalendarSelect } from "./calendar-select";
+import {
+  QuickCreateKind,
+  QuickCreateTimeSection,
+  QuickRow,
+} from "./quick-create-time-section";
 
-export type QuickCreateKind = "event" | "task" | "appointment";
+export type { QuickCreateKind } from "./quick-create-time-section";
 
 interface QuickCreateModalProps {
   form: UseFormReturn<CalendarEventEditorValues>;
@@ -55,23 +51,6 @@ interface QuickCreateModalProps {
   onEndDateTimeChange: (dateTime: string) => void;
   onAllDayChange: (checked: boolean) => void;
   onRecurrenceChange: (preset: CalendarRecurrencePreset) => void;
-}
-
-function QuickRow({
-  icon,
-  children,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3">
-      <span className="mt-2 grid h-8 w-8 place-items-center text-slate-600">
-        {icon}
-      </span>
-      <div className="min-w-0">{children}</div>
-    </div>
-  );
 }
 
 export function QuickCreateModal({
@@ -97,10 +76,7 @@ export function QuickCreateModal({
 }: QuickCreateModalProps) {
   const intl = useAppIntl();
   const { control, formState, getValues, register } = form;
-  const allDayRegistration = register("allDay");
   const startAt = useWatch({ control, name: "startAt" });
-  const endAt = useWatch({ control, name: "endAt" });
-  const allDay = useWatch({ control, name: "allDay" });
   const calendarId = useWatch({ control, name: "calendarId" });
   const reminders = useWatch({ control, name: "reminders" });
   const [taskDeadline, setTaskDeadline] = useState(getDateInputValue(startAt));
@@ -109,22 +85,6 @@ export function QuickCreateModal({
   const [appointmentDuration, setAppointmentDuration] = useState("30");
   const selectedCalendar =
     calendars.find((calendar) => calendar.id === calendarId) || calendars[0];
-  const startTime = getTimeInputValue(startAt);
-  const startTimeOptions = useMemo(
-    () => createStartTimeOptions(intl.locale, startTime),
-    [intl.locale, startTime],
-  );
-  const endTimeOptions = useMemo(
-    () => createEndTimeOptions(startAt, endAt, intl.locale),
-    [endAt, intl.locale, startAt],
-  );
-  const selectedEndTimeLabel = useMemo(
-    () =>
-      endTimeOptions
-        .find((option) => option.value === endAt)
-        ?.label.replace(/\s+\(.+\)$/, ""),
-    [endAt, endTimeOptions],
-  );
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -211,82 +171,17 @@ export function QuickCreateModal({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-3 sm:px-7">
           <div className="mt-4 space-y-2.5">
-            <QuickRow icon={<Clock3 className="h-5 w-5" />}>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-1 py-1.5 hover:bg-slate-200/50">
-                <input
-                  type="date"
-                  aria-label={intl.formatMessage({ id: "calendar.start" })}
-                  value={getDateInputValue(startAt)}
-                  onChange={(event) => onStartDateChange(event.target.value)}
-                  className="h-8 cursor-pointer border-0 bg-transparent text-sm font-medium text-slate-700 outline-none"
-                />
-                {!allDay && (
-                  <>
-                    <CalendarSelect
-                      value={startTime}
-                      options={startTimeOptions}
-                      ariaLabel={intl.formatMessage({ id: "calendar.start" })}
-                      onChange={onStartTimeChange}
-                      triggerClassName="h-8 min-w-[6.6rem] bg-slate-200/80 px-2.5"
-                      popupClassName="min-w-[11.75rem]"
-                    />
-                    {kind !== "appointment" && (
-                      <>
-                        <span className="text-sm text-slate-500">-</span>
-                        <CalendarSelect
-                          value={endAt}
-                          options={endTimeOptions}
-                          ariaLabel={intl.formatMessage({ id: "calendar.end" })}
-                          onChange={onEndDateTimeChange}
-                          triggerLabel={selectedEndTimeLabel}
-                          triggerClassName="h-8 min-w-[6.6rem] bg-slate-200/80 px-2.5"
-                          popupClassName="min-w-[11.75rem]"
-                        />
-                      </>
-                    )}
-                  </>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2 text-xs text-slate-500">
-                <label className="inline-flex cursor-pointer items-center gap-1.5">
-                  <input
-                    {...allDayRegistration}
-                    type="checkbox"
-                    aria-label={intl.formatMessage({ id: "calendar.allDay" })}
-                    checked={allDay}
-                    onChange={(event) => {
-                      void allDayRegistration.onChange(event);
-                      onAllDayChange(event.target.checked);
-                    }}
-                    className="h-3.5 w-3.5 rounded border-slate-300"
-                  />
-                  {intl.formatMessage({ id: "calendar.allDay" })}
-                </label>
-                {kind === "event" && (
-                  <>
-                    <span>·</span>
-                    <span>
-                      {intl.formatMessage({ id: "calendar.quick.timeZone" })}
-                    </span>
-                  </>
-                )}
-              </div>
-              {kind !== "appointment" && (
-                <div className="mt-1 px-1">
-                  <CalendarSelect
-                    value={recurrencePreset}
-                    options={recurrenceOptions}
-                    ariaLabel={intl.formatMessage({ id: "calendar.recurrence" })}
-                    onChange={(value) =>
-                      onRecurrenceChange(value as CalendarRecurrencePreset)
-                    }
-                    alignItemWithTrigger={false}
-                    triggerClassName="h-9 min-w-[10.5rem] justify-between bg-slate-200/80 px-3 text-slate-600"
-                    popupClassName="min-w-[15.5rem]"
-                  />
-                </div>
-              )}
-            </QuickRow>
+            <QuickCreateTimeSection
+              form={form}
+              kind={kind}
+              recurrencePreset={recurrencePreset}
+              recurrenceOptions={recurrenceOptions}
+              onStartDateChange={onStartDateChange}
+              onStartTimeChange={onStartTimeChange}
+              onEndDateTimeChange={onEndDateTimeChange}
+              onAllDayChange={onAllDayChange}
+              onRecurrenceChange={onRecurrenceChange}
+            />
 
             {kind === "event" && (
               <>

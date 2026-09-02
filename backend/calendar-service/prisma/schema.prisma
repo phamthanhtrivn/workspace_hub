@@ -64,7 +64,8 @@ model Calendar {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  events CalendarEvent[]
+  events           CalendarEvent[]
+  recurrenceSeries RecurrenceSeries[]
 
   @@unique([ownerUserId, projectId])
   @@index([ownerUserId])
@@ -72,7 +73,7 @@ model Calendar {
   @@map("calendars")
 }
 
-model CalendarEvent {
+model RecurrenceSeries {
   id                       String          @id @default(uuid()) @db.Uuid
   calendarId               String          @map("calendar_id") @db.Uuid
   createdBy                String          @map("created_by") @db.Uuid
@@ -86,33 +87,99 @@ model CalendarEvent {
   color                    String?
   status                   EventStatus     @default(CONFIRMED)
   visibility               EventVisibility @default(DEFAULT)
-  recurrenceRule           String?         @map("recurrence_rule")
-  recurrenceParentId       String?         @map("recurrence_parent_id") @db.Uuid
-  originalStartAt          DateTime?       @map("original_start_at") @db.Timestamptz(3)
+  recurrenceRule           String          @map("recurrence_rule")
+  timeZone                 String          @map("time_zone")
   recurrenceGeneratedUntil DateTime?       @map("recurrence_generated_until") @db.Timestamptz(3)
-  isRecurrenceOverride     Boolean         @default(false) @map("is_recurrence_override")
-  sourceType               EventSourceType @default(USER) @map("source_type")
-  sourceId                 String?         @map("source_id") @db.Uuid
   cancelledAt              DateTime?       @map("cancelled_at") @db.Timestamptz(3)
   createdAt                DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  calendar             Calendar                @relation(fields: [calendarId], references: [id], onDelete: Cascade)
-  recurrenceParent     CalendarEvent?          @relation("CalendarEventOccurrences", fields: [recurrenceParentId], references: [id], onDelete: Cascade)
-  occurrences          CalendarEvent[]         @relation("CalendarEventOccurrences")
-  attendees            CalendarEventAttendee[]
-  reminders            Reminder[]
-  documents            CalendarEventDocument[]
-  recurrenceExceptions RecurrenceException[]   @relation("RecurrenceExceptions")
+  calendar   Calendar                   @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  events     CalendarEvent[]
+  attendees  RecurrenceSeriesAttendee[]
+  reminders  RecurrenceSeriesReminder[]
+  documents  RecurrenceSeriesDocument[]
+  exceptions RecurrenceException[]
 
-  @@unique([recurrenceParentId, originalStartAt])
+  @@index([calendarId])
+  @@index([status, recurrenceGeneratedUntil])
+  @@map("recurrence_series")
+}
+
+model CalendarEvent {
+  id                   String          @id @default(uuid()) @db.Uuid
+  calendarId           String          @map("calendar_id") @db.Uuid
+  createdBy            String          @map("created_by") @db.Uuid
+  updatedBy            String?         @map("updated_by") @db.Uuid
+  title                String
+  description          String?
+  location             String?
+  startAt              DateTime        @map("start_at") @db.Timestamptz(3)
+  endAt                DateTime        @map("end_at") @db.Timestamptz(3)
+  allDay               Boolean         @default(false) @map("all_day")
+  color                String?
+  status               EventStatus     @default(CONFIRMED)
+  visibility           EventVisibility @default(DEFAULT)
+  recurrenceSeriesId   String?         @map("recurrence_series_id") @db.Uuid
+  originalStartAt      DateTime?       @map("original_start_at") @db.Timestamptz(3)
+  isRecurrenceOverride Boolean         @default(false) @map("is_recurrence_override")
+  sourceType           EventSourceType @default(USER) @map("source_type")
+  sourceId             String?         @map("source_id") @db.Uuid
+  cancelledAt          DateTime?       @map("cancelled_at") @db.Timestamptz(3)
+  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  calendar         Calendar                @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  recurrenceSeries RecurrenceSeries?       @relation(fields: [recurrenceSeriesId], references: [id], onDelete: Cascade)
+  attendees        CalendarEventAttendee[]
+  reminders        Reminder[]
+  documents        CalendarEventDocument[]
+
+  @@unique([recurrenceSeriesId, originalStartAt])
   @@unique([calendarId, sourceType, sourceId])
   @@index([calendarId, startAt])
   @@index([createdBy])
   @@index([startAt, endAt])
-  @@index([recurrenceParentId, startAt])
+  @@index([recurrenceSeriesId, startAt])
   @@index([sourceType, sourceId])
   @@map("calendar_events")
+}
+
+model RecurrenceSeriesAttendee {
+  seriesId  String   @map("series_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  optional  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  series RecurrenceSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([seriesId, userId])
+  @@index([userId])
+  @@map("recurrence_series_attendees")
+}
+
+model RecurrenceSeriesReminder {
+  seriesId      String         @map("series_id") @db.Uuid
+  minutesBefore Int            @map("minutes_before")
+  method        ReminderMethod
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  series RecurrenceSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([seriesId, method, minutesBefore])
+  @@map("recurrence_series_reminders")
+}
+
+model RecurrenceSeriesDocument {
+  seriesId   String   @map("series_id") @db.Uuid
+  documentId String   @map("document_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  series RecurrenceSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+
+  @@id([seriesId, documentId])
+  @@index([documentId])
+  @@map("recurrence_series_documents")
 }
 
 model CalendarEventAttendee {
@@ -171,7 +238,7 @@ model RecurrenceException {
   type            RecurrenceExceptionType @default(EXCLUDED)
   createdAt       DateTime                @default(now()) @map("created_at") @db.Timestamptz(3)
 
-  series CalendarEvent @relation("RecurrenceExceptions", fields: [seriesId], references: [id], onDelete: Cascade)
+  series RecurrenceSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
 
   @@unique([seriesId, occurrenceStart])
   @@index([seriesId, occurrenceStart])

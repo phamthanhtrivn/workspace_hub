@@ -62,4 +62,21 @@ describe("calendar event form schema", () => {
 
     expect(result.success).toBe(false);
   });
+
+  it("matches backend limits for description and reminder lead time", () => {
+    expect(
+      calendarEventFormSchema.safeParse({
+        ...validForm,
+        description: "a".repeat(2_001),
+      }).success,
+    ).toBe(false);
+    expect(
+      calendarEventFormSchema.safeParse({
+        ...validForm,
+        reminders: [
+          { minutesBefore: 43_201, method: ReminderMethod.ALERT },
+        ],
+      }).success,
+    ).toBe(false);
+  });
 });

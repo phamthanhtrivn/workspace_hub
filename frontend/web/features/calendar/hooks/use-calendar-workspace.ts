@@ -101,6 +101,7 @@ export function useCalendarWorkspace(
 
   const defaultCalendar =
     calendars.find((calendar) => calendar.isDefault) || calendars[0];
+  const displayTimeZone = defaultCalendar?.timeZone || "Asia/Ho_Chi_Minh";
 
   const effectiveSelectedCalendarIds = useMemo(
     () =>
@@ -357,6 +358,7 @@ export function useCalendarWorkspace(
     currentDate,
     detailBusy: cancelEvent.isPending || updateResponse.isPending,
     detailEvent,
+    displayTimeZone,
     draft,
     editingEvent,
     formSubmitting: createEvent.isPending || updateEvent.isPending,

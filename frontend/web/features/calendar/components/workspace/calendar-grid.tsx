@@ -9,6 +9,7 @@ import {
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import listPlugin from "@fullcalendar/list";
+import luxonPlugin from "@fullcalendar/luxon3";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { RefObject } from "react";
@@ -24,6 +25,7 @@ import { EventSourceType } from "../../types/calendar.types";
 export function CalendarGrid({
   calendarRef,
   events,
+  timeZone,
   loading,
   onDatesSet,
   onSelect,
@@ -33,6 +35,7 @@ export function CalendarGrid({
 }: {
   calendarRef: RefObject<FullCalendar | null>;
   events: EventInput[];
+  timeZone: string;
   loading: boolean;
   onDatesSet: (arg: DatesSetArg) => void;
   onSelect: (selection: DateSelectArg) => void;
@@ -51,10 +54,17 @@ export function CalendarGrid({
       )}
       <FullCalendar
         ref={calendarRef}
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+        plugins={[
+          dayGridPlugin,
+          timeGridPlugin,
+          interactionPlugin,
+          listPlugin,
+          luxonPlugin,
+        ]}
         initialView={CALENDAR_INITIAL_VIEW}
         headerToolbar={false}
         locale={intl.locale}
+        timeZone={timeZone}
         firstDay={0}
         height="100%"
         nowIndicator

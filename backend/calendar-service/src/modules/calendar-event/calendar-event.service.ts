@@ -7,7 +7,6 @@ import {
 import {
   AttendeeResponseStatus,
   Calendar,
-  CalendarEvent,
   EventSourceType,
   EventStatus,
   EventVisibility,
@@ -29,12 +28,30 @@ import { ResourceAccessService } from '../../infrastructure/integrations/resourc
 import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
 import { RecurrenceScope } from '../../common/enums/calendar.enum';
 
-type EventWithRelations = CalendarEvent & {
-  calendar: Calendar;
-  attendees: Array<{ userId: string } & Record<string, unknown>>;
-  reminders: Array<Record<string, unknown>>;
-  documents: Array<{ documentId: string }>;
-  recurrenceExceptions: Array<{ occurrenceStart: Date }>;
+const eventWithRelationsInclude = {
+  calendar: true,
+  attendees: { orderBy: { createdAt: 'asc' as const } },
+  reminders: { orderBy: { minutesBefore: 'asc' as const } },
+  documents: { orderBy: { createdAt: 'asc' as const } },
+  recurrenceSeries: {
+    include: {
+      exceptions: { orderBy: { occurrenceStart: 'asc' as const } },
+      attendees: true,
+      reminders: true,
+      documents: true,
+    },
+  },
+} satisfies Prisma.CalendarEventInclude;
+
+type EventWithRelations = Prisma.CalendarEventGetPayload<{
+  include: typeof eventWithRelationsInclude;
+}>;
+
+type SeriesRelationInputs = {
+  attendees: CalendarEventAttendeeDto[];
+  reminders: CalendarEventReminderDto[];
+  documentIds: string[];
+  exceptionDates: string[];
 };
 
 @Injectable()
@@ -64,6 +81,16 @@ export class CalendarEventService {
     const attendeeInputs = this.normalizeAttendees(userId, dto.attendees);
     const reminderInputs = this.normalizeReminders(dto.reminders);
 
+    if (dto.recurrenceRule) {
+      return this.createRecurringEvent(
+        userId,
+        calendar,
+        dto,
+        attendeeInputs,
+        reminderInputs,
+      );
+    }
+
     const event = await this.prisma.$transaction(async (tx) => {
       const createdEvent = await tx.calendarEvent.create({
         data: {
@@ -78,8 +105,6 @@ export class CalendarEventService {
           color: dto.color ?? calendar.color,
           status: dto.status ?? EventStatus.CONFIRMED,
           visibility: dto.visibility,
-          recurrenceRule: dto.recurrenceRule ?? null,
-          originalStartAt: dto.recurrenceRule ? new Date(dto.startAt) : null,
         },
       });
 
@@ -88,15 +113,6 @@ export class CalendarEventService {
           data: [...new Set(dto.documentIds)].map((documentId) => ({
             eventId: createdEvent.id,
             documentId,
-          })),
-        });
-      }
-
-      if (dto.exceptionDates?.length) {
-        await tx.recurrenceException.createMany({
-          data: [...new Set(dto.exceptionDates)].map((occurrenceStart) => ({
-            seriesId: createdEvent.id,
-            occurrenceStart: new Date(occurrenceStart),
           })),
         });
       }
@@ -130,13 +146,6 @@ export class CalendarEventService {
 
       return createdEvent;
     });
-
-    if (dto.recurrenceRule) {
-      await this.recurrenceService.materializeSeriesThrough(
-        event.id,
-        this.recurrenceService.getDefaultGenerationEnd(event.startAt),
-      );
-    }
 
     return this.getEventById(userId, event.id);
   }
@@ -231,213 +240,482 @@ export class CalendarEventService {
       userId,
       targetCalendar.projectId,
     );
+
     const startAt = dto.startAt ?? event.startAt.toISOString();
     const endAt = dto.endAt ?? event.endAt.toISOString();
     this.assertValidRange(startAt, endAt);
+
+    if (!event.recurrenceSeries) {
+      if (dto.recurrenceRule) {
+        return this.convertStandaloneToSeries(
+          userId,
+          event,
+          targetCalendar,
+          dto,
+        );
+      }
+      return this.updateStandaloneEvent(userId, event, targetCalendar, dto);
+    }
+
+    if (dto.recurrenceRule === null) {
+      return this.removeRecurrence(userId, event, targetCalendar, dto);
+    }
+
     const scope = dto.recurrenceScope ?? RecurrenceScope.THIS;
-    const series = await this.getSeriesEvents(event);
-    const isRecurring = series.length > 1 || Boolean(event.recurrenceRule);
-    let targets = this.selectScopeEvents(series, event, scope);
-    let resultEventId = eventId;
-    let materializeRootId: string | null = null;
-    let materializeThrough: Date | null = null;
+    if (scope === RecurrenceScope.THIS) {
+      return this.updateSingleOccurrence(userId, event, targetCalendar, dto);
+    }
+    if (scope === RecurrenceScope.THIS_AND_FOLLOWING) {
+      return this.updateThisAndFollowing(userId, event, targetCalendar, dto);
+    }
+    return this.updateEntireSeries(userId, event, targetCalendar, dto);
+  }
+
+  private async createRecurringEvent(
+    userId: string,
+    calendar: Calendar,
+    dto: CreateCalendarEventDto,
+    attendees: CalendarEventAttendeeDto[],
+    reminders: CalendarEventReminderDto[],
+  ) {
+    const series = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.recurrenceSeries.create({
+        data: {
+          calendarId: calendar.id,
+          createdBy: userId,
+          title: dto.title,
+          description: dto.description ?? null,
+          location: dto.location ?? null,
+          startAt: new Date(dto.startAt),
+          endAt: new Date(dto.endAt),
+          allDay: dto.allDay ?? false,
+          color: dto.color ?? calendar.color,
+          status: dto.status ?? EventStatus.CONFIRMED,
+          visibility: dto.visibility ?? EventVisibility.DEFAULT,
+          recurrenceRule: dto.recurrenceRule!,
+          timeZone: calendar.timeZone,
+        },
+      });
+      await this.createSeriesRelations(tx, created.id, {
+        attendees,
+        reminders,
+        documentIds: dto.documentIds ?? [],
+        exceptionDates: dto.exceptionDates ?? [],
+      });
+      return created;
+    });
+
+    await this.recurrenceService.materializeSeriesThrough(
+      series.id,
+      this.recurrenceService.getDefaultGenerationEnd(series.startAt),
+    );
+    return this.getFirstSeriesOccurrence(userId, series.id);
+  }
+
+  private async convertStandaloneToSeries(
+    userId: string,
+    event: EventWithRelations,
+    calendar: Calendar,
+    dto: UpdateCalendarEventDto,
+  ) {
+    const attendees = dto.attendees
+      ? this.normalizeAttendees(userId, dto.attendees)
+      : event.attendees.map((attendee) => ({
+          userId: attendee.userId,
+          optional: attendee.optional,
+        }));
+    const reminders = dto.reminders
+      ? this.normalizeReminders(dto.reminders)
+      : event.reminders.map((reminder) => ({
+          minutesBefore: reminder.minutesBefore,
+          method: reminder.method,
+        }));
+    const seriesId = await this.prisma.$transaction(async (tx) => {
+      const series = await tx.recurrenceSeries.create({
+        data: {
+          calendarId: calendar.id,
+          createdBy: event.createdBy,
+          updatedBy: userId,
+          title: dto.title ?? event.title,
+          description:
+            dto.description === undefined ? event.description : dto.description,
+          location: dto.location === undefined ? event.location : dto.location,
+          startAt: dto.startAt ? new Date(dto.startAt) : event.startAt,
+          endAt: dto.endAt ? new Date(dto.endAt) : event.endAt,
+          allDay: dto.allDay ?? event.allDay,
+          color: dto.color === undefined ? event.color : dto.color,
+          status: dto.status ?? event.status,
+          visibility: dto.visibility ?? event.visibility,
+          recurrenceRule: dto.recurrenceRule!,
+          timeZone: calendar.timeZone,
+        },
+      });
+      await this.createSeriesRelations(tx, series.id, {
+        attendees,
+        reminders,
+        documentIds:
+          dto.documentIds ?? event.documents.map((item) => item.documentId),
+        exceptionDates: dto.exceptionDates ?? [],
+      });
+      await tx.calendarEvent.delete({ where: { id: event.id } });
+      return series.id;
+    });
+
+    await this.recurrenceService.materializeSeriesThrough(
+      seriesId,
+      this.recurrenceService.getDefaultGenerationEnd(
+        dto.startAt ? new Date(dto.startAt) : event.startAt,
+      ),
+    );
+    return this.getFirstSeriesOccurrence(userId, seriesId);
+  }
+
+  private async updateStandaloneEvent(
+    userId: string,
+    event: EventWithRelations,
+    calendar: Calendar,
+    dto: UpdateCalendarEventDto,
+  ) {
+    const nextStartAt = dto.startAt ? new Date(dto.startAt) : event.startAt;
+    const nextEndAt = dto.endAt ? new Date(dto.endAt) : event.endAt;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.calendarEvent.update({
+        where: { id: event.id },
+        data: {
+          calendarId: calendar.id,
+          updatedBy: userId,
+          title: dto.title,
+          description: dto.description,
+          location: dto.location,
+          startAt: dto.startAt ? nextStartAt : undefined,
+          endAt: dto.endAt ? nextEndAt : undefined,
+          allDay: dto.allDay,
+          color: dto.color,
+          status: dto.status,
+          visibility: dto.visibility,
+          cancelledAt:
+            dto.status === EventStatus.CANCELLED
+              ? new Date()
+              : dto.status
+                ? null
+                : undefined,
+        },
+      });
+      await this.replaceEventRelations(tx, event, nextStartAt, dto);
+    });
+    return this.getEventById(userId, event.id);
+  }
+
+  private async updateSingleOccurrence(
+    userId: string,
+    event: EventWithRelations,
+    calendar: Calendar,
+    dto: UpdateCalendarEventDto,
+  ) {
+    const nextStartAt = dto.startAt ? new Date(dto.startAt) : event.startAt;
+    const nextEndAt = dto.endAt ? new Date(dto.endAt) : event.endAt;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.calendarEvent.update({
+        where: { id: event.id },
+        data: {
+          calendarId: calendar.id,
+          updatedBy: userId,
+          title: dto.title,
+          description: dto.description,
+          location: dto.location,
+          startAt: dto.startAt ? nextStartAt : undefined,
+          endAt: dto.endAt ? nextEndAt : undefined,
+          allDay: dto.allDay,
+          color: dto.color,
+          status: dto.status,
+          visibility: dto.visibility,
+          isRecurrenceOverride: true,
+          cancelledAt:
+            dto.status === EventStatus.CANCELLED
+              ? new Date()
+              : dto.status
+                ? null
+                : undefined,
+        },
+      });
+      await this.replaceEventRelations(tx, event, nextStartAt, dto);
+    });
+    return this.getEventById(userId, event.id);
+  }
+
+  private async removeRecurrence(
+    userId: string,
+    event: EventWithRelations,
+    calendar: Calendar,
+    dto: UpdateCalendarEventDto,
+  ) {
+    const series = event.recurrenceSeries!;
+    const scope = dto.recurrenceScope ?? RecurrenceScope.THIS;
+    const cutoff = event.originalStartAt ?? event.startAt;
+    const nextStartAt = dto.startAt ? new Date(dto.startAt) : event.startAt;
+    const nextEndAt = dto.endAt ? new Date(dto.endAt) : event.endAt;
+
+    if (scope === RecurrenceScope.ALL) {
+      const standaloneId = await this.prisma.$transaction(async (tx) => {
+        const standalone = await tx.calendarEvent.create({
+          data: this.getStandaloneEventData(
+            userId,
+            event,
+            calendar,
+            dto,
+            nextStartAt,
+            nextEndAt,
+          ),
+        });
+        await this.copyOccurrenceRelations(
+          tx,
+          standalone.id,
+          event,
+          dto,
+          nextStartAt,
+        );
+        await tx.recurrenceSeries.delete({ where: { id: series.id } });
+        return standalone.id;
+      });
+      return this.getEventById(userId, standaloneId);
+    }
 
     await this.prisma.$transaction(async (tx) => {
-      if (
-        isRecurring &&
-        scope === RecurrenceScope.THIS_AND_FOLLOWING &&
-        event.recurrenceParentId
-      ) {
-        const originalRoot = series.find(
-          (candidate) => candidate.id === event.recurrenceParentId,
-        );
-        if (originalRoot?.recurrenceRule) {
-          const nextRule = this.recurrenceService.remainingRule(
-            originalRoot.recurrenceRule,
-            originalRoot.startAt,
-            event.startAt,
-          );
-          await tx.calendarEvent.update({
-            where: { id: originalRoot.id },
-            data: {
-              recurrenceRule: this.recurrenceService.truncateBefore(
-                originalRoot.recurrenceRule,
-                event.startAt,
-              ),
-              recurrenceGeneratedUntil: event.startAt,
-            },
-          });
-          await tx.calendarEvent.update({
-            where: { id: event.id },
-            data: {
-              recurrenceParentId: null,
-              originalStartAt: event.startAt,
-              recurrenceRule: dto.recurrenceRule ?? nextRule,
-              recurrenceGeneratedUntil: null,
-            },
-          });
-          await tx.calendarEvent.updateMany({
-            where: {
-              id: { in: targets.map((target) => target.id), not: event.id },
-            },
-            data: {
-              recurrenceParentId: event.id,
-              recurrenceRule: dto.recurrenceRule ?? nextRule,
-            },
-          });
-          await tx.recurrenceException.updateMany({
-            where: {
-              seriesId: originalRoot.id,
-              occurrenceStart: { gte: event.startAt },
-            },
-            data: { seriesId: event.id },
-          });
-          materializeRootId = event.id;
-        }
-      }
-
-      const regenerate =
-        isRecurring &&
-        dto.recurrenceRule !== undefined &&
-        scope !== RecurrenceScope.THIS;
-      if (regenerate) {
-        const rootId =
-          scope === RecurrenceScope.ALL
-            ? (event.recurrenceParentId ?? event.id)
-            : event.id;
-        await tx.calendarEvent.deleteMany({
-          where: { recurrenceParentId: rootId },
+      if (scope === RecurrenceScope.THIS) {
+        await tx.recurrenceException.createMany({
+          data: [{ seriesId: series.id, occurrenceStart: cutoff }],
+          skipDuplicates: true,
         });
-        const rootTarget =
-          series.find((target) => target.id === rootId) ?? event;
-        targets = [rootTarget];
-        resultEventId = rootId;
-        materializeRootId = rootId;
-      }
-
-      const startDelta = dto.startAt
-        ? new Date(dto.startAt).getTime() - event.startAt.getTime()
-        : 0;
-      const endDelta = dto.endAt
-        ? new Date(dto.endAt).getTime() - event.endAt.getTime()
-        : startDelta;
-
-      for (const target of targets) {
-        const nextStartAt = new Date(target.startAt.getTime() + startDelta);
-        const nextEndAt = new Date(target.endAt.getTime() + endDelta);
-        await tx.calendarEvent.update({
-          where: { id: target.id },
+      } else {
+        await tx.recurrenceSeries.update({
+          where: { id: series.id },
           data: {
-            calendarId: targetCalendar.id,
+            recurrenceRule: this.recurrenceService.truncateBefore(
+              series.recurrenceRule,
+              cutoff,
+              series.timeZone,
+            ),
+            recurrenceGeneratedUntil: new Date(cutoff.getTime() - 1),
             updatedBy: userId,
-            title: dto.title,
-            description: dto.description,
-            location: dto.location,
-            startAt: dto.startAt ? nextStartAt : undefined,
-            endAt: dto.endAt ? nextEndAt : undefined,
-            originalStartAt:
-              target.originalStartAt && dto.startAt ? nextStartAt : undefined,
-            allDay: dto.allDay,
-            color: dto.color,
-            status: dto.status,
-            visibility: dto.visibility,
-            recurrenceRule:
-              isRecurring && scope === RecurrenceScope.THIS
-                ? undefined
-                : dto.recurrenceRule,
-            recurrenceGeneratedUntil:
-              dto.recurrenceRule !== undefined ? null : undefined,
-            isRecurrenceOverride:
-              isRecurring &&
-              scope === RecurrenceScope.THIS &&
-              Boolean(target.recurrenceParentId)
-                ? true
-                : undefined,
-            cancelledAt:
-              dto.status === EventStatus.CANCELLED
-                ? new Date()
-                : dto.status
-                  ? null
-                  : undefined,
           },
         });
-
-        await this.replaceEventRelations(tx, target, nextStartAt, dto);
-      }
-
-      if (
-        dto.exceptionDates !== undefined &&
-        isRecurring &&
-        scope !== RecurrenceScope.THIS
-      ) {
-        const seriesId =
-          materializeRootId ?? event.recurrenceParentId ?? event.id;
-        const existingExceptions = await tx.recurrenceException.findMany({
-          where: { seriesId },
-          select: { occurrenceStart: true },
-        });
-        const affectedDates = [
-          ...existingExceptions.map((exception) => exception.occurrenceStart),
-          ...dto.exceptionDates.map(
-            (occurrenceStart) => new Date(occurrenceStart),
-          ),
-        ];
-        await tx.recurrenceException.deleteMany({ where: { seriesId } });
-        if (dto.exceptionDates.length > 0) {
-          await tx.recurrenceException.createMany({
-            data: [...new Set(dto.exceptionDates)].map((occurrenceStart) => ({
-              seriesId,
-              occurrenceStart: new Date(occurrenceStart),
-            })),
-          });
-        }
-
         await tx.calendarEvent.deleteMany({
           where: {
-            recurrenceParentId: seriesId,
-            originalStartAt: {
-              in: dto.exceptionDates.map(
-                (occurrenceStart) => new Date(occurrenceStart),
-              ),
-            },
-            isRecurrenceOverride: false,
+            recurrenceSeriesId: series.id,
+            originalStartAt: { gte: cutoff },
+            id: { not: event.id },
           },
         });
-        if (affectedDates.length > 0) {
-          const earliestAffectedAt = Math.min(
-            ...affectedDates.map((date) => date.getTime()),
-          );
-          const latestAffectedAt = Math.max(
-            ...affectedDates.map((date) => date.getTime()),
-          );
+      }
+
+      await tx.calendarEvent.update({
+        where: { id: event.id },
+        data: {
+          ...this.getStandaloneEventData(
+            userId,
+            event,
+            calendar,
+            dto,
+            nextStartAt,
+            nextEndAt,
+          ),
+          recurrenceSeriesId: null,
+          originalStartAt: null,
+          isRecurrenceOverride: false,
+        },
+      });
+      await this.replaceEventRelations(tx, event, nextStartAt, dto);
+    });
+    return this.getEventById(userId, event.id);
+  }
+
+  private async updateEntireSeries(
+    userId: string,
+    event: EventWithRelations,
+    calendar: Calendar,
+    dto: UpdateCalendarEventDto,
+  ) {
+    const series = event.recurrenceSeries!;
+    const startDelta = dto.startAt
+      ? new Date(dto.startAt).getTime() - event.startAt.getTime()
+      : 0;
+    const endDelta = dto.endAt
+      ? new Date(dto.endAt).getTime() - event.endAt.getTime()
+      : startDelta;
+    const nextSeriesStart = new Date(series.startAt.getTime() + startDelta);
+    const nextSeriesEnd = new Date(series.endAt.getTime() + endDelta);
+    const recurrenceChanged =
+      dto.recurrenceRule !== undefined &&
+      dto.recurrenceRule !== series.recurrenceRule;
+    const timeChanged =
+      (dto.startAt !== undefined &&
+        new Date(dto.startAt).getTime() !== event.startAt.getTime()) ||
+      (dto.endAt !== undefined &&
+        new Date(dto.endAt).getTime() !== event.endAt.getTime());
+    const regenerate = Boolean(timeChanged || recurrenceChanged);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.recurrenceSeries.update({
+        where: { id: series.id },
+        data: {
+          calendarId: calendar.id,
+          updatedBy: userId,
+          title: dto.title,
+          description: dto.description,
+          location: dto.location,
+          startAt: dto.startAt ? nextSeriesStart : undefined,
+          endAt: dto.endAt ? nextSeriesEnd : undefined,
+          allDay: dto.allDay,
+          color: dto.color,
+          status: dto.status,
+          visibility: dto.visibility,
+          recurrenceRule: dto.recurrenceRule ?? undefined,
+          timeZone: calendar.timeZone,
+          recurrenceGeneratedUntil: regenerate ? null : undefined,
+          cancelledAt:
+            dto.status === EventStatus.CANCELLED
+              ? new Date()
+              : dto.status
+                ? null
+                : undefined,
+        },
+      });
+      await this.replaceSeriesRelations(tx, series.id, event.createdBy, dto);
+
+      if (regenerate) {
+        await tx.calendarEvent.deleteMany({
+          where: { recurrenceSeriesId: series.id },
+        });
+      } else {
+        const occurrences = await tx.calendarEvent.findMany({
+          where: { recurrenceSeriesId: series.id },
+          include: eventWithRelationsInclude,
+        });
+        for (const occurrence of occurrences) {
           await tx.calendarEvent.update({
-            where: { id: seriesId },
+            where: { id: occurrence.id },
             data: {
-              recurrenceGeneratedUntil: new Date(earliestAffectedAt - 1),
+              calendarId: calendar.id,
+              updatedBy: userId,
+              title: dto.title,
+              description: dto.description,
+              location: dto.location,
+              allDay: dto.allDay,
+              color: dto.color,
+              status: dto.status,
+              visibility: dto.visibility,
+              isRecurrenceOverride: false,
             },
           });
-          materializeRootId = seriesId;
-          materializeThrough = new Date(
-            Math.max(
-              latestAffectedAt,
-              this.recurrenceService
-                .getDefaultGenerationEnd(new Date())
-                .getTime(),
-            ),
+          await this.replaceEventRelations(
+            tx,
+            occurrence,
+            occurrence.startAt,
+            dto,
           );
         }
       }
     });
 
-    if (materializeRootId) {
+    if (regenerate) {
       await this.recurrenceService.materializeSeriesThrough(
-        materializeRootId,
-        materializeThrough ??
-          this.recurrenceService.getDefaultGenerationEnd(new Date(startAt)),
+        series.id,
+        this.recurrenceService.getDefaultGenerationEnd(nextSeriesStart),
       );
     }
+    return this.getFirstSeriesOccurrence(userId, series.id);
+  }
 
-    return this.getEventById(userId, resultEventId);
+  private async updateThisAndFollowing(
+    userId: string,
+    event: EventWithRelations,
+    calendar: Calendar,
+    dto: UpdateCalendarEventDto,
+  ) {
+    const series = event.recurrenceSeries!;
+    const cutoff = event.originalStartAt ?? event.startAt;
+    const nextStartAt = dto.startAt ? new Date(dto.startAt) : event.startAt;
+    const nextEndAt = dto.endAt ? new Date(dto.endAt) : event.endAt;
+    const nextRule =
+      dto.recurrenceRule && dto.recurrenceRule !== series.recurrenceRule
+        ? dto.recurrenceRule
+        : this.recurrenceService.remainingRule(
+            series.recurrenceRule,
+            series.startAt,
+            cutoff,
+            series.timeZone,
+          );
+
+    const newSeriesId = await this.prisma.$transaction(async (tx) => {
+      await tx.recurrenceSeries.update({
+        where: { id: series.id },
+        data: {
+          recurrenceRule: this.recurrenceService.truncateBefore(
+            series.recurrenceRule,
+            cutoff,
+            series.timeZone,
+          ),
+          recurrenceGeneratedUntil: new Date(cutoff.getTime() - 1),
+          updatedBy: userId,
+        },
+      });
+      await tx.calendarEvent.deleteMany({
+        where: {
+          recurrenceSeriesId: series.id,
+          originalStartAt: { gte: cutoff },
+        },
+      });
+
+      const nextSeries = await tx.recurrenceSeries.create({
+        data: {
+          calendarId: calendar.id,
+          createdBy: series.createdBy,
+          updatedBy: userId,
+          title: dto.title ?? event.title,
+          description:
+            dto.description === undefined ? event.description : dto.description,
+          location: dto.location === undefined ? event.location : dto.location,
+          startAt: nextStartAt,
+          endAt: nextEndAt,
+          allDay: dto.allDay ?? event.allDay,
+          color: dto.color === undefined ? event.color : dto.color,
+          status: dto.status ?? event.status,
+          visibility: dto.visibility ?? event.visibility,
+          recurrenceRule: nextRule,
+          timeZone: calendar.timeZone,
+        },
+      });
+
+      await this.createSeriesRelations(tx, nextSeries.id, {
+        attendees: dto.attendees
+          ? this.normalizeAttendees(series.createdBy, dto.attendees)
+          : series.attendees.map((attendee) => ({
+              userId: attendee.userId,
+              optional: attendee.optional,
+            })),
+        reminders: dto.reminders
+          ? this.normalizeReminders(dto.reminders)
+          : series.reminders.map((reminder) => ({
+              minutesBefore: reminder.minutesBefore,
+              method: reminder.method,
+            })),
+        documentIds:
+          dto.documentIds ?? series.documents.map((item) => item.documentId),
+        exceptionDates: series.exceptions
+          .filter((exception) => exception.occurrenceStart >= cutoff)
+          .map((exception) => exception.occurrenceStart.toISOString()),
+      });
+      await tx.recurrenceException.deleteMany({
+        where: { seriesId: series.id, occurrenceStart: { gte: cutoff } },
+      });
+      return nextSeries.id;
+    });
+
+    await this.recurrenceService.materializeSeriesThrough(
+      newSeriesId,
+      this.recurrenceService.getDefaultGenerationEnd(nextStartAt),
+    );
+    return this.getFirstSeriesOccurrence(userId, newSeriesId);
   }
 
   async cancelEvent(
@@ -448,30 +726,57 @@ export class CalendarEventService {
     const event = await this.findEventOrThrow(eventId);
     this.assertCanManageEvent(userId, event);
     this.assertUserManagedEvent(event);
-    const series = await this.getSeriesEvents(event);
-    const targets = this.selectScopeEvents(series, event, scope);
-    const targetIds = targets.map((target) => target.id);
 
+    if (!event.recurrenceSeries || scope === RecurrenceScope.THIS) {
+      await this.cancelOccurrences(userId, [event.id], true);
+      return;
+    }
+
+    const seriesId = event.recurrenceSeries.id;
+    if (scope === RecurrenceScope.ALL) {
+      const occurrenceIds = await this.getSeriesOccurrenceIds(seriesId);
+      await this.prisma.$transaction(async (tx) => {
+        await tx.recurrenceSeries.update({
+          where: { id: seriesId },
+          data: {
+            status: EventStatus.CANCELLED,
+            updatedBy: userId,
+            cancelledAt: new Date(),
+          },
+        });
+        await this.cancelOccurrencesInTransaction(
+          tx,
+          userId,
+          occurrenceIds,
+          false,
+        );
+      });
+      return;
+    }
+
+    const cutoff = event.originalStartAt ?? event.startAt;
+    const occurrenceIds = await this.getSeriesOccurrenceIds(seriesId, cutoff);
     await this.prisma.$transaction(async (tx) => {
-      await tx.calendarEvent.updateMany({
-        where: { id: { in: targetIds } },
+      await tx.recurrenceSeries.update({
+        where: { id: seriesId },
         data: {
-          status: EventStatus.CANCELLED,
+          recurrenceRule: this.recurrenceService.truncateBefore(
+            event.recurrenceSeries!.recurrenceRule,
+            cutoff,
+            event.recurrenceSeries!.timeZone,
+          ),
+          recurrenceGeneratedUntil: new Date(cutoff.getTime() - 1),
           updatedBy: userId,
-          cancelledAt: new Date(),
-          isRecurrenceOverride:
-            scope === RecurrenceScope.THIS && event.recurrenceParentId
-              ? true
-              : undefined,
         },
       });
-      await tx.reminder.updateMany({
-        where: { eventId: { in: targetIds } },
-        data: { deliveryStatus: ReminderDeliveryStatus.CANCELLED },
-      });
+      await this.cancelOccurrencesInTransaction(
+        tx,
+        userId,
+        occurrenceIds,
+        false,
+      );
     });
   }
-
   async updateResponse(
     userId: string,
     eventId: string,
@@ -570,9 +875,12 @@ export class CalendarEventService {
   private attachPermissions<T extends EventWithRelations>(
     userId: string,
     event: T,
-  ): Omit<T, 'documents' | 'recurrenceExceptions'> & {
+  ): Omit<T, 'documents' | 'recurrenceSeries'> & {
     documentIds: string[];
     exceptionDates: string[];
+    recurrenceRule: string | null;
+    recurrenceParentId: string | null;
+    timeZone: string;
     permissions: { canManage: boolean; canRespond: boolean };
   } {
     const canManage =
@@ -581,14 +889,18 @@ export class CalendarEventService {
     const canRespond = event.attendees.some(
       (attendee) => attendee.userId === userId,
     );
-    const { documents, recurrenceExceptions, ...publicEvent } = event;
+    const { documents, recurrenceSeries, ...publicEvent } = event;
 
     return {
       ...publicEvent,
       documentIds: documents.map((document) => document.documentId),
-      exceptionDates: recurrenceExceptions.map((exception) =>
-        exception.occurrenceStart.toISOString(),
-      ),
+      exceptionDates:
+        recurrenceSeries?.exceptions.map((exception) =>
+          exception.occurrenceStart.toISOString(),
+        ) ?? [],
+      recurrenceRule: recurrenceSeries?.recurrenceRule ?? null,
+      recurrenceParentId: recurrenceSeries?.id ?? null,
+      timeZone: recurrenceSeries?.timeZone ?? event.calendar.timeZone,
       permissions: { canManage, canRespond },
     };
   }
@@ -620,29 +932,246 @@ export class CalendarEventService {
     }
   }
 
-  private async getSeriesEvents(
+  private getStandaloneEventData(
+    userId: string,
     event: EventWithRelations,
-  ): Promise<EventWithRelations[]> {
-    const rootId = event.recurrenceParentId ?? event.id;
-    if (!event.recurrenceParentId && !event.recurrenceRule) return [event];
-
-    return this.prisma.calendarEvent.findMany({
-      where: { OR: [{ id: rootId }, { recurrenceParentId: rootId }] },
-      include: this.eventInclude(),
-      orderBy: { startAt: 'asc' },
-    });
+    calendar: Calendar,
+    dto: UpdateCalendarEventDto,
+    startAt: Date,
+    endAt: Date,
+  ): Prisma.CalendarEventUncheckedCreateInput {
+    return {
+      calendarId: calendar.id,
+      createdBy: event.createdBy,
+      updatedBy: userId,
+      title: dto.title ?? event.title,
+      description:
+        dto.description === undefined ? event.description : dto.description,
+      location: dto.location === undefined ? event.location : dto.location,
+      startAt,
+      endAt,
+      allDay: dto.allDay ?? event.allDay,
+      color: dto.color === undefined ? event.color : dto.color,
+      status: dto.status ?? event.status,
+      visibility: dto.visibility ?? event.visibility,
+      sourceType: EventSourceType.USER,
+      sourceId: null,
+      cancelledAt:
+        dto.status === EventStatus.CANCELLED ? new Date() : event.cancelledAt,
+    };
   }
 
-  private selectScopeEvents(
-    series: EventWithRelations[],
-    selected: EventWithRelations,
-    scope: RecurrenceScope,
-  ): EventWithRelations[] {
-    if (scope === RecurrenceScope.ALL) return series;
-    if (scope === RecurrenceScope.THIS_AND_FOLLOWING) {
-      return series.filter((event) => event.startAt >= selected.startAt);
+  private async copyOccurrenceRelations(
+    tx: Prisma.TransactionClient,
+    eventId: string,
+    event: EventWithRelations,
+    dto: UpdateCalendarEventDto,
+    startAt: Date,
+  ): Promise<void> {
+    const documentIds =
+      dto.documentIds ?? event.documents.map((item) => item.documentId);
+    if (documentIds.length > 0) {
+      await tx.calendarEventDocument.createMany({
+        data: [...new Set(documentIds)].map((documentId) => ({
+          eventId,
+          documentId,
+        })),
+      });
     }
-    return [selected];
+
+    const attendees = dto.attendees
+      ? this.normalizeAttendees(event.createdBy, dto.attendees)
+      : event.attendees.map((attendee) => ({
+          userId: attendee.userId,
+          optional: attendee.optional,
+        }));
+    if (attendees.length > 0) {
+      await tx.calendarEventAttendee.createMany({
+        data: attendees.map((attendee) => ({
+          eventId,
+          userId: attendee.userId,
+          optional: attendee.optional ?? false,
+          responseStatus:
+            attendee.userId === event.createdBy
+              ? AttendeeResponseStatus.ACCEPTED
+              : AttendeeResponseStatus.NEEDS_ACTION,
+        })),
+        skipDuplicates: true,
+      });
+    }
+
+    const reminders = dto.reminders
+      ? this.normalizeReminders(dto.reminders)
+      : event.reminders.map((reminder) => ({
+          minutesBefore: reminder.minutesBefore,
+          method: reminder.method,
+        }));
+    if (reminders.length > 0) {
+      await tx.reminder.createMany({
+        data: reminders.map((reminder) => ({
+          eventId,
+          minutesBefore: reminder.minutesBefore,
+          method: reminder.method,
+          scheduledAt: this.getReminderScheduledAt(
+            startAt,
+            reminder.minutesBefore,
+          ),
+        })),
+      });
+    }
+  }
+
+  private async createSeriesRelations(
+    tx: Prisma.TransactionClient,
+    seriesId: string,
+    inputs: SeriesRelationInputs,
+  ): Promise<void> {
+    if (inputs.attendees.length > 0) {
+      await tx.recurrenceSeriesAttendee.createMany({
+        data: inputs.attendees.map((attendee) => ({
+          seriesId,
+          userId: attendee.userId,
+          optional: attendee.optional ?? false,
+        })),
+        skipDuplicates: true,
+      });
+    }
+    if (inputs.reminders.length > 0) {
+      await tx.recurrenceSeriesReminder.createMany({
+        data: inputs.reminders.map((reminder) => ({
+          seriesId,
+          minutesBefore: reminder.minutesBefore,
+          method: reminder.method,
+        })),
+        skipDuplicates: true,
+      });
+    }
+    if (inputs.documentIds.length > 0) {
+      await tx.recurrenceSeriesDocument.createMany({
+        data: [...new Set(inputs.documentIds)].map((documentId) => ({
+          seriesId,
+          documentId,
+        })),
+        skipDuplicates: true,
+      });
+    }
+    if (inputs.exceptionDates.length > 0) {
+      await tx.recurrenceException.createMany({
+        data: [...new Set(inputs.exceptionDates)].map((occurrenceStart) => ({
+          seriesId,
+          occurrenceStart: new Date(occurrenceStart),
+        })),
+        skipDuplicates: true,
+      });
+    }
+  }
+
+  private async replaceSeriesRelations(
+    tx: Prisma.TransactionClient,
+    seriesId: string,
+    creatorUserId: string,
+    dto: UpdateCalendarEventDto,
+  ): Promise<void> {
+    if (dto.attendees !== undefined) {
+      await tx.recurrenceSeriesAttendee.deleteMany({ where: { seriesId } });
+      const attendees = this.normalizeAttendees(creatorUserId, dto.attendees);
+      await this.createSeriesRelations(tx, seriesId, {
+        attendees,
+        reminders: [],
+        documentIds: [],
+        exceptionDates: [],
+      });
+    }
+    if (dto.reminders !== undefined) {
+      await tx.recurrenceSeriesReminder.deleteMany({ where: { seriesId } });
+      await this.createSeriesRelations(tx, seriesId, {
+        attendees: [],
+        reminders: this.normalizeReminders(dto.reminders),
+        documentIds: [],
+        exceptionDates: [],
+      });
+    }
+    if (dto.documentIds !== undefined) {
+      await tx.recurrenceSeriesDocument.deleteMany({ where: { seriesId } });
+      await this.createSeriesRelations(tx, seriesId, {
+        attendees: [],
+        reminders: [],
+        documentIds: dto.documentIds,
+        exceptionDates: [],
+      });
+    }
+    if (dto.exceptionDates !== undefined) {
+      await tx.recurrenceException.deleteMany({ where: { seriesId } });
+      await this.createSeriesRelations(tx, seriesId, {
+        attendees: [],
+        reminders: [],
+        documentIds: [],
+        exceptionDates: dto.exceptionDates,
+      });
+    }
+  }
+
+  private async getFirstSeriesOccurrence(userId: string, seriesId: string) {
+    const occurrence = await this.prisma.calendarEvent.findFirst({
+      where: {
+        recurrenceSeriesId: seriesId,
+        status: { not: EventStatus.CANCELLED },
+      },
+      orderBy: { startAt: 'asc' },
+      select: { id: true },
+    });
+    if (!occurrence) {
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.INVALID_RECURRENCE_RULE,
+      );
+    }
+    return this.getEventById(userId, occurrence.id);
+  }
+
+  private async getSeriesOccurrenceIds(
+    seriesId: string,
+    from?: Date,
+  ): Promise<string[]> {
+    const occurrences = await this.prisma.calendarEvent.findMany({
+      where: {
+        recurrenceSeriesId: seriesId,
+        originalStartAt: from ? { gte: from } : undefined,
+      },
+      select: { id: true },
+    });
+    return occurrences.map((occurrence) => occurrence.id);
+  }
+
+  private async cancelOccurrences(
+    userId: string,
+    eventIds: string[],
+    isOverride: boolean,
+  ): Promise<void> {
+    await this.prisma.$transaction((tx) =>
+      this.cancelOccurrencesInTransaction(tx, userId, eventIds, isOverride),
+    );
+  }
+
+  private async cancelOccurrencesInTransaction(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    eventIds: string[],
+    isOverride: boolean,
+  ): Promise<void> {
+    if (eventIds.length === 0) return;
+    await tx.calendarEvent.updateMany({
+      where: { id: { in: eventIds } },
+      data: {
+        status: EventStatus.CANCELLED,
+        updatedBy: userId,
+        cancelledAt: new Date(),
+        isRecurrenceOverride: isOverride ? true : undefined,
+      },
+    });
+    await tx.reminder.updateMany({
+      where: { eventId: { in: eventIds } },
+      data: { deliveryStatus: ReminderDeliveryStatus.CANCELLED },
+    });
   }
 
   private async replaceEventRelations(
@@ -760,20 +1289,6 @@ export class CalendarEventService {
   }
 
   private eventInclude() {
-    return {
-      calendar: true,
-      attendees: {
-        orderBy: { createdAt: 'asc' },
-      },
-      reminders: {
-        orderBy: { minutesBefore: 'asc' },
-      },
-      documents: {
-        orderBy: { createdAt: 'asc' },
-      },
-      recurrenceExceptions: {
-        orderBy: { occurrenceStart: 'asc' },
-      },
-    } satisfies Prisma.CalendarEventInclude;
+    return eventWithRelationsInclude;
   }
 }

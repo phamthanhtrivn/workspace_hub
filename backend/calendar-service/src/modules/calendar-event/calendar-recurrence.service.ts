@@ -7,7 +7,7 @@ import {
   Prisma,
   ReminderDeliveryStatus,
 } from '@prisma/client';
-import { rrulestr } from 'rrule';
+import { RRuleSet, rrulestr } from 'rrule';
 import {
   CALENDAR_DEFAULTS,
   CALENDAR_ERROR_MESSAGES,
@@ -18,12 +18,23 @@ const recurrenceTemplateInclude = {
   attendees: true,
   reminders: true,
   documents: true,
-  recurrenceExceptions: true,
-} satisfies Prisma.CalendarEventInclude;
+  exceptions: true,
+} satisfies Prisma.RecurrenceSeriesInclude;
 
-type RecurrenceTemplate = Prisma.CalendarEventGetPayload<{
+type RecurrenceTemplate = Prisma.RecurrenceSeriesGetPayload<{
   include: typeof recurrenceTemplateInclude;
 }>;
+
+const SUPPORTED_FREQUENCIES = new Set(['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY']);
+const SUPPORTED_PARTS = new Set([
+  'FREQ',
+  'INTERVAL',
+  'COUNT',
+  'UNTIL',
+  'BYDAY',
+  'WKST',
+]);
+const WEEKDAY_PATTERN = /^-?[1-5]?(MO|TU|WE|TH|FR|SA|SU)$/;
 
 @Injectable()
 export class CalendarRecurrenceService {
@@ -33,21 +44,37 @@ export class CalendarRecurrenceService {
 
   assertValidRule(rule?: string | null): void {
     if (!rule) return;
-    const frequency = rule
-      .match(/(?:^|[:;])FREQ=([^;\r\n]+)/i)?.[1]
-      ?.toUpperCase();
-    if (
-      /[\r\n]/.test(rule) ||
-      !frequency ||
-      !['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'].includes(frequency)
-    ) {
-      throw new BadRequestException(
-        CALENDAR_ERROR_MESSAGES.UNSUPPORTED_RECURRENCE_FREQUENCY,
-      );
-    }
+
     try {
-      rrulestr(this.withStart(rule, new Date()), { forceset: true });
-    } catch {
+      const parts = this.parseRuleParts(rule);
+      const frequency = parts.get('FREQ')?.toUpperCase();
+      if (!frequency || !SUPPORTED_FREQUENCIES.has(frequency)) {
+        throw new BadRequestException(
+          CALENDAR_ERROR_MESSAGES.UNSUPPORTED_RECURRENCE_FREQUENCY,
+        );
+      }
+
+      if (
+        (parts.has('INTERVAL') &&
+          this.parseBoundedInteger(parts.get('INTERVAL'), 1, 365) === null) ||
+        (parts.has('COUNT') &&
+          this.parseBoundedInteger(parts.get('COUNT'), 1, 10_000) === null) ||
+        (parts.has('COUNT') && parts.has('UNTIL'))
+      ) {
+        throw new Error('invalid recurrence bounds');
+      }
+
+      const byDay = parts.get('BYDAY');
+      if (
+        byDay &&
+        byDay.split(',').some((weekday) => !WEEKDAY_PATTERN.test(weekday))
+      ) {
+        throw new Error('invalid weekday');
+      }
+
+      rrulestr(this.withStart(rule, new Date(), 'UTC'), { forceset: true });
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
       throw new BadRequestException(
         CALENDAR_ERROR_MESSAGES.INVALID_RECURRENCE_RULE,
       );
@@ -57,10 +84,8 @@ export class CalendarRecurrenceService {
   @Cron('0 5 * * * *')
   async materializeRollingWindow(): Promise<void> {
     const through = this.getDefaultGenerationEnd(new Date());
-    const roots = await this.prisma.calendarEvent.findMany({
+    const seriesList = await this.prisma.recurrenceSeries.findMany({
       where: {
-        recurrenceRule: { not: null },
-        recurrenceParentId: null,
         status: { not: EventStatus.CANCELLED },
         OR: [
           { recurrenceGeneratedUntil: null },
@@ -72,12 +97,12 @@ export class CalendarRecurrenceService {
       take: CALENDAR_DEFAULTS.RECURRENCE_WORKER_BATCH_SIZE,
     });
 
-    for (const root of roots) {
+    for (const series of seriesList) {
       try {
-        await this.materializeSeriesThrough(root.id, through);
+        await this.materializeSeriesThrough(series.id, through);
       } catch (error) {
         this.logger.error(
-          `Failed to materialize recurrence series ${root.id}`,
+          `Failed to materialize recurrence series ${series.id}`,
           error,
         );
       }
@@ -85,32 +110,25 @@ export class CalendarRecurrenceService {
   }
 
   async materializeSeriesThrough(
-    eventId: string,
+    seriesId: string,
     through: Date,
   ): Promise<void> {
-    const selected = await this.prisma.calendarEvent.findUnique({
-      where: { id: eventId },
-      select: { id: true, recurrenceParentId: true },
-    });
-    if (!selected) return;
-
-    const rootId = selected.recurrenceParentId ?? selected.id;
-    const root = await this.prisma.calendarEvent.findUnique({
-      where: { id: rootId },
+    const series = await this.prisma.recurrenceSeries.findUnique({
+      where: { id: seriesId },
       include: recurrenceTemplateInclude,
     });
-    if (!root?.recurrenceRule || root.status === EventStatus.CANCELLED) return;
+    if (!series || series.status === EventStatus.CANCELLED) return;
 
     const { occurrenceStarts, generatedThrough } = this.getOccurrenceStarts(
-      root,
+      series,
       through,
     );
     for (const occurrenceStart of occurrenceStarts) {
-      await this.createOccurrence(root, occurrenceStart);
+      await this.createOccurrence(series, occurrenceStart);
     }
 
-    await this.prisma.calendarEvent.update({
-      where: { id: root.id },
+    await this.prisma.recurrenceSeries.update({
+      where: { id: series.id },
       data: { recurrenceGeneratedUntil: generatedThrough },
     });
   }
@@ -122,64 +140,96 @@ export class CalendarRecurrenceService {
     );
   }
 
-  truncateBefore(rule: string, occurrenceStart: Date): string {
-    const until = new Date(occurrenceStart.getTime() - 1);
-    const parts = rule
+  truncateBefore(
+    rule: string,
+    occurrenceStart: Date,
+    timeZone = 'UTC',
+  ): string {
+    const prefix = /^RRULE:/i.test(rule) ? 'RRULE:' : '';
+    const until = new Date(
+      this.toFloatingDate(occurrenceStart, timeZone).getTime() - 1,
+    );
+    const parts = this.normalizeRule(rule)
       .split(';')
       .filter(
         (part) => !part.startsWith('COUNT=') && !part.startsWith('UNTIL='),
       );
-    parts.push(`UNTIL=${this.toRRuleDate(until)}`);
-    return parts.join(';');
+    parts.push(`UNTIL=${this.toUtcRRuleDate(until)}`);
+    return `${prefix}${parts.join(';')}`;
   }
 
   remainingRule(
     rule: string,
     seriesStart: Date,
     occurrenceStart: Date,
+    timeZone = 'UTC',
   ): string {
-    const countPart = rule.split(';').find((part) => part.startsWith('COUNT='));
-    if (!countPart) return rule;
+    const prefix = /^RRULE:/i.test(rule) ? 'RRULE:' : '';
+    const normalizedRule = this.normalizeRule(rule);
+    const countPart = normalizedRule
+      .split(';')
+      .find((part) => part.startsWith('COUNT='));
+    if (!countPart) return `${prefix}${normalizedRule}`;
 
     const total = Number(countPart.slice('COUNT='.length));
-    const used = rrulestr(this.withStart(rule, seriesStart), {
-      forceset: true,
-    }).between(seriesStart, occurrenceStart, true).length;
+    const ruleSet = this.createRuleSet(normalizedRule, seriesStart, timeZone);
+    let used = 0;
+    let cursor = new Date(
+      this.toFloatingDate(seriesStart, timeZone).getTime() - 1,
+    );
+    const occurrenceCursor = this.toFloatingDate(occurrenceStart, timeZone);
+    while (used < total) {
+      const next = ruleSet.after(cursor, false);
+      if (!next || next > occurrenceCursor) break;
+      used += 1;
+      cursor = next;
+    }
     const remaining = Math.max(1, total - used + 1);
-    return rule
+    return `${prefix}${normalizedRule
       .split(';')
       .map((part) => (part.startsWith('COUNT=') ? `COUNT=${remaining}` : part))
-      .join(';');
+      .join(';')}`;
   }
 
   private getOccurrenceStarts(
     root: RecurrenceTemplate,
     through: Date,
   ): { occurrenceStarts: Date[]; generatedThrough: Date } {
-    const rule = rrulestr(this.withStart(root.recurrenceRule!, root.startAt), {
-      forceset: true,
-    });
+    const rule = this.createRuleSet(
+      root.recurrenceRule,
+      root.startAt,
+      root.timeZone,
+    );
     const exceptions = new Set(
-      root.recurrenceExceptions.map((exception) =>
+      root.exceptions.map((exception) =>
         exception.occurrenceStart.toISOString(),
       ),
     );
-    const cursor = root.recurrenceGeneratedUntil ?? root.startAt;
-    const candidates = rule.between(cursor, through, false);
-    const occurrenceStarts = candidates
-      .filter((date) => !exceptions.has(date.toISOString()))
-      .slice(0, CALENDAR_DEFAULTS.MAX_RECURRENCE_OCCURRENCES_PER_BATCH);
-    const wasTruncated =
-      candidates.length >
-      CALENDAR_DEFAULTS.MAX_RECURRENCE_OCCURRENCES_PER_BATCH;
+    let cursor = root.recurrenceGeneratedUntil
+      ? this.toFloatingDate(root.recurrenceGeneratedUntil, root.timeZone)
+      : new Date(
+          this.toFloatingDate(root.startAt, root.timeZone).getTime() - 1,
+        );
+    const occurrenceStarts: Date[] = [];
+    let scannedCandidates = 0;
 
-    return {
-      occurrenceStarts,
-      generatedThrough:
-        wasTruncated && occurrenceStarts.length > 0
-          ? occurrenceStarts[occurrenceStarts.length - 1]
-          : through,
-    };
+    while (
+      scannedCandidates < CALENDAR_DEFAULTS.MAX_RECURRENCE_OCCURRENCES_PER_BATCH
+    ) {
+      const nextFloating = rule.after(cursor, false);
+      if (!nextFloating) {
+        return { occurrenceStarts, generatedThrough: through };
+      }
+      cursor = nextFloating;
+      scannedCandidates += 1;
+      const next = this.fromFloatingDate(nextFloating, root.timeZone);
+      if (next > through) {
+        return { occurrenceStarts, generatedThrough: through };
+      }
+      if (!exceptions.has(next.toISOString())) occurrenceStarts.push(next);
+    }
+
+    return { occurrenceStarts, generatedThrough: cursor };
   }
 
   private async createOccurrence(
@@ -188,8 +238,8 @@ export class CalendarRecurrenceService {
   ): Promise<void> {
     const existing = await this.prisma.calendarEvent.findUnique({
       where: {
-        recurrenceParentId_originalStartAt: {
-          recurrenceParentId: root.id,
+        recurrenceSeriesId_originalStartAt: {
+          recurrenceSeriesId: root.id,
           originalStartAt: occurrenceStart,
         },
       },
@@ -205,6 +255,7 @@ export class CalendarRecurrenceService {
         const occurrence = await tx.calendarEvent.create({
           data: {
             calendarId: root.calendarId,
+            recurrenceSeriesId: root.id,
             createdBy: root.createdBy,
             updatedBy: root.updatedBy,
             title: root.title,
@@ -216,8 +267,6 @@ export class CalendarRecurrenceService {
             color: root.color,
             status: root.status,
             visibility: root.visibility,
-            recurrenceRule: root.recurrenceRule,
-            recurrenceParentId: root.id,
             originalStartAt: occurrenceStart,
             isRecurrenceOverride: false,
             sourceType: EventSourceType.USER,
@@ -242,7 +291,7 @@ export class CalendarRecurrenceService {
               responseStatus:
                 attendee.userId === root.createdBy
                   ? AttendeeResponseStatus.ACCEPTED
-                  : attendee.responseStatus,
+                  : AttendeeResponseStatus.NEEDS_ACTION,
             })),
           });
         }
@@ -272,12 +321,111 @@ export class CalendarRecurrenceService {
     }
   }
 
-  private withStart(rule: string, startAt: Date): string {
-    const normalizedRule = rule.startsWith('RRULE:') ? rule : `RRULE:${rule}`;
-    return `DTSTART:${this.toRRuleDate(startAt)}\n${normalizedRule}`;
+  private parseRuleParts(rule: string): Map<string, string> {
+    if (/\r|\n/.test(rule)) throw new Error('multi-line rules are forbidden');
+    const parts = new Map<string, string>();
+
+    for (const component of this.normalizeRule(rule).split(';')) {
+      const separator = component.indexOf('=');
+      if (separator <= 0 || separator === component.length - 1) {
+        throw new Error('invalid recurrence component');
+      }
+      const key = component.slice(0, separator).toUpperCase();
+      const value = component.slice(separator + 1).toUpperCase();
+      if (!SUPPORTED_PARTS.has(key) || parts.has(key)) {
+        throw new Error('unsupported or duplicate recurrence component');
+      }
+      parts.set(key, value);
+    }
+    return parts;
   }
 
-  private toRRuleDate(date: Date): string {
+  private parseBoundedInteger(
+    value: string | undefined,
+    minimum: number,
+    maximum: number,
+  ): number | null {
+    if (value === undefined || !/^\d+$/.test(value)) return null;
+    const parsed = Number(value);
+    return parsed >= minimum && parsed <= maximum ? parsed : null;
+  }
+
+  private createRuleSet(
+    rule: string,
+    startAt: Date,
+    timeZone: string,
+  ): RRuleSet {
+    return rrulestr(this.withStart(rule, startAt, timeZone), {
+      forceset: true,
+    }) as RRuleSet;
+  }
+
+  private withStart(rule: string, startAt: Date, timeZone: string): string {
+    const start = this.toUtcRRuleDate(this.toFloatingDate(startAt, timeZone));
+    return `DTSTART:${start}\nRRULE:${this.normalizeRule(rule)}`;
+  }
+
+  private normalizeRule(rule: string): string {
+    return rule.replace(/^RRULE:/i, '').toUpperCase();
+  }
+
+  private getZonedParts(date: Date, timeZone: string) {
+    return Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(date)
+        .filter((part) => part.type !== 'literal')
+        .map((part) => [part.type, part.value]),
+    );
+  }
+
+  private toFloatingDate(date: Date, timeZone: string): Date {
+    const values = this.getZonedParts(date, timeZone);
+    return new Date(
+      Date.UTC(
+        Number(values.year),
+        Number(values.month) - 1,
+        Number(values.day),
+        Number(values.hour),
+        Number(values.minute),
+        Number(values.second),
+        date.getUTCMilliseconds(),
+      ),
+    );
+  }
+
+  private fromFloatingDate(date: Date, timeZone: string): Date {
+    const desiredTime = date.getTime();
+    let candidate = desiredTime;
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const values = this.getZonedParts(new Date(candidate), timeZone);
+      const representedLocalTime = Date.UTC(
+        Number(values.year),
+        Number(values.month) - 1,
+        Number(values.day),
+        Number(values.hour),
+        Number(values.minute),
+        Number(values.second),
+        date.getUTCMilliseconds(),
+      );
+      const correction = desiredTime - representedLocalTime;
+      if (correction === 0) break;
+      candidate += correction;
+    }
+
+    return new Date(candidate);
+  }
+
+  private toUtcRRuleDate(date: Date): string {
     return date
       .toISOString()
       .replaceAll('-', '')
