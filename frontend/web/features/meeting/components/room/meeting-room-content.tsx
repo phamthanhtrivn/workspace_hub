@@ -1,18 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   RoomAudioRenderer,
   useConnectionState,
-  useParticipants,
   useRoomContext,
-  useTracks,
 } from "@livekit/components-react";
-import { Track } from "livekit-client";
-import { Video } from "lucide-react";
+import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { cn } from "@/lib/utils";
+import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
 import type {
   MeetingParticipantRole,
   MeetingPreJoinSettings,
@@ -42,13 +39,21 @@ export function MeetingRoomContent({
   const router = useRouter();
   const room = useRoomContext();
   const connectionState = useConnectionState();
-  const participants = useParticipants();
   const [activePanel, setActivePanel] = useState(MeetingRoomPanel.NONE);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const cameraTracks = useTracks(
-    [{ source: Track.Source.Camera, withPlaceholder: true }],
-    { onlySubscribed: false },
-  );
+  const {
+    canGoNext,
+    canGoPrevious,
+    currentParticipantPage,
+    goToNextParticipantPage,
+    goToPreviousParticipantPage,
+    participantCount,
+    participantGridClassName,
+    participantTileFrameClassName,
+    showParticipantPagination,
+    totalParticipantPages,
+    visibleCameraTracks,
+  } = useMeetingParticipantGrid(activePanel);
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -57,19 +62,6 @@ export function MeetingRoomContent({
 
     return () => window.clearInterval(timerId);
   }, []);
-
-  const sortedCameraTracks = useMemo(
-    () =>
-      [...cameraTracks].sort((first, second) => {
-        if (first.participant.isLocal) return -1;
-        if (second.participant.isLocal) return 1;
-
-        return first.participant.identity.localeCompare(
-          second.participant.identity,
-        );
-      }),
-    [cameraTracks],
-  );
 
   const handleLeave = () => {
     room.disconnect();
@@ -105,25 +97,56 @@ export function MeetingRoomContent({
       </header>
 
       <main className="flex min-h-0 flex-1">
-        <section className="min-w-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6">
-          <div
-            className={cn(
-              "grid min-h-full gap-4",
-              activePanel === MeetingRoomPanel.NONE
-                ? "lg:grid-cols-3"
-                : "lg:grid-cols-2",
-            )}
-          >
-            {sortedCameraTracks.map((trackRef) => (
-              <MeetingParticipantTile
-                key={`${trackRef.participant.identity}-${trackRef.source}`}
-                trackRef={trackRef}
-                isMainTile={
-                  trackRef.participant.isLocal &&
-                  activePanel === MeetingRoomPanel.NONE
-                }
-              />
-            ))}
+        <section className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
+          <div className="flex min-h-full flex-col justify-start lg:justify-center">
+            <div className={participantGridClassName}>
+              {visibleCameraTracks.map((trackRef) => (
+                <div
+                  key={`${trackRef.participant.identity}-${trackRef.source}`}
+                  className={participantTileFrameClassName}
+                >
+                  <MeetingParticipantTile
+                    trackRef={trackRef}
+                    isMainTile={false}
+                  />
+                </div>
+              ))}
+            </div>
+            {showParticipantPagination ? (
+              <div className="mt-6 shrink-0">
+                <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-md bg-black/24 px-2 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/8 backdrop-blur">
+                  <button
+                    type="button"
+                    disabled={!canGoPrevious}
+                    onClick={goToPreviousParticipantPage}
+                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                    aria-label={intl.formatMessage({ id: "app.previous" })}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline">
+                      {intl.formatMessage({ id: "app.previous" })}
+                    </span>
+                  </button>
+
+                  <span className="min-w-14 rounded-md bg-white/6 px-2.5 py-1.5 text-center text-slate-300 ring-1 ring-white/6">
+                    {currentParticipantPage} / {totalParticipantPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    disabled={!canGoNext}
+                    onClick={goToNextParticipantPage}
+                    className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
+                    aria-label={intl.formatMessage({ id: "app.next" })}
+                  >
+                    <span className="hidden sm:inline">
+                      {intl.formatMessage({ id: "app.next" })}
+                    </span>
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
 
@@ -131,7 +154,7 @@ export function MeetingRoomContent({
           activePanel={activePanel}
           joinToken={joinToken}
           participantRole={participantRole}
-          participantCount={participants.length}
+          participantCount={participantCount}
           onClose={closePanel}
         />
       </main>
@@ -147,7 +170,7 @@ export function MeetingRoomContent({
         activePanel={activePanel}
         joinToken={joinToken}
         participantRole={participantRole}
-        participantCount={participants.length}
+        participantCount={participantCount}
         onClose={closePanel}
       />
 
