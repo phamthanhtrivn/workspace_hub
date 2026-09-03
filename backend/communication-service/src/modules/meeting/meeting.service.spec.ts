@@ -210,6 +210,90 @@ describe('MeetingService', () => {
     });
   });
 
+  it('checks meeting access without creating a participant or LiveKit token', async () => {
+    const { service, prisma, liveKitService } = createService();
+
+    const result = await service.getMeetingAccess({
+      joinToken: 'join-token',
+      userId: guestUserId,
+    });
+
+    expect(prisma.meeting.findUnique).toHaveBeenCalledWith({
+      where: { joinToken: 'join-token' },
+      include: {
+        participants: {
+          where: { userId: guestUserId },
+          take: 1,
+        },
+      },
+    });
+    expect(prisma.meetingParticipant.upsert).not.toHaveBeenCalled();
+    expect(prisma.meetingEvent.create).not.toHaveBeenCalled();
+    expect(liveKitService.createParticipantToken).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      joinToken: 'join-token',
+      status: MeetingStatus.LIVE,
+      autoAdmit: true,
+      participantRole: MeetingRole.PARTICIPANT,
+    });
+  });
+
+  it('returns host role when the host checks meeting access by token', async () => {
+    const { service } = createService();
+
+    const result = await service.getMeetingAccess({
+      joinToken: 'join-token',
+      userId,
+    });
+
+    expect(result.participantRole).toBe(MeetingRole.HOST);
+  });
+
+  it('throws when userId is missing while checking meeting access', async () => {
+    const { service } = createService();
+
+    await expect(
+      service.getMeetingAccess({
+        joinToken: 'join-token',
+        userId: '',
+      }),
+    ).rejects.toThrow(
+      new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID),
+    );
+  });
+
+  it('throws when the meeting access join token is not found', async () => {
+    const { service, prisma } = createService();
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue(null);
+
+    await expect(
+      service.getMeetingAccess({
+        joinToken: 'missing-token',
+        userId,
+      }),
+    ).rejects.toThrow(
+      new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND),
+    );
+  });
+
+  it('throws when checking access for a meeting that is not live', async () => {
+    const { service, prisma } = createService();
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      status: MeetingStatus.ENDED,
+      participants: [],
+    });
+
+    await expect(
+      service.getMeetingAccess({
+        joinToken: 'join-token',
+        userId,
+      }),
+    ).rejects.toThrow(
+      new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE),
+    );
+  });
+
   it('throws when userId is missing', async () => {
     const { service } = createService();
 

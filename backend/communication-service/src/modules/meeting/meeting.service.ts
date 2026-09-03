@@ -29,6 +29,11 @@ interface JoinMeetingParams extends CreateInstantMeetingParams {
   joinToken: string;
 }
 
+interface GetMeetingAccessParams {
+  joinToken: string;
+  userId: string;
+}
+
 @Injectable()
 export class MeetingService {
   constructor(
@@ -124,6 +129,42 @@ export class MeetingService {
     });
 
     return this.toMeetingRoomResponse(meeting, MeetingRole.HOST, token);
+  }
+
+  async getMeetingAccess({ joinToken, userId }: GetMeetingAccessParams) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { joinToken },
+      include: {
+        participants: {
+          where: { userId },
+          take: 1,
+        },
+      },
+    });
+
+    if (!meeting) {
+      throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
+    }
+
+    if (meeting.status !== MeetingStatus.LIVE) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE);
+    }
+
+    const existingParticipant = meeting.participants[0];
+    const participantRole =
+      existingParticipant?.role ??
+      (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
+
+    return {
+      joinToken: meeting.joinToken,
+      status: meeting.status,
+      autoAdmit: meeting.autoAdmit,
+      participantRole,
+    };
   }
 
   async joinMeeting({

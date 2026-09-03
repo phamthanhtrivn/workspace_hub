@@ -640,6 +640,7 @@
   "meeting.prejoin.allowJoinWithoutApprovalDescription":
     "Khách có link cuộc họp có thể vào phòng ngay lập tức.",
   "meeting.prejoin.startMeeting": "Bắt đầu họp",
+  "meeting.prejoin.joinMeeting": "Vào phòng họp",
   "meeting.creating.title": "Đang tạo phòng họp",
   "meeting.creating.description":
     "Đang chuẩn bị phòng LiveKit và mở trong tab mới.",
@@ -658,6 +659,8 @@
   "meeting.room.participant.designLead": "Design Lead",
   "meeting.room.participant.backendLead": "Backend Lead",
   "meeting.room.control.microphone": "Micro",
+  "meeting.room.control.microphoneOn": "Đang bật mic",
+  "meeting.room.control.microphoneOff": "Đang tắt mic",
   "meeting.room.control.camera": "Camera",
   "meeting.room.control.mute": "Tắt mic",
   "meeting.room.control.unmute": "Bật mic",

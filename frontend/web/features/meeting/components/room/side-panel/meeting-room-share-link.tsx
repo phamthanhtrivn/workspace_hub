@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Check, Copy, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { MEETING_ROUTES } from "../../../types/meeting.constants";
 
 interface MeetingRoomShareLinkProps {
   joinToken: string;
@@ -32,7 +33,7 @@ export function MeetingRoomShareLink({ joinToken }: MeetingRoomShareLinkProps) {
   const inviteLink = useMemo(() => {
     if (typeof window === "undefined") return "";
 
-    return `${window.location.origin}/meetings/${encodeURIComponent(joinToken)}`;
+    return `${window.location.origin}${MEETING_ROUTES.room(joinToken)}`;
   }, [joinToken]);
 
   const handleCopy = async () => {

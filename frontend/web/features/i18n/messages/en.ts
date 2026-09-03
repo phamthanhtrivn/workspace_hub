@@ -645,6 +645,7 @@
   "meeting.prejoin.allowJoinWithoutApprovalDescription":
     "Guests can enter the room immediately when they have the meeting link.",
   "meeting.prejoin.startMeeting": "Start meeting",
+  "meeting.prejoin.joinMeeting": "Join meeting",
   "meeting.creating.title": "Creating meeting room",
   "meeting.creating.description":
     "Preparing the LiveKit room and opening it in a new tab.",
@@ -663,6 +664,8 @@
   "meeting.room.participant.designLead": "Design Lead",
   "meeting.room.participant.backendLead": "Backend Lead",
   "meeting.room.control.microphone": "Microphone",
+  "meeting.room.control.microphoneOn": "Microphone on",
+  "meeting.room.control.microphoneOff": "Microphone off",
   "meeting.room.control.camera": "Camera",
   "meeting.room.control.mute": "Mute",
   "meeting.room.control.unmute": "Unmute",

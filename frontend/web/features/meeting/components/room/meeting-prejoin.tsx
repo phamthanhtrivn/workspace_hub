@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
+import { MeetingPreJoinMode } from "../../types/meeting.types";
 import type {
   MeetingDeviceOption,
   MeetingPreJoinSettings,
@@ -21,6 +22,7 @@ import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
 import { MeetingDeviceSelect } from "../common/meeting-device-select";
 
 interface MeetingPreJoinProps {
+  mode?: MeetingPreJoinMode;
   settings: MeetingPreJoinSettings;
   onSettingsChange: (settings: MeetingPreJoinSettings) => void;
   cameras: MeetingDeviceOption[];
@@ -34,6 +36,7 @@ interface MeetingPreJoinProps {
 }
 
 export function MeetingPreJoin({
+  mode = MeetingPreJoinMode.CREATE,
   settings,
   onSettingsChange,
   cameras,
@@ -47,6 +50,7 @@ export function MeetingPreJoin({
 }: MeetingPreJoinProps) {
   const intl = useAppIntl();
   const videoRef = useRef<HTMLVideoElement>(null);
+  const isCreateMode = mode === MeetingPreJoinMode.CREATE;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -235,40 +239,42 @@ export function MeetingPreJoin({
               />
             </div>
 
-            <label className="group flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 transition hover:border-blue-200 hover:bg-blue-50/70">
-              <input
-                type="checkbox"
-                checked={settings.autoAdmin}
-                onChange={(event) =>
-                  updateSettings({ autoAdmin: event.target.checked })
-                }
-                className="peer sr-only"
-              />
-              <span
-                className={cn(
-                  "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition",
-                  settings.autoAdmin
-                    ? "border-[#0052CC] bg-[#0052CC] text-white shadow-[0_8px_18px_rgba(0,82,204,0.28)]"
-                    : "border-slate-300 bg-white text-transparent group-hover:border-[#0052CC]",
-                )}
-                aria-hidden="true"
-              >
-                <Check className="h-3.5 w-3.5 stroke-[3]" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2 text-sm font-black text-[#172B4D]">
-                  <ShieldCheck className="h-4 w-4 text-[#0052CC]" />
-                  {intl.formatMessage({
-                    id: "meeting.prejoin.allowJoinWithoutApproval",
-                  })}
+            {isCreateMode ? (
+              <label className="group flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 transition hover:border-blue-200 hover:bg-blue-50/70">
+                <input
+                  type="checkbox"
+                  checked={settings.autoAdmin}
+                  onChange={(event) =>
+                    updateSettings({ autoAdmin: event.target.checked })
+                  }
+                  className="peer sr-only"
+                />
+                <span
+                  className={cn(
+                    "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition",
+                    settings.autoAdmin
+                      ? "border-[#0052CC] bg-[#0052CC] text-white shadow-[0_8px_18px_rgba(0,82,204,0.28)]"
+                      : "border-slate-300 bg-white text-transparent group-hover:border-[#0052CC]",
+                  )}
+                  aria-hidden="true"
+                >
+                  <Check className="h-3.5 w-3.5 stroke-[3]" />
                 </span>
-                <span className="mt-1 block text-xs font-semibold leading-5 text-slate-500">
-                  {intl.formatMessage({
-                    id: "meeting.prejoin.allowJoinWithoutApprovalDescription",
-                  })}
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-sm font-black text-[#172B4D]">
+                    <ShieldCheck className="h-4 w-4 text-[#0052CC]" />
+                    {intl.formatMessage({
+                      id: "meeting.prejoin.allowJoinWithoutApproval",
+                    })}
+                  </span>
+                  <span className="mt-1 block text-xs font-semibold leading-5 text-slate-500">
+                    {intl.formatMessage({
+                      id: "meeting.prejoin.allowJoinWithoutApprovalDescription",
+                    })}
+                  </span>
                 </span>
-              </span>
-            </label>
+              </label>
+            ) : null}
 
             <div className="mt-auto flex flex-col gap-3 pt-2">
               <button
@@ -277,7 +283,11 @@ export function MeetingPreJoin({
                 className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-lg bg-[#0052CC] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(0,82,204,0.28)] transition hover:-translate-y-0.5 hover:bg-[#0747A6] hover:shadow-[0_20px_42px_rgba(0,82,204,0.34)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
               >
                 <span className="absolute inset-x-0 top-0 h-px bg-white/45" />
-                {intl.formatMessage({ id: "meeting.prejoin.startMeeting" })}
+                {intl.formatMessage({
+                  id: isCreateMode
+                    ? "meeting.prejoin.startMeeting"
+                    : "meeting.prejoin.joinMeeting",
+                })}
               </button>
               <button
                 type="button"

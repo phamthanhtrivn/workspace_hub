@@ -1,24 +1,23 @@
 "use client";
 
-import { useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ApiResponse } from "@/features/chat/types/chat.types";
+import { useCallback } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { joinMeeting } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
-import type { InstantMeetingResponse } from "../types/meeting.types";
-import { loadMeetingDeviceSettings } from "../utils/meeting-device-storage";
+import type { MeetingPreJoinSettings } from "../types/meeting.types";
+import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
 export function useJoinMeetingRoom(joinToken: string) {
   const queryClient = useQueryClient();
-  const settings = useMemo(() => loadMeetingDeviceSettings(), []);
   const queryKey = meetingKeys.room(joinToken);
-  const cachedRoom = queryClient.getQueryData<ApiResponse<InstantMeetingResponse>>(
-    queryKey,
-  );
 
-  const query = useQuery({
-    queryKey,
-    queryFn: () =>
+  const {
+    data,
+    isError,
+    isPending,
+    mutate,
+  } = useMutation({
+    mutationFn: (settings: MeetingPreJoinSettings) =>
       joinMeeting(joinToken, {
         deviceSettings: {
           cameraEnabled: settings.cameraEnabled,
@@ -27,14 +26,25 @@ export function useJoinMeetingRoom(joinToken: string) {
           microphoneDeviceId: settings.microphoneDeviceId || undefined,
         },
       }),
-    enabled: Boolean(joinToken) && !cachedRoom,
-    initialData: cachedRoom,
-    retry: false,
+    onSuccess: (response) => {
+      queryClient.setQueryData(queryKey, response);
+    },
   });
 
+  const joinRoom = useCallback(
+    (settings: MeetingPreJoinSettings) => {
+      if (!joinToken || isPending) return;
+
+      saveMeetingDeviceSettings(settings);
+      mutate(settings);
+    },
+    [isPending, joinToken, mutate],
+  );
+
   return {
-    ...query,
-    settings,
-    room: query.data?.data,
+    joinRoom,
+    isJoining: isPending,
+    isJoinError: isError,
+    room: data?.data,
   };
 }

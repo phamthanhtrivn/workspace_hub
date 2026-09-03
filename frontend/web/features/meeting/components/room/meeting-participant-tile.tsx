@@ -42,6 +42,9 @@ export function MeetingParticipantTile({
     isTrackReference(trackRef) &&
     Boolean(trackRef.publication.track) &&
     !trackRef.publication.isMuted;
+  const microphoneLabelId = participant.isMicrophoneEnabled
+    ? "meeting.room.control.microphoneOn"
+    : "meeting.room.control.microphoneOff";
 
   return (
     <article
@@ -79,15 +82,17 @@ export function MeetingParticipantTile({
             {intl.formatMessage({ id: getRoleLabelId(metadata.role) })}
           </p>
         </div>
-        {isLocalUser ? (
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-black/45 text-white backdrop-blur">
-            {participant.isMicrophoneEnabled ? (
-              <Mic className="h-4 w-4" />
-            ) : (
-              <MicOff className="h-4 w-4 text-red-300" />
-            )}
-          </span>
-        ) : null}
+        <span
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-black/45 text-white backdrop-blur"
+          aria-label={intl.formatMessage({ id: microphoneLabelId })}
+          title={intl.formatMessage({ id: microphoneLabelId })}
+        >
+          {participant.isMicrophoneEnabled ? (
+            <Mic className="h-4 w-4" />
+          ) : (
+            <MicOff className="h-4 w-4 text-red-300" />
+          )}
+        </span>
       </div>
     </article>
   );

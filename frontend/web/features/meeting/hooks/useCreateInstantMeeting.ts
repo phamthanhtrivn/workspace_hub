@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createInstantMeeting } from "../api/meeting.api";
 import type { MeetingPreJoinSettings } from "../types/meeting.types";
+import { MEETING_ROUTES } from "../types/meeting.constants";
 import { meetingKeys } from "../types/meeting.query-keys";
 import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
@@ -35,7 +36,7 @@ export function useCreateInstantMeeting({
     onSuccess: (response) => {
       const joinToken = response.data.meeting.joinToken;
       queryClient.setQueryData(meetingKeys.room(joinToken), response);
-      router.push(`/meetings/${encodeURIComponent(joinToken)}`);
+      router.push(MEETING_ROUTES.room(joinToken));
       onCreated();
     },
     onError,

@@ -6,6 +6,7 @@ export enum MeetingSocketStatus {
 export enum MEETING_SUCCESS_MESSAGES {
   INSTANT_CREATED = 'Instant meeting created successfully',
   JOINED = 'Meeting joined successfully',
+  ACCESS_CHECKED = 'Meeting access checked successfully',
 }
 
 export enum MEETING_ERROR_MESSAGES {

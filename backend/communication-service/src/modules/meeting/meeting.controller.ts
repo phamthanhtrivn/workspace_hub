@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   Headers,
   Param,
   Post,
@@ -38,6 +39,26 @@ export class MeetingController {
 
     return {
       message: MEETING_SUCCESS_MESSAGES.INSTANT_CREATED,
+      data: meeting,
+    };
+  }
+
+  @Get(':joinToken/access')
+  async getMeetingAccess(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.meetingService.getMeetingAccess({
+      joinToken,
+      userId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.ACCESS_CHECKED,
       data: meeting,
     };
   }

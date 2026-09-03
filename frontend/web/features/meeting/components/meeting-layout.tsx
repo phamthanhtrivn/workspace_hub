@@ -10,7 +10,7 @@ import {
 } from "../types/meeting.constants";
 import { MeetingSidebar } from "./meeting-sidebar";
 import { useMeetingClock } from "../hooks/useMeetingClock";
-import { MeetingFlowStep } from "../types/meeting.types";
+import { MeetingFlowStep, MeetingPreJoinMode } from "../types/meeting.types";
 import { MeetingPreJoin } from "./room/meeting-prejoin";
 import { MeetingCreatingOverlay } from "./room/meeting-fullscreen-overlay";
 import { useCreateInstantMeeting } from "../hooks/useCreateInstantMeeting";
@@ -100,6 +100,7 @@ export function MeetingLayout() {
 
       {isPreJoinOpen && (
         <MeetingPreJoin
+          mode={MeetingPreJoinMode.CREATE}
           settings={preJoinSettings}
           onSettingsChange={setPreJoinSettings}
           cameras={cameras}

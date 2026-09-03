@@ -4,6 +4,19 @@ export enum MeetingFlowStep {
   CREATING = "creating",
 }
 
+export enum MeetingPreJoinMode {
+  CREATE = "create",
+  JOIN = "join",
+}
+
+export enum MeetingJoinFlowStep {
+  CHECKING = "checking",
+  PREJOIN = "prejoin",
+  JOINING = "joining",
+  ROOM = "room",
+  ERROR = "error",
+}
+
 export enum MeetingDeviceKind {
   CAMERA = "camera",
   MICROPHONE = "microphone",
@@ -50,6 +63,13 @@ export interface InstantMeetingResponse {
     serverUrl: string;
     token: string;
   };
+}
+
+export interface MeetingAccessResponse {
+  joinToken: string;
+  status: "LIVE";
+  autoAdmit: boolean;
+  participantRole: MeetingParticipantRole;
 }
 
 export type JoinMeetingPayload = Pick<

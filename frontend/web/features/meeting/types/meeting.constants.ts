@@ -12,6 +12,19 @@ import {
 } from "lucide-react";
 import { MeetingRoomPanel } from "./meeting.types";
 
+export const MEETING_ROUTES = {
+  DASHBOARD: "/meetings",
+  room: (joinToken: string) => `/meetings/${encodeURIComponent(joinToken)}`,
+} as const;
+
+export const MEETING_API_PATHS = {
+  INSTANT: "/api/meetings/instant",
+  join: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/join`,
+  access: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/access`,
+} as const;
+
 export enum PARTICIPANT_ROLE {
   HOST = "HOST",
   COHOST = "COHOST",

@@ -10,6 +10,7 @@ import {
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
+import { MEETING_ROUTES } from "../../types/meeting.constants";
 import type {
   MeetingParticipantRole,
   MeetingPreJoinSettings,
@@ -65,7 +66,7 @@ export function MeetingRoomContent({
 
   const handleLeave = () => {
     room.disconnect();
-    router.push("/meetings");
+    router.push(MEETING_ROUTES.DASHBOARD);
   };
 
   const closePanel = () => setActivePanel(MeetingRoomPanel.NONE);
