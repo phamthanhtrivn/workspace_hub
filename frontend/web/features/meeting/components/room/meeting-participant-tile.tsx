@@ -68,8 +68,12 @@ export function MeetingParticipantTile({
               style={{ backgroundImage: `url("${avatarUrl}")` }}
             />
           ) : (
-            <span className="grid h-24 w-24 place-items-center rounded-full bg-white/12 text-white ring-1 ring-white/14">
-              <User className="h-11 w-11 text-slate-300" />
+            <span
+              aria-label={displayName}
+              role="img"
+              className="grid h-24 w-24 place-items-center rounded-full bg-slate-200/90 ring-1 ring-white/14 shadow-sm"
+            >
+              <User className="h-11 w-11 text-slate-400" />
             </span>
           )}
         </div>
