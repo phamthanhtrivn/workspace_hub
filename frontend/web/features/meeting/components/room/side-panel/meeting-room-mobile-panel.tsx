@@ -28,7 +28,7 @@ export function MeetingRoomMobilePanelHeader({
         <button
           type="button"
           onClick={onClose}
-          className="grid h-8 w-8 place-items-center rounded-md bg-white/8"
+          className="grid h-8 w-8 cursor-pointer place-items-center rounded-md bg-white/8"
           aria-label={intl.formatMessage({ id: "app.close" })}
         >
           <X className="h-4 w-4" />

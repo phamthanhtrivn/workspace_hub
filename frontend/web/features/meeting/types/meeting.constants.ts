@@ -196,3 +196,7 @@ export const meetingActionToneClassByTone = {
   [MeetingDashboardTone.VIOLET]: "bg-violet-600",
   [MeetingDashboardTone.AMBER]: "bg-amber-500",
 } as const;
+
+export const MIN_VISIBLE_BADGE_COUNT = 1;
+export const MAX_BADGE_COUNT = 99;
+export const OVERFLOW_BADGE_LABEL = "99+";

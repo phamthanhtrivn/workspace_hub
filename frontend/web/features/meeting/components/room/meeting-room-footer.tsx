@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Bell,
   type LucideIcon,
   LogOut,
   Mic,
@@ -16,6 +15,7 @@ import { Track } from "livekit-client";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingJoinRequestCount } from "@/features/meeting/hooks/useMeetingAdmission";
 import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
+import { playNotificationSound } from "@/features/notification/utils/notification-alert.utils";
 import { meetingRoomControlItems } from "../../types/meeting.constants";
 import { meetingKeys } from "../../types/meeting.query-keys";
 import type {
@@ -144,10 +144,21 @@ export function MeetingRoomFooter({
     },
     [joinToken, meetingId, queryClient],
   );
+  const playJoinRequestSound = useCallback(
+    (payload: MeetingJoinRequestUpdatedPayload) => {
+      if (payload.meetingId !== meetingId) return;
+
+      playNotificationSound();
+    },
+    [meetingId],
+  );
 
   useMeetingSocket({
     meetingId: canManageAdmission ? meetingId : null,
-    onJoinRequestChanged: invalidateJoinRequestCount,
+    onJoinRequested: canManageAdmission ? playJoinRequestSound : undefined,
+    onJoinRequestChanged: canManageAdmission
+      ? invalidateJoinRequestCount
+      : undefined,
   });
 
   return (
@@ -189,9 +200,6 @@ export function MeetingRoomFooter({
                 control.id === MeetingRoomPanel.ADMISSION
                   ? pendingJoinRequestCount
                   : undefined
-              }
-              badgeIcon={
-                control.id === MeetingRoomPanel.ADMISSION ? Bell : undefined
               }
               onClick={() => {
                 if (isPanelControl) {

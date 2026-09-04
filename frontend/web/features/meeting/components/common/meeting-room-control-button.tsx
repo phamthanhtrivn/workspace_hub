@@ -3,17 +3,17 @@
 import type { MouseEventHandler } from "react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const MIN_VISIBLE_BADGE_COUNT = 1;
-const MAX_BADGE_COUNT = 99;
-const OVERFLOW_BADGE_LABEL = "99+";
+import {
+  MAX_BADGE_COUNT,
+  MIN_VISIBLE_BADGE_COUNT,
+  OVERFLOW_BADGE_LABEL,
+} from "../../types/meeting.constants";
 
 interface MeetingRoomControlButtonProps {
   label: string;
   icon: LucideIcon;
   active?: boolean;
   badgeCount?: number;
-  badgeIcon?: LucideIcon;
   danger?: boolean;
   disabled?: boolean;
   onClick?: MouseEventHandler<HTMLButtonElement>;
@@ -24,16 +24,13 @@ export function MeetingRoomControlButton({
   icon: Icon,
   active = false,
   badgeCount = 0,
-  badgeIcon: BadgeIcon,
   danger = false,
   disabled = false,
   onClick,
 }: MeetingRoomControlButtonProps) {
   const shouldShowBadge = badgeCount >= MIN_VISIBLE_BADGE_COUNT;
   const badgeLabel =
-    badgeCount > MAX_BADGE_COUNT
-      ? OVERFLOW_BADGE_LABEL
-      : String(badgeCount);
+    badgeCount > MAX_BADGE_COUNT ? OVERFLOW_BADGE_LABEL : String(badgeCount);
 
   return (
     <button
@@ -41,7 +38,7 @@ export function MeetingRoomControlButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "relative flex h-[68px] w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-lg text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50",
+        "cursor-pointer relative flex h-[68px] w-[76px] shrink-0 flex-col items-center justify-center gap-1.5 overflow-visible rounded-lg text-[11px] font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50",
         danger
           ? "bg-red-600 text-white hover:bg-red-500"
           : active
@@ -50,8 +47,7 @@ export function MeetingRoomControlButton({
       )}
     >
       {shouldShowBadge ? (
-        <span className="absolute right-1.5 top-1.5 inline-flex min-w-6 items-center justify-center gap-0.5 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-black leading-4 text-white shadow-[0_8px_18px_rgba(220,38,38,0.35)] ring-1 ring-white/30">
-          {BadgeIcon ? <BadgeIcon className="h-3 w-3" /> : null}
+        <span className="absolute right-3.5 top-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white shadow-[0_8px_18px_rgba(220,38,38,0.35)] ring-1 ring-white/30">
           <span>{badgeLabel}</span>
         </span>
       ) : null}

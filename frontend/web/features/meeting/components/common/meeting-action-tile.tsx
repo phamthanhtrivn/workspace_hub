@@ -34,7 +34,7 @@ export function MeetingActionTile({
         "group flex min-h-44 flex-col items-start justify-between rounded-lg p-4 text-left text-white shadow-sm transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2",
         toneClass,
         enabled
-          ? "hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
+          ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
           : "cursor-not-allowed opacity-80",
       )}
     >

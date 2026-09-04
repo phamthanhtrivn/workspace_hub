@@ -23,3 +23,22 @@ export interface MeetingJoinRequestUpdatedPayload
   status: MeetingParticipantStatus;
 }
 
+export interface JoinMeetingSocketPayload {
+  meetingId: string;
+}
+
+export interface ServerToClientMeetingEvents {
+  [MeetingSocketEvent.STATUS_UPDATED]: (
+    payload: MeetingStatusUpdatedPayload,
+  ) => void;
+  [MeetingSocketEvent.JOIN_REQUESTED]: (
+    payload: MeetingJoinRequestUpdatedPayload,
+  ) => void;
+  [MeetingSocketEvent.JOIN_REQUEST_UPDATED]: (
+    payload: MeetingJoinRequestUpdatedPayload,
+  ) => void;
+}
+
+export interface ClientToServerMeetingEvents {
+  [MeetingSocketEvent.JOIN]: (payload: JoinMeetingSocketPayload) => void;
+}

@@ -39,7 +39,7 @@ export function MeetingRoomError({ onBack }: { onBack: () => void }) {
         <button
           type="button"
           onClick={onBack}
-          className="mt-5 h-11 rounded-lg bg-white px-5 text-sm font-black text-[#172B4D] transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="mt-5 h-11 cursor-pointer rounded-lg bg-white px-5 text-sm font-black text-[#172B4D] transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
           {intl.formatMessage({ id: "meeting.room.backToMeetings" })}
         </button>

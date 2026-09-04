@@ -76,7 +76,7 @@ export function MeetingRoomAdmissionPanel({
             type="button"
             disabled={actions.approveAll.isPending}
             onClick={() => actions.approveAll.mutate()}
-            className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3 text-xs font-black text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3 text-xs font-black text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Check className="h-3.5 w-3.5" />
             {intl.formatMessage({ id: "meeting.admission.acceptAll" })}
@@ -85,7 +85,7 @@ export function MeetingRoomAdmissionPanel({
             type="button"
             disabled={actions.declineAll.isPending}
             onClick={() => actions.declineAll.mutate()}
-            className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 text-xs font-black text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 text-xs font-black text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <X className="h-3.5 w-3.5" />
             {intl.formatMessage({ id: "meeting.admission.declineAll" })}
@@ -146,7 +146,7 @@ export function MeetingRoomAdmissionPanel({
                     type="button"
                     disabled={isBusy}
                     onClick={() => actions.approveOne.mutate(request.userId)}
-                    className="flex h-8 items-center justify-center gap-1 rounded-md bg-emerald-500 text-xs font-black text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md bg-emerald-500 text-xs font-black text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Check className="h-3.5 w-3.5" />
                     {intl.formatMessage({ id: "meeting.admission.accept" })}
@@ -155,7 +155,7 @@ export function MeetingRoomAdmissionPanel({
                     type="button"
                     disabled={isBusy}
                     onClick={() => actions.declineOne.mutate(request.userId)}
-                    className="flex h-8 items-center justify-center gap-1 rounded-md bg-white/10 text-xs font-black text-slate-200 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md bg-white/10 text-xs font-black text-slate-200 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <X className="h-3.5 w-3.5" />
                     {intl.formatMessage({ id: "meeting.admission.decline" })}
@@ -173,7 +173,7 @@ export function MeetingRoomAdmissionPanel({
             type="button"
             disabled={page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
-            className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-md transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={intl.formatMessage({ id: "app.previous" })}
           >
             <ChevronLeft className="h-4 w-4" />
@@ -187,7 +187,7 @@ export function MeetingRoomAdmissionPanel({
             onClick={() =>
               setPage((current) => Math.min(totalPages, current + 1))
             }
-            className="grid h-8 w-8 place-items-center rounded-md transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-md transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label={intl.formatMessage({ id: "app.next" })}
           >
             <ChevronRight className="h-4 w-4" />

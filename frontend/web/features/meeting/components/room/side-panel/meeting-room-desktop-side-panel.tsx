@@ -31,7 +31,7 @@ export function MeetingRoomDesktopSidePanel({
           type="button"
           onClick={onClose}
           aria-label={intl.formatMessage({ id: "app.close" })}
-          className="grid h-9 w-9 place-items-center rounded-lg bg-white/8 text-slate-300 transition hover:bg-white/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg bg-white/8 text-slate-300 transition hover:bg-white/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
           <X className="h-4 w-4" />
         </button>
