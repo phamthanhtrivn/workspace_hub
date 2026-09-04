@@ -13,13 +13,21 @@ import {
 import { MeetingPreJoin } from "./meeting-prejoin";
 import { MeetingRoomContent } from "./meeting-room-content";
 import { MeetingRoomError, MeetingRoomLoading } from "./meeting-room-state";
+import { MeetingWaitingApproval } from "./meeting-waiting-approval";
 
 interface MeetingRoomShellProps {
   joinToken: string;
 }
 
 export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
-  const { flowStep, room, settings, preJoinProps, goBackToMeetings } =
+  const {
+    flowStep,
+    room,
+    waitingStatus,
+    settings,
+    preJoinProps,
+    goBackToMeetings,
+  } =
     useMeetingRoomJoinFlow(joinToken);
 
   switch (flowStep) {
@@ -31,6 +39,13 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
         <MeetingPreJoin
           mode={MeetingPreJoinMode.JOIN}
           {...preJoinProps}
+        />
+      );
+    case MeetingJoinFlowStep.WAITING_APPROVAL:
+      return (
+        <MeetingWaitingApproval
+          status={waitingStatus}
+          onBack={goBackToMeetings}
         />
       );
     case MeetingJoinFlowStep.ERROR:
@@ -49,8 +64,10 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
           className="contents"
         >
           <MeetingRoomContent
+            meetingId={room.meeting.id}
             joinToken={room.meeting.joinToken}
             participantRole={room.meeting.participantRole}
+            initialAutoAdmit={room.meeting.autoAdmit}
             settings={settings}
           />
         </LiveKitRoom>

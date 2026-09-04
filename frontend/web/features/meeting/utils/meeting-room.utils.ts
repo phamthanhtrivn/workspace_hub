@@ -79,5 +79,13 @@ export function getPanelTitleLabelId(activePanel: MeetingRoomPanel) {
     return "meeting.room.panel.chat";
   }
 
+  if (activePanel === MeetingRoomPanel.ADMISSION) {
+    return "meeting.room.panel.admission";
+  }
+
   return "meeting.room.panel.settings";
+}
+
+export function canManageMeetingAdmission(role?: string) {
+  return role === "HOST" || role === "COHOST";
 }

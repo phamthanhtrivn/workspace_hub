@@ -28,4 +28,8 @@ export class MeetingSocketHandler {
       payload,
     );
   }
+
+  emitToUser<TPayload>(userId: string, event: string, payload: TPayload): void {
+    this.socketEventEmitter.emitToUser(userId, event, payload);
+  }
 }

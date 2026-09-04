@@ -4,14 +4,12 @@ import {
   MessageBody,
   SubscribeMessage,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import { Socket } from 'socket.io';
 import { ChatEvent } from './chat-socket.events';
 import { ChatRoomHandler } from './handlers/chat-room.handler';
 
 @Injectable()
 export class ChatSocketHandler {
-  server: Server;
-
   constructor(private readonly chatRoomHandler: ChatRoomHandler) {}
 
   @SubscribeMessage(ChatEvent.JOIN_CONVERSATION)
@@ -43,10 +41,6 @@ export class ChatSocketHandler {
     @MessageBody() data: { conversationId: string; isTyping: boolean },
     @ConnectedSocket() client: Socket,
   ) {
-    return this.chatRoomHandler.handleDirectTyping(
-      data,
-      client,
-    );
+    return this.chatRoomHandler.handleDirectTyping(data, client);
   }
-
 }

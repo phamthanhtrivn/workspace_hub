@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   RoomAudioRenderer,
@@ -10,6 +10,7 @@ import {
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
+import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
 import { MEETING_ROUTES } from "../../types/meeting.constants";
 import type {
   MeetingParticipantRole,
@@ -26,14 +27,18 @@ import { MeetingRoomDesktopSidePanel } from "./side-panel/meeting-room-desktop-s
 import { MeetingRoomMobilePanelHeader } from "./side-panel/meeting-room-mobile-panel";
 
 interface MeetingRoomContentProps {
+  meetingId: string;
   joinToken: string;
   participantRole: MeetingParticipantRole;
+  initialAutoAdmit: boolean;
   settings: MeetingPreJoinSettings;
 }
 
 export function MeetingRoomContent({
+  meetingId,
   joinToken,
   participantRole,
+  initialAutoAdmit,
   settings,
 }: MeetingRoomContentProps) {
   const intl = useAppIntl();
@@ -42,6 +47,7 @@ export function MeetingRoomContent({
   const connectionState = useConnectionState();
   const [activePanel, setActivePanel] = useState(MeetingRoomPanel.NONE);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [autoAdmit, setAutoAdmit] = useState(initialAutoAdmit);
   const {
     canGoNext,
     canGoPrevious,
@@ -55,6 +61,19 @@ export function MeetingRoomContent({
     totalParticipantPages,
     visibleCameraTracks,
   } = useMeetingParticipantGrid(activePanel);
+  const handleStatusUpdated = useCallback(
+    (payload: { meetingId: string; autoAdmit: boolean }) => {
+      if (payload.meetingId === meetingId) {
+        setAutoAdmit(payload.autoAdmit);
+      }
+    },
+    [meetingId],
+  );
+
+  useMeetingSocket({
+    meetingId,
+    onStatusUpdated: handleStatusUpdated,
+  });
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -154,14 +173,20 @@ export function MeetingRoomContent({
         <MeetingRoomDesktopSidePanel
           activePanel={activePanel}
           joinToken={joinToken}
+          meetingId={meetingId}
           participantRole={participantRole}
           participantCount={participantCount}
+          autoAdmit={autoAdmit}
+          onAutoAdmitChange={setAutoAdmit}
           onClose={closePanel}
         />
       </main>
 
       <MeetingRoomFooter
         activePanel={activePanel}
+        joinToken={joinToken}
+        meetingId={meetingId}
+        participantRole={participantRole}
         settings={settings}
         onPanelChange={setActivePanel}
         onLeave={handleLeave}
@@ -170,8 +195,11 @@ export function MeetingRoomContent({
       <MeetingRoomMobilePanelHeader
         activePanel={activePanel}
         joinToken={joinToken}
+        meetingId={meetingId}
         participantRole={participantRole}
         participantCount={participantCount}
+        autoAdmit={autoAdmit}
+        onAutoAdmitChange={setAutoAdmit}
         onClose={closePanel}
       />
 

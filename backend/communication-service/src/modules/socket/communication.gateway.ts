@@ -2,12 +2,16 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
+  ConnectedSocket,
+  MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { ChatSocketHandler } from './chat/chat-socket.handler';
 import { ChatRoomHandler } from './chat/handlers/chat-room.handler';
+import { MeetingEvent } from './meeting/meeting-socket.events';
 import { SocketEventEmitter } from './services/socket-event-emitter';
 import { SocketRoomService } from './services/socket-room.service';
 
@@ -63,6 +67,15 @@ export class CommunicationGateway
     } catch {
       client.disconnect();
     }
+  }
+
+  @SubscribeMessage(MeetingEvent.JOIN)
+  handleJoinMeetingRoom(
+    @MessageBody() data: { meetingId?: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    if (!data?.meetingId) return;
+    client.join(this.socketRoomService.meeting(data.meetingId));
   }
 
   handleDisconnect(_: Socket) {}

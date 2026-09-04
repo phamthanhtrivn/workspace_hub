@@ -2,11 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import {
-  Check,
   Loader2,
   Mic,
   MicOff,
-  ShieldCheck,
   Video,
   VideoOff,
   X,
@@ -19,6 +17,7 @@ import type {
   MeetingPreJoinSettings,
 } from "../../types/meeting.types";
 import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
+import { MeetingAutoAdmitToggle } from "../common/meeting-auto-admit-toggle";
 import { MeetingDeviceSelect } from "../common/meeting-device-select";
 
 interface MeetingPreJoinProps {
@@ -105,7 +104,7 @@ export function MeetingPreJoin({
             type="button"
             onClick={onCancel}
             aria-label={intl.formatMessage({ id: "app.close" })}
-            className="grid h-10 w-10 place-items-center rounded-lg bg-white/8 text-slate-200 transition hover:bg-white/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="grid h-10 w-10 cursor-pointer place-items-center rounded-lg bg-white/8 text-slate-200 transition hover:bg-white/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
             <X className="h-5 w-5" />
           </button>
@@ -164,7 +163,7 @@ export function MeetingPreJoin({
                   updateSettings({ microphoneEnabled: !settings.microphoneEnabled })
                 }
                 className={cn(
-                  "flex h-14 min-w-32 items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+                  "flex h-14 min-w-32 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
                   settings.microphoneEnabled
                     ? "bg-white text-[#172B4D] hover:bg-slate-100"
                     : "bg-red-600 text-white hover:bg-red-500",
@@ -188,7 +187,7 @@ export function MeetingPreJoin({
                   updateSettings({ cameraEnabled: !settings.cameraEnabled })
                 }
                 className={cn(
-                  "flex h-14 min-w-32 items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
+                  "flex h-14 min-w-32 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
                   settings.cameraEnabled
                     ? "bg-white text-[#172B4D] hover:bg-slate-100"
                     : "bg-red-600 text-white hover:bg-red-500",
@@ -240,47 +239,19 @@ export function MeetingPreJoin({
             </div>
 
             {isCreateMode ? (
-              <label className="group flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3 transition hover:border-blue-200 hover:bg-blue-50/70">
-                <input
-                  type="checkbox"
-                  checked={settings.autoAdmin}
-                  onChange={(event) =>
-                    updateSettings({ autoAdmin: event.target.checked })
-                  }
-                  className="peer sr-only"
-                />
-                <span
-                  className={cn(
-                    "mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-md border transition",
-                    settings.autoAdmin
-                      ? "border-[#0052CC] bg-[#0052CC] text-white shadow-[0_8px_18px_rgba(0,82,204,0.28)]"
-                      : "border-slate-300 bg-white text-transparent group-hover:border-[#0052CC]",
-                  )}
-                  aria-hidden="true"
-                >
-                  <Check className="h-3.5 w-3.5 stroke-[3]" />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2 text-sm font-black text-[#172B4D]">
-                    <ShieldCheck className="h-4 w-4 text-[#0052CC]" />
-                    {intl.formatMessage({
-                      id: "meeting.prejoin.allowJoinWithoutApproval",
-                    })}
-                  </span>
-                  <span className="mt-1 block text-xs font-semibold leading-5 text-slate-500">
-                    {intl.formatMessage({
-                      id: "meeting.prejoin.allowJoinWithoutApprovalDescription",
-                    })}
-                  </span>
-                </span>
-              </label>
+              <MeetingAutoAdmitToggle
+                checked={settings.autoAdmin}
+                onCheckedChange={(checked) =>
+                  updateSettings({ autoAdmin: checked })
+                }
+              />
             ) : null}
 
             <div className="mt-auto flex flex-col gap-3 pt-2">
               <button
                 type="button"
                 onClick={onStart}
-                className="relative flex h-12 w-full items-center justify-center overflow-hidden rounded-lg bg-[#0052CC] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(0,82,204,0.28)] transition hover:-translate-y-0.5 hover:bg-[#0747A6] hover:shadow-[0_20px_42px_rgba(0,82,204,0.34)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+                className="relative flex h-12 w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-[#0052CC] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(0,82,204,0.28)] transition hover:-translate-y-0.5 hover:bg-[#0747A6] hover:shadow-[0_20px_42px_rgba(0,82,204,0.34)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
               >
                 <span className="absolute inset-x-0 top-0 h-px bg-white/45" />
                 {intl.formatMessage({
@@ -292,7 +263,7 @@ export function MeetingPreJoin({
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex h-11 w-full items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 shadow-[inset_0_-1px_0_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:bg-slate-50 hover:text-[#172B4D] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                className="flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 shadow-[inset_0_-1px_0_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:bg-slate-50 hover:text-[#172B4D] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
               >
                 {intl.formatMessage({ id: "app.cancel" })}
               </button>

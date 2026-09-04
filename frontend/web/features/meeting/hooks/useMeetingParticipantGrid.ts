@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useParticipants,
   useTracks,
@@ -113,12 +113,6 @@ export function useMeetingParticipantGrid(activePanel: MeetingRoomPanel) {
 
   const visibleTileCount = visibleCameraTracks.length;
   const gridVariant = getGridVariant(visibleTileCount);
-
-  useEffect(() => {
-    setCurrentParticipantPage((current) =>
-      Math.min(Math.max(1, current), totalParticipantPages),
-    );
-  }, [totalParticipantPages]);
 
   const canGoPrevious = safeParticipantPage > 1;
   const canGoNext = safeParticipantPage < totalParticipantPages;

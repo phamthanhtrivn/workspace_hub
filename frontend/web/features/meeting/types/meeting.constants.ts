@@ -6,6 +6,7 @@ import {
   Plus,
   Radio,
   Settings,
+  ShieldCheck,
   UserRoundPlus,
   UsersRound,
   Video,
@@ -21,6 +22,18 @@ export const MEETING_API_PATHS = {
   INSTANT: "/api/meetings/instant",
   join: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/join`,
+  joinRequests: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/join-requests`,
+  approveJoinRequest: (joinToken: string, userId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/join-requests/${encodeURIComponent(userId)}/approve`,
+  declineJoinRequest: (joinToken: string, userId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/join-requests/${encodeURIComponent(userId)}/decline`,
+  approveAllJoinRequests: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/join-requests/approve-all`,
+  declineAllJoinRequests: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/join-requests/decline-all`,
+  settings: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/settings`,
   access: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/access`,
 } as const;
@@ -135,6 +148,11 @@ export const meetingRoomControlItems = [
     id: MeetingRoomPanel.CHAT,
     labelId: "meeting.room.control.chat",
     icon: MessageSquareText,
+  },
+  {
+    id: MeetingRoomPanel.ADMISSION,
+    labelId: "meeting.room.control.admission",
+    icon: ShieldCheck,
   },
   {
     id: MeetingRoomPanel.SETTINGS,

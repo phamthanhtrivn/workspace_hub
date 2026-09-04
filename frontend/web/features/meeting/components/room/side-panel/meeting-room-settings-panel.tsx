@@ -1,36 +1,39 @@
 "use client";
 
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useUpdateMeetingSettings } from "@/features/meeting/hooks/useMeetingAdmission";
 import type { MeetingRoomSettingsPanelProps } from "../../../types/meeting.types";
+import {
+  MeetingAutoAdmitToggle,
+  MeetingAutoAdmitToggleVariant,
+} from "../../common/meeting-auto-admit-toggle";
 import { MeetingRoomShareLink } from "./meeting-room-share-link";
-import { PARTICIPANT_ROLE } from "@/features/meeting/types/meeting.constants";
+import { canManageMeetingAdmission } from "@/features/meeting/utils/meeting-room.utils";
 
 export function MeetingRoomSettingsPanel({
   joinToken,
   participantRole,
-  participantCount,
+  autoAdmit,
+  onAutoAdmitChange,
 }: MeetingRoomSettingsPanelProps) {
-  const intl = useAppIntl();
-  const isHost = participantRole === PARTICIPANT_ROLE.HOST;
+  const canManageAdmission = canManageMeetingAdmission(participantRole);
+  const updateSettingsMutation = useUpdateMeetingSettings(joinToken);
+
+  const handleAutoAdmitChange = (nextAutoAdmit: boolean) => {
+    onAutoAdmitChange(nextAutoAdmit);
+    updateSettingsMutation.mutate(nextAutoAdmit, {
+      onError: () => onAutoAdmitChange(!nextAutoAdmit),
+    });
+  };
 
   return (
-    <div className="mt-4 space-y-3">
-      {isHost && (
-        <div className="rounded-lg bg-white/6 p-4 ring-1 ring-white/8">
-          <p className="text-sm font-black text-slate-100">
-            {intl.formatMessage({
-              id: "meeting.room.panel.autoAdminTitle",
-            })}
-          </p>
-          <p className="mt-1 text-sm font-semibold leading-6 text-slate-400">
-            {intl.formatMessage(
-              {
-                id: "meeting.room.panel.autoAdminDescription",
-              },
-              { count: participantCount },
-            )}
-          </p>
-        </div>
+    <div className="mt-4 flex h-screen flex-col justify-between">
+      {canManageAdmission && (
+        <MeetingAutoAdmitToggle
+          checked={autoAdmit}
+          disabled={updateSettingsMutation.isPending}
+          onCheckedChange={handleAutoAdmitChange}
+          variant={MeetingAutoAdmitToggleVariant.DARK}
+        />
       )}
       <MeetingRoomShareLink joinToken={joinToken} />
     </div>

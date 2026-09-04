@@ -10,8 +10,11 @@ import { getPanelTitleLabelId } from "@/features/meeting/utils/meeting-room.util
 export function MeetingRoomDesktopSidePanel({
   activePanel,
   joinToken,
+  meetingId,
   participantRole,
   participantCount,
+  autoAdmit,
+  onAutoAdmitChange,
   onClose,
 }: MeetingRoomSidePanelProps) {
   const intl = useAppIntl();
@@ -19,7 +22,7 @@ export function MeetingRoomDesktopSidePanel({
   if (activePanel === MeetingRoomPanel.NONE) return null;
 
   return (
-    <aside className="hidden w-80 shrink-0 border-l border-white/10 bg-[#0d1420] p-4 lg:block">
+    <aside className="hidden min-h-0 w-80 shrink-0 flex-col border-l border-white/10 bg-[#0d1420] p-4 lg:flex">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-black">
           {intl.formatMessage({ id: getPanelTitleLabelId(activePanel) })}
@@ -37,8 +40,11 @@ export function MeetingRoomDesktopSidePanel({
       <MeetingRoomPanelContent
         activePanel={activePanel}
         joinToken={joinToken}
+        meetingId={meetingId}
         participantRole={participantRole}
         participantCount={participantCount}
+        autoAdmit={autoAdmit}
+        onAutoAdmitChange={onAutoAdmitChange}
       />
     </aside>
   );

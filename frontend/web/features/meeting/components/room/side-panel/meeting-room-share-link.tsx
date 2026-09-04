@@ -77,7 +77,7 @@ export function MeetingRoomShareLink({ joinToken }: MeetingRoomShareLinkProps) {
         <button
           type="button"
           onClick={handleCopy}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-[#172B4D] transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="cursor-pointer grid h-9 w-9 shrink-0 place-items-center rounded-md bg-white text-[#172B4D] transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           aria-label={intl.formatMessage({ id: "meeting.room.share.copy" })}
         >
           {copied ? (

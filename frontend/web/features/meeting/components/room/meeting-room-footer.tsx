@@ -1,13 +1,30 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { type LucideIcon, LogOut, Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Bell,
+  type LucideIcon,
+  LogOut,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+} from "lucide-react";
 import { useTrackToggle } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useMeetingJoinRequestCount } from "@/features/meeting/hooks/useMeetingAdmission";
+import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
 import { meetingRoomControlItems } from "../../types/meeting.constants";
-import type { MeetingPreJoinSettings } from "../../types/meeting.types";
+import { meetingKeys } from "../../types/meeting.query-keys";
+import type {
+  MeetingParticipantRole,
+  MeetingPreJoinSettings,
+} from "../../types/meeting.types";
+import type { MeetingJoinRequestUpdatedPayload } from "../../types/meeting-socket.types";
 import { MeetingRoomPanel } from "../../types/meeting.types";
+import { canManageMeetingAdmission } from "../../utils/meeting-room.utils";
 import {
   loadMeetingDeviceSettings,
   saveMeetingDeviceSettings,
@@ -16,6 +33,9 @@ import { MeetingRoomControlButton } from "../common/meeting-room-control-button"
 
 interface MeetingRoomFooterProps {
   activePanel: MeetingRoomPanel;
+  joinToken: string;
+  meetingId: string;
+  participantRole: MeetingParticipantRole;
   settings: MeetingPreJoinSettings;
   onPanelChange: (panel: MeetingRoomPanel) => void;
   onLeave: () => void;
@@ -27,6 +47,7 @@ function isMeetingRoomPanelControl(
   return (
     controlId === MeetingRoomPanel.PARTICIPANTS ||
     controlId === MeetingRoomPanel.CHAT ||
+    controlId === MeetingRoomPanel.ADMISSION ||
     controlId === MeetingRoomPanel.SETTINGS
   );
 }
@@ -98,11 +119,36 @@ function MeetingMediaToggleButton({
 
 export function MeetingRoomFooter({
   activePanel,
+  joinToken,
+  meetingId,
+  participantRole,
   settings,
   onPanelChange,
   onLeave,
 }: MeetingRoomFooterProps) {
   const intl = useAppIntl();
+  const queryClient = useQueryClient();
+  const canManageAdmission = canManageMeetingAdmission(participantRole);
+  const joinRequestCountQuery = useMeetingJoinRequestCount({
+    joinToken,
+    enabled: canManageAdmission,
+  });
+  const pendingJoinRequestCount = joinRequestCountQuery.data?.data.total ?? 0;
+  const invalidateJoinRequestCount = useCallback(
+    (payload: MeetingJoinRequestUpdatedPayload) => {
+      if (payload.meetingId !== meetingId) return;
+
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.joinRequestCount(joinToken),
+      });
+    },
+    [joinToken, meetingId, queryClient],
+  );
+
+  useMeetingSocket({
+    meetingId: canManageAdmission ? meetingId : null,
+    onJoinRequestChanged: invalidateJoinRequestCount,
+  });
 
   return (
     <footer className="flex shrink-0 items-center justify-center border-t border-white/10 bg-[#0d1420]/95 px-3 py-3 backdrop-blur">
@@ -125,6 +171,10 @@ export function MeetingRoomFooter({
         />
 
         {meetingRoomControlItems.slice(2).map((control) => {
+          if (control.id === MeetingRoomPanel.ADMISSION && !canManageAdmission) {
+            return null;
+          }
+
           const isPanelControl = isMeetingRoomPanelControl(control.id);
           const isActive = isPanelControl && activePanel === control.id;
 
@@ -135,6 +185,14 @@ export function MeetingRoomFooter({
               icon={control.icon}
               active={isActive}
               disabled={!isPanelControl}
+              badgeCount={
+                control.id === MeetingRoomPanel.ADMISSION
+                  ? pendingJoinRequestCount
+                  : undefined
+              }
+              badgeIcon={
+                control.id === MeetingRoomPanel.ADMISSION ? Bell : undefined
+              }
               onClick={() => {
                 if (isPanelControl) {
                   onPanelChange(

@@ -10,8 +10,11 @@ import { getPanelTitleLabelId } from "@/features/meeting/utils/meeting-room.util
 export function MeetingRoomMobilePanelHeader({
   activePanel,
   joinToken,
+  meetingId,
   participantRole,
   participantCount,
+  autoAdmit,
+  onAutoAdmitChange,
   onClose,
 }: MeetingRoomSidePanelProps) {
   const intl = useAppIntl();
@@ -34,8 +37,11 @@ export function MeetingRoomMobilePanelHeader({
       <MeetingRoomPanelContent
         activePanel={activePanel}
         joinToken={joinToken}
+        meetingId={meetingId}
         participantRole={participantRole}
         participantCount={participantCount}
+        autoAdmit={autoAdmit}
+        onAutoAdmitChange={onAutoAdmitChange}
       />
     </div>
   );
