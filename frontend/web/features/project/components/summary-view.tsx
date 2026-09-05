@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-
 import {
   Activity,
   CalendarClock,
   CheckCircle2,
   CircleDot,
   ListChecks,
-  Users,
 } from "lucide-react";
 import {
   TaskPriority,
@@ -20,6 +18,12 @@ import {
   type Sprint,
 } from "@/features/project/types/project";
 import SprintMetricsView from "./sprint-metrics-view";
+import {
+  ProjectMetricCard,
+  ProjectSummaryPanel,
+  PriorityDistributionBar,
+  MemberWorkloadList,
+} from "./summary";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -48,47 +52,6 @@ function getTaskType(task: Task): "Task" | "Epic" | "Subtask" {
   return "Task";
 }
 
-function MetricCard({
-  icon: Icon,
-  value,
-  label,
-  color,
-}: {
-  icon: typeof CheckCircle2;
-  value: number;
-  label: string;
-  color: string;
-}) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className={`grid h-9 w-9 place-items-center rounded-md ${color}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <p className="mt-3 text-2xl font-bold text-[#172B4D]">{value}</p>
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-      <p className="mt-1 text-[11px] text-slate-400">trong 7 ngày gần nhất</p>
-    </div>
-  );
-}
-
-function Panel({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-bold text-[#172B4D]">{title}</h2>
-      <p className="mt-0.5 text-xs text-slate-500">{description}</p>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
 export default function SummaryView({
   tasks,
   members,
@@ -105,7 +68,9 @@ export default function SummaryView({
   const cancelled = workItems.filter(
     (task) => task.status === TaskStatus.CANCELLED,
   );
-  const terminal = workItems.filter((task) => isTerminalTaskStatus(task.status));
+  const terminal = workItems.filter((task) =>
+    isTerminalTaskStatus(task.status),
+  );
   const completedRecently = completed.filter((task) =>
     isWithinLastDays(task.updatedAt),
   );
@@ -236,34 +201,38 @@ export default function SummaryView({
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <MetricCard
+        <ProjectMetricCard
           icon={CheckCircle2}
           value={completedRecently.length}
           label="Đã hoàn thành"
+          sublabel="trong 7 ngày gần nhất"
           color="bg-emerald-50 text-emerald-600"
         />
-        <MetricCard
+        <ProjectMetricCard
           icon={Activity}
           value={updatedRecently.length}
           label="Đã cập nhật"
+          sublabel="trong 7 ngày gần nhất"
           color="bg-blue-50 text-blue-600"
         />
-        <MetricCard
+        <ProjectMetricCard
           icon={ListChecks}
           value={createdRecently.length}
           label="Đã tạo mới"
+          sublabel="trong 7 ngày gần nhất"
           color="bg-violet-50 text-violet-600"
         />
-        <MetricCard
+        <ProjectMetricCard
           icon={CalendarClock}
           value={dueSoon.length}
           label="Sắp đến hạn"
+          sublabel="trong 7 ngày gần nhất"
           color="bg-amber-50 text-amber-600"
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Panel
+        <ProjectSummaryPanel
           title="Tổng quan trạng thái"
           description="Snapshot trạng thái của các work items trong project."
         >
@@ -301,9 +270,9 @@ export default function SummaryView({
               ))}
             </div>
           </div>
-        </Panel>
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Recent activity"
           description="Những thay đổi gần đây trong project."
         >
@@ -333,34 +302,19 @@ export default function SummaryView({
               </div>
             ))}
           </div>
-        </Panel>
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Priority breakdown"
           description="Phân bổ mức độ ưu tiên của work items."
         >
-          <div className="space-y-3">
-            {priorityItems.map((item) => (
-              <div
-                key={item.label}
-                className="grid grid-cols-[70px_1fr_28px] items-center gap-3 text-xs"
-              >
-                <span className="text-slate-600">{item.label}</span>
-                <div className="h-5 rounded-sm bg-slate-100">
-                  <div
-                    className={`h-5 rounded-sm ${item.color}`}
-                    style={{ width: `${(item.value / maxPriority) * 100}%` }}
-                  />
-                </div>
-                <strong className="text-right text-slate-700">
-                  {item.value}
-                </strong>
-              </div>
-            ))}
-          </div>
-        </Panel>
+          <PriorityDistributionBar
+            items={priorityItems}
+            maxValue={maxPriority}
+          />
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Types of work"
           description="Phân loại công việc trong project."
         >
@@ -386,42 +340,20 @@ export default function SummaryView({
               </div>
             ))}
           </div>
-        </Panel>
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Team workload"
           description="Theo dõi khối lượng task theo người phụ trách."
         >
-          <div className="space-y-3">
-            {workloadItems.length === 0 && (
-              <p className="py-8 text-center text-xs text-slate-400">
-                Chưa có thành viên.
-              </p>
-            )}
-            {workloadItems.map((item) => (
-              <div
-                key={item.name}
-                className="grid grid-cols-[130px_1fr_28px] items-center gap-3 text-xs"
-              >
-                <span className="flex min-w-0 items-center gap-2 truncate text-slate-600">
-                  <Users className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                  {item.name}
-                </span>
-                <div className="h-5 rounded-sm bg-slate-100">
-                  <div
-                    className="h-5 rounded-sm bg-slate-500"
-                    style={{ width: `${(item.count / maxWorkload) * 100}%` }}
-                  />
-                </div>
-                <strong className="text-right text-slate-700">
-                  {item.count}
-                </strong>
-              </div>
-            ))}
-          </div>
-        </Panel>
+          <MemberWorkloadList
+            items={workloadItems}
+            maxCount={maxWorkload}
+            emptyMessage="Chưa có thành viên."
+          />
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Sprint progress"
           description="Tiến độ hoàn thành của các task lớn."
         >
@@ -450,7 +382,7 @@ export default function SummaryView({
               </div>
             ))}
           </div>
-        </Panel>
+        </ProjectSummaryPanel>
       </div>
       <SprintMetricsView sprints={sprints} tasks={activeTasks} />
     </div>

@@ -38,7 +38,7 @@ export default function TaskCommentsSection({
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState("");
   const { userId: currentUserId } = useAppSelector((state) => state.auth);
-  const { data: loadedComments } = useTaskComments(task.id);
+  const { data: loadedComments, isLoading, isError, refetch } = useTaskComments(task.id);
   const createComment = useCreateTaskComment(task.id);
   const updateComment = useUpdateTaskComment(task.id);
   const deleteComment = useDeleteTaskComment(task.id);
@@ -106,6 +106,8 @@ export default function TaskCommentsSection({
         Bình luận ({comments.length})
       </h3>
 
+      {isLoading && <p className="text-xs text-slate-500">Đang tải trao đổi…</p>}
+      {isError && <p role="alert" className="text-xs text-red-600">Không thể tải trao đổi. <button type="button" className="underline" onClick={() => void refetch()}>Thử lại</button></p>}
       {comments.length ? (
         <div className="space-y-3">
           {comments.map((comment) => (
@@ -199,6 +201,7 @@ export default function TaskCommentsSection({
           <div className="relative flex-1">
             <input
               type="text"
+              maxLength={10000}
               value={newComment}
               onChange={(event) => setNewComment(event.target.value)}
               onKeyDown={(event) => {

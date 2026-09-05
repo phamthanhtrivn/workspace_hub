@@ -8,6 +8,7 @@ import {
 } from "@/features/project/types/project";
 
 const DAY_WIDTH = 44;
+import { taskDateKey } from "../utils/task-dates";
 const LABEL_WIDTH = 250;
 
 function toLocalDate(value: string): Date {
@@ -42,12 +43,12 @@ function formatRange(start: Date, end: Date): string {
 
 function taskStart(task: Task): Date | undefined {
   const value = task.startDate || task.dueDate;
-  return value ? toLocalDate(value) : undefined;
+  return value ? toLocalDate(taskDateKey(value, task.allDay)) : undefined;
 }
 
 function taskEnd(task: Task): Date | undefined {
   const value = task.dueDate || task.startDate;
-  return value ? toLocalDate(value) : undefined;
+  return value ? toLocalDate(taskDateKey(value, task.allDay)) : undefined;
 }
 
 function barColor(status: TaskStatus): string {

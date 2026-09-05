@@ -1,4 +1,5 @@
 import BoardView from "./board-view";
+import { useAppSelector } from "@/store/store";
 import CalendarView from "./calendar-view";
 import GanttView from "./gantt-view";
 import GeneralSummaryView from "./general-summary-view";
@@ -64,6 +65,7 @@ interface ProjectDetailContentProps {
 }
 
 export default function ProjectDetailContent(props: ProjectDetailContentProps) {
+  const { userId } = useAppSelector((state) => state.auth);
   const { permissions } = props;
   const memberPanel = (
     <ProjectMembersPanel
@@ -116,6 +118,10 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
     if (props.viewMode === "list" && props.isSoftwareProject) {
       return (
         <SoftwareBacklogView
+          projectId={props.projectId}
+          ownerId={props.project.ownerId}
+          currentUserId={userId}
+          canContribute={Boolean(permissions.role)}
           tasks={props.tasks}
           sprints={props.sprints}
           onTaskClick={props.onTaskSelect}

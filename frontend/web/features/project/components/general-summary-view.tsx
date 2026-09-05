@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   CircleAlert,
   ListChecks,
-  Users,
 } from "lucide-react";
 import { useState } from "react";
 import {
@@ -17,6 +16,12 @@ import {
   type Task,
 } from "@/features/project/types/project";
 import { TaskStatusBadge } from "./status-badge";
+import {
+  ProjectMetricCard,
+  ProjectSummaryPanel,
+  PriorityDistributionBar,
+  MemberWorkloadList,
+} from "./summary";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -38,46 +43,6 @@ function isWithinLastDays(
   return time >= referenceTime - days * DAY && time <= referenceTime;
 }
 
-function Panel({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="text-sm font-bold text-[#172B4D]">{title}</h2>
-      <p className="mt-0.5 text-xs text-slate-500">{description}</p>
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
-function Metric({
-  icon: Icon,
-  value,
-  label,
-  color,
-}: {
-  icon: typeof CheckCircle2;
-  value: number;
-  label: string;
-  color: string;
-}) {
-  return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <div className={`grid h-9 w-9 place-items-center rounded-md ${color}`}>
-        <Icon className="h-5 w-5" />
-      </div>
-      <p className="mt-3 text-2xl font-bold text-[#172B4D]">{value}</p>
-      <p className="text-xs font-medium text-slate-500">{label}</p>
-    </div>
-  );
-}
-
 export default function GeneralSummaryView({
   tasks,
   members,
@@ -89,11 +54,15 @@ export default function GeneralSummaryView({
   const activeTasks = tasks.filter((task) => !task.archived);
   const rootTasks = activeTasks.filter((task) => !task.parentTaskId);
   const subtasks = activeTasks.filter((task) => Boolean(task.parentTaskId));
-  const completed = activeTasks.filter((task) => task.status === TaskStatus.DONE);
+  const completed = activeTasks.filter(
+    (task) => task.status === TaskStatus.DONE,
+  );
   const cancelled = activeTasks.filter(
     (task) => task.status === TaskStatus.CANCELLED,
   );
-  const terminal = activeTasks.filter((task) => isTerminalTaskStatus(task.status));
+  const terminal = activeTasks.filter((task) =>
+    isTerminalTaskStatus(task.status),
+  );
   const overdue = activeTasks.filter(
     (task) =>
       task.dueDate &&
@@ -142,33 +111,30 @@ export default function GeneralSummaryView({
   const priorityItems = [
     {
       label: "Urgent",
-      value: activeTasks.filter(
-        (task) => task.priority === TaskPriority.URGENT,
-      ),
+      value: activeTasks.filter((task) => task.priority === TaskPriority.URGENT)
+        .length,
       color: "bg-red-500",
     },
     {
       label: "High",
-      value: activeTasks.filter((task) => task.priority === TaskPriority.HIGH),
+      value: activeTasks.filter((task) => task.priority === TaskPriority.HIGH)
+        .length,
       color: "bg-orange-400",
     },
     {
       label: "Medium",
-      value: activeTasks.filter(
-        (task) => task.priority === TaskPriority.MEDIUM,
-      ),
+      value: activeTasks.filter((task) => task.priority === TaskPriority.MEDIUM)
+        .length,
       color: "bg-blue-500",
     },
     {
       label: "Low",
-      value: activeTasks.filter((task) => task.priority === TaskPriority.LOW),
+      value: activeTasks.filter((task) => task.priority === TaskPriority.LOW)
+        .length,
       color: "bg-slate-400",
     },
   ];
-  const maxPriority = Math.max(
-    1,
-    ...priorityItems.map((item) => item.value.length),
-  );
+  const maxPriority = Math.max(1, ...priorityItems.map((item) => item.value));
   const recentTasks = [...activeTasks]
     .sort(
       (a, b) =>
@@ -196,25 +162,25 @@ export default function GeneralSummaryView({
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <Metric
+        <ProjectMetricCard
           icon={ListChecks}
           value={rootTasks.length}
           label="Task"
           color="bg-blue-50 text-blue-600"
         />
-        <Metric
+        <ProjectMetricCard
           icon={Activity}
           value={subtasks.length}
           label="Subtask"
           color="bg-violet-50 text-violet-600"
         />
-        <Metric
+        <ProjectMetricCard
           icon={CheckCircle2}
           value={completed.length}
           label="Đã hoàn thành"
           color="bg-emerald-50 text-emerald-600"
         />
-        <Metric
+        <ProjectMetricCard
           icon={CircleAlert}
           value={overdue.length}
           label="Đã quá hạn"
@@ -223,7 +189,7 @@ export default function GeneralSummaryView({
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Panel
+        <ProjectSummaryPanel
           title="Tiến độ công việc"
           description="Tỷ lệ hoàn thành trên toàn bộ Task và Subtask."
         >
@@ -258,9 +224,9 @@ export default function GeneralSummaryView({
               ))}
             </div>
           </div>
-        </Panel>
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Deadline sắp tới"
           description="Các công việc chưa hoàn thành trong 7 ngày tới."
         >
@@ -286,66 +252,31 @@ export default function GeneralSummaryView({
               ))}
             </div>
           )}
-        </Panel>
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Mức độ ưu tiên"
           description="Phân bổ ưu tiên của Task và Subtask."
         >
-          <div className="space-y-3">
-            {priorityItems.map((item) => (
-              <div
-                key={item.label}
-                className="grid grid-cols-[70px_1fr_28px] items-center gap-3 text-xs"
-              >
-                <span className="text-slate-600">{item.label}</span>
-                <div className="h-5 rounded-sm bg-slate-100">
-                  <div
-                    className={`h-5 rounded-sm ${item.color}`}
-                    style={{
-                      width: `${(item.value.length / maxPriority) * 100}%`,
-                    }}
-                  />
-                </div>
-                <strong className="text-right">{item.value.length}</strong>
-              </div>
-            ))}
-          </div>
-        </Panel>
+          <PriorityDistributionBar
+            items={priorityItems}
+            maxValue={maxPriority}
+          />
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Phân công công việc"
           description="Số lượng task theo người thực hiện."
         >
-          {workload.length === 0 ? (
-            <p className="py-8 text-center text-xs font-semibold text-slate-400">
-              Chưa có công việc được phân công.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {workload.map((item) => (
-                <div
-                  key={item.name}
-                  className="grid grid-cols-[120px_1fr_28px] items-center gap-3 text-xs"
-                >
-                  <span className="flex min-w-0 items-center gap-2 truncate text-slate-600">
-                    <Users className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                    {item.name}
-                  </span>
-                  <div className="h-5 rounded-sm bg-slate-100">
-                    <div
-                      className="h-5 rounded-sm bg-blue-500"
-                      style={{ width: `${(item.count / maxWorkload) * 100}%` }}
-                    />
-                  </div>
-                  <strong className="text-right">{item.count}</strong>
-                </div>
-              ))}
-            </div>
-          )}
-        </Panel>
+          <MemberWorkloadList
+            items={workload}
+            maxCount={maxWorkload}
+            barColor="bg-blue-500"
+            emptyMessage="Chưa có công việc được phân công."
+          />
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Task chưa lên lịch"
           description="Task chưa có ngày bắt đầu hoặc hạn hoàn thành."
         >
@@ -360,9 +291,9 @@ export default function GeneralSummaryView({
               </p>
             </div>
           </div>
-        </Panel>
+        </ProjectSummaryPanel>
 
-        <Panel
+        <ProjectSummaryPanel
           title="Hoạt động gần đây"
           description="Các task được cập nhật gần nhất."
         >
@@ -390,7 +321,7 @@ export default function GeneralSummaryView({
               ))}
             </div>
           )}
-        </Panel>
+        </ProjectSummaryPanel>
       </div>
     </div>
   );

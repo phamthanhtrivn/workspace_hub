@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CalendarDays, X } from "lucide-react";
 import type { Task } from "@/features/project/types/project";
+import { toDateTimeInput } from "../utils/task-dates";
 
 export interface SprintFormValues {
   name: string;
@@ -10,11 +11,6 @@ export interface SprintFormValues {
   endDate: string;
   autoCompleteSprint: boolean;
   goal: string;
-}
-
-function toDateTimeInput(value?: string): string {
-  if (!value) return "";
-  return value.length === 10 ? `${value}T09:00` : value.slice(0, 16);
 }
 
 export default function SprintEditDialog({

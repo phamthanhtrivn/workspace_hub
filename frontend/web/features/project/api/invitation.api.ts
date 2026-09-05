@@ -49,6 +49,11 @@ export async function createProjectInvitation(
   return unwrap(response);
 }
 
+export async function getMyProjectInvitations(): Promise<ProjectInvitation[]> {
+  const response = await api.get<ApiResponse<ProjectInvitation[]>>("/api/project-invitations/pending");
+  return unwrap(response) || [];
+}
+
 export async function acceptProjectInvitation(
   invitationId: string,
 ): Promise<ProjectInvitation> {

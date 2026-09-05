@@ -34,7 +34,7 @@ export class InvitationEmailService {
       projectName: input.projectName,
       inviterName: inviter.fullName,
       invitationId: input.invitationId,
-      acceptUrl: `${this.config.frontendUrl}/invitations`,
+      acceptUrl: `${this.config.frontendUrl}/projects/invitations?invitationId=${encodeURIComponent(input.invitationId)}`,
       expiresAt: input.expiresAt?.toISOString() ?? null,
     });
   }

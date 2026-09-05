@@ -4,6 +4,7 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 import { NotificationGateway } from "./communication/project-communication.port";
 import { InvitationEmailService } from "./invitation-email.service";
 import { NotificationOutboxService } from "./notification-outbox.service";
+import { TaskCalendarEventService } from "./task-calendar-event.service";
 
 describe("NotificationOutboxService", () => {
   const queryRaw = jest.fn();
@@ -23,6 +24,7 @@ describe("NotificationOutboxService", () => {
     } as RuntimeConfigService,
     { send, updateProjectInvitationStatus } as unknown as NotificationGateway,
     { send: sendInvitation } as unknown as InvitationEmailService,
+    { deliverUpsert: jest.fn() } as unknown as TaskCalendarEventService,
   );
 
   beforeEach(() => {

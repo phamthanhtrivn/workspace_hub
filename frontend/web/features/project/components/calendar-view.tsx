@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock, Plus } from "lucide-react";
 import { TaskStatus, type Task } from "@/features/project/types/project";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { taskDateKey } from "../utils/task-dates";
 
 const WEEKDAY_IDS = [
   "project.calendar.weekday.mon",
@@ -22,10 +23,6 @@ function dateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function valueDateKey(value?: string): string | undefined {
-  return value?.slice(0, 10);
-}
-
 function formatTime(value: string | undefined, locale: string): string {
   if (!value || value.length < 16) return "";
   return new Date(value).toLocaleTimeString(locale, {
@@ -35,8 +32,8 @@ function formatTime(value: string | undefined, locale: string): string {
 }
 
 function isTaskOnDate(task: Task, day: string): boolean {
-  const start = valueDateKey(task.startDate || task.dueDate);
-  const end = valueDateKey(task.dueDate || task.startDate);
+  const start = taskDateKey(task.startDate || task.dueDate, task.allDay);
+  const end = taskDateKey(task.dueDate || task.startDate, task.allDay);
   if (!start || !end) return false;
   return start <= day && day <= end;
 }
@@ -44,7 +41,7 @@ function isTaskOnDate(task: Task, day: string): boolean {
 function getInitialMonth(tasks: Task[]): Date {
   const firstDatedTask = tasks.find((task) => task.startDate || task.dueDate);
   const value = firstDatedTask?.startDate || firstDatedTask?.dueDate;
-  return value ? new Date(`${value.slice(0, 10)}T00:00:00`) : new Date();
+  return value ? new Date(`${taskDateKey(value, firstDatedTask?.allDay)}T00:00:00`) : new Date();
 }
 
 const statusColors: Record<

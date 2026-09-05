@@ -29,6 +29,7 @@ describe("Concurrent write conflicts", () => {
         create: jest.fn().mockRejectedValue(prismaError("P2002")),
       },
     } as unknown as PrismaService;
+    prisma.$transaction = jest.fn(async (fn) => fn(prisma)) as unknown as PrismaService['$transaction'];
     const service = new MemberService(prisma, access, {
       publishProject: jest.fn(),
     } as unknown as TaskCalendarEventService);
@@ -53,6 +54,8 @@ describe("Concurrent write conflicts", () => {
         update: jest.fn().mockRejectedValue(prismaError("P2002")),
       },
     } as unknown as PrismaService;
+    prisma.$transaction = jest.fn(async (fn) => fn(prisma)) as unknown as PrismaService['$transaction'];
+    prisma.$queryRaw = jest.fn().mockResolvedValue([]);
     const service = new SprintService(prisma, access);
 
     await expect(

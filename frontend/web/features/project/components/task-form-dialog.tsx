@@ -1,39 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  AlignLeft,
-  CalendarDays,
-  ChevronDown,
-  Clock3,
-  Flag,
-  Timer,
-  CheckSquare2,
-  X,
-} from "lucide-react";
+import { AlignLeft, Clock3, Timer, X } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { TASK_PRIORITY_OPTIONS, TASK_STATUS_OPTIONS } from "@/features/project/constants/task.constants";
+import {
+  taskDateKey,
+  toDateTimeInput,
+  toApiDateTime,
+} from "../utils/task-dates";
 import {
   TaskPriority,
   TaskStatus,
   TaskType,
   type Task,
 } from "@/features/project/types/project";
+import { TaskDetailsFields } from "./task-details-fields";
+import { TaskDateRangeFields } from "./task-date-range-fields";
 
-
-function toDateInput(value?: string): string {
-  return value?.slice(0, 10) || "";
-}
-
-function toDateTimeInput(value?: string): string {
-  if (!value) return "";
-  return value.length === 10 ? `${value}T09:00` : value.slice(0, 16);
-}
-
-function toApiDateTime(value: string, allDay: boolean): string | undefined {
-  if (!value) return undefined;
-  return allDay && value.length === 10 ? `${value}T00:00:00` : value;
-}
+const toDateInput = (value?: string) => taskDateKey(value, true);
 
 export interface TaskFormValues {
   title: string;
@@ -41,8 +25,8 @@ export interface TaskFormValues {
   priority: TaskPriority;
   status: TaskStatus;
   taskType: TaskType;
-  startDate?: string;
-  dueDate?: string;
+  startDate?: string | null;
+  dueDate?: string | null;
   allDay: boolean;
   estimatedMinutes: number;
   parentTaskId?: string;
@@ -190,7 +174,9 @@ export default function TaskFormDialog({
             </p>
             <h2 className="mt-1 text-xl font-black text-[var(--color-primary-dark)]">
               {intl.formatMessage({
-                id: task ? "project.task.editTitle" : "project.task.createTitle",
+                id: task
+                  ? "project.task.editTitle"
+                  : "project.task.createTitle",
               })}
             </h2>
             <p className="mt-1 text-xs text-slate-500">
@@ -253,173 +239,29 @@ export default function TaskFormDialog({
             </label>
           </section>
 
-          <section className="border-t border-slate-100 pt-5">
-            <div className="mb-4 flex items-center gap-2">
-              <span className="text-sm font-black text-[var(--color-primary-dark)]">
-                {intl.formatMessage({ id: "project.details" })}
-              </span>
-              <span className="text-xs text-slate-400">
-                {intl.formatMessage({ id: "project.task.managementInfo" })}
-              </span>
-            </div>
+          <TaskDetailsFields
+            taskType={taskType}
+            onTaskTypeChange={setTaskType}
+            status={status}
+            onStatusChange={setStatus}
+            priority={priority}
+            onPriorityChange={setPriority}
+            parentTaskId={parentTaskId}
+            onParentTaskIdChange={setParentTaskId}
+            parentTasks={parentTasks}
+            currentTaskId={task?.id}
+            isParentTask={isParentTask}
+          />
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="block">
-                <FieldLabel icon={CheckSquare2}>
-                  Loại công việc
-                </FieldLabel>
-                <div className="relative">
-                  <select
-                    value={taskType}
-                    disabled={Boolean(parentTaskId) || isParentTask}
-                    onChange={(event) => setTaskType(event.target.value as TaskType)}
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10 disabled:bg-slate-50"
-                  >
-                    <option value={TaskType.TASK}>Task</option>
-                    <option value={TaskType.BUG}>Bug</option>
-                    <option value={TaskType.STORY}>Story</option>
-                    <option value={TaskType.EPIC}>Epic</option>
-                    <option value={TaskType.SUBTASK}>Subtask</option>
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                </div>
-              </label>
-              <label className="block">
-                <FieldLabel icon={ChevronDown}>
-                  {intl.formatMessage({ id: "project.task.status" })}
-                </FieldLabel>
-                <div className="relative">
-                  <select
-                    value={status}
-                    onChange={(event) =>
-                      setStatus(event.target.value as TaskStatus)
-                    }
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
-                  >
-                    {TASK_STATUS_OPTIONS.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {intl.formatMessage({ id: item.labelId })}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                </div>
-              </label>
-
-              <label className="block">
-                <FieldLabel icon={Flag}>
-                  {intl.formatMessage({ id: "project.task.priority" })}
-                </FieldLabel>
-                <div className="relative">
-                  <select
-                    value={priority}
-                    onChange={(event) =>
-                      setPriority(event.target.value as TaskPriority)
-                    }
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
-                  >
-                    {TASK_PRIORITY_OPTIONS.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {intl.formatMessage({ id: item.labelId })}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                </div>
-              </label>
-
-              <label className="block">
-                <FieldLabel icon={ChevronDown}>
-                  {intl.formatMessage({ id: "project.task.parentTask" })}
-                </FieldLabel>
-                <div className="relative">
-                  <select
-                    value={parentTaskId}
-                    disabled={isParentTask}
-                    onChange={(event) => {
-                      const nextParentId = event.target.value;
-                      setParentTaskId(nextParentId);
-                      setTaskType(
-                        nextParentId ? TaskType.SUBTASK : TaskType.TASK,
-                      );
-                    }}
-                    className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
-                  >
-                    <option value="">
-                      {intl.formatMessage({ id: "project.task.noParentTask" })}
-                    </option>
-                    {parentTasks
-                      .filter(
-                        (candidate) =>
-                          candidate.id !== task?.id && !candidate.parentTaskId,
-                      )
-                      .map((candidate) => (
-                        <option key={candidate.id} value={candidate.id}>
-                          {candidate.title}
-                        </option>
-                      ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                </div>
-                <span className="mt-1 block text-[11px] text-slate-400">
-                  {intl.formatMessage({ id: "project.task.parentTaskHint" })}
-                </span>
-              </label>
-            </div>
-          </section>
-
-          <section className="border-t border-slate-100 pt-5">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-black text-[var(--color-primary-dark)]">
-                  {intl.formatMessage({ id: "project.schedule" })}
-                </p>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  {intl.formatMessage({ id: "project.task.scheduleHint" })}
-                </p>
-              </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
-                <input
-                  type="checkbox"
-                  checked={allDay}
-                  onChange={(event) => handleAllDayChange(event.target.checked)}
-                  className="h-4 w-4 accent-[var(--color-secondary)]"
-                />
-                {intl.formatMessage({ id: "project.task.allDay" })}
-              </label>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="block">
-                <FieldLabel icon={CalendarDays}>
-                  {intl.formatMessage({
-                    id: allDay
-                      ? "project.task.startDate"
-                      : "project.task.startAt",
-                  })}
-                </FieldLabel>
-                <input
-                  type={allDay ? "date" : "datetime-local"}
-                  value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
-                />
-              </label>
-              <label className="block">
-                <FieldLabel icon={CalendarDays}>
-                  {intl.formatMessage({
-                    id: allDay ? "project.task.endDate" : "project.task.dueAt",
-                  })}
-                </FieldLabel>
-                <input
-                  type={allDay ? "date" : "datetime-local"}
-                  value={dueDate}
-                  onChange={(event) => setDueDate(event.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
-                />
-              </label>
-            </div>
-          </section>
+          <TaskDateRangeFields
+            allDay={allDay}
+            onAllDayChange={handleAllDayChange}
+            startDate={startDate}
+            onStartDateChange={setStartDate}
+            dueDate={dueDate}
+            onDueDateChange={setDueDate}
+            disabled={isSubmitting}
+          />
 
           <section className="border-t border-slate-100 pt-5">
             <label className="block max-w-sm">

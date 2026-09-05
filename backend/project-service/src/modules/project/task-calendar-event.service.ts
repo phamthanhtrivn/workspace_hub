@@ -5,6 +5,7 @@ import {
   OnApplicationBootstrap,
 } from "@nestjs/common";
 import { ClientKafka } from "@nestjs/microservices";
+import { Prisma } from "@prisma/client";
 import { lastValueFrom } from "rxjs";
 import { PROJECT_KAFKA_CLIENT } from "../../infrastructure/kafka/project-kafka.module";
 import { PrismaService } from "../../common/prisma/prisma.service";
@@ -21,7 +22,6 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.kafka.connect();
     void this.reconcileScheduledTasks().catch((error: unknown) => {
       this.logger.error(
         "Project task calendar reconciliation failed",
@@ -30,7 +30,19 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
     });
   }
 
-  async publishUpsert(taskId: string): Promise<void> {
+  async publishUpsert(
+    taskId: string,
+    database: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await database.$executeRaw`
+      INSERT INTO notification_outbox
+        (id, event_type, payload, status, attempt_count, next_attempt_at, created_at)
+      VALUES (${crypto.randomUUID()}::uuid, 'PROJECT_TASK_CALENDAR',
+        ${JSON.stringify({ taskId })}::jsonb, 'PENDING', 0, NOW(), NOW())
+    `;
+  }
+
+  async deliverUpsert(taskId: string): Promise<void> {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },
       include: {
@@ -83,12 +95,17 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
     this.logger.debug(`Published calendar snapshot for task ${task.id}`);
   }
 
-  async publishProject(projectId: string): Promise<void> {
-    const tasks = await this.prisma.task.findMany({
-      where: { projectId },
-      select: { id: true },
-    });
-    await this.publishTaskIds(tasks.map((task) => task.id));
+  async publishProject(
+    projectId: string,
+    database: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    await database.$executeRaw`
+      INSERT INTO notification_outbox
+        (id, event_type, payload, status, attempt_count, next_attempt_at, created_at)
+      SELECT gen_random_uuid(), 'PROJECT_TASK_CALENDAR',
+        jsonb_build_object('taskId', id), 'PENDING', 0, NOW(), NOW()
+      FROM tasks WHERE project_id = ${projectId}::uuid
+    `;
   }
 
   private async reconcileScheduledTasks(): Promise<void> {
@@ -99,11 +116,6 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
 
     while (shouldContinue) {
       const tasks = await this.prisma.task.findMany({
-        where: {
-          archived: false,
-          deletedAt: null,
-          OR: [{ startDate: { not: null } }, { dueDate: { not: null } }],
-        },
         select: { id: true },
         orderBy: { id: "asc" },
         take: batchSize,

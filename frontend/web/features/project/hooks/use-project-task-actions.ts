@@ -39,7 +39,7 @@ interface ProjectTaskActionOptions {
   setStatusOverrides: Dispatch<SetStateAction<Record<string, TaskStatus>>>;
   rejectChange: (taskId: string) => boolean;
   closeTaskForm: () => void;
-  createTask: (payload: TaskFormValues) => Promise<Task>;
+  createTask: (payload: TaskFormValues & { sprintId?: string }) => Promise<Task>;
   updateTask: (input: { taskId: string; payload: UpdateTaskPayload }) => Promise<unknown>;
   addTasksToSprint: (input: { sprintId: string; taskIds: string[] }) => Promise<unknown>;
 }
@@ -91,7 +91,11 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         return next;
       });
     } catch {
-      options.setStatusOverrides((current) => ({ ...current, [taskId]: task.status }));
+      options.setStatusOverrides((current) => {
+        const next = { ...current };
+        delete next[taskId];
+        return next;
+      });
       toast.error("Không thể cập nhật trạng thái task");
     }
   };
@@ -106,13 +110,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         await options.updateTask({ taskId: options.editingTask.id, payload });
         toast.success("Cập nhật task thành công");
       } else {
-        const task = await options.createTask(values);
-        if (options.targetSprintId) {
-          await options.addTasksToSprint({
-            sprintId: options.targetSprintId,
-            taskIds: [task.id],
-          });
-        }
+        await options.createTask({ ...values, sprintId: options.targetSprintId });
         toast.success("Tạo task thành công");
       }
       options.closeTaskForm();
@@ -122,7 +120,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
   };
 
   const updateTaskDirect = async (taskId: string, payload: TaskDrawerUpdatePayload) => {
-    if (options.rejectChange(taskId)) return;
+    if (options.rejectChange(taskId)) throw new Error("Không thể chỉnh sửa công việc này");
     try {
       const backendPayload = Object.fromEntries(
         Object.entries(payload).filter(([key]) => BACKEND_TASK_FIELDS.has(key)),
@@ -146,6 +144,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(apiError.response?.data?.message || "Không thể cập nhật công việc");
+      throw error;
     }
   };
 

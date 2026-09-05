@@ -95,7 +95,10 @@ export default function ProjectDetailScreen() {
 
   // States
   const [viewMode, setViewMode] = useState<ProjectViewMode>("board");
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskSnapshot, setSelectedTask] = useState<Task | null>(null);
+  const selectedTask = selectedTaskSnapshot
+    ? serverTasks.find((task) => task.id === selectedTaskSnapshot.id) ?? selectedTaskSnapshot
+    : null;
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
@@ -397,7 +400,7 @@ export default function ProjectDetailScreen() {
         />
       )}
 
-      <TaskChatDialog task={chatTask} onClose={() => setChatTask(null)} />
+      <TaskChatDialog key={chatTask?.id ?? "closed"} task={chatTask} members={members} canComment={Boolean(permissions.role)} onClose={() => setChatTask(null)} />
 
       {(permissions.canManageProject || permissions.canManageLabels) && (
         <ProjectSettingsDialog

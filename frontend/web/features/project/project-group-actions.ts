@@ -4,6 +4,7 @@ import type { CreateTaskPayload, UpdateTaskPayload } from "./api/task.api";
 import type { SprintFormValues } from "./components/sprint-edit-dialog";
 import { confirmProjectAction } from "./project-alert";
 import { TaskStatus, type Task } from "./types/project";
+import { toApiDateTime } from "./utils/task-dates";
 
 interface ProjectGroupActionDependencies {
   tasks: Task[];
@@ -30,8 +31,8 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
         taskId: deps.editingGroup.id,
         payload: {
           title: values.name,
-          startDate: values.startDate,
-          dueDate: values.endDate,
+          startDate: toApiDateTime(values.startDate || "", false),
+          dueDate: toApiDateTime(values.endDate || "", false),
           description: values.goal,
           allDay: false,
           autoCompleteSprint: values.autoCompleteSprint,
@@ -74,7 +75,7 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
     try {
       await Promise.all(orderedTasks.map((task, index) => deps.updateTask({
         taskId: task.id,
-        payload: { rank: String((index + 1) * 1000) },
+        payload: { rank: String((index + 1) * 1000).padStart(20, "0") },
       })));
       toast.success(`Đã sắp xếp lại work items trong "${group.title}"`);
     } catch (error) {
@@ -98,8 +99,7 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
 
   const createSprintTask = async (sprintId: string, title: string) => {
     try {
-      const task = await deps.createTask({ title, status: TaskStatus.TODO });
-      await deps.addTasksToSprint({ sprintId, taskIds: [task.id] });
+      await deps.createTask({ title, status: TaskStatus.TODO, sprintId });
       toast.success("Tạo task trong Sprint thành công");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể tạo task trong Sprint");

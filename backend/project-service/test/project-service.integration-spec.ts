@@ -1,5 +1,7 @@
 import { ConflictException, ForbiddenException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
+import { ClientKafka } from '@nestjs/microservices';
+import { ProjectFileService } from '../src/modules/project/project-file.service';
 import { ActivityService } from "../src/modules/project/activity.service";
 import { InvitationService } from "../src/modules/project/invitation.service";
 import { LabelService } from "../src/modules/project/label.service";
@@ -99,6 +101,88 @@ integration("Project Service database integration", () => {
       },
     });
   }
+
+  function taskServices() {
+    const access = new ProjectAccessService(database);
+    const policy = new TaskPolicyService(database, access);
+    const calendar = new TaskCalendarEventService(database, {} as ClientKafka);
+    const tasks = new TaskService(database, access, new ActivityService(database, policy), {} as NotificationOutboxService, calendar);
+    return { access, tasks, sprints: new SprintService(database, access) };
+  }
+
+  it('persists the task and calendar outbox atomically without Kafka', async () => {
+    const { project, ownerId } = await createProject();
+    const { tasks } = taskServices();
+    const created = await tasks.create(ownerId, project.id, { title: 'Durable task', startDate: '2026-09-05T02:00:00Z' });
+    const events = await prisma.notificationOutbox.findMany({ where: { eventType: 'PROJECT_TASK_CALENDAR' } });
+    expect(events).toHaveLength(1);
+    expect(events[0].payload).toEqual({ taskId: created.id });
+    await expect(prisma.task.findUnique({ where: { id: created.id } })).resolves.toMatchObject({ title: 'Durable task' });
+  });
+
+  it('rolls back task numbering when creation targets a running sprint', async () => {
+    const { project, ownerId } = await createProject({ projectType: ProjectType.SOFTWARE_DEVELOPMENT });
+    const { tasks, sprints } = taskServices();
+    const sprint = await sprints.create(ownerId, project.id, { name: 'Sprint' });
+    await sprints.start(ownerId, sprint.id);
+    await expect(tasks.create(ownerId, project.id, { title: 'Rejected', sprintId: sprint.id })).rejects.toBeInstanceOf(ConflictException);
+    expect(await prisma.task.count({ where: { projectId: project.id } })).toBe(0);
+    expect((await prisma.project.findUniqueOrThrow({ where: { id: project.id } })).nextTaskNumber).toBe(1);
+    expect(await prisma.notificationOutbox.count()).toBe(0);
+  });
+
+  it('keeps the active sprint unchanged when a task is added to another planned sprint', async () => {
+    const { project, ownerId } = await createProject({ projectType: ProjectType.SOFTWARE_DEVELOPMENT });
+    const { tasks, sprints } = taskServices();
+    const source = await sprints.create(ownerId, project.id, { name: 'Source' });
+    const target = await sprints.create(ownerId, project.id, { name: 'Target' });
+    const task = await tasks.create(ownerId, project.id, { title: 'Work', sprintId: source.id });
+    await sprints.start(ownerId, source.id);
+    await expect(sprints.addTasks(ownerId, target.id, { taskIds: [task.id] })).rejects.toBeInstanceOf(ConflictException);
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).sprintId).toBe(source.id);
+  });
+
+  it('returns full task relations from a sprint and prevents third-level nesting', async () => {
+    const { project, ownerId } = await createProject({ projectType: ProjectType.SOFTWARE_DEVELOPMENT });
+    const { tasks, sprints } = taskServices();
+    const sprint = await sprints.create(ownerId, project.id, { name: 'Sprint' });
+    const parent = await tasks.create(ownerId, project.id, { title: 'Parent', sprintId: sprint.id });
+    await tasks.create(ownerId, project.id, { title: 'Child', parentTaskId: parent.id });
+    const other = await tasks.create(ownerId, project.id, { title: 'Other' });
+    await prisma.taskChecklist.create({ data: { taskId: parent.id, title: 'Check', completed: false, createdAt: new Date() } });
+    await prisma.taskAssignee.create({ data: { taskId: parent.id, projectId: project.id, userId: ownerId, assignedAt: new Date() } });
+    const [result] = await sprints.list(ownerId, project.id);
+    const listed = result.tasks.find((item) => item.id === parent.id)!;
+    expect(listed.assignees).toHaveLength(1);
+    expect(listed.checklists).toHaveLength(1);
+    await expect(tasks.update(ownerId, parent.id, { parentTaskId: other.id })).rejects.toBeInstanceOf(ConflictException);
+    expect((await prisma.task.findUniqueOrThrow({ where: { id: parent.id } })).parentTaskId).toBeNull();
+  });
+
+  it('stores and downloads file bytes across service instances with project access checks', async () => {
+    const { project, ownerId } = await createProject({ visibility: ProjectVisibility.PRIVATE });
+    const { access } = taskServices();
+    const files = new ProjectFileService(database, access);
+    const content = Buffer.from('Project attachment');
+    const file = await files.upload(ownerId, project.id, { originalname: 'plan.txt', mimetype: 'text/plain', size: content.length, buffer: content });
+    expect(file).not.toHaveProperty('content');
+    const reloaded = new ProjectFileService(database, new ProjectAccessService(database));
+    expect(await reloaded.list(ownerId, project.id)).toHaveLength(1);
+    expect(Buffer.from((await reloaded.download(ownerId, project.id, file.id)).content)).toEqual(content);
+    await expect(reloaded.download(crypto.randomUUID(), project.id, file.id)).rejects.toBeInstanceOf(ForbiddenException);
+    await reloaded.remove(ownerId, project.id, file.id);
+    expect(await reloaded.list(ownerId, project.id)).toEqual([]);
+  });
+
+  it('preserves rank order for twelve tasks in PostgreSQL', async () => {
+    const { project, ownerId } = await createProject();
+    const { tasks } = taskServices();
+    for (let index = 1; index <= 12; index++) {
+      await tasks.create(ownerId, project.id, { title: String(index), rank: String(index * 1000) });
+    }
+    const result = await tasks.findAll(ownerId, project.id, { page: 1, limit: 100 });
+    expect(result.items.map((task) => task.title)).toEqual(Array.from({ length: 12 }, (_, index) => String(index + 1)));
+  });
 
   it("enforces the project permission matrix", async () => {
     const { project, ownerId } = await createProject({

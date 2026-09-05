@@ -8,6 +8,7 @@ import {
 import { Prisma } from "@prisma/client";
 import { RuntimeConfigService } from "../../common/config/runtime-config.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { TaskCalendarEventService } from "./task-calendar-event.service";
 import {
   InvitationEmailInput,
   InvitationEmailService,
@@ -45,6 +46,7 @@ export class NotificationOutboxService
     private readonly config: RuntimeConfigService,
     @Inject(NOTIFICATION_GATEWAY) private readonly gateway: NotificationGateway,
     private readonly invitationEmails: InvitationEmailService,
+    private readonly calendarEvents: TaskCalendarEventService,
   ) {}
 
   onModuleInit(): void {
@@ -172,6 +174,11 @@ export class NotificationOutboxService
           response.recipientId,
           response.status,
         );
+      } else if (record.eventType === "PROJECT_TASK_CALENDAR") {
+        if (!this.isObject(record.payload) || typeof record.payload.taskId !== "string") {
+          throw new Error("Invalid task calendar payload");
+        }
+        await this.calendarEvents.deliverUpsert(record.payload.taskId);
       } else {
         throw new Error(`Unsupported outbox event type: ${record.eventType}`);
       }
@@ -195,7 +202,7 @@ export class NotificationOutboxService
   ): Promise<void> {
     const attemptCount = record.attemptCount + 1;
     const nextAttemptAt =
-      attemptCount >= this.config.outboxMaxAttempts
+      record.eventType !== "PROJECT_TASK_CALENDAR" && attemptCount >= this.config.outboxMaxAttempts
         ? null
         : new Date(
             Date.now() +
