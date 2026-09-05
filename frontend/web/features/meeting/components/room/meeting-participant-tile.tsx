@@ -6,10 +6,11 @@ import {
   useIsSpeaking,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
-import { Mic, MicOff, User } from "lucide-react";
+import { Mic, MicOff } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { useAppSelector } from "@/store/store";
+import { AvatarFallback } from "../common/avatar-fallback";
 import {
   getRoleLabelId,
   parseParticipantMetadata,
@@ -69,13 +70,11 @@ export function MeetingParticipantTile({
               style={{ backgroundImage: `url("${avatarUrl}")` }}
             />
           ) : (
-            <span
-              aria-label={displayName}
-              role="img"
+            <AvatarFallback
+              label={displayName}
               className="grid h-24 w-24 place-items-center rounded-full bg-slate-200/90 ring-1 ring-white/14 shadow-sm"
-            >
-              <User className="h-11 w-11 text-slate-400" />
-            </span>
+              iconClassName="h-11 w-11 text-slate-400"
+            />
           )}
         </div>
       )}

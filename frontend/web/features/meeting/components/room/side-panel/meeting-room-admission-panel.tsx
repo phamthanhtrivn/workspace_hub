@@ -1,9 +1,17 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Loader2, Search, User, X } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Search,
+  X,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { AvatarFallback } from "@/features/meeting/components/common/avatar-fallback";
 import {
   useMeetingJoinRequestActions,
   useMeetingJoinRequests,
@@ -128,9 +136,11 @@ export function MeetingRoomAdmissionPanel({
                       }}
                     />
                   ) : (
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-200">
-                      <User className="h-5 w-5 text-slate-400" />
-                    </span>
+                    <AvatarFallback
+                      label={displayName}
+                      className="h-10 w-10 bg-slate-200"
+                      iconClassName="h-5 w-5 text-slate-400"
+                    />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-black text-slate-100">

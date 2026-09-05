@@ -10,6 +10,7 @@ import type {
   MeetingMessageResponse,
   MeetingParticipantProfile,
 } from "../../../types/meeting.types";
+import { AvatarFallback } from "../../common/avatar-fallback";
 import { MeetingMessageAttachments } from "./meeting-message-attachments";
 import { MeetingMessageOptionsMenu } from "./meeting-message-options-menu";
 import { MeetingMessageReadReceipts } from "./meeting-message-read-receipts";
@@ -90,7 +91,11 @@ export function MeetingMessageItem({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                senderName.charAt(0).toUpperCase()
+                <AvatarFallback
+                  label={senderName}
+                  className="h-full w-full bg-slate-200/90 ring-0 shadow-none"
+                  iconClassName="h-4 w-4 text-slate-400"
+                />
               )}
             </button>
           )}

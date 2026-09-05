@@ -13,11 +13,11 @@ import {
   type MeetingParticipantResponse,
   type MeetingParticipantRole,
 } from "@/features/meeting/types/meeting.types";
-import { getInitials } from "@/features/meeting/utils/meeting-room.utils";
 import {
   MeetingIconDropdown,
   type MeetingIconDropdownItem,
 } from "./meeting-icon-dropdown";
+import { AvatarFallback } from "./avatar-fallback";
 
 interface MeetingParticipantListItemProps {
   item: MeetingParticipantListItemState;
@@ -92,9 +92,11 @@ export function MeetingParticipantListItem({
             style={{ backgroundImage: `url("${item.avatarUrl}")` }}
           />
         ) : (
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/12 text-xs font-black">
-            {getInitials(item.displayName)}
-          </span>
+          <AvatarFallback
+            label={item.displayName}
+            className="h-10 w-10 bg-slate-200/90"
+            iconClassName="h-5 w-5 text-slate-400"
+          />
         )}
 
         <span className="min-w-0 flex-1">

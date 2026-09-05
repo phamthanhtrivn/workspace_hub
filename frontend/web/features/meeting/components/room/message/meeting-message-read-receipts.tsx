@@ -1,9 +1,9 @@
 "use client";
 
-import { User } from "lucide-react";
 import Image from "next/image";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { MeetingParticipantProfile } from "../../../types/meeting.types";
+import { AvatarFallback } from "../../common/avatar-fallback";
 
 interface MeetingMessageReadReceiptsProps {
   readBy: string[];
@@ -27,7 +27,9 @@ export function MeetingMessageReadReceipts({
         {otherReaders.slice(0, 5).map((userId) => {
           const readerProfile = profilesByUserId[userId];
           const readerName =
-            readerProfile?.fullName || readerProfile?.email || "User";
+            readerProfile?.fullName ||
+            readerProfile?.email ||
+            intl.formatMessage({ id: "app.user" });
 
           return (
             <div
@@ -48,9 +50,11 @@ export function MeetingMessageReadReceipts({
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-slate-700">
-                  <User className="h-2.5 w-2.5 text-slate-300" />
-                </div>
+                <AvatarFallback
+                  label={readerName}
+                  className="h-full w-full bg-slate-700 ring-0 shadow-none"
+                  iconClassName="h-2.5 w-2.5 text-slate-300"
+                />
               )}
             </div>
           );

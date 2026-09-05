@@ -18,18 +18,6 @@ export function formatElapsedTime(totalSeconds: number) {
   return parts.map((part) => String(part).padStart(2, "0")).join(":");
 }
 
-export function getInitials(name: string) {
-  const letters = name
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-
-  return letters || "U";
-}
-
 export function parseParticipantMetadata(
   participant: Participant,
 ): ParticipantMetadata {
