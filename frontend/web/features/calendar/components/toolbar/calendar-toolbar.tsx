@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-} from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CALENDAR_VIEW_OPTIONS } from "../../types/calendar.constants";
 

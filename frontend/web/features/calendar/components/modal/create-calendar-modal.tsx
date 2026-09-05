@@ -1,10 +1,11 @@
 "use client";
 
 import { X } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useCreateCalendar } from "../../hooks/use-calendar-queries";
+import { useModalDialog } from "../../hooks/use-modal-dialog";
 import { CALENDAR_DEFAULT_EVENT_COLOR } from "../../types/calendar.constants";
 import {
   CalendarColorPicker,
@@ -19,6 +20,7 @@ export function CreateCalendarModal({
   onClose: () => void;
 }) {
   const intl = useAppIntl();
+  const dialogRef = useRef<HTMLFormElement>(null);
   const createCalendar = useCreateCalendar();
   const [name, setName] = useState("");
   const [icon, setIcon] = useState<string | null>(null);
@@ -26,6 +28,7 @@ export function CreateCalendarModal({
   const [showCustomColor, setShowCustomColor] = useState(false);
   const previewName =
     name.trim() || intl.formatMessage({ id: "calendar.calendarNamePlaceholder" });
+  useModalDialog({ dialogRef, onClose });
 
   if (!open) return null;
 
@@ -58,16 +61,24 @@ export function CreateCalendarModal({
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">
       <form
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="calendar-create-heading"
         onSubmit={handleSubmit}
         className="w-full max-w-md overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl"
       >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-lg font-black text-[var(--color-primary-dark)]">
+          <h2
+            id="calendar-create-heading"
+            className="text-lg font-black text-[var(--color-primary-dark)]"
+          >
             {intl.formatMessage({ id: "calendar.createCalendar" })}
           </h2>
           <button
             type="button"
             onClick={onClose}
+            aria-label={intl.formatMessage({ id: "app.close" })}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
@@ -80,6 +91,7 @@ export function CreateCalendarModal({
               {intl.formatMessage({ id: "calendar.calendarName" })}
             </span>
             <input
+              data-modal-initial-focus
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder={intl.formatMessage({

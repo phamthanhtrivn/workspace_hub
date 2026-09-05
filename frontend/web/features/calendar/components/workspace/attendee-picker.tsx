@@ -2,10 +2,10 @@
 
 import { Search, User, X } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { searchUserByEmail } from "@/features/chat/api/chat.api";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
+import { useAttendeeSearch } from "../../hooks/use-calendar-users";
 import { CalendarEventAttendeePayload } from "../../types/calendar.types";
 
 export function AttendeePicker({
@@ -19,38 +19,16 @@ export function AttendeePicker({
 }) {
   const intl = useAppIntl();
   const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<UserSearchResponse[]>([]);
+  const { data: results = [], isFetching: loading } = useAttendeeSearch(query);
   const attendeeIds = useMemo(
     () => new Set(attendees.map((attendee) => attendee.userId)),
     [attendees],
   );
 
-  useEffect(() => {
-    if (!query.trim()) {
-      return;
-    }
-
-    const timeout = window.setTimeout(async () => {
-      setLoading(true);
-      try {
-        const response = await searchUserByEmail(query.trim());
-        setResults(response.success ? response.data : []);
-      } catch {
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
-    }, 350);
-
-    return () => window.clearTimeout(timeout);
-  }, [query]);
-
   const addUser = (user: UserSearchResponse) => {
     if (attendeeIds.has(user.id)) return;
     onChange([...attendees, { userId: user.id, optional: false }]);
     setQuery("");
-    setResults([]);
   };
 
   const removeUser = (userId: string) => {

@@ -1,12 +1,15 @@
-import { Inject, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { ClientKafka } from '@nestjs/microservices';
-import { lastValueFrom } from 'rxjs';
 import {
-  PROJECT_KAFKA_CLIENT,
-} from '../../infrastructure/kafka/project-kafka.module';
-import { PrismaService } from '../../common/prisma/prisma.service';
+  Inject,
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+} from "@nestjs/common";
+import { ClientKafka } from "@nestjs/microservices";
+import { lastValueFrom } from "rxjs";
+import { PROJECT_KAFKA_CLIENT } from "../../infrastructure/kafka/project-kafka.module";
+import { PrismaService } from "../../common/prisma/prisma.service";
 
-const TASK_TOPIC = 'project-task-events';
+const TASK_TOPIC = "project-task-events";
 
 @Injectable()
 export class TaskCalendarEventService implements OnApplicationBootstrap {
@@ -19,6 +22,12 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     await this.kafka.connect();
+    void this.reconcileScheduledTasks().catch((error: unknown) => {
+      this.logger.error(
+        "Project task calendar reconciliation failed",
+        error instanceof Error ? error.stack : String(error),
+      );
+    });
   }
 
   async publishUpsert(taskId: string): Promise<void> {
@@ -32,7 +41,7 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
             color: true,
             ownerId: true,
             members: {
-              where: { status: 'ACTIVE' },
+              where: { status: "ACTIVE" },
               select: { userId: true },
             },
           },
@@ -49,8 +58,8 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
     const hasSchedule = Boolean(task.startDate || task.dueDate);
     const eventType =
       !hasSchedule || task.archived || task.deletedAt
-        ? 'PROJECT_TASK_CALENDAR_REMOVED'
-        : 'PROJECT_TASK_CALENDAR_UPSERTED';
+        ? "PROJECT_TASK_CALENDAR_REMOVED"
+        : "PROJECT_TASK_CALENDAR_UPSERTED";
 
     await lastValueFrom(
       this.kafka.emit(TASK_TOPIC, {
@@ -79,6 +88,46 @@ export class TaskCalendarEventService implements OnApplicationBootstrap {
       where: { projectId },
       select: { id: true },
     });
-    await Promise.all(tasks.map((task) => this.publishUpsert(task.id)));
+    await this.publishTaskIds(tasks.map((task) => task.id));
+  }
+
+  private async reconcileScheduledTasks(): Promise<void> {
+    const batchSize = 100;
+    let cursor: string | undefined;
+    let published = 0;
+    let shouldContinue = true;
+
+    while (shouldContinue) {
+      const tasks = await this.prisma.task.findMany({
+        where: {
+          archived: false,
+          deletedAt: null,
+          OR: [{ startDate: { not: null } }, { dueDate: { not: null } }],
+        },
+        select: { id: true },
+        orderBy: { id: "asc" },
+        take: batchSize,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      });
+      if (tasks.length === 0) break;
+
+      await this.publishTaskIds(tasks.map((task) => task.id));
+      published += tasks.length;
+      cursor = tasks[tasks.length - 1].id;
+      shouldContinue = tasks.length === batchSize;
+    }
+
+    this.logger.log(`Reconciled ${published} scheduled tasks to Calendar`);
+  }
+
+  private async publishTaskIds(taskIds: string[]): Promise<void> {
+    const concurrency = 20;
+    for (let offset = 0; offset < taskIds.length; offset += concurrency) {
+      await Promise.all(
+        taskIds
+          .slice(offset, offset + concurrency)
+          .map((taskId) => this.publishUpsert(taskId)),
+      );
+    }
   }
 }

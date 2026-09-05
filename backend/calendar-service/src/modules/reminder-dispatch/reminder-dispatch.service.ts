@@ -9,6 +9,7 @@ import { Cron } from '@nestjs/schedule';
 import { Prisma, ReminderDeliveryStatus } from '@prisma/client';
 import { lastValueFrom } from 'rxjs';
 import { KAFKA_CONFIG } from '../../infrastructure/kafka/kafka.constants';
+import { CALENDAR_DEFAULTS } from '../../common/constants/calendar.constants';
 import { PrismaService } from '../../prisma/prisma.service';
 
 type ReminderWithEvent = Prisma.ReminderGetPayload<{
@@ -60,6 +61,25 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
     for (const reminder of reminders) {
       await this.dispatchOne(reminder);
     }
+  }
+
+  @Cron('0 15 2 * * *')
+  async cleanupCompletedReminders(): Promise<void> {
+    const retentionCutoff = new Date(
+      Date.now() - CALENDAR_DEFAULTS.REMINDER_RETENTION_DAYS * 24 * 60 * 60_000,
+    );
+    await this.prisma.reminder.deleteMany({
+      where: {
+        deliveryStatus: {
+          in: [
+            ReminderDeliveryStatus.DISPATCHED,
+            ReminderDeliveryStatus.CANCELLED,
+            ReminderDeliveryStatus.DEAD_LETTER,
+          ],
+        },
+        updatedAt: { lt: retentionCutoff },
+      },
+    });
   }
 
   private async dispatchOne(reminder: ReminderWithEvent): Promise<void> {
@@ -118,6 +138,8 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
         },
       });
     } catch (error) {
+      const reachedAttemptLimit =
+        reminder.attemptCount + 1 >= CALENDAR_DEFAULTS.MAX_REMINDER_ATTEMPTS;
       const retryMinutes = Math.min(
         60,
         2 ** Math.min(reminder.attemptCount + 1, 6),
@@ -125,8 +147,12 @@ export class ReminderDispatchService implements OnApplicationBootstrap {
       await this.prisma.reminder.update({
         where: { id: reminder.id },
         data: {
-          deliveryStatus: ReminderDeliveryStatus.FAILED,
-          nextAttemptAt: new Date(Date.now() + retryMinutes * 60_000),
+          deliveryStatus: reachedAttemptLimit
+            ? ReminderDeliveryStatus.DEAD_LETTER
+            : ReminderDeliveryStatus.FAILED,
+          nextAttemptAt: reachedAttemptLimit
+            ? null
+            : new Date(Date.now() + retryMinutes * 60_000),
           lastError:
             error instanceof Error
               ? error.message.slice(0, 1000)

@@ -13,6 +13,7 @@ services:
       KAFKA_BROKER: kafka:29092
       PROJECT_SERVICE_URL: http://project-service:8082
       DOCUMENT_SERVICE_URL: http://document-service:8085
+      USER_SERVICE_URL: http://user-service:8081
     volumes:
       - .:/app
       - /app/node_modules

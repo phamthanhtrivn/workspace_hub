@@ -66,6 +66,7 @@ export class CreateCalendarEventDto {
 
   @IsOptional()
   @IsArray()
+  @ArrayMaxSize(CALENDAR_DEFAULTS.MAX_RECURRENCE_EXCEPTIONS)
   @IsDateString({}, { each: true })
   exceptionDates?: string[];
 

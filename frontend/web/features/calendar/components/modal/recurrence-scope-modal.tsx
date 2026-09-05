@@ -1,7 +1,9 @@
 "use client";
 
 import { Repeat2, X } from "lucide-react";
+import { useRef } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useModalDialog } from "../../hooks/use-modal-dialog";
 import { RecurrenceScope } from "../../types/calendar.types";
 
 export function RecurrenceScopeModal({
@@ -14,11 +16,14 @@ export function RecurrenceScopeModal({
   onSelect: (scope: RecurrenceScope) => void;
 }) {
   const intl = useAppIntl();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalDialog({ dialogRef, onClose });
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/40 p-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="calendar-recurrence-scope-title"
@@ -48,6 +53,7 @@ export function RecurrenceScopeModal({
           {Object.values(RecurrenceScope).map((scope) => (
             <button
               key={scope}
+              data-modal-initial-focus={scope === RecurrenceScope.THIS || undefined}
               type="button"
               onClick={() => onSelect(scope)}
               className="w-full cursor-pointer rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"

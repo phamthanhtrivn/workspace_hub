@@ -8,7 +8,7 @@ import {
 } from "../types/calendar.types";
 
 const reminderSchema = z.object({
-  minutesBefore: z.number().int().min(0).max(525_600),
+  minutesBefore: z.number().int().min(0).max(43_200),
   method: z.nativeEnum(ReminderMethod),
 });
 
@@ -16,7 +16,7 @@ export const calendarEventFormSchema = z
   .object({
     calendarId: z.string().min(1, "calendar.requiredFields"),
     title: z.string().trim().min(1, "calendar.requiredFields").max(200),
-    description: z.string().max(10_000),
+    description: z.string().max(2_000),
     location: z.string().max(500),
     startAt: z.string().min(1, "calendar.requiredFields"),
     endAt: z.string().min(1, "calendar.requiredFields"),

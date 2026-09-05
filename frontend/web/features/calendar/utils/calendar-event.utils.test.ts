@@ -25,6 +25,7 @@ function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     visibility: EventVisibility.DEFAULT,
     recurrenceRule: null,
     recurrenceParentId: null,
+    timeZone: "Asia/Ho_Chi_Minh",
     originalStartAt: null,
     sourceType: EventSourceType.USER,
     sourceId: null,

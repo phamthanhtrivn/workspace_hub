@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { X } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useModalDialog } from "../../hooks/use-modal-dialog";
 import {
   CALENDAR_RECURRENCE_FREQUENCY_OPTIONS,
   CALENDAR_RECURRENCE_WEEKDAY_OPTIONS,
@@ -26,7 +27,9 @@ export function CustomRecurrenceModal({
   onSave: (value: CalendarCustomRecurrence) => void;
 }) {
   const intl = useAppIntl();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(value);
+  useModalDialog({ dialogRef, onClose });
 
   if (!open) return null;
 
@@ -57,14 +60,24 @@ export function CustomRecurrenceModal({
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="calendar-custom-recurrence-heading"
+        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white shadow-2xl"
+      >
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h3 className="text-lg font-black text-[var(--color-primary-dark)]">
+          <h3
+            id="calendar-custom-recurrence-heading"
+            className="text-lg font-black text-[var(--color-primary-dark)]"
+          >
             {intl.formatMessage({ id: "calendar.recurrence.customTitle" })}
           </h3>
           <button
             type="button"
             onClick={onClose}
+            aria-label={intl.formatMessage({ id: "app.close" })}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
@@ -77,6 +90,7 @@ export function CustomRecurrenceModal({
               {intl.formatMessage({ id: "calendar.recurrence.repeatEvery" })}
             </span>
             <input
+              data-modal-initial-focus
               type="number"
               min={1}
               value={draft.interval}

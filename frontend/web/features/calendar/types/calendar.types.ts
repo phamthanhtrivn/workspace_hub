@@ -66,6 +66,7 @@ export interface WorkspaceCalendar {
   icon: string | null;
   description: string | null;
   color: string;
+  timeZone: string;
   isDefault: boolean;
   isVisible: boolean;
   createdAt: string;
@@ -104,6 +105,7 @@ export interface CalendarEvent {
   visibility: EventVisibility;
   recurrenceRule: string | null;
   recurrenceParentId: string | null;
+  timeZone: string;
   originalStartAt: string | null;
   sourceType: EventSourceType;
   sourceId: string | null;
@@ -136,6 +138,7 @@ export interface CreateCalendarPayload {
   description?: string;
   projectId?: string;
   color?: string;
+  timeZone?: string;
   isDefault?: boolean;
   isVisible?: boolean;
 }
@@ -146,6 +149,7 @@ export interface UpdateCalendarPayload {
   description?: string | null;
   projectId?: string | null;
   color?: string;
+  timeZone?: string;
   isDefault?: boolean;
   isVisible?: boolean;
 }

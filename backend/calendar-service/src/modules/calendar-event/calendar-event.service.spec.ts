@@ -8,6 +8,11 @@ import {
   ReminderMethod,
 } from '@prisma/client';
 import { CalendarEventService } from './calendar-event.service';
+import { RecurrenceScope } from '../../common/enums/calendar.enum';
+import { EventAccessPolicy } from './event-access.policy';
+import { EventMapper } from './event.mapper';
+import { EventRelationService } from './event-relation.service';
+import { RecurrenceMutationService } from './recurrence-mutation.service';
 
 describe('CalendarEventService', () => {
   const ownerId = '11111111-1111-1111-1111-111111111111';
@@ -23,6 +28,8 @@ describe('CalendarEventService', () => {
     name: 'Work',
     description: null,
     color: '#2563eb',
+    icon: null,
+    timeZone: 'Asia/Ho_Chi_Minh',
     isDefault: true,
     isVisible: true,
     createdAt: new Date(),
@@ -43,14 +50,11 @@ describe('CalendarEventService', () => {
     color: '#2563eb',
     status: EventStatus.CONFIRMED,
     visibility: EventVisibility.DEFAULT,
-    recurrenceRule: null,
-    recurrenceParentId: null,
+    recurrenceSeriesId: null,
     originalStartAt: null,
-    recurrenceGeneratedUntil: null,
+    isRecurrenceOverride: false,
     sourceType: EventSourceType.USER,
     sourceId: null,
-    exceptionDates: [],
-    documentIds: [],
     cancelledAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -76,19 +80,52 @@ describe('CalendarEventService', () => {
       },
     ],
     reminders: [],
+    documents: [],
+    recurrenceSeries: null,
   };
 
   function createService() {
     const tx = {
       calendarEvent: {
         create: jest.fn().mockResolvedValue({ id: eventId }),
+        findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
+        updateMany: jest.fn(),
+        delete: jest.fn(),
+        deleteMany: jest.fn(),
       },
       calendarEventAttendee: {
         createMany: jest.fn(),
         deleteMany: jest.fn(),
       },
       reminder: {
+        createMany: jest.fn(),
+        deleteMany: jest.fn(),
+        updateMany: jest.fn(),
+      },
+      calendarEventDocument: {
+        createMany: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      recurrenceException: {
+        createMany: jest.fn(),
+        deleteMany: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([]),
+        updateMany: jest.fn(),
+      },
+      recurrenceSeries: {
+        create: jest.fn(),
+        update: jest.fn(),
+      },
+      recurrenceSeriesAttendee: {
+        createMany: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      recurrenceSeriesReminder: {
+        createMany: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      recurrenceSeriesDocument: {
         createMany: jest.fn(),
         deleteMany: jest.fn(),
       },
@@ -100,7 +137,9 @@ describe('CalendarEventService', () => {
       },
       calendarEvent: {
         findUnique: jest.fn().mockResolvedValue(event),
-        findMany: jest.fn(),
+        findFirst: jest.fn(),
+        findMany: jest.fn().mockResolvedValue([event]),
+        count: jest.fn().mockResolvedValue(1),
         update: jest.fn(),
       },
       calendarEventAttendee: {
@@ -120,11 +159,23 @@ describe('CalendarEventService', () => {
       assertValidRule: jest.fn(),
       materializeSeriesThrough: jest.fn(),
       materializeAllSeriesThrough: jest.fn(),
+      getDefaultGenerationEnd: jest.fn(
+        (startAt: Date) => new Date(startAt.getTime() + 180 * 86_400_000),
+      ),
     };
     const resourceAccess = {
       assertDocumentAccess: jest.fn(),
       assertProjectAccess: jest.fn(),
     };
+
+    const accessPolicy = new EventAccessPolicy(prisma as any);
+    const mapper = new EventMapper();
+    const relations = new EventRelationService();
+    const recurrenceMutations = new RecurrenceMutationService(
+      prisma as any,
+      recurrence as any,
+      relations,
+    );
 
     return {
       service: new CalendarEventService(
@@ -132,10 +183,15 @@ describe('CalendarEventService', () => {
         userProfiles as any,
         recurrence as any,
         resourceAccess as any,
+        accessPolicy,
+        mapper,
+        relations,
+        recurrenceMutations,
       ),
       prisma,
       tx,
       userProfiles,
+      recurrence,
     };
   }
 
@@ -197,5 +253,102 @@ describe('CalendarEventService', () => {
     await expect(
       service.getEventById(outsiderId, eventId),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('keeps list queries read-only and leaves recurrence generation to the worker', async () => {
+    const { service, recurrence } = createService();
+
+    const result = await service.getEvents(ownerId, {
+      startAt: '2026-08-01T00:00:00.000Z',
+      endAt: '2026-09-01T00:00:00.000Z',
+      page: 1,
+      limit: 50,
+    });
+
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]).not.toHaveProperty('documents');
+    expect(result.items[0]).not.toHaveProperty('recurrenceExceptions');
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({ documentIds: [], exceptionDates: [] }),
+    );
+    expect(recurrence.materializeSeriesThrough).not.toHaveBeenCalled();
+    expect(recurrence.materializeAllSeriesThrough).not.toHaveBeenCalled();
+  });
+
+  function recurringFirstOccurrence() {
+    const recurrenceSeries = {
+      id: '88888888-8888-8888-8888-888888888888',
+      calendarId,
+      createdBy: ownerId,
+      updatedBy: null,
+      title: event.title,
+      description: null,
+      location: null,
+      startAt: event.startAt,
+      endAt: event.endAt,
+      allDay: false,
+      color: event.color,
+      status: EventStatus.CONFIRMED,
+      visibility: EventVisibility.DEFAULT,
+      recurrenceRule: 'FREQ=DAILY;COUNT=10',
+      timeZone: calendar.timeZone,
+      recurrenceGeneratedUntil: new Date('2027-01-01T00:00:00.000Z'),
+      cancelledAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      attendees: event.attendees.map((attendee) => ({
+        seriesId: '88888888-8888-8888-8888-888888888888',
+        userId: attendee.userId,
+        optional: attendee.optional,
+        createdAt: new Date(),
+      })),
+      reminders: [],
+      documents: [],
+      exceptions: [],
+    };
+
+    return {
+      ...event,
+      recurrenceSeriesId: recurrenceSeries.id,
+      originalStartAt: event.startAt,
+      recurrenceSeries,
+    };
+  }
+
+  it('editing THIS on the first occurrence does not mutate the series template', async () => {
+    const { service, prisma, tx } = createService();
+    const firstOccurrence = recurringFirstOccurrence();
+    prisma.calendarEvent.findUnique.mockResolvedValue(firstOccurrence);
+
+    await service.updateEvent(ownerId, undefined, eventId, {
+      recurrenceScope: RecurrenceScope.THIS,
+      title: 'Only this occurrence',
+    });
+
+    expect(tx.recurrenceSeries.update).not.toHaveBeenCalled();
+    expect(tx.calendarEvent.update).toHaveBeenCalledWith({
+      where: { id: eventId },
+      data: expect.objectContaining({
+        title: 'Only this occurrence',
+        isRecurrenceOverride: true,
+      }),
+    });
+  });
+
+  it('cancelling THIS on the first occurrence leaves its series active', async () => {
+    const { service, prisma, tx } = createService();
+    const firstOccurrence = recurringFirstOccurrence();
+    prisma.calendarEvent.findUnique.mockResolvedValue(firstOccurrence);
+
+    await service.cancelEvent(ownerId, eventId, RecurrenceScope.THIS);
+
+    expect(tx.recurrenceSeries.update).not.toHaveBeenCalled();
+    expect(tx.calendarEvent.updateMany).toHaveBeenCalledWith({
+      where: { id: { in: [eventId] } },
+      data: expect.objectContaining({
+        status: EventStatus.CANCELLED,
+        isRecurrenceOverride: true,
+      }),
+    });
   });
 });
