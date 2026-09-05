@@ -1,5 +1,6 @@
 import type {
   MeetingEndedResponse,
+  MeetingChatNotificationPreferenceResponse,
   MeetingJoinRequestStatusResponse,
   MeetingMessageResponse,
   MeetingParticipantResponse,
@@ -20,6 +21,7 @@ export enum MeetingSocketEvent {
   MESSAGE_SENT = "meeting:message_sent",
   MESSAGE_UPDATED = "meeting:message_updated",
   MESSAGE_READ = "meeting:message_read",
+  CHAT_NOTIFICATION_PREFERENCE_UPDATED = "meeting:chat_notification_preference_updated",
 }
 
 export interface MeetingStatusUpdatedPayload {
@@ -55,6 +57,8 @@ export type MeetingParticipantJoinedPayload = MeetingParticipantResponse;
 export type MeetingParticipantLeftPayload = MeetingParticipantResponse;
 export type MeetingParticipantRemovedPayload = MeetingParticipantResponse;
 export type MeetingEndedPayload = MeetingEndedResponse;
+export type MeetingChatNotificationPreferenceUpdatedPayload =
+  MeetingChatNotificationPreferenceResponse;
 
 export interface MeetingMessageReadPayload {
   meetingId: string;
@@ -93,6 +97,9 @@ export interface ServerToClientMeetingEvents {
   [MeetingSocketEvent.MESSAGE_SENT]: (payload: MeetingMessageResponse) => void;
   [MeetingSocketEvent.MESSAGE_UPDATED]: (payload: MeetingMessageResponse) => void;
   [MeetingSocketEvent.MESSAGE_READ]: (payload: MeetingMessageReadPayload) => void;
+  [MeetingSocketEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED]: (
+    payload: MeetingChatNotificationPreferenceUpdatedPayload,
+  ) => void;
 }
 
 export interface ClientToServerMeetingEvents {

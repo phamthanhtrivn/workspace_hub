@@ -133,6 +133,7 @@ export class MeetingRoomService {
       meeting,
       MeetingRole.HOST,
       token,
+      false,
     );
   }
 
@@ -180,6 +181,7 @@ export class MeetingRoomService {
       canJoinWithoutApproval,
       participantRole,
       participantStatus: existingParticipant?.status ?? null,
+      chatMuted: existingParticipant?.chatMuted ?? false,
     };
   }
 
@@ -303,6 +305,7 @@ export class MeetingRoomService {
       meeting,
       role,
       token,
+      updatedParticipant.chatMuted,
     );
   }
 

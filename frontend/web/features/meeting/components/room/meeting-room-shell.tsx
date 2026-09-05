@@ -68,6 +68,7 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
             joinToken={room.meeting.joinToken}
             participantRole={room.meeting.participantRole}
             initialAutoAdmit={room.meeting.autoAdmit}
+            initialChatMuted={room.meeting.chatMuted}
             settings={settings}
           />
         </LiveKitRoom>

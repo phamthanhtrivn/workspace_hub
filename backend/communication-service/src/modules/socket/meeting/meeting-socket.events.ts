@@ -13,4 +13,5 @@ export enum MeetingEvent {
   MESSAGE_SENT = 'meeting:message_sent',
   MESSAGE_UPDATED = 'meeting:message_updated',
   MESSAGE_READ = 'meeting:message_read',
+  CHAT_NOTIFICATION_PREFERENCE_UPDATED = 'meeting:chat_notification_preference_updated',
 }

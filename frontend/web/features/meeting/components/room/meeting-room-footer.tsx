@@ -46,6 +46,7 @@ interface MeetingRoomFooterProps {
   meetingId: string;
   participantRole: MeetingParticipantRole;
   settings: MeetingPreJoinSettings;
+  chatMuted: boolean;
   onPanelChange: (panel: MeetingRoomPanel) => void;
   onLeave: () => void;
   onEndForEveryone: () => void;
@@ -135,6 +136,7 @@ export function MeetingRoomFooter({
   meetingId,
   participantRole,
   settings,
+  chatMuted,
   onPanelChange,
   onLeave,
   onEndForEveryone,
@@ -202,10 +204,18 @@ export function MeetingRoomFooter({
       if (!currentUserId || message.senderId === currentUserId) return;
       if (activePanel === MeetingRoomPanel.CHAT) return;
 
-      playNotificationSound();
+      if (!chatMuted) {
+        playNotificationSound();
+      }
       updateUnreadMessageCount((currentCount) => currentCount + 1);
     },
-    [activePanel, currentUserId, meetingId, updateUnreadMessageCount],
+    [
+      activePanel,
+      chatMuted,
+      currentUserId,
+      meetingId,
+      updateUnreadMessageCount,
+    ],
   );
   const clearUnreadMessageCount = useCallback(
     (payload?: MeetingMessageReadPayload) => {

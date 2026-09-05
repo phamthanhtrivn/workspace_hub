@@ -7,14 +7,25 @@ import {
   useState,
   type SetStateAction,
 } from "react";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
+import type { ApiResponse } from "@/features/chat/types/chat.types";
 import {
   getMeetingMessages,
   getMeetingUnreadMessageCount,
+  updateMeetingChatNotificationPreference,
 } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
 import type {
+  InstantMeetingResponse,
+  MeetingAccessResponse,
+  MeetingChatNotificationPreferenceResponse,
   MeetingMessageResponse,
   MeetingMessagesResponse,
 } from "../types/meeting.types";
@@ -126,5 +137,115 @@ export function useMeetingUnreadMessageCount(joinToken: string) {
     queryKey: meetingKeys.messageUnreadCount(joinToken),
     queryFn: () => getMeetingUnreadMessageCount(joinToken),
     enabled: Boolean(joinToken),
+  });
+}
+
+interface MeetingChatNotificationPreferenceMutationContext {
+  previousAccess?: ApiResponse<MeetingAccessResponse>;
+  previousRoom?: ApiResponse<InstantMeetingResponse>;
+}
+
+function patchMeetingChatNotificationPreference(
+  queryClient: QueryClient,
+  joinToken: string,
+  chatMuted: boolean,
+) {
+  queryClient.setQueryData<ApiResponse<MeetingAccessResponse>>(
+    meetingKeys.access(joinToken),
+    (current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        data: {
+          ...current.data,
+          chatMuted,
+        },
+      };
+    },
+  );
+  queryClient.setQueryData<ApiResponse<InstantMeetingResponse>>(
+    meetingKeys.room(joinToken),
+    (current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        data: {
+          ...current.data,
+          meeting: {
+            ...current.data.meeting,
+            chatMuted,
+          },
+        },
+      };
+    },
+  );
+}
+
+export function useUpdateMeetingChatNotificationPreference(joinToken: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<
+    ApiResponse<MeetingChatNotificationPreferenceResponse>,
+    Error,
+    boolean,
+    MeetingChatNotificationPreferenceMutationContext
+  >({
+    mutationFn: (chatMuted) =>
+      updateMeetingChatNotificationPreference(joinToken, {
+        chatMuted,
+      }),
+    onMutate: async (chatMuted) => {
+      await Promise.all([
+        queryClient.cancelQueries({
+          queryKey: meetingKeys.access(joinToken),
+        }),
+        queryClient.cancelQueries({
+          queryKey: meetingKeys.room(joinToken),
+        }),
+      ]);
+
+      const previousAccess =
+        queryClient.getQueryData<ApiResponse<MeetingAccessResponse>>(
+          meetingKeys.access(joinToken),
+        );
+      const previousRoom =
+        queryClient.getQueryData<ApiResponse<InstantMeetingResponse>>(
+          meetingKeys.room(joinToken),
+        );
+
+      patchMeetingChatNotificationPreference(
+        queryClient,
+        joinToken,
+        chatMuted,
+      );
+
+      return {
+        previousAccess,
+        previousRoom,
+      };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.previousAccess) {
+        queryClient.setQueryData(
+          meetingKeys.access(joinToken),
+          context.previousAccess,
+        );
+      }
+      if (context?.previousRoom) {
+        queryClient.setQueryData(
+          meetingKeys.room(joinToken),
+          context.previousRoom,
+        );
+      }
+    },
+    onSuccess: (response) => {
+      patchMeetingChatNotificationPreference(
+        queryClient,
+        joinToken,
+        response.data.chatMuted,
+      );
+    },
   });
 }

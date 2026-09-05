@@ -17,6 +17,7 @@ import type {
   ListMeetingParticipantsParams,
   MeetingModeratorParams,
   TargetMeetingParticipantParams,
+  UpdateMeetingChatNotificationPreferenceParams,
   UpdateMeetingParticipantRoleParams,
 } from '../types/meeting.types';
 import { MeetingPolicyService } from './meeting-policy.service';
@@ -264,6 +265,39 @@ export class MeetingParticipantService {
       meeting.roomName,
       targetUserId,
       dto.role,
+    );
+
+    return payload;
+  }
+
+  async updateChatNotificationPreference({
+    joinToken,
+    userId,
+    dto,
+  }: UpdateMeetingChatNotificationPreferenceParams) {
+    const { meeting, participant } =
+      await this.meetingPolicyService.assertJoinedMeetingParticipant({
+        joinToken,
+        userId,
+      });
+
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
+      where: { id: participant.id },
+      data: {
+        chatMuted: dto.chatMuted,
+      },
+    });
+    const payload = {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      userId,
+      chatMuted: updatedParticipant.chatMuted,
+    };
+
+    this.meetingRealtimeService.emitUserEvent(
+      userId,
+      MeetingEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED,
+      payload,
     );
 
     return payload;

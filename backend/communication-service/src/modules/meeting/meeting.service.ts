@@ -12,6 +12,7 @@ import type {
   MeetingModeratorParams,
   ResolveJoinRequestParams,
   TargetMeetingParticipantParams,
+  UpdateMeetingChatNotificationPreferenceParams,
   UpdateMeetingParticipantRoleParams,
   UpdateMeetingSettingsParams,
 } from './types/meeting.types';
@@ -58,6 +59,14 @@ export class MeetingService {
 
   updateParticipantRole(params: UpdateMeetingParticipantRoleParams) {
     return this.meetingParticipantService.updateParticipantRole(params);
+  }
+
+  updateChatNotificationPreference(
+    params: UpdateMeetingChatNotificationPreferenceParams,
+  ) {
+    return this.meetingParticipantService.updateChatNotificationPreference(
+      params,
+    );
   }
 
   requestJoinApproval(params: MeetingJoinRequestParams) {

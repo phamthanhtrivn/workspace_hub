@@ -569,6 +569,7 @@ model MeetingParticipant {
   lastSeenAt        DateTime?                @map("last_seen_at")
   lastReadMessageId String?                  @map("last_read_message_id") @db.Uuid
   lastReadAt        DateTime?                @map("last_read_at")
+  chatMuted         Boolean                  @default(false) @map("chat_muted")
   createdAt         DateTime                 @default(now()) @map("created_at")
   updatedAt         DateTime                 @updatedAt @map("updated_at")
 

@@ -19,6 +19,7 @@ import { ListMeetingMessagesDto } from './dto/list-meeting-messages.dto';
 import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
 import { MeetingMessageReactionDto } from './dto/meeting-message-reaction.dto';
 import { ReadMeetingMessageDto } from './dto/read-meeting-message.dto';
+import { UpdateMeetingChatNotificationPreferenceDto } from './dto/update-meeting-chat-notification-preference.dto';
 import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
 import { UpdateMeetingSettingsDto } from './dto/update-meeting-settings.dto';
 import { MeetingService } from './meeting.service';
@@ -305,6 +306,30 @@ export class MeetingController {
     return {
       message: MEETING_SUCCESS_MESSAGES.SETTINGS_UPDATED,
       data: settings,
+    };
+  }
+
+  @Patch(':joinToken/chat-notifications')
+  async updateMeetingChatNotificationPreference(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Body()
+    updateMeetingChatNotificationPreferenceDto: UpdateMeetingChatNotificationPreferenceDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const preference =
+      await this.meetingService.updateChatNotificationPreference({
+        joinToken,
+        userId,
+        dto: updateMeetingChatNotificationPreferenceDto,
+      });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.CHAT_NOTIFICATION_PREFERENCE_UPDATED,
+      data: preference,
     };
   }
 

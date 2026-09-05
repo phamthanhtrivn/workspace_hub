@@ -100,6 +100,7 @@ export class MeetingPresenterService {
     },
     participantRole: MeetingRole,
     token: string,
+    chatMuted = false,
   ) {
     return {
       meeting: {
@@ -112,6 +113,7 @@ export class MeetingPresenterService {
         startedAt: meeting.startedAt?.toISOString() ?? null,
         createdAt: meeting.createdAt.toISOString(),
         participantRole,
+        chatMuted,
       },
       livekit: {
         serverUrl: this.liveKitService.getServerUrl(),

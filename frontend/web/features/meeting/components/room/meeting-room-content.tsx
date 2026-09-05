@@ -8,6 +8,7 @@ import {
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
+import { useMeetingChatNotificationPreference } from "@/features/meeting/hooks/useMeetingChatNotificationPreference";
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
 import { useMeetingRoomLifecycle } from "@/features/meeting/hooks/useMeetingRoomLifecycle";
 import type {
@@ -29,6 +30,7 @@ interface MeetingRoomContentProps {
   joinToken: string;
   participantRole: MeetingParticipantRole;
   initialAutoAdmit: boolean;
+  initialChatMuted: boolean;
   settings: MeetingPreJoinSettings;
 }
 
@@ -37,6 +39,7 @@ export function MeetingRoomContent({
   joinToken,
   participantRole,
   initialAutoAdmit,
+  initialChatMuted,
   settings,
 }: MeetingRoomContentProps) {
   const intl = useAppIntl();
@@ -56,7 +59,7 @@ export function MeetingRoomContent({
     totalParticipantPages,
     visibleCameraTracks,
   } = useMeetingParticipantGrid(activePanel);
-  
+
   const {
     autoAdmit,
     setAutoAdmit,
@@ -71,6 +74,15 @@ export function MeetingRoomContent({
     joinToken,
     participantRole,
     initialAutoAdmit,
+  });
+  const {
+    chatMuted,
+    isChatNotificationPreferencePending,
+    setChatMuted,
+  } = useMeetingChatNotificationPreference({
+    meetingId,
+    joinToken,
+    initialChatMuted,
   });
 
   useEffect(() => {
@@ -171,6 +183,11 @@ export function MeetingRoomContent({
           participantCount={participantCount}
           autoAdmit={autoAdmit}
           onAutoAdmitChange={setAutoAdmit}
+          chatMuted={chatMuted}
+          isChatNotificationPreferencePending={
+            isChatNotificationPreferencePending
+          }
+          onChatMutedChange={setChatMuted}
           onClose={closePanel}
         />
       </main>
@@ -181,6 +198,7 @@ export function MeetingRoomContent({
         meetingId={meetingId}
         participantRole={currentParticipantRole}
         settings={settings}
+        chatMuted={chatMuted}
         onPanelChange={setActivePanel}
         onLeave={handleLeave}
         onEndForEveryone={handleEndForEveryone}
@@ -196,6 +214,11 @@ export function MeetingRoomContent({
         participantCount={participantCount}
         autoAdmit={autoAdmit}
         onAutoAdmitChange={setAutoAdmit}
+        chatMuted={chatMuted}
+        isChatNotificationPreferencePending={
+          isChatNotificationPreferencePending
+        }
+        onChatMutedChange={setChatMuted}
         onClose={closePanel}
       />
 

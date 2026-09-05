@@ -24,6 +24,7 @@ export enum MEETING_SUCCESS_MESSAGES {
   MESSAGE_UNREAD_COUNT_RETRIEVED = 'Meeting unread message count retrieved successfully',
   MESSAGE_REACTION_UPDATED = 'Meeting message reaction updated successfully',
   MESSAGE_READ_RECEIPT_UPDATED = 'Meeting message read receipt updated successfully',
+  CHAT_NOTIFICATION_PREFERENCE_UPDATED = 'Meeting chat notification preference updated successfully',
 }
 
 export enum MEETING_ERROR_MESSAGES {

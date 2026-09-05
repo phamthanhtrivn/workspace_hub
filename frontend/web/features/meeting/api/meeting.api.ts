@@ -13,6 +13,7 @@ import type {
   MeetingMessageReadReceiptResponse,
   MeetingMessageResponse,
   MeetingMessagesResponse,
+  MeetingChatNotificationPreferenceResponse,
   MeetingUnreadMessageCountResponse,
   MeetingParticipantResponse,
   MeetingParticipantRole,
@@ -223,6 +224,19 @@ export const markMeetingMessageAsRead = async (
     messageId,
   });
   return normalizeApiResponse<MeetingMessageReadReceiptResponse>(response.data);
+};
+
+export const updateMeetingChatNotificationPreference = async (
+  joinToken: string,
+  payload: { chatMuted: boolean },
+): Promise<ApiResponse<MeetingChatNotificationPreferenceResponse>> => {
+  const response = await api.patch(
+    MEETING_API_PATHS.chatNotifications(joinToken),
+    payload,
+  );
+  return normalizeApiResponse<MeetingChatNotificationPreferenceResponse>(
+    response.data,
+  );
 };
 
 export const leaveMeeting = async (

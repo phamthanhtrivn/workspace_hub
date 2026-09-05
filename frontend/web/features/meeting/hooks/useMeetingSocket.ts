@@ -8,6 +8,7 @@ import {
   type ClientToServerMeetingEvents,
   type MeetingEndedPayload,
   type MeetingHostTransferredPayload,
+  type MeetingChatNotificationPreferenceUpdatedPayload,
   type MeetingParticipantJoinedPayload,
   type MeetingParticipantLeftPayload,
   type MeetingMessageReadPayload,
@@ -33,6 +34,9 @@ interface MeetingSocketOptions {
   onJoinRequestChanged?: (payload: MeetingJoinRequestUpdatedPayload) => void;
   onMessageSent?: (message: MeetingMessageResponse) => void;
   onMessageRead?: (payload: MeetingMessageReadPayload) => void;
+  onChatNotificationPreferenceUpdated?: (
+    payload: MeetingChatNotificationPreferenceUpdatedPayload,
+  ) => void;
 }
 
 type MeetingSocket = Socket<
@@ -53,6 +57,7 @@ export function useMeetingSocket({
   onJoinRequestChanged,
   onMessageSent,
   onMessageRead,
+  onChatNotificationPreferenceUpdated,
 }: MeetingSocketOptions) {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
 
@@ -106,6 +111,11 @@ export function useMeetingSocket({
     const handleMessageRead = (payload: MeetingMessageReadPayload) => {
       onMessageRead?.(payload);
     };
+    const handleChatNotificationPreferenceUpdated = (
+      payload: MeetingChatNotificationPreferenceUpdatedPayload,
+    ) => {
+      onChatNotificationPreferenceUpdated?.(payload);
+    };
 
     socket.on(MeetingSocketEvent.PARTICIPANT_JOINED, handleParticipantJoined);
     socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleParticipantLeft);
@@ -121,6 +131,10 @@ export function useMeetingSocket({
     );
     socket.on(MeetingSocketEvent.MESSAGE_SENT, handleMessageSent);
     socket.on(MeetingSocketEvent.MESSAGE_READ, handleMessageRead);
+    socket.on(
+      MeetingSocketEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED,
+      handleChatNotificationPreferenceUpdated,
+    );
 
     return () => {
       socket.off(
@@ -146,6 +160,10 @@ export function useMeetingSocket({
       );
       socket.off(MeetingSocketEvent.MESSAGE_SENT, handleMessageSent);
       socket.off(MeetingSocketEvent.MESSAGE_READ, handleMessageRead);
+      socket.off(
+        MeetingSocketEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED,
+        handleChatNotificationPreferenceUpdated,
+      );
     };
   }, [
     accessToken,
@@ -156,6 +174,7 @@ export function useMeetingSocket({
     onMeetingEnded,
     onMessageRead,
     onMessageSent,
+    onChatNotificationPreferenceUpdated,
     onParticipantJoined,
     onParticipantLeft,
     onParticipantRemoved,

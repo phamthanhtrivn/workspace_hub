@@ -104,7 +104,7 @@ export function MeetingMessageItem({
 
       <div
         className={cn(
-          "relative flex w-[82%] min-w-0 flex-col",
+          "flex w-[82%] min-w-0 flex-col",
           isMe ? "items-end" : "items-start",
         )}
         onMouseLeave={() => setIsReactionPickerOpen(false)}
@@ -174,8 +174,8 @@ export function MeetingMessageItem({
         {!message.recalled && (
           <div
             className={cn(
-              "absolute top-full z-[90] mt-1 flex w-max max-w-full flex-wrap items-center gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100",
-              isMe ? "right-0 justify-end" : "left-0 justify-start",
+              "mt-0 flex max-h-0 w-max max-w-full flex-wrap items-center gap-1 overflow-hidden opacity-0 transition-[max-height,margin,opacity] duration-150 focus-within:mt-1 focus-within:max-h-24 focus-within:opacity-100 group-hover:mt-1 group-hover:max-h-24 group-hover:opacity-100",
+              isMe ? "justify-end" : "justify-start",
             )}
           >
             <div className="flex min-w-0 max-w-full items-center gap-1">

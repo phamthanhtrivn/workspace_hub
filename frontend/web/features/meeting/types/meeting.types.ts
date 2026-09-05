@@ -84,6 +84,7 @@ export interface InstantMeetingResponse {
     startedAt: string | null;
     createdAt: string;
     participantRole: MeetingParticipantRole;
+    chatMuted: boolean;
   };
   livekit: {
     serverUrl: string;
@@ -99,6 +100,7 @@ export interface MeetingAccessResponse {
   canJoinWithoutApproval: boolean;
   participantRole: MeetingParticipantRole;
   participantStatus: MeetingParticipantStatus | null;
+  chatMuted: boolean;
 }
 
 export type JoinMeetingPayload = Pick<
@@ -122,6 +124,9 @@ export interface MeetingRoomSidePanelProps {
   participantCount: number;
   autoAdmit: boolean;
   onAutoAdmitChange: (autoAdmit: boolean) => void;
+  chatMuted: boolean;
+  isChatNotificationPreferencePending?: boolean;
+  onChatMutedChange: (muted: boolean) => void;
   onClose: () => void;
 }
 
@@ -273,6 +278,13 @@ export interface MeetingMessagesResponse {
 
 export interface MeetingUnreadMessageCountResponse {
   count: number;
+}
+
+export interface MeetingChatNotificationPreferenceResponse {
+  meetingId: string;
+  joinToken: string;
+  userId: string;
+  chatMuted: boolean;
 }
 
 export interface CreateMeetingMessagePayload {

@@ -36,6 +36,8 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/${encodeURIComponent(messageId)}/reactions`,
   messageRead: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/read`,
+  chatNotifications: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/chat-notifications`,
   participants: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/participants`,
   removeParticipant: (joinToken: string, userId: string) =>
