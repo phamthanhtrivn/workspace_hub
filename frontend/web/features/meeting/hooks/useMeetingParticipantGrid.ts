@@ -64,6 +64,7 @@ const tileFrameClassNameByVariant: Record<MeetingParticipantGridVariant, string>
 function sortCameraTracks(
   cameraTracks: TrackReferenceOrPlaceholder[],
   activeSpeakerRanks: Map<string, number>,
+  pinnedParticipantId: string | null,
 ): TrackReferenceOrPlaceholder[] {
   return [...cameraTracks].sort((first, second) => {
     const firstParticipant = first.participant;
@@ -71,6 +72,17 @@ function sortCameraTracks(
 
     if (firstParticipant.isLocal !== secondParticipant.isLocal) {
       return firstParticipant.isLocal ? -1 : 1;
+    }
+
+    const isFirstPinned =
+      !firstParticipant.isLocal &&
+      firstParticipant.identity === pinnedParticipantId;
+    const isSecondPinned =
+      !secondParticipant.isLocal &&
+      secondParticipant.identity === pinnedParticipantId;
+
+    if (isFirstPinned !== isSecondPinned) {
+      return isFirstPinned ? -1 : 1;
     }
 
     const firstActiveSpeakerRank = activeSpeakerRanks.get(
@@ -120,7 +132,10 @@ function getGridVariant(visibleTileCount: number): MeetingParticipantGridVariant
   return MeetingParticipantGridVariant.GALLERY;
 }
 
-export function useMeetingParticipantGrid(activePanel: MeetingRoomPanel) {
+export function useMeetingParticipantGrid(
+  activePanel: MeetingRoomPanel,
+  pinnedParticipantId: string | null,
+) {
   const participants = useParticipants();
   const activeSpeakers = useSpeakingParticipants();
   const cameraTracks = useTracks(
@@ -141,8 +156,8 @@ export function useMeetingParticipantGrid(activePanel: MeetingRoomPanel) {
   );
   const sortStableCameraTracks = useCallback(
     (trackReferences: TrackReferenceOrPlaceholder[]) =>
-      sortCameraTracks(trackReferences, activeSpeakerRanks),
-    [activeSpeakerRanks],
+      sortCameraTracks(trackReferences, activeSpeakerRanks, pinnedParticipantId),
+    [activeSpeakerRanks, pinnedParticipantId],
   );
   const sortedCameraTracks = useVisualStableUpdate(
     cameraTracks,

@@ -15,12 +15,24 @@ export function MeetingRoomPanelContent({
   participantCount,
   autoAdmit,
   onAutoAdmitChange,
+  mutedParticipantIds,
+  pinnedParticipantId,
+  isParticipantViewPreferencePending,
+  onToggleParticipantAudioMute,
+  onToggleParticipantPin,
 }: MeetingRoomPanelContentProps) {
   if (activePanel === MeetingRoomPanel.PARTICIPANTS) {
     return (
       <MeetingParticipantsPanel
         joinToken={joinToken}
         participantRole={participantRole}
+        mutedParticipantIds={mutedParticipantIds}
+        pinnedParticipantId={pinnedParticipantId}
+        isParticipantViewPreferencePending={
+          isParticipantViewPreferencePending
+        }
+        onToggleParticipantAudioMute={onToggleParticipantAudioMute}
+        onToggleParticipantPin={onToggleParticipantPin}
       />
     );
   }

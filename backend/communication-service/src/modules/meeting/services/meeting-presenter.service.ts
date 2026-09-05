@@ -69,6 +69,24 @@ export class MeetingPresenterService {
     };
   }
 
+  toMeetingParticipantViewPreferenceItem(preference: {
+    meetingId: string;
+    viewerUserId: string;
+    targetUserId: string;
+    audioMuted: boolean;
+    pinned: boolean;
+    updatedAt: Date;
+  }) {
+    return {
+      meetingId: preference.meetingId,
+      viewerUserId: preference.viewerUserId,
+      targetUserId: preference.targetUserId,
+      audioMuted: preference.audioMuted,
+      pinned: preference.pinned,
+      updatedAt: preference.updatedAt.toISOString(),
+    };
+  }
+
   toJoinRequestSocketPayload(
     meetingId: string,
     request: {

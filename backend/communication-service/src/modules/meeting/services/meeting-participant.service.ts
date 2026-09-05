@@ -14,10 +14,12 @@ import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
 import { UserProfileSnapshotService } from '../../user-profile-snapshot/user-profile-snapshot.service';
 import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
 import type {
+  ListMeetingParticipantViewPreferencesParams,
   ListMeetingParticipantsParams,
   MeetingModeratorParams,
   TargetMeetingParticipantParams,
   UpdateMeetingChatNotificationPreferenceParams,
+  UpdateMeetingParticipantViewPreferenceParams,
   UpdateMeetingParticipantRoleParams,
 } from '../types/meeting.types';
 import { MeetingPolicyService } from './meeting-policy.service';
@@ -80,6 +82,19 @@ export class MeetingParticipantService {
       total,
       totalPages: Math.max(1, Math.ceil(total / limit)),
     };
+  }
+
+  async listMeetingParticipantViewPreferences({
+    joinToken,
+    userId,
+  }: ListMeetingParticipantViewPreferencesParams) {
+    const { meeting } =
+      await this.meetingPolicyService.assertJoinedMeetingParticipant({
+        joinToken,
+        userId,
+      });
+
+    return this.listParticipantViewPreferenceItems(meeting.id, userId);
   }
 
   async leaveMeeting({ joinToken, userId }: MeetingModeratorParams) {
@@ -301,6 +316,122 @@ export class MeetingParticipantService {
     );
 
     return payload;
+  }
+
+  async updateParticipantViewPreference({
+    joinToken,
+    userId,
+    targetUserId,
+    dto,
+  }: UpdateMeetingParticipantViewPreferenceParams) {
+    const { meeting } =
+      await this.meetingPolicyService.assertJoinedMeetingParticipant({
+        joinToken,
+        userId,
+      });
+
+    if (targetUserId === userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.CANNOT_TARGET_SELF);
+    }
+
+    if (dto.audioMuted === undefined && dto.pinned === undefined) {
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.PARTICIPANT_VIEW_PREFERENCE_REQUIRED,
+      );
+    }
+
+    await this.meetingPolicyService.getJoinedTargetParticipant({
+      meetingId: meeting.id,
+      targetUserId,
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      const preferenceKey = {
+        meetingId_viewerUserId_targetUserId: {
+          meetingId: meeting.id,
+          viewerUserId: userId,
+          targetUserId,
+        },
+      };
+      const existingPreference =
+        await tx.meetingParticipantViewPreference.findUnique({
+          where: preferenceKey,
+        });
+      const audioMuted =
+        dto.audioMuted ?? existingPreference?.audioMuted ?? false;
+      const pinned = dto.pinned ?? existingPreference?.pinned ?? false;
+
+      if (dto.pinned === true) {
+        await tx.meetingParticipantViewPreference.updateMany({
+          where: {
+            meetingId: meeting.id,
+            viewerUserId: userId,
+            targetUserId: { not: targetUserId },
+            pinned: true,
+          },
+          data: { pinned: false },
+        });
+        await tx.meetingParticipantViewPreference.deleteMany({
+          where: {
+            meetingId: meeting.id,
+            viewerUserId: userId,
+            targetUserId: { not: targetUserId },
+            audioMuted: false,
+            pinned: false,
+          },
+        });
+      }
+
+      if (!audioMuted && !pinned) {
+        if (existingPreference) {
+          await tx.meetingParticipantViewPreference.delete({
+            where: preferenceKey,
+          });
+        }
+
+        return;
+      }
+
+      await tx.meetingParticipantViewPreference.upsert({
+        where: preferenceKey,
+        create: {
+          meetingId: meeting.id,
+          viewerUserId: userId,
+          targetUserId,
+          audioMuted,
+          pinned,
+        },
+        update: {
+          audioMuted,
+          pinned,
+        },
+      });
+    });
+
+    return this.listParticipantViewPreferenceItems(meeting.id, userId);
+  }
+
+  private async listParticipantViewPreferenceItems(
+    meetingId: string,
+    viewerUserId: string,
+  ) {
+    const preferences =
+      await this.prisma.meetingParticipantViewPreference.findMany({
+        where: {
+          meetingId,
+          viewerUserId,
+          OR: [{ audioMuted: true }, { pinned: true }],
+        },
+        orderBy: [{ pinned: 'desc' }, { updatedAt: 'desc' }],
+      });
+
+    return {
+      items: preferences.map((preference) =>
+        this.meetingPresenterService.toMeetingParticipantViewPreferenceItem(
+          preference,
+        ),
+      ),
+    };
   }
 
   private async transferHost({

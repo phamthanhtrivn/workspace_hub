@@ -127,6 +127,11 @@ export interface MeetingRoomSidePanelProps {
   chatMuted: boolean;
   isChatNotificationPreferencePending?: boolean;
   onChatMutedChange: (muted: boolean) => void;
+  mutedParticipantIds: ReadonlySet<string>;
+  pinnedParticipantId: string | null;
+  isParticipantViewPreferencePending: (participantId: string) => boolean;
+  onToggleParticipantAudioMute: (participantId: string) => void;
+  onToggleParticipantPin: (participantId: string) => void;
   onClose: () => void;
 }
 
@@ -139,6 +144,11 @@ export type MeetingRoomPanelContentProps = Pick<
   | "participantCount"
   | "autoAdmit"
   | "onAutoAdmitChange"
+  | "mutedParticipantIds"
+  | "pinnedParticipantId"
+  | "isParticipantViewPreferencePending"
+  | "onToggleParticipantAudioMute"
+  | "onToggleParticipantPin"
 >;
 
 export type MeetingRoomSettingsPanelProps = Pick<
@@ -285,6 +295,24 @@ export interface MeetingChatNotificationPreferenceResponse {
   joinToken: string;
   userId: string;
   chatMuted: boolean;
+}
+
+export interface MeetingParticipantViewPreferenceResponse {
+  meetingId: string;
+  viewerUserId: string;
+  targetUserId: string;
+  audioMuted: boolean;
+  pinned: boolean;
+  updatedAt: string;
+}
+
+export interface MeetingParticipantViewPreferencesResponse {
+  items: MeetingParticipantViewPreferenceResponse[];
+}
+
+export interface UpdateMeetingParticipantViewPreferencePayload {
+  audioMuted?: boolean;
+  pinned?: boolean;
 }
 
 export interface CreateMeetingMessagePayload {

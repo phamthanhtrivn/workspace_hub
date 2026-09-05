@@ -7,12 +7,14 @@ import type {
   GetMeetingAccessParams,
   JoinMeetingParams,
   ListJoinRequestsParams,
+  ListMeetingParticipantViewPreferencesParams,
   ListMeetingParticipantsParams,
   MeetingJoinRequestParams,
   MeetingModeratorParams,
   ResolveJoinRequestParams,
   TargetMeetingParticipantParams,
   UpdateMeetingChatNotificationPreferenceParams,
+  UpdateMeetingParticipantViewPreferenceParams,
   UpdateMeetingParticipantRoleParams,
   UpdateMeetingSettingsParams,
 } from './types/meeting.types';
@@ -45,6 +47,14 @@ export class MeetingService {
     return this.meetingParticipantService.listMeetingParticipants(params);
   }
 
+  listMeetingParticipantViewPreferences(
+    params: ListMeetingParticipantViewPreferencesParams,
+  ) {
+    return this.meetingParticipantService.listMeetingParticipantViewPreferences(
+      params,
+    );
+  }
+
   leaveMeeting(params: MeetingModeratorParams) {
     return this.meetingParticipantService.leaveMeeting(params);
   }
@@ -65,6 +75,14 @@ export class MeetingService {
     params: UpdateMeetingChatNotificationPreferenceParams,
   ) {
     return this.meetingParticipantService.updateChatNotificationPreference(
+      params,
+    );
+  }
+
+  updateParticipantViewPreference(
+    params: UpdateMeetingParticipantViewPreferenceParams,
+  ) {
+    return this.meetingParticipantService.updateParticipantViewPreference(
       params,
     );
   }

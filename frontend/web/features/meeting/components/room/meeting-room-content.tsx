@@ -1,15 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  RoomAudioRenderer,
-  useConnectionState,
-} from "@livekit/components-react";
+import { useConnectionState } from "@livekit/components-react";
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
 import { useMeetingChatNotificationPreference } from "@/features/meeting/hooks/useMeetingChatNotificationPreference";
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
+import { useMeetingParticipantViewPreferences } from "@/features/meeting/hooks/useMeetingParticipantViewPreferences";
 import { useMeetingRoomLifecycle } from "@/features/meeting/hooks/useMeetingRoomLifecycle";
 import type {
   MeetingParticipantRole,
@@ -21,6 +19,7 @@ import {
   getRoomStatusLabelId,
 } from "../../utils/meeting-room.utils";
 import { MeetingParticipantTile } from "./meeting-participant-tile";
+import { MeetingRoomAudioRenderer } from "./meeting-room-audio-renderer";
 import { MeetingRoomFooter } from "./meeting-room-footer";
 import { MeetingRoomDesktopSidePanel } from "./side-panel/meeting-room-desktop-side-panel";
 import { MeetingRoomMobilePanelHeader } from "./side-panel/meeting-room-mobile-panel";
@@ -47,6 +46,13 @@ export function MeetingRoomContent({
   const [activePanel, setActivePanel] = useState(MeetingRoomPanel.NONE);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const {
+    mutedParticipantIds,
+    pinnedParticipantId,
+    isParticipantViewPreferencePending,
+    toggleParticipantAudioMute,
+    toggleParticipantPin,
+  } = useMeetingParticipantViewPreferences(joinToken);
+  const {
     canGoNext,
     canGoPrevious,
     currentParticipantPage,
@@ -58,7 +64,7 @@ export function MeetingRoomContent({
     showParticipantPagination,
     totalParticipantPages,
     visibleCameraTracks,
-  } = useMeetingParticipantGrid(activePanel);
+  } = useMeetingParticipantGrid(activePanel, pinnedParticipantId);
 
   const {
     autoAdmit,
@@ -133,6 +139,17 @@ export function MeetingRoomContent({
                   <MeetingParticipantTile
                     trackRef={trackRef}
                     isMainTile={false}
+                    isAudioMutedForMe={mutedParticipantIds.has(
+                      trackRef.participant.identity,
+                    )}
+                    isPinnedForMe={
+                      pinnedParticipantId === trackRef.participant.identity
+                    }
+                    isPreferencePending={isParticipantViewPreferencePending(
+                      trackRef.participant.identity,
+                    )}
+                    onToggleAudioMute={toggleParticipantAudioMute}
+                    onTogglePin={toggleParticipantPin}
                   />
                 </div>
               ))}
@@ -188,6 +205,13 @@ export function MeetingRoomContent({
             isChatNotificationPreferencePending
           }
           onChatMutedChange={setChatMuted}
+          mutedParticipantIds={mutedParticipantIds}
+          pinnedParticipantId={pinnedParticipantId}
+          isParticipantViewPreferencePending={
+            isParticipantViewPreferencePending
+          }
+          onToggleParticipantAudioMute={toggleParticipantAudioMute}
+          onToggleParticipantPin={toggleParticipantPin}
           onClose={closePanel}
         />
       </main>
@@ -219,10 +243,15 @@ export function MeetingRoomContent({
           isChatNotificationPreferencePending
         }
         onChatMutedChange={setChatMuted}
+        mutedParticipantIds={mutedParticipantIds}
+        pinnedParticipantId={pinnedParticipantId}
+        isParticipantViewPreferencePending={isParticipantViewPreferencePending}
+        onToggleParticipantAudioMute={toggleParticipantAudioMute}
+        onToggleParticipantPin={toggleParticipantPin}
         onClose={closePanel}
       />
 
-      <RoomAudioRenderer />
+      <MeetingRoomAudioRenderer mutedParticipantIds={mutedParticipantIds} />
       <MeetingAlertDialog {...alertDialogProps} />
     </div>
   );

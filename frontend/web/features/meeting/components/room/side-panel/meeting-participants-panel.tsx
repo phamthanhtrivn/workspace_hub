@@ -10,11 +10,21 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 interface MeetingParticipantsPanelProps {
   joinToken: string;
   participantRole: MeetingParticipantRole;
+  mutedParticipantIds: ReadonlySet<string>;
+  pinnedParticipantId: string | null;
+  isParticipantViewPreferencePending: (participantId: string) => boolean;
+  onToggleParticipantAudioMute: (participantId: string) => void;
+  onToggleParticipantPin: (participantId: string) => void;
 }
 
 export function MeetingParticipantsPanel({
   joinToken,
   participantRole,
+  mutedParticipantIds,
+  pinnedParticipantId,
+  isParticipantViewPreferencePending,
+  onToggleParticipantAudioMute,
+  onToggleParticipantPin,
 }: MeetingParticipantsPanelProps) {
   const intl = useAppIntl();
   const {
@@ -64,8 +74,19 @@ export function MeetingParticipantsPanel({
                 key={participant.participant.id}
                 item={participant}
                 isBusy={isBusy}
+                isAudioMutedForMe={mutedParticipantIds.has(
+                  participant.participant.userId,
+                )}
+                isPinnedForMe={
+                  pinnedParticipantId === participant.participant.userId
+                }
+                isPreferencePending={isParticipantViewPreferencePending(
+                  participant.participant.userId,
+                )}
                 onRemove={handleRemove}
                 onRoleChange={handleRoleChange}
+                onToggleAudioMute={onToggleParticipantAudioMute}
+                onTogglePin={onToggleParticipantPin}
               />
             ))
           )}

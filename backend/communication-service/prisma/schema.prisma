@@ -542,6 +542,7 @@ model Meeting {
   updatedAt                DateTime                @updatedAt @map("updated_at")
 
   participants     MeetingParticipant[]
+  participantViewPreferences MeetingParticipantViewPreference[]
   messages         MeetingMessage[]
   recordings       MeetingRecording[]
   events           MeetingEvent[]
@@ -579,6 +580,24 @@ model MeetingParticipant {
   @@index([userId])
   @@index([meetingId, status])
   @@map("meeting_participants")
+}
+
+model MeetingParticipantViewPreference {
+  id           String   @id @default(uuid()) @db.Uuid
+  meetingId    String   @map("meeting_id") @db.Uuid
+  viewerUserId String   @map("viewer_user_id") @db.Uuid
+  targetUserId String   @map("target_user_id") @db.Uuid
+  audioMuted   Boolean  @default(false) @map("audio_muted")
+  pinned       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  meeting      Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, viewerUserId, targetUserId])
+  @@index([meetingId, viewerUserId])
+  @@index([meetingId, targetUserId])
+  @@map("meeting_participant_view_preferences")
 }
 
 /* =========================================================

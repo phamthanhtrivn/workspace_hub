@@ -10,6 +10,8 @@ export const meetingKeys = {
     ["meeting-participants", joinToken] as const,
   participants: (joinToken: string, search: string, page: number) =>
     ["meeting-participants", joinToken, search, page] as const,
+  participantViewPreferences: (joinToken: string) =>
+    ["meeting-participant-view-preferences", joinToken] as const,
   messageUnreadCount: (joinToken: string) =>
     ["meeting-messages", joinToken, "unread-count"] as const,
   messages: (joinToken: string) => ["meeting-messages", joinToken] as const,

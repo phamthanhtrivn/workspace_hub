@@ -38,12 +38,16 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/read`,
   chatNotifications: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/chat-notifications`,
+  participantViewPreferences: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/participant-view-preferences`,
   participants: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/participants`,
   removeParticipant: (joinToken: string, userId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/remove`,
   updateParticipantRole: (joinToken: string, userId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/role`,
+  updateParticipantViewPreference: (joinToken: string, userId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/view-preference`,
   leave: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/leave`,
   end: (joinToken: string) =>

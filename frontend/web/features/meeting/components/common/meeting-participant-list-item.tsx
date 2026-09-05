@@ -2,9 +2,13 @@
 
 import {
   Crown,
+  Pin,
+  PinOff,
   ShieldCheck,
   ShieldOff,
   UserMinus,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { MeetingParticipantListItemState } from "@/features/meeting/hooks/useMeetingParticipantsPanel";
@@ -22,21 +26,58 @@ import { AvatarFallback } from "./avatar-fallback";
 interface MeetingParticipantListItemProps {
   item: MeetingParticipantListItemState;
   isBusy: boolean;
+  isAudioMutedForMe: boolean;
+  isPinnedForMe: boolean;
+  isPreferencePending: boolean;
   onRemove: (participant: MeetingParticipantResponse) => void;
   onRoleChange: (
     participant: MeetingParticipantResponse,
     role: MeetingParticipantRole,
   ) => void;
+  onToggleAudioMute: (participantId: string) => void;
+  onTogglePin: (participantId: string) => void;
 }
 
 export function MeetingParticipantListItem({
   item,
   isBusy,
+  isAudioMutedForMe,
+  isPinnedForMe,
+  isPreferencePending,
   onRemove,
   onRoleChange,
+  onToggleAudioMute,
+  onTogglePin,
 }: MeetingParticipantListItemProps) {
   const intl = useAppIntl();
   const actionItems: MeetingIconDropdownItem[] = [];
+
+  if (!item.isSelf) {
+    actionItems.push({
+      id: isPinnedForMe ? "unpin-participant" : "pin-participant",
+      label: intl.formatMessage({
+        id: isPinnedForMe
+          ? "meeting.participants.unpin"
+          : "meeting.participants.pin",
+      }),
+      icon: isPinnedForMe ? PinOff : Pin,
+      disabled: isPreferencePending,
+      onSelect: () => onTogglePin(item.participant.userId),
+    });
+    actionItems.push({
+      id: isAudioMutedForMe
+        ? "unmute-participant-for-me"
+        : "mute-participant-for-me",
+      label: intl.formatMessage({
+        id: isAudioMutedForMe
+          ? "meeting.participants.unmuteForMe"
+          : "meeting.participants.muteForMe",
+      }),
+      icon: isAudioMutedForMe ? Volume2 : VolumeX,
+      disabled: isPreferencePending,
+      onSelect: () => onToggleAudioMute(item.participant.userId),
+    });
+  }
 
   if (item.canPromoteToCohost) {
     actionItems.push({

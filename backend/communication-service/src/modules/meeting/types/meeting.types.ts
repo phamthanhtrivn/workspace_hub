@@ -7,6 +7,7 @@ import type { ListMeetingParticipantsDto } from '../dto/list-meeting-participant
 import type { MeetingMessageReactionDto } from '../dto/meeting-message-reaction.dto';
 import type { ReadMeetingMessageDto } from '../dto/read-meeting-message.dto';
 import type { UpdateMeetingChatNotificationPreferenceDto } from '../dto/update-meeting-chat-notification-preference.dto';
+import type { UpdateMeetingParticipantViewPreferenceDto } from '../dto/update-meeting-participant-view-preference.dto';
 import type { UpdateMeetingParticipantRoleDto } from '../dto/update-meeting-participant-role.dto';
 import type { UpdateMeetingSettingsDto } from '../dto/update-meeting-settings.dto';
 
@@ -56,8 +57,14 @@ export interface UpdateMeetingParticipantRoleParams extends TargetMeetingPartici
   dto: UpdateMeetingParticipantRoleDto;
 }
 
-export interface UpdateMeetingChatNotificationPreferenceParams
-  extends MeetingModeratorParams {
+export type ListMeetingParticipantViewPreferencesParams =
+  MeetingModeratorParams;
+
+export interface UpdateMeetingParticipantViewPreferenceParams extends TargetMeetingParticipantParams {
+  dto: UpdateMeetingParticipantViewPreferenceDto;
+}
+
+export interface UpdateMeetingChatNotificationPreferenceParams extends MeetingModeratorParams {
   dto: UpdateMeetingChatNotificationPreferenceDto;
 }
 

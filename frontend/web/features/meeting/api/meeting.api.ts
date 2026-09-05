@@ -17,11 +17,13 @@ import type {
   MeetingUnreadMessageCountResponse,
   MeetingParticipantResponse,
   MeetingParticipantRole,
+  MeetingParticipantViewPreferencesResponse,
   MeetingParticipantsResponse,
   MeetingSettingsResponse,
   MeetingAccessResponse,
   CreateMeetingMessagePayload,
   EditMeetingMessagePayload,
+  UpdateMeetingParticipantViewPreferencePayload,
 } from "../types/meeting.types";
 import type { ApiResponse } from "@/features/chat/types/chat.types";
 import { ChatContextType } from "@/features/chat/types/chat.enums";
@@ -235,6 +237,31 @@ export const updateMeetingChatNotificationPreference = async (
     payload,
   );
   return normalizeApiResponse<MeetingChatNotificationPreferenceResponse>(
+    response.data,
+  );
+};
+
+export const getMeetingParticipantViewPreferences = async (
+  joinToken: string,
+): Promise<ApiResponse<MeetingParticipantViewPreferencesResponse>> => {
+  const response = await api.get(
+    MEETING_API_PATHS.participantViewPreferences(joinToken),
+  );
+  return normalizeApiResponse<MeetingParticipantViewPreferencesResponse>(
+    response.data,
+  );
+};
+
+export const updateMeetingParticipantViewPreference = async (
+  joinToken: string,
+  userId: string,
+  payload: UpdateMeetingParticipantViewPreferencePayload,
+): Promise<ApiResponse<MeetingParticipantViewPreferencesResponse>> => {
+  const response = await api.patch(
+    MEETING_API_PATHS.updateParticipantViewPreference(joinToken, userId),
+    payload,
+  );
+  return normalizeApiResponse<MeetingParticipantViewPreferencesResponse>(
     response.data,
   );
 };

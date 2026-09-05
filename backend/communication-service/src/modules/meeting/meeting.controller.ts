@@ -20,6 +20,7 @@ import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto'
 import { MeetingMessageReactionDto } from './dto/meeting-message-reaction.dto';
 import { ReadMeetingMessageDto } from './dto/read-meeting-message.dto';
 import { UpdateMeetingChatNotificationPreferenceDto } from './dto/update-meeting-chat-notification-preference.dto';
+import { UpdateMeetingParticipantViewPreferenceDto } from './dto/update-meeting-participant-view-preference.dto';
 import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
 import { UpdateMeetingSettingsDto } from './dto/update-meeting-settings.dto';
 import { MeetingService } from './meeting.service';
@@ -355,6 +356,27 @@ export class MeetingController {
     };
   }
 
+  @Get(':joinToken/participant-view-preferences')
+  async listParticipantViewPreferences(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const preferences =
+      await this.meetingService.listMeetingParticipantViewPreferences({
+        joinToken,
+        userId,
+      });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_VIEW_PREFERENCES_LISTED,
+      data: preferences,
+    };
+  }
+
   @Post(':joinToken/leave')
   async leaveMeeting(
     @Param('joinToken') joinToken: string,
@@ -438,6 +460,31 @@ export class MeetingController {
     return {
       message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_ROLE_UPDATED,
       data: result,
+    };
+  }
+
+  @Patch(':joinToken/participants/:targetUserId/view-preference')
+  async updateParticipantViewPreference(
+    @Param('joinToken') joinToken: string,
+    @Param('targetUserId') targetUserId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() updateViewPreferenceDto: UpdateMeetingParticipantViewPreferenceDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const preferences =
+      await this.meetingService.updateParticipantViewPreference({
+        joinToken,
+        userId,
+        targetUserId,
+        dto: updateViewPreferenceDto,
+      });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_VIEW_PREFERENCE_UPDATED,
+      data: preferences,
     };
   }
 

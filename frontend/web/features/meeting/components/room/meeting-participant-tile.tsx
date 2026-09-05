@@ -3,61 +3,82 @@
 import {
   VideoTrack,
   isTrackReference,
-  useIsSpeaking,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
-import { Mic, MicOff } from "lucide-react";
+import { Pin } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useMeetingParticipantTile } from "@/features/meeting/hooks/useMeetingParticipantTile";
 import { cn } from "@/lib/utils";
-import { useAppSelector } from "@/store/store";
 import { AvatarFallback } from "../common/avatar-fallback";
-import {
-  getRoleLabelId,
-  parseParticipantMetadata,
-} from "../../utils/meeting-room.utils";
+import { MeetingIconDropdown } from "../common/meeting-icon-dropdown";
 
 interface MeetingParticipantTileProps {
   trackRef: TrackReferenceOrPlaceholder;
   isMainTile: boolean;
+  isAudioMutedForMe?: boolean;
+  isPinnedForMe?: boolean;
+  isPreferencePending?: boolean;
+  onToggleAudioMute?: (participantId: string) => void;
+  onTogglePin?: (participantId: string) => void;
 }
 
 export function MeetingParticipantTile({
   trackRef,
   isMainTile,
+  isAudioMutedForMe = false,
+  isPinnedForMe = false,
+  isPreferencePending = false,
+  onToggleAudioMute,
+  onTogglePin,
 }: MeetingParticipantTileProps) {
   const intl = useAppIntl();
-  const authUser = useAppSelector((state) => state.auth);
-  const participant = trackRef.participant;
-  const isSpeaking = useIsSpeaking(participant);
-  const metadata = parseParticipantMetadata(participant);
-  const isLocalUser = participant.isLocal;
-  const displayName =
-    participant.name ||
-    (isLocalUser ? authUser.fullName || authUser.email : null) ||
-    participant.identity ||
-    intl.formatMessage({ id: "app.user" });
-  const avatarUrl = isLocalUser
-    ? authUser.avatarUrl || metadata.avatarUrl
-    : metadata.avatarUrl;
-  const hasVideo =
-    isTrackReference(trackRef) &&
-    Boolean(trackRef.publication.track) &&
-    !trackRef.publication.isMuted;
-  const microphoneLabelId = participant.isMicrophoneEnabled
-    ? "meeting.room.control.microphoneOn"
-    : "meeting.room.control.microphoneOff";
-  const roleLabelId = getRoleLabelId(metadata.role);
+  const {
+    actionItems,
+    actionMenuLabel,
+    AudioStatusIcon,
+    audioStatusIconClassName,
+    avatarUrl,
+    displayName,
+    hasVideo,
+    participantAudioLabel,
+    pinnedLabel,
+    roleLabelId,
+    shouldShowSpeakingHighlight,
+  } = useMeetingParticipantTile({
+    trackRef,
+    isAudioMutedForMe,
+    isPinnedForMe,
+    isPreferencePending,
+    onToggleAudioMute,
+    onTogglePin,
+  });
 
   return (
     <article
       className={cn(
         "relative flex min-h-[220px] overflow-hidden rounded-lg border border-white/10 bg-[#121a28] shadow-[0_18px_48px_rgba(0,0,0,0.24)] transition-[border-color,box-shadow] duration-200",
-        isSpeaking
+        shouldShowSpeakingHighlight
           ? "border-emerald-300/70 shadow-[0_0_0_1px_rgba(110,231,183,0.42),0_0_34px_rgba(16,185,129,0.36),0_18px_48px_rgba(0,0,0,0.24)] ring-2 ring-emerald-300/45"
           : "",
         isMainTile ? "lg:col-span-2 lg:row-span-2" : "",
       )}
     >
+      {isPinnedForMe ? (
+        <span
+          className="absolute left-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-md bg-blue-500/90 text-white shadow-[0_10px_28px_rgba(12,102,228,0.28)] ring-1 ring-blue-100/35 backdrop-blur"
+          aria-label={pinnedLabel}
+          title={pinnedLabel}
+        >
+          <Pin className="h-4 w-4" />
+        </span>
+      ) : null}
+
+      {actionItems.length > 0 ? (
+        <div className="absolute right-3 top-3 z-10 rounded-md bg-black/35 backdrop-blur">
+          <MeetingIconDropdown label={actionMenuLabel} items={actionItems} />
+        </div>
+      ) : null}
+
       {hasVideo && isTrackReference(trackRef) ? (
         <VideoTrack trackRef={trackRef} className="h-full w-full object-cover" />
       ) : (
@@ -90,14 +111,10 @@ export function MeetingParticipantTile({
         </div>
         <span
           className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-black/45 text-white backdrop-blur"
-          aria-label={intl.formatMessage({ id: microphoneLabelId })}
-          title={intl.formatMessage({ id: microphoneLabelId })}
+          aria-label={participantAudioLabel}
+          title={participantAudioLabel}
         >
-          {participant.isMicrophoneEnabled ? (
-            <Mic className="h-4 w-4" />
-          ) : (
-            <MicOff className="h-4 w-4 text-red-300" />
-          )}
+          <AudioStatusIcon className={audioStatusIconClassName} />
         </span>
       </div>
     </article>

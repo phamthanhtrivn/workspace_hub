@@ -19,6 +19,11 @@ export function MeetingRoomMobilePanelHeader({
   chatMuted,
   isChatNotificationPreferencePending,
   onChatMutedChange,
+  mutedParticipantIds,
+  pinnedParticipantId,
+  isParticipantViewPreferencePending,
+  onToggleParticipantAudioMute,
+  onToggleParticipantPin,
   onClose,
 }: MeetingRoomSidePanelProps) {
   const intl = useAppIntl();
@@ -56,6 +61,13 @@ export function MeetingRoomMobilePanelHeader({
         participantCount={participantCount}
         autoAdmit={autoAdmit}
         onAutoAdmitChange={onAutoAdmitChange}
+        mutedParticipantIds={mutedParticipantIds}
+        pinnedParticipantId={pinnedParticipantId}
+        isParticipantViewPreferencePending={
+          isParticipantViewPreferencePending
+        }
+        onToggleParticipantAudioMute={onToggleParticipantAudioMute}
+        onToggleParticipantPin={onToggleParticipantPin}
       />
     </div>
   );
