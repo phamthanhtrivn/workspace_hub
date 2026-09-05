@@ -26,6 +26,8 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/join-requests`,
   messages: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/messages`,
+  messageUnreadCount: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/messages/unread-count`,
   message: (joinToken: string, messageId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/${encodeURIComponent(messageId)}`,
   messageRecall: (joinToken: string, messageId: string) =>

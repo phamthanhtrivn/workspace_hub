@@ -7,9 +7,12 @@ import {
   useState,
   type SetStateAction,
 } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useInView } from "react-intersection-observer";
-import { getMeetingMessages } from "../api/meeting.api";
+import {
+  getMeetingMessages,
+  getMeetingUnreadMessageCount,
+} from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
 import type {
   MeetingMessageResponse,
@@ -116,4 +119,12 @@ export function useMeetingMessages(joinToken: string) {
     loadOlderRef,
     setRealtimeMessages,
   };
+}
+
+export function useMeetingUnreadMessageCount(joinToken: string) {
+  return useQuery({
+    queryKey: meetingKeys.messageUnreadCount(joinToken),
+    queryFn: () => getMeetingUnreadMessageCount(joinToken),
+    enabled: Boolean(joinToken),
+  });
 }

@@ -13,6 +13,7 @@ import type {
   MeetingMessageReadReceiptResponse,
   MeetingMessageResponse,
   MeetingMessagesResponse,
+  MeetingUnreadMessageCountResponse,
   MeetingParticipantResponse,
   MeetingParticipantRole,
   MeetingParticipantsResponse,
@@ -121,6 +122,13 @@ export const getMeetingMessages = async ({
     params: { cursor, limit, direction },
   });
   return normalizeApiResponse<MeetingMessagesResponse>(response.data);
+};
+
+export const getMeetingUnreadMessageCount = async (
+  joinToken: string,
+): Promise<ApiResponse<MeetingUnreadMessageCountResponse>> => {
+  const response = await api.get(MEETING_API_PATHS.messageUnreadCount(joinToken));
+  return normalizeApiResponse<MeetingUnreadMessageCountResponse>(response.data);
 };
 
 export const getMeetingMediaPresignedUrls = async ({

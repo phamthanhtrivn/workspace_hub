@@ -271,6 +271,10 @@ export interface MeetingMessagesResponse {
   prevCursor?: string;
 }
 
+export interface MeetingUnreadMessageCountResponse {
+  count: number;
+}
+
 export interface CreateMeetingMessagePayload {
   content?: string;
   medias?: MeetingMessageMediaPayload[];

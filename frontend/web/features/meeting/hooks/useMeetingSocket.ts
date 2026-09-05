@@ -10,6 +10,7 @@ import {
   type MeetingHostTransferredPayload,
   type MeetingParticipantJoinedPayload,
   type MeetingParticipantLeftPayload,
+  type MeetingMessageReadPayload,
   MeetingSocketEvent,
   type MeetingJoinRequestUpdatedPayload,
   type MeetingParticipantRemovedPayload,
@@ -17,6 +18,7 @@ import {
   type MeetingStatusUpdatedPayload,
   type ServerToClientMeetingEvents,
 } from "../types/meeting-socket.types";
+import type { MeetingMessageResponse } from "../types/meeting.types";
 
 interface MeetingSocketOptions {
   meetingId?: string | null;
@@ -29,6 +31,8 @@ interface MeetingSocketOptions {
   onHostTransferred?: (payload: MeetingHostTransferredPayload) => void;
   onJoinRequested?: (payload: MeetingJoinRequestUpdatedPayload) => void;
   onJoinRequestChanged?: (payload: MeetingJoinRequestUpdatedPayload) => void;
+  onMessageSent?: (message: MeetingMessageResponse) => void;
+  onMessageRead?: (payload: MeetingMessageReadPayload) => void;
 }
 
 type MeetingSocket = Socket<
@@ -47,6 +51,8 @@ export function useMeetingSocket({
   onHostTransferred,
   onJoinRequested,
   onJoinRequestChanged,
+  onMessageSent,
+  onMessageRead,
 }: MeetingSocketOptions) {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
 
@@ -94,6 +100,12 @@ export function useMeetingSocket({
       onJoinRequested?.(payload);
       onJoinRequestChanged?.(payload);
     };
+    const handleMessageSent = (message: MeetingMessageResponse) => {
+      onMessageSent?.(message);
+    };
+    const handleMessageRead = (payload: MeetingMessageReadPayload) => {
+      onMessageRead?.(payload);
+    };
 
     socket.on(MeetingSocketEvent.PARTICIPANT_JOINED, handleParticipantJoined);
     socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleParticipantLeft);
@@ -107,6 +119,8 @@ export function useMeetingSocket({
       MeetingSocketEvent.JOIN_REQUEST_UPDATED,
       handleJoinRequestChanged,
     );
+    socket.on(MeetingSocketEvent.MESSAGE_SENT, handleMessageSent);
+    socket.on(MeetingSocketEvent.MESSAGE_READ, handleMessageRead);
 
     return () => {
       socket.off(
@@ -130,6 +144,8 @@ export function useMeetingSocket({
         MeetingSocketEvent.JOIN_REQUEST_UPDATED,
         handleJoinRequestChanged,
       );
+      socket.off(MeetingSocketEvent.MESSAGE_SENT, handleMessageSent);
+      socket.off(MeetingSocketEvent.MESSAGE_READ, handleMessageRead);
     };
   }, [
     accessToken,
@@ -138,6 +154,8 @@ export function useMeetingSocket({
     onJoinRequestChanged,
     onJoinRequested,
     onMeetingEnded,
+    onMessageRead,
+    onMessageSent,
     onParticipantJoined,
     onParticipantLeft,
     onParticipantRemoved,

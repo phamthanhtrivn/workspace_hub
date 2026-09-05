@@ -15,16 +15,24 @@ import { useTrackToggle } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingJoinRequestCount } from "@/features/meeting/hooks/useMeetingAdmission";
+import { useMeetingUnreadMessageCount } from "@/features/meeting/hooks/useMeetingMessages";
 import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
 import { playNotificationSound } from "@/features/notification/utils/notification-alert.utils";
+import { useAppSelector } from "@/store/store";
+import type { ApiResponse } from "@/features/chat/types/chat.types";
 import { meetingRoomControlItems } from "../../types/meeting.constants";
 import { meetingKeys } from "../../types/meeting.query-keys";
 import type {
+  MeetingMessageResponse,
+  MeetingUnreadMessageCountResponse,
   MeetingParticipantRole,
   MeetingPreJoinSettings,
 } from "../../types/meeting.types";
 import { MEETING_ROLE, MeetingRoomPanel } from "../../types/meeting.types";
-import type { MeetingJoinRequestUpdatedPayload } from "../../types/meeting-socket.types";
+import type {
+  MeetingJoinRequestUpdatedPayload,
+  MeetingMessageReadPayload,
+} from "../../types/meeting-socket.types";
 import { canManageMeetingAdmission } from "../../utils/meeting-room.utils";
 import {
   loadMeetingDeviceSettings,
@@ -134,13 +142,16 @@ export function MeetingRoomFooter({
   isEndPending = false,
 }: MeetingRoomFooterProps) {
   const intl = useAppIntl();
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const queryClient = useQueryClient();
   const canManageAdmission = canManageMeetingAdmission(participantRole);
   const joinRequestCountQuery = useMeetingJoinRequestCount({
     joinToken,
     enabled: canManageAdmission,
   });
+  const unreadMessageCountQuery = useMeetingUnreadMessageCount(joinToken);
   const pendingJoinRequestCount = joinRequestCountQuery.data?.data.total ?? 0;
+  const unreadMessageCount = unreadMessageCountQuery.data?.data.count ?? 0;
   const invalidateJoinRequestCount = useCallback(
     (payload: MeetingJoinRequestUpdatedPayload) => {
       if (payload.meetingId !== meetingId) return;
@@ -159,13 +170,76 @@ export function MeetingRoomFooter({
     },
     [meetingId],
   );
+  const updateUnreadMessageCount = useCallback(
+    (getNextCount: (currentCount: number) => number) => {
+      queryClient.setQueryData<ApiResponse<MeetingUnreadMessageCountResponse>>(
+        meetingKeys.messageUnreadCount(joinToken),
+        (current) => {
+          const count = Math.max(0, getNextCount(current?.data.count ?? 0));
+
+          if (!current) {
+            return {
+              success: true,
+              data: { count },
+            };
+          }
+
+          return {
+            ...current,
+            data: {
+              ...current.data,
+              count,
+            },
+          };
+        },
+      );
+    },
+    [joinToken, queryClient],
+  );
+  const markChatUnread = useCallback(
+    (message: MeetingMessageResponse) => {
+      if (message.meetingId !== meetingId) return;
+      if (!currentUserId || message.senderId === currentUserId) return;
+      if (activePanel === MeetingRoomPanel.CHAT) return;
+
+      playNotificationSound();
+      updateUnreadMessageCount((currentCount) => currentCount + 1);
+    },
+    [activePanel, currentUserId, meetingId, updateUnreadMessageCount],
+  );
+  const clearUnreadMessageCount = useCallback(
+    (payload?: MeetingMessageReadPayload) => {
+      if (payload) {
+        if (payload.meetingId !== meetingId) return;
+        if (payload.userId !== currentUserId) return;
+      }
+
+      updateUnreadMessageCount(() => 0);
+    },
+    [currentUserId, meetingId, updateUnreadMessageCount],
+  );
+  const togglePanel = useCallback(
+    (panel: Exclude<MeetingRoomPanel, MeetingRoomPanel.NONE>) => {
+      const nextPanel =
+        activePanel === panel ? MeetingRoomPanel.NONE : panel;
+
+      if (nextPanel === MeetingRoomPanel.CHAT) {
+        clearUnreadMessageCount();
+      }
+
+      onPanelChange(nextPanel);
+    },
+    [activePanel, clearUnreadMessageCount, onPanelChange],
+  );
 
   useMeetingSocket({
-    meetingId: canManageAdmission ? meetingId : null,
+    meetingId,
     onJoinRequested: canManageAdmission ? playJoinRequestSound : undefined,
     onJoinRequestChanged: canManageAdmission
       ? invalidateJoinRequestCount
       : undefined,
+    onMessageSent: markChatUnread,
+    onMessageRead: clearUnreadMessageCount,
   });
 
   return (
@@ -206,13 +280,13 @@ export function MeetingRoomFooter({
               badgeCount={
                 control.id === MeetingRoomPanel.ADMISSION
                   ? pendingJoinRequestCount
-                  : undefined
+                  : control.id === MeetingRoomPanel.CHAT
+                    ? unreadMessageCount
+                    : undefined
               }
               onClick={() => {
                 if (isPanelControl) {
-                  onPanelChange(
-                    activePanel === control.id ? MeetingRoomPanel.NONE : control.id,
-                  );
+                  togglePanel(control.id);
                 }
               }}
             />

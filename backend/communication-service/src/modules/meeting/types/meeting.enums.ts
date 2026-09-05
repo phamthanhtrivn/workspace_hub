@@ -21,6 +21,7 @@ export enum MEETING_SUCCESS_MESSAGES {
   MESSAGE_UPDATED = 'Meeting message updated successfully',
   MESSAGE_RECALLED = 'Meeting message recalled successfully',
   MESSAGE_HISTORY_RETRIEVED = 'Meeting message history retrieved successfully',
+  MESSAGE_UNREAD_COUNT_RETRIEVED = 'Meeting unread message count retrieved successfully',
   MESSAGE_REACTION_UPDATED = 'Meeting message reaction updated successfully',
   MESSAGE_READ_RECEIPT_UPDATED = 'Meeting message read receipt updated successfully',
 }

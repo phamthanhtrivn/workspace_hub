@@ -18,6 +18,7 @@ import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
 import type {
   CreateMeetingMessageParams,
   EditMeetingMessageParams,
+  GetMeetingUnreadMessageCountParams,
   ListMeetingMessagesParams,
   ReactMeetingMessageParams,
   ReadMeetingMessageParams,
@@ -75,6 +76,33 @@ export class MeetingMessageService {
       'desc',
       'nextCursor',
     );
+  }
+
+  async getUnreadMessageCount({
+    joinToken,
+    userId,
+  }: GetMeetingUnreadMessageCountParams) {
+    const { meeting, participant } =
+      await this.meetingPolicyService.assertJoinedMeetingParticipant({
+        joinToken,
+        userId,
+      });
+    const referenceDate =
+      participant.lastReadAt ?? participant.joinedAt ?? participant.createdAt;
+    const count = await this.prisma.meetingMessage.count({
+      where: {
+        meetingId: meeting.id,
+        deletedAt: null,
+        createdAt: {
+          gt: referenceDate,
+        },
+        senderId: {
+          not: userId,
+        },
+      },
+    });
+
+    return { count };
   }
 
   async createMeetingMessage({

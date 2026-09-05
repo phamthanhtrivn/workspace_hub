@@ -127,6 +127,26 @@ export class MeetingController {
     };
   }
 
+  @Get(':joinToken/messages/unread-count')
+  async getMeetingUnreadMessageCount(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingMessageService.getUnreadMessageCount({
+      joinToken,
+      userId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.MESSAGE_UNREAD_COUNT_RETRIEVED,
+      data: result,
+    };
+  }
+
   @Post(':joinToken/messages')
   async createMeetingMessage(
     @Param('joinToken') joinToken: string,

@@ -59,6 +59,8 @@ export interface ListMeetingMessagesParams extends MeetingModeratorParams {
   query?: ListMeetingMessagesDto;
 }
 
+export type GetMeetingUnreadMessageCountParams = MeetingModeratorParams;
+
 export interface CreateMeetingMessageParams extends MeetingModeratorParams {
   dto: CreateMeetingMessageDto;
 }
