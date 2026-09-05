@@ -1,25 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import {
   RoomAudioRenderer,
   useConnectionState,
-  useRoomContext,
 } from "@livekit/components-react";
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
-import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
-import {
-  useEndMeeting,
-  useLeaveMeeting,
-} from "@/features/meeting/hooks/useMeetingParticipants";
-import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
-import { useAppSelector } from "@/store/store";
-import { MEETING_ROUTES } from "../../types/meeting.constants";
-import { meetingKeys } from "../../types/meeting.query-keys";
+import { useMeetingRoomLifecycle } from "@/features/meeting/hooks/useMeetingRoomLifecycle";
 import type {
   MeetingParticipantRole,
   MeetingPreJoinSettings,
@@ -50,18 +39,9 @@ export function MeetingRoomContent({
   settings,
 }: MeetingRoomContentProps) {
   const intl = useAppIntl();
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const authUser = useAppSelector((state) => state.auth);
-  const room = useRoomContext();
   const connectionState = useConnectionState();
   const [activePanel, setActivePanel] = useState(MeetingRoomPanel.NONE);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [autoAdmit, setAutoAdmit] = useState(initialAutoAdmit);
-  const [currentParticipantRole, setCurrentParticipantRole] =
-    useState(participantRole);
-  const leaveMeetingMutation = useLeaveMeeting(joinToken);
-  const endMeetingMutation = useEndMeeting(joinToken);
   const {
     canGoNext,
     canGoPrevious,
@@ -75,108 +55,20 @@ export function MeetingRoomContent({
     totalParticipantPages,
     visibleCameraTracks,
   } = useMeetingParticipantGrid(activePanel);
-  const handleStatusUpdated = useCallback(
-    (payload: { meetingId: string; autoAdmit: boolean }) => {
-      if (payload.meetingId === meetingId) {
-        setAutoAdmit(payload.autoAdmit);
-      }
-    },
-    [meetingId],
-  );
-  const invalidateMeetingRoomState = useCallback(() => {
-    queryClient.invalidateQueries({
-      queryKey: meetingKeys.participantsRoot(joinToken),
-    });
-    queryClient.invalidateQueries({
-      queryKey: meetingKeys.access(joinToken),
-    });
-    queryClient.invalidateQueries({
-      queryKey: meetingKeys.room(joinToken),
-    });
-  }, [joinToken, queryClient]);
-  const leaveRoom = useCallback(() => {
-    room.disconnect();
-    router.push(MEETING_ROUTES.DASHBOARD);
-  }, [room, router]);
-  const handleMeetingEnded = useCallback(
-    (payload: { meetingId: string; endedBy: string }) => {
-      if (payload.meetingId !== meetingId) return;
-
-      if (payload.endedBy !== authUser.userId) {
-        toast.info(intl.formatMessage({ id: "meeting.room.endedByHost" }));
-      }
-
-      invalidateMeetingRoomState();
-      leaveRoom();
-    },
-    [
-      authUser.userId,
-      intl,
-      invalidateMeetingRoomState,
-      leaveRoom,
-      meetingId,
-    ],
-  );
-  const handleParticipantUpdated = useCallback(
-    (payload: { meetingId: string; userId: string; role: MeetingParticipantRole }) => {
-      if (payload.meetingId !== meetingId) return;
-
-      if (payload.userId === authUser.userId) {
-        setCurrentParticipantRole(payload.role);
-      }
-
-      invalidateMeetingRoomState();
-    },
-    [authUser.userId, invalidateMeetingRoomState, meetingId],
-  );
-  const handleParticipantRemoved = useCallback(
-    (payload: { meetingId: string; userId: string }) => {
-      if (payload.meetingId !== meetingId) return;
-
-      invalidateMeetingRoomState();
-
-      if (payload.userId === authUser.userId) {
-        toast.info(intl.formatMessage({ id: "meeting.room.removedByHost" }));
-        leaveRoom();
-      }
-    },
-    [
-      authUser.userId,
-      intl,
-      invalidateMeetingRoomState,
-      leaveRoom,
-      meetingId,
-    ],
-  );
-  const handleHostTransferred = useCallback(
-    (payload: {
-      meetingId: string;
-      previousHostId: string;
-      targetUserId: string;
-    }) => {
-      if (payload.meetingId !== meetingId) return;
-
-      if (payload.targetUserId === authUser.userId) {
-        setCurrentParticipantRole("HOST");
-        toast.success(intl.formatMessage({ id: "meeting.room.youAreHost" }));
-      }
-
-      if (payload.previousHostId === authUser.userId) {
-        setCurrentParticipantRole("PARTICIPANT");
-      }
-
-      invalidateMeetingRoomState();
-    },
-    [authUser.userId, intl, invalidateMeetingRoomState, meetingId],
-  );
-
-  useMeetingSocket({
+  
+  const {
+    autoAdmit,
+    setAutoAdmit,
+    currentParticipantRole,
+    handleLeave,
+    handleEndForEveryone,
+    isLeavePending,
+    isEndPending,
+  } = useMeetingRoomLifecycle({
     meetingId,
-    onStatusUpdated: handleStatusUpdated,
-    onMeetingEnded: handleMeetingEnded,
-    onParticipantUpdated: handleParticipantUpdated,
-    onParticipantRemoved: handleParticipantRemoved,
-    onHostTransferred: handleHostTransferred,
+    joinToken,
+    participantRole,
+    initialAutoAdmit,
   });
 
   useEffect(() => {
@@ -186,34 +78,6 @@ export function MeetingRoomContent({
 
     return () => window.clearInterval(timerId);
   }, []);
-
-  const handleLeave = () => {
-    leaveMeetingMutation.mutate(undefined, {
-      onSuccess: () => {
-        invalidateMeetingRoomState();
-        leaveRoom();
-      },
-      onError: () => {
-        toast.error(intl.formatMessage({ id: "meeting.room.leaveFailed" }));
-      },
-    });
-  };
-
-  const handleEndForEveryone = () => {
-    const confirmed = window.confirm(
-      intl.formatMessage({ id: "meeting.room.endConfirm" }),
-    );
-
-    if (!confirmed) return;
-
-    endMeetingMutation.mutate(undefined, {
-      onSuccess: () => {
-        toast.success(intl.formatMessage({ id: "meeting.room.endSuccess" }));
-        invalidateMeetingRoomState();
-        leaveRoom();
-      },
-    });
-  };
 
   const closePanel = () => setActivePanel(MeetingRoomPanel.NONE);
 
@@ -318,8 +182,8 @@ export function MeetingRoomContent({
         onPanelChange={setActivePanel}
         onLeave={handleLeave}
         onEndForEveryone={handleEndForEveryone}
-        isLeavePending={leaveMeetingMutation.isPending}
-        isEndPending={endMeetingMutation.isPending}
+        isLeavePending={isLeavePending}
+        isEndPending={isEndPending}
       />
 
       <MeetingRoomMobilePanelHeader

@@ -20,7 +20,6 @@ export function MeetingRoomPanelContent({
     return (
       <MeetingParticipantsPanel
         joinToken={joinToken}
-        meetingId={meetingId}
         participantRole={participantRole}
       />
     );

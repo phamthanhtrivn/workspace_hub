@@ -48,12 +48,6 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/access`,
 } as const;
 
-export enum PARTICIPANT_ROLE {
-  HOST = "HOST",
-  COHOST = "COHOST",
-  PARTICIPANT = "PARTICIPANT",
-}
-
 export enum MeetingDashboardNavItemId {
   OVERVIEW = "overview",
   UPCOMING = "upcoming",
@@ -170,28 +164,6 @@ export const meetingRoomControlItems = [
     icon: Settings,
   },
 ] as const;
-
-export const meetingMockParticipants = [
-  {
-    id: "local-user",
-    nameId: "meeting.room.participant.you",
-    roleId: "meeting.room.participant.host",
-    initials: "YU",
-  },
-  {
-    id: "design-lead",
-    nameId: "meeting.room.participant.designLead",
-    roleId: "meeting.room.participant.guest",
-    initials: "DL",
-  },
-  {
-    id: "backend-lead",
-    nameId: "meeting.room.participant.backendLead",
-    roleId: "meeting.room.participant.guest",
-    initials: "BE",
-  },
-] as const;
-
 
 export const meetingActionIconById = {
   [MeetingDashboardActionId.NEW_MEETING]: Plus,

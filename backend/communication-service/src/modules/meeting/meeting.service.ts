@@ -19,70 +19,25 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { MeetingEvent } from '../socket/meeting/meeting-socket.events';
 import { MeetingSocketHandler } from '../socket/meeting/meeting-socket.handler';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
-import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
-import { ListJoinRequestsDto } from './dto/list-join-requests.dto';
-import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
-import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
-import { UpdateMeetingSettingsDto } from './dto/update-meeting-settings.dto';
 import { MEETING_ERROR_MESSAGES } from './types/meeting.enums';
+import type {
+  CreateInstantMeetingParams,
+  GetMeetingAccessParams,
+  JoinMeetingParams,
+  ListJoinRequestsParams,
+  ListMeetingParticipantsParams,
+  MeetingJoinRequestParams,
+  MeetingModeratorParams,
+  ResolveJoinRequestParams,
+  TargetMeetingParticipantParams,
+  UpdateMeetingParticipantRoleParams,
+  UpdateMeetingSettingsParams,
+} from './types/meeting.types';
 import {
   canJoinLockedMeeting,
   createJoinToken,
   createRoomName,
 } from './utils/meeting.utils';
-
-interface CreateInstantMeetingParams {
-  userId: string;
-  userName?: string;
-  avatarUrl?: string;
-  dto?: CreateInstantMeetingDto;
-}
-
-interface JoinMeetingParams extends CreateInstantMeetingParams {
-  joinToken: string;
-}
-
-interface GetMeetingAccessParams {
-  joinToken: string;
-  userId: string;
-}
-
-interface MeetingModeratorParams extends GetMeetingAccessParams {}
-
-interface MeetingJoinRequestParams extends CreateInstantMeetingParams {
-  joinToken: string;
-}
-
-interface ListJoinRequestsParams extends MeetingModeratorParams {
-  query?: ListJoinRequestsDto;
-}
-
-interface ListMeetingParticipantsParams extends MeetingModeratorParams {
-  query?: ListMeetingParticipantsDto;
-}
-
-interface ResolveJoinRequestParams extends MeetingModeratorParams {
-  targetUserId: string;
-}
-
-interface UpdateMeetingSettingsParams extends MeetingModeratorParams {
-  dto: UpdateMeetingSettingsDto;
-}
-
-interface TargetMeetingParticipantParams extends MeetingModeratorParams {
-  targetUserId: string;
-}
-
-interface UpdateMeetingParticipantRoleParams
-  extends TargetMeetingParticipantParams {
-  dto: UpdateMeetingParticipantRoleDto;
-}
-
-const meetingParticipantManagementEventType = {
-  PARTICIPANT_REMOVED: 'PARTICIPANT_REMOVED' as MeetingEventType,
-  PARTICIPANT_ROLE_UPDATED: 'PARTICIPANT_ROLE_UPDATED' as MeetingEventType,
-  HOST_TRANSFERRED: 'HOST_TRANSFERRED' as MeetingEventType,
-};
 
 @Injectable()
 export class MeetingService {
@@ -542,7 +497,7 @@ export class MeetingService {
       data: {
         meetingId: meeting.id,
         actorId: userId,
-        type: meetingParticipantManagementEventType.PARTICIPANT_REMOVED,
+        type: MeetingEventType.PARTICIPANT_REMOVED,
         metadata: { targetUserId },
       },
     });
@@ -596,7 +551,7 @@ export class MeetingService {
       data: {
         meetingId: meeting.id,
         actorId: userId,
-        type: meetingParticipantManagementEventType.PARTICIPANT_ROLE_UPDATED,
+        type: MeetingEventType.PARTICIPANT_ROLE_UPDATED,
         metadata: {
           targetUserId,
           previousRole: targetParticipant.role,
@@ -906,7 +861,7 @@ export class MeetingService {
         data: {
           meetingId: meeting.id,
           actorId: currentHostUserId,
-          type: meetingParticipantManagementEventType.HOST_TRANSFERRED,
+          type: MeetingEventType.HOST_TRANSFERRED,
           metadata: {
             previousHostId,
             targetUserId: targetParticipant.userId,

@@ -23,8 +23,8 @@ import type {
   MeetingParticipantRole,
   MeetingPreJoinSettings,
 } from "../../types/meeting.types";
+import { MEETING_ROLE, MeetingRoomPanel } from "../../types/meeting.types";
 import type { MeetingJoinRequestUpdatedPayload } from "../../types/meeting-socket.types";
-import { MeetingRoomPanel } from "../../types/meeting.types";
 import { canManageMeetingAdmission } from "../../utils/meeting-room.utils";
 import {
   loadMeetingDeviceSettings,
@@ -219,7 +219,7 @@ export function MeetingRoomFooter({
           );
         })}
 
-        {participantRole === "HOST" ? (
+        {participantRole === MEETING_ROLE.HOST && (
           <MeetingRoomControlButton
             label={intl.formatMessage({ id: "meeting.room.control.end" })}
             icon={PhoneOff}
@@ -227,7 +227,7 @@ export function MeetingRoomFooter({
             disabled={isEndPending}
             onClick={onEndForEveryone}
           />
-        ) : null}
+        )}
 
         <MeetingRoomControlButton
           label={intl.formatMessage({ id: "meeting.room.control.leave" })}

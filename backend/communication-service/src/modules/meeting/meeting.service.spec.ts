@@ -826,6 +826,14 @@ describe('MeetingService', () => {
         status: MeetingParticipantStatus.LEFT,
       }),
     });
+    expect(prisma.meetingEvent.create).toHaveBeenCalledWith({
+      data: {
+        meetingId: meetingRecord.id,
+        actorId: userId,
+        type: MeetingEventType.ENDED,
+        metadata: { endedAt: expect.any(String) },
+      },
+    });
     expect(liveKitService.deleteRoom).toHaveBeenCalledWith(
       meetingRecord.roomName,
     );
@@ -911,6 +919,14 @@ describe('MeetingService', () => {
       meetingRecord.roomName,
       guestUserId,
     );
+    expect(prisma.meetingEvent.create).toHaveBeenCalledWith({
+      data: {
+        meetingId: meetingRecord.id,
+        actorId: cohostId,
+        type: MeetingEventType.PARTICIPANT_REMOVED,
+        metadata: { targetUserId: guestUserId },
+      },
+    });
     expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalled();
     expect(result.status).toBe(MeetingParticipantStatus.REMOVED);
   });
@@ -985,7 +1001,12 @@ describe('MeetingService', () => {
     });
     prisma.meetingParticipant.findUnique = jest
       .fn()
-      .mockResolvedValue(targetParticipant);
+      .mockResolvedValueOnce(targetParticipant)
+      .mockResolvedValueOnce(promotedParticipant)
+      .mockResolvedValueOnce({
+        ...targetParticipant,
+        role: MeetingRole.PARTICIPANT,
+      });
     prisma.meetingParticipant.update = jest
       .fn()
       .mockResolvedValueOnce(promotedParticipant)
@@ -1039,6 +1060,41 @@ describe('MeetingService', () => {
     expect(prisma.meeting.update).toHaveBeenCalledWith({
       where: { id: meetingRecord.id },
       data: { hostId: guestUserId },
+    });
+    expect(prisma.meetingEvent.create).toHaveBeenCalledWith({
+      data: {
+        meetingId: meetingRecord.id,
+        actorId: userId,
+        type: MeetingEventType.PARTICIPANT_ROLE_UPDATED,
+        metadata: {
+          targetUserId: guestUserId,
+          previousRole: MeetingRole.PARTICIPANT,
+          role: MeetingRole.COHOST,
+        },
+      },
+    });
+    expect(prisma.meetingEvent.create).toHaveBeenCalledWith({
+      data: {
+        meetingId: meetingRecord.id,
+        actorId: userId,
+        type: MeetingEventType.PARTICIPANT_ROLE_UPDATED,
+        metadata: {
+          targetUserId: guestUserId,
+          previousRole: MeetingRole.COHOST,
+          role: MeetingRole.PARTICIPANT,
+        },
+      },
+    });
+    expect(prisma.meetingEvent.create).toHaveBeenCalledWith({
+      data: {
+        meetingId: meetingRecord.id,
+        actorId: userId,
+        type: MeetingEventType.HOST_TRANSFERRED,
+        metadata: {
+          previousHostId: userId,
+          targetUserId: guestUserId,
+        },
+      },
     });
     expect(liveKitService.updateParticipantMetadata).toHaveBeenCalled();
     expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalled();

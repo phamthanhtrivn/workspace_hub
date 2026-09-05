@@ -46,7 +46,13 @@ export interface CreateInstantMeetingPayload {
   };
 }
 
-export type MeetingParticipantRole = "HOST" | "COHOST" | "PARTICIPANT";
+export enum MEETING_ROLE {
+  HOST = "HOST",
+  COHOST = "COHOST",
+  PARTICIPANT = "PARTICIPANT",
+}
+
+export type MeetingParticipantRole = MEETING_ROLE;
 
 export enum MeetingParticipantStatusValue {
   INVITED = "INVITED",
