@@ -5,13 +5,13 @@ import { useRoomContext } from "@livekit/components-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import Swal from "sweetalert2";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import {
   useEndMeeting,
   useLeaveMeeting,
 } from "./useMeetingParticipants";
+import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import { useMeetingRealtimeCache } from "./useMeetingRealtimeCache";
 import { useMeetingSocket } from "./useMeetingSocket";
 import { MEETING_ROUTES } from "../types/meeting.constants";
@@ -52,6 +52,7 @@ export function useMeetingRoomLifecycle({
     useState(participantRole);
   const leaveMeetingMutation = useLeaveMeeting(joinToken);
   const endMeetingMutation = useEndMeeting(joinToken);
+  const { confirm, alertDialogProps } = useMeetingConfirmDialog();
   const {
     patchCurrentUserRole,
     patchParticipantInCachedPages,
@@ -243,17 +244,14 @@ export function useMeetingRoomLifecycle({
   }, [clearMeetingRoomQueries, intl, leaveMeetingMutation, leaveRoom]);
 
   const handleEndForEveryone = useCallback(async () => {
-    const result = await Swal.fire({
+    const confirmed = await confirm({
       title: intl.formatMessage({ id: "meeting.room.endConfirm" }),
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: intl.formatMessage({ id: "meeting.room.control.end" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmLabel: intl.formatMessage({ id: "meeting.room.control.end" }),
+      cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+      variant: "danger",
     });
 
-    if (!result.isConfirmed) return;
+    if (!confirmed) return;
 
     endMeetingMutation.mutate(undefined, {
       onSuccess: () => {
@@ -262,7 +260,7 @@ export function useMeetingRoomLifecycle({
         leaveRoom();
       },
     });
-  }, [clearMeetingRoomQueries, endMeetingMutation, intl, leaveRoom]);
+  }, [clearMeetingRoomQueries, confirm, endMeetingMutation, intl, leaveRoom]);
 
   return {
     autoAdmit,
@@ -270,6 +268,7 @@ export function useMeetingRoomLifecycle({
     currentParticipantRole,
     handleLeave,
     handleEndForEveryone,
+    alertDialogProps,
     isLeavePending: leaveMeetingMutation.isPending,
     isEndPending: endMeetingMutation.isPending,
   };

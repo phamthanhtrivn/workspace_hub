@@ -7,6 +7,7 @@ import {
 } from "@livekit/components-react";
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
 import { useMeetingRoomLifecycle } from "@/features/meeting/hooks/useMeetingRoomLifecycle";
 import type {
@@ -62,6 +63,7 @@ export function MeetingRoomContent({
     currentParticipantRole,
     handleLeave,
     handleEndForEveryone,
+    alertDialogProps,
     isLeavePending,
     isEndPending,
   } = useMeetingRoomLifecycle({
@@ -198,6 +200,7 @@ export function MeetingRoomContent({
       />
 
       <RoomAudioRenderer />
+      <MeetingAlertDialog {...alertDialogProps} />
     </div>
   );
 }

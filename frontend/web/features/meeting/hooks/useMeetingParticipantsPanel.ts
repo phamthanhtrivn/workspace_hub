@@ -7,6 +7,7 @@ import {
   useMeetingParticipantActions,
   useMeetingParticipants,
 } from "./useMeetingParticipants";
+import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import {
   MEETING_ROLE,
   type MeetingParticipantResponse,
@@ -60,6 +61,7 @@ export function useMeetingParticipantsPanel({
     enabled: true,
   });
   const actions = useMeetingParticipantActions(joinToken);
+  const { confirm, alertDialogProps } = useMeetingConfirmDialog();
   const participantPage = participantsQuery.data?.data;
   const participantItems = participantPage?.items ?? EMPTY_MEETING_PARTICIPANTS;
   const totalPages = participantPage?.totalPages ?? 1;
@@ -123,40 +125,51 @@ export function useMeetingParticipantsPanel({
   }, []);
 
   const handleRemove = useCallback(
-    (participant: MeetingParticipantResponse) => {
+    async (participant: MeetingParticipantResponse) => {
       const displayName = getParticipantDisplayName(participant);
-      const confirmed = window.confirm(
-        intl.formatMessage(
+      const confirmed = await confirm({
+        title: intl.formatMessage(
           { id: "meeting.participants.removeConfirm" },
           { name: displayName },
         ),
-      );
+        confirmLabel: intl.formatMessage({ id: "meeting.participants.remove" }),
+        cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+        variant: "danger",
+      });
 
       if (confirmed) {
         actions.removeParticipant.mutate(participant.userId);
       }
     },
-    [actions.removeParticipant, intl],
+    [actions.removeParticipant, confirm, intl],
   );
 
   const handleRoleChange = useCallback(
-    (participant: MeetingParticipantResponse, role: MeetingParticipantRole) => {
+    async (
+      participant: MeetingParticipantResponse,
+      role: MeetingParticipantRole,
+    ) => {
       const displayName = getParticipantDisplayName(participant);
       const isHostTransfer = role === MEETING_ROLE.HOST;
       const confirmed =
         !isHostTransfer ||
-        window.confirm(
-          intl.formatMessage(
+        (await confirm({
+          title: intl.formatMessage(
             { id: "meeting.participants.transferHostConfirm" },
             { name: displayName },
           ),
-        );
+          confirmLabel: intl.formatMessage({
+            id: "meeting.participants.makeHost",
+          }),
+          cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+          variant: "warning",
+        }));
 
       if (confirmed) {
         actions.updateRole.mutate({ userId: participant.userId, role });
       }
     },
-    [actions.updateRole, intl],
+    [actions.updateRole, confirm, intl],
   );
 
   return {
@@ -172,5 +185,6 @@ export function useMeetingParticipantsPanel({
     setSearch: updateSearch,
     handleRemove,
     handleRoleChange,
+    alertDialogProps,
   };
 }
