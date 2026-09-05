@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   useParticipants,
+  useSpeakingParticipants,
   useTracks,
+  useVisualStableUpdate,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
@@ -61,13 +63,51 @@ const tileFrameClassNameByVariant: Record<MeetingParticipantGridVariant, string>
 
 function sortCameraTracks(
   cameraTracks: TrackReferenceOrPlaceholder[],
+  activeSpeakerRanks: Map<string, number>,
 ): TrackReferenceOrPlaceholder[] {
   return [...cameraTracks].sort((first, second) => {
-    if (first.participant.isLocal) return -1;
-    if (second.participant.isLocal) return 1;
+    const firstParticipant = first.participant;
+    const secondParticipant = second.participant;
 
-    return first.participant.identity.localeCompare(
-      second.participant.identity,
+    if (firstParticipant.isLocal !== secondParticipant.isLocal) {
+      return firstParticipant.isLocal ? -1 : 1;
+    }
+
+    const firstActiveSpeakerRank = activeSpeakerRanks.get(
+      firstParticipant.identity,
+    );
+    const secondActiveSpeakerRank = activeSpeakerRanks.get(
+      secondParticipant.identity,
+    );
+    const isFirstActiveSpeaker =
+      firstParticipant.isSpeaking || firstActiveSpeakerRank !== undefined;
+    const isSecondActiveSpeaker =
+      secondParticipant.isSpeaking || secondActiveSpeakerRank !== undefined;
+
+    if (isFirstActiveSpeaker && isSecondActiveSpeaker) {
+      const audioLevelDifference =
+        secondParticipant.audioLevel - firstParticipant.audioLevel;
+
+      if (audioLevelDifference !== 0) return audioLevelDifference;
+
+      return (
+        (firstActiveSpeakerRank ?? Number.MAX_SAFE_INTEGER) -
+        (secondActiveSpeakerRank ?? Number.MAX_SAFE_INTEGER)
+      );
+    }
+
+    if (isFirstActiveSpeaker !== isSecondActiveSpeaker) {
+      return isFirstActiveSpeaker ? -1 : 1;
+    }
+
+    const lastSpokeDifference =
+      (secondParticipant.lastSpokeAt?.getTime() ?? 0) -
+      (firstParticipant.lastSpokeAt?.getTime() ?? 0);
+
+    if (lastSpokeDifference !== 0) return lastSpokeDifference;
+
+    return firstParticipant.identity.localeCompare(
+      secondParticipant.identity,
     );
   });
 }
@@ -82,15 +122,32 @@ function getGridVariant(visibleTileCount: number): MeetingParticipantGridVariant
 
 export function useMeetingParticipantGrid(activePanel: MeetingRoomPanel) {
   const participants = useParticipants();
+  const activeSpeakers = useSpeakingParticipants();
   const cameraTracks = useTracks(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
     { onlySubscribed: false },
   );
   const [currentParticipantPage, setCurrentParticipantPage] = useState(1);
 
-  const sortedCameraTracks = useMemo(
-    () => sortCameraTracks(cameraTracks),
-    [cameraTracks],
+  const activeSpeakerRanks = useMemo(
+    () =>
+      new Map(
+        activeSpeakers.map((participant, index) => [
+          participant.identity,
+          index,
+        ]),
+      ),
+    [activeSpeakers],
+  );
+  const sortStableCameraTracks = useCallback(
+    (trackReferences: TrackReferenceOrPlaceholder[]) =>
+      sortCameraTracks(trackReferences, activeSpeakerRanks),
+    [activeSpeakerRanks],
+  );
+  const sortedCameraTracks = useVisualStableUpdate(
+    cameraTracks,
+    participantPageSize,
+    { customSortFunction: sortStableCameraTracks },
   );
 
   const totalParticipantPages = Math.max(
