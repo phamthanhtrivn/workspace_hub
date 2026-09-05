@@ -25,6 +25,8 @@ export class MeetingPresenterService {
       status: MeetingParticipantStatus;
       joinedAt: Date | null;
       leftAt?: Date | null;
+      lastReadMessageId?: string | null;
+      lastReadAt?: Date | null;
       updatedAt: Date;
     },
   ) {
@@ -47,6 +49,8 @@ export class MeetingPresenterService {
     status: MeetingParticipantStatus;
     joinedAt: Date | null;
     leftAt?: Date | null;
+    lastReadMessageId?: string | null;
+    lastReadAt?: Date | null;
     updatedAt: Date;
     profile?: unknown;
   }) {
@@ -58,6 +62,8 @@ export class MeetingPresenterService {
       status: participant.status,
       joinedAt: participant.joinedAt?.toISOString() ?? null,
       leftAt: participant.leftAt?.toISOString() ?? null,
+      lastReadMessageId: participant.lastReadMessageId ?? null,
+      lastReadAt: participant.lastReadAt?.toISOString() ?? null,
       updatedAt: participant.updatedAt.toISOString(),
       profile: participant.profile ?? null,
     };

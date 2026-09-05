@@ -26,7 +26,7 @@ export function MeetingRoomPanelContent({
   }
 
   if (activePanel === MeetingRoomPanel.CHAT) {
-    return <MeetingRoomChatPanel />;
+    return <MeetingRoomChatPanel joinToken={joinToken} meetingId={meetingId} />;
   }
 
   if (activePanel === MeetingRoomPanel.ADMISSION) {

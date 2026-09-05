@@ -1,18 +1,76 @@
 "use client";
 
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useMeetingRoomChat } from "../../../hooks/useMeetingRoomChat";
+import { MeetingMessageEditingBanner } from "../message/meeting-message-editing-banner";
+import { MeetingMessageInput } from "../message/meeting-message-input";
+import { MeetingMessageList } from "../message/meeting-message-list";
 
-export function MeetingRoomChatPanel() {
-  const intl = useAppIntl();
+export function MeetingRoomChatPanel({
+  joinToken,
+  meetingId,
+}: {
+  joinToken: string;
+  meetingId: string;
+}) {
+  const {
+    bottomRef,
+    containerRef,
+    currentUserId,
+    editingMessage,
+    handleCancelEdit,
+    handleMarkAsRead,
+    handleRecallMessage,
+    handleSubmit,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    loadOlderRef,
+    messages,
+    profilesByUserId,
+    reactToMessage,
+    readReceipts,
+    setEditingMessage,
+  } = useMeetingRoomChat({
+    joinToken,
+    meetingId,
+  });
 
   return (
-    <div className="mt-4 flex h-[calc(100%-3.5rem)] flex-col rounded-lg bg-white/6 p-4 ring-1 ring-white/8">
-      <div className="flex flex-1 items-center justify-center text-center text-sm font-semibold leading-6 text-slate-400">
-        <span>{intl.formatMessage({ id: "meeting.room.panel.chatEmpty" })}</span>
+    <div className="mt-4 flex h-[calc(100%-3.5rem)] min-h-0 flex-col overflow-hidden rounded-lg bg-white/6 ring-1 ring-white/8">
+      <div
+        ref={containerRef}
+        className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 [scrollbar-width:thin] [scrollbar-color:rgba(148,163,184,0.35)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-white/15"
+      >
+        <MeetingMessageList
+          messages={messages}
+          isLoading={isLoading}
+          hasNextPage={hasNextPage}
+          isFetchingNextPage={isFetchingNextPage}
+          loadOlderRef={loadOlderRef}
+          currentUserId={currentUserId}
+          profilesByUserId={profilesByUserId}
+          readReceipts={readReceipts}
+          onReact={reactToMessage}
+          onEdit={setEditingMessage}
+          onRecall={handleRecallMessage}
+          onReadMessage={handleMarkAsRead}
+        />
+        <div ref={bottomRef} className="h-1" />
       </div>
-      <div className="flex h-11 items-center rounded-lg border border-white/10 bg-black/20 px-3 text-sm font-semibold text-slate-500">
-        {intl.formatMessage({ id: "meeting.room.panel.chatInput" })}
+
+      <div className="px-3">
+        {editingMessage && (
+          <MeetingMessageEditingBanner onCancel={handleCancelEdit} />
+        )}
       </div>
+
+      <MeetingMessageInput
+        key={editingMessage?.id ?? "new-meeting-message"}
+        meetingId={meetingId}
+        editingMessage={editingMessage}
+        onSubmit={handleSubmit}
+        onCancelEdit={handleCancelEdit}
+      />
     </div>
   );
 }

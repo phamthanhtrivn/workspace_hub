@@ -205,6 +205,8 @@ export interface MeetingParticipantResponse {
   status: MeetingParticipantStatus;
   joinedAt: string | null;
   leftAt?: string | null;
+  lastReadMessageId?: string | null;
+  lastReadAt?: string | null;
   updatedAt?: string;
   profile: MeetingParticipantProfile | null;
 }
@@ -224,4 +226,73 @@ export interface MeetingEndedResponse {
   autoAdmit: boolean;
   endedBy: string;
   endedAt: string;
+}
+
+export interface MeetingMessageMediaPayload {
+  name: string;
+  s3Key: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export interface MeetingMessageMediaResponse extends MeetingMessageMediaPayload {
+  id: string;
+  messageId?: string;
+  fileUrl: string;
+  type?: "IMAGE" | "VIDEO" | "FILE" | string;
+}
+
+export interface MeetingMessageReactionResponse {
+  id?: string;
+  messageId?: string;
+  userId: string;
+  emoji: string;
+}
+
+export interface MeetingMessageResponse {
+  id: string;
+  meetingId: string;
+  senderId: string;
+  content?: string | null;
+  type: "TEXT" | string;
+  edited: boolean;
+  recalled: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+  senderProfile?: MeetingParticipantProfile | null;
+  medias?: MeetingMessageMediaResponse[];
+  reactions?: MeetingMessageReactionResponse[];
+}
+
+export interface MeetingMessagesResponse {
+  messages: MeetingMessageResponse[];
+  nextCursor?: string;
+  prevCursor?: string;
+}
+
+export interface CreateMeetingMessagePayload {
+  content?: string;
+  medias?: MeetingMessageMediaPayload[];
+}
+
+export interface EditMeetingMessagePayload {
+  content: string;
+}
+
+export interface MeetingMessageReactionPayload {
+  emoji: string;
+}
+
+export interface MeetingMessageReactionResult {
+  action: "add" | "remove" | "update";
+  emoji: string;
+}
+
+export interface MeetingMessageReadReceiptResponse {
+  meetingId: string;
+  joinToken: string;
+  messageId: string;
+  userId: string;
+  readAt: string;
 }

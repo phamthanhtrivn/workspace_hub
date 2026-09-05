@@ -3,6 +3,7 @@
 export enum ChatContextType {
   DIRECT_MESSAGE = "DIRECT_MESSAGE",
   CHANNEL = "CHANNEL",
+  MEETING = "MEETING",
 }
 
 /**

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Param,
@@ -11,11 +12,17 @@ import {
 } from '@nestjs/common';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
+import { CreateMeetingMessageDto } from './dto/create-meeting-message.dto';
+import { EditMeetingMessageDto } from './dto/edit-meeting-message.dto';
 import { ListJoinRequestsDto } from './dto/list-join-requests.dto';
+import { ListMeetingMessagesDto } from './dto/list-meeting-messages.dto';
 import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
+import { MeetingMessageReactionDto } from './dto/meeting-message-reaction.dto';
+import { ReadMeetingMessageDto } from './dto/read-meeting-message.dto';
 import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
 import { UpdateMeetingSettingsDto } from './dto/update-meeting-settings.dto';
 import { MeetingService } from './meeting.service';
+import { MeetingMessageService } from './services/meeting-message.service';
 import {
   MEETING_ERROR_MESSAGES,
   MEETING_SUCCESS_MESSAGES,
@@ -23,7 +30,10 @@ import {
 
 @Controller('api/meetings')
 export class MeetingController {
-  constructor(private readonly meetingService: MeetingService) {}
+  constructor(
+    private readonly meetingService: MeetingService,
+    private readonly meetingMessageService: MeetingMessageService,
+  ) {}
 
   @Post('instant')
   async createInstantMeeting(
@@ -92,6 +102,167 @@ export class MeetingController {
     return {
       message: MEETING_SUCCESS_MESSAGES.JOINED,
       data: meeting,
+    };
+  }
+
+  @Get(':joinToken/messages')
+  async listMeetingMessages(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Query() query: ListMeetingMessagesDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const messages = await this.meetingMessageService.listMeetingMessages({
+      joinToken,
+      userId,
+      query,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.MESSAGE_HISTORY_RETRIEVED,
+      data: messages,
+    };
+  }
+
+  @Post(':joinToken/messages')
+  async createMeetingMessage(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Body() createMeetingMessageDto: CreateMeetingMessageDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const message = await this.meetingMessageService.createMeetingMessage({
+      joinToken,
+      userId,
+      dto: createMeetingMessageDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.MESSAGE_CREATED,
+      data: message,
+    };
+  }
+
+  @Post(':joinToken/messages/read')
+  async markMeetingMessageAsRead(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Body() readMeetingMessageDto: ReadMeetingMessageDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingMessageService.markMeetingMessageAsRead({
+      joinToken,
+      userId,
+      dto: readMeetingMessageDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.MESSAGE_READ_RECEIPT_UPDATED,
+      data: result,
+    };
+  }
+
+  @Patch(':joinToken/messages/:messageId')
+  async editMeetingMessage(
+    @Param('joinToken') joinToken: string,
+    @Param('messageId') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() editMeetingMessageDto: EditMeetingMessageDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const message = await this.meetingMessageService.editMeetingMessage({
+      joinToken,
+      userId,
+      messageId,
+      dto: editMeetingMessageDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.MESSAGE_UPDATED,
+      data: message,
+    };
+  }
+
+  @Patch(':joinToken/messages/:messageId/recall')
+  async recallMeetingMessage(
+    @Param('joinToken') joinToken: string,
+    @Param('messageId') messageId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const message = await this.meetingMessageService.recallMeetingMessage({
+      joinToken,
+      userId,
+      messageId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.MESSAGE_RECALLED,
+      data: message,
+    };
+  }
+
+  @Post(':joinToken/messages/:messageId/reactions')
+  async reactMeetingMessage(
+    @Param('joinToken') joinToken: string,
+    @Param('messageId') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() reactionDto: MeetingMessageReactionDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingMessageService.reactMeetingMessage({
+      joinToken,
+      userId,
+      messageId,
+      dto: reactionDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.MESSAGE_REACTION_UPDATED,
+      data: result,
+    };
+  }
+
+  @Delete(':joinToken/messages/:messageId/reactions')
+  async removeMeetingMessageReaction(
+    @Param('joinToken') joinToken: string,
+    @Param('messageId') messageId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() reactionDto: MeetingMessageReactionDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result =
+      await this.meetingMessageService.removeMeetingMessageReaction({
+        joinToken,
+        userId,
+        messageId,
+        dto: reactionDto,
+      });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.MESSAGE_REACTION_UPDATED,
+      data: result,
     };
   }
 

@@ -24,6 +24,16 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/join`,
   joinRequests: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/join-requests`,
+  messages: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/messages`,
+  message: (joinToken: string, messageId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/messages/${encodeURIComponent(messageId)}`,
+  messageRecall: (joinToken: string, messageId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/messages/${encodeURIComponent(messageId)}/recall`,
+  messageReactions: (joinToken: string, messageId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/messages/${encodeURIComponent(messageId)}/reactions`,
+  messageRead: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/messages/read`,
   participants: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/participants`,
   removeParticipant: (joinToken: string, userId: string) =>
@@ -182,3 +192,7 @@ export const meetingActionToneClassByTone = {
 export const MIN_VISIBLE_BADGE_COUNT = 1;
 export const MAX_BADGE_COUNT = 99;
 export const OVERFLOW_BADGE_LABEL = "99+";
+
+export const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"] 
+
+export const MESSAGE_ACTION_WINDOW_MS = 24 * 60 * 60 * 1000;

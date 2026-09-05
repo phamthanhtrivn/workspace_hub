@@ -8,13 +8,32 @@ import type {
   MeetingEndedResponse,
   MeetingJoinRequestsResponse,
   MeetingJoinRequestStatusResponse,
+  MeetingMessageReactionPayload,
+  MeetingMessageReactionResult,
+  MeetingMessageReadReceiptResponse,
+  MeetingMessageResponse,
+  MeetingMessagesResponse,
   MeetingParticipantResponse,
   MeetingParticipantRole,
   MeetingParticipantsResponse,
   MeetingSettingsResponse,
   MeetingAccessResponse,
+  CreateMeetingMessagePayload,
+  EditMeetingMessagePayload,
 } from "../types/meeting.types";
 import type { ApiResponse } from "@/features/chat/types/chat.types";
+import { ChatContextType } from "@/features/chat/types/chat.enums";
+
+export interface MeetingPresignRequest {
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export interface MeetingPresignResponse extends MeetingPresignRequest {
+  s3Key: string;
+  presignedUrl: string;
+}
 
 export const createInstantMeeting = async (
   payload: CreateInstantMeetingPayload,
@@ -85,6 +104,117 @@ export const getMeetingParticipants = async ({
     params: { search, page, limit },
   });
   return normalizeApiResponse<MeetingParticipantsResponse>(response.data);
+};
+
+export const getMeetingMessages = async ({
+  joinToken,
+  cursor,
+  limit,
+  direction,
+}: {
+  joinToken: string;
+  cursor?: string;
+  limit?: number;
+  direction?: "older" | "newer" | "around";
+}): Promise<ApiResponse<MeetingMessagesResponse>> => {
+  const response = await api.get(MEETING_API_PATHS.messages(joinToken), {
+    params: { cursor, limit, direction },
+  });
+  return normalizeApiResponse<MeetingMessagesResponse>(response.data);
+};
+
+export const getMeetingMediaPresignedUrls = async ({
+  meetingId,
+  files,
+}: {
+  meetingId: string;
+  files: MeetingPresignRequest[];
+}): Promise<MeetingPresignResponse[]> => {
+  const response = await api.post("/api/medias/presign", {
+    chatId: meetingId,
+    chatType: ChatContextType.MEETING,
+    files,
+  });
+  return normalizeApiResponse<MeetingPresignResponse[]>(response.data).data;
+};
+
+export const uploadMeetingMediaToS3 = async (
+  file: File,
+  presignedUrl: string,
+): Promise<boolean> => {
+  const response = await fetch(presignedUrl, {
+    method: "PUT",
+    body: file,
+    headers: {
+      "Content-Type": file.type,
+    },
+  });
+
+  return response.ok;
+};
+
+export const sendMeetingMessage = async (
+  joinToken: string,
+  payload: CreateMeetingMessagePayload,
+): Promise<ApiResponse<MeetingMessageResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.messages(joinToken), payload);
+  return normalizeApiResponse<MeetingMessageResponse>(response.data);
+};
+
+export const editMeetingMessage = async (
+  joinToken: string,
+  messageId: string,
+  payload: EditMeetingMessagePayload,
+): Promise<ApiResponse<MeetingMessageResponse>> => {
+  const response = await api.patch(
+    MEETING_API_PATHS.message(joinToken, messageId),
+    payload,
+  );
+  return normalizeApiResponse<MeetingMessageResponse>(response.data);
+};
+
+export const recallMeetingMessage = async (
+  joinToken: string,
+  messageId: string,
+): Promise<ApiResponse<MeetingMessageResponse>> => {
+  const response = await api.patch(
+    MEETING_API_PATHS.messageRecall(joinToken, messageId),
+  );
+  return normalizeApiResponse<MeetingMessageResponse>(response.data);
+};
+
+export const reactMeetingMessage = async (
+  joinToken: string,
+  messageId: string,
+  payload: MeetingMessageReactionPayload,
+): Promise<ApiResponse<MeetingMessageReactionResult>> => {
+  const response = await api.post(
+    MEETING_API_PATHS.messageReactions(joinToken, messageId),
+    payload,
+  );
+  return normalizeApiResponse<MeetingMessageReactionResult>(response.data);
+};
+
+export const removeMeetingMessageReaction = async (
+  joinToken: string,
+  messageId: string,
+  payload: MeetingMessageReactionPayload,
+): Promise<ApiResponse<MeetingMessageReactionResult>> => {
+  const response = await api.delete(
+    MEETING_API_PATHS.messageReactions(joinToken, messageId),
+    { data: payload },
+  );
+  return normalizeApiResponse<MeetingMessageReactionResult>(response.data);
+};
+
+export const markMeetingMessageAsRead = async (
+  joinToken: string,
+  messageId: string,
+): Promise<ApiResponse<MeetingMessageReadReceiptResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.messageRead(joinToken), {
+    messageId,
+  });
+  return normalizeApiResponse<MeetingMessageReadReceiptResponse>(response.data);
 };
 
 export const leaveMeeting = async (

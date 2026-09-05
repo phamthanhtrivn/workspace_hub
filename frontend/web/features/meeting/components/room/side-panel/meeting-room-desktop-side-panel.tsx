@@ -22,7 +22,7 @@ export function MeetingRoomDesktopSidePanel({
   if (activePanel === MeetingRoomPanel.NONE) return null;
 
   return (
-    <aside className="hidden min-h-0 w-80 shrink-0 flex-col border-l border-white/10 bg-[#0d1420] p-4 lg:flex">
+    <aside className="hidden min-h-0 w-100 shrink-0 flex-col border-l border-white/10 bg-[#0d1420] p-4 lg:flex">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-base font-black">
           {intl.formatMessage({ id: getPanelTitleLabelId(activePanel) })}

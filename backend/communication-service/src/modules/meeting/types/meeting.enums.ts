@@ -17,6 +17,12 @@ export enum MEETING_SUCCESS_MESSAGES {
   PARTICIPANT_REMOVED = 'Meeting participant removed successfully',
   PARTICIPANT_ROLE_UPDATED = 'Meeting participant role updated successfully',
   ENDED = 'Meeting ended successfully',
+  MESSAGE_CREATED = 'Meeting message created successfully',
+  MESSAGE_UPDATED = 'Meeting message updated successfully',
+  MESSAGE_RECALLED = 'Meeting message recalled successfully',
+  MESSAGE_HISTORY_RETRIEVED = 'Meeting message history retrieved successfully',
+  MESSAGE_REACTION_UPDATED = 'Meeting message reaction updated successfully',
+  MESSAGE_READ_RECEIPT_UPDATED = 'Meeting message read receipt updated successfully',
 }
 
 export enum MEETING_ERROR_MESSAGES {
@@ -34,4 +40,12 @@ export enum MEETING_ERROR_MESSAGES {
   CANNOT_DEMOTE_CURRENT_HOST = 'Transfer host before changing the current host role',
   LIVEKIT_NOT_CONFIGURED = 'LiveKit is not configured',
   INSTANT_CREATE_FAILED = 'Failed to create instant meeting',
+  INVALID_MESSAGE_DATA = 'Invalid meeting message data',
+  MESSAGE_NOT_FOUND = 'Meeting message not found',
+  MESSAGE_EDIT_FORBIDDEN = 'You can only edit your own meeting messages',
+  MESSAGE_RECALL_FORBIDDEN = 'You can only recall your own meeting messages',
+  MESSAGE_EDIT_WINDOW_EXPIRED = 'Meeting messages can only be edited within 24 hours',
+  MESSAGE_RECALL_WINDOW_EXPIRED = 'Meeting messages can only be recalled within 24 hours',
+  MESSAGE_RECALLED = 'Meeting message has been recalled',
+  MESSAGE_CONTENT_REQUIRED = 'Meeting message content cannot be empty',
 }

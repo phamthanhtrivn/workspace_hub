@@ -280,7 +280,7 @@ export interface FollowedThreadResponse {
   rootMessage: ChatMessageResponse;
   chat: ConversationResponse;
   chatId: string;
-  chatType: ChatContextType;
+  chatType: ChatUiType;
   chatName: string | null;
   replyCount: number;
   lastReplyAt: string | null;
