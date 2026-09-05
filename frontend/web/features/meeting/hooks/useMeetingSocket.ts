@@ -9,6 +9,7 @@ import {
   type MeetingEndedPayload,
   type MeetingHostTransferredPayload,
   type MeetingParticipantJoinedPayload,
+  type MeetingParticipantLeftPayload,
   MeetingSocketEvent,
   type MeetingJoinRequestUpdatedPayload,
   type MeetingParticipantRemovedPayload,
@@ -22,6 +23,7 @@ interface MeetingSocketOptions {
   onStatusUpdated?: (payload: MeetingStatusUpdatedPayload) => void;
   onMeetingEnded?: (payload: MeetingEndedPayload) => void;
   onParticipantJoined?: (payload: MeetingParticipantJoinedPayload) => void;
+  onParticipantLeft?: (payload: MeetingParticipantLeftPayload) => void;
   onParticipantUpdated?: (payload: MeetingParticipantUpdatedPayload) => void;
   onParticipantRemoved?: (payload: MeetingParticipantRemovedPayload) => void;
   onHostTransferred?: (payload: MeetingHostTransferredPayload) => void;
@@ -39,6 +41,7 @@ export function useMeetingSocket({
   onStatusUpdated,
   onMeetingEnded,
   onParticipantJoined,
+  onParticipantLeft,
   onParticipantUpdated,
   onParticipantRemoved,
   onHostTransferred,
@@ -66,6 +69,9 @@ export function useMeetingSocket({
     ) => {
       onParticipantJoined?.(payload);
     };
+    const handleParticipantLeft = (payload: MeetingParticipantLeftPayload) => {
+      onParticipantLeft?.(payload);
+    };
     const handleParticipantUpdated = (
       payload: MeetingParticipantUpdatedPayload,
     ) => {
@@ -90,6 +96,7 @@ export function useMeetingSocket({
     };
 
     socket.on(MeetingSocketEvent.PARTICIPANT_JOINED, handleParticipantJoined);
+    socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleParticipantLeft);
     socket.on(MeetingSocketEvent.PARTICIPANT_UPDATED, handleParticipantUpdated);
     socket.on(MeetingSocketEvent.PARTICIPANT_REMOVED, handleParticipantRemoved);
     socket.on(MeetingSocketEvent.HOST_TRANSFERRED, handleHostTransferred);
@@ -106,6 +113,7 @@ export function useMeetingSocket({
         MeetingSocketEvent.PARTICIPANT_JOINED,
         handleParticipantJoined,
       );
+      socket.off(MeetingSocketEvent.PARTICIPANT_LEFT, handleParticipantLeft);
       socket.off(
         MeetingSocketEvent.PARTICIPANT_UPDATED,
         handleParticipantUpdated,
@@ -131,6 +139,7 @@ export function useMeetingSocket({
     onJoinRequested,
     onMeetingEnded,
     onParticipantJoined,
+    onParticipantLeft,
     onParticipantRemoved,
     onParticipantUpdated,
     onStatusUpdated,

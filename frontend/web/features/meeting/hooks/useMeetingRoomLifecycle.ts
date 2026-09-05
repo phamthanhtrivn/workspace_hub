@@ -20,6 +20,7 @@ import type {
   MeetingEndedPayload,
   MeetingHostTransferredPayload,
   MeetingParticipantJoinedPayload,
+  MeetingParticipantLeftPayload,
   MeetingParticipantRemovedPayload,
   MeetingParticipantUpdatedPayload,
   MeetingStatusUpdatedPayload,
@@ -148,6 +149,29 @@ export function useMeetingRoomLifecycle({
     [invalidateMeetingParticipants, meetingId],
   );
 
+  const handleParticipantLeft = useCallback(
+    (payload: MeetingParticipantLeftPayload) => {
+      if (payload.meetingId !== meetingId) return;
+
+      if (payload.userId === authUser.userId) {
+        clearMeetingRoomQueries();
+        leaveRoom();
+        return;
+      }
+
+      removeParticipantFromCachedPages(payload.userId);
+      invalidateMeetingRoomState();
+    },
+    [
+      authUser.userId,
+      clearMeetingRoomQueries,
+      invalidateMeetingRoomState,
+      leaveRoom,
+      meetingId,
+      removeParticipantFromCachedPages,
+    ],
+  );
+
   const handleParticipantUpdated = useCallback(
     (payload: MeetingParticipantUpdatedPayload) => {
       if (payload.meetingId !== meetingId) return;
@@ -226,6 +250,7 @@ export function useMeetingRoomLifecycle({
     onStatusUpdated: handleStatusUpdated,
     onMeetingEnded: handleMeetingEnded,
     onParticipantJoined: handleParticipantJoined,
+    onParticipantLeft: handleParticipantLeft,
     onParticipantUpdated: handleParticipantUpdated,
     onParticipantRemoved: handleParticipantRemoved,
     onHostTransferred: handleHostTransferred,
