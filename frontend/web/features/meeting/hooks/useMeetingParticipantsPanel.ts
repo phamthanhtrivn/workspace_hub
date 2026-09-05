@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useParticipants } from "@livekit/components-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import {
@@ -28,10 +27,10 @@ const EMPTY_MEETING_PARTICIPANTS: MeetingParticipantResponse[] = [];
 export interface MeetingParticipantListItemState {
   participant: MeetingParticipantResponse;
   displayName: string;
+  email: string;
   avatarUrl?: string | null;
   roleLabelId: string | null;
   isSelf: boolean;
-  isOnline: boolean;
   canRemove: boolean;
   canManageRole: boolean;
   canPromoteToCohost: boolean;
@@ -52,7 +51,6 @@ export function useMeetingParticipantsPanel({
 }: UseMeetingParticipantsPanelParams) {
   const intl = useAppIntl();
   const authUser = useAppSelector((state) => state.auth);
-  const liveParticipants = useParticipants();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const participantsQuery = useMeetingParticipants({
@@ -67,10 +65,6 @@ export function useMeetingParticipantsPanel({
   const totalPages = participantPage?.totalPages ?? 1;
   const hasParticipants = participantItems.length > 0;
   const shouldShowPagination = hasParticipants && totalPages > 1;
-  const liveParticipantIds = useMemo(
-    () => new Set(liveParticipants.map((participant) => participant.identity)),
-    [liveParticipants],
-  );
   const isBusy =
     actions.removeParticipant.isPending || actions.updateRole.isPending;
 
@@ -86,6 +80,9 @@ export function useMeetingParticipantsPanel({
         const avatarUrl = isSelf
           ? authUser.avatarUrl || participant.profile?.avatarUrl
           : participant.profile?.avatarUrl;
+        const email = isSelf
+          ? authUser.email || participant.profile?.email || participant.userId
+          : participant.profile?.email || participant.userId;
         const canManageRole =
           participantRole === MEETING_ROLE.HOST &&
           !isSelf &&
@@ -94,10 +91,10 @@ export function useMeetingParticipantsPanel({
         return {
           participant,
           displayName,
+          email,
           avatarUrl,
           roleLabelId: getRoleLabelId(participant.role),
           isSelf,
-          isOnline: liveParticipantIds.has(participant.userId),
           canRemove: canRemoveMeetingParticipant({
             actorRole: participantRole,
             targetRole: participant.role,
@@ -115,7 +112,6 @@ export function useMeetingParticipantsPanel({
       authUser.email,
       authUser.fullName,
       authUser.userId,
-      liveParticipantIds,
       participantItems,
       participantRole,
     ],

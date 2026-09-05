@@ -5,6 +5,7 @@ import { useRoomContext } from "@livekit/components-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Swal from "sweetalert2";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import {
@@ -78,6 +79,27 @@ export function useMeetingRoomLifecycle({
     invalidateMeetingIdentityState();
   }, [invalidateMeetingIdentityState, invalidateMeetingParticipants]);
 
+  const clearMeetingRoomQueries = useCallback(() => {
+    void queryClient.cancelQueries({
+      queryKey: meetingKeys.participantsRoot(joinToken),
+    });
+    void queryClient.cancelQueries({
+      queryKey: meetingKeys.access(joinToken),
+    });
+    void queryClient.cancelQueries({
+      queryKey: meetingKeys.room(joinToken),
+    });
+    queryClient.removeQueries({
+      queryKey: meetingKeys.participantsRoot(joinToken),
+    });
+    queryClient.removeQueries({
+      queryKey: meetingKeys.access(joinToken),
+    });
+    queryClient.removeQueries({
+      queryKey: meetingKeys.room(joinToken),
+    });
+  }, [joinToken, queryClient]);
+
   const leaveRoom = useCallback(() => {
     room.disconnect();
     router.push(MEETING_ROUTES.DASHBOARD);
@@ -89,6 +111,8 @@ export function useMeetingRoomLifecycle({
 
       setAutoAdmit(payload.autoAdmit);
       patchRoomAutoAdmit(payload.autoAdmit);
+      if (payload.status === "ENDED") return;
+
       invalidateMeetingIdentityState();
     },
     [invalidateMeetingIdentityState, meetingId, patchRoomAutoAdmit],
@@ -102,13 +126,13 @@ export function useMeetingRoomLifecycle({
         toast.info(intl.formatMessage({ id: "meeting.room.endedByHost" }));
       }
 
-      invalidateMeetingRoomState();
+      clearMeetingRoomQueries();
       leaveRoom();
     },
     [
       authUser.userId,
+      clearMeetingRoomQueries,
       intl,
-      invalidateMeetingRoomState,
       leaveRoom,
       meetingId,
     ],
@@ -149,16 +173,19 @@ export function useMeetingRoomLifecycle({
     (payload: MeetingParticipantRemovedPayload) => {
       if (payload.meetingId !== meetingId) return;
 
-      removeParticipantFromCachedPages(payload.userId);
-      invalidateMeetingRoomState();
-
       if (payload.userId === authUser.userId) {
         toast.info(intl.formatMessage({ id: "meeting.room.removedByHost" }));
+        clearMeetingRoomQueries();
         leaveRoom();
+        return;
       }
+
+      removeParticipantFromCachedPages(payload.userId);
+      invalidateMeetingRoomState();
     },
     [
       authUser.userId,
+      clearMeetingRoomQueries,
       intl,
       invalidateMeetingRoomState,
       leaveRoom,
@@ -206,30 +233,36 @@ export function useMeetingRoomLifecycle({
   const handleLeave = useCallback(() => {
     leaveMeetingMutation.mutate(undefined, {
       onSuccess: () => {
-        invalidateMeetingRoomState();
+        clearMeetingRoomQueries();
         leaveRoom();
       },
       onError: () => {
         toast.error(intl.formatMessage({ id: "meeting.room.leaveFailed" }));
       },
     });
-  }, [intl, invalidateMeetingRoomState, leaveMeetingMutation, leaveRoom]);
+  }, [clearMeetingRoomQueries, intl, leaveMeetingMutation, leaveRoom]);
 
-  const handleEndForEveryone = useCallback(() => {
-    const confirmed = window.confirm(
-      intl.formatMessage({ id: "meeting.room.endConfirm" }),
-    );
+  const handleEndForEveryone = useCallback(async () => {
+    const result = await Swal.fire({
+      title: intl.formatMessage({ id: "meeting.room.endConfirm" }),
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: intl.formatMessage({ id: "meeting.room.control.end" }),
+      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+    });
 
-    if (!confirmed) return;
+    if (!result.isConfirmed) return;
 
     endMeetingMutation.mutate(undefined, {
       onSuccess: () => {
         toast.success(intl.formatMessage({ id: "meeting.room.endSuccess" }));
-        invalidateMeetingRoomState();
+        clearMeetingRoomQueries();
         leaveRoom();
       },
     });
-  }, [endMeetingMutation, intl, invalidateMeetingRoomState, leaveRoom]);
+  }, [clearMeetingRoomQueries, endMeetingMutation, intl, leaveRoom]);
 
   return {
     autoAdmit,

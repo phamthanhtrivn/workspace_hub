@@ -708,6 +708,7 @@
   "meeting.participants.search": "Tìm theo tên hoặc email...",
   "meeting.participants.loading": "Đang tải thành viên...",
   "meeting.participants.empty": "Không có thành viên đang tham gia.",
+  "meeting.participants.actions": "Tùy chọn thành viên",
   "meeting.participants.online": "Đang trong phòng",
   "meeting.participants.reconnecting": "Đang kết nối lại",
   "meeting.participants.makeCohost": "Trao co-host",

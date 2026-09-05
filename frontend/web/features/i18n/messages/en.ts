@@ -712,6 +712,7 @@
   "meeting.participants.search": "Search by name or email...",
   "meeting.participants.loading": "Loading participants...",
   "meeting.participants.empty": "No participants are currently in the meeting.",
+  "meeting.participants.actions": "Participant options",
   "meeting.participants.online": "In meeting",
   "meeting.participants.reconnecting": "Reconnecting",
   "meeting.participants.makeCohost": "Make co-host",

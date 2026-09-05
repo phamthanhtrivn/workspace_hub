@@ -14,6 +14,10 @@ import {
   type MeetingParticipantRole,
 } from "@/features/meeting/types/meeting.types";
 import { getInitials } from "@/features/meeting/utils/meeting-room.utils";
+import {
+  MeetingIconDropdown,
+  type MeetingIconDropdownItem,
+} from "./meeting-icon-dropdown";
 
 interface MeetingParticipantListItemProps {
   item: MeetingParticipantListItemState;
@@ -32,6 +36,50 @@ export function MeetingParticipantListItem({
   onRoleChange,
 }: MeetingParticipantListItemProps) {
   const intl = useAppIntl();
+  const actionItems: MeetingIconDropdownItem[] = [];
+
+  if (item.canPromoteToCohost) {
+    actionItems.push({
+      id: "make-cohost",
+      label: intl.formatMessage({ id: "meeting.participants.makeCohost" }),
+      icon: ShieldCheck,
+      disabled: isBusy,
+      onSelect: () => onRoleChange(item.participant, MEETING_ROLE.COHOST),
+    });
+  }
+
+  if (item.canDemoteToParticipant) {
+    actionItems.push({
+      id: "make-participant",
+      label: intl.formatMessage({
+        id: "meeting.participants.makeParticipant",
+      }),
+      icon: ShieldOff,
+      disabled: isBusy,
+      onSelect: () => onRoleChange(item.participant, MEETING_ROLE.PARTICIPANT),
+    });
+  }
+
+  if (item.canManageRole) {
+    actionItems.push({
+      id: "make-host",
+      label: intl.formatMessage({ id: "meeting.participants.makeHost" }),
+      icon: Crown,
+      disabled: isBusy,
+      onSelect: () => onRoleChange(item.participant, MEETING_ROLE.HOST),
+    });
+  }
+
+  if (item.canRemove) {
+    actionItems.push({
+      id: "remove",
+      label: intl.formatMessage({ id: "meeting.participants.remove" }),
+      icon: UserMinus,
+      disabled: isBusy,
+      danger: true,
+      onSelect: () => onRemove(item.participant),
+    });
+  }
 
   return (
     <article className="rounded-lg bg-white/6 p-3 ring-1 ring-white/8">
@@ -60,15 +108,8 @@ export function MeetingParticipantListItem({
               </span>
             ) : null}
           </span>
-          <span className="mt-1 flex min-w-0 items-center gap-2">
-            <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
-            <span className="truncate text-xs font-semibold text-slate-400">
-              {intl.formatMessage({
-                id: item.isOnline
-                  ? "meeting.participants.online"
-                  : "meeting.participants.reconnecting",
-              })}
-            </span>
+          <span className="mt-1 block truncate text-xs font-semibold text-slate-400">
+            {item.email}
           </span>
         </span>
 
@@ -77,62 +118,12 @@ export function MeetingParticipantListItem({
             {intl.formatMessage({ id: item.roleLabelId })}
           </span>
         ) : null}
-      </div>
 
-      {item.canManageRole || item.canRemove ? (
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          {item.canPromoteToCohost ? (
-            <button
-              type="button"
-              disabled={isBusy}
-              onClick={() =>
-                onRoleChange(item.participant, MEETING_ROLE.COHOST)
-              }
-              className="flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md bg-white/10 px-2 text-xs font-black text-slate-200 transition hover:bg-blue-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ShieldCheck className="h-3.5 w-3.5" />
-              {intl.formatMessage({ id: "meeting.participants.makeCohost" })}
-            </button>
-          ) : null}
-          {item.canDemoteToParticipant ? (
-            <button
-              type="button"
-              disabled={isBusy}
-              onClick={() =>
-                onRoleChange(item.participant, MEETING_ROLE.PARTICIPANT)
-              }
-              className="flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md bg-white/10 px-2 text-xs font-black text-slate-200 transition hover:bg-slate-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ShieldOff className="h-3.5 w-3.5" />
-              {intl.formatMessage({
-                id: "meeting.participants.makeParticipant",
-              })}
-            </button>
-          ) : null}
-          {item.canManageRole ? (
-            <button
-              type="button"
-              disabled={isBusy}
-              onClick={() => onRoleChange(item.participant, MEETING_ROLE.HOST)}
-              className="flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md bg-amber-500 px-2 text-xs font-black text-white transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <Crown className="h-3.5 w-3.5" />
-              {intl.formatMessage({ id: "meeting.participants.makeHost" })}
-            </button>
-          ) : null}
-          {item.canRemove ? (
-            <button
-              type="button"
-              disabled={isBusy}
-              onClick={() => onRemove(item.participant)}
-              className="flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md bg-white/10 px-2 text-xs font-black text-slate-200 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <UserMinus className="h-3.5 w-3.5" />
-              {intl.formatMessage({ id: "meeting.participants.remove" })}
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+        <MeetingIconDropdown
+          label={intl.formatMessage({ id: "meeting.participants.actions" })}
+          items={actionItems}
+        />
+      </div>
     </article>
   );
 }
