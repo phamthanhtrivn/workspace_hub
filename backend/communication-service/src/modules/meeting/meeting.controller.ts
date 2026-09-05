@@ -12,6 +12,8 @@ import {
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import { ListJoinRequestsDto } from './dto/list-join-requests.dto';
+import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
+import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
 import { UpdateMeetingSettingsDto } from './dto/update-meeting-settings.dto';
 import { MeetingService } from './meeting.service';
 import {
@@ -112,6 +114,114 @@ export class MeetingController {
     return {
       message: MEETING_SUCCESS_MESSAGES.SETTINGS_UPDATED,
       data: settings,
+    };
+  }
+
+  @Get(':joinToken/participants')
+  async listParticipants(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Query() query: ListMeetingParticipantsDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const participants = await this.meetingService.listMeetingParticipants({
+      joinToken,
+      userId,
+      query,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.PARTICIPANTS_LISTED,
+      data: participants,
+    };
+  }
+
+  @Post(':joinToken/leave')
+  async leaveMeeting(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingService.leaveMeeting({
+      joinToken,
+      userId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_LEFT,
+      data: result,
+    };
+  }
+
+  @Post(':joinToken/end')
+  async endMeeting(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingService.endMeeting({
+      joinToken,
+      userId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.ENDED,
+      data: result,
+    };
+  }
+
+  @Post(':joinToken/participants/:targetUserId/remove')
+  async removeParticipant(
+    @Param('joinToken') joinToken: string,
+    @Param('targetUserId') targetUserId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingService.removeParticipant({
+      joinToken,
+      userId,
+      targetUserId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_REMOVED,
+      data: result,
+    };
+  }
+
+  @Patch(':joinToken/participants/:targetUserId/role')
+  async updateParticipantRole(
+    @Param('joinToken') joinToken: string,
+    @Param('targetUserId') targetUserId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() updateRoleDto: UpdateMeetingParticipantRoleDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingService.updateParticipantRole({
+      joinToken,
+      userId,
+      targetUserId,
+      dto: updateRoleDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_ROLE_UPDATED,
+      data: result,
     };
   }
 

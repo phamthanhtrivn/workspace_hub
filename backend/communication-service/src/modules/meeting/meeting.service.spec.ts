@@ -36,6 +36,7 @@ interface MeetingParticipantMock {
   role: MeetingRole;
   status: MeetingParticipantStatus;
   joinedAt: Date | null;
+  leftAt?: Date | null;
   updatedAt?: Date;
 }
 
@@ -89,10 +90,17 @@ describe('MeetingService', () => {
       },
     };
     const prisma = {
-      $transaction: jest.fn(
-        (handler: (transaction: MeetingTransactionMock) => Promise<CreatedMeetingMock>) =>
-          handler(tx),
-      ),
+      $transaction: jest.fn((input: unknown) => {
+        if (Array.isArray(input)) {
+          return Promise.all(input);
+        }
+
+        return (
+          input as (
+            transaction: MeetingTransactionMock,
+          ) => Promise<CreatedMeetingMock>
+        )(tx);
+      }),
       meeting: {
         findUnique: jest.fn().mockResolvedValue({
           ...meetingRecord,
@@ -119,10 +127,14 @@ describe('MeetingService', () => {
     const liveKitService = {
       isConfigured: jest.fn().mockReturnValue(true),
       createRoom: jest.fn(),
+      deleteRoom: jest.fn(),
+      removeParticipant: jest.fn(),
+      updateParticipantMetadata: jest.fn(),
       createParticipantToken: jest.fn().mockResolvedValue('livekit-token'),
       getServerUrl: jest.fn().mockReturnValue('wss://livekit.test'),
     } as jest.Mocked<LiveKitService>;
     const userProfileSnapshotService = {
+      getProfilesByUserIds: jest.fn(async () => new Map()),
       attachProfilesToMembers: jest.fn(async (members) =>
         members.map((member) => ({ ...member, profile: null })),
       ),
@@ -637,5 +649,399 @@ describe('MeetingService', () => {
     expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalled();
     expect(meetingSocketHandler.emitToUser).toHaveBeenCalled();
     expect(result.status).toBe(MeetingParticipantStatus.APPROVED);
+  });
+
+  it('lists joined meeting participants with profile search and pagination', async () => {
+    const { service, prisma, userProfileSnapshotService } = createService();
+    const joinedAt = new Date('2026-09-01T01:00:00.000Z');
+    const participant = {
+      id: 'participant-id',
+      meetingId: meetingRecord.id,
+      userId: guestUserId,
+      role: MeetingRole.PARTICIPANT,
+      status: MeetingParticipantStatus.JOINED,
+      joinedAt,
+      leftAt: null,
+      updatedAt: joinedAt,
+    };
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      participants: [
+        {
+          id: 'host-participant-id',
+          meetingId: meetingRecord.id,
+          userId,
+          role: MeetingRole.HOST,
+          status: MeetingParticipantStatus.JOINED,
+          joinedAt: createdAt,
+        },
+      ],
+    });
+    prisma.userProfileSnapshot.findMany = jest
+      .fn()
+      .mockResolvedValue([{ userId: guestUserId }]);
+    prisma.meetingParticipant.count = jest.fn().mockResolvedValue(1);
+    prisma.meetingParticipant.findMany = jest.fn().mockResolvedValue([participant]);
+    userProfileSnapshotService.attachProfilesToMembers.mockResolvedValue([
+      {
+        ...participant,
+        profile: {
+          id: guestUserId,
+          userId: guestUserId,
+          email: 'guest@test.dev',
+          fullName: 'Guest User',
+          avatarUrl: null,
+        },
+      },
+    ]);
+
+    const result = await service.listMeetingParticipants({
+      joinToken: 'join-token',
+      userId,
+      query: { search: 'guest', page: 2, limit: 8 },
+    });
+
+    expect(prisma.userProfileSnapshot.findMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { fullName: { contains: 'guest', mode: 'insensitive' } },
+          { email: { contains: 'guest', mode: 'insensitive' } },
+        ],
+      },
+      select: { userId: true },
+    });
+    expect(prisma.meetingParticipant.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skip: 8,
+        take: 8,
+      }),
+    );
+    expect(result).toEqual({
+      items: [
+        expect.objectContaining({
+          id: 'participant-id',
+          userId: guestUserId,
+          role: MeetingRole.PARTICIPANT,
+          joinedAt: joinedAt.toISOString(),
+        }),
+      ],
+      page: 2,
+      limit: 8,
+      total: 1,
+      totalPages: 1,
+    });
+  });
+
+  it('saves a participant leave action and emits participant updates', async () => {
+    const { service, prisma, meetingSocketHandler } = createService();
+    const joinedAt = new Date('2026-09-01T01:00:00.000Z');
+    const participant = {
+      id: 'participant-id',
+      meetingId: meetingRecord.id,
+      userId: guestUserId,
+      role: MeetingRole.PARTICIPANT,
+      status: MeetingParticipantStatus.JOINED,
+      joinedAt,
+      updatedAt: joinedAt,
+    };
+    const leftParticipant = {
+      ...participant,
+      status: MeetingParticipantStatus.LEFT,
+      leftAt: new Date('2026-09-01T01:30:00.000Z'),
+    };
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      participants: [participant],
+    });
+    prisma.meetingParticipant.update = jest
+      .fn()
+      .mockResolvedValue(leftParticipant);
+
+    const result = await service.leaveMeeting({
+      joinToken: 'join-token',
+      userId: guestUserId,
+    });
+
+    expect(prisma.meetingParticipant.update).toHaveBeenCalledWith({
+      where: { id: 'participant-id' },
+      data: expect.objectContaining({
+        status: MeetingParticipantStatus.LEFT,
+        leftAt: expect.objectContaining({}) as Date,
+      }),
+    });
+    expect(prisma.meetingEvent.create).toHaveBeenCalledWith({
+      data: {
+        meetingId: meetingRecord.id,
+        actorId: guestUserId,
+        type: MeetingEventType.PARTICIPANT_LEFT,
+      },
+    });
+    expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalled();
+    expect(result.status).toBe(MeetingParticipantStatus.LEFT);
+  });
+
+  it('allows the host to end the meeting for everyone', async () => {
+    const { service, prisma, liveKitService, meetingSocketHandler } =
+      createService();
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      participants: [
+        {
+          id: 'host-participant-id',
+          meetingId: meetingRecord.id,
+          userId,
+          role: MeetingRole.HOST,
+          status: MeetingParticipantStatus.JOINED,
+          joinedAt: createdAt,
+        },
+      ],
+    });
+    prisma.meeting.update = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      status: MeetingStatus.ENDED,
+    });
+    prisma.meetingParticipant.updateMany = jest
+      .fn()
+      .mockResolvedValue({ count: 2 });
+    prisma.meetingEvent.create = jest.fn().mockResolvedValue({});
+
+    const result = await service.endMeeting({
+      joinToken: 'join-token',
+      userId,
+    });
+
+    expect(prisma.meeting.update).toHaveBeenCalledWith({
+      where: { id: meetingRecord.id },
+      data: expect.objectContaining({
+        status: MeetingStatus.ENDED,
+        endedAt: expect.objectContaining({}) as Date,
+      }),
+    });
+    expect(prisma.meetingParticipant.updateMany).toHaveBeenCalledWith({
+      where: {
+        meetingId: meetingRecord.id,
+        status: MeetingParticipantStatus.JOINED,
+      },
+      data: expect.objectContaining({
+        status: MeetingParticipantStatus.LEFT,
+      }),
+    });
+    expect(liveKitService.deleteRoom).toHaveBeenCalledWith(
+      meetingRecord.roomName,
+    );
+    expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalled();
+    expect(result.status).toBe(MeetingStatus.ENDED);
+  });
+
+  it('prevents non-hosts from ending the meeting', async () => {
+    const { service, prisma } = createService();
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      participants: [
+        {
+          id: 'guest-participant-id',
+          meetingId: meetingRecord.id,
+          userId: guestUserId,
+          role: MeetingRole.COHOST,
+          status: MeetingParticipantStatus.JOINED,
+          joinedAt: createdAt,
+        },
+      ],
+    });
+
+    await expect(
+      service.endMeeting({
+        joinToken: 'join-token',
+        userId: guestUserId,
+      }),
+    ).rejects.toThrow(
+      new ForbiddenException(MEETING_ERROR_MESSAGES.MEETING_HOST_REQUIRED),
+    );
+  });
+
+  it('allows a co-host to remove a regular participant', async () => {
+    const { service, prisma, liveKitService, meetingSocketHandler } =
+      createService();
+    const cohostId = '9d3538b6-3a0d-44a4-9979-fec1ff2b5c22';
+    const joinedAt = new Date('2026-09-01T01:00:00.000Z');
+    const targetParticipant = {
+      id: 'target-participant-id',
+      meetingId: meetingRecord.id,
+      userId: guestUserId,
+      role: MeetingRole.PARTICIPANT,
+      status: MeetingParticipantStatus.JOINED,
+      joinedAt,
+      updatedAt: joinedAt,
+    };
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      participants: [
+        {
+          id: 'cohost-participant-id',
+          meetingId: meetingRecord.id,
+          userId: cohostId,
+          role: MeetingRole.COHOST,
+          status: MeetingParticipantStatus.JOINED,
+          joinedAt,
+        },
+      ],
+    });
+    prisma.meetingParticipant.findUnique = jest
+      .fn()
+      .mockResolvedValue(targetParticipant);
+    prisma.meetingParticipant.update = jest.fn().mockResolvedValue({
+      ...targetParticipant,
+      status: MeetingParticipantStatus.REMOVED,
+      leftAt: new Date('2026-09-01T01:30:00.000Z'),
+    });
+
+    const result = await service.removeParticipant({
+      joinToken: 'join-token',
+      userId: cohostId,
+      targetUserId: guestUserId,
+    });
+
+    expect(prisma.meetingParticipant.update).toHaveBeenCalledWith({
+      where: { id: 'target-participant-id' },
+      data: expect.objectContaining({
+        status: MeetingParticipantStatus.REMOVED,
+      }),
+    });
+    expect(liveKitService.removeParticipant).toHaveBeenCalledWith(
+      meetingRecord.roomName,
+      guestUserId,
+    );
+    expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalled();
+    expect(result.status).toBe(MeetingParticipantStatus.REMOVED);
+  });
+
+  it('prevents co-hosts from removing another co-host', async () => {
+    const { service, prisma } = createService();
+    const cohostId = '9d3538b6-3a0d-44a4-9979-fec1ff2b5c22';
+    const joinedAt = new Date('2026-09-01T01:00:00.000Z');
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      participants: [
+        {
+          id: 'cohost-participant-id',
+          meetingId: meetingRecord.id,
+          userId: cohostId,
+          role: MeetingRole.COHOST,
+          status: MeetingParticipantStatus.JOINED,
+          joinedAt,
+        },
+      ],
+    });
+    prisma.meetingParticipant.findUnique = jest.fn().mockResolvedValue({
+      id: 'target-participant-id',
+      meetingId: meetingRecord.id,
+      userId: guestUserId,
+      role: MeetingRole.COHOST,
+      status: MeetingParticipantStatus.JOINED,
+      joinedAt,
+      updatedAt: joinedAt,
+    });
+
+    await expect(
+      service.removeParticipant({
+        joinToken: 'join-token',
+        userId: cohostId,
+        targetUserId: guestUserId,
+      }),
+    ).rejects.toThrow(
+      new ForbiddenException(MEETING_ERROR_MESSAGES.CANNOT_REMOVE_MODERATOR),
+    );
+  });
+
+  it('allows the host to promote, demote, and transfer host ownership', async () => {
+    const { service, prisma, liveKitService, meetingSocketHandler } =
+      createService();
+    const joinedAt = new Date('2026-09-01T01:00:00.000Z');
+    const targetParticipant = {
+      id: 'target-participant-id',
+      meetingId: meetingRecord.id,
+      userId: guestUserId,
+      role: MeetingRole.PARTICIPANT,
+      status: MeetingParticipantStatus.JOINED,
+      joinedAt,
+      updatedAt: joinedAt,
+    };
+    const promotedParticipant = {
+      ...targetParticipant,
+      role: MeetingRole.COHOST,
+    };
+    prisma.meeting.findUnique = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      participants: [
+        {
+          id: 'host-participant-id',
+          meetingId: meetingRecord.id,
+          userId,
+          role: MeetingRole.HOST,
+          status: MeetingParticipantStatus.JOINED,
+          joinedAt: createdAt,
+        },
+      ],
+    });
+    prisma.meetingParticipant.findUnique = jest
+      .fn()
+      .mockResolvedValue(targetParticipant);
+    prisma.meetingParticipant.update = jest
+      .fn()
+      .mockResolvedValueOnce(promotedParticipant)
+      .mockResolvedValueOnce({
+        ...promotedParticipant,
+        role: MeetingRole.PARTICIPANT,
+      })
+      .mockResolvedValueOnce({ ...targetParticipant, role: MeetingRole.HOST })
+      .mockResolvedValueOnce({
+        id: 'host-participant-id',
+        meetingId: meetingRecord.id,
+        userId,
+        role: MeetingRole.PARTICIPANT,
+        status: MeetingParticipantStatus.JOINED,
+        joinedAt: createdAt,
+        updatedAt: createdAt,
+      });
+    prisma.meeting.update = jest.fn().mockResolvedValue({
+      ...meetingRecord,
+      hostId: guestUserId,
+    });
+    prisma.meetingEvent.create = jest.fn().mockResolvedValue({});
+
+    await service.updateParticipantRole({
+      joinToken: 'join-token',
+      userId,
+      targetUserId: guestUserId,
+      dto: { role: MeetingRole.COHOST },
+    });
+    await service.updateParticipantRole({
+      joinToken: 'join-token',
+      userId,
+      targetUserId: guestUserId,
+      dto: { role: MeetingRole.PARTICIPANT },
+    });
+    const transferResult = await service.updateParticipantRole({
+      joinToken: 'join-token',
+      userId,
+      targetUserId: guestUserId,
+      dto: { role: MeetingRole.HOST },
+    });
+
+    expect(prisma.meetingParticipant.update).toHaveBeenCalledWith({
+      where: { id: 'target-participant-id' },
+      data: { role: MeetingRole.COHOST },
+    });
+    expect(prisma.meetingParticipant.update).toHaveBeenCalledWith({
+      where: { id: 'target-participant-id' },
+      data: { role: MeetingRole.PARTICIPANT },
+    });
+    expect(prisma.meeting.update).toHaveBeenCalledWith({
+      where: { id: meetingRecord.id },
+      data: { hostId: guestUserId },
+    });
+    expect(liveKitService.updateParticipantMetadata).toHaveBeenCalled();
+    expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalled();
+    expect(transferResult.role).toBe(MeetingRole.HOST);
   });
 });

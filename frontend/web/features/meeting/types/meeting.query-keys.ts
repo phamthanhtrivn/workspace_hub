@@ -6,5 +6,9 @@ export const meetingKeys = {
     ["meeting-join-requests", joinToken] as const,
   joinRequests: (joinToken: string, search: string, page: number) =>
     ["meeting-join-requests", joinToken, search, page] as const,
+  participantsRoot: (joinToken: string) =>
+    ["meeting-participants", joinToken] as const,
+  participants: (joinToken: string, search: string, page: number) =>
+    ["meeting-participants", joinToken, search, page] as const,
   room: (joinToken: string) => ["meeting-room", joinToken] as const,
 };

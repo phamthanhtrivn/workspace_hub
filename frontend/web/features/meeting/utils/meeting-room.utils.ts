@@ -1,6 +1,11 @@
 import type { Participant } from "livekit-client";
 import { ConnectionState } from "livekit-client";
-import { MeetingPreJoinSettings, MeetingRoomPanel, ParticipantMetadata } from "../types/meeting.types";
+import {
+  MeetingParticipantRole,
+  MeetingPreJoinSettings,
+  MeetingRoomPanel,
+  ParticipantMetadata,
+} from "../types/meeting.types";
 
 export function formatElapsedTime(totalSeconds: number) {
   const hours = Math.floor(totalSeconds / 3600);
@@ -37,9 +42,10 @@ export function parseParticipantMetadata(
 }
 
 export function getRoleLabelId(role?: string) {
-  return role === "HOST"
-    ? "meeting.room.participant.host"
-    : "meeting.room.participant.guest";
+  if (role === "HOST") return "meeting.room.participant.host";
+  if (role === "COHOST") return "meeting.room.participant.cohost";
+
+  return null;
 }
 
 export function getRoomStatusLabelId(connectionState: ConnectionState) {
@@ -88,4 +94,23 @@ export function getPanelTitleLabelId(activePanel: MeetingRoomPanel) {
 
 export function canManageMeetingAdmission(role?: string) {
   return role === "HOST" || role === "COHOST";
+}
+
+export function isMeetingHost(role?: MeetingParticipantRole) {
+  return role === "HOST";
+}
+
+export function canRemoveMeetingParticipant({
+  actorRole,
+  targetRole,
+  isSelf,
+}: {
+  actorRole?: MeetingParticipantRole;
+  targetRole?: MeetingParticipantRole;
+  isSelf: boolean;
+}) {
+  if (isSelf) return false;
+  if (actorRole === "HOST") return targetRole !== "HOST";
+
+  return actorRole === "COHOST" && targetRole === "PARTICIPANT";
 }

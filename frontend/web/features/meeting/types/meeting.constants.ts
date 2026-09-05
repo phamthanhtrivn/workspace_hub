@@ -24,6 +24,16 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/join`,
   joinRequests: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/join-requests`,
+  participants: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/participants`,
+  removeParticipant: (joinToken: string, userId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/remove`,
+  updateParticipantRole: (joinToken: string, userId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/role`,
+  leave: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/leave`,
+  end: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/end`,
   approveJoinRequest: (joinToken: string, userId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/join-requests/${encodeURIComponent(userId)}/approve`,
   declineJoinRequest: (joinToken: string, userId: string) =>

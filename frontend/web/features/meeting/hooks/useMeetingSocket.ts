@@ -6,8 +6,12 @@ import { socketService } from "@/features/chat/api/chat-socket.service";
 import { useAppSelector } from "@/store/store";
 import {
   type ClientToServerMeetingEvents,
+  type MeetingEndedPayload,
+  type MeetingHostTransferredPayload,
   MeetingSocketEvent,
   type MeetingJoinRequestUpdatedPayload,
+  type MeetingParticipantRemovedPayload,
+  type MeetingParticipantUpdatedPayload,
   type MeetingStatusUpdatedPayload,
   type ServerToClientMeetingEvents,
 } from "../types/meeting-socket.types";
@@ -15,6 +19,10 @@ import {
 interface MeetingSocketOptions {
   meetingId?: string | null;
   onStatusUpdated?: (payload: MeetingStatusUpdatedPayload) => void;
+  onMeetingEnded?: (payload: MeetingEndedPayload) => void;
+  onParticipantUpdated?: (payload: MeetingParticipantUpdatedPayload) => void;
+  onParticipantRemoved?: (payload: MeetingParticipantRemovedPayload) => void;
+  onHostTransferred?: (payload: MeetingHostTransferredPayload) => void;
   onJoinRequested?: (payload: MeetingJoinRequestUpdatedPayload) => void;
   onJoinRequestChanged?: (payload: MeetingJoinRequestUpdatedPayload) => void;
 }
@@ -27,6 +35,10 @@ type MeetingSocket = Socket<
 export function useMeetingSocket({
   meetingId,
   onStatusUpdated,
+  onMeetingEnded,
+  onParticipantUpdated,
+  onParticipantRemoved,
+  onHostTransferred,
   onJoinRequested,
   onJoinRequestChanged,
 }: MeetingSocketOptions) {
@@ -43,6 +55,22 @@ export function useMeetingSocket({
     const handleStatusUpdated = (payload: MeetingStatusUpdatedPayload) => {
       onStatusUpdated?.(payload);
     };
+    const handleMeetingEnded = (payload: MeetingEndedPayload) => {
+      onMeetingEnded?.(payload);
+    };
+    const handleParticipantUpdated = (
+      payload: MeetingParticipantUpdatedPayload,
+    ) => {
+      onParticipantUpdated?.(payload);
+    };
+    const handleParticipantRemoved = (
+      payload: MeetingParticipantRemovedPayload,
+    ) => {
+      onParticipantRemoved?.(payload);
+    };
+    const handleHostTransferred = (payload: MeetingHostTransferredPayload) => {
+      onHostTransferred?.(payload);
+    };
     const handleJoinRequestChanged = (
       payload: MeetingJoinRequestUpdatedPayload,
     ) => {
@@ -53,7 +81,11 @@ export function useMeetingSocket({
       onJoinRequestChanged?.(payload);
     };
 
+    socket.on(MeetingSocketEvent.PARTICIPANT_UPDATED, handleParticipantUpdated);
+    socket.on(MeetingSocketEvent.PARTICIPANT_REMOVED, handleParticipantRemoved);
+    socket.on(MeetingSocketEvent.HOST_TRANSFERRED, handleHostTransferred);
     socket.on(MeetingSocketEvent.STATUS_UPDATED, handleStatusUpdated);
+    socket.on(MeetingSocketEvent.ENDED, handleMeetingEnded);
     socket.on(MeetingSocketEvent.JOIN_REQUESTED, handleJoinRequested);
     socket.on(
       MeetingSocketEvent.JOIN_REQUEST_UPDATED,
@@ -61,7 +93,17 @@ export function useMeetingSocket({
     );
 
     return () => {
+      socket.off(
+        MeetingSocketEvent.PARTICIPANT_UPDATED,
+        handleParticipantUpdated,
+      );
+      socket.off(
+        MeetingSocketEvent.PARTICIPANT_REMOVED,
+        handleParticipantRemoved,
+      );
+      socket.off(MeetingSocketEvent.HOST_TRANSFERRED, handleHostTransferred);
       socket.off(MeetingSocketEvent.STATUS_UPDATED, handleStatusUpdated);
+      socket.off(MeetingSocketEvent.ENDED, handleMeetingEnded);
       socket.off(MeetingSocketEvent.JOIN_REQUESTED, handleJoinRequested);
       socket.off(
         MeetingSocketEvent.JOIN_REQUEST_UPDATED,
@@ -71,8 +113,12 @@ export function useMeetingSocket({
   }, [
     accessToken,
     meetingId,
+    onHostTransferred,
     onJoinRequestChanged,
     onJoinRequested,
+    onMeetingEnded,
+    onParticipantRemoved,
+    onParticipantUpdated,
     onStatusUpdated,
   ]);
 }

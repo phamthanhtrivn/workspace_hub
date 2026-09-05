@@ -56,6 +56,36 @@ export class LiveKitService {
     });
   }
 
+  async deleteRoom(roomName: string): Promise<void> {
+    await this.createRoomServiceClient().deleteRoom(roomName);
+  }
+
+  async removeParticipant(roomName: string, userId: string): Promise<void> {
+    await this.createRoomServiceClient().removeParticipant(roomName, userId);
+  }
+
+  async updateParticipantMetadata({
+    roomName,
+    userId,
+    role,
+    displayName,
+    avatarUrl,
+  }: {
+    roomName: string;
+    userId: string;
+    role: string;
+    displayName?: string | null;
+    avatarUrl?: string | null;
+  }): Promise<void> {
+    await this.createRoomServiceClient().updateParticipant(roomName, userId, {
+      name: displayName ?? undefined,
+      metadata: JSON.stringify({
+        role,
+        avatarUrl: avatarUrl ?? null,
+      }),
+    });
+  }
+
   async createParticipantToken({
     roomName,
     userId,

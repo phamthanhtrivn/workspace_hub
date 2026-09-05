@@ -17,7 +17,13 @@ export function MeetingRoomPanelContent({
   onAutoAdmitChange,
 }: MeetingRoomPanelContentProps) {
   if (activePanel === MeetingRoomPanel.PARTICIPANTS) {
-    return <MeetingParticipantsPanel />;
+    return (
+      <MeetingParticipantsPanel
+        joinToken={joinToken}
+        meetingId={meetingId}
+        participantRole={participantRole}
+      />
+    );
   }
 
   if (activePanel === MeetingRoomPanel.CHAT) {

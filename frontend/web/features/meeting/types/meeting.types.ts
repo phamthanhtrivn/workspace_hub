@@ -182,3 +182,40 @@ export interface MeetingSettingsResponse {
   joinToken: string;
   autoAdmit: boolean;
 }
+
+export interface MeetingParticipantProfile {
+  id?: string | null;
+  userId?: string | null;
+  email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
+export interface MeetingParticipantResponse {
+  id: string;
+  meetingId: string;
+  userId: string;
+  role: MeetingParticipantRole;
+  status: MeetingParticipantStatus;
+  joinedAt: string | null;
+  leftAt?: string | null;
+  updatedAt?: string;
+  profile: MeetingParticipantProfile | null;
+}
+
+export interface MeetingParticipantsResponse {
+  items: MeetingParticipantResponse[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface MeetingEndedResponse {
+  meetingId: string;
+  joinToken: string;
+  status: "ENDED";
+  autoAdmit: boolean;
+  endedBy: string;
+  endedAt: string;
+}

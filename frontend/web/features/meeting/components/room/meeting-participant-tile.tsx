@@ -45,6 +45,7 @@ export function MeetingParticipantTile({
   const microphoneLabelId = participant.isMicrophoneEnabled
     ? "meeting.room.control.microphoneOn"
     : "meeting.room.control.microphoneOff";
+  const roleLabelId = getRoleLabelId(metadata.role);
 
   return (
     <article
@@ -82,9 +83,11 @@ export function MeetingParticipantTile({
       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
         <div className="min-w-0 rounded-md bg-black/45 px-3 py-2 backdrop-blur">
           <p className="truncate text-sm font-black">{displayName}</p>
-          <p className="text-xs font-semibold text-slate-300">
-            {intl.formatMessage({ id: getRoleLabelId(metadata.role) })}
-          </p>
+          {roleLabelId ? (
+            <p className="text-xs font-semibold text-slate-300">
+              {intl.formatMessage({ id: roleLabelId })}
+            </p>
+          ) : null}
         </div>
         <span
           className="grid h-9 w-9 shrink-0 place-items-center rounded-md bg-black/45 text-white backdrop-blur"

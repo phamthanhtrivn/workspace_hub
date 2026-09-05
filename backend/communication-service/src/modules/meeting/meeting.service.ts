@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
@@ -20,6 +21,8 @@ import { MeetingSocketHandler } from '../socket/meeting/meeting-socket.handler';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import { ListJoinRequestsDto } from './dto/list-join-requests.dto';
+import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
+import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
 import { UpdateMeetingSettingsDto } from './dto/update-meeting-settings.dto';
 import { MEETING_ERROR_MESSAGES } from './types/meeting.enums';
 import {
@@ -54,6 +57,10 @@ interface ListJoinRequestsParams extends MeetingModeratorParams {
   query?: ListJoinRequestsDto;
 }
 
+interface ListMeetingParticipantsParams extends MeetingModeratorParams {
+  query?: ListMeetingParticipantsDto;
+}
+
 interface ResolveJoinRequestParams extends MeetingModeratorParams {
   targetUserId: string;
 }
@@ -62,8 +69,25 @@ interface UpdateMeetingSettingsParams extends MeetingModeratorParams {
   dto: UpdateMeetingSettingsDto;
 }
 
+interface TargetMeetingParticipantParams extends MeetingModeratorParams {
+  targetUserId: string;
+}
+
+interface UpdateMeetingParticipantRoleParams
+  extends TargetMeetingParticipantParams {
+  dto: UpdateMeetingParticipantRoleDto;
+}
+
+const meetingParticipantManagementEventType = {
+  PARTICIPANT_REMOVED: 'PARTICIPANT_REMOVED' as MeetingEventType,
+  PARTICIPANT_ROLE_UPDATED: 'PARTICIPANT_ROLE_UPDATED' as MeetingEventType,
+  HOST_TRANSFERRED: 'HOST_TRANSFERRED' as MeetingEventType,
+};
+
 @Injectable()
 export class MeetingService {
+  private readonly logger = new Logger(MeetingService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly liveKitService: LiveKitService,
@@ -345,6 +369,256 @@ export class MeetingService {
     };
   }
 
+  async listMeetingParticipants({
+    joinToken,
+    userId,
+    query,
+  }: ListMeetingParticipantsParams) {
+    const { meeting } = await this.assertJoinedMeetingParticipant({
+      joinToken,
+      userId,
+    });
+    const page = Math.max(1, query?.page ?? 1);
+    const limit = Math.min(50, Math.max(1, query?.limit ?? 10));
+    const search = query?.search?.trim();
+    const where: Prisma.MeetingParticipantWhereInput = {
+      meetingId: meeting.id,
+      status: MeetingParticipantStatus.JOINED,
+    };
+
+    if (search) {
+      where.userId = await this.getUserIdSearchFilter(search);
+    }
+
+    const [total, participants] = await this.prisma.$transaction([
+      this.prisma.meetingParticipant.count({ where }),
+      this.prisma.meetingParticipant.findMany({
+        where,
+        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+    const enrichedParticipants =
+      await this.userProfileSnapshotService.attachProfilesToMembers(
+        participants,
+      );
+
+    return {
+      items: enrichedParticipants.map((participant) =>
+        this.toMeetingParticipantListItem(participant),
+      ),
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
+  async leaveMeeting({ joinToken, userId }: MeetingModeratorParams) {
+    const { meeting, participant } = await this.assertJoinedMeetingParticipant({
+      joinToken,
+      userId,
+    });
+    const now = new Date();
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
+      where: { id: participant.id },
+      data: {
+        status: MeetingParticipantStatus.LEFT,
+        leftAt: now,
+        lastSeenAt: now,
+      },
+    });
+
+    await this.prisma.meetingEvent.create({
+      data: {
+        meetingId: meeting.id,
+        actorId: userId,
+        type: MeetingEventType.PARTICIPANT_LEFT,
+      },
+    });
+
+    const payload = await this.toMeetingParticipantSocketPayload(
+      meeting.id,
+      updatedParticipant,
+    );
+    this.emitMeetingEvent(meeting.id, MeetingEvent.PARTICIPANT_UPDATED, payload);
+    this.emitMeetingEvent(meeting.id, MeetingEvent.PARTICIPANT_LEFT, payload);
+
+    return payload;
+  }
+
+  async endMeeting({ joinToken, userId }: MeetingModeratorParams) {
+    const { meeting } = await this.assertMeetingHost({ joinToken, userId });
+    const now = new Date();
+
+    await this.prisma.$transaction([
+      this.prisma.meeting.update({
+        where: { id: meeting.id },
+        data: {
+          status: MeetingStatus.ENDED,
+          endedAt: now,
+        },
+      }),
+      this.prisma.meetingParticipant.updateMany({
+        where: {
+          meetingId: meeting.id,
+          status: MeetingParticipantStatus.JOINED,
+        },
+        data: {
+          status: MeetingParticipantStatus.LEFT,
+          leftAt: now,
+          lastSeenAt: now,
+        },
+      }),
+      this.prisma.meetingEvent.create({
+        data: {
+          meetingId: meeting.id,
+          actorId: userId,
+          type: MeetingEventType.ENDED,
+          metadata: { endedAt: now.toISOString() },
+        },
+      }),
+    ]);
+
+    const payload = {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      status: MeetingStatus.ENDED,
+      autoAdmit: meeting.autoAdmit,
+      endedBy: userId,
+      endedAt: now.toISOString(),
+    };
+    this.emitMeetingEvent(meeting.id, MeetingEvent.STATUS_UPDATED, payload);
+    this.emitMeetingEvent(meeting.id, MeetingEvent.ENDED, payload);
+    await this.deleteLiveKitRoom(meeting.roomName);
+
+    return payload;
+  }
+
+  async removeParticipant({
+    joinToken,
+    userId,
+    targetUserId,
+  }: TargetMeetingParticipantParams) {
+    const { meeting, participant: actorParticipant } =
+      await this.assertMeetingModerator({ joinToken, userId });
+
+    if (targetUserId === userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.CANNOT_REMOVE_SELF);
+    }
+
+    const targetParticipant = await this.getJoinedTargetParticipant({
+      meetingId: meeting.id,
+      targetUserId,
+    });
+
+    if (targetParticipant.role === MeetingRole.HOST) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.CANNOT_REMOVE_MODERATOR,
+      );
+    }
+
+    if (
+      actorParticipant?.role === MeetingRole.COHOST &&
+      targetParticipant.role !== MeetingRole.PARTICIPANT
+    ) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.CANNOT_REMOVE_MODERATOR,
+      );
+    }
+
+    const now = new Date();
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
+      where: { id: targetParticipant.id },
+      data: {
+        status: MeetingParticipantStatus.REMOVED,
+        leftAt: now,
+        lastSeenAt: now,
+      },
+    });
+
+    await this.prisma.meetingEvent.create({
+      data: {
+        meetingId: meeting.id,
+        actorId: userId,
+        type: meetingParticipantManagementEventType.PARTICIPANT_REMOVED,
+        metadata: { targetUserId },
+      },
+    });
+
+    const payload = await this.toMeetingParticipantSocketPayload(
+      meeting.id,
+      updatedParticipant,
+    );
+    this.emitMeetingEvent(meeting.id, MeetingEvent.PARTICIPANT_UPDATED, payload);
+    this.emitMeetingEvent(meeting.id, MeetingEvent.PARTICIPANT_REMOVED, payload);
+    await this.removeLiveKitParticipant(meeting.roomName, targetUserId);
+
+    return payload;
+  }
+
+  async updateParticipantRole({
+    joinToken,
+    userId,
+    targetUserId,
+    dto,
+  }: UpdateMeetingParticipantRoleParams) {
+    const { meeting } = await this.assertMeetingHost({ joinToken, userId });
+    const targetParticipant = await this.getJoinedTargetParticipant({
+      meetingId: meeting.id,
+      targetUserId,
+    });
+
+    if (
+      targetUserId === meeting.hostId &&
+      dto.role !== MeetingRole.HOST
+    ) {
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.CANNOT_DEMOTE_CURRENT_HOST,
+      );
+    }
+
+    if (dto.role === MeetingRole.HOST) {
+      return this.transferHost({
+        meeting,
+        currentHostUserId: userId,
+        targetParticipant,
+      });
+    }
+
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
+      where: { id: targetParticipant.id },
+      data: { role: dto.role },
+    });
+
+    await this.prisma.meetingEvent.create({
+      data: {
+        meetingId: meeting.id,
+        actorId: userId,
+        type: meetingParticipantManagementEventType.PARTICIPANT_ROLE_UPDATED,
+        metadata: {
+          targetUserId,
+          previousRole: targetParticipant.role,
+          role: dto.role,
+        },
+      },
+    });
+
+    const payload = await this.toMeetingParticipantSocketPayload(
+      meeting.id,
+      updatedParticipant,
+    );
+    this.emitMeetingEvent(meeting.id, MeetingEvent.PARTICIPANT_UPDATED, payload);
+    await this.syncLiveKitParticipantMetadata(
+      meeting.roomName,
+      targetUserId,
+      dto.role,
+    );
+
+    return payload;
+  }
+
   async requestJoinApproval({
     joinToken,
     userId,
@@ -446,17 +720,7 @@ export class MeetingService {
     };
 
     if (search) {
-      const snapshots = await this.prisma.userProfileSnapshot.findMany({
-        where: {
-          OR: [
-            { fullName: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
-          ],
-        },
-        select: { userId: true },
-      });
-      const userIds = snapshots.map((snapshot) => snapshot.userId);
-      where.userId = userIds.length > 0 ? { in: userIds } : { in: [] };
+      where.userId = await this.getUserIdSearchFilter(search);
     }
 
     const [total, requests] = await this.prisma.$transaction([
@@ -601,6 +865,90 @@ export class MeetingService {
     return { count: requests.length };
   }
 
+  private async transferHost({
+    meeting,
+    currentHostUserId,
+    targetParticipant,
+  }: {
+    meeting: {
+      id: string;
+      roomName: string;
+      joinToken: string;
+      hostId: string;
+    };
+    currentHostUserId: string;
+    targetParticipant: {
+      id: string;
+      userId: string;
+      role: MeetingRole;
+    };
+  }) {
+    const previousHostId = meeting.hostId;
+    const [updatedTargetParticipant] = await this.prisma.$transaction([
+      this.prisma.meetingParticipant.update({
+        where: { id: targetParticipant.id },
+        data: { role: MeetingRole.HOST },
+      }),
+      this.prisma.meetingParticipant.update({
+        where: {
+          meetingId_userId: {
+            meetingId: meeting.id,
+            userId: previousHostId,
+          },
+        },
+        data: { role: MeetingRole.PARTICIPANT },
+      }),
+      this.prisma.meeting.update({
+        where: { id: meeting.id },
+        data: { hostId: targetParticipant.userId },
+      }),
+      this.prisma.meetingEvent.create({
+        data: {
+          meetingId: meeting.id,
+          actorId: currentHostUserId,
+          type: meetingParticipantManagementEventType.HOST_TRANSFERRED,
+          metadata: {
+            previousHostId,
+            targetUserId: targetParticipant.userId,
+          },
+        },
+      }),
+    ]);
+
+    const payload = {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      previousHostId,
+      hostId: targetParticipant.userId,
+      targetUserId: targetParticipant.userId,
+    };
+    const targetPayload = await this.toMeetingParticipantSocketPayload(
+      meeting.id,
+      updatedTargetParticipant,
+    );
+
+    this.emitMeetingEvent(meeting.id, MeetingEvent.HOST_TRANSFERRED, payload);
+    this.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
+      targetPayload,
+    );
+    await Promise.all([
+      this.syncLiveKitParticipantMetadata(
+        meeting.roomName,
+        targetParticipant.userId,
+        MeetingRole.HOST,
+      ),
+      this.syncLiveKitParticipantMetadata(
+        meeting.roomName,
+        previousHostId,
+        MeetingRole.PARTICIPANT,
+      ),
+    ]);
+
+    return targetPayload;
+  }
+
   private async assertMeetingModerator({
     joinToken,
     userId,
@@ -643,6 +991,153 @@ export class MeetingService {
     return { meeting, participant };
   }
 
+  private async assertMeetingHost({ joinToken, userId }: MeetingModeratorParams) {
+    const { meeting, participant } = await this.assertJoinedMeetingParticipant({
+      joinToken,
+      userId,
+    });
+    const isHost =
+      meeting.hostId === userId || participant.role === MeetingRole.HOST;
+
+    if (!isHost) {
+      throw new ForbiddenException(MEETING_ERROR_MESSAGES.MEETING_HOST_REQUIRED);
+    }
+
+    return { meeting, participant };
+  }
+
+  private async assertJoinedMeetingParticipant({
+    joinToken,
+    userId,
+  }: MeetingModeratorParams) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { joinToken },
+      include: {
+        participants: {
+          where: { userId },
+          take: 1,
+        },
+      },
+    });
+
+    if (!meeting) {
+      throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
+    }
+
+    if (meeting.status !== MeetingStatus.LIVE) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE);
+    }
+
+    const participant = meeting.participants[0];
+
+    if (
+      !participant ||
+      participant.status !== MeetingParticipantStatus.JOINED
+    ) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.PARTICIPANT_NOT_JOINED,
+      );
+    }
+
+    return { meeting, participant };
+  }
+
+  private async getJoinedTargetParticipant({
+    meetingId,
+    targetUserId,
+  }: {
+    meetingId: string;
+    targetUserId: string;
+  }) {
+    const targetParticipant = await this.prisma.meetingParticipant.findUnique({
+      where: {
+        meetingId_userId: {
+          meetingId,
+          userId: targetUserId,
+        },
+      },
+    });
+
+    if (!targetParticipant) {
+      throw new NotFoundException(MEETING_ERROR_MESSAGES.PARTICIPANT_NOT_FOUND);
+    }
+
+    if (targetParticipant.status !== MeetingParticipantStatus.JOINED) {
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.PARTICIPANT_NOT_JOINED,
+      );
+    }
+
+    return targetParticipant;
+  }
+
+  private async getUserIdSearchFilter(search: string) {
+    const snapshots = await this.prisma.userProfileSnapshot.findMany({
+      where: {
+        OR: [
+          { fullName: { contains: search, mode: 'insensitive' } },
+          { email: { contains: search, mode: 'insensitive' } },
+        ],
+      },
+      select: { userId: true },
+    });
+    const userIds = snapshots.map((snapshot) => snapshot.userId);
+
+    return userIds.length > 0 ? { in: userIds } : { in: [] };
+  }
+
+  private async toMeetingParticipantSocketPayload(
+    meetingId: string,
+    participant: {
+      id: string;
+      meetingId: string;
+      userId: string;
+      role: MeetingRole;
+      status: MeetingParticipantStatus;
+      joinedAt: Date | null;
+      leftAt?: Date | null;
+      updatedAt: Date;
+    },
+  ) {
+    const [enrichedParticipant] =
+      await this.userProfileSnapshotService.attachProfilesToMembers([
+        participant,
+      ]);
+
+    return {
+      ...this.toMeetingParticipantListItem(enrichedParticipant),
+      meetingId,
+    };
+  }
+
+  private toMeetingParticipantListItem(participant: {
+    id: string;
+    meetingId: string;
+    userId: string;
+    role: MeetingRole;
+    status: MeetingParticipantStatus;
+    joinedAt: Date | null;
+    leftAt?: Date | null;
+    updatedAt: Date;
+    profile?: unknown;
+  }) {
+    return {
+      id: participant.id,
+      meetingId: participant.meetingId,
+      userId: participant.userId,
+      role: participant.role,
+      status: participant.status,
+      joinedAt: participant.joinedAt?.toISOString() ?? null,
+      leftAt: participant.leftAt?.toISOString() ?? null,
+      updatedAt: participant.updatedAt.toISOString(),
+      profile: participant.profile ?? null,
+    };
+  }
+
   private toJoinRequestSocketPayload(
     meetingId: string,
     request: {
@@ -675,6 +1170,62 @@ export class MeetingService {
     payload: TPayload,
   ) {
     this.meetingSocketHandler.emitToUser(userId, event, payload);
+  }
+
+  private async deleteLiveKitRoom(roomName: string) {
+    if (!this.liveKitService.isConfigured()) return;
+
+    try {
+      await this.liveKitService.deleteRoom(roomName);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to delete LiveKit room ${roomName}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
+  }
+
+  private async removeLiveKitParticipant(roomName: string, userId: string) {
+    if (!this.liveKitService.isConfigured()) return;
+
+    try {
+      await this.liveKitService.removeParticipant(roomName, userId);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to remove LiveKit participant ${userId} from ${roomName}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
+  }
+
+  private async syncLiveKitParticipantMetadata(
+    roomName: string,
+    userId: string,
+    role: MeetingRole,
+  ) {
+    if (!this.liveKitService.isConfigured()) return;
+
+    try {
+      const profileByUserId =
+        await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
+      const profile = profileByUserId.get(userId);
+
+      await this.liveKitService.updateParticipantMetadata({
+        roomName,
+        userId,
+        role,
+        displayName: profile?.fullName ?? profile?.email,
+        avatarUrl: profile?.avatarUrl,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to update LiveKit participant metadata for ${userId}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
   }
 
   private toMeetingRoomResponse(

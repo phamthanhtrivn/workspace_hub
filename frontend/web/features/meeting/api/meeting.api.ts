@@ -5,8 +5,12 @@ import type {
   CreateInstantMeetingPayload,
   InstantMeetingResponse,
   JoinMeetingPayload,
+  MeetingEndedResponse,
   MeetingJoinRequestsResponse,
   MeetingJoinRequestStatusResponse,
+  MeetingParticipantResponse,
+  MeetingParticipantRole,
+  MeetingParticipantsResponse,
   MeetingSettingsResponse,
   MeetingAccessResponse,
 } from "../types/meeting.types";
@@ -64,6 +68,59 @@ export const getMeetingJoinRequests = async ({
     params: { search, page, limit },
   });
   return normalizeApiResponse<MeetingJoinRequestsResponse>(response.data);
+};
+
+export const getMeetingParticipants = async ({
+  joinToken,
+  search,
+  page,
+  limit,
+}: {
+  joinToken: string;
+  search: string;
+  page: number;
+  limit: number;
+}): Promise<ApiResponse<MeetingParticipantsResponse>> => {
+  const response = await api.get(MEETING_API_PATHS.participants(joinToken), {
+    params: { search, page, limit },
+  });
+  return normalizeApiResponse<MeetingParticipantsResponse>(response.data);
+};
+
+export const leaveMeeting = async (
+  joinToken: string,
+): Promise<ApiResponse<MeetingParticipantResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.leave(joinToken));
+  return normalizeApiResponse<MeetingParticipantResponse>(response.data);
+};
+
+export const endMeeting = async (
+  joinToken: string,
+): Promise<ApiResponse<MeetingEndedResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.end(joinToken));
+  return normalizeApiResponse<MeetingEndedResponse>(response.data);
+};
+
+export const removeMeetingParticipant = async (
+  joinToken: string,
+  userId: string,
+): Promise<ApiResponse<MeetingParticipantResponse>> => {
+  const response = await api.post(
+    MEETING_API_PATHS.removeParticipant(joinToken, userId),
+  );
+  return normalizeApiResponse<MeetingParticipantResponse>(response.data);
+};
+
+export const updateMeetingParticipantRole = async (
+  joinToken: string,
+  userId: string,
+  role: MeetingParticipantRole,
+): Promise<ApiResponse<MeetingParticipantResponse>> => {
+  const response = await api.patch(
+    MEETING_API_PATHS.updateParticipantRole(joinToken, userId),
+    { role },
+  );
+  return normalizeApiResponse<MeetingParticipantResponse>(response.data);
 };
 
 export const approveMeetingJoinRequest = async (

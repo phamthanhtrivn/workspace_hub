@@ -7,6 +7,7 @@ import {
   LogOut,
   Mic,
   MicOff,
+  PhoneOff,
   Video,
   VideoOff,
 } from "lucide-react";
@@ -39,6 +40,9 @@ interface MeetingRoomFooterProps {
   settings: MeetingPreJoinSettings;
   onPanelChange: (panel: MeetingRoomPanel) => void;
   onLeave: () => void;
+  onEndForEveryone: () => void;
+  isLeavePending?: boolean;
+  isEndPending?: boolean;
 }
 
 function isMeetingRoomPanelControl(
@@ -125,6 +129,9 @@ export function MeetingRoomFooter({
   settings,
   onPanelChange,
   onLeave,
+  onEndForEveryone,
+  isLeavePending = false,
+  isEndPending = false,
 }: MeetingRoomFooterProps) {
   const intl = useAppIntl();
   const queryClient = useQueryClient();
@@ -212,10 +219,21 @@ export function MeetingRoomFooter({
           );
         })}
 
+        {participantRole === "HOST" ? (
+          <MeetingRoomControlButton
+            label={intl.formatMessage({ id: "meeting.room.control.end" })}
+            icon={PhoneOff}
+            danger
+            disabled={isEndPending}
+            onClick={onEndForEveryone}
+          />
+        ) : null}
+
         <MeetingRoomControlButton
           label={intl.formatMessage({ id: "meeting.room.control.leave" })}
           icon={LogOut}
           danger
+          disabled={isLeavePending}
           onClick={onLeave}
         />
       </div>
