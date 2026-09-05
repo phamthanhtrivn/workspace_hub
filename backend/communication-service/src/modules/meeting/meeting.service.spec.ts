@@ -17,6 +17,12 @@ import { MeetingSocketHandler } from '../socket/meeting/meeting-socket.handler';
 import { MeetingEvent } from '../socket/meeting/meeting-socket.events';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { MeetingService } from './meeting.service';
+import { MeetingAdmissionService } from './services/meeting-admission.service';
+import { MeetingParticipantService } from './services/meeting-participant.service';
+import { MeetingPolicyService } from './services/meeting-policy.service';
+import { MeetingPresenterService } from './services/meeting-presenter.service';
+import { MeetingRealtimeService } from './services/meeting-realtime.service';
+import { MeetingRoomService } from './services/meeting-room.service';
 import { MEETING_ERROR_MESSAGES } from './types/meeting.enums';
 
 interface CreatedMeetingMock {
@@ -155,11 +161,41 @@ describe('MeetingService', () => {
       emitToMeeting: jest.fn(),
       emitToUser: jest.fn(),
     } as unknown as jest.Mocked<MeetingSocketHandler>;
-    const service = new MeetingService(
-      prisma,
+    const meetingPolicyService = new MeetingPolicyService(prisma);
+    const meetingPresenterService = new MeetingPresenterService(
+      liveKitService,
+      userProfileSnapshotService,
+    );
+    const meetingRealtimeService = new MeetingRealtimeService(
       liveKitService,
       userProfileSnapshotService,
       meetingSocketHandler,
+    );
+    const meetingRoomService = new MeetingRoomService(
+      prisma,
+      liveKitService,
+      meetingPolicyService,
+      meetingPresenterService,
+      meetingRealtimeService,
+    );
+    const meetingParticipantService = new MeetingParticipantService(
+      prisma,
+      userProfileSnapshotService,
+      meetingPolicyService,
+      meetingPresenterService,
+      meetingRealtimeService,
+    );
+    const meetingAdmissionService = new MeetingAdmissionService(
+      prisma,
+      userProfileSnapshotService,
+      meetingPolicyService,
+      meetingPresenterService,
+      meetingRealtimeService,
+    );
+    const service = new MeetingService(
+      meetingRoomService,
+      meetingParticipantService,
+      meetingAdmissionService,
     );
 
     return {

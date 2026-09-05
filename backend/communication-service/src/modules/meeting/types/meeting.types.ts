@@ -20,7 +20,7 @@ export interface GetMeetingAccessParams {
   userId: string;
 }
 
-export interface MeetingModeratorParams extends GetMeetingAccessParams {}
+export type MeetingModeratorParams = GetMeetingAccessParams;
 
 export interface MeetingJoinRequestParams extends CreateInstantMeetingParams {
   joinToken: string;
@@ -30,8 +30,7 @@ export interface ListJoinRequestsParams extends MeetingModeratorParams {
   query?: ListJoinRequestsDto;
 }
 
-export interface ListMeetingParticipantsParams
-  extends MeetingModeratorParams {
+export interface ListMeetingParticipantsParams extends MeetingModeratorParams {
   query?: ListMeetingParticipantsDto;
 }
 
@@ -47,7 +46,6 @@ export interface TargetMeetingParticipantParams extends MeetingModeratorParams {
   targetUserId: string;
 }
 
-export interface UpdateMeetingParticipantRoleParams
-  extends TargetMeetingParticipantParams {
+export interface UpdateMeetingParticipantRoleParams extends TargetMeetingParticipantParams {
   dto: UpdateMeetingParticipantRoleDto;
 }
