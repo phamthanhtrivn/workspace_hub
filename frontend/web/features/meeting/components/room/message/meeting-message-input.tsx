@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+} from "react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { Loader2, Paperclip, Send, Smile, X } from "lucide-react";
 import { toast } from "sonner";
@@ -25,16 +32,26 @@ interface UploadingMeetingMedia extends MeetingMessageMediaPayload {
 interface MeetingMessageInputProps {
   meetingId: string;
   editingMessage: MeetingMessageResponse | null;
-  onSubmit: (content: string, medias?: MeetingMessageMediaPayload[]) => void;
+  onSubmit: (
+    content: string,
+    medias?: MeetingMessageMediaPayload[],
+  ) => Promise<boolean>;
   onCancelEdit: () => void;
 }
 
-export function MeetingMessageInput({
-  meetingId,
-  editingMessage,
-  onSubmit,
-  onCancelEdit,
-}: MeetingMessageInputProps) {
+export interface MeetingMessageInputRef {
+  focus: () => void;
+  reset: () => void;
+  setMessage: (content: string) => void;
+}
+
+export const MeetingMessageInput = forwardRef<
+  MeetingMessageInputRef,
+  MeetingMessageInputProps
+>(function MeetingMessageInput(
+  { meetingId, editingMessage, onSubmit, onCancelEdit },
+  ref,
+) {
   const intl = useAppIntl();
   const [message, setMessage] = useState(editingMessage?.content ?? "");
   const [uploads, setUploads] = useState<UploadingMeetingMedia[]>([]);
@@ -45,11 +62,27 @@ export function MeetingMessageInput({
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const isUploading = uploads.some((upload) => upload.status === "uploading");
 
-  useEffect(() => {
-    if (editingMessage) {
-      setTimeout(() => textareaRef.current?.focus(), 0);
-    }
-  }, [editingMessage]);
+  const resetComposer = useCallback(() => {
+    setMessage("");
+    setUploads([]);
+    setIsEmojiOpen(false);
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus: () => {
+        textareaRef.current?.focus();
+      },
+      reset: resetComposer,
+      setMessage: (content: string) => {
+        setMessage(content);
+        setUploads([]);
+        setIsEmojiOpen(false);
+      },
+    }),
+    [resetComposer],
+  );
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -142,7 +175,7 @@ export function MeetingMessageInput({
     [intl, meetingId],
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isUploading) {
       toast.warning(intl.formatMessage({ id: "meeting.chat.waitForUpload" }));
       return;
@@ -159,12 +192,16 @@ export function MeetingMessageInput({
     }));
     const trimmedMessage = message.trim();
 
-    if (!trimmedMessage && mediaPayload.length === 0) return;
+    if (editingMessage && !trimmedMessage) return;
+    if (!editingMessage && !trimmedMessage && mediaPayload.length === 0) return;
 
-    onSubmit(trimmedMessage, mediaPayload.length > 0 ? mediaPayload : undefined);
-    setMessage("");
-    setUploads([]);
-    setIsEmojiOpen(false);
+    const isSubmitted = await onSubmit(
+      trimmedMessage,
+      !editingMessage && mediaPayload.length > 0 ? mediaPayload : undefined,
+    );
+    if (!editingMessage && isSubmitted) {
+      resetComposer();
+    }
   };
 
   return (
@@ -259,7 +296,7 @@ export function MeetingMessageInput({
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
-              handleSubmit();
+              void handleSubmit();
             }
             if (event.key === "Escape" && editingMessage) {
               onCancelEdit();
@@ -279,11 +316,13 @@ export function MeetingMessageInput({
 
         <button
           type="button"
-          onClick={handleSubmit}
+          onClick={() => void handleSubmit()}
           disabled={
             isUploading ||
-            (!message.trim() &&
-              uploads.every((upload) => upload.status !== "success"))
+            (editingMessage
+              ? !message.trim()
+              : !message.trim() &&
+                uploads.every((upload) => upload.status !== "success"))
           }
           className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg bg-sky-500 text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-slate-500"
           title={intl.formatMessage({ id: "meeting.chat.send" })}
@@ -293,4 +332,6 @@ export function MeetingMessageInput({
       </div>
     </div>
   );
-}
+});
+
+MeetingMessageInput.displayName = "MeetingMessageInput";

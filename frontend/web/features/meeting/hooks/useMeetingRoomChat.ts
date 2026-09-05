@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAppSelector } from "@/store/store";
+import type { MeetingMessageInputRef } from "../components/room/message/meeting-message-input";
 import { getMeetingParticipants } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
 import type { MeetingMessageReadPayload } from "../types/meeting-socket.types";
@@ -32,6 +33,7 @@ export function useMeetingRoomChat({
   const [realtimeReadReceipts, setRealtimeReadReceipts] = useState<
     Record<string, string>
   >({});
+  const messageInputRef = useRef<MeetingMessageInputRef>(null);
   const hasScrolledInitialMessages = useRef(false);
   const {
     messages,
@@ -152,11 +154,14 @@ export function useMeetingRoomChat({
         const edited = await editMessage(editingMessage.id, content);
         if (edited) {
           setEditingMessage(null);
+          messageInputRef.current?.reset();
+          return true;
         }
-        return;
+        return false;
       }
 
-      await sendMessage(content, medias);
+      const sent = await sendMessage(content, medias);
+      return Boolean(sent);
     },
     [editMessage, editingMessage, sendMessage],
   );
@@ -181,8 +186,17 @@ export function useMeetingRoomChat({
     [recallMessage],
   );
 
+  const handleStartEdit = useCallback((message: MeetingMessageResponse) => {
+    setEditingMessage(message);
+    setTimeout(() => {
+      messageInputRef.current?.setMessage(message.content ?? "");
+      messageInputRef.current?.focus();
+    }, 50);
+  }, []);
+
   const handleCancelEdit = useCallback(() => {
     setEditingMessage(null);
+    messageInputRef.current?.reset();
   }, []);
 
   return {
@@ -193,15 +207,16 @@ export function useMeetingRoomChat({
     handleCancelEdit,
     handleMarkAsRead,
     handleRecallMessage,
+    handleStartEdit,
     handleSubmit,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
     loadOlderRef,
+    messageInputRef,
     messages,
     profilesByUserId,
     reactToMessage,
     readReceipts,
-    setEditingMessage,
   };
 }

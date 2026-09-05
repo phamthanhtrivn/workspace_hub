@@ -20,16 +20,17 @@ export function MeetingRoomChatPanel({
     handleCancelEdit,
     handleMarkAsRead,
     handleRecallMessage,
+    handleStartEdit,
     handleSubmit,
     hasNextPage,
     isFetchingNextPage,
     isLoading,
     loadOlderRef,
+    messageInputRef,
     messages,
     profilesByUserId,
     reactToMessage,
     readReceipts,
-    setEditingMessage,
   } = useMeetingRoomChat({
     joinToken,
     meetingId,
@@ -51,7 +52,7 @@ export function MeetingRoomChatPanel({
           profilesByUserId={profilesByUserId}
           readReceipts={readReceipts}
           onReact={reactToMessage}
-          onEdit={setEditingMessage}
+          onEdit={handleStartEdit}
           onRecall={handleRecallMessage}
           onReadMessage={handleMarkAsRead}
         />
@@ -60,12 +61,15 @@ export function MeetingRoomChatPanel({
 
       <div className="px-3">
         {editingMessage && (
-          <MeetingMessageEditingBanner onCancel={handleCancelEdit} />
+          <MeetingMessageEditingBanner
+            editingMessage={editingMessage}
+            onCancel={handleCancelEdit}
+          />
         )}
       </div>
 
       <MeetingMessageInput
-        key={editingMessage?.id ?? "new-meeting-message"}
+        ref={messageInputRef}
         meetingId={meetingId}
         editingMessage={editingMessage}
         onSubmit={handleSubmit}
