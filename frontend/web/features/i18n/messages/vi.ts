@@ -692,6 +692,7 @@
   "meeting.chat.send": "Gửi tin nhắn",
   "meeting.chat.attachFile": "Đính kèm file",
   "meeting.chat.insertEmoji": "Chèn emoji",
+  "meeting.chat.searchEmoji": "Tìm emoji...",
   "meeting.chat.react": "Thả cảm xúc",
   "meeting.chat.moreActions": "Tùy chọn khác",
   "meeting.chat.editMessage": "Chỉnh sửa tin nhắn",

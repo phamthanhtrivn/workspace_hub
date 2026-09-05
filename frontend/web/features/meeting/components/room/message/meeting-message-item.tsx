@@ -167,7 +167,7 @@ export function MeetingMessageItem({
         {!message.recalled && (
           <div
             className={cn(
-              "absolute top-0 z-30 flex w-max max-w-full -translate-y-[calc(100%+0.25rem)] flex-wrap items-center gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100",
+              "absolute top-full z-[90] mt-1 flex w-max max-w-full flex-wrap items-center gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100",
               isMe ? "right-0 justify-end" : "left-0 justify-start",
             )}
           >
@@ -175,7 +175,7 @@ export function MeetingMessageItem({
               <button
                 type="button"
                 onClick={() => setIsReactionPickerOpen((value) => !value)}
-                className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#111827] text-slate-300 shadow-lg transition hover:bg-white/10"
+                className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#111827] text-slate-300 shadow-lg transition"
                 title={intl.formatMessage({ id: "meeting.chat.react" })}
               >
                 <SmilePlus className="h-4 w-4" />
@@ -192,7 +192,7 @@ export function MeetingMessageItem({
                       key={emoji}
                       type="button"
                       onClick={() => handleQuickReaction(emoji)}
-                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-base transition hover:bg-white/10"
+                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-base transition"
                     >
                       {emoji}
                     </button>
@@ -208,7 +208,7 @@ export function MeetingMessageItem({
                   setOptionsRect(event.currentTarget.getBoundingClientRect());
                   setIsOptionsOpen(true);
                 }}
-                className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#111827] text-slate-300 shadow-lg transition hover:bg-white/10"
+                className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#111827] text-slate-300 shadow-lg transition"
                 title={intl.formatMessage({ id: "meeting.chat.moreActions" })}
               >
                 <MoreHorizontal className="h-4 w-4" />

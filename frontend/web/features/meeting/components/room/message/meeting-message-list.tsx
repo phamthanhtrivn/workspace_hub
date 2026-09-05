@@ -118,7 +118,7 @@ export function MeetingMessageList({
           <div
             key={message.id}
             id={`meeting-msg-${message.id}`}
-            className={cn("min-w-0", hasSenderChanged && "mt-4")}
+            className={cn("min-w-0", hasSenderChanged && "mt-6")}
           >
             {showDivider && (
               <MeetingMessageTimeDivider date={message.createdAt} />

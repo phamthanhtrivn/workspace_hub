@@ -697,6 +697,7 @@
   "meeting.chat.send": "Send message",
   "meeting.chat.attachFile": "Attach file",
   "meeting.chat.insertEmoji": "Insert emoji",
+  "meeting.chat.searchEmoji": "Search emoji...",
   "meeting.chat.react": "React",
   "meeting.chat.moreActions": "More actions",
   "meeting.chat.editMessage": "Edit message",

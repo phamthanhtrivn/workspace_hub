@@ -55,7 +55,7 @@ export function MeetingMessageOptionsMenu({
     <div
       ref={menuRef}
       style={style}
-      className="fixed z-50 min-w-40 rounded-lg border border-white/10 bg-[#111827] py-1 text-sm text-slate-200 shadow-2xl"
+      className="fixed z-[100] min-w-40 rounded-lg border border-white/10 bg-[#111827] py-1 text-sm text-slate-200 shadow-2xl"
     >
       {canEdit && (
         <button

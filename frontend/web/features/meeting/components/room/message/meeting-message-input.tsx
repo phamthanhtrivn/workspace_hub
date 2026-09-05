@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { Loader2, Paperclip, Send, Smile, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
@@ -15,8 +16,6 @@ import type {
 } from "../../../types/meeting.types";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
-const QUICK_EMOJIS = ["😀", "😂", "😍", "👍", "🙏", "🎉", "🔥", "💡"];
-
 interface UploadingMeetingMedia extends MeetingMessageMediaPayload {
   id: string;
   file: File;
@@ -42,6 +41,8 @@ export function MeetingMessageInput({
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const emojiButtonRef = useRef<HTMLButtonElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const isUploading = uploads.some((upload) => upload.status === "uploading");
 
   useEffect(() => {
@@ -56,6 +57,25 @@ export function MeetingMessageInput({
     textarea.style.height = "auto";
     textarea.style.height = `${Math.min(textarea.scrollHeight, 132)}px`;
   }, [message]);
+
+  useEffect(() => {
+    if (!isEmojiOpen) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        emojiPickerRef.current?.contains(target) ||
+        emojiButtonRef.current?.contains(target)
+      ) {
+        return;
+      }
+
+      setIsEmojiOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isEmojiOpen]);
 
   const uploadFiles = useCallback(
     async (files: File[]) => {
@@ -148,7 +168,7 @@ export function MeetingMessageInput({
   };
 
   return (
-    <div className="border-t border-white/10 p-3">
+    <div className="relative border-t border-white/10 p-3 mt-2">
       {uploads.length > 0 && (
         <div className="mb-2 flex max-h-24 flex-col gap-1 overflow-y-auto rounded-lg border border-white/10 bg-black/20 p-2">
           {uploads.map((upload) => (
@@ -180,20 +200,26 @@ export function MeetingMessageInput({
       )}
 
       {isEmojiOpen && (
-        <div className="mb-2 flex flex-wrap gap-1 rounded-lg border border-white/10 bg-black/20 p-2">
-          {QUICK_EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              type="button"
-              onClick={() => {
-                setMessage((current) => `${current}${emoji}`);
-                textareaRef.current?.focus();
-              }}
-              className="grid h-8 w-8 cursor-pointer place-items-center rounded-md text-lg transition hover:bg-white/10"
-            >
-              {emoji}
-            </button>
-          ))}
+        <div
+          ref={emojiPickerRef}
+          className="absolute bottom-full left-3 right-3 z-[90] mb-2 overflow-hidden rounded-lg border border-white/10 bg-[#111827] shadow-2xl"
+        >
+          <EmojiPicker
+            onEmojiClick={(emojiData) => {
+              setMessage((current) => `${current}${emojiData.emoji}`);
+              setIsEmojiOpen(false);
+              setTimeout(() => textareaRef.current?.focus(), 0);
+            }}
+            theme={Theme.DARK}
+            emojiStyle={EmojiStyle.NATIVE}
+            lazyLoadEmojis
+            width="100%"
+            height={340}
+            searchPlaceHolder={intl.formatMessage({
+              id: "meeting.chat.searchEmoji",
+            })}
+            previewConfig={{ showPreview: false }}
+          />
         </div>
       )}
 
@@ -242,6 +268,7 @@ export function MeetingMessageInput({
         />
 
         <button
+          ref={emojiButtonRef}
           type="button"
           onClick={() => setIsEmojiOpen((value) => !value)}
           className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg text-slate-300 transition hover:bg-white/10"
