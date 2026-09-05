@@ -47,10 +47,14 @@ export interface MeetingHostTransferredPayload {
 }
 
 export type MeetingParticipantUpdatedPayload = MeetingParticipantResponse;
+export type MeetingParticipantJoinedPayload = MeetingParticipantResponse;
 export type MeetingParticipantRemovedPayload = MeetingParticipantResponse;
 export type MeetingEndedPayload = MeetingEndedResponse;
 
 export interface ServerToClientMeetingEvents {
+  [MeetingSocketEvent.PARTICIPANT_JOINED]: (
+    payload: MeetingParticipantJoinedPayload,
+  ) => void;
   [MeetingSocketEvent.PARTICIPANT_UPDATED]: (
     payload: MeetingParticipantUpdatedPayload,
   ) => void;

@@ -242,7 +242,7 @@ export class MeetingService {
 
     const now = new Date();
 
-    await this.prisma.meetingParticipant.upsert({
+    const updatedParticipant = await this.prisma.meetingParticipant.upsert({
       where: {
         meetingId_userId: {
           meetingId: meeting.id,
@@ -277,6 +277,21 @@ export class MeetingService {
         },
       });
     }
+
+    const participantPayload = await this.toMeetingParticipantSocketPayload(
+      meeting.id,
+      updatedParticipant,
+    );
+    this.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.PARTICIPANT_JOINED,
+      participantPayload,
+    );
+    this.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
+      participantPayload,
+    );
 
     const token = await this.liveKitService.createParticipantToken({
       roomName: meeting.roomName,
@@ -839,36 +854,37 @@ export class MeetingService {
     };
   }) {
     const previousHostId = meeting.hostId;
-    const [updatedTargetParticipant] = await this.prisma.$transaction([
-      this.prisma.meetingParticipant.update({
-        where: { id: targetParticipant.id },
-        data: { role: MeetingRole.HOST },
-      }),
-      this.prisma.meetingParticipant.update({
-        where: {
-          meetingId_userId: {
+    const [updatedTargetParticipant, updatedPreviousHostParticipant] =
+      await this.prisma.$transaction([
+        this.prisma.meetingParticipant.update({
+          where: { id: targetParticipant.id },
+          data: { role: MeetingRole.HOST },
+        }),
+        this.prisma.meetingParticipant.update({
+          where: {
+            meetingId_userId: {
+              meetingId: meeting.id,
+              userId: previousHostId,
+            },
+          },
+          data: { role: MeetingRole.PARTICIPANT },
+        }),
+        this.prisma.meeting.update({
+          where: { id: meeting.id },
+          data: { hostId: targetParticipant.userId },
+        }),
+        this.prisma.meetingEvent.create({
+          data: {
             meetingId: meeting.id,
-            userId: previousHostId,
+            actorId: currentHostUserId,
+            type: MeetingEventType.HOST_TRANSFERRED,
+            metadata: {
+              previousHostId,
+              targetUserId: targetParticipant.userId,
+            },
           },
-        },
-        data: { role: MeetingRole.PARTICIPANT },
-      }),
-      this.prisma.meeting.update({
-        where: { id: meeting.id },
-        data: { hostId: targetParticipant.userId },
-      }),
-      this.prisma.meetingEvent.create({
-        data: {
-          meetingId: meeting.id,
-          actorId: currentHostUserId,
-          type: MeetingEventType.HOST_TRANSFERRED,
-          metadata: {
-            previousHostId,
-            targetUserId: targetParticipant.userId,
-          },
-        },
-      }),
-    ]);
+        }),
+      ]);
 
     const payload = {
       meetingId: meeting.id,
@@ -881,12 +897,21 @@ export class MeetingService {
       meeting.id,
       updatedTargetParticipant,
     );
+    const previousHostPayload = await this.toMeetingParticipantSocketPayload(
+      meeting.id,
+      updatedPreviousHostParticipant,
+    );
 
     this.emitMeetingEvent(meeting.id, MeetingEvent.HOST_TRANSFERRED, payload);
     this.emitMeetingEvent(
       meeting.id,
       MeetingEvent.PARTICIPANT_UPDATED,
       targetPayload,
+    );
+    this.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
+      previousHostPayload,
     );
     await Promise.all([
       this.syncLiveKitParticipantMetadata(

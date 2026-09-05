@@ -11,12 +11,14 @@ import {
   useEndMeeting,
   useLeaveMeeting,
 } from "./useMeetingParticipants";
+import { useMeetingRealtimeCache } from "./useMeetingRealtimeCache";
 import { useMeetingSocket } from "./useMeetingSocket";
 import { MEETING_ROUTES } from "../types/meeting.constants";
 import { meetingKeys } from "../types/meeting.query-keys";
 import type {
   MeetingEndedPayload,
   MeetingHostTransferredPayload,
+  MeetingParticipantJoinedPayload,
   MeetingParticipantRemovedPayload,
   MeetingParticipantUpdatedPayload,
   MeetingStatusUpdatedPayload,
@@ -49,11 +51,20 @@ export function useMeetingRoomLifecycle({
     useState(participantRole);
   const leaveMeetingMutation = useLeaveMeeting(joinToken);
   const endMeetingMutation = useEndMeeting(joinToken);
+  const {
+    patchCurrentUserRole,
+    patchParticipantInCachedPages,
+    patchRoomAutoAdmit,
+    removeParticipantFromCachedPages,
+  } = useMeetingRealtimeCache(joinToken);
 
-  const invalidateMeetingRoomState = useCallback(() => {
+  const invalidateMeetingParticipants = useCallback(() => {
     queryClient.invalidateQueries({
       queryKey: meetingKeys.participantsRoot(joinToken),
     });
+  }, [joinToken, queryClient]);
+
+  const invalidateMeetingIdentityState = useCallback(() => {
     queryClient.invalidateQueries({
       queryKey: meetingKeys.access(joinToken),
     });
@@ -62,6 +73,11 @@ export function useMeetingRoomLifecycle({
     });
   }, [joinToken, queryClient]);
 
+  const invalidateMeetingRoomState = useCallback(() => {
+    invalidateMeetingParticipants();
+    invalidateMeetingIdentityState();
+  }, [invalidateMeetingIdentityState, invalidateMeetingParticipants]);
+
   const leaveRoom = useCallback(() => {
     room.disconnect();
     router.push(MEETING_ROUTES.DASHBOARD);
@@ -69,11 +85,13 @@ export function useMeetingRoomLifecycle({
 
   const handleStatusUpdated = useCallback(
     (payload: MeetingStatusUpdatedPayload) => {
-      if (payload.meetingId === meetingId) {
-        setAutoAdmit(payload.autoAdmit);
-      }
+      if (payload.meetingId !== meetingId) return;
+
+      setAutoAdmit(payload.autoAdmit);
+      patchRoomAutoAdmit(payload.autoAdmit);
+      invalidateMeetingIdentityState();
     },
-    [meetingId],
+    [invalidateMeetingIdentityState, meetingId, patchRoomAutoAdmit],
   );
 
   const handleMeetingEnded = useCallback(
@@ -96,23 +114,42 @@ export function useMeetingRoomLifecycle({
     ],
   );
 
+  const handleParticipantJoined = useCallback(
+    (payload: MeetingParticipantJoinedPayload) => {
+      if (payload.meetingId !== meetingId) return;
+
+      invalidateMeetingParticipants();
+    },
+    [invalidateMeetingParticipants, meetingId],
+  );
+
   const handleParticipantUpdated = useCallback(
     (payload: MeetingParticipantUpdatedPayload) => {
       if (payload.meetingId !== meetingId) return;
 
+      patchParticipantInCachedPages(payload);
+
       if (payload.userId === authUser.userId) {
         setCurrentParticipantRole(payload.role);
+        patchCurrentUserRole(payload.role);
       }
 
       invalidateMeetingRoomState();
     },
-    [authUser.userId, invalidateMeetingRoomState, meetingId],
+    [
+      authUser.userId,
+      invalidateMeetingRoomState,
+      meetingId,
+      patchCurrentUserRole,
+      patchParticipantInCachedPages,
+    ],
   );
 
   const handleParticipantRemoved = useCallback(
     (payload: MeetingParticipantRemovedPayload) => {
       if (payload.meetingId !== meetingId) return;
 
+      removeParticipantFromCachedPages(payload.userId);
       invalidateMeetingRoomState();
 
       if (payload.userId === authUser.userId) {
@@ -126,6 +163,7 @@ export function useMeetingRoomLifecycle({
       invalidateMeetingRoomState,
       leaveRoom,
       meetingId,
+      removeParticipantFromCachedPages,
     ],
   );
 
@@ -135,22 +173,31 @@ export function useMeetingRoomLifecycle({
 
       if (payload.targetUserId === authUser.userId) {
         setCurrentParticipantRole(MEETING_ROLE.HOST);
+        patchCurrentUserRole(MEETING_ROLE.HOST);
         toast.success(intl.formatMessage({ id: "meeting.room.youAreHost" }));
       }
 
       if (payload.previousHostId === authUser.userId) {
         setCurrentParticipantRole(MEETING_ROLE.PARTICIPANT);
+        patchCurrentUserRole(MEETING_ROLE.PARTICIPANT);
       }
 
       invalidateMeetingRoomState();
     },
-    [authUser.userId, intl, invalidateMeetingRoomState, meetingId],
+    [
+      authUser.userId,
+      intl,
+      invalidateMeetingRoomState,
+      meetingId,
+      patchCurrentUserRole,
+    ],
   );
 
   useMeetingSocket({
     meetingId,
     onStatusUpdated: handleStatusUpdated,
     onMeetingEnded: handleMeetingEnded,
+    onParticipantJoined: handleParticipantJoined,
     onParticipantUpdated: handleParticipantUpdated,
     onParticipantRemoved: handleParticipantRemoved,
     onHostTransferred: handleHostTransferred,

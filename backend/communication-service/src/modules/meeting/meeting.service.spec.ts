@@ -14,6 +14,7 @@ import {
 import { LiveKitService } from '../../infrastructure/livekit/livekit.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MeetingSocketHandler } from '../socket/meeting/meeting-socket.handler';
+import { MeetingEvent } from '../socket/meeting/meeting-socket.events';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { MeetingService } from './meeting.service';
 import { MEETING_ERROR_MESSAGES } from './types/meeting.enums';
@@ -109,7 +110,18 @@ describe('MeetingService', () => {
         update: jest.fn(),
       },
       meetingParticipant: {
-        upsert: jest.fn(),
+        upsert: jest.fn().mockImplementation(({ create, update }) =>
+          Promise.resolve({
+            id: 'participant-id',
+            meetingId: create.meetingId,
+            userId: create.userId,
+            role: create.role,
+            status: update.status ?? create.status,
+            joinedAt: update.joinedAt ?? create.joinedAt,
+            leftAt: update.leftAt ?? null,
+            updatedAt: createdAt,
+          }),
+        ),
         findUnique: jest.fn(),
         update: jest.fn(),
         findMany: jest.fn(),
@@ -373,7 +385,8 @@ describe('MeetingService', () => {
   });
 
   it('joins a live meeting and creates a LiveKit participant token', async () => {
-    const { service, prisma, liveKitService } = createService();
+    const { service, prisma, liveKitService, meetingSocketHandler } =
+      createService();
     const deviceSettings = {
       cameraEnabled: false,
       microphoneEnabled: true,
@@ -431,6 +444,26 @@ describe('MeetingService', () => {
         avatarUrl: 'https://cdn.test/guest.png',
         role: MeetingRole.PARTICIPANT,
         deviceSettings,
+      }),
+    );
+    expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalledWith(
+      meetingRecord.id,
+      MeetingEvent.PARTICIPANT_JOINED,
+      expect.objectContaining({
+        meetingId: meetingRecord.id,
+        userId: guestUserId,
+        role: MeetingRole.PARTICIPANT,
+        status: MeetingParticipantStatus.JOINED,
+      }),
+    );
+    expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalledWith(
+      meetingRecord.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
+      expect.objectContaining({
+        meetingId: meetingRecord.id,
+        userId: guestUserId,
+        role: MeetingRole.PARTICIPANT,
+        status: MeetingParticipantStatus.JOINED,
       }),
     );
     expect(result.meeting.participantRole).toBe(MeetingRole.PARTICIPANT);
@@ -1096,6 +1129,24 @@ describe('MeetingService', () => {
         },
       },
     });
+    expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalledWith(
+      meetingRecord.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
+      expect.objectContaining({
+        meetingId: meetingRecord.id,
+        userId: guestUserId,
+        role: MeetingRole.HOST,
+      }),
+    );
+    expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalledWith(
+      meetingRecord.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
+      expect.objectContaining({
+        meetingId: meetingRecord.id,
+        userId,
+        role: MeetingRole.PARTICIPANT,
+      }),
+    );
     expect(liveKitService.updateParticipantMetadata).toHaveBeenCalled();
     expect(meetingSocketHandler.emitToMeeting).toHaveBeenCalled();
     expect(transferResult.role).toBe(MeetingRole.HOST);
