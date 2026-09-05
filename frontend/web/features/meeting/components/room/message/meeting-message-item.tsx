@@ -12,6 +12,7 @@ import type {
 } from "../../../types/meeting.types";
 import { MeetingMessageAttachments } from "./meeting-message-attachments";
 import { MeetingMessageOptionsMenu } from "./meeting-message-options-menu";
+import { MeetingMessageReadReceipts } from "./meeting-message-read-receipts";
 import { MeetingMessageReactions } from "./meeting-message-reactions";
 import { MESSAGE_ACTION_WINDOW_MS, QUICK_REACTIONS } from "@/features/meeting/types/meeting.constants";
 
@@ -21,7 +22,8 @@ interface MeetingMessageItemProps {
   profile: MeetingParticipantProfile | null;
   showAvatar: boolean;
   showSenderName: boolean;
-  readByNames: string[];
+  readBy: string[];
+  profilesByUserId: Record<string, MeetingParticipantProfile>;
   onReact: (messageId: string, emoji: string, action: "add" | "remove") => void;
   onEdit: (message: MeetingMessageResponse) => void;
   onRecall: (messageId: string) => void;
@@ -33,7 +35,8 @@ export function MeetingMessageItem({
   profile,
   showAvatar,
   showSenderName,
-  readByNames,
+  readBy,
+  profilesByUserId,
   onReact,
   onEdit,
   onRecall,
@@ -155,13 +158,12 @@ export function MeetingMessageItem({
           )}
         </div>
 
-        {isMe && readByNames.length > 0 && (
-          <div className="max-w-full truncate px-1 text-[10px] font-semibold text-sky-200/80">
-            {intl.formatMessage(
-              { id: "meeting.chat.readBy" },
-              { names: readByNames.slice(0, 2).join(", ") },
-            )}
-          </div>
+        {isMe && (
+          <MeetingMessageReadReceipts
+            readBy={readBy}
+            currentUserId={currentUserId}
+            profilesByUserId={profilesByUserId}
+          />
         )}
 
         {!message.recalled && (

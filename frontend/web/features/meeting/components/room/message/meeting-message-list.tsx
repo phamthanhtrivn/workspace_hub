@@ -104,15 +104,10 @@ export function MeetingMessageList({
         const hasSenderChanged =
           Boolean(previousMessage) &&
           previousMessage?.senderId !== message.senderId;
-        const readByNames = Object.entries(readReceipts)
-          .filter(
-            ([userId, messageId]) =>
-              userId !== currentUserId && messageId === message.id,
-          )
-          .map(([userId]) => {
-            const profile = profilesByUserId[userId];
-            return profile?.fullName || profile?.email || userId;
-          });
+        const readBy = Object.keys(readReceipts || {}).filter(
+          (userId) =>
+            readReceipts[userId] === message.id && userId !== currentUserId,
+        );
 
         return (
           <div
@@ -133,7 +128,8 @@ export function MeetingMessageList({
               }
               showAvatar={showAvatar}
               showSenderName={showSenderName}
-              readByNames={readByNames}
+              readBy={readBy}
+              profilesByUserId={profilesByUserId}
               onReact={onReact}
               onEdit={onEdit}
               onRecall={onRecall}
