@@ -49,9 +49,16 @@ export interface UpdateMeetingSettingsParams extends MeetingModeratorParams {
   dto: UpdateMeetingSettingsDto;
 }
 
+export type StartMeetingScreenShareParams = MeetingModeratorParams;
+
+export type StopMeetingScreenShareParams = MeetingModeratorParams;
+
 export interface TargetMeetingParticipantParams extends MeetingModeratorParams {
   targetUserId: string;
 }
+
+export type StopTargetMeetingScreenShareParams =
+  TargetMeetingParticipantParams;
 
 export interface UpdateMeetingParticipantRoleParams extends TargetMeetingParticipantParams {
   dto: UpdateMeetingParticipantRoleDto;

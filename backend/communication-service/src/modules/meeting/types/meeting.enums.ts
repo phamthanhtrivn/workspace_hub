@@ -27,6 +27,8 @@ export enum MEETING_SUCCESS_MESSAGES {
   MESSAGE_REACTION_UPDATED = 'Meeting message reaction updated successfully',
   MESSAGE_READ_RECEIPT_UPDATED = 'Meeting message read receipt updated successfully',
   CHAT_NOTIFICATION_PREFERENCE_UPDATED = 'Meeting chat notification preference updated successfully',
+  SCREEN_SHARE_STARTED = 'Screen share started successfully',
+  SCREEN_SHARE_STOPPED = 'Screen share stopped successfully',
 }
 
 export enum MEETING_ERROR_MESSAGES {
@@ -46,6 +48,10 @@ export enum MEETING_ERROR_MESSAGES {
   PARTICIPANT_VIEW_PREFERENCE_REQUIRED = 'At least one participant view preference must be provided',
   MEETING_SETTINGS_REQUIRED = 'At least one meeting setting must be provided',
   MEETING_CHAT_DISABLED = 'Meeting chat is disabled by the host',
+  MEETING_SCREEN_SHARE_DISABLED = 'Screen sharing is disabled by the host',
+  MEETING_SCREEN_SHARE_ALREADY_ACTIVE = 'Another participant is already sharing their screen',
+  MEETING_SCREEN_SHARE_NOT_ACTIVE = 'No active screen share found',
+  MEETING_SCREEN_SHARE_STOP_FORBIDDEN = 'Only meeting hosts or co-hosts can stop another participant screen share',
   LIVEKIT_NOT_CONFIGURED = 'LiveKit is not configured',
   INSTANT_CREATE_FAILED = 'Failed to create instant meeting',
   INVALID_MESSAGE_DATA = 'Invalid meeting message data',

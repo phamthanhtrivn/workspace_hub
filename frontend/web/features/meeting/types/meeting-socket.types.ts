@@ -6,6 +6,7 @@ import type {
   MeetingMessageResponse,
   MeetingParticipantResponse,
   MeetingParticipantStatus,
+  MeetingScreenShareStateResponse,
 } from "./meeting.types";
 
 export enum MeetingSocketEvent {
@@ -23,6 +24,8 @@ export enum MeetingSocketEvent {
   MESSAGE_UPDATED = "meeting:message_updated",
   MESSAGE_READ = "meeting:message_read",
   CHAT_NOTIFICATION_PREFERENCE_UPDATED = "meeting:chat_notification_preference_updated",
+  SCREEN_SHARE_STARTED = "meeting:screen_share_started",
+  SCREEN_SHARE_STOPPED = "meeting:screen_share_stopped",
 }
 
 export interface MeetingStatusUpdatedPayload {
@@ -31,6 +34,9 @@ export interface MeetingStatusUpdatedPayload {
   status?: MEETING_STATUS;
   autoAdmit: boolean;
   chatEnabled: boolean;
+  screenShareEnabled: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
   endedBy?: string;
   endedAt?: string;
 }
@@ -61,6 +67,8 @@ export type MeetingParticipantRemovedPayload = MeetingParticipantResponse;
 export type MeetingEndedPayload = MeetingEndedResponse;
 export type MeetingChatNotificationPreferenceUpdatedPayload =
   MeetingChatNotificationPreferenceResponse;
+export type MeetingScreenShareStartedPayload = MeetingScreenShareStateResponse;
+export type MeetingScreenShareStoppedPayload = MeetingScreenShareStateResponse;
 
 export interface MeetingMessageReadPayload {
   meetingId: string;
@@ -101,6 +109,12 @@ export interface ServerToClientMeetingEvents {
   [MeetingSocketEvent.MESSAGE_READ]: (payload: MeetingMessageReadPayload) => void;
   [MeetingSocketEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED]: (
     payload: MeetingChatNotificationPreferenceUpdatedPayload,
+  ) => void;
+  [MeetingSocketEvent.SCREEN_SHARE_STARTED]: (
+    payload: MeetingScreenShareStartedPayload,
+  ) => void;
+  [MeetingSocketEvent.SCREEN_SHARE_STOPPED]: (
+    payload: MeetingScreenShareStoppedPayload,
   ) => void;
 }
 

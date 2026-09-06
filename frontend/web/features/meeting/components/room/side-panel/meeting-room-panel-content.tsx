@@ -17,6 +17,9 @@ export function MeetingRoomPanelContent({
   onAutoAdmitChange,
   chatEnabled,
   onChatEnabledChange,
+  screenShareEnabled,
+  onScreenShareEnabledChange,
+  activeScreenShareUserId,
   mutedParticipantIds,
   pinnedParticipantId,
   isParticipantViewPreferencePending,
@@ -28,6 +31,7 @@ export function MeetingRoomPanelContent({
       <MeetingParticipantsPanel
         joinToken={joinToken}
         participantRole={participantRole}
+        activeScreenShareUserId={activeScreenShareUserId}
         mutedParticipantIds={mutedParticipantIds}
         pinnedParticipantId={pinnedParticipantId}
         isParticipantViewPreferencePending={
@@ -65,6 +69,8 @@ export function MeetingRoomPanelContent({
       onAutoAdmitChange={onAutoAdmitChange}
       chatEnabled={chatEnabled}
       onChatEnabledChange={onChatEnabledChange}
+      screenShareEnabled={screenShareEnabled}
+      onScreenShareEnabledChange={onScreenShareEnabledChange}
     />
   );
 }

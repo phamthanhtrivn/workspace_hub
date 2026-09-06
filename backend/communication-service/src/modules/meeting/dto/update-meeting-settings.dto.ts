@@ -8,4 +8,8 @@ export class UpdateMeetingSettingsDto {
   @IsOptional()
   @IsBoolean()
   chatEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  screenShareEnabled?: boolean;
 }

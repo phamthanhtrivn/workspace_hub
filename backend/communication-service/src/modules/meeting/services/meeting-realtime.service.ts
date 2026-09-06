@@ -86,4 +86,30 @@ export class MeetingRealtimeService {
       );
     }
   }
+
+  async syncLiveKitParticipantPublishPermissions({
+    roomName,
+    userId,
+    canShareScreen,
+  }: {
+    roomName: string;
+    userId: string;
+    canShareScreen: boolean;
+  }) {
+    if (!this.liveKitService.isConfigured()) return;
+
+    try {
+      await this.liveKitService.updateParticipantPublishPermissions({
+        roomName,
+        userId,
+        canShareScreen,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Failed to update LiveKit publish permissions for ${userId} in ${roomName}: ${
+          error instanceof Error ? error.message : 'unknown error'
+        }`,
+      );
+    }
+  }
 }

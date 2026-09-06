@@ -31,6 +31,7 @@ import {
 import { MeetingPolicyService } from './meeting-policy.service';
 import { MeetingPresenterService } from './meeting-presenter.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
+import { MeetingScreenShareService } from './meeting-screen-share.service';
 
 @Injectable()
 export class MeetingRoomService {
@@ -40,6 +41,7 @@ export class MeetingRoomService {
     private readonly meetingPolicyService: MeetingPolicyService,
     private readonly meetingPresenterService: MeetingPresenterService,
     private readonly meetingRealtimeService: MeetingRealtimeService,
+    private readonly meetingScreenShareService: MeetingScreenShareService,
   ) {}
 
   async createInstantMeeting({
@@ -62,6 +64,7 @@ export class MeetingRoomService {
     const instantMeetingDto = dto ?? {};
     const autoAdmit = instantMeetingDto.autoAdmit ?? true;
     const chatEnabled = instantMeetingDto.chatEnabled ?? true;
+    const screenShareEnabled = true;
     const roomName = createRoomName();
     const joinToken = createJoinToken();
 
@@ -70,6 +73,7 @@ export class MeetingRoomService {
       createdBy: userId,
       autoAdmit,
       chatEnabled,
+      screenShareEnabled,
     });
 
     const meeting = await this.prisma.$transaction(async (tx) => {
@@ -83,6 +87,7 @@ export class MeetingRoomService {
           hostId: userId,
           autoAdmit,
           chatEnabled,
+          screenShareEnabled,
           startedAt: now,
         },
       });
@@ -130,6 +135,7 @@ export class MeetingRoomService {
       avatarUrl,
       role: MeetingRole.HOST,
       deviceSettings: instantMeetingDto.deviceSettings,
+      canShareScreen: true,
     });
 
     return this.meetingPresenterService.toMeetingRoomResponse(
@@ -182,10 +188,14 @@ export class MeetingRoomService {
       status: meeting.status,
       autoAdmit: meeting.autoAdmit,
       chatEnabled: meeting.chatEnabled,
+      screenShareEnabled: meeting.screenShareEnabled,
       canJoinWithoutApproval,
       participantRole,
       participantStatus: existingParticipant?.status ?? null,
       chatMuted: existingParticipant?.chatMuted ?? false,
+      activeScreenShareUserId: meeting.activeScreenShareUserId,
+      screenShareStartedAt:
+        meeting.screenShareStartedAt?.toISOString() ?? null,
     };
   }
 
@@ -303,6 +313,10 @@ export class MeetingRoomService {
       avatarUrl,
       role,
       deviceSettings: dto?.deviceSettings,
+      canShareScreen:
+        role === MeetingRole.HOST ||
+        role === MeetingRole.COHOST ||
+        meeting.activeScreenShareUserId === userId,
     });
 
     return this.meetingPresenterService.toMeetingRoomResponse(
@@ -323,7 +337,11 @@ export class MeetingRoomService {
       userId,
     });
 
-    if (dto.autoAdmit === undefined && dto.chatEnabled === undefined) {
+    if (
+      dto.autoAdmit === undefined &&
+      dto.chatEnabled === undefined &&
+      dto.screenShareEnabled === undefined
+    ) {
       throw new BadRequestException(
         MEETING_ERROR_MESSAGES.MEETING_SETTINGS_REQUIRED,
       );
@@ -332,6 +350,7 @@ export class MeetingRoomService {
     const updateData: {
       autoAdmit?: boolean;
       chatEnabled?: boolean;
+      screenShareEnabled?: boolean;
     } = {};
     const settingEvents: {
       meetingId: string;
@@ -365,6 +384,15 @@ export class MeetingRoomService {
       updateData.chatEnabled = dto.chatEnabled;
     }
 
+    const shouldStopScreenShare =
+      dto.screenShareEnabled === false &&
+      dto.screenShareEnabled !== meeting.screenShareEnabled &&
+      Boolean(meeting.activeScreenShareUserId);
+
+    if (dto.screenShareEnabled !== undefined) {
+      updateData.screenShareEnabled = dto.screenShareEnabled;
+    }
+
     const updatedMeeting = await this.prisma.$transaction(async (tx) => {
       const nextMeeting = await tx.meeting.update({
         where: { id: meeting.id },
@@ -380,22 +408,50 @@ export class MeetingRoomService {
       return nextMeeting;
     });
 
+    const payload = {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      autoAdmit: updatedMeeting.autoAdmit,
+      chatEnabled: updatedMeeting.chatEnabled,
+      screenShareEnabled: updatedMeeting.screenShareEnabled,
+      activeScreenShareUserId: shouldStopScreenShare
+        ? null
+        : updatedMeeting.activeScreenShareUserId,
+      screenShareStartedAt: shouldStopScreenShare
+        ? null
+        : (updatedMeeting.screenShareStartedAt?.toISOString() ?? null),
+    };
+
     this.meetingRealtimeService.emitMeetingEvent(
       meeting.id,
       MeetingEvent.STATUS_UPDATED,
-      {
-        meetingId: meeting.id,
-        joinToken: meeting.joinToken,
-        autoAdmit: updatedMeeting.autoAdmit,
-        chatEnabled: updatedMeeting.chatEnabled,
-      },
+      payload,
     );
+
+    if (shouldStopScreenShare && meeting.activeScreenShareUserId) {
+      await this.meetingScreenShareService.clearActiveScreenShare({
+        meetingId: meeting.id,
+        roomName: meeting.roomName,
+        joinToken: meeting.joinToken,
+        meetingHostId: meeting.hostId,
+        targetUserId: meeting.activeScreenShareUserId,
+        stoppedBy: userId,
+        reason: 'disabled',
+      });
+    }
 
     return {
       meetingId: meeting.id,
       joinToken: meeting.joinToken,
       autoAdmit: updatedMeeting.autoAdmit,
       chatEnabled: updatedMeeting.chatEnabled,
+      screenShareEnabled: updatedMeeting.screenShareEnabled,
+      activeScreenShareUserId: shouldStopScreenShare
+        ? null
+        : updatedMeeting.activeScreenShareUserId,
+      screenShareStartedAt: shouldStopScreenShare
+        ? null
+        : (updatedMeeting.screenShareStartedAt?.toISOString() ?? null),
     };
   }
 
@@ -406,12 +462,26 @@ export class MeetingRoomService {
     });
     const now = new Date();
 
+    if (meeting.activeScreenShareUserId) {
+      await this.meetingScreenShareService.clearActiveScreenShare({
+        meetingId: meeting.id,
+        roomName: meeting.roomName,
+        joinToken: meeting.joinToken,
+        meetingHostId: meeting.hostId,
+        targetUserId: meeting.activeScreenShareUserId,
+        stoppedBy: userId,
+        reason: 'meeting_ended',
+      });
+    }
+
     await this.prisma.$transaction([
       this.prisma.meeting.update({
         where: { id: meeting.id },
         data: {
           status: MeetingStatus.ENDED,
           endedAt: now,
+          activeScreenShareUserId: null,
+          screenShareStartedAt: null,
         },
       }),
       this.prisma.meetingParticipant.updateMany({
@@ -441,6 +511,9 @@ export class MeetingRoomService {
       status: MeetingStatus.ENDED,
       autoAdmit: meeting.autoAdmit,
       chatEnabled: meeting.chatEnabled,
+      screenShareEnabled: meeting.screenShareEnabled,
+      activeScreenShareUserId: null,
+      screenShareStartedAt: null,
       endedBy: userId,
       endedAt: now.toISOString(),
     };

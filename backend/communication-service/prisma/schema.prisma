@@ -540,6 +540,9 @@ model Meeting {
   passwordHash             String?                 @map("password_hash")
   autoAdmit                Boolean                 @default(false) @map("auto_admit")
   chatEnabled              Boolean                 @default(true) @map("chat_enabled")
+  screenShareEnabled       Boolean                 @default(true) @map("screen_share_enabled")
+  activeScreenShareUserId  String?                 @map("active_screen_share_user_id") @db.Uuid
+  screenShareStartedAt     DateTime?               @map("screen_share_started_at")
   createdAt                DateTime                @default(now()) @map("created_at")
   updatedAt                DateTime                @updatedAt @map("updated_at")
 

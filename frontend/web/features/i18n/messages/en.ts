@@ -681,7 +681,9 @@
   "meeting.room.control.participants": "People",
   "meeting.room.control.chat": "Chat",
   "meeting.room.control.admission": "Admission",
-  "meeting.room.control.share": "Share",
+  "meeting.room.control.share": "Invite link",
+  "meeting.room.control.shareScreen": "Share screen",
+  "meeting.room.control.stopShareScreen": "Stop sharing",
   "meeting.room.control.settings": "Settings",
   "meeting.room.control.leave": "Leave",
   "meeting.room.control.end": "End",
@@ -731,6 +733,18 @@
   "meeting.room.settings.participantChatUpdated": "Participant chat updated",
   "meeting.room.settings.participantChatUpdateFailed":
     "Could not update participant chat",
+  "meeting.room.settings.screenShareTitle": "Allow participant screen sharing",
+  "meeting.room.settings.screenShareDescription":
+    "Participants can share their screen when nobody else is presenting.",
+  "meeting.room.settings.screenShareUpdated": "Screen sharing updated",
+  "meeting.room.settings.screenShareUpdateFailed":
+    "Could not update screen sharing",
+  "meeting.room.screenShare.sharing": "Sharing screen",
+  "meeting.room.screenShare.disabled": "Screen sharing is disabled",
+  "meeting.room.screenShare.startFailed": "Could not start screen sharing",
+  "meeting.room.screenShare.stopFailed": "Could not stop screen sharing",
+  "meeting.room.screenShare.stoppedByHost":
+    "Your screen share was stopped by a host",
   "meeting.room.leaveFailed": "Could not save your leave action",
   "meeting.room.endConfirm": "End the meeting for everyone?",
   "meeting.room.endSuccess": "Meeting ended",
@@ -754,6 +768,7 @@
   "meeting.participants.makeParticipant": "Demote",
   "meeting.participants.makeHost": "Make host",
   "meeting.participants.remove": "Remove",
+  "meeting.participants.stopScreenShare": "Stop screen share",
   "meeting.participants.removeConfirm": "Remove {name} from the meeting?",
   "meeting.participants.transferHostConfirm":
     "Make {name} the host? You will become a regular participant.",
@@ -761,6 +776,8 @@
   "meeting.participants.removeFailed": "Could not remove participant",
   "meeting.participants.roleUpdateSuccess": "Participant role updated",
   "meeting.participants.roleUpdateFailed": "Could not update participant role",
+  "meeting.participants.stopShareSuccess": "Screen share stopped",
+  "meeting.participants.stopShareFailed": "Could not stop screen share",
   "meeting.participants.preferenceUpdateFailed":
     "Could not update participant preference",
   "meeting.admission.search": "Search by name or email...",

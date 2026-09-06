@@ -7,6 +7,7 @@ import {
   MeetingAutoAdmitToggleVariant,
 } from "../../common/meeting-auto-admit-toggle";
 import { MeetingParticipantChatToggle } from "../../common/meeting-participant-chat-toggle";
+import { MeetingScreenShareToggle } from "../../common/meeting-screen-share-toggle";
 import { MeetingRoomShareLink } from "./meeting-room-share-link";
 import { canManageMeetingAdmission } from "@/features/meeting/utils/meeting-room.utils";
 
@@ -17,6 +18,8 @@ export function MeetingRoomSettingsPanel({
   onAutoAdmitChange,
   chatEnabled,
   onChatEnabledChange,
+  screenShareEnabled,
+  onScreenShareEnabledChange,
 }: MeetingRoomSettingsPanelProps) {
   const canManageSettings = canManageMeetingAdmission(participantRole);
   const updateSettingsMutation = useUpdateMeetingSettings(joinToken);
@@ -38,6 +41,16 @@ export function MeetingRoomSettingsPanel({
     );
   };
 
+  const handleScreenShareEnabledChange = (nextScreenShareEnabled: boolean) => {
+    onScreenShareEnabledChange(nextScreenShareEnabled);
+    updateSettingsMutation.mutate(
+      { screenShareEnabled: nextScreenShareEnabled },
+      {
+        onError: () => onScreenShareEnabledChange(!nextScreenShareEnabled),
+      },
+    );
+  };
+
   return (
     <div className="mt-4 flex h-screen flex-col justify-between">
       {canManageSettings && (
@@ -52,6 +65,12 @@ export function MeetingRoomSettingsPanel({
             checked={chatEnabled}
             disabled={updateSettingsMutation.isPending}
             onCheckedChange={handleChatEnabledChange}
+            variant={MeetingAutoAdmitToggleVariant.DARK}
+          />
+          <MeetingScreenShareToggle
+            checked={screenShareEnabled}
+            disabled={updateSettingsMutation.isPending}
+            onCheckedChange={handleScreenShareEnabledChange}
             variant={MeetingAutoAdmitToggleVariant.DARK}
           />
         </div>

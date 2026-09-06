@@ -676,7 +676,9 @@
   "meeting.room.control.participants": "Thành viên",
   "meeting.room.control.chat": "Chat",
   "meeting.room.control.admission": "Duyệt vào",
-  "meeting.room.control.share": "Chia sẻ",
+  "meeting.room.control.share": "Liên kết mời",
+  "meeting.room.control.shareScreen": "Chia sẻ màn hình",
+  "meeting.room.control.stopShareScreen": "Dừng chia sẻ",
   "meeting.room.control.settings": "Cài đặt",
   "meeting.room.control.leave": "Rời",
   "meeting.room.control.end": "Kết thúc",
@@ -727,6 +729,20 @@
     "Đã cập nhật quyền chat của participant",
   "meeting.room.settings.participantChatUpdateFailed":
     "Không thể cập nhật quyền chat của participant",
+  "meeting.room.settings.screenShareTitle":
+    "Cho phép participant chia sẻ màn hình",
+  "meeting.room.settings.screenShareDescription":
+    "Participant có thể chia sẻ màn hình khi chưa có ai đang trình chiếu.",
+  "meeting.room.settings.screenShareUpdated":
+    "Đã cập nhật quyền chia sẻ màn hình",
+  "meeting.room.settings.screenShareUpdateFailed":
+    "Không thể cập nhật quyền chia sẻ màn hình",
+  "meeting.room.screenShare.sharing": "Đang chia sẻ màn hình",
+  "meeting.room.screenShare.disabled": "Chia sẻ màn hình đang bị tắt",
+  "meeting.room.screenShare.startFailed": "Không thể bắt đầu chia sẻ màn hình",
+  "meeting.room.screenShare.stopFailed": "Không thể dừng chia sẻ màn hình",
+  "meeting.room.screenShare.stoppedByHost":
+    "Host đã dừng chia sẻ màn hình của bạn",
   "meeting.room.leaveFailed": "Không thể lưu hành động rời cuộc họp",
   "meeting.room.endConfirm":
     "Kết thúc cuộc họp cho tất cả mọi người?",
@@ -751,6 +767,7 @@
   "meeting.participants.makeParticipant": "Giáng quyền",
   "meeting.participants.makeHost": "Trao host",
   "meeting.participants.remove": "Mời ra",
+  "meeting.participants.stopScreenShare": "Dừng chia sẻ màn hình",
   "meeting.participants.removeConfirm": "Mời {name} ra khỏi cuộc họp?",
   "meeting.participants.transferHostConfirm":
     "Trao quyền host cho {name}? Bạn sẽ trở thành participant thường.",
@@ -758,6 +775,8 @@
   "meeting.participants.removeFailed": "Không thể mời thành viên ra",
   "meeting.participants.roleUpdateSuccess": "Đã cập nhật quyền thành viên",
   "meeting.participants.roleUpdateFailed": "Không thể cập nhật quyền thành viên",
+  "meeting.participants.stopShareSuccess": "Đã dừng chia sẻ màn hình",
+  "meeting.participants.stopShareFailed": "Không thể dừng chia sẻ màn hình",
   "meeting.participants.preferenceUpdateFailed":
     "Không thể cập nhật tùy chọn thành viên",
   "meeting.admission.search": "Tìm theo tên hoặc email...",

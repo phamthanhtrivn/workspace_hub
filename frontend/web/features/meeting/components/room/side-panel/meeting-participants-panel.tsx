@@ -10,6 +10,7 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 interface MeetingParticipantsPanelProps {
   joinToken: string;
   participantRole: MeetingParticipantRole;
+  activeScreenShareUserId: string | null;
   mutedParticipantIds: ReadonlySet<string>;
   pinnedParticipantId: string | null;
   isParticipantViewPreferencePending: (participantId: string) => boolean;
@@ -20,6 +21,7 @@ interface MeetingParticipantsPanelProps {
 export function MeetingParticipantsPanel({
   joinToken,
   participantRole,
+  activeScreenShareUserId,
   mutedParticipantIds,
   pinnedParticipantId,
   isParticipantViewPreferencePending,
@@ -40,8 +42,13 @@ export function MeetingParticipantsPanel({
     setSearch,
     handleRemove,
     handleRoleChange,
+    handleStopScreenShare,
     alertDialogProps,
-  } = useMeetingParticipantsPanel({ joinToken, participantRole });
+  } = useMeetingParticipantsPanel({
+    joinToken,
+    participantRole,
+    activeScreenShareUserId,
+  });
 
   return (
     <>
@@ -85,6 +92,7 @@ export function MeetingParticipantsPanel({
                 )}
                 onRemove={handleRemove}
                 onRoleChange={handleRoleChange}
+                onStopScreenShare={handleStopScreenShare}
                 onToggleAudioMute={onToggleParticipantAudioMute}
                 onTogglePin={onToggleParticipantPin}
               />

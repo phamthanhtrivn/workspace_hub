@@ -119,6 +119,9 @@ export function useMeetingRoomLifecycle({
       patchRoomSettings({
         autoAdmit: payload.autoAdmit,
         chatEnabled: payload.chatEnabled,
+        screenShareEnabled: payload.screenShareEnabled,
+        activeScreenShareUserId: payload.activeScreenShareUserId,
+        screenShareStartedAt: payload.screenShareStartedAt,
       });
       if (payload.status === MEETING_STATUS.ENDED) return;
 

@@ -5,6 +5,7 @@ import {
   MessageSquareText,
   Plus,
   Radio,
+  ScreenShare,
   Settings,
   ShieldCheck,
   UserRoundPlus,
@@ -36,6 +37,12 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/${encodeURIComponent(messageId)}/reactions`,
   messageRead: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/read`,
+  screenShareStart: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/screen-share/start`,
+  screenShareStop: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/screen-share/stop`,
+  stopParticipantScreenShare: (joinToken: string, userId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/screen-share/stop`,
   chatNotifications: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/chat-notifications`,
   participantViewPreferences: (joinToken: string) =>
@@ -175,6 +182,11 @@ export const meetingRoomControlItems = [
     id: MeetingRoomPanel.ADMISSION,
     labelId: "meeting.room.control.admission",
     icon: ShieldCheck,
+  },
+  {
+    id: "screen-share",
+    labelId: "meeting.room.control.shareScreen",
+    icon: ScreenShare,
   },
   {
     id: MeetingRoomPanel.SETTINGS,

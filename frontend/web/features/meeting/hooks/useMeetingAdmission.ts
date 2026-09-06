@@ -75,18 +75,22 @@ export function useUpdateMeetingSettings(joinToken: string) {
         queryKey: meetingKeys.room(joinToken),
       });
       const messageId =
-        payload.chatEnabled === undefined
-          ? "meeting.room.settings.autoAdmitUpdated"
-          : "meeting.room.settings.participantChatUpdated";
+        payload.screenShareEnabled !== undefined
+          ? "meeting.room.settings.screenShareUpdated"
+          : payload.chatEnabled === undefined
+            ? "meeting.room.settings.autoAdmitUpdated"
+            : "meeting.room.settings.participantChatUpdated";
 
       toast.success(intl.formatMessage({ id: messageId }));
       return response;
     },
     onError: (_error, payload) => {
       const messageId =
-        payload.chatEnabled === undefined
-          ? "meeting.room.settings.autoAdmitUpdateFailed"
-          : "meeting.room.settings.participantChatUpdateFailed";
+        payload.screenShareEnabled !== undefined
+          ? "meeting.room.settings.screenShareUpdateFailed"
+          : payload.chatEnabled === undefined
+            ? "meeting.room.settings.autoAdmitUpdateFailed"
+            : "meeting.room.settings.participantChatUpdateFailed";
 
       toast.error(intl.formatMessage({ id: messageId }));
     },

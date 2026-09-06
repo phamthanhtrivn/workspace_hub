@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MeetingAdmissionService } from './services/meeting-admission.service';
 import { MeetingParticipantService } from './services/meeting-participant.service';
 import { MeetingRoomService } from './services/meeting-room.service';
+import { MeetingScreenShareService } from './services/meeting-screen-share.service';
 import type {
   CreateInstantMeetingParams,
   GetMeetingAccessParams,
@@ -12,6 +13,9 @@ import type {
   MeetingJoinRequestParams,
   MeetingModeratorParams,
   ResolveJoinRequestParams,
+  StartMeetingScreenShareParams,
+  StopMeetingScreenShareParams,
+  StopTargetMeetingScreenShareParams,
   TargetMeetingParticipantParams,
   UpdateMeetingChatNotificationPreferenceParams,
   UpdateMeetingParticipantViewPreferenceParams,
@@ -25,6 +29,7 @@ export class MeetingService {
     private readonly meetingRoomService: MeetingRoomService,
     private readonly meetingParticipantService: MeetingParticipantService,
     private readonly meetingAdmissionService: MeetingAdmissionService,
+    private readonly meetingScreenShareService: MeetingScreenShareService,
   ) {}
 
   createInstantMeeting(params: CreateInstantMeetingParams) {
@@ -41,6 +46,18 @@ export class MeetingService {
 
   updateMeetingSettings(params: UpdateMeetingSettingsParams) {
     return this.meetingRoomService.updateMeetingSettings(params);
+  }
+
+  startScreenShare(params: StartMeetingScreenShareParams) {
+    return this.meetingScreenShareService.startScreenShare(params);
+  }
+
+  stopScreenShare(params: StopMeetingScreenShareParams) {
+    return this.meetingScreenShareService.stopScreenShare(params);
+  }
+
+  stopParticipantScreenShare(params: StopTargetMeetingScreenShareParams) {
+    return this.meetingScreenShareService.stopParticipantScreenShare(params);
   }
 
   listMeetingParticipants(params: ListMeetingParticipantsParams) {

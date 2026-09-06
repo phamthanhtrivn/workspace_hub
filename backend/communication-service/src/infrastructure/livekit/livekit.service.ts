@@ -1,27 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { AccessToken, RoomServiceClient } from 'livekit-server-sdk';
+import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
 import { getLiveKitConfig, LiveKitConfig } from './livekit.config';
-
-export interface LiveKitParticipantTokenParams {
-  roomName: string;
-  userId: string;
-  displayName?: string;
-  avatarUrl?: string;
-  role: string;
-  deviceSettings?: {
-    cameraEnabled: boolean;
-    microphoneEnabled: boolean;
-    cameraDeviceId?: string;
-    microphoneDeviceId?: string;
-  };
-}
-
-export interface LiveKitRoomMetadata {
-  meetingType?: string;
-  createdBy?: string;
-  autoAdmit?: boolean;
-  [key: string]: string | number | boolean | null | undefined;
-}
+import { LiveKitParticipantTokenParams, LiveKitRoomMetadata } from './types/livekit.types';
+import { BASE_PUBLISH_SOURCES, SCREEN_SHARE_PUBLISH_SOURCES } from './types/livekit.constants';
 
 @Injectable()
 export class LiveKitService {
@@ -86,6 +67,27 @@ export class LiveKitService {
     });
   }
 
+  async updateParticipantPublishPermissions({
+    roomName,
+    userId,
+    canShareScreen,
+  }: {
+    roomName: string;
+    userId: string;
+    canShareScreen: boolean;
+  }): Promise<void> {
+    await this.createRoomServiceClient().updateParticipant(roomName, userId, {
+      permission: {
+        canPublish: true,
+        canSubscribe: true,
+        canPublishData: true,
+        canPublishSources: canShareScreen
+          ? [...SCREEN_SHARE_PUBLISH_SOURCES]
+          : [...BASE_PUBLISH_SOURCES],
+      },
+    });
+  }
+
   async createParticipantToken({
     roomName,
     userId,
@@ -93,6 +95,7 @@ export class LiveKitService {
     avatarUrl,
     role,
     deviceSettings,
+    canShareScreen = false,
   }: LiveKitParticipantTokenParams): Promise<string> {
     const token = new AccessToken(this.config.apiKey, this.config.apiSecret, {
       identity: userId,
@@ -110,6 +113,9 @@ export class LiveKitService {
       canPublish: true,
       canSubscribe: true,
       canPublishData: true,
+      canPublishSources: canShareScreen
+        ? [...SCREEN_SHARE_PUBLISH_SOURCES]
+        : [...BASE_PUBLISH_SOURCES],
     });
 
     return token.toJwt();

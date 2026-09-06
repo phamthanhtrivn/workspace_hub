@@ -77,7 +77,14 @@ export function useMeetingRealtimeCache(joinToken: string) {
   const patchRoomSettings = useCallback(
     (
       settings: Partial<
-        Pick<MeetingAccessResponse, "autoAdmit" | "chatEnabled">
+        Pick<
+          MeetingAccessResponse,
+          | "autoAdmit"
+          | "chatEnabled"
+          | "screenShareEnabled"
+          | "activeScreenShareUserId"
+          | "screenShareStartedAt"
+        >
       >,
     ) => {
       queryClient.setQueryData<ApiResponse<MeetingAccessResponse>>(

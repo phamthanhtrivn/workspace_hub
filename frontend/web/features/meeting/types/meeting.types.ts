@@ -84,6 +84,9 @@ export interface InstantMeetingResponse {
     status: "LIVE";
     autoAdmit: boolean;
     chatEnabled: boolean;
+    screenShareEnabled: boolean;
+    activeScreenShareUserId: string | null;
+    screenShareStartedAt: string | null;
     startedAt: string | null;
     createdAt: string;
     participantRole: MeetingParticipantRole;
@@ -101,10 +104,13 @@ export interface MeetingAccessResponse {
   status: "LIVE";
   autoAdmit: boolean;
   chatEnabled: boolean;
+  screenShareEnabled: boolean;
   canJoinWithoutApproval: boolean;
   participantRole: MeetingParticipantRole;
   participantStatus: MeetingParticipantStatus | null;
   chatMuted: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
 }
 
 export type JoinMeetingPayload = Pick<
@@ -130,6 +136,9 @@ export interface MeetingRoomSidePanelProps {
   onAutoAdmitChange: (autoAdmit: boolean) => void;
   chatEnabled: boolean;
   onChatEnabledChange: (chatEnabled: boolean) => void;
+  screenShareEnabled: boolean;
+  onScreenShareEnabledChange: (screenShareEnabled: boolean) => void;
+  activeScreenShareUserId: string | null;
   chatMuted: boolean;
   isChatNotificationPreferencePending?: boolean;
   onChatMutedChange: (muted: boolean) => void;
@@ -152,6 +161,9 @@ export type MeetingRoomPanelContentProps = Pick<
   | "onAutoAdmitChange"
   | "chatEnabled"
   | "onChatEnabledChange"
+  | "screenShareEnabled"
+  | "onScreenShareEnabledChange"
+  | "activeScreenShareUserId"
   | "mutedParticipantIds"
   | "pinnedParticipantId"
   | "isParticipantViewPreferencePending"
@@ -168,6 +180,8 @@ export type MeetingRoomSettingsPanelProps = Pick<
   | "onAutoAdmitChange"
   | "chatEnabled"
   | "onChatEnabledChange"
+  | "screenShareEnabled"
+  | "onScreenShareEnabledChange"
 >;
 
 export interface ParticipantMetadata {
@@ -213,11 +227,27 @@ export interface MeetingSettingsResponse {
   joinToken: string;
   autoAdmit: boolean;
   chatEnabled: boolean;
+  screenShareEnabled: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
 }
 
 export interface UpdateMeetingSettingsPayload {
   autoAdmit?: boolean;
   chatEnabled?: boolean;
+  screenShareEnabled?: boolean;
+}
+
+export interface MeetingScreenShareStateResponse {
+  meetingId: string;
+  joinToken: string;
+  screenShareEnabled: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
+  startedBy?: string;
+  userId?: string;
+  stoppedBy?: string;
+  reason?: string;
 }
 
 export interface MeetingParticipantProfile {
@@ -256,6 +286,9 @@ export interface MeetingEndedResponse {
   status: "ENDED";
   autoAdmit: boolean;
   chatEnabled: boolean;
+  screenShareEnabled: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
   endedBy: string;
   endedAt: string;
 }

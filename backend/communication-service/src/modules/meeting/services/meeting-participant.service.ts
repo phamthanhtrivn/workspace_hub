@@ -25,6 +25,7 @@ import type {
 import { MeetingPolicyService } from './meeting-policy.service';
 import { MeetingPresenterService } from './meeting-presenter.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
+import { MeetingScreenShareService } from './meeting-screen-share.service';
 
 @Injectable()
 export class MeetingParticipantService {
@@ -34,6 +35,7 @@ export class MeetingParticipantService {
     private readonly meetingPolicyService: MeetingPolicyService,
     private readonly meetingPresenterService: MeetingPresenterService,
     private readonly meetingRealtimeService: MeetingRealtimeService,
+    private readonly meetingScreenShareService: MeetingScreenShareService,
   ) {}
 
   async listMeetingParticipants({
@@ -136,6 +138,17 @@ export class MeetingParticipantService {
       MeetingEvent.PARTICIPANT_LEFT,
       payload,
     );
+    if (meeting.activeScreenShareUserId === userId) {
+      await this.meetingScreenShareService.clearActiveScreenShare({
+        meetingId: meeting.id,
+        roomName: meeting.roomName,
+        joinToken: meeting.joinToken,
+        meetingHostId: meeting.hostId,
+        targetUserId: userId,
+        stoppedBy: userId,
+        reason: 'participant_left',
+      });
+    }
 
     return payload;
   }
@@ -210,6 +223,17 @@ export class MeetingParticipantService {
       MeetingEvent.PARTICIPANT_REMOVED,
       payload,
     );
+    if (meeting.activeScreenShareUserId === targetUserId) {
+      await this.meetingScreenShareService.clearActiveScreenShare({
+        meetingId: meeting.id,
+        roomName: meeting.roomName,
+        joinToken: meeting.joinToken,
+        meetingHostId: meeting.hostId,
+        targetUserId,
+        stoppedBy: userId,
+        reason: 'participant_removed',
+      });
+    }
     await this.meetingRealtimeService.removeLiveKitParticipant(
       meeting.roomName,
       targetUserId,
@@ -281,6 +305,31 @@ export class MeetingParticipantService {
       targetUserId,
       dto.role,
     );
+    if (
+      dto.role === MeetingRole.PARTICIPANT &&
+      !meeting.screenShareEnabled &&
+      meeting.activeScreenShareUserId === targetUserId
+    ) {
+      await this.meetingScreenShareService.clearActiveScreenShare({
+        meetingId: meeting.id,
+        roomName: meeting.roomName,
+        joinToken: meeting.joinToken,
+        meetingHostId: meeting.hostId,
+        targetUserId,
+        stoppedBy: userId,
+        reason: 'disabled',
+      });
+    } else {
+      await this.meetingRealtimeService.syncLiveKitParticipantPublishPermissions(
+        {
+          roomName: meeting.roomName,
+          userId: targetUserId,
+          canShareScreen:
+            dto.role === MeetingRole.COHOST ||
+            meeting.activeScreenShareUserId === targetUserId,
+        },
+      );
+    }
 
     return payload;
   }
@@ -444,6 +493,8 @@ export class MeetingParticipantService {
       roomName: string;
       joinToken: string;
       hostId: string;
+      activeScreenShareUserId?: string | null;
+      screenShareEnabled?: boolean;
     };
     currentHostUserId: string;
     targetParticipant: {
@@ -518,6 +569,10 @@ export class MeetingParticipantService {
       MeetingEvent.PARTICIPANT_UPDATED,
       previousHostPayload,
     );
+    const shouldStopPreviousHostScreenShare =
+      !meeting.screenShareEnabled &&
+      meeting.activeScreenShareUserId === previousHostId;
+
     await Promise.all([
       this.meetingRealtimeService.syncLiveKitParticipantMetadata(
         meeting.roomName,
@@ -529,6 +584,26 @@ export class MeetingParticipantService {
         previousHostId,
         MeetingRole.PARTICIPANT,
       ),
+      this.meetingRealtimeService.syncLiveKitParticipantPublishPermissions({
+        roomName: meeting.roomName,
+        userId: targetParticipant.userId,
+        canShareScreen: true,
+      }),
+      shouldStopPreviousHostScreenShare
+        ? this.meetingScreenShareService.clearActiveScreenShare({
+            meetingId: meeting.id,
+            roomName: meeting.roomName,
+            joinToken: meeting.joinToken,
+            meetingHostId: targetParticipant.userId,
+            targetUserId: previousHostId,
+            stoppedBy: currentHostUserId,
+            reason: 'disabled',
+          })
+        : this.meetingRealtimeService.syncLiveKitParticipantPublishPermissions({
+            roomName: meeting.roomName,
+            userId: previousHostId,
+            canShareScreen: meeting.activeScreenShareUserId === previousHostId,
+          }),
     ]);
 
     return targetPayload;

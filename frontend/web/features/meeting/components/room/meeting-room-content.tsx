@@ -9,6 +9,7 @@ import { useMeetingChatNotificationPreference } from "@/features/meeting/hooks/u
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
 import { useMeetingParticipantViewPreferences } from "@/features/meeting/hooks/useMeetingParticipantViewPreferences";
 import { useMeetingRoomLifecycle } from "@/features/meeting/hooks/useMeetingRoomLifecycle";
+import { useMeetingScreenShare } from "@/features/meeting/hooks/useMeetingScreenShare";
 import type {
   MeetingParticipantRole,
   MeetingPreJoinSettings,
@@ -18,9 +19,9 @@ import {
   formatElapsedTime,
   getRoomStatusLabelId,
 } from "../../utils/meeting-room.utils";
-import { MeetingParticipantTile } from "./meeting-participant-tile";
 import { MeetingRoomAudioRenderer } from "./meeting-room-audio-renderer";
 import { MeetingRoomFooter } from "./meeting-room-footer";
+import { MeetingRoomStage } from "./meeting-room-stage";
 import { MeetingRoomDesktopSidePanel } from "./side-panel/meeting-room-desktop-side-panel";
 import { MeetingRoomMobilePanelHeader } from "./side-panel/meeting-room-mobile-panel";
 
@@ -30,6 +31,9 @@ interface MeetingRoomContentProps {
   participantRole: MeetingParticipantRole;
   initialAutoAdmit: boolean;
   initialChatEnabled: boolean;
+  initialScreenShareEnabled: boolean;
+  initialActiveScreenShareUserId: string | null;
+  initialScreenShareStartedAt: string | null;
   initialChatMuted: boolean;
   settings: MeetingPreJoinSettings;
 }
@@ -40,6 +44,9 @@ export function MeetingRoomContent({
   participantRole,
   initialAutoAdmit,
   initialChatEnabled,
+  initialScreenShareEnabled,
+  initialActiveScreenShareUserId,
+  initialScreenShareStartedAt,
   initialChatMuted,
   settings,
 }: MeetingRoomContentProps) {
@@ -63,6 +70,7 @@ export function MeetingRoomContent({
     participantCount,
     participantGridClassName,
     participantTileFrameClassName,
+    activeScreenShareTrack,
     showParticipantPagination,
     totalParticipantPages,
     visibleCameraTracks,
@@ -94,6 +102,22 @@ export function MeetingRoomContent({
     meetingId,
     joinToken,
     initialChatMuted,
+  });
+  const {
+    screenShareEnabled,
+    setScreenShareEnabled,
+    activeScreenShareUserId,
+    isLocalSharing,
+    isScreenSharePending,
+    canStartScreenShare,
+    toggleScreenShare,
+  } = useMeetingScreenShare({
+    meetingId,
+    joinToken,
+    participantRole: currentParticipantRole,
+    initialScreenShareEnabled,
+    initialActiveScreenShareUserId,
+    initialScreenShareStartedAt,
   });
 
   useEffect(() => {
@@ -135,30 +159,19 @@ export function MeetingRoomContent({
       <main className="flex min-h-0 flex-1">
         <section className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
           <div className="flex min-h-full flex-col justify-start lg:justify-center">
-            <div className={participantGridClassName}>
-              {visibleCameraTracks.map((trackRef) => (
-                <div
-                  key={`${trackRef.participant.identity}-${trackRef.source}`}
-                  className={participantTileFrameClassName}
-                >
-                  <MeetingParticipantTile
-                    trackRef={trackRef}
-                    isMainTile={false}
-                    isAudioMutedForMe={mutedParticipantIds.has(
-                      trackRef.participant.identity,
-                    )}
-                    isPinnedForMe={
-                      pinnedParticipantId === trackRef.participant.identity
-                    }
-                    isPreferencePending={isParticipantViewPreferencePending(
-                      trackRef.participant.identity,
-                    )}
-                    onToggleAudioMute={toggleParticipantAudioMute}
-                    onTogglePin={toggleParticipantPin}
-                  />
-                </div>
-              ))}
-            </div>
+            <MeetingRoomStage
+              activeScreenShareTrack={activeScreenShareTrack}
+              visibleCameraTracks={visibleCameraTracks}
+              participantGridClassName={participantGridClassName}
+              participantTileFrameClassName={participantTileFrameClassName}
+              mutedParticipantIds={mutedParticipantIds}
+              pinnedParticipantId={pinnedParticipantId}
+              isParticipantViewPreferencePending={
+                isParticipantViewPreferencePending
+              }
+              onToggleParticipantAudioMute={toggleParticipantAudioMute}
+              onToggleParticipantPin={toggleParticipantPin}
+            />
             {showParticipantPagination ? (
               <div className="mt-6 shrink-0">
                 <div className="mx-auto flex w-fit items-center justify-center gap-2 rounded-md bg-black/24 px-2 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/8 backdrop-blur">
@@ -207,6 +220,9 @@ export function MeetingRoomContent({
           onAutoAdmitChange={setAutoAdmit}
           chatEnabled={chatEnabled}
           onChatEnabledChange={setChatEnabled}
+          screenShareEnabled={screenShareEnabled}
+          onScreenShareEnabledChange={setScreenShareEnabled}
+          activeScreenShareUserId={activeScreenShareUserId}
           chatMuted={chatMuted}
           isChatNotificationPreferencePending={
             isChatNotificationPreferencePending
@@ -230,6 +246,10 @@ export function MeetingRoomContent({
         participantRole={currentParticipantRole}
         settings={settings}
         chatMuted={chatMuted}
+        isLocalScreenSharing={isLocalSharing}
+        isScreenSharePending={isScreenSharePending}
+        canStartScreenShare={canStartScreenShare}
+        onToggleScreenShare={toggleScreenShare}
         onPanelChange={setActivePanel}
         onLeave={handleLeave}
         onEndForEveryone={handleEndForEveryone}
@@ -247,6 +267,9 @@ export function MeetingRoomContent({
         onAutoAdmitChange={setAutoAdmit}
         chatEnabled={chatEnabled}
         onChatEnabledChange={setChatEnabled}
+        screenShareEnabled={screenShareEnabled}
+        onScreenShareEnabledChange={setScreenShareEnabled}
+        activeScreenShareUserId={activeScreenShareUserId}
         chatMuted={chatMuted}
         isChatNotificationPreferencePending={
           isChatNotificationPreferencePending

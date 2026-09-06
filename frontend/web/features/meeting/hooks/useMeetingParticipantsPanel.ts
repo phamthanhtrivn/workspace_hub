@@ -14,6 +14,7 @@ import {
   type MeetingParticipantRole,
 } from "../types/meeting.types";
 import {
+  canManageMeetingAdmission,
   canRemoveMeetingParticipant,
   getRoleLabelId,
 } from "../utils/meeting-room.utils";
@@ -21,6 +22,7 @@ import {
 interface UseMeetingParticipantsPanelParams {
   joinToken: string;
   participantRole: MeetingParticipantRole;
+  activeScreenShareUserId: string | null;
 }
 
 const EMPTY_MEETING_PARTICIPANTS: MeetingParticipantResponse[] = [];
@@ -36,6 +38,7 @@ export interface MeetingParticipantListItemState {
   canManageRole: boolean;
   canPromoteToCohost: boolean;
   canDemoteToParticipant: boolean;
+  canStopScreenShare: boolean;
 }
 
 function getParticipantDisplayName(participant: MeetingParticipantResponse) {
@@ -49,6 +52,7 @@ function getParticipantDisplayName(participant: MeetingParticipantResponse) {
 export function useMeetingParticipantsPanel({
   joinToken,
   participantRole,
+  activeScreenShareUserId,
 }: UseMeetingParticipantsPanelParams) {
   const intl = useAppIntl();
   const authUser = useAppSelector((state) => state.auth);
@@ -68,7 +72,9 @@ export function useMeetingParticipantsPanel({
   const hasParticipants = participantItems.length > 0;
   const shouldShowPagination = hasParticipants && totalPages > 1;
   const isBusy =
-    actions.removeParticipant.isPending || actions.updateRole.isPending;
+    actions.removeParticipant.isPending ||
+    actions.updateRole.isPending ||
+    actions.stopParticipantScreenShare.isPending;
 
   const participants = useMemo<MeetingParticipantListItemState[]>(
     () =>
@@ -107,6 +113,9 @@ export function useMeetingParticipantsPanel({
             canManageRole && participant.role === MEETING_ROLE.PARTICIPANT,
           canDemoteToParticipant:
             canManageRole && participant.role === MEETING_ROLE.COHOST,
+          canStopScreenShare:
+            canManageMeetingAdmission(participantRole) &&
+            activeScreenShareUserId === participant.userId,
         };
       }),
     [
@@ -116,6 +125,7 @@ export function useMeetingParticipantsPanel({
       authUser.userId,
       participantItems,
       participantRole,
+      activeScreenShareUserId,
     ],
   );
 
@@ -172,6 +182,13 @@ export function useMeetingParticipantsPanel({
     [actions.updateRole, confirm, intl],
   );
 
+  const handleStopScreenShare = useCallback(
+    (participant: MeetingParticipantResponse) => {
+      actions.stopParticipantScreenShare.mutate(participant.userId);
+    },
+    [actions.stopParticipantScreenShare],
+  );
+
   return {
     search,
     page,
@@ -185,6 +202,7 @@ export function useMeetingParticipantsPanel({
     setSearch: updateSearch,
     handleRemove,
     handleRoleChange,
+    handleStopScreenShare,
     alertDialogProps,
   };
 }

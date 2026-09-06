@@ -8,6 +8,7 @@ import {
   Mic,
   MicOff,
   PhoneOff,
+  ScreenShareOff,
   Video,
   VideoOff,
 } from "lucide-react";
@@ -47,7 +48,11 @@ interface MeetingRoomFooterProps {
   participantRole: MeetingParticipantRole;
   settings: MeetingPreJoinSettings;
   chatMuted: boolean;
+  isLocalScreenSharing: boolean;
+  isScreenSharePending: boolean;
+  canStartScreenShare: boolean;
   onPanelChange: (panel: MeetingRoomPanel) => void;
+  onToggleScreenShare: () => void;
   onLeave: () => void;
   onEndForEveryone: () => void;
   isLeavePending?: boolean;
@@ -137,7 +142,11 @@ export function MeetingRoomFooter({
   participantRole,
   settings,
   chatMuted,
+  isLocalScreenSharing,
+  isScreenSharePending,
+  canStartScreenShare,
   onPanelChange,
+  onToggleScreenShare,
   onLeave,
   onEndForEveryone,
   isLeavePending = false,
@@ -275,6 +284,26 @@ export function MeetingRoomFooter({
         {meetingRoomControlItems.slice(2).map((control) => {
           if (control.id === MeetingRoomPanel.ADMISSION && !canManageAdmission) {
             return null;
+          }
+
+          if (control.id === "screen-share") {
+            return (
+              <MeetingRoomControlButton
+                key={control.id}
+                label={intl.formatMessage({
+                  id: isLocalScreenSharing
+                    ? "meeting.room.control.stopShareScreen"
+                    : control.labelId,
+                })}
+                icon={isLocalScreenSharing ? ScreenShareOff : control.icon}
+                active={isLocalScreenSharing}
+                disabled={
+                  isScreenSharePending ||
+                  (!canStartScreenShare && !isLocalScreenSharing)
+                }
+                onClick={onToggleScreenShare}
+              />
+            );
           }
 
           const isPanelControl = isMeetingRoomPanelControl(control.id);

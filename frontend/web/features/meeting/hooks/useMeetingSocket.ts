@@ -12,6 +12,8 @@ import {
   type MeetingParticipantJoinedPayload,
   type MeetingParticipantLeftPayload,
   type MeetingMessageReadPayload,
+  type MeetingScreenShareStartedPayload,
+  type MeetingScreenShareStoppedPayload,
   MeetingSocketEvent,
   type MeetingJoinRequestUpdatedPayload,
   type MeetingParticipantRemovedPayload,
@@ -37,6 +39,8 @@ interface MeetingSocketOptions {
   onChatNotificationPreferenceUpdated?: (
     payload: MeetingChatNotificationPreferenceUpdatedPayload,
   ) => void;
+  onScreenShareStarted?: (payload: MeetingScreenShareStartedPayload) => void;
+  onScreenShareStopped?: (payload: MeetingScreenShareStoppedPayload) => void;
 }
 
 type MeetingSocket = Socket<
@@ -58,6 +62,8 @@ export function useMeetingSocket({
   onMessageSent,
   onMessageRead,
   onChatNotificationPreferenceUpdated,
+  onScreenShareStarted,
+  onScreenShareStopped,
 }: MeetingSocketOptions) {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
 
@@ -116,6 +122,16 @@ export function useMeetingSocket({
     ) => {
       onChatNotificationPreferenceUpdated?.(payload);
     };
+    const handleScreenShareStarted = (
+      payload: MeetingScreenShareStartedPayload,
+    ) => {
+      onScreenShareStarted?.(payload);
+    };
+    const handleScreenShareStopped = (
+      payload: MeetingScreenShareStoppedPayload,
+    ) => {
+      onScreenShareStopped?.(payload);
+    };
 
     socket.on(MeetingSocketEvent.PARTICIPANT_JOINED, handleParticipantJoined);
     socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleParticipantLeft);
@@ -134,6 +150,14 @@ export function useMeetingSocket({
     socket.on(
       MeetingSocketEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED,
       handleChatNotificationPreferenceUpdated,
+    );
+    socket.on(
+      MeetingSocketEvent.SCREEN_SHARE_STARTED,
+      handleScreenShareStarted,
+    );
+    socket.on(
+      MeetingSocketEvent.SCREEN_SHARE_STOPPED,
+      handleScreenShareStopped,
     );
 
     return () => {
@@ -164,6 +188,14 @@ export function useMeetingSocket({
         MeetingSocketEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED,
         handleChatNotificationPreferenceUpdated,
       );
+      socket.off(
+        MeetingSocketEvent.SCREEN_SHARE_STARTED,
+        handleScreenShareStarted,
+      );
+      socket.off(
+        MeetingSocketEvent.SCREEN_SHARE_STOPPED,
+        handleScreenShareStopped,
+      );
     };
   }, [
     accessToken,
@@ -175,6 +207,8 @@ export function useMeetingSocket({
     onMessageRead,
     onMessageSent,
     onChatNotificationPreferenceUpdated,
+    onScreenShareStarted,
+    onScreenShareStopped,
     onParticipantJoined,
     onParticipantLeft,
     onParticipantRemoved,

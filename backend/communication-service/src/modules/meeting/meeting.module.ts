@@ -13,6 +13,7 @@ import { MeetingPolicyService } from './services/meeting-policy.service';
 import { MeetingPresenterService } from './services/meeting-presenter.service';
 import { MeetingRealtimeService } from './services/meeting-realtime.service';
 import { MeetingRoomService } from './services/meeting-room.service';
+import { MeetingScreenShareService } from './services/meeting-screen-share.service';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MeetingRoomService } from './services/meeting-room.service';
     MeetingPolicyService,
     MeetingPresenterService,
     MeetingRealtimeService,
+    MeetingScreenShareService,
   ],
   exports: [MeetingService],
 })

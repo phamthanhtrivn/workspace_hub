@@ -21,6 +21,7 @@ import type {
   MeetingParticipantsResponse,
   MeetingSettingsResponse,
   MeetingAccessResponse,
+  MeetingScreenShareStateResponse,
   CreateMeetingMessagePayload,
   EditMeetingMessagePayload,
   UpdateMeetingSettingsPayload,
@@ -68,6 +69,30 @@ export const updateMeetingSettings = async (
 ): Promise<ApiResponse<MeetingSettingsResponse>> => {
   const response = await api.patch(MEETING_API_PATHS.settings(joinToken), payload);
   return normalizeApiResponse<MeetingSettingsResponse>(response.data);
+};
+
+export const startMeetingScreenShare = async (
+  joinToken: string,
+): Promise<ApiResponse<MeetingScreenShareStateResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.screenShareStart(joinToken));
+  return normalizeApiResponse<MeetingScreenShareStateResponse>(response.data);
+};
+
+export const stopMeetingScreenShare = async (
+  joinToken: string,
+): Promise<ApiResponse<MeetingScreenShareStateResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.screenShareStop(joinToken));
+  return normalizeApiResponse<MeetingScreenShareStateResponse>(response.data);
+};
+
+export const stopParticipantScreenShare = async (
+  joinToken: string,
+  userId: string,
+): Promise<ApiResponse<MeetingScreenShareStateResponse>> => {
+  const response = await api.post(
+    MEETING_API_PATHS.stopParticipantScreenShare(joinToken, userId),
+  );
+  return normalizeApiResponse<MeetingScreenShareStateResponse>(response.data);
 };
 
 export const requestMeetingJoinApproval = async (

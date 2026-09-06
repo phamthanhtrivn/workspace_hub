@@ -18,6 +18,9 @@ export function MeetingRoomDesktopSidePanel({
   onAutoAdmitChange,
   chatEnabled,
   onChatEnabledChange,
+  screenShareEnabled,
+  onScreenShareEnabledChange,
+  activeScreenShareUserId,
   chatMuted,
   isChatNotificationPreferencePending,
   onChatMutedChange,
@@ -68,6 +71,9 @@ export function MeetingRoomDesktopSidePanel({
         onAutoAdmitChange={onAutoAdmitChange}
         chatEnabled={chatEnabled}
         onChatEnabledChange={onChatEnabledChange}
+        screenShareEnabled={screenShareEnabled}
+        onScreenShareEnabledChange={onScreenShareEnabledChange}
+        activeScreenShareUserId={activeScreenShareUserId}
         mutedParticipantIds={mutedParticipantIds}
         pinnedParticipantId={pinnedParticipantId}
         isParticipantViewPreferencePending={

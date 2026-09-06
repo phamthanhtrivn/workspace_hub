@@ -5,7 +5,7 @@ import {
   isTrackReference,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
-import { Pin } from "lucide-react";
+import { MonitorUp, Pin } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingParticipantTile } from "@/features/meeting/hooks/useMeetingParticipantTile";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ import { MeetingIconDropdown } from "../common/meeting-icon-dropdown";
 interface MeetingParticipantTileProps {
   trackRef: TrackReferenceOrPlaceholder;
   isMainTile: boolean;
+  isScreenShare?: boolean;
   isAudioMutedForMe?: boolean;
   isPinnedForMe?: boolean;
   isPreferencePending?: boolean;
@@ -25,6 +26,7 @@ interface MeetingParticipantTileProps {
 export function MeetingParticipantTile({
   trackRef,
   isMainTile,
+  isScreenShare = false,
   isAudioMutedForMe = false,
   isPinnedForMe = false,
   isPreferencePending = false,
@@ -61,6 +63,7 @@ export function MeetingParticipantTile({
           ? "border-emerald-300/70 shadow-[0_0_0_1px_rgba(110,231,183,0.42),0_0_34px_rgba(16,185,129,0.36),0_18px_48px_rgba(0,0,0,0.24)] ring-2 ring-emerald-300/45"
           : "",
         isMainTile ? "lg:col-span-2 lg:row-span-2" : "",
+        isScreenShare ? "bg-black" : "",
       )}
     >
       {isPinnedForMe ? (
@@ -80,7 +83,13 @@ export function MeetingParticipantTile({
       ) : null}
 
       {hasVideo && isTrackReference(trackRef) ? (
-        <VideoTrack trackRef={trackRef} className="h-full w-full object-cover" />
+        <VideoTrack
+          trackRef={trackRef}
+          className={cn(
+            "h-full w-full",
+            isScreenShare ? "bg-black object-contain" : "object-cover",
+          )}
+        />
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 bg-[radial-gradient(circle_at_top,#20304a,transparent_38%),#0c121d] text-center">
           {avatarUrl ? (
@@ -106,6 +115,12 @@ export function MeetingParticipantTile({
           {roleLabelId ? (
             <p className="text-xs font-semibold text-slate-300">
               {intl.formatMessage({ id: roleLabelId })}
+            </p>
+          ) : null}
+          {isScreenShare ? (
+            <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-emerald-200">
+              <MonitorUp className="h-3.5 w-3.5" />
+              {intl.formatMessage({ id: "meeting.room.screenShare.sharing" })}
             </p>
           ) : null}
         </div>

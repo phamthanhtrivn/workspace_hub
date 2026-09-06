@@ -69,6 +69,11 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
             participantRole={room.meeting.participantRole}
             initialAutoAdmit={room.meeting.autoAdmit}
             initialChatEnabled={room.meeting.chatEnabled}
+            initialScreenShareEnabled={room.meeting.screenShareEnabled}
+            initialActiveScreenShareUserId={
+              room.meeting.activeScreenShareUserId
+            }
+            initialScreenShareStartedAt={room.meeting.screenShareStartedAt}
             initialChatMuted={room.meeting.chatMuted}
             settings={settings}
           />

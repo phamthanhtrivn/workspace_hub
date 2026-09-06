@@ -310,6 +310,46 @@ export class MeetingController {
     };
   }
 
+  @Post(':joinToken/screen-share/start')
+  async startScreenShare(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingService.startScreenShare({
+      joinToken,
+      userId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCREEN_SHARE_STARTED,
+      data: result,
+    };
+  }
+
+  @Post(':joinToken/screen-share/stop')
+  async stopScreenShare(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingService.stopScreenShare({
+      joinToken,
+      userId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCREEN_SHARE_STOPPED,
+      data: result,
+    };
+  }
+
   @Patch(':joinToken/chat-notifications')
   async updateMeetingChatNotificationPreference(
     @Param('joinToken') joinToken: string,
@@ -435,6 +475,28 @@ export class MeetingController {
 
     return {
       message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_REMOVED,
+      data: result,
+    };
+  }
+
+  @Post(':joinToken/participants/:targetUserId/screen-share/stop')
+  async stopParticipantScreenShare(
+    @Param('joinToken') joinToken: string,
+    @Param('targetUserId') targetUserId: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const result = await this.meetingService.stopParticipantScreenShare({
+      joinToken,
+      userId,
+      targetUserId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCREEN_SHARE_STOPPED,
       data: result,
     };
   }

@@ -6,6 +6,7 @@ import {
   useSpeakingParticipants,
   useTracks,
   useVisualStableUpdate,
+  isTrackReference,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
 import { Track } from "livekit-client";
@@ -142,6 +143,9 @@ export function useMeetingParticipantGrid(
     [{ source: Track.Source.Camera, withPlaceholder: true }],
     { onlySubscribed: false },
   );
+  const screenShareTracks = useTracks([Track.Source.ScreenShare], {
+    onlySubscribed: false,
+  });
   const [currentParticipantPage, setCurrentParticipantPage] = useState(1);
 
   const activeSpeakerRanks = useMemo(
@@ -164,6 +168,8 @@ export function useMeetingParticipantGrid(
     participantPageSize,
     { customSortFunction: sortStableCameraTracks },
   );
+  const activeScreenShareTrack =
+    screenShareTracks.find(isTrackReference) ?? null;
 
   const totalParticipantPages = Math.max(
     1,
@@ -217,6 +223,7 @@ export function useMeetingParticipantGrid(
     participantCount: participants.length,
     participantGridClassName,
     participantTileFrameClassName,
+    activeScreenShareTrack,
     showParticipantPagination: totalParticipantPages > 1,
     totalParticipantPages,
     visibleCameraTracks,

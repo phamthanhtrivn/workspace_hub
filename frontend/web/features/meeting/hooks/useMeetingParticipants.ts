@@ -8,6 +8,7 @@ import {
   getMeetingParticipants,
   leaveMeeting,
   removeMeetingParticipant,
+  stopParticipantScreenShare as stopParticipantScreenShareApi,
   updateMeetingParticipantRole,
 } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
@@ -90,9 +91,31 @@ export function useMeetingParticipantActions(joinToken: string) {
     },
   });
 
+  const stopParticipantScreenShare = useMutation({
+    mutationFn: (userId: string) =>
+      stopParticipantScreenShareApi(joinToken, userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.access(joinToken),
+      });
+      queryClient.invalidateQueries({
+        queryKey: meetingKeys.room(joinToken),
+      });
+      toast.success(
+        intl.formatMessage({ id: "meeting.participants.stopShareSuccess" }),
+      );
+    },
+    onError: () => {
+      toast.error(
+        intl.formatMessage({ id: "meeting.participants.stopShareFailed" }),
+      );
+    },
+  });
+
   return {
     removeParticipant,
     updateRole,
+    stopParticipantScreenShare,
     invalidateParticipants,
   };
 }

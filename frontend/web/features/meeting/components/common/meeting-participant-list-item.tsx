@@ -4,6 +4,7 @@ import {
   Crown,
   Pin,
   PinOff,
+  ScreenShareOff,
   ShieldCheck,
   ShieldOff,
   UserMinus,
@@ -34,6 +35,7 @@ interface MeetingParticipantListItemProps {
     participant: MeetingParticipantResponse,
     role: MeetingParticipantRole,
   ) => void;
+  onStopScreenShare: (participant: MeetingParticipantResponse) => void;
   onToggleAudioMute: (participantId: string) => void;
   onTogglePin: (participantId: string) => void;
 }
@@ -46,6 +48,7 @@ export function MeetingParticipantListItem({
   isPreferencePending,
   onRemove,
   onRoleChange,
+  onStopScreenShare,
   onToggleAudioMute,
   onTogglePin,
 }: MeetingParticipantListItemProps) {
@@ -108,6 +111,19 @@ export function MeetingParticipantListItem({
       icon: Crown,
       disabled: isBusy,
       onSelect: () => onRoleChange(item.participant, MEETING_ROLE.HOST),
+    });
+  }
+
+  if (item.canStopScreenShare) {
+    actionItems.push({
+      id: "stop-screen-share",
+      label: intl.formatMessage({
+        id: "meeting.participants.stopScreenShare",
+      }),
+      icon: ScreenShareOff,
+      disabled: isBusy,
+      danger: true,
+      onSelect: () => onStopScreenShare(item.participant),
     });
   }
 

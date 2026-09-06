@@ -114,6 +114,9 @@ export class MeetingPresenterService {
       status: MeetingStatus;
       autoAdmit: boolean;
       chatEnabled: boolean;
+      screenShareEnabled: boolean;
+      activeScreenShareUserId: string | null;
+      screenShareStartedAt: Date | null;
       startedAt: Date | null;
       createdAt: Date;
     },
@@ -130,6 +133,10 @@ export class MeetingPresenterService {
         status: meeting.status,
         autoAdmit: meeting.autoAdmit,
         chatEnabled: meeting.chatEnabled,
+        screenShareEnabled: meeting.screenShareEnabled,
+        activeScreenShareUserId: meeting.activeScreenShareUserId,
+        screenShareStartedAt:
+          meeting.screenShareStartedAt?.toISOString() ?? null,
         startedAt: meeting.startedAt?.toISOString() ?? null,
         createdAt: meeting.createdAt.toISOString(),
         participantRole,
