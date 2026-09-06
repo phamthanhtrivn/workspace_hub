@@ -204,3 +204,10 @@ export const OVERFLOW_BADGE_LABEL = "99+";
 export const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"] 
 
 export const MESSAGE_ACTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export enum MEETING_STATUS {
+  SCHEDULED = "SCHEDULED",
+  LIVE = "LIVE",
+  ENDED = "ENDED",
+  CANCELLED = "CANCELLED",
+}

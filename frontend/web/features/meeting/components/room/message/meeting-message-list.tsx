@@ -60,7 +60,7 @@ export function MeetingMessageList({
 
   if (messages.length === 0) {
     return (
-      <div className="grid flex-1 place-items-center px-6 text-center text-sm font-bold leading-6 text-slate-500">
+      <div className="grid flex-1 place-items-center px-6 text-center text-sm font-bold leading-6 text-slate-500 mt-6">
         {intl.formatMessage({ id: "meeting.chat.empty" })}
       </div>
     );

@@ -720,6 +720,13 @@
   "meeting.room.settings.autoAdmitUpdated": "Đã cập nhật quyền vào phòng",
   "meeting.room.settings.autoAdmitUpdateFailed":
     "Không thể cập nhật quyền vào phòng",
+  "meeting.room.settings.participantChatTitle": "Cho phép participant chat",
+  "meeting.room.settings.participantChatDescription":
+    "Participant có thể gửi tin nhắn và file mới trong cuộc họp này.",
+  "meeting.room.settings.participantChatUpdated":
+    "Đã cập nhật quyền chat của participant",
+  "meeting.room.settings.participantChatUpdateFailed":
+    "Không thể cập nhật quyền chat của participant",
   "meeting.room.leaveFailed": "Không thể lưu hành động rời cuộc họp",
   "meeting.room.endConfirm":
     "Kết thúc cuộc họp cho tất cả mọi người?",

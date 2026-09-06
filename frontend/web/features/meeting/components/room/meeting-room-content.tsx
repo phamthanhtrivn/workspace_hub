@@ -29,6 +29,7 @@ interface MeetingRoomContentProps {
   joinToken: string;
   participantRole: MeetingParticipantRole;
   initialAutoAdmit: boolean;
+  initialChatEnabled: boolean;
   initialChatMuted: boolean;
   settings: MeetingPreJoinSettings;
 }
@@ -38,6 +39,7 @@ export function MeetingRoomContent({
   joinToken,
   participantRole,
   initialAutoAdmit,
+  initialChatEnabled,
   initialChatMuted,
   settings,
 }: MeetingRoomContentProps) {
@@ -69,6 +71,8 @@ export function MeetingRoomContent({
   const {
     autoAdmit,
     setAutoAdmit,
+    chatEnabled,
+    setChatEnabled,
     currentParticipantRole,
     handleLeave,
     handleEndForEveryone,
@@ -80,6 +84,7 @@ export function MeetingRoomContent({
     joinToken,
     participantRole,
     initialAutoAdmit,
+    initialChatEnabled,
   });
   const {
     chatMuted,
@@ -200,6 +205,8 @@ export function MeetingRoomContent({
           participantCount={participantCount}
           autoAdmit={autoAdmit}
           onAutoAdmitChange={setAutoAdmit}
+          chatEnabled={chatEnabled}
+          onChatEnabledChange={setChatEnabled}
           chatMuted={chatMuted}
           isChatNotificationPreferencePending={
             isChatNotificationPreferencePending
@@ -238,6 +245,8 @@ export function MeetingRoomContent({
         participantCount={participantCount}
         autoAdmit={autoAdmit}
         onAutoAdmitChange={setAutoAdmit}
+        chatEnabled={chatEnabled}
+        onChatEnabledChange={setChatEnabled}
         chatMuted={chatMuted}
         isChatNotificationPreferencePending={
           isChatNotificationPreferencePending

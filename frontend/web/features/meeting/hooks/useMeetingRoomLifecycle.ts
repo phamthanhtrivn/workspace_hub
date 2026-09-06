@@ -14,7 +14,7 @@ import {
 import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import { useMeetingRealtimeCache } from "./useMeetingRealtimeCache";
 import { useMeetingSocket } from "./useMeetingSocket";
-import { MEETING_ROUTES } from "../types/meeting.constants";
+import { MEETING_ROUTES, MEETING_STATUS } from "../types/meeting.constants";
 import { meetingKeys } from "../types/meeting.query-keys";
 import type {
   MeetingEndedPayload,
@@ -35,6 +35,7 @@ interface UseMeetingRoomLifecycleParams {
   joinToken: string;
   participantRole: MeetingParticipantRole;
   initialAutoAdmit: boolean;
+  initialChatEnabled: boolean;
 }
 
 export function useMeetingRoomLifecycle({
@@ -42,6 +43,7 @@ export function useMeetingRoomLifecycle({
   joinToken,
   participantRole,
   initialAutoAdmit,
+  initialChatEnabled,
 }: UseMeetingRoomLifecycleParams) {
   const intl = useAppIntl();
   const router = useRouter();
@@ -49,6 +51,7 @@ export function useMeetingRoomLifecycle({
   const authUser = useAppSelector((state) => state.auth);
   const room = useRoomContext();
   const [autoAdmit, setAutoAdmit] = useState(initialAutoAdmit);
+  const [chatEnabled, setChatEnabled] = useState(initialChatEnabled);
   const [currentParticipantRole, setCurrentParticipantRole] =
     useState(participantRole);
   const leaveMeetingMutation = useLeaveMeeting(joinToken);
@@ -57,7 +60,7 @@ export function useMeetingRoomLifecycle({
   const {
     patchCurrentUserRole,
     patchParticipantInCachedPages,
-    patchRoomAutoAdmit,
+    patchRoomSettings,
     removeParticipantFromCachedPages,
   } = useMeetingRealtimeCache(joinToken);
 
@@ -112,12 +115,16 @@ export function useMeetingRoomLifecycle({
       if (payload.meetingId !== meetingId) return;
 
       setAutoAdmit(payload.autoAdmit);
-      patchRoomAutoAdmit(payload.autoAdmit);
-      if (payload.status === "ENDED") return;
+      setChatEnabled(payload.chatEnabled);
+      patchRoomSettings({
+        autoAdmit: payload.autoAdmit,
+        chatEnabled: payload.chatEnabled,
+      });
+      if (payload.status === MEETING_STATUS.ENDED) return;
 
       invalidateMeetingIdentityState();
     },
-    [invalidateMeetingIdentityState, meetingId, patchRoomAutoAdmit],
+    [invalidateMeetingIdentityState, meetingId, patchRoomSettings],
   );
 
   const handleMeetingEnded = useCallback(
@@ -290,6 +297,8 @@ export function useMeetingRoomLifecycle({
   return {
     autoAdmit,
     setAutoAdmit,
+    chatEnabled,
+    setChatEnabled,
     currentParticipantRole,
     handleLeave,
     handleEndForEveryone,

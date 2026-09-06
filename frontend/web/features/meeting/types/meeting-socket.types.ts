@@ -1,3 +1,4 @@
+import { MEETING_STATUS } from "./meeting.constants";
 import type {
   MeetingEndedResponse,
   MeetingChatNotificationPreferenceResponse,
@@ -27,8 +28,9 @@ export enum MeetingSocketEvent {
 export interface MeetingStatusUpdatedPayload {
   meetingId: string;
   joinToken: string;
-  status?: "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
+  status?: MEETING_STATUS;
   autoAdmit: boolean;
+  chatEnabled: boolean;
   endedBy?: string;
   endedAt?: string;
 }

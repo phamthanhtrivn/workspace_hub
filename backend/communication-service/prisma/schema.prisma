@@ -82,6 +82,7 @@ enum MeetingEventType {
   ENDED
   CANCELLED
   AUTO_ADMIT_UPDATED
+  CHAT_SETTING_UPDATED
   JOIN_REQUESTED
   JOIN_REQUEST_APPROVED
   JOIN_REQUEST_REJECTED
@@ -538,6 +539,7 @@ model Meeting {
   cancelledAt              DateTime?               @map("cancelled_at")
   passwordHash             String?                 @map("password_hash")
   autoAdmit                Boolean                 @default(false) @map("auto_admit")
+  chatEnabled              Boolean                 @default(true) @map("chat_enabled")
   createdAt                DateTime                @default(now()) @map("created_at")
   updatedAt                DateTime                @updatedAt @map("updated_at")
 

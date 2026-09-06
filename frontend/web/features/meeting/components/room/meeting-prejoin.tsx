@@ -19,6 +19,7 @@ import type {
 import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
 import { MeetingAutoAdmitToggle } from "../common/meeting-auto-admit-toggle";
 import { MeetingDeviceSelect } from "../common/meeting-device-select";
+import { MeetingParticipantChatToggle } from "../common/meeting-participant-chat-toggle";
 
 interface MeetingPreJoinProps {
   mode?: MeetingPreJoinMode;
@@ -239,12 +240,20 @@ export function MeetingPreJoin({
             </div>
 
             {isCreateMode ? (
-              <MeetingAutoAdmitToggle
-                checked={settings.autoAdmin}
-                onCheckedChange={(checked) =>
-                  updateSettings({ autoAdmin: checked })
-                }
-              />
+              <div className="grid gap-3">
+                <MeetingAutoAdmitToggle
+                  checked={settings.autoAdmin}
+                  onCheckedChange={(checked) =>
+                    updateSettings({ autoAdmin: checked })
+                  }
+                />
+                <MeetingParticipantChatToggle
+                  checked={settings.chatEnabled}
+                  onCheckedChange={(checked) =>
+                    updateSettings({ chatEnabled: checked })
+                  }
+                />
+              </div>
             ) : null}
 
             <div className="mt-auto flex flex-col gap-3 pt-2">

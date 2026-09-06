@@ -61,6 +61,7 @@ export class MeetingRoomService {
     const now = new Date();
     const instantMeetingDto = dto ?? {};
     const autoAdmit = instantMeetingDto.autoAdmit ?? true;
+    const chatEnabled = instantMeetingDto.chatEnabled ?? true;
     const roomName = createRoomName();
     const joinToken = createJoinToken();
 
@@ -68,6 +69,7 @@ export class MeetingRoomService {
       meetingType: MeetingType.INSTANT,
       createdBy: userId,
       autoAdmit,
+      chatEnabled,
     });
 
     const meeting = await this.prisma.$transaction(async (tx) => {
@@ -80,6 +82,7 @@ export class MeetingRoomService {
           createdBy: userId,
           hostId: userId,
           autoAdmit,
+          chatEnabled,
           startedAt: now,
         },
       });
@@ -178,6 +181,7 @@ export class MeetingRoomService {
       joinToken: meeting.joinToken,
       status: meeting.status,
       autoAdmit: meeting.autoAdmit,
+      chatEnabled: meeting.chatEnabled,
       canJoinWithoutApproval,
       participantRole,
       participantStatus: existingParticipant?.status ?? null,
@@ -319,18 +323,61 @@ export class MeetingRoomService {
       userId,
     });
 
-    const updatedMeeting = await this.prisma.meeting.update({
-      where: { id: meeting.id },
-      data: { autoAdmit: dto.autoAdmit },
-    });
+    if (dto.autoAdmit === undefined && dto.chatEnabled === undefined) {
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.MEETING_SETTINGS_REQUIRED,
+      );
+    }
 
-    await this.prisma.meetingEvent.create({
-      data: {
+    const updateData: {
+      autoAdmit?: boolean;
+      chatEnabled?: boolean;
+    } = {};
+    const settingEvents: {
+      meetingId: string;
+      actorId: string;
+      type: MeetingEventType;
+      metadata: Record<string, boolean>;
+    }[] = [];
+
+    if (dto.autoAdmit !== undefined) {
+      updateData.autoAdmit = dto.autoAdmit;
+      settingEvents.push({
         meetingId: meeting.id,
         actorId: userId,
         type: MeetingEventType.AUTO_ADMIT_UPDATED,
         metadata: { autoAdmit: dto.autoAdmit },
-      },
+      });
+    }
+
+    if (
+      dto.chatEnabled !== undefined &&
+      dto.chatEnabled !== meeting.chatEnabled
+    ) {
+      updateData.chatEnabled = dto.chatEnabled;
+      settingEvents.push({
+        meetingId: meeting.id,
+        actorId: userId,
+        type: MeetingEventType.CHAT_SETTING_UPDATED,
+        metadata: { chatEnabled: dto.chatEnabled },
+      });
+    } else if (dto.chatEnabled !== undefined) {
+      updateData.chatEnabled = dto.chatEnabled;
+    }
+
+    const updatedMeeting = await this.prisma.$transaction(async (tx) => {
+      const nextMeeting = await tx.meeting.update({
+        where: { id: meeting.id },
+        data: updateData,
+      });
+
+      if (settingEvents.length > 0) {
+        await tx.meetingEvent.createMany({
+          data: settingEvents,
+        });
+      }
+
+      return nextMeeting;
     });
 
     this.meetingRealtimeService.emitMeetingEvent(
@@ -340,6 +387,7 @@ export class MeetingRoomService {
         meetingId: meeting.id,
         joinToken: meeting.joinToken,
         autoAdmit: updatedMeeting.autoAdmit,
+        chatEnabled: updatedMeeting.chatEnabled,
       },
     );
 
@@ -347,6 +395,7 @@ export class MeetingRoomService {
       meetingId: meeting.id,
       joinToken: meeting.joinToken,
       autoAdmit: updatedMeeting.autoAdmit,
+      chatEnabled: updatedMeeting.chatEnabled,
     };
   }
 
@@ -391,6 +440,7 @@ export class MeetingRoomService {
       joinToken: meeting.joinToken,
       status: MeetingStatus.ENDED,
       autoAdmit: meeting.autoAdmit,
+      chatEnabled: meeting.chatEnabled,
       endedBy: userId,
       endedAt: now.toISOString(),
     };

@@ -27,6 +27,10 @@ export class CreateInstantMeetingDto {
   @IsOptional()
   autoAdmit?: boolean;
 
+  @IsBoolean()
+  @IsOptional()
+  chatEnabled?: boolean;
+
   @ValidateNested()
   @Type(() => MeetingDeviceSettingsDto)
   @IsOptional()

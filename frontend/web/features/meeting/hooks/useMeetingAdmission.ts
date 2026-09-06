@@ -12,6 +12,7 @@ import {
   updateMeetingSettings,
 } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
+import type { UpdateMeetingSettingsPayload } from "../types/meeting.types";
 
 const joinRequestPageSize = 8;
 
@@ -64,24 +65,30 @@ export function useUpdateMeetingSettings(joinToken: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (autoAdmit: boolean) =>
-      updateMeetingSettings(joinToken, { autoAdmit }),
-    onSuccess: (response) => {
+    mutationFn: (payload: UpdateMeetingSettingsPayload) =>
+      updateMeetingSettings(joinToken, payload),
+    onSuccess: (response, payload) => {
       queryClient.invalidateQueries({
         queryKey: meetingKeys.access(joinToken),
       });
       queryClient.invalidateQueries({
         queryKey: meetingKeys.room(joinToken),
       });
-      toast.success(
-        intl.formatMessage({ id: "meeting.room.settings.autoAdmitUpdated" }),
-      );
+      const messageId =
+        payload.chatEnabled === undefined
+          ? "meeting.room.settings.autoAdmitUpdated"
+          : "meeting.room.settings.participantChatUpdated";
+
+      toast.success(intl.formatMessage({ id: messageId }));
       return response;
     },
-    onError: () => {
-      toast.error(
-        intl.formatMessage({ id: "meeting.room.settings.autoAdmitUpdateFailed" }),
-      );
+    onError: (_error, payload) => {
+      const messageId =
+        payload.chatEnabled === undefined
+          ? "meeting.room.settings.autoAdmitUpdateFailed"
+          : "meeting.room.settings.participantChatUpdateFailed";
+
+      toast.error(intl.formatMessage({ id: messageId }));
     },
   });
 }

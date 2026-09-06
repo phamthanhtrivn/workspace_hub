@@ -1,6 +1,11 @@
-import { IsBoolean } from 'class-validator';
+import { IsBoolean, IsOptional } from 'class-validator';
 
 export class UpdateMeetingSettingsDto {
+  @IsOptional()
   @IsBoolean()
-  autoAdmit: boolean;
+  autoAdmit?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  chatEnabled?: boolean;
 }

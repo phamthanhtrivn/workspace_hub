@@ -23,6 +23,7 @@ import type {
   MeetingAccessResponse,
   CreateMeetingMessagePayload,
   EditMeetingMessagePayload,
+  UpdateMeetingSettingsPayload,
   UpdateMeetingParticipantViewPreferencePayload,
 } from "../types/meeting.types";
 import type { ApiResponse } from "@/features/chat/types/chat.types";
@@ -63,7 +64,7 @@ export const getMeetingAccess = async (
 
 export const updateMeetingSettings = async (
   joinToken: string,
-  payload: { autoAdmit: boolean },
+  payload: UpdateMeetingSettingsPayload,
 ): Promise<ApiResponse<MeetingSettingsResponse>> => {
   const response = await api.patch(MEETING_API_PATHS.settings(joinToken), payload);
   return normalizeApiResponse<MeetingSettingsResponse>(response.data);

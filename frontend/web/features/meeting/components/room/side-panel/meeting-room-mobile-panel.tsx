@@ -16,6 +16,8 @@ export function MeetingRoomMobilePanelHeader({
   participantCount,
   autoAdmit,
   onAutoAdmitChange,
+  chatEnabled,
+  onChatEnabledChange,
   chatMuted,
   isChatNotificationPreferencePending,
   onChatMutedChange,
@@ -61,6 +63,8 @@ export function MeetingRoomMobilePanelHeader({
         participantCount={participantCount}
         autoAdmit={autoAdmit}
         onAutoAdmitChange={onAutoAdmitChange}
+        chatEnabled={chatEnabled}
+        onChatEnabledChange={onChatEnabledChange}
         mutedParticipantIds={mutedParticipantIds}
         pinnedParticipantId={pinnedParticipantId}
         isParticipantViewPreferencePending={

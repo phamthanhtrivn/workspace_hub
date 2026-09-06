@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { MessageType } from '@prisma/client';
+import { MeetingRole, MessageType } from '@prisma/client';
 import { getMediaType, mapMediaWithUrl } from '../../../common/utils/file.util';
 import { S3Service } from '../../../infrastructure/s3/s3.service';
 import { PrismaService } from '../../../prisma/prisma.service';
@@ -110,13 +110,19 @@ export class MeetingMessageService {
     userId,
     dto,
   }: CreateMeetingMessageParams) {
-    const { meeting } =
+    const { meeting, participant } =
       await this.meetingPolicyService.assertJoinedMeetingParticipant({
         joinToken,
         userId,
       });
     const content = dto.content?.trim() ?? '';
     const medias = dto.medias ?? [];
+
+    if (!meeting.chatEnabled && participant.role === MeetingRole.PARTICIPANT) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.MEETING_CHAT_DISABLED,
+      );
+    }
 
     if (!content && medias.length === 0) {
       throw new BadRequestException(

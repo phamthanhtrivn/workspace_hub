@@ -44,6 +44,8 @@ export enum MEETING_ERROR_MESSAGES {
   CANNOT_REMOVE_MODERATOR = 'Co-hosts can only remove regular participants',
   CANNOT_DEMOTE_CURRENT_HOST = 'Transfer host before changing the current host role',
   PARTICIPANT_VIEW_PREFERENCE_REQUIRED = 'At least one participant view preference must be provided',
+  MEETING_SETTINGS_REQUIRED = 'At least one meeting setting must be provided',
+  MEETING_CHAT_DISABLED = 'Meeting chat is disabled by the host',
   LIVEKIT_NOT_CONFIGURED = 'LiveKit is not configured',
   INSTANT_CREATE_FAILED = 'Failed to create instant meeting',
   INVALID_MESSAGE_DATA = 'Invalid meeting message data',

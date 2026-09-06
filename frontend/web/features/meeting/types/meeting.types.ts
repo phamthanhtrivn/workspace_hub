@@ -34,10 +34,12 @@ export interface MeetingPreJoinSettings {
   cameraDeviceId: string;
   microphoneDeviceId: string;
   autoAdmin: boolean;
+  chatEnabled: boolean;
 }
 
 export interface CreateInstantMeetingPayload {
   autoAdmit?: boolean;
+  chatEnabled?: boolean;
   deviceSettings?: {
     cameraEnabled: boolean;
     microphoneEnabled: boolean;
@@ -81,6 +83,7 @@ export interface InstantMeetingResponse {
     type: "INSTANT";
     status: "LIVE";
     autoAdmit: boolean;
+    chatEnabled: boolean;
     startedAt: string | null;
     createdAt: string;
     participantRole: MeetingParticipantRole;
@@ -97,6 +100,7 @@ export interface MeetingAccessResponse {
   joinToken: string;
   status: "LIVE";
   autoAdmit: boolean;
+  chatEnabled: boolean;
   canJoinWithoutApproval: boolean;
   participantRole: MeetingParticipantRole;
   participantStatus: MeetingParticipantStatus | null;
@@ -124,6 +128,8 @@ export interface MeetingRoomSidePanelProps {
   participantCount: number;
   autoAdmit: boolean;
   onAutoAdmitChange: (autoAdmit: boolean) => void;
+  chatEnabled: boolean;
+  onChatEnabledChange: (chatEnabled: boolean) => void;
   chatMuted: boolean;
   isChatNotificationPreferencePending?: boolean;
   onChatMutedChange: (muted: boolean) => void;
@@ -144,6 +150,8 @@ export type MeetingRoomPanelContentProps = Pick<
   | "participantCount"
   | "autoAdmit"
   | "onAutoAdmitChange"
+  | "chatEnabled"
+  | "onChatEnabledChange"
   | "mutedParticipantIds"
   | "pinnedParticipantId"
   | "isParticipantViewPreferencePending"
@@ -158,6 +166,8 @@ export type MeetingRoomSettingsPanelProps = Pick<
   | "participantCount"
   | "autoAdmit"
   | "onAutoAdmitChange"
+  | "chatEnabled"
+  | "onChatEnabledChange"
 >;
 
 export interface ParticipantMetadata {
@@ -202,6 +212,12 @@ export interface MeetingSettingsResponse {
   meetingId: string;
   joinToken: string;
   autoAdmit: boolean;
+  chatEnabled: boolean;
+}
+
+export interface UpdateMeetingSettingsPayload {
+  autoAdmit?: boolean;
+  chatEnabled?: boolean;
 }
 
 export interface MeetingParticipantProfile {
@@ -239,6 +255,7 @@ export interface MeetingEndedResponse {
   joinToken: string;
   status: "ENDED";
   autoAdmit: boolean;
+  chatEnabled: boolean;
   endedBy: string;
   endedAt: string;
 }

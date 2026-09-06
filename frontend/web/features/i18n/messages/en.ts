@@ -725,6 +725,12 @@
   "meeting.room.settings.autoAdmitUpdated": "Meeting access updated",
   "meeting.room.settings.autoAdmitUpdateFailed":
     "Could not update meeting access",
+  "meeting.room.settings.participantChatTitle": "Allow participant chat",
+  "meeting.room.settings.participantChatDescription":
+    "Participants can send new messages and files in this meeting.",
+  "meeting.room.settings.participantChatUpdated": "Participant chat updated",
+  "meeting.room.settings.participantChatUpdateFailed":
+    "Could not update participant chat",
   "meeting.room.leaveFailed": "Could not save your leave action",
   "meeting.room.endConfirm": "End the meeting for everyone?",
   "meeting.room.endSuccess": "Meeting ended",

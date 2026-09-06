@@ -1,6 +1,10 @@
 "use client";
 
 import { useMeetingRoomChat } from "../../../hooks/useMeetingRoomChat";
+import {
+  MEETING_ROLE,
+  type MeetingParticipantRole,
+} from "../../../types/meeting.types";
 import { MeetingMessageEditingBanner } from "../message/meeting-message-editing-banner";
 import { MeetingMessageInput } from "../message/meeting-message-input";
 import { MeetingMessageList } from "../message/meeting-message-list";
@@ -8,10 +12,16 @@ import { MeetingMessageList } from "../message/meeting-message-list";
 export function MeetingRoomChatPanel({
   joinToken,
   meetingId,
+  participantRole,
+  chatEnabled,
 }: {
   joinToken: string;
   meetingId: string;
+  participantRole: MeetingParticipantRole;
+  chatEnabled: boolean;
 }) {
+  const isParticipantChatDisabled =
+    !chatEnabled && participantRole === MEETING_ROLE.PARTICIPANT;
   const {
     bottomRef,
     containerRef,
@@ -68,13 +78,15 @@ export function MeetingRoomChatPanel({
         )}
       </div>
 
-      <MeetingMessageInput
-        ref={messageInputRef}
-        meetingId={meetingId}
-        editingMessage={editingMessage}
-        onSubmit={handleSubmit}
-        onCancelEdit={handleCancelEdit}
-      />
+      {!isParticipantChatDisabled || editingMessage ? (
+        <MeetingMessageInput
+          ref={messageInputRef}
+          meetingId={meetingId}
+          editingMessage={editingMessage}
+          onSubmit={handleSubmit}
+          onCancelEdit={handleCancelEdit}
+        />
+      ) : null}
     </div>
   );
 }

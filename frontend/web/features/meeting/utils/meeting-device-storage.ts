@@ -9,6 +9,7 @@ export const defaultMeetingPreJoinSettings: MeetingPreJoinSettings = {
   cameraDeviceId: "",
   microphoneDeviceId: "",
   autoAdmin: true,
+  chatEnabled: true,
 };
 
 export function loadMeetingDeviceSettings(): MeetingPreJoinSettings {

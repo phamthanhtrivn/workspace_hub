@@ -74,8 +74,12 @@ export function useMeetingRealtimeCache(joinToken: string) {
     [joinToken, queryClient],
   );
 
-  const patchRoomAutoAdmit = useCallback(
-    (autoAdmit: boolean) => {
+  const patchRoomSettings = useCallback(
+    (
+      settings: Partial<
+        Pick<MeetingAccessResponse, "autoAdmit" | "chatEnabled">
+      >,
+    ) => {
       queryClient.setQueryData<ApiResponse<MeetingAccessResponse>>(
         meetingKeys.access(joinToken),
         (current) =>
@@ -84,7 +88,7 @@ export function useMeetingRealtimeCache(joinToken: string) {
                 ...current,
                 data: {
                   ...current.data,
-                  autoAdmit,
+                  ...settings,
                 },
               }
             : current,
@@ -99,7 +103,7 @@ export function useMeetingRealtimeCache(joinToken: string) {
                   ...current.data,
                   meeting: {
                     ...current.data.meeting,
-                    autoAdmit,
+                    ...settings,
                   },
                 },
               }
@@ -107,6 +111,13 @@ export function useMeetingRealtimeCache(joinToken: string) {
       );
     },
     [joinToken, queryClient],
+  );
+
+  const patchRoomAutoAdmit = useCallback(
+    (autoAdmit: boolean) => {
+      patchRoomSettings({ autoAdmit });
+    },
+    [patchRoomSettings],
   );
 
   const patchCurrentUserRole = useCallback(
@@ -148,6 +159,7 @@ export function useMeetingRealtimeCache(joinToken: string) {
     patchParticipantInCachedPages,
     removeParticipantFromCachedPages,
     patchRoomAutoAdmit,
+    patchRoomSettings,
     patchCurrentUserRole,
   };
 }

@@ -113,6 +113,7 @@ export class MeetingPresenterService {
       type: MeetingType;
       status: MeetingStatus;
       autoAdmit: boolean;
+      chatEnabled: boolean;
       startedAt: Date | null;
       createdAt: Date;
     },
@@ -128,6 +129,7 @@ export class MeetingPresenterService {
         type: meeting.type,
         status: meeting.status,
         autoAdmit: meeting.autoAdmit,
+        chatEnabled: meeting.chatEnabled,
         startedAt: meeting.startedAt?.toISOString() ?? null,
         createdAt: meeting.createdAt.toISOString(),
         participantRole,

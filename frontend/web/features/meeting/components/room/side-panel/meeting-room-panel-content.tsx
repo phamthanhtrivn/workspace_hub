@@ -15,6 +15,8 @@ export function MeetingRoomPanelContent({
   participantCount,
   autoAdmit,
   onAutoAdmitChange,
+  chatEnabled,
+  onChatEnabledChange,
   mutedParticipantIds,
   pinnedParticipantId,
   isParticipantViewPreferencePending,
@@ -38,7 +40,14 @@ export function MeetingRoomPanelContent({
   }
 
   if (activePanel === MeetingRoomPanel.CHAT) {
-    return <MeetingRoomChatPanel joinToken={joinToken} meetingId={meetingId} />;
+    return (
+      <MeetingRoomChatPanel
+        joinToken={joinToken}
+        meetingId={meetingId}
+        participantRole={participantRole}
+        chatEnabled={chatEnabled}
+      />
+    );
   }
 
   if (activePanel === MeetingRoomPanel.ADMISSION) {
@@ -54,6 +63,8 @@ export function MeetingRoomPanelContent({
       participantCount={participantCount}
       autoAdmit={autoAdmit}
       onAutoAdmitChange={onAutoAdmitChange}
+      chatEnabled={chatEnabled}
+      onChatEnabledChange={onChatEnabledChange}
     />
   );
 }

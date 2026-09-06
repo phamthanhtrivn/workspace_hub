@@ -26,6 +26,7 @@ export function useCreateInstantMeeting({
     mutationFn: (settings: MeetingPreJoinSettings) =>
       createInstantMeeting({
         autoAdmit: settings.autoAdmin,
+        chatEnabled: settings.chatEnabled,
         deviceSettings: {
           cameraEnabled: settings.cameraEnabled,
           microphoneEnabled: settings.microphoneEnabled,
