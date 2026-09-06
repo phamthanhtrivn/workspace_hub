@@ -1,5 +1,7 @@
 # Rà soát production readiness — Project
 
+> Báo cáo dưới đây ghi lại trạng thái trước khi sửa tại commit `2873a8f`. Kết quả xử lý R01–R15, kiểm thử và các giới hạn còn lại ngày 06/09/2026 nằm trong [PROJECT_PRODUCTION_FIXES.md](PROJECT_PRODUCTION_FIXES.md).
+
 Ngày: 05/09/2026. Nhánh: `fix/calendar-recurrence-production`. Commit được rà soát: `2873a8f`.
 
 **Kết luận: Project chưa sẵn sàng cho production.** Có nền tảng phân quyền, transaction và test, nhưng còn lỗi lưu dữ liệu, ngày giờ, trạng thái Sprint và một số chức năng giao diện đang là mock. Không dùng số lượng test vượt qua để suy ra toàn bộ luồng sản phẩm đã hoạt động đúng.
@@ -196,4 +198,3 @@ Các điểm này là nền tảng, không loại bỏ các lỗi cụ thể ở
 5. Kiểm chứng build và khởi động image production, health/readiness, mất/kết nối lại Kafka, áp dụng migration mới/cũ, backup/restore. Dockerfile có stage production, nhưng compose Project hiện chọn development và start:dev; chưa thể dùng kết quả chạy dev làm bằng chứng triển khai production.
 
 Ưu tiên cải thiện tiếp sau correctness: giới hạn/virtualization dữ liệu giao diện và khoảng thời gian Gantt, cache nhất quán, truy cập bằng bàn phím và thống nhất ngôn ngữ. Các mục này chưa được đo tải hay kiểm tra accessibility thực tế nên không được tính là lỗi đã tái hiện trong báo cáo.
-

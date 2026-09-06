@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { normalizeTaskRank } from './task-rank';
 import { ProjectTemplate, TaskPriority, TaskStatus, TaskType } from './project.enums';
 
 interface TemplateTask {
@@ -52,7 +53,7 @@ export class ProjectTemplateService {
           reporterId: userId,
           allDay: false,
           estimatedMinutes: 180,
-          rank: String((rootIndex + 1) * 1000),
+          rank: normalizeTaskRank(String((rootIndex + 1) * 1000)),
           archived: false,
           isParentTask: true,
           autoCompleteSprint: false,
@@ -78,7 +79,7 @@ export class ProjectTemplateService {
             reporterId: userId,
             allDay: false,
             estimatedMinutes: 60,
-            rank: String((childIndex + 1) * 100),
+            rank: normalizeTaskRank(String((childIndex + 1) * 100)),
             archived: false,
             isParentTask: false,
             autoCompleteSprint: false,

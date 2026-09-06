@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Activity,
   CalendarClock,
@@ -9,9 +8,6 @@ import {
   ListChecks,
 } from "lucide-react";
 import {
-  TaskPriority,
-  TaskStatus,
-  TaskType,
   isTerminalTaskStatus,
   type ProjectMember,
   type Task,
@@ -24,10 +20,6 @@ import {
   PriorityDistributionBar,
   MemberWorkloadList,
 } from "../summary";
-import {
-  TASK_STATUS_CHART_CONFIG,
-  TASK_PRIORITY_CHART_CONFIG,
-} from "@/features/project/constants/task.constants";
 
 import { useProjectSummaryMetrics } from "@/features/project/hooks/use-project-summary-metrics";
 
@@ -54,9 +46,6 @@ export default function SummaryView({
 }) {
   const {
     activeTasks,
-    workItems,
-    completed,
-    terminal,
     completedRecently,
     updatedRecently,
     createdRecently,

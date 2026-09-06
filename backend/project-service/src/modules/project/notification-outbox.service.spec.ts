@@ -12,6 +12,7 @@ describe("NotificationOutboxService", () => {
   const send = jest.fn();
   const sendInvitation = jest.fn();
   const updateProjectInvitationStatus = jest.fn();
+  const deliverUpsert = jest.fn();
   const service = new NotificationOutboxService(
     {
       $queryRaw: queryRaw,
@@ -24,7 +25,7 @@ describe("NotificationOutboxService", () => {
     } as RuntimeConfigService,
     { send, updateProjectInvitationStatus } as unknown as NotificationGateway,
     { send: sendInvitation } as unknown as InvitationEmailService,
-    { deliverUpsert: jest.fn() } as unknown as TaskCalendarEventService,
+    { deliverUpsert } as unknown as TaskCalendarEventService,
   );
 
   beforeEach(() => {
@@ -33,6 +34,7 @@ describe("NotificationOutboxService", () => {
     send.mockReset();
     sendInvitation.mockReset();
     updateProjectInvitationStatus.mockReset();
+    deliverUpsert.mockReset();
   });
 
   it("delivers a claimed notification and marks it sent", async () => {
@@ -81,6 +83,19 @@ describe("NotificationOutboxService", () => {
     expect(
       (executeRaw.mock.calls[0][0] as TemplateStringsArray).join(""),
     ).toContain("status = 'FAILED'");
+  });
+
+  it("keeps calendar events retryable after the normal attempt limit and delivers after recovery", async () => {
+    const taskId = crypto.randomUUID();
+    queryRaw.mockResolvedValue([{ id: crypto.randomUUID(), eventType: "PROJECT_TASK_CALENDAR", payload: { taskId }, attemptCount: 6 }]);
+    deliverUpsert.mockRejectedValueOnce(new Error("Kafka offline")).mockResolvedValueOnce(undefined);
+    await service.drain();
+    const failed = executeRaw.mock.calls[0];
+    expect((failed[0] as TemplateStringsArray).join("")).toContain("status = 'FAILED'");
+    expect(failed.slice(1).some((value: unknown) => value instanceof Date)).toBe(true);
+    await service.drain();
+    expect(deliverUpsert).toHaveBeenCalledWith(taskId);
+    expect((executeRaw.mock.calls[1][0] as TemplateStringsArray).join("")).toContain("status = 'SENT'");
   });
 
   it("delivers a project invitation response status", async () => {

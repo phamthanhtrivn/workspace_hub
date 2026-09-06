@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  TaskPriority,
   TaskStatus,
   TaskType,
   isTerminalTaskStatus,
@@ -116,8 +115,7 @@ export function useProjectSummaryMetrics(
       }))
       .filter((item) => item.count > 0);
 
-    const assignedCount = workload.reduce((sum, item) => sum + item.count, 0);
-    const unassignedCount = Math.max(0, workItems.length - assignedCount);
+    const unassignedCount = workItems.filter((task) => !task.assignees?.length).length;
     const workloadItems = [
       { name: "Chưa phân công", count: unassignedCount },
       ...workload,
@@ -170,4 +168,3 @@ export function useProjectSummaryMetrics(
     };
   }, [tasks, members, isSoftware, now]);
 }
-

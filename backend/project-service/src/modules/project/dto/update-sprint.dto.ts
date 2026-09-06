@@ -1,5 +1,5 @@
 import { OptionalField } from '../../../common/optional-field.decorator';
-import { IsDateString, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsDateString, IsString, MaxLength, MinLength } from 'class-validator';
 import { Trim } from '../../../common/trim.decorator';
 
 export class UpdateSprintDto {
@@ -14,7 +14,7 @@ export class UpdateSprintDto {
   @IsString()
   goal?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsDateString()
   startDate?: string;
 

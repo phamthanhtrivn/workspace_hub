@@ -7,11 +7,7 @@ import {
   CircleAlert,
   ListChecks,
 } from "lucide-react";
-import { useState } from "react";
 import {
-  TaskPriority,
-  TaskStatus,
-  isTerminalTaskStatus,
   type ProjectMember,
   type Task,
 } from "@/features/project/types/project";
@@ -22,10 +18,6 @@ import {
   PriorityDistributionBar,
   MemberWorkloadList,
 } from "../summary";
-import {
-  TASK_STATUS_CHART_CONFIG,
-  TASK_PRIORITY_CHART_CONFIG,
-} from "@/features/project/constants/task.constants";
 
 import {
   useProjectSummaryMetrics,
@@ -49,12 +41,9 @@ export default function GeneralSummaryView({
 }) {
   const {
     now,
-    activeTasks,
     rootTasks,
     subtasks,
     completed,
-    cancelled,
-    terminal,
     overdue,
     dueSoon,
     unscheduled,

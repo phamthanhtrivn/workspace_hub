@@ -1,9 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
+import { toast } from 'sonner';
 import {
   TaskPriority,
   TaskStatus,
   TaskType,
+  ProjectRole,
+  type TaskAssignee,
   type ProjectMember,
   type Task,
   type TaskDependency,
@@ -25,11 +28,12 @@ vi.mock("@/features/project/hooks/use-tasks", () => ({
 
 vi.mock("@/features/project/hooks/use-project-files", () => ({
   useProjectFiles: () => ({
-    fileQuery: { data: [] },
-    filesBusy: false,
-    addFiles: vi.fn(),
-    removeFile: vi.fn(),
-    downloadFile: vi.fn(),
+    data: [],
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(),
+    upload: { mutateAsync: vi.fn() },
+    remove: { mutateAsync: vi.fn() },
   }),
 }));
 
@@ -57,36 +61,52 @@ function mockTask(partial: Partial<Task> = {}): Task {
   } as unknown as Task;
 }
 
+function assignee(taskId: string, userId: string): TaskAssignee {
+  return { id: `${taskId}-${userId}`, taskId, userId, displayName: userId, assignedAt: '2026-09-06T00:00:00Z' };
+}
+
+function member(userId: string, displayName: string): ProjectMember {
+  return {
+    id: userId, projectId: 'project-1', userId, displayName, role: ProjectRole.MEMBER,
+    canCreateTask: false, canEditOwnTask: false, canEditOthersTask: false,
+    canManageSprints: false, canManageMembers: false, canManageLabels: false,
+    joinedAt: '2026-09-06T00:00:00Z',
+  };
+}
+
 describe("Custom Hooks for Project Service", () => {
   describe("useProjectSummaryMetrics", () => {
+    it('counts unassigned tasks independently of tasks shared by multiple assignees', () => {
+      const tasks = [mockTask({ id: 'shared', assignees: [assignee('shared', 'u1'), assignee('shared', 'u2')] }), mockTask({ id: 'unassigned' })];
+      const { result } = renderHook(() => useProjectSummaryMetrics(tasks, [member('u1', 'Alice'), member('u2', 'Bob')]));
+      expect(result.current.workloadItems[0].count).toBe(1);
+    });
+
     it("computes status, priority, and workload metrics accurately", () => {
       const tasks: Task[] = [
         mockTask({
           id: "t1",
           status: TaskStatus.DONE,
           priority: TaskPriority.HIGH,
-          assignees: [{ userId: "u1" } as any],
+          assignees: [assignee('t1', 'u1')],
         }),
         mockTask({
           id: "t2",
           status: TaskStatus.IN_PROGRESS,
           priority: TaskPriority.MEDIUM,
-          assignees: [{ userId: "u1" } as any],
+          assignees: [assignee('t2', 'u1')],
         }),
         mockTask({
           id: "t3",
           status: TaskStatus.TODO,
           priority: TaskPriority.LOW,
-          assignees: [{ userId: "u2" } as any],
+          assignees: [assignee('t3', 'u2')],
         }),
       ];
 
       const members: ProjectMember[] = [
-        {
-          userId: "u1",
-          user: { name: "Alice", email: "alice@test.com" },
-        } as any,
-        { userId: "u2", user: { name: "Bob", email: "bob@test.com" } } as any,
+        member('u1', 'Alice'),
+        member('u2', 'Bob'),
       ];
 
       const { result } = renderHook(() =>
@@ -135,6 +155,16 @@ describe("Custom Hooks for Project Service", () => {
   });
 
   describe("useTaskDetailDrawerState", () => {
+    it('does not announce success when saving the title fails', async () => {
+      vi.mocked(toast.success).mockClear();
+      const task = mockTask({ title: 'Original' });
+      const { result } = renderHook(() => useTaskDetailDrawerState({ task, onClose: vi.fn(), canEditTask: true, onUpdateTask: vi.fn().mockRejectedValue(new Error('HTTP 500')) }));
+      act(() => result.current.setTempTitle('Changed'));
+      await act(() => result.current.handleTitleSave());
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(result.current.tempTitle).toBe('Original');
+    });
+
     it("initializes draft inputs and updates title via onUpdateTask", async () => {
       const task = mockTask({
         id: "t1",
@@ -210,7 +240,7 @@ describe("Custom Hooks for Project Service", () => {
         dueDate: "2026-09-10T00:00:00Z",
       });
       const dependencies: TaskDependency[] = [
-        { id: "dep-1", successorTaskId: "tB", predecessorTaskId: "tA" } as any,
+        { id: "dep-1", successorTaskId: "tB", predecessorTaskId: "tA", projectId: 'project-1', dependencyType: 'FINISH_TO_START', createdBy: 'user-1', createdAt: '2026-09-06T00:00:00Z' },
       ];
 
       const { result } = renderHook(() =>

@@ -105,7 +105,7 @@ describe('Project production regressions', () => {
   });
 
   it('rejects null for nonnullable update fields but accepts null dates/assignee', async () => {
-    for (const dto of [plainToInstance(UpdateTaskDto, { title: null }), plainToInstance(UpdateProjectDto, { name: null }), plainToInstance(UpdateSprintDto, { goal: null })]) {
+    for (const dto of [plainToInstance(UpdateTaskDto, { title: null }), plainToInstance(UpdateProjectDto, { name: null }), plainToInstance(UpdateSprintDto, { goal: null }), plainToInstance(UpdateSprintDto, { startDate: null }), plainToInstance(UpdateSprintDto, { endDate: null })]) {
       expect((await validate(dto)).length).toBeGreaterThan(0);
     }
     expect(await validate(plainToInstance(UpdateTaskDto, { startDate: null, dueDate: null, assigneeUserId: null }))).toEqual([]);

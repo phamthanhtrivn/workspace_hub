@@ -22,6 +22,11 @@ import { TaskPolicyService } from "../src/modules/project/task-policy.service";
 import { TaskCalendarEventService } from "../src/modules/project/task-calendar-event.service";
 import { TaskService } from "../src/modules/project/task.service";
 import { PrismaService } from "../src/common/prisma/prisma.service";
+import { ProjectTemplateService } from '../src/modules/project/project-template.service';
+import { ProjectTemplate } from '../src/modules/project/project.enums';
+import { authHeaders, withProjectHttpApp } from './project-http-app';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const databaseUrl = process.env.TEST_DATABASE_URL;
 const integration = databaseUrl ? describe : describe.skip;
@@ -184,6 +189,79 @@ integration("Project Service database integration", () => {
     expect(result.items.map((task) => task.title)).toEqual(Array.from({ length: 12 }, (_, index) => String(index + 1)));
   });
 
+  it('backfills existing numeric task ranks without changing custom ranks', async () => {
+    const { project, ownerId } = await createProject();
+    const { tasks } = taskServices();
+    for (const rank of ['1000', '10000', '2000', 'custom']) {
+      const created = await tasks.create(ownerId, project.id, { title: rank });
+      await prisma.task.update({ where: { id: created.id }, data: { rank } });
+    }
+    const migration = readFileSync(join(__dirname, '../database/migrations/V11__normalize_task_ranks.sql'), 'utf8');
+    await prisma.$executeRawUnsafe(migration);
+    const result = await prisma.task.findMany({ where: { projectId: project.id }, orderBy: { rank: 'asc' } });
+    expect(result.map((task) => task.title)).toEqual(['1000', '2000', '10000', 'custom']);
+    expect(result[3].rank).toBe('custom');
+  });
+
+  it('orders template and subsequently created tasks using the same rank format', async () => {
+    const { project, ownerId } = await createProject();
+    await prisma.$transaction((tx) => new ProjectTemplateService().initialize(tx, project.id, ownerId, ProjectTemplate.EVENT_PLAN, new Date()));
+    const { tasks } = taskServices();
+    await tasks.create(ownerId, project.id, { title: 'After template', rank: '4000' });
+    const result = await prisma.task.findMany({ where: { projectId: project.id, parentTaskId: null }, orderBy: { rank: 'asc' } });
+    expect(result.map((task) => task.rank)).toEqual(['1000', '2000', '3000', '4000'].map((rank) => rank.padStart(20, '0')));
+    expect(result[3].title).toBe('After template');
+  });
+
+  it('serves durable multipart attachments over HTTP with authentication and project isolation', async () => {
+    const { project, ownerId } = await createProject({ visibility: ProjectVisibility.PRIVATE });
+    const { tasks, access } = taskServices();
+    await withProjectHttpApp(tasks, new ProjectFileService(database, access), async (url) => {
+      const path = `${url}/api/projects/${project.id}/files`;
+      expect((await fetch(path)).status).toBe(401);
+      const headers = authHeaders(ownerId);
+      const form = new FormData();
+      form.append('file', new Blob(['Project attachment over HTTP']), 'plan.txt');
+      const uploaded = await fetch(path, { method: 'POST', headers, body: form });
+      expect(uploaded.status).toBe(201);
+      const { data: file } = await uploaded.json();
+      expect(file).toMatchObject({ name: 'plan.txt', size: 28 });
+      const listing = await fetch(path, { headers });
+      expect((await listing.json()).data).toHaveLength(1);
+      const download = await fetch(`${path}/${file.id}/download`, { headers });
+      expect(download.status).toBe(200);
+      expect(download.headers.get('content-disposition')).toContain('attachment;');
+      expect(await download.text()).toBe('Project attachment over HTTP');
+      expect((await fetch(`${path}/${file.id}/download`, { headers: authHeaders(crypto.randomUUID()) })).status).toBe(403);
+      const oversized = new FormData();
+      oversized.append('file', new Blob([new Uint8Array(10 * 1024 * 1024 + 1)]), 'too-large.bin');
+      expect((await fetch(path, { method: 'POST', headers, body: oversized })).status).toBe(413);
+      expect((await fetch(`${path}/${file.id}`, { method: 'DELETE', headers })).status).toBe(200);
+      expect((await fetch(`${path}/${file.id}/download`, { headers })).status).toBe(404);
+    });
+  });
+
+  it('validates task HTTP payloads and persists timezone dates and explicit date removal', async () => {
+    const { project, ownerId } = await createProject();
+    const { tasks, access } = taskServices();
+    await withProjectHttpApp(tasks, new ProjectFileService(database, access), async (url) => {
+      const headers = { ...authHeaders(ownerId), 'content-type': 'application/json' };
+      const path = `${url}/api/projects/${project.id}/tasks`;
+      const invalid = await fetch(path, { method: 'POST', headers, body: JSON.stringify({ title: 'No offset', startDate: '2026-09-05T09:00:00' }) });
+      expect(invalid.status).toBe(400);
+      const created = await fetch(path, { method: 'POST', headers, body: JSON.stringify({ title: 'HTTP task', startDate: '2026-09-05T09:00:00+07:00' }) });
+      expect(created.status).toBe(201);
+      const { data: task } = await created.json();
+      expect(task.startDate).toBe('2026-09-05T02:00:00.000Z');
+      const taskUrl = `${url}/api/tasks/${task.id}`;
+      expect((await fetch(taskUrl, { method: 'PATCH', headers, body: JSON.stringify({ title: null }) })).status).toBe(400);
+      const cleared = await fetch(taskUrl, { method: 'PATCH', headers, body: JSON.stringify({ startDate: null, dueDate: null }) });
+      expect(cleared.status).toBe(200);
+      expect((await cleared.json()).data).toMatchObject({ startDate: null, dueDate: null });
+      expect(await prisma.task.count({ where: { projectId: project.id } })).toBe(1);
+    });
+  });
+
   it("enforces the project permission matrix", async () => {
     const { project, ownerId } = await createProject({
       visibility: ProjectVisibility.PRIVATE,
@@ -285,7 +363,9 @@ integration("Project Service database integration", () => {
       {
         publishProject: jest.fn().mockResolvedValue(undefined),
       } as unknown as TaskCalendarEventService,
-      {} as NotificationOutboxService,
+      {
+        enqueueProjectInvitationStatus: jest.fn().mockResolvedValue(undefined),
+      } as unknown as NotificationOutboxService,
     );
 
     const results = await Promise.allSettled([

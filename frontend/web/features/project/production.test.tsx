@@ -17,6 +17,8 @@ import {
 } from "./utils/task-dates";
 import { useProjectTaskActions } from "./hooks/use-project-task-actions";
 import { useUpdateTask } from "./hooks/use-tasks";
+import { useAttachLabel, useDetachLabel, useUpdateLabel, useDeleteLabel } from "./hooks/use-labels";
+import * as labelApi from "./api/label.api";
 import { createProjectGroupActions } from "./project-group-actions";
 import { getProjectPermissions } from "./project-permissions";
 import {
@@ -142,6 +144,26 @@ describe("Project production regressions", () => {
     expect(
       client.getQueryState(["projects", "p", "sprints"])?.isInvalidated,
     ).toBe(true);
+  });
+
+  it.each(["attach", "detach", "update", "delete"] as const)("refreshes task and sprint projections after label %s", async (operation) => {
+    const { client, wrapper } = setup();
+    vi.spyOn(labelApi, "attachLabel").mockResolvedValue({ id: "label", name: "New", color: "#fff", projectId: "p" });
+    vi.spyOn(labelApi, "detachLabel").mockResolvedValue(undefined);
+    vi.spyOn(labelApi, "updateLabel").mockResolvedValue({ id: "label", name: "New", color: "#fff", projectId: "p" });
+    vi.spyOn(labelApi, "deleteLabel").mockResolvedValue(undefined);
+    const { result } = renderHook(() => ({
+      attach: useAttachLabel("p"), detach: useDetachLabel("p"),
+      update: useUpdateLabel("p"), delete: useDeleteLabel("p"),
+    }), { wrapper });
+    const keys = [["projects", "p", "tasks"], ["projects", "p", "sprints"], ["projects", "p", "labels"]];
+    keys.forEach((key) => client.setQueryData(key, []));
+    await act(async () => {
+      if (operation === "update") await result.current.update.mutateAsync({ labelId: "label", payload: { name: "New" } });
+      else if (operation === "delete") await result.current.delete.mutateAsync("label");
+      else await result.current[operation].mutateAsync({ taskId: "A", labelId: "label" });
+    });
+    keys.forEach((key) => expect(client.getQueryState(key)?.isInvalidated).toBe(true));
   });
 
   it("creates a sprint task with one request and uses sortable ranks", async () => {
