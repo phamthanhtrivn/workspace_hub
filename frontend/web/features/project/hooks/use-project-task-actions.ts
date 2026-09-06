@@ -2,7 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { UpdateTaskPayload } from "../api/task.api";
-import type { TaskFormValues } from "../components/task-form-dialog";
+import type { TaskFormValues } from "../components/dialogs/task-form-dialog";
 import { confirmProjectAction } from "../project-alert";
 import type { ProjectPermissions } from "../project-permissions";
 import { canMoveTaskForward, TASK_STATUS_LABELS } from "../task-status-transition";

@@ -9,10 +9,12 @@ import {
   MoreHorizontal,
   Settings,
 } from "lucide-react";
-import CreateProjectDialog from "@/features/project/components/create-project-dialog";
-import { ProjectStatusBadge } from "@/features/project/components/status-badge";
-import { ProjectTypeBadge } from "@/features/project/components/project-type-badge";
-import { Avatar } from "@/features/project/components/avatar-stack";
+import CreateProjectDialog from "@/features/project/components/dialogs/create-project-dialog";
+import {
+  ProjectStatusBadge,
+  ProjectTypeBadge,
+  Avatar,
+} from "@/features/project/components/ui";
 import {
   useCreateProject,
   useProjects,
@@ -21,7 +23,6 @@ import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "sonner";
 import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
 import { getProjectKey } from "@/features/project/utils/project.utils";
-
 
 export default function ProjectsPage() {
   const [activeFilter, setActiveFilter] = useState<string>("ALL");

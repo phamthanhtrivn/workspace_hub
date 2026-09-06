@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import type { SprintCreateValues } from "../components/software-backlog-view";
+import type { SprintCreateValues } from "../components/views/software-backlog-view";
 import { TaskStatus } from "../types/project";
 
 interface SprintActionDependencies {

@@ -1,7 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import type { CreateTaskPayload, UpdateTaskPayload } from "./api/task.api";
-import type { SprintFormValues } from "./components/sprint-edit-dialog";
+import type { SprintFormValues } from "./components/dialogs/sprint-edit-dialog";
 import { confirmProjectAction } from "./project-alert";
 import { TaskStatus, type Task } from "./types/project";
 import { toApiDateTime } from "./utils/task-dates";

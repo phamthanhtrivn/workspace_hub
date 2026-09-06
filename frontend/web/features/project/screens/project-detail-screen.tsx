@@ -33,20 +33,21 @@ import {
 } from "@/features/project/hooks/use-tasks";
 import { useProjectLabels } from "@/features/project/hooks/use-labels";
 import { useProjectDependencies } from "@/features/project/hooks/use-dependencies";
-import ProjectDetailContent from "@/features/project/components/project-detail-content";
-import TaskDetailDrawer from "@/features/project/components/task-detail-drawer";
-import TaskChatDialog from "@/features/project/components/task-chat-dialog";
-import TaskFormDialog from "@/features/project/components/task-form-dialog";
-import SprintEditDialog from "@/features/project/components/sprint-edit-dialog";
-import ProjectSettingsDialog from "@/features/project/components/project-settings-dialog";
-import ProjectDetailSidebar, {
-  type ProjectViewMode,
-} from "@/features/project/components/project-detail-sidebar";
-import ProjectDetailToolbar from "@/features/project/components/project-detail-toolbar";
 import {
+  ProjectDetailContent,
+  ProjectDetailSidebar,
+  ProjectDetailToolbar,
   ProjectDetailLoading,
   ProjectDetailNotFound,
-} from "../components/project-detail-fallback";
+  type ProjectViewMode,
+} from "@/features/project/components/layout";
+import { TaskDetailDrawer } from "@/features/project/components/task-detail";
+import {
+  TaskChatDialog,
+  TaskFormDialog,
+  SprintEditDialog,
+  ProjectSettingsDialog,
+} from "@/features/project/components/dialogs";
 import { getProjectKey } from "@/features/project/utils/project.utils";
 import {
   getProjectPermissions,
@@ -97,7 +98,8 @@ export default function ProjectDetailScreen() {
   const [viewMode, setViewMode] = useState<ProjectViewMode>("board");
   const [selectedTaskSnapshot, setSelectedTask] = useState<Task | null>(null);
   const selectedTask = selectedTaskSnapshot
-    ? serverTasks.find((task) => task.id === selectedTaskSnapshot.id) ?? selectedTaskSnapshot
+    ? (serverTasks.find((task) => task.id === selectedTaskSnapshot.id) ??
+      selectedTaskSnapshot)
     : null;
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
@@ -400,7 +402,13 @@ export default function ProjectDetailScreen() {
         />
       )}
 
-      <TaskChatDialog key={chatTask?.id ?? "closed"} task={chatTask} members={members} canComment={Boolean(permissions.role)} onClose={() => setChatTask(null)} />
+      <TaskChatDialog
+        key={chatTask?.id ?? "closed"}
+        task={chatTask}
+        members={members}
+        canComment={Boolean(permissions.role)}
+        onClose={() => setChatTask(null)}
+      />
 
       {(permissions.canManageProject || permissions.canManageLabels) && (
         <ProjectSettingsDialog
