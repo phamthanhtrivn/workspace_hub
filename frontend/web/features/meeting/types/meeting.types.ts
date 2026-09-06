@@ -238,6 +238,10 @@ export interface UpdateMeetingSettingsPayload {
   screenShareEnabled?: boolean;
 }
 
+export interface StartMeetingScreenSharePayload {
+  interrupt?: boolean;
+}
+
 export interface MeetingScreenShareStateResponse {
   meetingId: string;
   joinToken: string;

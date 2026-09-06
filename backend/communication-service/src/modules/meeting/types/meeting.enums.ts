@@ -50,6 +50,8 @@ export enum MEETING_ERROR_MESSAGES {
   MEETING_CHAT_DISABLED = 'Meeting chat is disabled by the host',
   MEETING_SCREEN_SHARE_DISABLED = 'Screen sharing is disabled by the host',
   MEETING_SCREEN_SHARE_ALREADY_ACTIVE = 'Another participant is already sharing their screen',
+  MEETING_SCREEN_SHARE_INTERRUPT_REQUIRED = 'Confirm before replacing the active screen share',
+  MEETING_SCREEN_SHARE_INTERRUPT_FORBIDDEN = 'You cannot replace the active screen share',
   MEETING_SCREEN_SHARE_NOT_ACTIVE = 'No active screen share found',
   MEETING_SCREEN_SHARE_STOP_FORBIDDEN = 'Only meeting hosts or co-hosts can stop another participant screen share',
   LIVEKIT_NOT_CONFIGURED = 'LiveKit is not configured',

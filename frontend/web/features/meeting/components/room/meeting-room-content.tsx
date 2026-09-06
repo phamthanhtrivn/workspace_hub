@@ -111,6 +111,7 @@ export function MeetingRoomContent({
     isScreenSharePending,
     canStartScreenShare,
     toggleScreenShare,
+    alertDialogProps: screenShareAlertDialogProps,
   } = useMeetingScreenShare({
     meetingId,
     joinToken,
@@ -118,6 +119,7 @@ export function MeetingRoomContent({
     initialScreenShareEnabled,
     initialActiveScreenShareUserId,
     initialScreenShareStartedAt,
+    activeScreenShareTrack,
   });
 
   useEffect(() => {
@@ -285,6 +287,7 @@ export function MeetingRoomContent({
 
       <MeetingRoomAudioRenderer mutedParticipantIds={mutedParticipantIds} />
       <MeetingAlertDialog {...alertDialogProps} />
+      <MeetingAlertDialog {...screenShareAlertDialogProps} />
     </div>
   );
 }

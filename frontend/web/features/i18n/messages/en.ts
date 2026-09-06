@@ -745,6 +745,17 @@
   "meeting.room.screenShare.stopFailed": "Could not stop screen sharing",
   "meeting.room.screenShare.stoppedByHost":
     "Your screen share was stopped by a host",
+  "meeting.room.screenShare.replaceConfirmTitle":
+    "Replace current screen share?",
+  "meeting.room.screenShare.replaceConfirmDescription":
+    "This will stop {name}'s screen share and start yours.",
+  "meeting.room.screenShare.replaceConfirmAction": "Share instead",
+  "meeting.room.screenShare.alreadyActive":
+    "Another participant is already sharing their screen",
+  "meeting.room.screenShare.cohostIsSharing":
+    "A co-host is currently sharing their screen",
+  "meeting.room.screenShare.hostIsSharing":
+    "The host is currently sharing their screen",
   "meeting.room.leaveFailed": "Could not save your leave action",
   "meeting.room.endConfirm": "End the meeting for everyone?",
   "meeting.room.endSuccess": "Meeting ended",

@@ -1,7 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useRoomContext } from "@livekit/components-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useRoomContext,
+  type TrackReferenceOrPlaceholder,
+} from "@livekit/components-react";
 import { RoomEvent, Track, type LocalTrackPublication } from "livekit-client";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
@@ -16,6 +19,8 @@ import type {
   MeetingStatusUpdatedPayload,
 } from "../types/meeting-socket.types";
 import { MEETING_ROLE, type MeetingParticipantRole } from "../types/meeting.types";
+import { parseParticipantMetadata } from "../utils/meeting-room.utils";
+import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import { useMeetingSocket } from "./useMeetingSocket";
 
 interface UseMeetingScreenShareParams {
@@ -25,12 +30,38 @@ interface UseMeetingScreenShareParams {
   initialScreenShareEnabled: boolean;
   initialActiveScreenShareUserId: string | null;
   initialScreenShareStartedAt: string | null;
+  activeScreenShareTrack: TrackReferenceOrPlaceholder | null;
 }
 
 function isScreenSharePublication(publication: LocalTrackPublication) {
   return (
     publication.source === Track.Source.ScreenShare ||
     publication.source === Track.Source.ScreenShareAudio
+  );
+}
+
+function getKnownMeetingRole(role?: string | null): MeetingParticipantRole | null {
+  if (role === MEETING_ROLE.HOST) return MEETING_ROLE.HOST;
+  if (role === MEETING_ROLE.COHOST) return MEETING_ROLE.COHOST;
+  if (role === MEETING_ROLE.PARTICIPANT) return MEETING_ROLE.PARTICIPANT;
+
+  return null;
+}
+
+function canInterruptScreenShare({
+  actorRole,
+  activeRole,
+}: {
+  actorRole: MeetingParticipantRole;
+  activeRole: MeetingParticipantRole | null;
+}) {
+  if (actorRole === MEETING_ROLE.HOST) {
+    return activeRole !== MEETING_ROLE.HOST;
+  }
+
+  return (
+    actorRole === MEETING_ROLE.COHOST &&
+    activeRole === MEETING_ROLE.PARTICIPANT
   );
 }
 
@@ -41,10 +72,12 @@ export function useMeetingScreenShare({
   initialScreenShareEnabled,
   initialActiveScreenShareUserId,
   initialScreenShareStartedAt,
+  activeScreenShareTrack,
 }: UseMeetingScreenShareParams) {
   const intl = useAppIntl();
   const room = useRoomContext();
   const currentUserId = useAppSelector((state) => state.auth.userId);
+  const { confirm, alertDialogProps } = useMeetingConfirmDialog();
   const [screenShareEnabled, setScreenShareEnabled] = useState(
     initialScreenShareEnabled,
   );
@@ -62,9 +95,37 @@ export function useMeetingScreenShare({
   const isModerator =
     participantRole === MEETING_ROLE.HOST ||
     participantRole === MEETING_ROLE.COHOST;
+  const activeScreenShareParticipant = useMemo(() => {
+    if (!activeScreenShareTrack) return null;
+    if (
+      activeScreenShareTrack.participant.identity !== activeScreenShareUserId
+    ) {
+      return null;
+    }
+
+    const participant = activeScreenShareTrack.participant;
+    const metadata = parseParticipantMetadata(participant);
+
+    return {
+      userId: participant.identity,
+      displayName:
+        participant.name ||
+        participant.identity ||
+        intl.formatMessage({ id: "app.user" }),
+      role: getKnownMeetingRole(metadata.role),
+    };
+  }, [activeScreenShareTrack, activeScreenShareUserId, intl]);
+  const canInterruptActiveScreenShare =
+    Boolean(activeScreenShareUserId) &&
+    activeScreenShareUserId !== currentUserId &&
+    canInterruptScreenShare({
+      actorRole: participantRole,
+      activeRole: activeScreenShareParticipant?.role ?? null,
+    });
   const canStartScreenShare =
     isLocalSharing ||
     isModerator ||
+    Boolean(activeScreenShareUserId) ||
     (screenShareEnabled && !activeScreenShareUserId);
 
   useEffect(() => {
@@ -154,10 +215,10 @@ export function useMeetingScreenShare({
     };
   }, [currentUserId, joinToken, room]);
 
-  const startScreenShare = useCallback(async () => {
+  const startScreenShare = useCallback(async (interrupt = false) => {
     if (!currentUserId) return;
 
-    if (!canStartScreenShare) {
+    if (!isModerator && !screenShareEnabled) {
       toast.error(
         intl.formatMessage({ id: "meeting.room.screenShare.disabled" }),
       );
@@ -165,8 +226,10 @@ export function useMeetingScreenShare({
     }
 
     setIsScreenSharePending(true);
+    let shouldReleaseBackendState = false;
     try {
-      const response = await startMeetingScreenShare(joinToken);
+      const response = await startMeetingScreenShare(joinToken, { interrupt });
+      shouldReleaseBackendState = true;
       setScreenShareEnabled(response.data.screenShareEnabled);
       setActiveScreenShareUserId(response.data.activeScreenShareUserId);
       setScreenShareStartedAt(response.data.screenShareStartedAt);
@@ -178,14 +241,16 @@ export function useMeetingScreenShare({
         systemAudio: "include",
       });
     } catch {
-      await stopMeetingScreenShare(joinToken).catch(() => undefined);
+      if (shouldReleaseBackendState) {
+        await stopMeetingScreenShare(joinToken).catch(() => undefined);
+      }
       toast.error(
         intl.formatMessage({ id: "meeting.room.screenShare.startFailed" }),
       );
     } finally {
       setIsScreenSharePending(false);
     }
-  }, [canStartScreenShare, currentUserId, intl, joinToken, room]);
+  }, [currentUserId, intl, isModerator, joinToken, room, screenShareEnabled]);
 
   const stopScreenShare = useCallback(async () => {
     setIsScreenSharePending(true);
@@ -210,8 +275,62 @@ export function useMeetingScreenShare({
       return;
     }
 
-    void startScreenShare();
-  }, [isLocalSharing, startScreenShare, stopScreenShare]);
+    if (
+      activeScreenShareUserId &&
+      activeScreenShareUserId !== currentUserId
+    ) {
+      if (!canInterruptActiveScreenShare) {
+        const activeRole = activeScreenShareParticipant?.role;
+        const messageId =
+          activeRole === MEETING_ROLE.HOST
+            ? "meeting.room.screenShare.hostIsSharing"
+            : activeRole === MEETING_ROLE.COHOST
+              ? "meeting.room.screenShare.cohostIsSharing"
+              : "meeting.room.screenShare.alreadyActive";
+
+        toast.error(intl.formatMessage({ id: messageId }));
+        return;
+      }
+
+      void (async () => {
+        const confirmed = await confirm({
+          title: intl.formatMessage({
+            id: "meeting.room.screenShare.replaceConfirmTitle",
+          }),
+          description: intl.formatMessage(
+            { id: "meeting.room.screenShare.replaceConfirmDescription" },
+            {
+              name:
+                activeScreenShareParticipant?.displayName ||
+                intl.formatMessage({ id: "app.user" }),
+            },
+          ),
+          confirmLabel: intl.formatMessage({
+            id: "meeting.room.screenShare.replaceConfirmAction",
+          }),
+          cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+          variant: "warning",
+        });
+
+        if (confirmed) {
+          await startScreenShare(true);
+        }
+      })();
+      return;
+    }
+
+    void startScreenShare(false);
+  }, [
+    activeScreenShareParticipant,
+    activeScreenShareUserId,
+    canInterruptActiveScreenShare,
+    confirm,
+    currentUserId,
+    intl,
+    isLocalSharing,
+    startScreenShare,
+    stopScreenShare,
+  ]);
 
   return {
     screenShareEnabled,
@@ -222,5 +341,6 @@ export function useMeetingScreenShare({
     isScreenSharePending,
     canStartScreenShare,
     toggleScreenShare,
+    alertDialogProps,
   };
 }

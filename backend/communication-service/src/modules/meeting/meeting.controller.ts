@@ -19,6 +19,7 @@ import { ListMeetingMessagesDto } from './dto/list-meeting-messages.dto';
 import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
 import { MeetingMessageReactionDto } from './dto/meeting-message-reaction.dto';
 import { ReadMeetingMessageDto } from './dto/read-meeting-message.dto';
+import { StartMeetingScreenShareDto } from './dto/start-meeting-screen-share.dto';
 import { UpdateMeetingChatNotificationPreferenceDto } from './dto/update-meeting-chat-notification-preference.dto';
 import { UpdateMeetingParticipantViewPreferenceDto } from './dto/update-meeting-participant-view-preference.dto';
 import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
@@ -314,6 +315,7 @@ export class MeetingController {
   async startScreenShare(
     @Param('joinToken') joinToken: string,
     @Headers('x-user-id') userId: string,
+    @Body() startMeetingScreenShareDto: StartMeetingScreenShareDto,
   ) {
     if (!userId) {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
@@ -322,6 +324,7 @@ export class MeetingController {
     const result = await this.meetingService.startScreenShare({
       joinToken,
       userId,
+      dto: startMeetingScreenShareDto ?? {},
     });
 
     return {

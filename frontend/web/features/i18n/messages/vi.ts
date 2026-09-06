@@ -743,6 +743,16 @@
   "meeting.room.screenShare.stopFailed": "Không thể dừng chia sẻ màn hình",
   "meeting.room.screenShare.stoppedByHost":
     "Host đã dừng chia sẻ màn hình của bạn",
+  "meeting.room.screenShare.replaceConfirmTitle":
+    "Ghi đè chia sẻ màn hình hiện tại?",
+  "meeting.room.screenShare.replaceConfirmDescription":
+    "Thao tác này sẽ dừng chia sẻ màn hình của {name} và bắt đầu chia sẻ của bạn.",
+  "meeting.room.screenShare.replaceConfirmAction": "Chia sẻ thay thế",
+  "meeting.room.screenShare.alreadyActive":
+    "Một participant khác đang chia sẻ màn hình",
+  "meeting.room.screenShare.cohostIsSharing":
+    "Một co-host đang chia sẻ màn hình",
+  "meeting.room.screenShare.hostIsSharing": "Host đang chia sẻ màn hình",
   "meeting.room.leaveFailed": "Không thể lưu hành động rời cuộc họp",
   "meeting.room.endConfirm":
     "Kết thúc cuộc họp cho tất cả mọi người?",

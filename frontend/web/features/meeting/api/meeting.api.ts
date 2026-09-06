@@ -22,6 +22,7 @@ import type {
   MeetingSettingsResponse,
   MeetingAccessResponse,
   MeetingScreenShareStateResponse,
+  StartMeetingScreenSharePayload,
   CreateMeetingMessagePayload,
   EditMeetingMessagePayload,
   UpdateMeetingSettingsPayload,
@@ -73,8 +74,12 @@ export const updateMeetingSettings = async (
 
 export const startMeetingScreenShare = async (
   joinToken: string,
+  payload: StartMeetingScreenSharePayload = {},
 ): Promise<ApiResponse<MeetingScreenShareStateResponse>> => {
-  const response = await api.post(MEETING_API_PATHS.screenShareStart(joinToken));
+  const response = await api.post(
+    MEETING_API_PATHS.screenShareStart(joinToken),
+    payload,
+  );
   return normalizeApiResponse<MeetingScreenShareStateResponse>(response.data);
 };
 

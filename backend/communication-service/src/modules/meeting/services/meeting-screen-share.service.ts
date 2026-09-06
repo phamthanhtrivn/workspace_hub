@@ -36,23 +36,23 @@ export class MeetingScreenShareService {
     private readonly meetingRealtimeService: MeetingRealtimeService,
   ) {}
 
-  async startScreenShare({ joinToken, userId }: StartMeetingScreenShareParams) {
+  async startScreenShare({
+    joinToken,
+    userId,
+    dto,
+  }: StartMeetingScreenShareParams) {
     const { meeting, participant } =
       await this.meetingPolicyService.assertJoinedMeetingParticipant({
         joinToken,
         userId,
       });
-    const isModerator = this.isMeetingModerator({
+    const actorRole = this.getEffectiveMeetingRole({
       meetingHostId: meeting.hostId,
       userId,
       role: participant.role,
     });
-
-    if (!isModerator && !meeting.screenShareEnabled) {
-      throw new ForbiddenException(
-        MEETING_ERROR_MESSAGES.MEETING_SCREEN_SHARE_DISABLED,
-      );
-    }
+    const isModerator =
+      actorRole === MeetingRole.HOST || actorRole === MeetingRole.COHOST;
 
     if (meeting.activeScreenShareUserId === userId) {
       return this.toScreenShareStateResponse({
@@ -61,23 +61,50 @@ export class MeetingScreenShareService {
       });
     }
 
-    if (meeting.activeScreenShareUserId && !isModerator) {
-      throw new ConflictException(
-        MEETING_ERROR_MESSAGES.MEETING_SCREEN_SHARE_ALREADY_ACTIVE,
+    if (!isModerator && !meeting.screenShareEnabled) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.MEETING_SCREEN_SHARE_DISABLED,
       );
     }
 
     const previousScreenShareUserId = meeting.activeScreenShareUserId;
+
+    if (previousScreenShareUserId) {
+      const activeScreenShareParticipant =
+        await this.prisma.meetingParticipant.findUnique({
+          where: {
+            meetingId_userId: {
+              meetingId: meeting.id,
+              userId: previousScreenShareUserId,
+            },
+          },
+          select: {
+            role: true,
+          },
+        });
+      const activeScreenShareRole = this.getEffectiveMeetingRole({
+        meetingHostId: meeting.hostId,
+        userId: previousScreenShareUserId,
+        role: activeScreenShareParticipant?.role,
+      });
+
+      this.assertCanInterruptScreenShare({
+        actorRole,
+        activeScreenShareRole,
+        interrupt: dto?.interrupt === true,
+      });
+    }
+
     const now = new Date();
     const updateResult = await this.prisma.meeting.updateMany({
-      where: isModerator
-        ? { id: meeting.id }
+      where: previousScreenShareUserId
+        ? {
+            id: meeting.id,
+            activeScreenShareUserId: previousScreenShareUserId,
+          }
         : {
             id: meeting.id,
-            OR: [
-              { activeScreenShareUserId: null },
-              { activeScreenShareUserId: userId },
-            ],
+            activeScreenShareUserId: null,
           },
       data: {
         activeScreenShareUserId: userId,
@@ -378,6 +405,60 @@ export class MeetingScreenShareService {
       meetingHostId === userId ||
       role === MeetingRole.HOST ||
       role === MeetingRole.COHOST
+    );
+  }
+
+  private getEffectiveMeetingRole({
+    meetingHostId,
+    userId,
+    role,
+  }: {
+    meetingHostId: string;
+    userId: string;
+    role?: MeetingRole | null;
+  }) {
+    if (meetingHostId === userId || role === MeetingRole.HOST) {
+      return MeetingRole.HOST;
+    }
+
+    if (role === MeetingRole.COHOST) {
+      return MeetingRole.COHOST;
+    }
+
+    return MeetingRole.PARTICIPANT;
+  }
+
+  private assertCanInterruptScreenShare({
+    actorRole,
+    activeScreenShareRole,
+    interrupt,
+  }: {
+    actorRole: MeetingRole;
+    activeScreenShareRole: MeetingRole;
+    interrupt: boolean;
+  }) {
+    if (!interrupt) {
+      throw new ConflictException(
+        MEETING_ERROR_MESSAGES.MEETING_SCREEN_SHARE_INTERRUPT_REQUIRED,
+      );
+    }
+
+    if (
+      actorRole === MeetingRole.HOST &&
+      activeScreenShareRole !== MeetingRole.HOST
+    ) {
+      return;
+    }
+
+    if (
+      actorRole === MeetingRole.COHOST &&
+      activeScreenShareRole === MeetingRole.PARTICIPANT
+    ) {
+      return;
+    }
+
+    throw new ForbiddenException(
+      MEETING_ERROR_MESSAGES.MEETING_SCREEN_SHARE_INTERRUPT_FORBIDDEN,
     );
   }
 
