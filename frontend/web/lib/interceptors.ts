@@ -3,6 +3,7 @@ import { api } from "./axios";
 import { store } from "@/store/store";
 import { setCredentials, clearCredentials } from "@/store/auth/auth-slice";
 import { refreshApi } from "@/features/auth/api/auth.api";
+import { getLoginRedirectPath } from "@/features/auth/utils/auth-redirect";
 
 const API_ERROR_LOG_THROTTLE_MS = 10_000;
 const apiErrorLogTimes = new Map<string, number>();
@@ -87,10 +88,11 @@ const processQueue = (error: unknown | null) => {
 function redirectToLoginIfNeeded() {
   if (typeof window === "undefined") return;
 
-  const loginPath = "/login";
   if (isPublicPath(window.location.pathname)) return;
 
-  window.location.assign(loginPath);
+  window.location.assign(
+    getLoginRedirectPath(window.location.pathname, window.location.search),
+  );
 }
 
 api.interceptors.response.use(

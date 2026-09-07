@@ -5,11 +5,17 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "prisma:generate": "prisma generate",
+    "prebuild": "npm run prisma:generate",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "prestart": "npm run prisma:generate",
     "start": "nest start",
+    "prestart:dev": "npm run prisma:generate",
     "start:dev": "nest start --watch",
+    "prestart:debug": "npm run prisma:generate",
     "start:debug": "nest start --debug --watch",
+    "prestart:prod": "npm run prisma:generate",
     "start:prod": "node dist/main",
     "lint": "eslint \"src/**/*.ts\" --fix"
   },

@@ -36,11 +36,10 @@ import {
   ChatSocketDisbandedPayload,
   ChatSocketUpdatedPayload,
   ChatSocketUnknownPayload,
-  ChatSocketAckResponse,
   SendSocketMessageMedia,
 } from "../../types/chat-socket.types";
 import { ChatQueryKey, ChatScope, chatKeys } from "../../types/chat.constant";
-import { SocketAckStatus, ReactionAction } from "../../types/chat.enums";
+import { ReactionAction } from "../../types/chat.enums";
 import { toast } from "sonner";
 
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -51,6 +50,7 @@ import { useChatReadReceipts } from "../../hooks/message/useChatReadReceipts";
 import { useChatTypingIndicator } from "../../hooks/message/useChatTypingIndicator";
 import { useChatMessageList } from "../../hooks/message/useChatMessageList";
 import { useChatMessageActions } from "../../hooks/message/useChatMessageActions";
+import { upsertMessageById } from "../../utils/message-state-utils";
 import {
   cleanupRemovedSpaceCaches,
   patchSpaceMemberRoleInCaches,
@@ -193,9 +193,7 @@ export default function ChatArea({
     (message: ChatMessageResponse) => {
       if (!message || !activeConversation?.id) return;
       setNewSocketMessages((prev) => {
-        const exists = prev.some((item) => item.id === message.id);
-        if (exists) return prev;
-        return [...prev, message];
+        return upsertMessageById(prev, message);
       });
       setReadReceipts((prev) => ({
         ...prev,
@@ -236,27 +234,6 @@ export default function ChatArea({
     scrollToBottom,
   });
 
-  const handleSendMessage = useCallback(
-    async (
-      content: string,
-      medias?: ChatSocketAckResponse["data"] extends infer T ? never : never,
-      mentions?: string[],
-    ) => {
-      await handleSendMessageAction(
-        content,
-        undefined,
-        mentions,
-        editingMessage,
-        () => {
-          setEditingMessage(null);
-          chatInputRef.current?.setMessage("");
-        },
-      );
-    },
-    [handleSendMessageAction, editingMessage],
-  );
-
-  // Fix: correct type for medias in handleSendMessage
   const handleSendMessageWithMedia = useCallback(
     async (
       content: string,

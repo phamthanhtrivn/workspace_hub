@@ -3,6 +3,7 @@
 export enum ChatContextType {
   DIRECT_MESSAGE = "DIRECT_MESSAGE",
   CHANNEL = "CHANNEL",
+  MEETING = "MEETING",
 }
 
 /**
@@ -64,17 +65,6 @@ export enum ReactionAction {
   ADD = "add",
   REMOVE = "remove",
   UPDATE = "update",
-}
-
-// ─── Socket ACK ────────────────────────────────────────────────────────────
-
-/**
- * Trạng thái phản hồi từ socket ACK.
- * Dùng thay cho magic string "success" | "error".
- */
-export enum SocketAckStatus {
-  SUCCESS = "success",
-  ERROR = "error",
 }
 
 // ─── Invitation ────────────────────────────────────────────────────────────

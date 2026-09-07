@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { useAppSelector } from "@/store/store";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
+import { useChannelMembersSearch } from "../../hooks/useChannelMembersSearch";
 import { getPresignedUrls, uploadToS3 } from "../../api/media.api";
 import { toast } from "sonner";
 import MentionDropdown from "./mention-dropdown";
@@ -51,6 +52,10 @@ import {
 } from "../../utils/voice-session-coordinator";
 import { ChatContextType } from "../../types/chat.types";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import {
+  getCachedMentionOptions,
+  getChannelMentionOptions,
+} from "../../utils/mention-member-utils";
 
 interface ThreadChatInputProps {
   onSendMessage?: (content: string, media?: any[], mentions?: string[]) => void;
@@ -105,6 +110,13 @@ const ThreadChatInput = React.memo(
 
     const activeConversationId = activeConversation?.id;
     const isUploading = uploadingMedia.some((m) => m.status === "uploading");
+    const { membersResponse } = useChannelMembersSearch({
+      channelId: activeConversationId,
+      searchQuery: mentionQuery ?? "",
+      enabled:
+        mentionQuery !== null &&
+        activeChatType === ChatContextType.CHANNEL,
+    });
 
     // Close options on outside click
     useEffect(() => {
@@ -245,27 +257,33 @@ const ThreadChatInput = React.memo(
       textarea.style.height = `${newHeight}px`;
     }, [message, interimMessage]);
 
-    // Handle members filter for mentions
     const filteredMembers = React.useMemo(() => {
-      if (
-        mentionQuery === null ||
-        !activeConversation?.members ||
-        !memberProfiles
-      )
-        return [];
-      const query = mentionQuery.toLowerCase();
-      const members = activeConversation.members
-        .map((m: any) => m.userId)
-        .filter((id: string) => id !== authUserId)
-        .map((id: string) => ({
-          id,
-          name: memberProfiles[id]?.fullName || "Someone",
-          avatarUrl: memberProfiles[id]?.avatarUrl,
-        }))
-        .filter((m: any) => m.name.toLowerCase().includes(query));
+      if (mentionQuery === null) return [];
 
-      return members.slice(0, 4);
-    }, [mentionQuery, activeConversation, memberProfiles, authUserId]);
+      if (activeChatType === ChatContextType.CHANNEL) {
+        return getChannelMentionOptions(membersResponse, authUserId);
+      }
+
+      return getCachedMentionOptions(
+        activeConversation?.members,
+        memberProfiles,
+        mentionQuery,
+        authUserId,
+      );
+    }, [
+      activeChatType,
+      activeConversation?.members,
+      authUserId,
+      memberProfiles,
+      membersResponse,
+      mentionQuery,
+    ]);
+
+    useEffect(() => {
+      if (selectedIndex >= filteredMembers.length) {
+        setSelectedIndex(0);
+      }
+    }, [filteredMembers.length, selectedIndex]);
 
     const handleEmojiSelect = useCallback(
       (emoji: string) => {

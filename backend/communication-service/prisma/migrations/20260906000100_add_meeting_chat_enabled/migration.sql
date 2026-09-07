@@ -1,0 +1,5 @@
+-- AlterEnum
+ALTER TYPE "MeetingEventType" ADD VALUE IF NOT EXISTS 'CHAT_SETTING_UPDATED';
+
+-- AlterTable
+ALTER TABLE "meetings" ADD COLUMN IF NOT EXISTS "chat_enabled" BOOLEAN NOT NULL DEFAULT true;

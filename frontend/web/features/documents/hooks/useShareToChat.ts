@@ -6,14 +6,15 @@ import {
   useDirectMessagesQuery,
 } from "@/features/chat/hooks/useChatQueries";
 import { documentsApi } from "../api/documents.api";
-import { getChannelMembers } from "@/features/chat/api/chat.api";
-import { socketService } from "@/features/chat/api/chat-socket.service";
-import { ChatEvent } from "@/features/chat/api/chat.events";
+import {
+  getChannelMembers,
+  sendChannelMessage,
+  sendDirectMessage,
+} from "@/features/chat/api/chat.api";
 import { DocumentItem } from "../types/documents.types";
 import { ShareTabType } from "../types/documents.enums";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
-import { ChatContextType } from "@/features/chat/types/chat.types";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface UseShareToChatProps {
@@ -81,12 +82,6 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
       return;
     }
 
-    const socket = socketService.getSocket();
-    if (!socket) {
-      toast.error(intl.formatMessage({ id: "chat.connectionNotReady" }));
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -151,40 +146,27 @@ export function useShareToChat({ item, onSuccess }: UseShareToChatProps) {
           }
         }
 
-        // 4. Send websocket message for channel
         if (introMessage.trim()) {
-          socket.emit(ChatEvent.SEND_MESSAGE, {
-            channelId: selectedChatId,
-            chatId: selectedChatId,
-            chatType: ChatContextType.CHANNEL,
+          await sendChannelMessage(selectedChatId, {
             content: introMessage,
             type: "TEXT",
           });
         }
 
-        socket.emit(ChatEvent.SEND_MESSAGE, {
-          channelId: selectedChatId,
-          chatId: selectedChatId,
-          chatType: ChatContextType.CHANNEL,
+        await sendChannelMessage(selectedChatId, {
           content: item.id,
           type: "DOCUMENT",
         });
       } else {
         // Direct conversation sharing
         if (introMessage.trim()) {
-          socket.emit(ChatEvent.SEND_DIRECT_MESSAGE, {
-            conversationId: selectedChatId,
-            chatId: selectedChatId,
-            chatType: ChatContextType.DIRECT_MESSAGE,
+          await sendDirectMessage(selectedChatId, {
             content: introMessage,
             type: "TEXT",
           });
         }
 
-        socket.emit(ChatEvent.SEND_DIRECT_MESSAGE, {
-          conversationId: selectedChatId,
-          chatId: selectedChatId,
-          chatType: ChatContextType.DIRECT_MESSAGE,
+        await sendDirectMessage(selectedChatId, {
           content: item.id,
           type: "DOCUMENT",
         });

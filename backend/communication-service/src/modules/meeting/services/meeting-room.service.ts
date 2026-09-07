@@ -1,0 +1,534 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import {
+  MeetingEventType,
+  MeetingParticipantStatus,
+  MeetingRole,
+  MeetingStatus,
+  MeetingType,
+} from '@prisma/client';
+import { LiveKitService } from '../../../infrastructure/livekit/livekit.service';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
+import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
+import type {
+  CreateInstantMeetingParams,
+  GetMeetingAccessParams,
+  JoinMeetingParams,
+  MeetingModeratorParams,
+  UpdateMeetingSettingsParams,
+} from '../types/meeting.types';
+import {
+  canJoinLockedMeeting,
+  createJoinToken,
+  createRoomName,
+} from '../utils/meeting.utils';
+import { MeetingPolicyService } from './meeting-policy.service';
+import { MeetingPresenterService } from './meeting-presenter.service';
+import { MeetingRealtimeService } from './meeting-realtime.service';
+import { MeetingScreenShareService } from './meeting-screen-share.service';
+
+@Injectable()
+export class MeetingRoomService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly liveKitService: LiveKitService,
+    private readonly meetingPolicyService: MeetingPolicyService,
+    private readonly meetingPresenterService: MeetingPresenterService,
+    private readonly meetingRealtimeService: MeetingRealtimeService,
+    private readonly meetingScreenShareService: MeetingScreenShareService,
+  ) {}
+
+  async createInstantMeeting({
+    userId,
+    userName,
+    avatarUrl,
+    dto,
+  }: CreateInstantMeetingParams) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    if (!this.liveKitService.isConfigured()) {
+      throw new ServiceUnavailableException(
+        MEETING_ERROR_MESSAGES.LIVEKIT_NOT_CONFIGURED,
+      );
+    }
+
+    const now = new Date();
+    const instantMeetingDto = dto ?? {};
+    const autoAdmit = instantMeetingDto.autoAdmit ?? true;
+    const chatEnabled = instantMeetingDto.chatEnabled ?? true;
+    const screenShareEnabled = true;
+    const roomName = createRoomName();
+    const joinToken = createJoinToken();
+
+    await this.liveKitService.createRoom(roomName, {
+      meetingType: MeetingType.INSTANT,
+      createdBy: userId,
+      autoAdmit,
+      chatEnabled,
+      screenShareEnabled,
+    });
+
+    const meeting = await this.prisma.$transaction(async (tx) => {
+      const createdMeeting = await tx.meeting.create({
+        data: {
+          roomName,
+          joinToken,
+          type: MeetingType.INSTANT,
+          status: MeetingStatus.LIVE,
+          createdBy: userId,
+          hostId: userId,
+          autoAdmit,
+          chatEnabled,
+          screenShareEnabled,
+          startedAt: now,
+        },
+      });
+
+      await tx.meetingParticipant.create({
+        data: {
+          meetingId: createdMeeting.id,
+          userId,
+          role: MeetingRole.HOST,
+          status: MeetingParticipantStatus.JOINED,
+          joinedAt: now,
+          lastSeenAt: now,
+        },
+      });
+
+      await tx.meetingEvent.createMany({
+        data: [
+          {
+            meetingId: createdMeeting.id,
+            actorId: userId,
+            type: MeetingEventType.CREATED,
+            metadata: {
+              roomName,
+              joinToken,
+            },
+          },
+          {
+            meetingId: createdMeeting.id,
+            actorId: userId,
+            type: MeetingEventType.STARTED,
+            metadata: {
+              startedAt: now.toISOString(),
+            },
+          },
+        ],
+      });
+
+      return createdMeeting;
+    });
+
+    const token = await this.liveKitService.createParticipantToken({
+      roomName,
+      userId,
+      displayName: userName,
+      avatarUrl,
+      role: MeetingRole.HOST,
+      deviceSettings: instantMeetingDto.deviceSettings,
+      canShareScreen: true,
+    });
+
+    return this.meetingPresenterService.toMeetingRoomResponse(
+      meeting,
+      MeetingRole.HOST,
+      token,
+      false,
+    );
+  }
+
+  async getMeetingAccess({ joinToken, userId }: GetMeetingAccessParams) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { joinToken },
+      include: {
+        participants: {
+          where: { userId },
+          take: 1,
+        },
+      },
+    });
+
+    if (!meeting) {
+      throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
+    }
+
+    if (meeting.status !== MeetingStatus.LIVE) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE);
+    }
+
+    const existingParticipant = meeting.participants[0];
+    const participantRole =
+      existingParticipant?.role ??
+      (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
+    const canJoinWithoutApproval =
+      meeting.autoAdmit ||
+      canJoinLockedMeeting({
+        hostId: meeting.hostId,
+        userId,
+        role: participantRole,
+        participantStatus: existingParticipant?.status,
+      });
+
+    return {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      status: meeting.status,
+      autoAdmit: meeting.autoAdmit,
+      chatEnabled: meeting.chatEnabled,
+      screenShareEnabled: meeting.screenShareEnabled,
+      canJoinWithoutApproval,
+      participantRole,
+      participantStatus: existingParticipant?.status ?? null,
+      chatMuted: existingParticipant?.chatMuted ?? false,
+      activeScreenShareUserId: meeting.activeScreenShareUserId,
+      screenShareStartedAt:
+        meeting.screenShareStartedAt?.toISOString() ?? null,
+    };
+  }
+
+  async joinMeeting({
+    joinToken,
+    userId,
+    userName,
+    avatarUrl,
+    dto,
+  }: JoinMeetingParams) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    if (!this.liveKitService.isConfigured()) {
+      throw new ServiceUnavailableException(
+        MEETING_ERROR_MESSAGES.LIVEKIT_NOT_CONFIGURED,
+      );
+    }
+
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { joinToken },
+      include: {
+        participants: {
+          where: { userId },
+          take: 1,
+        },
+      },
+    });
+
+    if (!meeting) {
+      throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
+    }
+
+    if (meeting.status !== MeetingStatus.LIVE) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE);
+    }
+
+    const existingParticipant = meeting.participants[0];
+
+    const role =
+      existingParticipant?.role ??
+      (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
+    const canEnterLockedMeeting = canJoinLockedMeeting({
+      hostId: meeting.hostId,
+      userId,
+      role,
+      participantStatus: existingParticipant?.status,
+    });
+
+    if (!meeting.autoAdmit && !canEnterLockedMeeting) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.MEETING_JOIN_REQUIRES_APPROVAL,
+      );
+    }
+
+    const now = new Date();
+
+    const updatedParticipant = await this.prisma.meetingParticipant.upsert({
+      where: {
+        meetingId_userId: {
+          meetingId: meeting.id,
+          userId,
+        },
+      },
+      create: {
+        meetingId: meeting.id,
+        userId,
+        role,
+        status: MeetingParticipantStatus.JOINED,
+        joinedAt: now,
+        lastSeenAt: now,
+      },
+      update: {
+        status: MeetingParticipantStatus.JOINED,
+        joinedAt: existingParticipant?.joinedAt ?? now,
+        leftAt: null,
+        lastSeenAt: now,
+      },
+    });
+
+    if (
+      !existingParticipant ||
+      existingParticipant.status === MeetingParticipantStatus.APPROVED
+    ) {
+      await this.prisma.meetingEvent.create({
+        data: {
+          meetingId: meeting.id,
+          actorId: userId,
+          type: MeetingEventType.PARTICIPANT_JOINED,
+        },
+      });
+    }
+
+    const participantPayload =
+      await this.meetingPresenterService.toMeetingParticipantSocketPayload(
+        meeting.id,
+        updatedParticipant,
+      );
+    this.meetingRealtimeService.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.PARTICIPANT_JOINED,
+      participantPayload,
+    );
+    this.meetingRealtimeService.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
+      participantPayload,
+    );
+
+    const token = await this.liveKitService.createParticipantToken({
+      roomName: meeting.roomName,
+      userId,
+      displayName: userName,
+      avatarUrl,
+      role,
+      deviceSettings: dto?.deviceSettings,
+      canShareScreen:
+        role === MeetingRole.HOST ||
+        role === MeetingRole.COHOST ||
+        meeting.activeScreenShareUserId === userId,
+    });
+
+    return this.meetingPresenterService.toMeetingRoomResponse(
+      meeting,
+      role,
+      token,
+      updatedParticipant.chatMuted,
+    );
+  }
+
+  async updateMeetingSettings({
+    joinToken,
+    userId,
+    dto,
+  }: UpdateMeetingSettingsParams) {
+    const { meeting } = await this.meetingPolicyService.assertMeetingModerator({
+      joinToken,
+      userId,
+    });
+
+    if (
+      dto.autoAdmit === undefined &&
+      dto.chatEnabled === undefined &&
+      dto.screenShareEnabled === undefined
+    ) {
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.MEETING_SETTINGS_REQUIRED,
+      );
+    }
+
+    const updateData: {
+      autoAdmit?: boolean;
+      chatEnabled?: boolean;
+      screenShareEnabled?: boolean;
+    } = {};
+    const settingEvents: {
+      meetingId: string;
+      actorId: string;
+      type: MeetingEventType;
+      metadata: Record<string, boolean>;
+    }[] = [];
+
+    if (dto.autoAdmit !== undefined) {
+      updateData.autoAdmit = dto.autoAdmit;
+      settingEvents.push({
+        meetingId: meeting.id,
+        actorId: userId,
+        type: MeetingEventType.AUTO_ADMIT_UPDATED,
+        metadata: { autoAdmit: dto.autoAdmit },
+      });
+    }
+
+    if (
+      dto.chatEnabled !== undefined &&
+      dto.chatEnabled !== meeting.chatEnabled
+    ) {
+      updateData.chatEnabled = dto.chatEnabled;
+      settingEvents.push({
+        meetingId: meeting.id,
+        actorId: userId,
+        type: MeetingEventType.CHAT_SETTING_UPDATED,
+        metadata: { chatEnabled: dto.chatEnabled },
+      });
+    } else if (dto.chatEnabled !== undefined) {
+      updateData.chatEnabled = dto.chatEnabled;
+    }
+
+    const shouldStopScreenShare =
+      dto.screenShareEnabled === false &&
+      dto.screenShareEnabled !== meeting.screenShareEnabled &&
+      Boolean(meeting.activeScreenShareUserId);
+
+    if (dto.screenShareEnabled !== undefined) {
+      updateData.screenShareEnabled = dto.screenShareEnabled;
+    }
+
+    const updatedMeeting = await this.prisma.$transaction(async (tx) => {
+      const nextMeeting = await tx.meeting.update({
+        where: { id: meeting.id },
+        data: updateData,
+      });
+
+      if (settingEvents.length > 0) {
+        await tx.meetingEvent.createMany({
+          data: settingEvents,
+        });
+      }
+
+      return nextMeeting;
+    });
+
+    const payload = {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      autoAdmit: updatedMeeting.autoAdmit,
+      chatEnabled: updatedMeeting.chatEnabled,
+      screenShareEnabled: updatedMeeting.screenShareEnabled,
+      activeScreenShareUserId: shouldStopScreenShare
+        ? null
+        : updatedMeeting.activeScreenShareUserId,
+      screenShareStartedAt: shouldStopScreenShare
+        ? null
+        : (updatedMeeting.screenShareStartedAt?.toISOString() ?? null),
+    };
+
+    this.meetingRealtimeService.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.STATUS_UPDATED,
+      payload,
+    );
+
+    if (shouldStopScreenShare && meeting.activeScreenShareUserId) {
+      await this.meetingScreenShareService.clearActiveScreenShare({
+        meetingId: meeting.id,
+        roomName: meeting.roomName,
+        joinToken: meeting.joinToken,
+        meetingHostId: meeting.hostId,
+        targetUserId: meeting.activeScreenShareUserId,
+        stoppedBy: userId,
+        reason: 'disabled',
+      });
+    }
+
+    return {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      autoAdmit: updatedMeeting.autoAdmit,
+      chatEnabled: updatedMeeting.chatEnabled,
+      screenShareEnabled: updatedMeeting.screenShareEnabled,
+      activeScreenShareUserId: shouldStopScreenShare
+        ? null
+        : updatedMeeting.activeScreenShareUserId,
+      screenShareStartedAt: shouldStopScreenShare
+        ? null
+        : (updatedMeeting.screenShareStartedAt?.toISOString() ?? null),
+    };
+  }
+
+  async endMeeting({ joinToken, userId }: MeetingModeratorParams) {
+    const { meeting } = await this.meetingPolicyService.assertMeetingHost({
+      joinToken,
+      userId,
+    });
+    const now = new Date();
+
+    if (meeting.activeScreenShareUserId) {
+      await this.meetingScreenShareService.clearActiveScreenShare({
+        meetingId: meeting.id,
+        roomName: meeting.roomName,
+        joinToken: meeting.joinToken,
+        meetingHostId: meeting.hostId,
+        targetUserId: meeting.activeScreenShareUserId,
+        stoppedBy: userId,
+        reason: 'meeting_ended',
+      });
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.meeting.update({
+        where: { id: meeting.id },
+        data: {
+          status: MeetingStatus.ENDED,
+          endedAt: now,
+          activeScreenShareUserId: null,
+          screenShareStartedAt: null,
+        },
+      }),
+      this.prisma.meetingParticipant.updateMany({
+        where: {
+          meetingId: meeting.id,
+          status: MeetingParticipantStatus.JOINED,
+        },
+        data: {
+          status: MeetingParticipantStatus.LEFT,
+          leftAt: now,
+          lastSeenAt: now,
+        },
+      }),
+      this.prisma.meetingEvent.create({
+        data: {
+          meetingId: meeting.id,
+          actorId: userId,
+          type: MeetingEventType.ENDED,
+          metadata: { endedAt: now.toISOString() },
+        },
+      }),
+    ]);
+
+    const payload = {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      status: MeetingStatus.ENDED,
+      autoAdmit: meeting.autoAdmit,
+      chatEnabled: meeting.chatEnabled,
+      screenShareEnabled: meeting.screenShareEnabled,
+      activeScreenShareUserId: null,
+      screenShareStartedAt: null,
+      endedBy: userId,
+      endedAt: now.toISOString(),
+    };
+    this.meetingRealtimeService.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.STATUS_UPDATED,
+      payload,
+    );
+    this.meetingRealtimeService.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.ENDED,
+      payload,
+    );
+    await this.meetingRealtimeService.deleteLiveKitRoom(meeting.roomName);
+
+    return payload;
+  }
+}

@@ -1,0 +1,396 @@
+export enum MeetingFlowStep {
+  DASHBOARD = "dashboard",
+  PREJOIN = "prejoin",
+  CREATING = "creating",
+}
+
+export enum MeetingPreJoinMode {
+  CREATE = "create",
+  JOIN = "join",
+}
+
+export enum MeetingJoinFlowStep {
+  CHECKING = "checking",
+  PREJOIN = "prejoin",
+  WAITING_APPROVAL = "waiting-approval",
+  JOINING = "joining",
+  ROOM = "room",
+  ERROR = "error",
+}
+
+export enum MeetingDeviceKind {
+  CAMERA = "camera",
+  MICROPHONE = "microphone",
+}
+
+export interface MeetingDeviceOption {
+  deviceId: string;
+  label: string;
+}
+
+export interface MeetingPreJoinSettings {
+  cameraEnabled: boolean;
+  microphoneEnabled: boolean;
+  cameraDeviceId: string;
+  microphoneDeviceId: string;
+  autoAdmin: boolean;
+  chatEnabled: boolean;
+}
+
+export interface CreateInstantMeetingPayload {
+  autoAdmit?: boolean;
+  chatEnabled?: boolean;
+  deviceSettings?: {
+    cameraEnabled: boolean;
+    microphoneEnabled: boolean;
+    cameraDeviceId?: string;
+    microphoneDeviceId?: string;
+  };
+}
+
+export enum MEETING_ROLE {
+  HOST = "HOST",
+  COHOST = "COHOST",
+  PARTICIPANT = "PARTICIPANT",
+}
+
+export type MeetingParticipantRole = MEETING_ROLE;
+
+export enum MeetingParticipantStatusValue {
+  INVITED = "INVITED",
+  REQUESTED = "REQUESTED",
+  APPROVED = "APPROVED",
+  JOINED = "JOINED",
+  LEFT = "LEFT",
+  REMOVED = "REMOVED",
+  REJECTED = "REJECTED",
+}
+
+export type MeetingParticipantStatus =
+  | "INVITED"
+  | "REQUESTED"
+  | "APPROVED"
+  | "JOINED"
+  | "LEFT"
+  | "REMOVED"
+  | "REJECTED";
+
+export interface InstantMeetingResponse {
+  meeting: {
+    id: string;
+    roomName: string;
+    joinToken: string;
+    type: "INSTANT";
+    status: "LIVE";
+    autoAdmit: boolean;
+    chatEnabled: boolean;
+    screenShareEnabled: boolean;
+    activeScreenShareUserId: string | null;
+    screenShareStartedAt: string | null;
+    startedAt: string | null;
+    createdAt: string;
+    participantRole: MeetingParticipantRole;
+    chatMuted: boolean;
+  };
+  livekit: {
+    serverUrl: string;
+    token: string;
+  };
+}
+
+export interface MeetingAccessResponse {
+  meetingId: string;
+  joinToken: string;
+  status: "LIVE";
+  autoAdmit: boolean;
+  chatEnabled: boolean;
+  screenShareEnabled: boolean;
+  canJoinWithoutApproval: boolean;
+  participantRole: MeetingParticipantRole;
+  participantStatus: MeetingParticipantStatus | null;
+  chatMuted: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
+}
+
+export type JoinMeetingPayload = Pick<
+  CreateInstantMeetingPayload,
+  "deviceSettings"
+>;
+
+export enum MeetingRoomPanel {
+  NONE = "none",
+  PARTICIPANTS = "participants",
+  CHAT = "chat",
+  ADMISSION = "admission",
+  SETTINGS = "settings",
+}
+
+export interface MeetingRoomSidePanelProps {
+  activePanel: MeetingRoomPanel;
+  joinToken: string;
+  meetingId: string;
+  participantRole: MeetingParticipantRole;
+  participantCount: number;
+  autoAdmit: boolean;
+  onAutoAdmitChange: (autoAdmit: boolean) => void;
+  chatEnabled: boolean;
+  onChatEnabledChange: (chatEnabled: boolean) => void;
+  screenShareEnabled: boolean;
+  onScreenShareEnabledChange: (screenShareEnabled: boolean) => void;
+  activeScreenShareUserId: string | null;
+  chatMuted: boolean;
+  isChatNotificationPreferencePending?: boolean;
+  onChatMutedChange: (muted: boolean) => void;
+  mutedParticipantIds: ReadonlySet<string>;
+  pinnedParticipantId: string | null;
+  isParticipantViewPreferencePending: (participantId: string) => boolean;
+  onToggleParticipantAudioMute: (participantId: string) => void;
+  onToggleParticipantPin: (participantId: string) => void;
+  onClose: () => void;
+}
+
+export type MeetingRoomPanelContentProps = Pick<
+  MeetingRoomSidePanelProps,
+  | "activePanel"
+  | "joinToken"
+  | "meetingId"
+  | "participantRole"
+  | "participantCount"
+  | "autoAdmit"
+  | "onAutoAdmitChange"
+  | "chatEnabled"
+  | "onChatEnabledChange"
+  | "screenShareEnabled"
+  | "onScreenShareEnabledChange"
+  | "activeScreenShareUserId"
+  | "mutedParticipantIds"
+  | "pinnedParticipantId"
+  | "isParticipantViewPreferencePending"
+  | "onToggleParticipantAudioMute"
+  | "onToggleParticipantPin"
+>;
+
+export type MeetingRoomSettingsPanelProps = Pick<
+  MeetingRoomSidePanelProps,
+  | "joinToken"
+  | "participantRole"
+  | "participantCount"
+  | "autoAdmit"
+  | "onAutoAdmitChange"
+  | "chatEnabled"
+  | "onChatEnabledChange"
+  | "screenShareEnabled"
+  | "onScreenShareEnabledChange"
+>;
+
+export interface ParticipantMetadata {
+  role?: string;
+  avatarUrl?: string | null;
+}
+
+export interface MeetingJoinRequestResponse {
+  id: string;
+  meetingId: string;
+  userId: string;
+  role: MeetingParticipantRole;
+  status: MeetingParticipantStatus;
+  requestedAt: string;
+  profile: {
+    id?: string | null;
+    userId?: string | null;
+    email: string | null;
+    fullName: string | null;
+    avatarUrl: string | null;
+  } | null;
+}
+
+export interface MeetingJoinRequestsResponse {
+  items: MeetingJoinRequestResponse[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface MeetingJoinRequestStatusResponse {
+  meetingId: string;
+  joinToken?: string;
+  userId?: string;
+  participantStatus?: MeetingParticipantStatus;
+  status?: MeetingParticipantStatus;
+  requestedAt?: string;
+}
+
+export interface MeetingSettingsResponse {
+  meetingId: string;
+  joinToken: string;
+  autoAdmit: boolean;
+  chatEnabled: boolean;
+  screenShareEnabled: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
+}
+
+export interface UpdateMeetingSettingsPayload {
+  autoAdmit?: boolean;
+  chatEnabled?: boolean;
+  screenShareEnabled?: boolean;
+}
+
+export interface StartMeetingScreenSharePayload {
+  interrupt?: boolean;
+}
+
+export interface MeetingScreenShareStateResponse {
+  meetingId: string;
+  joinToken: string;
+  screenShareEnabled: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
+  startedBy?: string;
+  userId?: string;
+  stoppedBy?: string;
+  reason?: string;
+}
+
+export interface MeetingParticipantProfile {
+  id?: string | null;
+  userId?: string | null;
+  email: string | null;
+  fullName: string | null;
+  avatarUrl: string | null;
+}
+
+export interface MeetingParticipantResponse {
+  id: string;
+  meetingId: string;
+  userId: string;
+  role: MeetingParticipantRole;
+  status: MeetingParticipantStatus;
+  joinedAt: string | null;
+  leftAt?: string | null;
+  lastReadMessageId?: string | null;
+  lastReadAt?: string | null;
+  updatedAt?: string;
+  profile: MeetingParticipantProfile | null;
+}
+
+export interface MeetingParticipantsResponse {
+  items: MeetingParticipantResponse[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface MeetingEndedResponse {
+  meetingId: string;
+  joinToken: string;
+  status: "ENDED";
+  autoAdmit: boolean;
+  chatEnabled: boolean;
+  screenShareEnabled: boolean;
+  activeScreenShareUserId: string | null;
+  screenShareStartedAt: string | null;
+  endedBy: string;
+  endedAt: string;
+}
+
+export interface MeetingMessageMediaPayload {
+  name: string;
+  s3Key: string;
+  mimeType: string;
+  sizeBytes: number;
+}
+
+export interface MeetingMessageMediaResponse extends MeetingMessageMediaPayload {
+  id: string;
+  messageId?: string;
+  fileUrl: string;
+  type?: "IMAGE" | "VIDEO" | "FILE" | string;
+}
+
+export interface MeetingMessageReactionResponse {
+  id?: string;
+  messageId?: string;
+  userId: string;
+  emoji: string;
+}
+
+export interface MeetingMessageResponse {
+  id: string;
+  meetingId: string;
+  senderId: string;
+  content?: string | null;
+  type: "TEXT" | string;
+  edited: boolean;
+  recalled: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  deletedAt?: string | null;
+  senderProfile?: MeetingParticipantProfile | null;
+  medias?: MeetingMessageMediaResponse[];
+  reactions?: MeetingMessageReactionResponse[];
+}
+
+export interface MeetingMessagesResponse {
+  messages: MeetingMessageResponse[];
+  nextCursor?: string;
+  prevCursor?: string;
+}
+
+export interface MeetingUnreadMessageCountResponse {
+  count: number;
+}
+
+export interface MeetingChatNotificationPreferenceResponse {
+  meetingId: string;
+  joinToken: string;
+  userId: string;
+  chatMuted: boolean;
+}
+
+export interface MeetingParticipantViewPreferenceResponse {
+  meetingId: string;
+  viewerUserId: string;
+  targetUserId: string;
+  audioMuted: boolean;
+  pinned: boolean;
+  updatedAt: string;
+}
+
+export interface MeetingParticipantViewPreferencesResponse {
+  items: MeetingParticipantViewPreferenceResponse[];
+}
+
+export interface UpdateMeetingParticipantViewPreferencePayload {
+  audioMuted?: boolean;
+  pinned?: boolean;
+}
+
+export interface CreateMeetingMessagePayload {
+  content?: string;
+  medias?: MeetingMessageMediaPayload[];
+}
+
+export interface EditMeetingMessagePayload {
+  content: string;
+}
+
+export interface MeetingMessageReactionPayload {
+  emoji: string;
+}
+
+export interface MeetingMessageReactionResult {
+  action: "add" | "remove" | "update";
+  emoji: string;
+}
+
+export interface MeetingMessageReadReceiptResponse {
+  meetingId: string;
+  joinToken: string;
+  messageId: string;
+  userId: string;
+  readAt: string;
+}

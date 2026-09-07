@@ -1,14 +1,22 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  forwardRef,
+} from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { POLL_ERROR_MESSAGES } from './types/poll.enums';
 import { mapMediaWithUrl } from '../../common/utils/file.util';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 
 @Injectable()
 export class PollService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    @Inject(forwardRef(() => ChatSocketPublisher))
+    private readonly chatSocketPublisher: ChatSocketPublisher,
   ) {}
 
   async getPollsInConversation(channelId: string, userId: string, q?: string) {
@@ -108,6 +116,27 @@ export class PollService {
       .then((message) => this.enrichMessage(message));
   }
 
+  async votePollAndPublish(
+    channelId: string,
+    messageId: string,
+    pollOptionId: string,
+    userId: string,
+  ) {
+    const updatedMessage = await this.votePoll(
+      channelId,
+      messageId,
+      pollOptionId,
+      userId,
+    );
+
+    await this.chatSocketPublisher.publishMessageMoved(
+      channelId,
+      updatedMessage,
+    );
+
+    return updatedMessage;
+  }
+
   async addPollOption(
     channelId: string,
     messageId: string,
@@ -139,6 +168,27 @@ export class PollService {
 
     // Automatically vote for this newly created option
     return this.votePoll(channelId, messageId, newOption.id, userId);
+  }
+
+  async addPollOptionAndPublish(
+    channelId: string,
+    messageId: string,
+    text: string,
+    userId: string,
+  ) {
+    const updatedMessage = await this.addPollOption(
+      channelId,
+      messageId,
+      text,
+      userId,
+    );
+
+    await this.chatSocketPublisher.publishMessageMoved(
+      channelId,
+      updatedMessage,
+    );
+
+    return updatedMessage;
   }
 
   async updatePoll(
@@ -191,6 +241,35 @@ export class PollService {
         },
       })
       .then((message) => this.enrichMessage(message));
+  }
+
+  async updatePollAndPublish(
+    channelId: string,
+    messageId: string,
+    title: string,
+    multipleChoice: boolean,
+    allowAddOptions: boolean,
+    userId: string,
+    anonymous?: boolean,
+    isLocked?: boolean,
+  ) {
+    const updatedMessage = await this.updatePoll(
+      channelId,
+      messageId,
+      title,
+      multipleChoice,
+      allowAddOptions,
+      userId,
+      anonymous,
+      isLocked,
+    );
+
+    await this.chatSocketPublisher.publishMessageMoved(
+      channelId,
+      updatedMessage,
+    );
+
+    return updatedMessage;
   }
 
   private async assertPollChannelMember(

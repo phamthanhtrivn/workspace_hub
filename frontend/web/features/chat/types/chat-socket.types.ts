@@ -33,10 +33,6 @@ export interface ChatSocketReadPayload extends Partial<ChatContextPayload> {
   readAt?: string;
 }
 
-export interface SendReadSocketPayload extends Partial<ChatContextPayload> {
-  messageId: string;
-}
-
 export interface JoinChannelSocketPayload extends ChatContextPayload {
   channelId: string;
   chatType: ChatContextType.CHANNEL;
@@ -125,34 +121,6 @@ export interface SendSocketMessageMedia {
   sizeBytes: number;
 }
 
-export interface ChatSocketAckResponse<T = ChatMessageResponse> {
-  status?: "success" | "error";
-  message?: string;
-  data?: T;
-}
-
-export interface SendChannelSocketMessagePayload {
-  [key: string]: unknown;
-  channelId: string;
-  chatId: string;
-  chatType: ChatContextType.CHANNEL;
-  content: string;
-  type?: string;
-  medias?: SendSocketMessageMedia[];
-  mentions?: string[];
-}
-
-export interface SendDirectSocketMessagePayload {
-  conversationId: string;
-  chatId: string;
-  chatType: ChatContextType.DIRECT_MESSAGE;
-  content: string;
-  type?: string;
-  medias?: SendSocketMessageMedia[];
-  threadParentId?: string;
-  mentions?: string[];
-}
-
 export interface ServerToClientChatEvents {
   [event: string]: (...args: never[]) => void;
   [ChatEvent.NEW_MESSAGE]: (payload: ChatSocketMessagePayload) => void;
@@ -190,35 +158,10 @@ export interface ServerToClientChatEvents {
 
 export interface ClientToServerChatEvents {
   [event: string]: (...args: never[]) => void;
-  [ChatEvent.SEND_MESSAGE]: (
-    payload: SendChannelSocketMessagePayload,
-    ack?: (response: ChatSocketAckResponse) => void,
-  ) => void;
-  [ChatEvent.SEND_DIRECT_MESSAGE]: (
-    payload: SendDirectSocketMessagePayload,
-    ack?: (response: ChatSocketAckResponse) => void,
-  ) => void;
   [ChatEvent.JOIN_CONVERSATION]: (payload: JoinChannelSocketPayload) => void;
   [ChatEvent.JOIN_DIRECT_CONVERSATION]: (
     payload: JoinDirectSocketPayload,
   ) => void;
-  [ChatEvent.READ_MESSAGE]: (payload: SendReadSocketPayload) => void;
-  [ChatEvent.READ_DIRECT_MESSAGE]: (payload: SendReadSocketPayload) => void;
   [ChatEvent.TYPING]: (payload: ChatSocketTypingPayload) => void;
   [ChatEvent.TYPING_DIRECT]: (payload: ChatSocketTypingPayload) => void;
-  [ChatEvent.EDIT_MESSAGE]: (payload: ChatSocketUnknownPayload) => void;
-  [ChatEvent.RECALL_MESSAGE]: (payload: ChatSocketUnknownPayload) => void;
-  [ChatEvent.REACT_MESSAGE]: (payload: ChatSocketUnknownPayload) => void;
-  [ChatEvent.PIN_MESSAGE]: (
-    payload: ChatSocketUnknownPayload,
-    ack?: (response: ChatSocketAckResponse) => void,
-  ) => void;
-  [ChatEvent.UNPIN_MESSAGE]: (
-    payload: ChatSocketUnknownPayload,
-    ack?: (response: ChatSocketAckResponse) => void,
-  ) => void;
-  [ChatEvent.VOTE_POLL]: (payload: ChatSocketUnknownPayload) => void;
-  [ChatEvent.ADD_POLL_OPTION]: (payload: ChatSocketUnknownPayload) => void;
-  [ChatEvent.EDIT_POLL]: (payload: ChatSocketUnknownPayload) => void;
-  [ChatEvent.EDIT_NOTE]: (payload: ChatSocketUnknownPayload) => void;
 }
