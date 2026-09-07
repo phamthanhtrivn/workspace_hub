@@ -24,40 +24,86 @@ export class NotificationService {
     options: { sendPush?: boolean } = {},
   ): Promise<Notification> {
     const saved = await this.prisma.notification.create({
-      data: {
-        recipientId: createDto.recipientId,
-        senderId: createDto.senderId,
-        senderName: createDto.senderName,
-        senderAvatar: createDto.senderAvatar,
-        type: createDto.type,
-        title: createDto.title,
-        content: createDto.content,
-        link: createDto.link,
-        metadata: createDto.metadata
-          ? (createDto.metadata as Prisma.InputJsonValue)
-          : Prisma.JsonNull,
-      },
+      data: this.notificationData(createDto),
+    });
+    this.dispatchCreatedNotification(saved, options.sendPush !== false);
+    return saved;
+  }
+
+  async createNotificationFromEvent(
+    eventId: string,
+    eventType: string,
+    createDto: CreateNotificationDto,
+  ): Promise<Notification | null> {
+    const saved = await this.prisma.$transaction(async (tx) => {
+      if (!(await this.recordProcessedEvent(tx, eventId, eventType))) return null;
+
+      const notification = await tx.notification.create({
+        data: this.notificationData(createDto),
+      });
+      return notification;
     });
 
-    // Publish to realtime socket room
-    this.notificationGateway.server
-      .to(saved.recipientId)
-      .emit("new_notification", saved);
-
-    // Send push notification in the background
-    if (options.sendPush !== false) {
-      this.sendPushToUser(saved.recipientId, {
-        title: saved.title,
-        content: saved.content,
-        link: saved.link || undefined,
-        senderName: saved.senderName || undefined,
-        senderAvatar: saved.senderAvatar || undefined,
-      }).catch((err) =>
-        console.error("Failed to send push notification:", err),
-      );
-    }
-
+    if (saved) this.dispatchCreatedNotification(saved, true);
     return saved;
+  }
+
+  async resolveProjectInvitationFromEvent(
+    eventId: string,
+    eventType: string,
+    invitationId: string,
+    recipientId: string,
+    status: ProjectInvitationResolution,
+  ): Promise<Notification | null> {
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (!(await this.recordProcessedEvent(tx, eventId, eventType))) return null;
+
+      const notification = await tx.notification.findFirst({
+        where: {
+          recipientId,
+          type: "PROJECT_INVITATION",
+          metadata: { path: ["invitationId"], equals: invitationId },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+      if (!notification) {
+        throw new Error("Project invitation notification not found");
+      }
+
+      const currentMetadata =
+        notification.metadata &&
+        typeof notification.metadata === "object" &&
+        !Array.isArray(notification.metadata)
+          ? notification.metadata
+          : {};
+      const saved = await tx.notification.update({
+        where: { id: notification.id },
+        data: {
+          isRead: true,
+          metadata: {
+            ...currentMetadata,
+            status,
+            respondedAt: new Date().toISOString(),
+          },
+        },
+      });
+      return saved;
+    });
+
+    if (updated) {
+      this.notificationGateway.server
+        .to(updated.recipientId)
+        .emit("notification_updated", updated);
+    }
+    return updated;
+  }
+
+  async hasProcessedEvent(eventId: string): Promise<boolean> {
+    return this.eventWasProcessed(this.prisma, eventId);
+  }
+
+  async markEventProcessed(eventId: string, eventType: string): Promise<void> {
+    await this.recordProcessedEvent(this.prisma, eventId, eventType);
   }
 
   async getNotifications(
@@ -130,45 +176,6 @@ export class NotificationService {
       data: { isRead: true },
     });
     return result.count;
-  }
-
-  async resolveProjectInvitation(
-    invitationId: string,
-    recipientId: string,
-    status: ProjectInvitationResolution,
-  ): Promise<Notification | null> {
-    const notification = await this.prisma.notification.findFirst({
-      where: {
-        recipientId,
-        type: "PROJECT_INVITATION",
-        metadata: { path: ["invitationId"], equals: invitationId },
-      },
-      orderBy: { createdAt: "desc" },
-    });
-    if (!notification) return null;
-
-    const currentMetadata =
-      notification.metadata &&
-      typeof notification.metadata === "object" &&
-      !Array.isArray(notification.metadata)
-        ? notification.metadata
-        : {};
-    const updated = await this.prisma.notification.update({
-      where: { id: notification.id },
-      data: {
-        isRead: true,
-        metadata: {
-          ...currentMetadata,
-          status,
-          respondedAt: new Date().toISOString(),
-        },
-      },
-    });
-
-    this.notificationGateway.server
-      .to(updated.recipientId)
-      .emit("notification_updated", updated);
-    return updated;
   }
 
   async deleteNotification(id: string, recipientId: string): Promise<boolean> {
@@ -259,5 +266,68 @@ export class NotificationService {
         }
       }),
     );
+  }
+
+  private notificationData(
+    createDto: CreateNotificationDto,
+  ): Prisma.NotificationUncheckedCreateInput {
+    return {
+      recipientId: createDto.recipientId,
+      senderId: createDto.senderId,
+      senderName: createDto.senderName,
+      senderAvatar: createDto.senderAvatar,
+      type: createDto.type,
+      title: createDto.title,
+      content: createDto.content,
+      link: createDto.link,
+      metadata: createDto.metadata
+        ? (createDto.metadata as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
+    };
+  }
+
+  private dispatchCreatedNotification(
+    saved: Notification,
+    sendPush: boolean,
+  ): void {
+    this.notificationGateway.server
+      .to(saved.recipientId)
+      .emit("new_notification", saved);
+
+    if (!sendPush) return;
+    this.sendPushToUser(saved.recipientId, {
+      title: saved.title,
+      content: saved.content,
+      link: saved.link || undefined,
+      senderName: saved.senderName || undefined,
+      senderAvatar: saved.senderAvatar || undefined,
+    }).catch((err) =>
+      console.error("Failed to send push notification:", err),
+    );
+  }
+
+  private async eventWasProcessed(
+    database: PrismaService | Prisma.TransactionClient,
+    eventId: string,
+  ): Promise<boolean> {
+    const rows = await database.$queryRaw<Array<{ exists: boolean }>>`
+      SELECT EXISTS(
+        SELECT 1 FROM processed_events WHERE event_id = ${eventId}
+      ) AS "exists"
+    `;
+    return rows[0]?.exists === true;
+  }
+
+  private async recordProcessedEvent(
+    database: PrismaService | Prisma.TransactionClient,
+    eventId: string,
+    eventType: string,
+  ): Promise<boolean> {
+    const inserted = await database.$executeRaw`
+      INSERT INTO processed_events (event_id, event_type, processed_at)
+      VALUES (${eventId}, ${eventType}, NOW())
+      ON CONFLICT (event_id) DO NOTHING
+    `;
+    return inserted === 1;
   }
 }

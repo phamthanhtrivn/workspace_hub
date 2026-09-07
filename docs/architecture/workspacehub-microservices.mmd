@@ -1,0 +1,131 @@
+flowchart TB
+  Person["Người dùng"] --> Web["Next.js Web App :3000<br/>React · TypeScript · Axios · Redux · Socket.IO client"]
+
+  subgraph Backend["AI Workspace Microservices Backend"]
+    direction TB
+    Kong["Kong API Gateway :8000 / :8443<br/>DB-less · JWT trên REST route bảo vệ · X-User-*<br/>CORS · rate limit local · payload limit · request ID"]
+
+    subgraph Services["Microservices"]
+      direction LR
+      User["User :8081<br/>Spring Boot 4.1 · Java 21<br/>Auth · OAuth · hồ sơ"]
+      Project["Project :8082<br/>NestJS 11 · TypeScript<br/>Project · Task · Sprint · Outbox"]
+      Comm["Communication :8083<br/>NestJS 11 · TypeScript<br/>Space · Channel · Chat · Poll · Note"]
+      Notify["Notification :8084<br/>NestJS 11 · TypeScript<br/>Thông báo · Email · Push"]
+      Doc["Document :8085<br/>NestJS 11 · TypeScript<br/>Tệp · phiên bản · chia sẻ"]
+      Cal["Calendar :8086<br/>NestJS 11 · TypeScript<br/>Lịch · lặp lại · nhắc việc"]
+    end
+
+    subgraph PG["Shared PostgreSQL 15 instance · postgres:5432"]
+      UDB[("user_db")]
+      PDB[("project_db<br/>NotificationOutbox · ProjectFile content")]
+      CDB[("communication_db")]
+      NDB[("notification_db<br/>Notification · processed_events")]
+      DDB[("document_db<br/>metadata · quyền · phiên bản")]
+      ADB[("calendar_db<br/>Reminder · SyncCheckpoint")]
+    end
+
+    Redis[("Redis 7 :6379<br/>OTP · Socket.IO adapter")]
+    subgraph Kafka["Apache Kafka · kafka:29092"]
+      UP["user-profile-events"]
+      NT["notification-topic"]
+      PN["project-notification-events"]
+      PNR["project-notification-events-retry"]
+      PND["project-notification-events-dlt"]
+      PT["project-task-events"]
+      CR["calendar-reminder-events"]
+    end
+  end
+
+  subgraph External["External Infrastructure / Cloud Services"]
+    S3["AWS S3"]
+    CDN["CloudFront URL<br/>deployment: needs verification"]
+    Google["Google OAuth / userinfo"]
+    Mail["SMTP provider"]
+    Push["Web Push provider"]
+    Office["Office Online Viewer"]
+    Geo["ip-api.com / GeoIP"]
+  end
+
+  Web -->|"HTTP(S) REST · Bearer JWT"| Kong
+  Web <-->|"Socket.IO · WS(S)"| Kong
+  Kong -->|"/api/auth · /api/users"| User
+  Kong -->|"/api/projects · /api/tasks · /api/sprints"| Project
+  Kong -->|"/api/spaces · /api/channels · /api/direct-conversations"| Comm
+  Kong -->|"/api/notifications"| Notify
+  Kong -->|"/api/documents"| Doc
+  Kong -->|"/api/calendar"| Cal
+  Kong <-->|"/communication.io"| Comm
+  Kong <-->|"/notification.io"| Notify
+
+  User -->|JPA| UDB
+  Project -->|Prisma / SQL| PDB
+  Comm -->|Prisma| CDB
+  Notify -->|Prisma| NDB
+  Doc -->|Prisma| DDB
+  Cal -->|Prisma| ADB
+  User -->|OTP có TTL| Redis
+  Comm <-->|Socket.IO Pub/Sub| Redis
+
+  User -.->|publish sau commit| UP
+  UP -.->|snapshot| Comm
+  UP -.->|snapshot| Doc
+  UP -.->|snapshot| Cal
+  Comm -.->|sự kiện cộng tác| NT
+  NT -.->|consume| Notify
+  Project -.->|transactional outbox| PN
+  PN -.->|idempotent consume| Notify
+  Notify -.->|transient failure| PNR
+  PNR -.->|retry| Notify
+  Notify -.->|invalid / exhausted| PND
+  Project -.->|outbox worker publish| PT
+  PT -.->|đồng bộ task| Cal
+  Cal -.->|reminder đến hạn| CR
+  CR -.->|ALERT · PUSH · EMAIL| Notify
+
+  Project -->|HTTP tra cứu profile| User
+  Cal -->|"HTTP kiểm tra quyền · needs verification"| Project
+  Cal -->|HTTP kiểm tra quyền tài liệu| Doc
+  Cal -->|HTTP bổ sung profile thiếu| User
+
+  User --> S3
+  Comm --> S3
+  Doc --> S3
+  Web -->|PUT presigned URL| S3
+  Web -->|OAuth login| Google
+  User -->|HTTPS userinfo| Google
+  User -->|OTP email| Mail
+  Notify -->|email lời mời / nhắc lịch| Mail
+  Notify -->|HTTPS · VAPID| Push
+  Push -->|Service Worker| Web
+  Web -->|GET media| CDN
+  Web -->|iframe preview| Office
+  User -->|HTTP GeoIP| Geo
+
+  subgraph CapabilityStatus["Planned / Partial Capabilities"]
+    AIService["AI Service · PLANNED<br/>/ai UI là placeholder<br/>Backend/API: not found"]
+    LLM["LLM / RAG / Vector DB<br/>Provider chưa được chọn"]
+    Pomodoro["Pomodoro · PARTIAL<br/>/pomodoro UI placeholder<br/>Kong route + SQL migrations"]
+  end
+  Web -.->|"/ai · planned"| AIService
+  AIService -.->|"future integration"| LLM
+  Web -.->|"/pomodoro · partial"| Pomodoro
+  Pomodoro -.->|"thuộc miền Project"| Project
+  Pomodoro -.->|"migration tables only"| PDB
+  Missing["Not found in current source code:<br/>Mobile · Meeting Service · CI/CD"]
+
+  classDef client fill:#e0f2fe,stroke:#0284c7,color:#16324f;
+  classDef gateway fill:#f3e8ff,stroke:#9333ea,color:#16324f;
+  classDef service fill:#eff6ff,stroke:#3b82f6,color:#16324f;
+  classDef data fill:#ecfdf5,stroke:#059669,color:#16324f;
+  classDef events fill:#fff7ed,stroke:#ea580c,color:#16324f;
+  classDef cache fill:#fef2f2,stroke:#ef4444,color:#16324f;
+  classDef external fill:#f8fafc,stroke:#94a3b8,color:#16324f;
+  class Person,Web client;
+  class Kong gateway;
+  class User,Project,Comm,Notify,Doc,Cal service;
+  class UDB,PDB,CDB,NDB,DDB,ADB data;
+  class UP,NT,PN,PNR,PND,PT,CR events;
+  class Redis cache;
+  class AIService,LLM gateway;
+  class Pomodoro events;
+  class S3,CDN,Google,Mail,Push,Office,Geo,Missing external;

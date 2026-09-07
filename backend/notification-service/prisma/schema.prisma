@@ -41,3 +41,12 @@ model PushSubscription {
   @@map("push_subscriptions")
 }
 
+model ProcessedEvent {
+  eventId     String   @id @map("event_id")
+  eventType   String   @map("event_type")
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@index([processedAt])
+  @@map("processed_events")
+}
+

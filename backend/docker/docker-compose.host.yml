@@ -103,6 +103,9 @@ services:
       /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic user-profile-events --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
       /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic calendar-reminder-events --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
       /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic project-task-events --bootstrap-server kafka:29092 --partitions 1 --replication-factor 1 &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic project-notification-events --bootstrap-server kafka:29092 --partitions 3 --replication-factor 1 &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic project-notification-events-retry --bootstrap-server kafka:29092 --partitions 3 --replication-factor 1 &&
+      /opt/kafka/bin/kafka-topics.sh --create --if-not-exists --topic project-notification-events-dlt --bootstrap-server kafka:29092 --partitions 3 --replication-factor 1 &&
       echo 'Kafka topics created successfully.'
       "
     networks:

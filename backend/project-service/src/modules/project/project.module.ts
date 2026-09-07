@@ -28,7 +28,7 @@ import {
   NOTIFICATION_GATEWAY,
   USER_DIRECTORY,
 } from "./communication/project-communication.port";
-import { HttpNotificationAdapter } from "./communication/http-notification.adapter";
+import { KafkaNotificationAdapter } from "./communication/kafka-notification.adapter";
 import { HttpUserDirectoryAdapter } from "./communication/http-user-directory.adapter";
 import { ProjectTemplateService } from "./project-template.service";
 import { TaskPolicyService } from "./task-policy.service";
@@ -67,7 +67,7 @@ import { ProjectFileService } from "./project-file.service";
     TaskCalendarEventService,
     HttpJsonClient,
     { provide: USER_DIRECTORY, useClass: HttpUserDirectoryAdapter },
-    { provide: NOTIFICATION_GATEWAY, useClass: HttpNotificationAdapter },
+    { provide: NOTIFICATION_GATEWAY, useClass: KafkaNotificationAdapter },
     ProjectTemplateService,
     TaskPolicyService,
   ],

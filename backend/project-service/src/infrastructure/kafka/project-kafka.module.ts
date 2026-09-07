@@ -12,7 +12,7 @@ export const PROJECT_KAFKA_CLIENT = 'PROJECT_KAFKA_CLIENT';
         transport: Transport.KAFKA,
         options: {
           client: {
-            clientId: 'project-task-calendar-producer',
+            clientId: 'project-service-producer',
             brokers: (process.env.KAFKA_BROKER ?? 'localhost:9092')
               .split(',')
               .map((broker) => broker.trim())

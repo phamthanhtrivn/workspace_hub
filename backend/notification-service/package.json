@@ -1,7 +1,7 @@
 {
   "name": "notification-service",
   "version": "0.0.1",
-  "description": "Notification service using NestJS, MongoDB, and Kafka",
+  "description": "Notification service using NestJS, PostgreSQL, and Kafka",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -11,7 +11,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "lint": "eslint \"src/**/*.ts\" --fix"
+    "lint": "eslint \"src/**/*.ts\" \"scripts/**/*.ts\"",
+    "verify:project-events": "node -r ts-node/register/transpile-only scripts/verify-project-notification-events.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

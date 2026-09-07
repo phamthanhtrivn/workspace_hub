@@ -33,12 +33,13 @@ service version. In particular, never add `prisma db push --accept-data-loss`
 to the startup command.
 
 Project and invitation notifications use the `notification_outbox` table.
-Application writes and outbox inserts commit together; the in-process worker
-delivers events with exponential retry. Notification and email events stop
-retrying after `OUTBOX_MAX_ATTEMPTS` and remain queryable for operations review.
-Calendar snapshots (`PROJECT_TASK_CALENDAR`) retry indefinitely, with a delay
-capped at one hour, and load the current task state before publishing. Kafka
-availability does not determine whether a committed task request succeeds.
+Application writes and outbox inserts commit together. The in-process relay
+publishes `project-notification-events` with the outbox ID as `eventId`, waits
+for Kafka acknowledgement, and then marks the record `SENT`. Transient delivery
+errors retry indefinitely with exponential backoff capped at one hour. Invalid
+local payloads move to `DEAD` for operations review. Calendar snapshots use the
+same relay and load the current task state before publishing. Kafka availability
+does not determine whether a committed project request succeeds.
 
 Migration versions are unique and must be applied in numeric order. The
 renumbered history assumes a clean Project Service database.

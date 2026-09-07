@@ -6,7 +6,6 @@ import {
   Put,
   Delete,
   Body,
-  UnauthorizedException,
   Param,
   Query,
   Headers,
@@ -16,79 +15,15 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { NotificationService } from "./notification.service";
-import { EmailService } from "./email.service";
-import { SendProjectInvitationEmailDto } from "./dtos/send-project-invitation-email.dto";
-import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
-import { ResolveProjectInvitationDto } from "./dtos/resolve-project-invitation.dto";
 
 @Controller("api/notifications")
 export class NotificationController {
   constructor(
     private readonly notificationService: NotificationService,
-    private readonly emailService: EmailService,
     private readonly pushService: PushService,
   ) {}
-
-  @Post("project-invitations/email")
-  async sendProjectInvitationEmail(
-    @Headers("x-internal-service-key") serviceKey: string,
-    @Body() dto: SendProjectInvitationEmailDto,
-  ) {
-    const expectedKey = process.env.INTERNAL_SERVICE_KEY;
-
-    if (!expectedKey || serviceKey !== expectedKey) {
-      throw new UnauthorizedException("Invalid internal service key");
-    }
-
-    await this.emailService.sendProjectInvitationEmail(dto);
-
-    return {
-      message: "Project invitation email sent successfully",
-      data: { sent: true, invitationId: dto.invitationId },
-    };
-  }
-
-  @Post("internal")
-  async createInternalNotification(
-    @Headers("x-internal-service-key") serviceKey: string,
-    @Body() dto: CreateNotificationDto,
-  ) {
-    const expectedKey =
-      process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
-    if (serviceKey !== expectedKey) {
-      throw new UnauthorizedException("Invalid internal service key");
-    }
-    const notification = await this.notificationService.createNotification(dto);
-    return { message: "Notification created successfully", data: notification };
-  }
-
-  @Patch("internal/project-invitations/:invitationId")
-  async resolveProjectInvitation(
-    @Headers("x-internal-service-key") serviceKey: string,
-    @Param("invitationId") invitationId: string,
-    @Body() dto: ResolveProjectInvitationDto,
-  ) {
-    const expectedKey =
-      process.env.INTERNAL_SERVICE_KEY || "local-internal-key";
-    if (serviceKey !== expectedKey) {
-      throw new UnauthorizedException("Invalid internal service key");
-    }
-    const notification =
-      await this.notificationService.resolveProjectInvitation(
-        invitationId,
-        dto.recipientId,
-        dto.status,
-      );
-    if (!notification) {
-      throw new NotFoundException("Project invitation notification not found");
-    }
-    return {
-      message: "Project invitation notification updated",
-      data: notification,
-    };
-  }
 
   @Get()
   async getNotifications(

@@ -11,6 +11,9 @@ services:
       - "8084:8084"
     env_file:
       - .env.docker
+    environment:
+      PROJECT_NOTIFICATION_MAX_RETRIES: ${PROJECT_NOTIFICATION_MAX_RETRIES:-3}
+      PROJECT_NOTIFICATION_RETRY_BASE_DELAY_MS: ${PROJECT_NOTIFICATION_RETRY_BASE_DELAY_MS:-1000}
     volumes:
       - .:/app
       - /app/node_modules
@@ -19,6 +22,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      kafka:
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "nc -z 127.0.0.1 8084"]
       interval: 5s

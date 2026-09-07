@@ -2,6 +2,9 @@ export const KAFKA_TOPICS = {
   // Topic where other services publish raw notifications to be persisted
   NOTIFICATION_TOPIC: 'notification-topic',
   CALENDAR_REMINDER_TOPIC: 'calendar-reminder-events',
+  PROJECT_NOTIFICATION_TOPIC: 'project-notification-events',
+  PROJECT_NOTIFICATION_RETRY_TOPIC: 'project-notification-events-retry',
+  PROJECT_NOTIFICATION_DLT_TOPIC: 'project-notification-events-dlt',
 };
 
 export const KAFKA_EVENTS = {
@@ -26,4 +29,10 @@ export const KAFKA_CLIENTS = {
     CLIENT_ID: 'communication-service',
     GROUP_ID: 'communication-service-group',
   },
+  NOTIFICATION_RETRY_PRODUCER: {
+    CLIENT_ID: 'notification-retry-producer',
+  },
 };
+
+export const NOTIFICATION_RETRY_KAFKA_CLIENT =
+  'NOTIFICATION_RETRY_KAFKA_CLIENT';
