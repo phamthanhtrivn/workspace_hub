@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { MeetingAdmissionService } from './services/meeting-admission.service';
+import { MeetingHistoryService } from './services/meeting-history.service';
 import { MeetingParticipantService } from './services/meeting-participant.service';
 import { MeetingRoomService } from './services/meeting-room.service';
 import { MeetingScreenShareService } from './services/meeting-screen-share.service';
@@ -8,6 +9,7 @@ import type {
   GetMeetingAccessParams,
   JoinMeetingParams,
   ListJoinRequestsParams,
+  ListMeetingHistoryParams,
   ListMeetingParticipantViewPreferencesParams,
   ListMeetingParticipantsParams,
   MeetingJoinRequestParams,
@@ -29,6 +31,7 @@ export class MeetingService {
     private readonly meetingRoomService: MeetingRoomService,
     private readonly meetingParticipantService: MeetingParticipantService,
     private readonly meetingAdmissionService: MeetingAdmissionService,
+    private readonly meetingHistoryService: MeetingHistoryService,
     private readonly meetingScreenShareService: MeetingScreenShareService,
   ) {}
 
@@ -42,6 +45,10 @@ export class MeetingService {
 
   joinMeeting(params: JoinMeetingParams) {
     return this.meetingRoomService.joinMeeting(params);
+  }
+
+  listMeetingHistory(params: ListMeetingHistoryParams) {
+    return this.meetingHistoryService.listMeetingHistory(params);
   }
 
   updateMeetingSettings(params: UpdateMeetingSettingsParams) {

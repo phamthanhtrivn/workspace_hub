@@ -623,6 +623,28 @@
   "meeting.joinModal.openFailed":
     "Could not open a new tab. Please allow pop-ups and try again.",
   "meeting.joinModal.join": "Join in new tab",
+  "meeting.history.title": "Previous meetings",
+  "meeting.history.description":
+    "Meetings you have joined before, with participants and access tokens.",
+  "meeting.history.viewLabel": "Meeting history layout",
+  "meeting.history.view.grid": "Grid view",
+  "meeting.history.view.list": "List view",
+  "meeting.history.loading": "Loading meeting history...",
+  "meeting.history.error": "Could not load meeting history.",
+  "meeting.history.emptyTitle": "No meeting history yet",
+  "meeting.history.emptyDescription":
+    "Meetings will appear here after you join them.",
+  "meeting.history.paginationSummary":
+    "Showing {start} - {end} of {total} meetings",
+  "meeting.history.participantCount":
+    "{count, plural, one {# participant} other {# participants}}",
+  "meeting.history.notStarted": "Not started",
+  "meeting.history.type.INSTANT": "Instant Meeting",
+  "meeting.history.type.SCHEDULED": "Scheduled Meeting",
+  "meeting.history.status.SCHEDULED": "Scheduled",
+  "meeting.history.status.LIVE": "Live",
+  "meeting.history.status.ENDED": "Ended",
+  "meeting.history.status.CANCELLED": "Cancelled",
   "meeting.comingSoon": "Soon",
   "meeting.prejoin.eyebrow": "Instant meeting",
   "meeting.prejoin.title": "Check your audio and video",

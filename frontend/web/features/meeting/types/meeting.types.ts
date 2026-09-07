@@ -18,6 +18,11 @@ export enum MeetingJoinFlowStep {
   ERROR = "error",
 }
 
+export enum MeetingHistoryViewMode {
+  GRID = "grid",
+  LIST = "list",
+}
+
 export enum MeetingDeviceKind {
   CAMERA = "camera",
   MICROPHONE = "microphone",
@@ -283,6 +288,34 @@ export interface MeetingParticipantsResponse {
   total: number;
   totalPages: number;
 }
+
+export interface MeetingPaginatedResponse<TItem> {
+  items: TItem[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export type MeetingType = "INSTANT" | "SCHEDULED";
+
+export type MeetingStatus = "SCHEDULED" | "LIVE" | "ENDED" | "CANCELLED";
+
+export interface MeetingHistoryItem {
+  id: string;
+  joinToken: string;
+  type: MeetingType;
+  status: MeetingStatus;
+  startedAt: string | null;
+  endedAt: string | null;
+  createdAt: string;
+  myParticipant: MeetingParticipantResponse;
+  participants: MeetingParticipantResponse[];
+  participantCount: number;
+}
+
+export type MeetingHistoryResponse =
+  MeetingPaginatedResponse<MeetingHistoryItem>;
 
 export interface MeetingEndedResponse {
   meetingId: string;

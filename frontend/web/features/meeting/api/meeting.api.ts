@@ -5,6 +5,7 @@ import type {
   CreateInstantMeetingPayload,
   InstantMeetingResponse,
   JoinMeetingPayload,
+  MeetingHistoryResponse,
   MeetingEndedResponse,
   MeetingJoinRequestsResponse,
   MeetingJoinRequestStatusResponse,
@@ -62,6 +63,19 @@ export const getMeetingAccess = async (
 ): Promise<ApiResponse<MeetingAccessResponse>> => {
   const response = await api.get(MEETING_API_PATHS.access(joinToken));
   return normalizeApiResponse<MeetingAccessResponse>(response.data);
+};
+
+export const getMeetingHistory = async ({
+  page,
+  limit,
+}: {
+  page: number;
+  limit: number;
+}): Promise<ApiResponse<MeetingHistoryResponse>> => {
+  const response = await api.get(MEETING_API_PATHS.HISTORY, {
+    params: { page, limit },
+  });
+  return normalizeApiResponse<MeetingHistoryResponse>(response.data);
 };
 
 export const updateMeetingSettings = async (

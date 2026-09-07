@@ -2,6 +2,7 @@ import type { CreateInstantMeetingDto } from '../dto/create-instant-meeting.dto'
 import type { CreateMeetingMessageDto } from '../dto/create-meeting-message.dto';
 import type { EditMeetingMessageDto } from '../dto/edit-meeting-message.dto';
 import type { ListJoinRequestsDto } from '../dto/list-join-requests.dto';
+import type { ListMeetingHistoryDto } from '../dto/list-meeting-history.dto';
 import type { ListMeetingMessagesDto } from '../dto/list-meeting-messages.dto';
 import type { ListMeetingParticipantsDto } from '../dto/list-meeting-participants.dto';
 import type { MeetingMessageReactionDto } from '../dto/meeting-message-reaction.dto';
@@ -40,6 +41,11 @@ export interface ListJoinRequestsParams extends MeetingModeratorParams {
 
 export interface ListMeetingParticipantsParams extends MeetingModeratorParams {
   query?: ListMeetingParticipantsDto;
+}
+
+export interface ListMeetingHistoryParams {
+  userId: string;
+  query?: ListMeetingHistoryDto;
 }
 
 export interface ResolveJoinRequestParams extends MeetingModeratorParams {
