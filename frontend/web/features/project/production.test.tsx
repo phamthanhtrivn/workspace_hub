@@ -171,6 +171,7 @@ describe("Project production regressions", () => {
     const addTasksToSprint = vi.fn();
     const updateTask = vi.fn();
     const actions = createProjectGroupActions({
+      formatMessage: (id) => id,
       tasks: [],
       editingGroup: null,
       setEditingGroup: vi.fn(),

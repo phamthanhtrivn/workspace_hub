@@ -13,6 +13,7 @@ import {
   type ProjectMember,
   type Task,
 } from "@/features/project/types/project";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ProjectDetailToolbarProps {
   project: Project;
@@ -41,21 +42,22 @@ interface ProjectDetailToolbarProps {
 }
 
 function TaskStatusCounts({ tasks }: { tasks: Task[] }) {
+  const intl = useAppIntl();
   const count = (status: TaskStatus) =>
     tasks.filter((task) => task.status === status && !task.archived).length;
 
   return (
     <div className="ml-auto flex items-center gap-3 rounded bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-500">
-      <span>To Do: {count(TaskStatus.TODO)}</span>
+      <span>{intl.formatMessage({ id: "project.task.count.todo" }, { count: count(TaskStatus.TODO) })}</span>
       <span className="h-3 w-px bg-slate-200" />
       <span className="text-blue-600">
-        In Progress: {count(TaskStatus.IN_PROGRESS)}
+        {intl.formatMessage({ id: "project.task.count.inProgress" }, { count: count(TaskStatus.IN_PROGRESS) })}
       </span>
       <span className="h-3 w-px bg-slate-200" />
-      <span className="text-emerald-600">Done: {count(TaskStatus.DONE)}</span>
+      <span className="text-emerald-600">{intl.formatMessage({ id: "project.task.count.done" }, { count: count(TaskStatus.DONE) })}</span>
       <span className="h-3 w-px bg-slate-200" />
       <span className="text-slate-600">
-        Đã hủy: {count(TaskStatus.CANCELLED)}
+        {intl.formatMessage({ id: "project.task.count.cancelled" }, { count: count(TaskStatus.CANCELLED) })}
       </span>
     </div>
   );
@@ -86,11 +88,12 @@ export default function ProjectDetailToolbar({
   onToggleMembers,
   onCreateTask,
 }: ProjectDetailToolbarProps) {
+  const intl = useAppIntl();
   return (
     <>
       <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
         <Link href="/projects" className="transition hover:text-blue-600">
-          Dự án
+          {intl.formatMessage({ id: "project.list.title" })}
         </Link>
         <ChevronRight className="h-3 w-3 text-slate-400" />
         <span>{project.name}</span>
@@ -110,7 +113,7 @@ export default function ProjectDetailToolbar({
             className="inline-flex items-center gap-1.5 rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
           >
             <Users className="h-3.5 w-3.5 text-slate-500" />
-            Xem thành viên
+            {intl.formatMessage({ id: "project.members.view" })}
           </button>
           {canCreateTask && (
             <button
@@ -119,7 +122,7 @@ export default function ProjectDetailToolbar({
               className="inline-flex items-center gap-1.5 rounded bg-[#0052CC] px-3 py-1.5 text-xs font-bold text-white shadow-sm transition hover:bg-[#0747A6]"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-              Tạo công việc
+              {intl.formatMessage({ id: "project.task.create" })}
             </button>
           )}
         </div>
@@ -127,11 +130,11 @@ export default function ProjectDetailToolbar({
 
       {project.projectType === ProjectType.SOFTWARE_DEVELOPMENT && (
         <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-xs font-semibold text-indigo-800">
-          <span className="font-bold">Software workflow</span>
-          <span>Backlog</span>
-          <span>Sprint</span>
-          <span>Code review</span>
-          <span>Release</span>
+          <span className="font-bold">{intl.formatMessage({ id: "project.workflow.software" })}</span>
+          <span>{intl.formatMessage({ id: "project.view.backlog" })}</span>
+          <span>{intl.formatMessage({ id: "project.workflow.sprint" })}</span>
+          <span>{intl.formatMessage({ id: "project.workflow.codeReview" })}</span>
+          <span>{intl.formatMessage({ id: "project.workflow.release" })}</span>
         </div>
       )}
 
@@ -142,7 +145,7 @@ export default function ProjectDetailToolbar({
             type="text"
             value={searchQuery}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Tìm kiếm công việc..."
+            placeholder={intl.formatMessage({ id: "project.task.searchPlaceholder" })}
             className="w-48 rounded border border-slate-300 bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-[#172B4D] outline-none transition placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC] sm:w-56"
           />
         </div>
@@ -161,7 +164,7 @@ export default function ProjectDetailToolbar({
 
         <div className="flex items-center gap-1">
           <span className="mr-1 text-xs font-semibold text-slate-500">
-            Giao cho:
+            {intl.formatMessage({ id: "project.task.assignedTo" })}
           </span>
           <div className="flex -space-x-1.5">
             {members.map((member) => {
@@ -196,7 +199,7 @@ export default function ProjectDetailToolbar({
               : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50",
           ].join(" ")}
         >
-          Chỉ của tôi
+          {intl.formatMessage({ id: "project.task.onlyMine" })}
         </button>
 
         {isFiltersActive && (
@@ -205,7 +208,7 @@ export default function ProjectDetailToolbar({
             onClick={onClearFilters}
             className="text-xs font-bold text-[#0052CC] hover:underline"
           >
-            Xóa bộ lọc
+            {intl.formatMessage({ id: "project.task.clearFilters" })}
           </button>
         )}
 

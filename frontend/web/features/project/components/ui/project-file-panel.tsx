@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import { Download, FilePlus2, Trash2 } from "lucide-react";
 import type { ProjectFile } from "@/features/project/api/project-file.api";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -12,7 +13,7 @@ export function formatFileSize(bytes: number): string {
 
 export function FilePickerButton({
   onFiles,
-  label = "Thêm tệp",
+  label,
   compact = false,
   disabled = false,
 }: {
@@ -21,6 +22,7 @@ export function FilePickerButton({
   compact?: boolean;
   disabled?: boolean;
 }) {
+  const intl = useAppIntl();
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -31,11 +33,11 @@ export function FilePickerButton({
         className={`inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white font-semibold text-blue-700 disabled:opacity-50 ${compact ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"}`}
       >
         <FilePlus2 size={16} />
-        {label}
+        {label ?? intl.formatMessage({ id: "project.file.add" })}
       </button>
       <input
         ref={input}
-        aria-label="Chọn tệp đính kèm"
+        aria-label={intl.formatMessage({ id: "project.file.choose" })}
         type="file"
         multiple
         className="hidden"
@@ -75,6 +77,7 @@ export default function ProjectFilePanel({
   onRetry: () => void;
   sprintName: (id: string) => string;
 }) {
+  const intl = useAppIntl();
   return (
     <section
       className="overflow-hidden rounded border border-slate-200 bg-white shadow-sm"
@@ -83,31 +86,40 @@ export default function ProjectFilePanel({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
         <div>
           <h2 className="text-sm font-bold text-slate-800">
-            Tệp dự án ({files.length})
+            {intl.formatMessage(
+              { id: "project.file.count" },
+              { count: files.length },
+            )}
           </h2>
           <p className="text-xs text-slate-500">
-            Tối đa 10 MB mỗi tệp, 100 MB mỗi dự án.
+            {intl.formatMessage({ id: "project.file.limitHint" })}
           </p>
         </div>
         {canUpload && (
           <FilePickerButton
             disabled={busy}
             onFiles={onAddFiles}
-            label={busy ? "Đang xử lý…" : "Thêm tệp"}
+            label={intl.formatMessage({
+              id: busy ? "app.processing" : "project.file.add",
+            })}
           />
         )}
       </div>
       {isLoading ? (
-        <p className="p-4 text-sm text-slate-500">Đang tải tệp…</p>
+        <p className="p-4 text-sm text-slate-500">
+          {intl.formatMessage({ id: "project.file.loading" })}
+        </p>
       ) : isError ? (
         <div role="alert" className="p-4 text-sm text-red-600">
-          Không thể tải tệp.{" "}
+          {intl.formatMessage({ id: "project.file.loadFailed" })}{" "}
           <button type="button" onClick={onRetry} className="underline">
-            Thử lại
+            {intl.formatMessage({ id: "app.retry" })}
           </button>
         </div>
       ) : !files.length ? (
-        <p className="p-6 text-sm text-slate-500">Chưa có tệp đính kèm.</p>
+        <p className="p-6 text-sm text-slate-500">
+          {intl.formatMessage({ id: "project.file.empty" })}
+        </p>
       ) : (
         <ul className="divide-y divide-slate-100">
           {files.map((file) => (
@@ -117,15 +129,27 @@ export default function ProjectFilePanel({
                   {file.name}
                 </p>
                 <p className="text-xs text-slate-500">
-                  {Math.max(1, Math.ceil(file.size / 1024))} KB ·{" "}
-                  {file.sprintId ? sprintName(file.sprintId) : "Dự án"}
+                  {intl.formatMessage(
+                    { id: "project.file.meta" },
+                    {
+                      size: intl.formatNumber(
+                        Math.max(1, Math.ceil(file.size / 1024)),
+                      ),
+                      scope: file.sprintId
+                        ? sprintName(file.sprintId)
+                        : intl.formatMessage({ id: "project.label" }),
+                    },
+                  )}
                 </p>
               </div>
               <button
                 type="button"
                 disabled={busy}
                 onClick={() => onDownload(file)}
-                aria-label={`Tải ${file.name}`}
+                aria-label={intl.formatMessage(
+                  { id: "project.file.download" },
+                  { name: file.name },
+                )}
                 className="p-2 text-blue-600 disabled:opacity-50"
               >
                 <Download size={16} />
@@ -135,7 +159,10 @@ export default function ProjectFilePanel({
                   type="button"
                   disabled={busy}
                   onClick={() => onRemoveFile(file)}
-                  aria-label={`Xóa ${file.name}`}
+                  aria-label={intl.formatMessage(
+                    { id: "project.file.delete" },
+                    { name: file.name },
+                  )}
                   className="p-2 text-red-600 disabled:opacity-50"
                 >
                   <Trash2 size={16} />

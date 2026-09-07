@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CheckSquare, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Task, TaskChecklist } from "@/features/project/types/project";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface TaskChecklistSectionProps {
   task: Task;
@@ -23,6 +24,7 @@ export default function TaskChecklistSection({
   onUpdate,
   onDelete,
 }: TaskChecklistSectionProps) {
+  const intl = useAppIntl();
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState("");
   const completedCount = task.checklists.filter(
@@ -43,7 +45,9 @@ export default function TaskChecklistSection({
       setIsAdding(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể thêm checklist",
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: "project.checklist.createFailed" }),
       );
     }
   };
@@ -54,7 +58,9 @@ export default function TaskChecklistSection({
       await onUpdate(item.id, !item.completed);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể cập nhật checklist",
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: "project.checklist.updateFailed" }),
       );
     }
   };
@@ -65,7 +71,9 @@ export default function TaskChecklistSection({
       await onDelete(checklistId);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể xóa checklist",
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: "project.checklist.deleteFailed" }),
       );
     }
   };
@@ -75,7 +83,7 @@ export default function TaskChecklistSection({
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
           <CheckSquare className="h-3.5 w-3.5" />
-          Checklist
+          {intl.formatMessage({ id: "project.checklist.title" })}
         </h3>
         <div className="flex items-center gap-2">
           {totalCount > 0 && (
@@ -88,7 +96,7 @@ export default function TaskChecklistSection({
               type="button"
               onClick={() => setIsAdding((value) => !value)}
               className="rounded p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
-              title="Thêm checklist"
+              title={intl.formatMessage({ id: "project.checklist.add" })}
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -105,7 +113,7 @@ export default function TaskChecklistSection({
             autoFocus
             value={title}
             onChange={(event) => setTitle(event.target.value)}
-            placeholder="Nhập nội dung checklist..."
+            placeholder={intl.formatMessage({ id: "project.checklist.placeholder" })}
             className="min-w-0 flex-1 rounded border border-blue-300 px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-100"
           />
           <button
@@ -113,7 +121,7 @@ export default function TaskChecklistSection({
             disabled={!title.trim()}
             className="rounded bg-blue-600 px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-50"
           >
-            Thêm
+            {intl.formatMessage({ id: "app.add" })}
           </button>
         </form>
       )}
@@ -153,7 +161,7 @@ export default function TaskChecklistSection({
                     type="button"
                     onClick={() => void handleDelete(item.id)}
                     className="ml-auto rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
-                    title="Xóa checklist"
+                    title={intl.formatMessage({ id: "project.checklist.delete" })}
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -164,7 +172,7 @@ export default function TaskChecklistSection({
         </div>
       ) : (
         <div className="rounded border border-dashed border-slate-200 bg-slate-50/30 py-4 text-center text-[11px] font-semibold text-slate-400">
-          Không có checklist.
+          {intl.formatMessage({ id: "project.checklist.empty" })}
         </div>
       )}
     </div>

@@ -22,7 +22,7 @@ export async function searchUsers(
   );
 
   if (!response.data.success) {
-    throw new Error(response.data.message || "Không thể tìm người dùng");
+    throw new Error(response.data.message || "project.member.searchFailed");
   }
 
   return response.data.data || [];

@@ -52,7 +52,7 @@ export function getInitialMonth(tasks: Task[]): Date {
 
 export function useCalendarGrid({
   tasks,
-  locale = "vi-VN",
+  locale,
 }: UseCalendarGridParams): UseCalendarGridReturn {
   const [currentMonth, setCurrentMonth] = useState(() =>
     getInitialMonth(tasks),
@@ -133,4 +133,3 @@ export function useCalendarGrid({
     formatTime: formatTaskTime,
   };
 }
-

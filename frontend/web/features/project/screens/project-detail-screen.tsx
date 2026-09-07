@@ -60,8 +60,10 @@ import { useProjectTaskActions } from "@/features/project/hooks/use-project-task
 import { createProjectSprintActions } from "@/features/project/hooks/use-project-sprint-actions";
 import { createProjectSettingsActions } from "@/features/project/project-settings-actions";
 import { createProjectGroupActions } from "@/features/project/project-group-actions";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ProjectDetailScreen() {
+  const intl = useAppIntl();
   const params = useParams();
   const projectId = params.id as string;
   const { data: project, isLoading, isError } = useProject(projectId);
@@ -135,11 +137,11 @@ export default function ProjectDetailScreen() {
     const target = serverTasks.find((task) => task.id === taskId);
     if (!target) return false;
     if (isTerminalTaskStatus(target.status)) {
-      toast.info("Công việc đã kết thúc và chỉ có thể xem");
+      toast.info(intl.formatMessage({ id: "project.task.readOnlyTerminal" }));
       return true;
     }
     if (!permissions.canEditTask(target)) {
-      toast.info("Bạn không có quyền chỉnh sửa công việc này");
+      toast.info(intl.formatMessage({ id: "project.task.editForbidden" }));
       return true;
     }
     return false;
@@ -218,16 +220,17 @@ export default function ProjectDetailScreen() {
   const isSoftwareProject =
     project.projectType === ProjectType.SOFTWARE_DEVELOPMENT;
   const viewTitle: Record<ProjectViewMode, string> = {
-    summary: "Summary",
-    board: "Kanban Board",
-    list: isSoftwareProject ? "Backlog" : "Công việc",
-    calendar: "Calendar",
-    gantt: "Gantt chart",
-    members: "Thành viên dự án",
+    summary: intl.formatMessage({ id: "project.view.summary" }),
+    board: intl.formatMessage({ id: "project.view.board" }),
+    list: intl.formatMessage({ id: isSoftwareProject ? "project.view.backlog" : "project.view.tasks" }),
+    calendar: intl.formatMessage({ id: "project.view.calendar" }),
+    gantt: intl.formatMessage({ id: "project.view.gantt" }),
+    members: intl.formatMessage({ id: "project.view.members" }),
   };
 
   const { save: handleSaveProjectSettings, archive: handleArchiveProject } =
     createProjectSettingsActions({
+      formatMessage: (id) => intl.formatMessage({ id }),
       update: updateProjectMutation.mutateAsync,
       archive: archiveProjectMutation.mutateAsync,
       close: () => setShowProjectSettings(false),
@@ -241,6 +244,7 @@ export default function ProjectDetailScreen() {
     createTaskInline: handleCreateTaskInline,
     createSprintTask: handleCreateSprintTask,
   } = createProjectGroupActions({
+    formatMessage: (id, values) => intl.formatMessage({ id }, values),
     tasks,
     editingGroup: editingSprint,
     setEditingGroup: setEditingSprint,
@@ -261,6 +265,7 @@ export default function ProjectDetailScreen() {
     reopenSprint: handleReopenSprint,
     removeTask: handleRemoveTaskFromSprint,
   } = createProjectSprintActions({
+    formatMessage: (id, values) => intl.formatMessage({ id }, values),
     createSprint: createSprintMutation.mutateAsync,
     addTasks: addTasksToSprintMutation.mutateAsync,
     updateTasks: (taskId, status) =>

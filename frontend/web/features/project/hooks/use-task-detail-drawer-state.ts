@@ -14,6 +14,7 @@ import { useTaskActivities } from "@/features/project/hooks/use-tasks";
 import type { TaskDrawerUpdatePayload } from "@/features/project/types/task-detail-drawer.types";
 import { createTaskActivityPresenter } from "@/features/project/task-activity-presenter";
 import { toApiDateTime } from "@/features/project/utils/task-dates";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export type TaskDetailTab = "details" | "activity";
 
@@ -40,6 +41,7 @@ export function useTaskDetailDrawerState({
   onDeleteDependency,
   canEditTask = false,
 }: UseTaskDetailDrawerStateParams) {
+  const intl = useAppIntl();
   const [activeTab, setActiveTab] = useState<TaskDetailTab>("details");
 
   // Inline edit states
@@ -88,7 +90,12 @@ export function useTaskDetailDrawerState({
     };
   }, [onClose, task]);
 
-  const { memberDisplayName } = createTaskActivityPresenter(members, tasks);
+  const { memberDisplayName } = createTaskActivityPresenter(
+    members,
+    tasks,
+    (id, values) => intl.formatMessage({ id }, values),
+    (value) => intl.formatDate(value),
+  );
 
   const handleTitleSave = async () => {
     if (!task || isReadOnly) return;
@@ -99,7 +106,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { title: tempTitle.trim() });
-        toast.success("Đã cập nhật tiêu đề");
+        toast.success(intl.formatMessage({ id: "project.task.titleUpdated" }));
       }
       setIsEditingTitle(false);
     } catch {
@@ -116,7 +123,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { description: tempDesc });
-        toast.success("Đã cập nhật mô tả");
+        toast.success(intl.formatMessage({ id: "project.task.descriptionUpdated" }));
       }
       setIsEditingDesc(false);
     } catch {
@@ -129,7 +136,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { status: newStatus });
-        toast.success("Đã cập nhật trạng thái");
+        toast.success(intl.formatMessage({ id: "project.task.statusUpdated" }));
       }
     } catch {}
   };
@@ -144,7 +151,11 @@ export function useTaskDetailDrawerState({
           await onUpdateTask(task.id, { assigneeUserId: null, assignees: [] });
         }
         toast.success(
-          userId ? "Đã cập nhật người thực hiện" : "Đã hủy giao việc",
+          intl.formatMessage({
+            id: userId
+              ? "project.task.assigneeUpdated"
+              : "project.task.unassignedSuccess",
+          }),
         );
       }
     } catch {}
@@ -155,7 +166,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { priority });
-        toast.success("Đã cập nhật độ ưu tiên");
+        toast.success(intl.formatMessage({ id: "project.task.priorityUpdated" }));
       }
     } catch {}
   };
@@ -167,7 +178,7 @@ export function useTaskDetailDrawerState({
       await onToggleLabel(task.id, label.id, attached);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể cập nhật nhãn",
+        error instanceof Error ? error.message : intl.formatMessage({ id: "project.label.updateFailed" }),
       );
     }
   };
@@ -178,7 +189,7 @@ export function useTaskDetailDrawerState({
       await onCreateDependency(task.id, predecessorTaskId);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể tạo dependency",
+        error instanceof Error ? error.message : intl.formatMessage({ id: "project.dependency.createFailed" }),
       );
     }
   };
@@ -187,10 +198,10 @@ export function useTaskDetailDrawerState({
     if (!task || isReadOnly || !onDeleteDependency) return;
     try {
       await onDeleteDependency(task.id, predecessorTaskId);
-      toast.success("Đã gỡ dependency");
+      toast.success(intl.formatMessage({ id: "project.dependency.deleted" }));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể gỡ dependency",
+        error instanceof Error ? error.message : intl.formatMessage({ id: "project.dependency.deleteFailed" }),
       );
     }
   };
@@ -202,7 +213,7 @@ export function useTaskDetailDrawerState({
         await onUpdateTask(task.id, {
           dueDate: toApiDateTime(val ? `${val}T18:00:00` : "", task.allDay),
         });
-        toast.success("Đã cập nhật hạn hoàn thành");
+        toast.success(intl.formatMessage({ id: "project.task.dueDateUpdated" }));
       }
     } catch {}
   };
@@ -214,7 +225,7 @@ export function useTaskDetailDrawerState({
         await onUpdateTask(task.id, {
           startDate: toApiDateTime(val ? `${val}T09:00:00` : "", task.allDay),
         });
-        toast.success("Đã cập nhật ngày bắt đầu");
+        toast.success(intl.formatMessage({ id: "project.task.startDateUpdated" }));
       }
     } catch {}
   };
@@ -223,7 +234,7 @@ export function useTaskDetailDrawerState({
     if (!task || isReadOnly) return;
     if (onUpdateTask) {
       await onUpdateTask(task.id, { estimatedMinutes: minutes });
-      toast.success("Đã cập nhật thời gian ước lượng");
+      toast.success(intl.formatMessage({ id: "project.task.estimateUpdated" }));
     }
   };
 
@@ -262,4 +273,3 @@ export function useTaskDetailDrawerState({
     handleEstimateSave,
   };
 }
-

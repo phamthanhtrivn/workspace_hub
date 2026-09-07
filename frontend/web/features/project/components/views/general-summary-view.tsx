@@ -23,14 +23,7 @@ import {
   useProjectSummaryMetrics,
   isWithinLastDays,
 } from "@/features/project/hooks/use-project-summary-metrics";
-
-function formatDate(value?: string): string {
-  if (!value) return "Chưa đặt";
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-  }).format(new Date(value));
-}
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function GeneralSummaryView({
   tasks,
@@ -39,6 +32,11 @@ export default function GeneralSummaryView({
   tasks: Task[];
   members: ProjectMember[];
 }) {
+  const intl = useAppIntl();
+  const formatDate = (value?: string) =>
+    value
+      ? intl.formatDate(new Date(value), { day: "2-digit", month: "2-digit" })
+      : intl.formatMessage({ id: "app.notSet" });
   const {
     now,
     rootTasks,
@@ -59,9 +57,11 @@ export default function GeneralSummaryView({
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4 pb-8">
       <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-5 py-4">
-        <p className="text-sm font-bold text-[#172B4D]">Tổng quan công việc</p>
+        <p className="text-sm font-bold text-[#172B4D]">
+          {intl.formatMessage({ id: "project.summary.workOverview" })}
+        </p>
         <p className="mt-1 text-xs text-slate-600">
-          Theo dõi Task và Subtask trực tiếp, không sử dụng Backlog hoặc Sprint.
+          {intl.formatMessage({ id: "project.summary.generalDescription" })}
         </p>
       </div>
 
@@ -69,33 +69,33 @@ export default function GeneralSummaryView({
         <ProjectMetricCard
           icon={ListChecks}
           value={rootTasks.length}
-          label="Task"
+          label={intl.formatMessage({ id: "project.task.type.task" })}
           color="bg-blue-50 text-blue-600"
         />
         <ProjectMetricCard
           icon={Activity}
           value={subtasks.length}
-          label="Subtask"
+          label={intl.formatMessage({ id: "project.task.type.subtask" })}
           color="bg-violet-50 text-violet-600"
         />
         <ProjectMetricCard
           icon={CheckCircle2}
           value={completed.length}
-          label="Đã hoàn thành"
+          label={intl.formatMessage({ id: "project.summary.completed" })}
           color="bg-emerald-50 text-emerald-600"
         />
         <ProjectMetricCard
           icon={CircleAlert}
           value={overdue.length}
-          label="Đã quá hạn"
+          label={intl.formatMessage({ id: "project.summary.overdue" })}
           color="bg-red-50 text-red-600"
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <ProjectSummaryPanel
-          title="Tiến độ công việc"
-          description="Tỷ lệ hoàn thành trên toàn bộ Task và Subtask."
+          title={intl.formatMessage({ id: "project.summary.workProgress" })}
+          description={intl.formatMessage({ id: "project.summary.workProgressDescription" })}
         >
           <div className="flex items-center gap-5">
             <div
@@ -131,12 +131,12 @@ export default function GeneralSummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Deadline sắp tới"
-          description="Các công việc chưa hoàn thành trong 7 ngày tới."
+          title={intl.formatMessage({ id: "project.summary.upcomingDeadlines" })}
+          description={intl.formatMessage({ id: "project.summary.upcomingDeadlinesDescription" })}
         >
           {dueSoon.length === 0 ? (
             <p className="py-8 text-center text-xs font-semibold text-slate-400">
-              Không có deadline sắp tới.
+              {intl.formatMessage({ id: "project.summary.noUpcomingDeadlines" })}
             </p>
           ) : (
             <div className="space-y-2">
@@ -159,8 +159,8 @@ export default function GeneralSummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Mức độ ưu tiên"
-          description="Phân bổ ưu tiên của Task và Subtask."
+          title={intl.formatMessage({ id: "project.summary.priorityTitle" })}
+          description={intl.formatMessage({ id: "project.summary.generalPriorityDescription" })}
         >
           <PriorityDistributionBar
             items={priorityItems}
@@ -169,20 +169,20 @@ export default function GeneralSummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Phân công công việc"
-          description="Số lượng task theo người thực hiện."
+          title={intl.formatMessage({ id: "project.summary.assignmentTitle" })}
+          description={intl.formatMessage({ id: "project.summary.assignmentDescription" })}
         >
           <MemberWorkloadList
             items={workload}
             maxCount={maxWorkload}
             barColor="bg-blue-500"
-            emptyMessage="Chưa có công việc được phân công."
+            emptyMessage={intl.formatMessage({ id: "project.summary.noAssignedWork" })}
           />
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Task chưa lên lịch"
-          description="Task chưa có ngày bắt đầu hoặc hạn hoàn thành."
+          title={intl.formatMessage({ id: "project.summary.unscheduledTitle" })}
+          description={intl.formatMessage({ id: "project.summary.unscheduledDescription" })}
         >
           <div className="flex items-center gap-3">
             <CalendarClock className="h-8 w-8 text-slate-400" />
@@ -191,19 +191,19 @@ export default function GeneralSummaryView({
                 {unscheduled.length}
               </p>
               <p className="text-xs text-slate-500">
-                công việc cần được lên lịch
+                {intl.formatMessage({ id: "project.summary.needsScheduling" })}
               </p>
             </div>
           </div>
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Hoạt động gần đây"
-          description="Các task được cập nhật gần nhất."
+          title={intl.formatMessage({ id: "project.summary.recentActivity" })}
+          description={intl.formatMessage({ id: "project.summary.recentTasksDescription" })}
         >
           {recentTasks.length === 0 ? (
             <p className="py-8 text-center text-xs font-semibold text-slate-400">
-              Chưa có hoạt động.
+              {intl.formatMessage({ id: "project.activity.empty" })}
             </p>
           ) : (
             <div className="space-y-3">
@@ -218,7 +218,7 @@ export default function GeneralSummaryView({
                   </span>
                   <span className="text-[10px] font-semibold text-slate-400">
                     {isWithinLastDays(task.updatedAt, now)
-                      ? "Mới cập nhật"
+                      ? intl.formatMessage({ id: "project.summary.justUpdated" })
                       : formatDate(task.updatedAt)}
                   </span>
                 </div>

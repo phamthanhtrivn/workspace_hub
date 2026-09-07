@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Archive, X } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   ProjectStatus,
   type Project,
@@ -9,7 +10,6 @@ import {
 } from "@/features/project/types/project";
 import {
   PROJECT_STATUS_SELECT_OPTIONS,
-  PROJECT_SETTINGS_LABELS,
 } from "@/features/project/constants/project.constants";
 import { ProjectLabelManager } from "../forms/project-label-manager";
 
@@ -42,6 +42,7 @@ export default function ProjectSettingsDialog({
   onCreateLabel?: (payload: { name: string; color: string }) => Promise<void>;
   onDeleteLabel?: (labelId: string) => Promise<void>;
 }) {
+  const intl = useAppIntl();
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
   const [status, setStatus] = useState(project.status);
@@ -74,19 +75,24 @@ export default function ProjectSettingsDialog({
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-black text-[#172B4D]">
-              {canEditProject
-                ? PROJECT_SETTINGS_LABELS.TITLE_EDIT
-                : PROJECT_SETTINGS_LABELS.TITLE_LABELS_ONLY}
+              {intl.formatMessage({
+                id: canEditProject
+                  ? "project.settings.title"
+                  : "project.label.title",
+              })}
             </h2>
             <p className="mt-1 text-xs font-semibold text-slate-400">
-              {canEditProject
-                ? PROJECT_SETTINGS_LABELS.DESC_EDIT
-                : PROJECT_SETTINGS_LABELS.DESC_LABELS_ONLY}
+              {intl.formatMessage({
+                id: canEditProject
+                  ? "project.settings.description"
+                  : "project.label.managementDescription",
+              })}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={intl.formatMessage({ id: "app.close" })}
             className="text-slate-400 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
@@ -97,7 +103,7 @@ export default function ProjectSettingsDialog({
             <>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block text-xs font-bold text-slate-500">
-                  {PROJECT_SETTINGS_LABELS.START_DATE}
+                  {intl.formatMessage({ id: "project.startDate" })}
                   <input
                     type="date"
                     value={startDate}
@@ -107,7 +113,7 @@ export default function ProjectSettingsDialog({
                   />
                 </label>
                 <label className="block text-xs font-bold text-slate-500">
-                  {PROJECT_SETTINGS_LABELS.DUE_DATE}
+                  {intl.formatMessage({ id: "project.dueDate" })}
                   <input
                     type="date"
                     value={dueDate}
@@ -119,11 +125,11 @@ export default function ProjectSettingsDialog({
               </div>
               {startDate && dueDate && startDate > dueDate && (
                 <p className="text-xs font-semibold text-red-600">
-                  {PROJECT_SETTINGS_LABELS.DATE_ERROR}
+                  {intl.formatMessage({ id: "project.dateRange.invalid" })}
                 </p>
               )}
               <label className="block text-xs font-bold text-slate-500">
-                {PROJECT_SETTINGS_LABELS.NAME}
+                {intl.formatMessage({ id: "project.name" })}
                 <input
                   value={name}
                   onChange={(event) => setName(event.target.value)}
@@ -132,7 +138,7 @@ export default function ProjectSettingsDialog({
                 />
               </label>
               <label className="block text-xs font-bold text-slate-500">
-                {PROJECT_SETTINGS_LABELS.DESCRIPTION}
+                {intl.formatMessage({ id: "project.description" })}
                 <textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
@@ -141,7 +147,7 @@ export default function ProjectSettingsDialog({
                 />
               </label>
               <label className="block text-xs font-bold text-slate-500">
-                {PROJECT_SETTINGS_LABELS.STATUS}
+                {intl.formatMessage({ id: "project.status" })}
                 <select
                   value={status}
                   onChange={(event) =>
@@ -151,7 +157,7 @@ export default function ProjectSettingsDialog({
                 >
                   {PROJECT_STATUS_SELECT_OPTIONS.map((item) => (
                     <option key={item.value} value={item.value}>
-                      {item.label}
+                      {intl.formatMessage({ id: item.labelId })}
                     </option>
                   ))}
                 </select>
@@ -176,7 +182,7 @@ export default function ProjectSettingsDialog({
               className="inline-flex items-center gap-1.5 rounded px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
             >
               <Archive className="h-3.5 w-3.5" />{" "}
-              {PROJECT_SETTINGS_LABELS.ARCHIVE_BTN}
+              {intl.formatMessage({ id: "project.archive" })}
             </button>
           ) : (
             <span />
@@ -187,7 +193,7 @@ export default function ProjectSettingsDialog({
               onClick={onClose}
               className="rounded px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100"
             >
-              {PROJECT_SETTINGS_LABELS.CANCEL_BTN}
+              {intl.formatMessage({ id: "app.cancel" })}
             </button>
             {canEditProject && (
               <button
@@ -195,7 +201,7 @@ export default function ProjectSettingsDialog({
                 disabled={isBusy || !name.trim()}
                 className="rounded bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
               >
-                {PROJECT_SETTINGS_LABELS.SAVE_BTN}
+                {intl.formatMessage({ id: "app.saveChanges" })}
               </button>
             )}
           </div>

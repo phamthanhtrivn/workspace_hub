@@ -7,6 +7,7 @@ import {
   type Task,
 } from "@/features/project/types/project";
 import TaskCommentsSection from "../task-detail/task-comments-section";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function TaskChatDialog({
   task,
@@ -19,6 +20,7 @@ export default function TaskChatDialog({
   canComment: boolean;
   onClose: () => void;
 }) {
+  const intl = useAppIntl();
   if (!task) return null;
   return (
     <div
@@ -39,7 +41,7 @@ export default function TaskChatDialog({
           <div className="min-w-0">
             <p className="flex items-center gap-2 text-xs text-slate-500">
               <MessageCircle size={16} />
-              Trao đổi công việc
+              {intl.formatMessage({ id: "project.comment.discussion" })}
             </p>
             <h2
               id="task-chat-title"
@@ -52,7 +54,7 @@ export default function TaskChatDialog({
             type="button"
             autoFocus
             onClick={onClose}
-            aria-label="Đóng trao đổi"
+            aria-label={intl.formatMessage({ id: "project.comment.closeDiscussion" })}
             className="p-2 text-slate-500"
           >
             <X size={18} />

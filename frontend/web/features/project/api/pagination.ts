@@ -28,7 +28,7 @@ export async function fetchAllPages<T>(
 
     const nextPage = result.meta.page + 1;
     if (nextPage <= page) {
-      throw new Error("Invalid pagination metadata: next page did not advance");
+      throw new Error("project.pagination.invalidMetadata");
     }
     page = nextPage;
   }

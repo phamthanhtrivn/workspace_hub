@@ -57,15 +57,15 @@ export function dayDifference(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 86_400_000);
 }
 
-export function formatDay(date: Date, locale = "vi-VN"): string {
+export function formatDay(date: Date, locale?: string): string {
   return date.toLocaleDateString(locale, { day: "2-digit" });
 }
 
-export function formatMonth(date: Date, locale = "vi-VN"): string {
+export function formatMonth(date: Date, locale?: string): string {
   return date.toLocaleDateString(locale, { month: "short" });
 }
 
-export function formatRange(start: Date, end: Date, locale = "vi-VN"): string {
+export function formatRange(start: Date, end: Date, locale?: string): string {
   return `${start.toLocaleDateString(locale, { day: "2-digit", month: "short" })} – ${end.toLocaleDateString(locale, { day: "2-digit", month: "short" })}`;
 }
 
@@ -86,7 +86,7 @@ export function getGanttBarColor(status: TaskStatus): string {
 export function useGanttTimeline({
   tasks,
   dependencies = [],
-  locale = "vi-VN",
+  locale,
   dayWidth = GANTT_DAY_WIDTH,
 }: UseGanttTimelineParams) {
   const activeTasks = useMemo(
@@ -214,4 +214,3 @@ export function useGanttTimeline({
     getBarColor: getGanttBarColor,
   };
 }
-

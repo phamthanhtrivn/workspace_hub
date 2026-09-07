@@ -1,6 +1,7 @@
 "use client";
 
 import { ListTree, Plus } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { Task } from "@/features/project/types/project";
 import { TaskStatusBadge } from "../ui/status-badge";
 
@@ -19,6 +20,7 @@ export default function TaskSubtasksSection({
   onCreateSubtask,
   onTaskClick,
 }: TaskSubtasksSectionProps) {
+  const intl = useAppIntl();
   const childTasks = tasks.filter(
     (candidate) => candidate.parentTaskId === task.id,
   );
@@ -31,14 +33,14 @@ export default function TaskSubtasksSection({
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
           <ListTree className="h-3.5 w-3.5" />
-          <span>Subtasks</span>
+          <span>{intl.formatMessage({ id: "project.task.subtasks" })}</span>
         </h3>
         {onCreateSubtask && !task.parentTaskId && !isReadOnly && (
           <button
             type="button"
             onClick={() => onCreateSubtask(task)}
             className="grid h-6 w-6 place-items-center rounded text-slate-500 hover:bg-slate-100"
-            title="Thêm subtask"
+            title={intl.formatMessage({ id: "project.task.addSubtask" })}
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -48,7 +50,7 @@ export default function TaskSubtasksSection({
       {parentTask && (
         <div className="mb-1.5 flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs">
           <span className="text-[9px] font-bold uppercase text-slate-400">
-            Cha:
+            {intl.formatMessage({ id: "project.task.parent" })}:
           </span>
           <button
             type="button"
@@ -79,7 +81,7 @@ export default function TaskSubtasksSection({
       ) : (
         !task.parentTaskId && (
           <div className="rounded border border-dashed border-slate-200 bg-slate-50/30 py-4 text-center text-[11px] font-semibold text-slate-400">
-            Không có subtask.
+            {intl.formatMessage({ id: "project.task.noSubtasks" })}
           </div>
         )
       )}

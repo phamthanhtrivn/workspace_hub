@@ -19,18 +19,15 @@ import {
   Equal,
   CheckSquare2,
 } from "lucide-react";
-import { TASK_TYPE_LABELS } from "@/features/project/constants/task.constants";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
+import {
+  TASK_PRIORITY_LABEL_IDS,
+  TASK_TYPE_LABEL_IDS,
+} from "@/features/project/constants/task.constants";
 
 function isOverdue(dueDate?: string): boolean {
   if (!dueDate) return false;
   return new Date(dueDate) < new Date();
-}
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "short",
-  });
 }
 
 export function getIssueKey(task: Task): string {
@@ -39,42 +36,27 @@ export function getIssueKey(task: Task): string {
 
 export function getIssueTypeDetails(task: Task): {
   icon: React.ReactNode;
-  label: string;
+  labelId: string;
 } {
   return {
     icon: (
       <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />
     ),
-    label: TASK_TYPE_LABELS[task.taskType],
+    labelId: TASK_TYPE_LABEL_IDS[task.taskType],
   };
 }
 
 export function getPriorityIcon(priority: TaskPriority): React.ReactNode {
-  const withTitle = (icon: React.ReactNode, title: string) => (
-    <span title={title} className="inline-flex">
-      {icon}
-    </span>
-  );
-
   switch (priority) {
     case TaskPriority.URGENT:
-      return withTitle(
-        <ChevronsUp className="h-4 w-4 text-[#DE350B]" />,
-        "Khẩn cấp",
-      );
+      return <ChevronsUp className="h-4 w-4 text-[#DE350B]" />;
     case TaskPriority.HIGH:
-      return withTitle(<ChevronUp className="h-4 w-4 text-[#FF8B00]" />, "Cao");
+      return <ChevronUp className="h-4 w-4 text-[#FF8B00]" />;
     case TaskPriority.MEDIUM:
-      return withTitle(
-        <Equal className="h-4 w-4 text-[#42526E]" />,
-        "Trung bình",
-      );
+      return <Equal className="h-4 w-4 text-[#42526E]" />;
     case TaskPriority.LOW:
     default:
-      return withTitle(
-        <ChevronDown className="h-4 w-4 text-[#0052CC]" />,
-        "Thấp",
-      );
+      return <ChevronDown className="h-4 w-4 text-[#0052CC]" />;
   }
 }
 
@@ -89,6 +71,7 @@ export default function TaskCard({
   onOpenChat?: (task: Task) => void;
   canDrag?: boolean;
 }) {
+  const intl = useAppIntl();
   const checklistTotal = task.checklists.length;
   const checklistDone = task.checklists.filter((c) => c.completed).length;
   const overdue = isOverdue(task.dueDate) && !isTerminalTaskStatus(task.status);
@@ -145,7 +128,10 @@ export default function TaskCard({
               }`}
             >
               <Calendar className="h-3 w-3" />
-              {formatDate(task.dueDate)}
+              {intl.formatDate(new Date(task.dueDate), {
+                day: "2-digit",
+                month: "short",
+              })}
             </span>
           )}
 
@@ -195,7 +181,10 @@ export default function TaskCard({
         <div className="flex items-center gap-2">
           <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
           {/* Priority Icon */}
-          <div className="grid place-items-center h-5 w-5 rounded hover:bg-slate-200 transition">
+          <div
+            className="grid place-items-center h-5 w-5 rounded hover:bg-slate-200 transition"
+            title={intl.formatMessage({ id: TASK_PRIORITY_LABEL_IDS[task.priority] })}
+          >
             {priorityIcon}
           </div>
 

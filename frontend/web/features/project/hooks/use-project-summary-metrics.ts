@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   TaskStatus,
   TaskType,
@@ -36,6 +37,7 @@ export function useProjectSummaryMetrics(
   members: ProjectMember[],
   options?: { isSoftware?: boolean },
 ) {
+  const intl = useAppIntl();
   const [now] = useState(() => Date.now());
   const isSoftware = options?.isSoftware ?? false;
 
@@ -72,7 +74,7 @@ export function useProjectSummaryMetrics(
     );
 
     const statusItems = TASK_STATUS_CHART_CONFIG.map((cfg) => ({
-      label: cfg.label,
+      label: intl.formatMessage({ id: cfg.labelId }),
       value: workItems.filter((task) => task.status === cfg.status).length,
       color: cfg.color,
     }));
@@ -86,15 +88,19 @@ export function useProjectSummaryMetrics(
       : 0;
 
     const priorityItems = TASK_PRIORITY_CHART_CONFIG.map((cfg) => ({
-      label: cfg.label,
+      label: intl.formatMessage({ id: cfg.labelId }),
       value: workItems.filter((task) => task.priority === cfg.priority).length,
       color: cfg.color,
     }));
     const maxPriority = Math.max(1, ...priorityItems.map((item) => item.value));
 
-    const typeItems = ["Task", "Epic", "Subtask"].map((label) => ({
-      label,
-      value: activeTasks.filter((task) => getTaskType(task) === label).length,
+    const typeItems = [
+      { type: "Task", labelId: "project.task.type.task" },
+      { type: "Epic", labelId: "project.task.type.epic" },
+      { type: "Subtask", labelId: "project.task.type.subtask" },
+    ].map(({ type, labelId }) => ({
+      label: intl.formatMessage({ id: labelId }),
+      value: activeTasks.filter((task) => getTaskType(task) === type).length,
     }));
     const maxType = Math.max(1, ...typeItems.map((item) => item.value));
 
@@ -117,7 +123,10 @@ export function useProjectSummaryMetrics(
 
     const unassignedCount = workItems.filter((task) => !task.assignees?.length).length;
     const workloadItems = [
-      { name: "Chưa phân công", count: unassignedCount },
+      {
+        name: intl.formatMessage({ id: "project.task.unassigned" }),
+        count: unassignedCount,
+      },
       ...workload,
     ];
 
@@ -166,5 +175,5 @@ export function useProjectSummaryMetrics(
       updatedRecently,
       createdRecently,
     };
-  }, [tasks, members, isSoftware, now]);
+  }, [tasks, members, isSoftware, now, intl]);
 }

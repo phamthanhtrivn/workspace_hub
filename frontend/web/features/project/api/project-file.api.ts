@@ -17,7 +17,8 @@ export async function getProjectFiles(projectId: string): Promise<ProjectFile[]>
 }
 
 export async function uploadProjectFile(projectId: string, file: File, sprintId?: string): Promise<ProjectFile> {
-  if (!file.size || file.size > 10 * 1024 * 1024) throw new Error("Chọn tệp có dung lượng từ 1 byte đến 10 MB");
+  if (!file.size || file.size > 10 * 1024 * 1024)
+    throw new Error("project.file.sizeInvalid");
   const data = new FormData();
   data.append("file", file);
   if (sprintId) data.append("sprintId", sprintId);

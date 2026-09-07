@@ -3,25 +3,19 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   type ProjectMember,
   type Task,
   TaskPriority,
 } from "@/features/project/types/project";
-import { TASK_DRAWER_PRIORITY_OPTIONS } from "@/features/project/constants/task.constants";
+import {
+  TASK_DRAWER_PRIORITY_OPTIONS,
+  TASK_PRIORITY_LABEL_IDS,
+} from "@/features/project/constants/task.constants";
 import { taskDateKey } from "@/features/project/utils/task-dates";
 import { Avatar } from "../ui/avatar-stack";
 import { getPriorityIcon } from "../ui/task-card";
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 interface TaskPropertiesPanelProps {
   task: Task;
@@ -46,6 +40,7 @@ export default function TaskPropertiesPanel({
   onDueDateChange,
   onEstimateSave,
 }: TaskPropertiesPanelProps) {
+  const intl = useAppIntl();
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
   const [estimateDraft, setEstimateDraft] = useState(
@@ -90,7 +85,7 @@ export default function TaskPropertiesPanel({
       setEstimateDraft(
         task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
       );
-      toast.error("Thời gian ước tính phải là số nguyên không âm");
+      toast.error(intl.formatMessage({ id: "project.task.estimateInvalid" }));
       return;
     }
     if (nextValue === task.estimatedMinutes) return;
@@ -106,7 +101,7 @@ export default function TaskPropertiesPanel({
   return (
     <div className="select-none overflow-hidden rounded border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-150 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-700">
-        Chi tiết (Details)
+        {intl.formatMessage({ id: "project.details" })}
       </div>
       <div className="divide-y divide-slate-100 text-xs">
         {/* Assignee */}
@@ -115,7 +110,7 @@ export default function TaskPropertiesPanel({
           ref={assigneeDropdownRef}
         >
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Người thực hiện
+            {intl.formatMessage({ id: "project.task.assignee" })}
           </span>
           <div className="relative">
             <div
@@ -151,7 +146,7 @@ export default function TaskPropertiesPanel({
                       ?
                     </div>
                     <span className="font-medium italic text-slate-400">
-                      Chưa gán
+                      {intl.formatMessage({ id: "project.task.unassigned" })}
                     </span>
                   </>
                 )}
@@ -171,7 +166,7 @@ export default function TaskPropertiesPanel({
                   }}
                   className="flex w-full items-center px-3 py-1.5 text-left text-xs font-semibold italic text-slate-500 hover:bg-slate-100"
                 >
-                  Hủy giao việc
+                  {intl.formatMessage({ id: "project.task.unassign" })}
                 </button>
                 {members.map((member) => (
                   <button
@@ -205,7 +200,7 @@ export default function TaskPropertiesPanel({
           ref={priorityDropdownRef}
         >
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Độ ưu tiên
+            {intl.formatMessage({ id: "project.task.priority" })}
           </span>
           <div className="relative">
             <div
@@ -222,8 +217,8 @@ export default function TaskPropertiesPanel({
             >
               <div className="flex items-center gap-2">
                 {getPriorityIcon(task.priority)}
-                <span className="font-semibold capitalize text-slate-700">
-                  {task.priority.toLowerCase()}
+                <span className="font-semibold text-slate-700">
+                  {intl.formatMessage({ id: TASK_PRIORITY_LABEL_IDS[task.priority] })}
                 </span>
               </div>
               {!isReadOnly && (
@@ -244,7 +239,7 @@ export default function TaskPropertiesPanel({
                     className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100"
                   >
                     {getPriorityIcon(opt.value)}
-                    <span>{opt.label}</span>
+                    <span>{intl.formatMessage({ id: opt.labelId })}</span>
                   </button>
                 ))}
               </div>
@@ -255,7 +250,7 @@ export default function TaskPropertiesPanel({
         {/* Start Date */}
         <div className="flex flex-col gap-1 px-3 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Ngày bắt đầu
+            {intl.formatMessage({ id: "project.startDate" })}
           </span>
           <input
             type="date"
@@ -269,7 +264,7 @@ export default function TaskPropertiesPanel({
         {/* Due Date */}
         <div className="flex flex-col gap-1 px-3 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Hạn hoàn thành
+            {intl.formatMessage({ id: "project.task.dueDate" })}
           </span>
           <input
             type="date"
@@ -283,13 +278,13 @@ export default function TaskPropertiesPanel({
         {/* Estimate */}
         <div className="flex flex-col gap-1 px-3 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Ước tính (Phút)
+            {intl.formatMessage({ id: "project.task.estimateMinutes" })}
           </span>
           <input
             type="number"
             min={0}
             step={1}
-            placeholder="Ví dụ: 60"
+            placeholder={intl.formatMessage({ id: "project.task.estimatePlaceholder" })}
             value={estimateDraft}
             onChange={(e) => setEstimateDraft(e.target.value)}
             onBlur={() => void handleEstimateBlur()}
@@ -304,7 +299,7 @@ export default function TaskPropertiesPanel({
         {/* Reporter */}
         <div className="flex flex-col gap-0.5 px-3 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Người báo cáo
+            {intl.formatMessage({ id: "project.task.reporter" })}
           </span>
           <span className="mt-0.5 block font-semibold text-slate-600">
             {memberDisplayName(task.reporterId)}
@@ -313,8 +308,34 @@ export default function TaskPropertiesPanel({
 
         {/* Timestamps */}
         <div className="flex flex-col gap-0.5 bg-slate-50/30 px-3 py-2.5 text-[10px] font-semibold text-slate-400">
-          <div>Tạo: {formatDateTime(task.createdAt)}</div>
-          <div>Cập nhật: {formatDateTime(task.updatedAt)}</div>
+          <div>
+            {intl.formatMessage(
+              { id: "project.task.createdAt" },
+              {
+                date: intl.formatDate(new Date(task.createdAt), {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              },
+            )}
+          </div>
+          <div>
+            {intl.formatMessage(
+              { id: "project.task.updatedAt" },
+              {
+                date: intl.formatDate(new Date(task.updatedAt), {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                }),
+              },
+            )}
+          </div>
         </div>
       </div>
     </div>

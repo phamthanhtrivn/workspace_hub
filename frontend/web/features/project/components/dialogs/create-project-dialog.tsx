@@ -182,9 +182,7 @@ export default function CreateProjectDialog({
                   projectType === ProjectType.SOFTWARE_DEVELOPMENT,
               ).map((item) => (
                 <option key={item.value} value={item.value}>
-                  {"labelId" in item
-                    ? intl.formatMessage({ id: item.labelId })
-                    : item.label}
+                  {intl.formatMessage({ id: item.labelId })}
                 </option>
               ))}
             </select>

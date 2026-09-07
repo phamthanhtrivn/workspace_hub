@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Tag } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { TaskLabel } from "@/features/project/types/project";
 import { LabelBadge } from "../ui/status-badge";
 
@@ -18,6 +19,7 @@ export default function TaskLabelsPicker({
   onToggleLabel,
   disabled = false,
 }: TaskLabelsPickerProps) {
+  const intl = useAppIntl();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -43,10 +45,15 @@ export default function TaskLabelsPicker({
           onClick={() => !disabled && setIsOpen((prev) => !prev)}
           disabled={disabled}
           className="inline-flex items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-default disabled:hover:border-slate-300 disabled:hover:bg-transparent disabled:hover:text-slate-500"
-          title="Gắn nhãn"
+          title={intl.formatMessage({ id: "project.label.attach" })}
         >
           <Tag className="h-3.5 w-3.5" />
-          {taskLabels.length > 0 ? `${taskLabels.length} nhãn` : "Gắn nhãn"}
+          {taskLabels.length > 0
+            ? intl.formatMessage(
+                { id: "project.label.count" },
+                { count: taskLabels.length },
+              )
+            : intl.formatMessage({ id: "project.label.attach" })}
           {!disabled && <ChevronDown className="h-3 w-3" />}
         </button>
 
@@ -54,7 +61,7 @@ export default function TaskLabelsPicker({
           <div className="absolute left-0 top-full z-30 mt-1 w-56 rounded border border-slate-200 bg-white p-1.5 shadow-lg">
             {availableLabels.length === 0 ? (
               <p className="px-2 py-2 text-[11px] text-slate-400">
-                Project chưa có nhãn.
+                {intl.formatMessage({ id: "project.label.empty" })}
               </p>
             ) : (
               availableLabels.map((label) => {

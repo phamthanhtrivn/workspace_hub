@@ -11,27 +11,34 @@ export interface ProjectSettingsPayload {
 }
 
 interface ProjectSettingsActionDependencies {
+  formatMessage: (id: string) => string;
   update: (payload: ProjectSettingsPayload) => Promise<unknown>;
   archive: () => Promise<unknown>;
   close: () => void;
 }
 
-export function createProjectSettingsActions({ update, archive, close }: ProjectSettingsActionDependencies) {
+export function createProjectSettingsActions({
+  update,
+  archive,
+  close,
+  formatMessage,
+}: ProjectSettingsActionDependencies) {
   return {
     save: async (payload: ProjectSettingsPayload) => {
       try {
         await update(payload);
         close();
-        toast.success("Đã cập nhật Project");
+        toast.success(formatMessage("project.updated"));
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Không thể cập nhật Project");
+        toast.error(error instanceof Error ? error.message : formatMessage("project.updateFailed"));
       }
     },
     archive: async () => {
       const confirmed = await confirmProjectAction({
-        title: "Lưu trữ dự án?",
-        text: "Dự án sẽ không còn xuất hiện trong danh sách đang hoạt động.",
-        confirmText: "Lưu trữ",
+        title: formatMessage("project.archiveConfirmTitle"),
+        text: formatMessage("project.archiveConfirmText"),
+        confirmText: formatMessage("project.archiveAction"),
+        cancelText: formatMessage("app.cancel"),
         icon: "warning",
         destructive: true,
       });
@@ -40,7 +47,7 @@ export function createProjectSettingsActions({ update, archive, close }: Project
         await archive();
         window.location.assign("/projects");
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Không thể archive Project");
+        toast.error(error instanceof Error ? error.message : formatMessage("project.archiveFailed"));
       }
     },
   };

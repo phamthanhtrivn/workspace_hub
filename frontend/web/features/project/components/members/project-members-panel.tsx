@@ -18,19 +18,20 @@ import {
 } from "@/features/project/hooks/use-project-members";
 import type { ProjectMemberPermissions } from "@/features/project/types/project";
 import { Crown, Settings2, Trash2, User, UserPlus } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const ROLE_CONFIG: Record<
   ProjectRole,
-  { label: string; color: string; bg: string; icon: React.ElementType }
+  { labelId: string; color: string; bg: string; icon: React.ElementType }
 > = {
   [ProjectRole.OWNER]: {
-    label: "Owner",
+    labelId: "project.role.owner",
     color: "text-amber-600",
     bg: "bg-amber-50",
     icon: Crown,
   },
   [ProjectRole.MEMBER]: {
-    label: "Member",
+    labelId: "project.role.member",
     color: "text-slate-500",
     bg: "bg-slate-100",
     icon: User,
@@ -50,6 +51,7 @@ export default function ProjectMembersPanel({
   canRemoveMembers?: boolean;
   canManagePermissions?: boolean;
 }) {
+  const intl = useAppIntl();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [permissionMember, setPermissionMember] =
     useState<ProjectMember | null>(null);
@@ -69,19 +71,26 @@ export default function ProjectMembersPanel({
 
   const handleRemoveMember = async (member: ProjectMember) => {
     const confirmed = await confirmProjectAction({
-      title: `Xóa ${member.displayName} khỏi dự án?`,
-      text: "Thành viên này sẽ mất quyền truy cập vào dự án.",
-      confirmText: "Xóa thành viên",
+      title: intl.formatMessage(
+        { id: "project.member.removeConfirmTitle" },
+        { name: member.displayName },
+      ),
+      text: intl.formatMessage({ id: "project.member.removeConfirmText" }),
+      confirmText: intl.formatMessage({ id: "project.member.remove" }),
+      cancelText: intl.formatMessage({ id: "app.cancel" }),
       icon: "warning",
       destructive: true,
     });
     if (!confirmed) return;
 
     removeMemberMutation.mutate(member.userId, {
-      onSuccess: () => toast.success("Đã xóa thành viên"),
+      onSuccess: () =>
+        toast.success(intl.formatMessage({ id: "project.member.removed" })),
       onError: (error) =>
         toast.error(
-          error instanceof Error ? error.message : "Không thể xóa thành viên",
+          error instanceof Error
+            ? error.message
+            : intl.formatMessage({ id: "project.member.removeFailed" }),
         ),
     });
   };
@@ -95,11 +104,13 @@ export default function ProjectMembersPanel({
         memberUserId: permissionMember.userId,
         permissions,
       });
-      toast.success("Đã cập nhật quyền thành viên");
+      toast.success(intl.formatMessage({ id: "project.permission.updated" }));
       setPermissionMember(null);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể cập nhật quyền",
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: "project.permission.updateFailed" }),
       );
     }
   };
@@ -109,11 +120,17 @@ export default function ProjectMembersPanel({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-black text-[var(--color-primary-dark)]">
-            Thành viên ({members.length})
+            {intl.formatMessage(
+              { id: "project.member.count" },
+              { count: members.length },
+            )}
           </h3>
           {pendingInvitations.length > 0 && (
             <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-700">
-              {pendingInvitations.length} đang chờ
+              {intl.formatMessage(
+                { id: "project.invitation.pendingBadge" },
+                { count: pendingInvitations.length },
+              )}
             </span>
           )}
         </div>
@@ -124,7 +141,7 @@ export default function ProjectMembersPanel({
             className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/10"
           >
             <UserPlus className="h-3 w-3" strokeWidth={2.5} />
-            Mời
+            {intl.formatMessage({ id: "project.member.inviteShort" })}
           </button>
         )}
       </div>
@@ -154,7 +171,7 @@ export default function ProjectMembersPanel({
                   className={`inline-flex items-center gap-1 text-[10px] font-bold ${roleCfg.color}`}
                 >
                   <RoleIcon className="h-2.5 w-2.5" strokeWidth={2.5} />
-                  {roleCfg.label}
+                  {intl.formatMessage({ id: roleCfg.labelId })}
                 </span>
               </div>
               {member.role !== ProjectRole.OWNER && (
@@ -164,7 +181,10 @@ export default function ProjectMembersPanel({
                       type="button"
                       onClick={() => setPermissionMember(member)}
                       className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
-                      aria-label={`Cấp quyền cho ${member.displayName}`}
+                      aria-label={intl.formatMessage(
+                        { id: "project.permission.manageFor" },
+                        { name: member.displayName },
+                      )}
                     >
                       <Settings2 className="h-3.5 w-3.5" />
                     </button>
@@ -175,7 +195,10 @@ export default function ProjectMembersPanel({
                       onClick={() => void handleRemoveMember(member)}
                       disabled={removeMemberMutation.isPending}
                       className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
-                      aria-label={`Xóa ${member.displayName}`}
+                      aria-label={intl.formatMessage(
+                        { id: "project.member.removeFor" },
+                        { name: member.displayName },
+                      )}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -189,7 +212,7 @@ export default function ProjectMembersPanel({
       {pendingInvitationsQuery.isLoading && canInvite && (
         <div
           className="mt-4 space-y-2 border-t border-slate-100 pt-4"
-          aria-label="Đang tải lời mời"
+          aria-label={intl.formatMessage({ id: "project.invitation.loading" })}
         >
           <div className="h-3 w-28 animate-pulse rounded bg-slate-100" />
           <div className="h-14 animate-pulse rounded-xl bg-slate-50" />

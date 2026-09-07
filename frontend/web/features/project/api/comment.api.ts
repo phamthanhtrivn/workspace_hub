@@ -49,7 +49,7 @@ function normalizeComment(
     id: comment.id,
     taskId: comment.taskId,
     authorId: comment.authorId,
-    authorName: profile?.fullName?.trim() || "Người dùng",
+    authorName: profile?.fullName?.trim() || comment.authorId,
     authorAvatar: profile?.avatarUrl || undefined,
     content: comment.content,
     edited: comment.edited,

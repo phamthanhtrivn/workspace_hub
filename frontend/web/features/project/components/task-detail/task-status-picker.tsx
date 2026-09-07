@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { TaskStatus } from "@/features/project/types/project";
 import { TASK_DRAWER_STATUS_OPTIONS } from "@/features/project/constants/task.constants";
 
@@ -16,6 +17,7 @@ export default function TaskStatusPicker({
   onChange,
   disabled = false,
 }: TaskStatusPickerProps) {
+  const intl = useAppIntl();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +50,7 @@ export default function TaskStatusPicker({
           disabled ? "cursor-default opacity-80" : "cursor-pointer",
         ].join(" ")}
       >
-        <span>{currentOption.label}</span>
+        <span>{intl.formatMessage({ id: currentOption.labelId })}</span>
         {!disabled && <ChevronDown className="h-3.5 w-3.5" />}
       </button>
 
@@ -69,7 +71,7 @@ export default function TaskStatusPicker({
                   : "text-slate-700",
               ].join(" ")}
             >
-              {opt.label}
+              {intl.formatMessage({ id: opt.labelId })}
             </button>
           ))}
         </div>

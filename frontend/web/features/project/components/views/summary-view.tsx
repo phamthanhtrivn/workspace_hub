@@ -22,18 +22,7 @@ import {
 } from "../summary";
 
 import { useProjectSummaryMetrics } from "@/features/project/hooks/use-project-summary-metrics";
-
-function formatRelative(value?: string): string {
-  if (!value) return "Chưa có dữ liệu";
-  const minutes = Math.max(
-    1,
-    Math.floor((Date.now() - new Date(value).getTime()) / 60000),
-  );
-  if (minutes < 60) return `${minutes} phút trước`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} giờ trước`;
-  return `${Math.floor(hours / 24)} ngày trước`;
-}
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function SummaryView({
   tasks,
@@ -44,7 +33,9 @@ export default function SummaryView({
   members: ProjectMember[];
   sprints?: Sprint[];
 }) {
+  const intl = useAppIntl();
   const {
+    now,
     activeTasks,
     completedRecently,
     updatedRecently,
@@ -86,11 +77,10 @@ export default function SummaryView({
     <div className="mx-auto w-full max-w-6xl space-y-4 pb-8">
       <div className="rounded-lg border border-blue-100 bg-blue-50 px-5 py-4">
         <p className="text-sm font-bold text-[#172B4D]">
-          Customize your reports to suit your space
+          {intl.formatMessage({ id: "project.summary.customizeTitle" })}
         </p>
         <p className="mt-1 text-xs text-slate-600">
-          Theo dõi nhanh tiến độ, trạng thái và khối lượng công việc của
-          project.
+          {intl.formatMessage({ id: "project.summary.customizeDescription" })}
         </p>
       </div>
 
@@ -98,37 +88,37 @@ export default function SummaryView({
         <ProjectMetricCard
           icon={CheckCircle2}
           value={completedRecently.length}
-          label="Đã hoàn thành"
-          sublabel="trong 7 ngày gần nhất"
+          label={intl.formatMessage({ id: "project.summary.completed" })}
+          sublabel={intl.formatMessage({ id: "project.summary.lastSevenDays" })}
           color="bg-emerald-50 text-emerald-600"
         />
         <ProjectMetricCard
           icon={Activity}
           value={updatedRecently.length}
-          label="Đã cập nhật"
-          sublabel="trong 7 ngày gần nhất"
+          label={intl.formatMessage({ id: "project.summary.updated" })}
+          sublabel={intl.formatMessage({ id: "project.summary.lastSevenDays" })}
           color="bg-blue-50 text-blue-600"
         />
         <ProjectMetricCard
           icon={ListChecks}
           value={createdRecently.length}
-          label="Đã tạo mới"
-          sublabel="trong 7 ngày gần nhất"
+          label={intl.formatMessage({ id: "project.summary.created" })}
+          sublabel={intl.formatMessage({ id: "project.summary.lastSevenDays" })}
           color="bg-violet-50 text-violet-600"
         />
         <ProjectMetricCard
           icon={CalendarClock}
           value={dueSoon.length}
-          label="Sắp đến hạn"
-          sublabel="trong 7 ngày gần nhất"
+          label={intl.formatMessage({ id: "project.summary.dueSoon" })}
+          sublabel={intl.formatMessage({ id: "project.summary.lastSevenDays" })}
           color="bg-amber-50 text-amber-600"
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <ProjectSummaryPanel
-          title="Tổng quan trạng thái"
-          description="Snapshot trạng thái của các work items trong project."
+          title={intl.formatMessage({ id: "project.summary.statusTitle" })}
+          description={intl.formatMessage({ id: "project.summary.statusDescription" })}
         >
           <div className="flex flex-col items-center gap-5 sm:flex-row sm:justify-center">
             <div
@@ -142,7 +132,9 @@ export default function SummaryView({
                   <p className="text-2xl font-bold text-[#172B4D]">
                     {totalStatus}
                   </p>
-                  <p className="text-[11px] text-slate-500">Total work items</p>
+                  <p className="text-[11px] text-slate-500">
+                    {intl.formatMessage({ id: "project.summary.totalWorkItems" })}
+                  </p>
                 </div>
               </div>
             </div>
@@ -167,13 +159,13 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Recent activity"
-          description="Những thay đổi gần đây trong project."
+          title={intl.formatMessage({ id: "project.summary.recentActivity" })}
+          description={intl.formatMessage({ id: "project.summary.recentActivityDescription" })}
         >
           <div className="space-y-3">
             {recentTasks.length === 0 && (
               <p className="py-8 text-center text-xs text-slate-400">
-                Chưa có hoạt động.
+                {intl.formatMessage({ id: "project.activity.empty" })}
               </p>
             )}
             {recentTasks.map((task) => (
@@ -189,8 +181,17 @@ export default function SummaryView({
                     {task.title}
                   </p>
                   <p className="mt-0.5 text-[11px] text-slate-400">
-                    {task.status} ·{" "}
-                    {formatRelative(task.updatedAt || task.createdAt)}
+                    {intl.formatMessage({ id: `project.task.status.${task.status === "IN_PROGRESS" ? "inProgress" : task.status === "IN_REVIEW" ? "inReview" : task.status.toLowerCase()}` })} ·{" "}
+                    {intl.formatRelativeTime(
+                      -Math.max(
+                        1,
+                        Math.floor(
+                          (now - new Date(task.updatedAt || task.createdAt).getTime()) /
+                            60000,
+                        ),
+                      ),
+                      "minute",
+                    )}
                   </p>
                 </div>
               </div>
@@ -199,8 +200,8 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Priority breakdown"
-          description="Phân bổ mức độ ưu tiên của work items."
+          title={intl.formatMessage({ id: "project.summary.priorityTitle" })}
+          description={intl.formatMessage({ id: "project.summary.priorityDescription" })}
         >
           <PriorityDistributionBar
             items={priorityItems}
@@ -209,8 +210,8 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Types of work"
-          description="Phân loại công việc trong project."
+          title={intl.formatMessage({ id: "project.summary.typeTitle" })}
+          description={intl.formatMessage({ id: "project.summary.typeDescription" })}
         >
           <div className="space-y-3">
             {typeItems.map((item) => (
@@ -237,24 +238,24 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Team workload"
-          description="Theo dõi khối lượng task theo người phụ trách."
+          title={intl.formatMessage({ id: "project.summary.workloadTitle" })}
+          description={intl.formatMessage({ id: "project.summary.workloadDescription" })}
         >
           <MemberWorkloadList
             items={workloadItems}
             maxCount={maxWorkload}
-            emptyMessage="Chưa có thành viên."
+            emptyMessage={intl.formatMessage({ id: "project.member.empty" })}
           />
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title="Sprint progress"
-          description="Tiến độ hoàn thành của các task lớn."
+          title={intl.formatMessage({ id: "project.summary.sprintProgress" })}
+          description={intl.formatMessage({ id: "project.summary.sprintProgressDescription" })}
         >
           <div className="space-y-4">
             {sprintItems.length === 0 && (
               <p className="py-8 text-center text-xs text-slate-400">
-                Chưa có sprint.
+                {intl.formatMessage({ id: "project.sprint.empty" })}
               </p>
             )}
             {sprintItems.map(({ sprint, total, done, percent }) => (

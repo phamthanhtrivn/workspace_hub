@@ -12,6 +12,8 @@ import {
   type Task,
 } from "@/features/project/types/project";
 import type { SprintCreateValues } from "@/features/project/components/views/software-backlog-view";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { getProjectErrorMessage } from "@/features/project/project-error-message";
 
 interface UseBacklogManagerOptions {
   projectId: string;
@@ -38,6 +40,7 @@ export function useBacklogManager({
   onBulkUpdateTasks,
   onRemoveTaskFromSprint,
 }: UseBacklogManagerOptions) {
+  const intl = useAppIntl();
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [targetSprintId, setTargetSprintId] = useState("");
   const [bulkStatus, setBulkStatus] = useState<TaskStatus>(TaskStatus.IN_PROGRESS);
@@ -55,10 +58,14 @@ export function useBacklogManager({
       const fileArray = Array.from(files);
       for (const file of fileArray)
         await fileQuery.upload.mutateAsync({ file, sprintId });
-      toast.success("Đã lưu tệp đính kèm");
+      toast.success(intl.formatMessage({ id: "project.file.uploaded" }));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể tải tệp lên",
+        getProjectErrorMessage(
+          error,
+          (id) => intl.formatMessage({ id }),
+          "project.file.uploadFailed",
+        ),
       );
     } finally {
       setFilesBusy(false);
@@ -69,7 +76,7 @@ export function useBacklogManager({
     try {
       await fileQuery.remove.mutateAsync(file.id);
     } catch {
-      toast.error("Không thể xóa tệp");
+      toast.error(intl.formatMessage({ id: "project.file.deleteFailed" }));
     }
   };
 
@@ -77,7 +84,7 @@ export function useBacklogManager({
     try {
       await downloadProjectFile(projectId, file);
     } catch {
-      toast.error("Không thể tải tệp");
+      toast.error(intl.formatMessage({ id: "project.file.downloadFailed" }));
     }
   };
 

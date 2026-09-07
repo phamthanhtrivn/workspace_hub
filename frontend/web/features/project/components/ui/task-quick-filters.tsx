@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   TaskPriority,
   TaskStatus,
@@ -70,42 +71,47 @@ export default function TaskQuickFilters({
   onAssigneeChange: (value: string) => void;
   onTaskKindChange: (value: TaskKindFilter) => void;
 }) {
+  const intl = useAppIntl();
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lg:flex-none">
       <FilterSelect
-        label={TASK_FILTER_LABELS.STATUS_ALL}
+        label={intl.formatMessage({ id: TASK_FILTER_LABELS.STATUS_ALL })}
         value={status}
         onChange={(value) => onStatusChange(value as TaskStatus | "")}
       >
-        <option value="">{TASK_FILTER_LABELS.STATUS_ALL}</option>
+        <option value="">
+          {intl.formatMessage({ id: TASK_FILTER_LABELS.STATUS_ALL })}
+        </option>
         {TASK_STATUS_SELECT_OPTIONS.map((item) => (
           <option key={item.value} value={item.value}>
-            {item.label.toUpperCase()}
+            {intl.formatMessage({ id: item.labelId })}
           </option>
         ))}
       </FilterSelect>
 
       <FilterSelect
-        label={TASK_FILTER_LABELS.PRIORITY_ALL}
+        label={intl.formatMessage({ id: TASK_FILTER_LABELS.PRIORITY_ALL })}
         value={priority}
         onChange={(value) => onPriorityChange(value as TaskPriority | "")}
       >
-        <option value="">{TASK_FILTER_LABELS.PRIORITY_ALL}</option>
+        <option value="">
+          {intl.formatMessage({ id: TASK_FILTER_LABELS.PRIORITY_ALL })}
+        </option>
         {TASK_PRIORITY_SELECT_OPTIONS.map((item) => (
           <option key={item.value} value={item.value}>
-            {item.label}
+            {intl.formatMessage({ id: item.labelId })}
           </option>
         ))}
       </FilterSelect>
 
       <FilterSelect
-        label={TASK_FILTER_LABELS.ASSIGNEE_ALL}
+        label={intl.formatMessage({ id: TASK_FILTER_LABELS.ASSIGNEE_ALL })}
         value={assignee}
         onChange={onAssigneeChange}
       >
         {TASK_ASSIGNEE_FILTER_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
-            {opt.label}
+            {intl.formatMessage({ id: opt.labelId })}
           </option>
         ))}
         {members.map((member) => (
@@ -116,13 +122,13 @@ export default function TaskQuickFilters({
       </FilterSelect>
 
       <FilterSelect
-        label={TASK_KIND_QUICK_FILTER_OPTIONS[0].label}
+        label={intl.formatMessage({ id: TASK_KIND_QUICK_FILTER_OPTIONS[0].labelId })}
         value={taskKind}
         onChange={(value) => onTaskKindChange(value as TaskKindFilter)}
       >
         {TASK_KIND_QUICK_FILTER_OPTIONS.map((item) => (
           <option key={item.value} value={item.value}>
-            {item.label}
+            {intl.formatMessage({ id: item.labelId })}
           </option>
         ))}
       </FilterSelect>

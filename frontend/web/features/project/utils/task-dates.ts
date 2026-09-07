@@ -19,6 +19,6 @@ export function toDateTimeInput(value?: string | null): string {
 export function toApiDateTime(value: string, allDay: boolean): string | null {
   if (!value) return null;
   const date = new Date(allDay ? `${value.slice(0, 10)}T00:00:00.000Z` : value);
-  if (Number.isNaN(date.getTime())) throw new Error("Ngày giờ không hợp lệ");
+  if (Number.isNaN(date.getTime())) throw new Error("project.date.invalid");
   return date.toISOString();
 }

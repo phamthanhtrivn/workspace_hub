@@ -23,8 +23,10 @@ import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "sonner";
 import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
 import { getProjectKey } from "@/features/project/utils/project.utils";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ProjectsPage() {
+  const intl = useAppIntl();
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -47,11 +49,13 @@ export default function ProjectsPage() {
   const handleCreateProject = async (payload: CreateProjectPayload) => {
     try {
       await createProjectMutation.mutateAsync(payload);
-      toast.success("Tạo dự án thành công");
+      toast.success(intl.formatMessage({ id: "project.list.createSuccess" }));
       setShowCreate(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể tạo dự án",
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: "project.list.createFailed" }),
       );
       throw error;
     }
@@ -62,18 +66,21 @@ export default function ProjectsPage() {
       {/* Breadcrumb & Title */}
       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
         <Link href="/dashboard" className="hover:text-blue-600 transition">
-          Workspace
+          {intl.formatMessage({ id: "project.list.workspace" })}
         </Link>
         <ChevronRight className="h-3 w-3 text-slate-400" />
-        <span className="text-slate-700">Dự án</span>
+        <span className="text-slate-700">
+          {intl.formatMessage({ id: "project.list.title" })}
+        </span>
       </div>
 
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#172B4D]">Dự án</h1>
+          <h1 className="text-2xl font-semibold text-[#172B4D]">
+            {intl.formatMessage({ id: "project.list.title" })}
+          </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Quản lý tất cả dự án phần mềm của nhóm, theo dõi tiến độ và cấu hình
-            các cài đặt liên quan.
+            {intl.formatMessage({ id: "project.list.description" })}
           </p>
         </div>
         <button
@@ -81,7 +88,7 @@ export default function ProjectsPage() {
           className="inline-flex shrink-0 items-center gap-1.5 rounded bg-[#0052CC] hover:bg-[#0747A6] px-3 py-2 text-sm font-semibold text-white transition duration-150 active:scale-[0.98] focus-visible:outline-none"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
-          Tạo dự án
+          {intl.formatMessage({ id: "project.list.create" })}
         </button>
       </div>
 
@@ -102,7 +109,7 @@ export default function ProjectsPage() {
                     : "text-slate-600 hover:text-slate-900",
                 ].join(" ")}
               >
-                {tab.label}
+                {intl.formatMessage({ id: tab.labelId })}
               </button>
             );
           })}
@@ -118,7 +125,9 @@ export default function ProjectsPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm dự án..."
+            placeholder={intl.formatMessage({
+              id: "project.list.searchPlaceholder",
+            })}
             className="w-full sm:w-60 rounded border border-slate-300 bg-white py-1.5 pl-8.5 pr-3 text-sm font-medium text-[#172B4D] outline-none transition placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC]"
           />
         </div>
@@ -143,18 +152,30 @@ export default function ProjectsPage() {
           </div>
         ) : isError ? (
           <div className="py-12 text-center text-sm font-semibold text-red-500">
-            Không thể tải danh sách dự án. Vui lòng kiểm tra lại dịch vụ.
+            {intl.formatMessage({ id: "project.list.loadError" })}
           </div>
         ) : filteredProjects.length > 0 ? (
           <table className="w-full min-w-[850px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-3 font-semibold">Tên dự án</th>
-                <th className="px-6 py-3 font-semibold">Mã (Key)</th>
-                <th className="px-6 py-3 font-semibold">Loại dự án</th>
-                <th className="px-6 py-3 font-semibold">Trưởng dự án</th>
-                <th className="px-6 py-3 font-semibold">Trạng thái</th>
-                <th className="px-6 py-3 font-semibold w-40">Tiến độ</th>
+                <th className="px-6 py-3 font-semibold">
+                  {intl.formatMessage({ id: "project.list.column.name" })}
+                </th>
+                <th className="px-6 py-3 font-semibold">
+                  {intl.formatMessage({ id: "project.list.column.key" })}
+                </th>
+                <th className="px-6 py-3 font-semibold">
+                  {intl.formatMessage({ id: "project.list.column.type" })}
+                </th>
+                <th className="px-6 py-3 font-semibold">
+                  {intl.formatMessage({ id: "project.list.column.owner" })}
+                </th>
+                <th className="px-6 py-3 font-semibold">
+                  {intl.formatMessage({ id: "project.list.column.status" })}
+                </th>
+                <th className="px-6 py-3 font-semibold w-40">
+                  {intl.formatMessage({ id: "project.list.column.progress" })}
+                </th>
                 <th className="px-6 py-3 text-right"></th>
               </tr>
             </thead>
@@ -195,7 +216,9 @@ export default function ProjectsPage() {
                             {project.name}
                           </span>
                           <span className="text-xs text-slate-500 font-medium">
-                            Team-managed software
+                            {intl.formatMessage({
+                              id: "project.list.teamManagedSoftware",
+                            })}
                           </span>
                         </div>
                       </Link>
@@ -253,14 +276,18 @@ export default function ProjectsPage() {
                       <div className="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition duration-150">
                         <Link
                           href={`/projects/${project.id}?view=settings`}
-                          title="Cài đặt dự án"
+                          title={intl.formatMessage({
+                            id: "project.list.settings",
+                          })}
                           className="grid h-8 w-8 place-items-center rounded hover:bg-slate-200 text-slate-500 hover:text-slate-700"
                         >
                           <Settings className="h-4 w-4" />
                         </Link>
                         <details className="relative">
                           <summary
-                            title="Thêm tùy chọn"
+                            title={intl.formatMessage({
+                              id: "project.list.moreOptions",
+                            })}
                             className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-700"
                           >
                             <MoreHorizontal className="h-4 w-4" />
@@ -270,13 +297,15 @@ export default function ProjectsPage() {
                               href={`/projects/${project.id}`}
                               className="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                             >
-                              Mở dự án
+                              {intl.formatMessage({ id: "project.list.open" })}
                             </Link>
                             <Link
                               href={`/projects/${project.id}?view=settings`}
                               className="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                             >
-                              Cài đặt dự án
+                              {intl.formatMessage({
+                                id: "project.list.settings",
+                              })}
                             </Link>
                           </div>
                         </details>
@@ -293,16 +322,16 @@ export default function ProjectsPage() {
               📂
             </div>
             <p className="mt-4 text-sm font-bold text-slate-700">
-              Không tìm thấy dự án nào
+              {intl.formatMessage({ id: "project.list.emptyTitle" })}
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              Hãy thay đổi bộ lọc hoặc tạo một dự án mới để bắt đầu.
+              {intl.formatMessage({ id: "project.list.emptyDescription" })}
             </p>
             <button
               onClick={() => setShowCreate(true)}
               className="mt-4 inline-flex items-center gap-1.5 rounded bg-[#0052CC] hover:bg-[#0747A6] px-3.5 py-2 text-xs font-semibold text-white transition"
             >
-              Tạo dự án mới
+              {intl.formatMessage({ id: "project.list.createNew" })}
             </button>
           </div>
         )}

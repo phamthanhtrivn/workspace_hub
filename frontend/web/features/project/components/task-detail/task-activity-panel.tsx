@@ -1,34 +1,17 @@
 "use client";
 
 import { ArrowRight, History } from "lucide-react";
+import { useState } from "react";
 import type {
   ProjectMember,
   Task,
   TaskActivity,
 } from "@/features/project/types/project";
 import {
-  ACTIVITY_ACTION_LABELS,
+  ACTIVITY_ACTION_LABEL_IDS,
   createTaskActivityPresenter,
 } from "@/features/project/task-activity-presenter";
-
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("vi-VN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function formatRelative(iso: string): string {
-  const minutes = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (minutes < 1) return "Vừa xong";
-  if (minutes < 60) return `${minutes} phút trước`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} giờ trước`;
-  return `${Math.floor(hours / 24)} ngày trước`;
-}
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function TaskActivityPanel({
   activities,
@@ -45,18 +28,24 @@ export default function TaskActivityPanel({
   isError: boolean;
   onRefresh: () => void;
 }) {
+  const intl = useAppIntl();
+  const [now] = useState(() => Date.now());
   const { activityActor, activityValue } = createTaskActivityPresenter(
     members,
     tasks,
+    (id, values) => intl.formatMessage({ id }, values),
+    (value) => intl.formatDate(value),
   );
 
   return (
     <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-bold text-[#172B4D]">Nhật ký hoạt động</h3>
+          <h3 className="text-sm font-bold text-[#172B4D]">
+            {intl.formatMessage({ id: "project.activity.logTitle" })}
+          </h3>
           <p className="mt-0.5 text-[11px] text-slate-500">
-            Các thay đổi mới nhất của công việc này.
+            {intl.formatMessage({ id: "project.activity.description" })}
           </p>
         </div>
         <button
@@ -64,12 +53,12 @@ export default function TaskActivityPanel({
           onClick={onRefresh}
           className="shrink-0 rounded px-2 py-1 text-[10px] font-bold text-[#0052CC] hover:bg-blue-50"
         >
-          Làm mới
+          {intl.formatMessage({ id: "app.refresh" })}
         </button>
       </div>
 
       {isLoading ? (
-        <div className="space-y-3" aria-label="Đang tải nhật ký">
+        <div className="space-y-3" aria-label={intl.formatMessage({ id: "project.activity.loading" })}>
           {[0, 1, 2].map((item) => (
             <div key={item} className="flex animate-pulse gap-3">
               <div className="h-7 w-7 shrink-0 rounded-full bg-slate-100" />
@@ -83,21 +72,21 @@ export default function TaskActivityPanel({
       ) : isError ? (
         <div className="rounded border border-red-100 bg-red-50 px-4 py-5 text-center">
           <p className="text-xs font-semibold text-red-700">
-            Không thể tải nhật ký hoạt động.
+            {intl.formatMessage({ id: "project.activity.loadFailed" })}
           </p>
           <button
             type="button"
             onClick={onRefresh}
             className="mt-2 text-[11px] font-bold text-red-700 underline"
           >
-            Thử lại
+            {intl.formatMessage({ id: "app.retry" })}
           </button>
         </div>
       ) : activities.length === 0 ? (
         <div className="rounded border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
           <History className="mx-auto h-6 w-6 text-slate-300" />
           <p className="mt-2 text-xs font-semibold text-slate-500">
-            Chưa có hoạt động nào được ghi nhận.
+            {intl.formatMessage({ id: "project.activity.emptyDetailed" })}
           </p>
         </div>
       ) : (
@@ -119,15 +108,36 @@ export default function TaskActivityPanel({
                       <strong className="font-bold text-[#172B4D]">
                         {activityActor(activity)}
                       </strong>{" "}
-                      {ACTIVITY_ACTION_LABELS[activity.field] ||
-                        `Đã thay đổi ${activity.field}`}
+                      {intl.formatMessage(
+                        {
+                          id:
+                            ACTIVITY_ACTION_LABEL_IDS[activity.field] ||
+                            "project.activity.action.changedField",
+                        },
+                        { field: activity.field },
+                      )}
                     </p>
                     <time
                       dateTime={activity.createdAt}
-                      title={formatDateTime(activity.createdAt)}
+                      title={intl.formatDate(new Date(activity.createdAt), {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
                       className="shrink-0 pt-0.5 text-[9px] font-semibold text-slate-400"
                     >
-                      {formatRelative(activity.createdAt)}
+                      {intl.formatRelativeTime(
+                        -Math.max(
+                          1,
+                          Math.floor(
+                            (now - new Date(activity.createdAt).getTime()) /
+                              60000,
+                          ),
+                        ),
+                        "minute",
+                      )}
                     </time>
                   </div>
                   {(oldValue || newValue) && (

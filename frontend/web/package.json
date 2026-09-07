@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:i18n:project": "node features/project/audit-i18n.mjs",
     "test": "npm run test:calendar && npm run test:project",
     "test:calendar": "vitest run features/calendar",
-    "test:project": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test features/project/api/pagination.test.mjs && vitest run --config vitest.project.config.mts"
+    "test:project": "npm run check:i18n:project && node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test features/project/api/pagination.test.mjs && vitest run --config vitest.project.config.mts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

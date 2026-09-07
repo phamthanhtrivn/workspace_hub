@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarDays, ChartGantt } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { Task, TaskDependency } from "@/features/project/types/project";
 import {
   GANTT_STATUS_LEGEND,
@@ -17,6 +18,7 @@ export default function GanttView({
   onTaskClick?: (task: Task) => void;
   dependencies?: TaskDependency[];
 }) {
+  const intl = useAppIntl();
   const {
     rangeFormatted,
     days,
@@ -27,7 +29,7 @@ export default function GanttView({
     dayWidth,
     labelWidth,
     getBarColor,
-  } = useGanttTimeline({ tasks, dependencies });
+  } = useGanttTimeline({ tasks, dependencies, locale: intl.locale });
 
   return (
     <div className="space-y-4">
@@ -35,9 +37,14 @@ export default function GanttView({
         <div className="flex items-center gap-2">
           <ChartGantt className="h-5 w-5 text-[#0052CC]" />
           <div>
-            <h2 className="text-sm font-black text-[#172B4D]">Gantt chart</h2>
+            <h2 className="text-sm font-black text-[#172B4D]">
+              {intl.formatMessage({ id: "project.gantt.title" })}
+            </h2>
             <p className="text-xs font-semibold text-slate-400">
-              {rangeFormatted} · {datedTasks.length} task có lịch
+              {intl.formatMessage(
+                { id: "project.gantt.scheduledCount" },
+                { range: rangeFormatted, count: datedTasks.length },
+              )}
             </p>
           </div>
         </div>
@@ -45,7 +52,7 @@ export default function GanttView({
           {GANTT_STATUS_LEGEND.map((item) => (
             <span key={item.status} className="inline-flex items-center gap-1">
               <i className={`h-2.5 w-2.5 rounded-full ${item.color}`} />
-              {item.label}
+              {intl.formatMessage({ id: item.labelId })}
             </span>
           ))}
         </div>
@@ -60,7 +67,7 @@ export default function GanttView({
             }}
           >
             <div className="border-r border-slate-200 px-4 py-3 text-[10px] font-black uppercase tracking-wider text-slate-500">
-              Task
+              {intl.formatMessage({ id: "project.task.label" })}
             </div>
             <div
               className="relative grid"
@@ -120,7 +127,7 @@ export default function GanttView({
                       {predecessors.length > 0 && (
                         <span
                           className="shrink-0 rounded bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-700"
-                          title="Task này có dependency"
+                          title={intl.formatMessage({ id: "project.dependency.present" })}
                         >
                           ← {predecessors.map((item) => item.title).join(", ")}
                         </span>
@@ -155,7 +162,7 @@ export default function GanttView({
               )
             ) : (
               <div className="px-6 py-12 text-center text-sm font-semibold text-slate-400">
-                Chưa có task nào được lên lịch.
+                {intl.formatMessage({ id: "project.gantt.empty" })}
               </div>
             )}
           </div>
@@ -167,7 +174,10 @@ export default function GanttView({
           <div className="flex items-center gap-2">
             <CalendarDays className="h-4 w-4 text-slate-400" />
             <span className="text-xs font-black text-slate-600">
-              Chưa lên lịch ({unscheduledTasks.length})
+              {intl.formatMessage(
+                { id: "project.gantt.unscheduledCount" },
+                { count: unscheduledTasks.length },
+              )}
             </span>
           </div>
           <div className="mt-2 flex flex-wrap gap-2">

@@ -60,7 +60,7 @@ export function TaskDetailsFields({
               className="h-3.5 w-3.5 text-slate-400"
               strokeWidth={2}
             />
-            Loại công việc
+            {intl.formatMessage({ id: "project.task.type" })}
           </span>
           <div className="relative">
             <select
@@ -73,7 +73,7 @@ export function TaskDetailsFields({
             >
               {TASK_TYPE_SELECT_OPTIONS.map((item) => (
                 <option key={item.value} value={item.value}>
-                  {item.label}
+                  {intl.formatMessage({ id: item.labelId })}
                 </option>
               ))}
             </select>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import type { Sprint } from "@/features/project/types/project";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface SprintFormModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export function SprintFormModal({
   onSubmit,
   isBusy = false,
 }: SprintFormModalProps) {
+  const intl = useAppIntl();
   const [name, setName] = useState("");
   const [goal, setGoal] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -59,15 +61,18 @@ export function SprintFormModal({
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-black text-[#172B4D]">
-              {editingSprint ? "Chỉnh sửa Sprint" : "Create sprint"}
+              {intl.formatMessage({
+                id: editingSprint ? "project.sprint.edit" : "project.sprint.create",
+              })}
             </h2>
             <p className="mt-1 text-xs font-semibold text-slate-400">
-              Tạo Sprint trước, sau đó đưa task từ Backlog vào.
+              {intl.formatMessage({ id: "project.sprint.createDescription" })}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={intl.formatMessage({ id: "app.close" })}
             className="text-slate-400 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
@@ -78,20 +83,20 @@ export function SprintFormModal({
             autoFocus
             value={name}
             onChange={(event) => setName(event.target.value)}
-            placeholder="Tên Sprint"
+            placeholder={intl.formatMessage({ id: "project.sprint.name" })}
             required
             className="w-full rounded border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-600"
           />
           <textarea
             value={goal}
             onChange={(event) => setGoal(event.target.value)}
-            placeholder="Sprint goal (không bắt buộc)"
+            placeholder={intl.formatMessage({ id: "project.sprint.goalOptional" })}
             rows={3}
             className="w-full resize-none rounded border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-600"
           />
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-xs font-bold text-slate-500">
-              Start date
+              {intl.formatMessage({ id: "project.startDate" })}
               <input
                 type="date"
                 value={startDate}
@@ -101,7 +106,7 @@ export function SprintFormModal({
               />
             </label>
             <label className="text-xs font-bold text-slate-500">
-              End date
+              {intl.formatMessage({ id: "project.dueDate" })}
               <input
                 type="date"
                 value={endDate}
@@ -118,14 +123,16 @@ export function SprintFormModal({
             onClick={onClose}
             className="rounded px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100"
           >
-            Hủy
+            {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             type="submit"
             disabled={isBusy || !name.trim() || !startDate || !endDate}
             className="rounded bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
           >
-            {editingSprint ? "Lưu thay đổi" : "Tạo Sprint"}
+            {intl.formatMessage({
+              id: editingSprint ? "app.saveChanges" : "project.sprint.create",
+            })}
           </button>
         </div>
       </form>

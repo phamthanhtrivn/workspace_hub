@@ -2,6 +2,7 @@
 
 import type { KeyboardEvent } from "react";
 import { Calendar, Plus } from "lucide-react";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   type Task,
   isTerminalTaskStatus,
@@ -14,13 +15,7 @@ import {
   getPriorityIcon,
 } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("vi-VN", {
-    day: "2-digit",
-    month: "short",
-  });
-}
+import { TASK_PRIORITY_LABEL_IDS } from "@/features/project/constants/task.constants";
 
 function isOverdue(dueDate?: string, status?: string): boolean {
   if (!dueDate || status === "DONE" || status === "CANCELLED") return false;
@@ -48,6 +43,7 @@ export default function ProjectTaskRow({
   onOpenChat,
   onAddSubtask,
 }: ProjectTaskRowProps) {
+  const intl = useAppIntl();
   const overdue = isOverdue(task.dueDate, task.status);
   const issueKey = getIssueKey(task);
   const issueType = getIssueTypeDetails(task);
@@ -114,7 +110,10 @@ export default function ProjectTaskRow({
             }`}
           >
             <Calendar className="h-3 w-3" />
-            {formatDate(task.dueDate)}
+            {intl.formatDate(new Date(task.dueDate), {
+              day: "2-digit",
+              month: "short",
+            })}
           </span>
         ) : (
           <span className="text-xs text-slate-300">—</span>
@@ -127,7 +126,12 @@ export default function ProjectTaskRow({
       </div>
 
       {/* Priority */}
-      <div className="flex w-8 shrink-0 justify-center">{priorityIcon}</div>
+      <div
+        className="flex w-8 shrink-0 justify-center"
+        title={intl.formatMessage({ id: TASK_PRIORITY_LABEL_IDS[task.priority] })}
+      >
+        {priorityIcon}
+      </div>
 
       {/* Assignee */}
       <div className="flex w-8 shrink-0 justify-end">
@@ -152,7 +156,7 @@ export default function ProjectTaskRow({
       {onAddSubtask && (
         <button
           type="button"
-          title="Tạo subtask"
+          title={intl.formatMessage({ id: "project.task.createSubtask" })}
           onClick={(event) => {
             event.stopPropagation();
             onAddSubtask();
@@ -160,7 +164,9 @@ export default function ProjectTaskRow({
           className="inline-flex shrink-0 items-center gap-1 rounded bg-blue-50 px-1.5 py-1 text-[11px] font-bold text-[#0052CC] transition hover:bg-[#DEEBFF]"
         >
           <Plus className="h-3.5 w-3.5" />
-          <span className="hidden xl:inline">Subtask</span>
+          <span className="hidden xl:inline">
+            {intl.formatMessage({ id: "project.task.subtask" })}
+          </span>
         </button>
       )}
     </div>

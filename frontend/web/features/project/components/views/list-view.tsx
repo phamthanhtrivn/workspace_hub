@@ -11,6 +11,7 @@ import ProjectTaskRow from "../list/project-task-row";
 import TaskInlineCreator from "../list/task-inline-creator";
 import ListGroupPanel from "../list/list-group-panel";
 import { StatusCircles } from "../ui/status-circles";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ListView({
   tasks,
@@ -38,6 +39,7 @@ export default function ListView({
   onReorderTasks?: (group: Task, tasks: Task[]) => Promise<void>;
   onOpenChat?: (task: Task) => void;
 }) {
+  const intl = useAppIntl();
   const isGeneralProject = projectType === ProjectType.GENERAL;
   const [collapsedPanels, setCollapsedPanels] = useState<Set<string>>(
     new Set(),
@@ -180,8 +182,8 @@ export default function ListView({
 
                   {onAddTaskInline && (
                     <TaskInlineCreator
-                      placeholder="Nhập tên subtask..."
-                      buttonLabel="Tạo subtask"
+              placeholder={intl.formatMessage({ id: "project.task.subtaskNamePlaceholder" })}
+              buttonLabel={intl.formatMessage({ id: "project.task.createSubtask" })}
                       onSubmit={(title) => onAddTaskInline(title, task.id)}
                     />
                   )}
@@ -190,7 +192,7 @@ export default function ListView({
             })
           ) : (
             <div className="rounded-md border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] py-8 text-center text-xs font-semibold text-slate-400">
-              Chưa có công việc.
+          {intl.formatMessage({ id: "project.task.empty" })}
             </div>
           )}
         </div>
@@ -215,9 +217,14 @@ export default function ListView({
               )}
             </button>
 
-            <span className="text-sm font-bold text-[#172B4D]">Backlog</span>
+          <span className="text-sm font-bold text-[#172B4D]">
+            {intl.formatMessage({ id: "project.backlog.title" })}
+          </span>
             <span className="text-xs font-medium text-slate-500">
-              ({backlogTasks.length} công việc)
+            {intl.formatMessage(
+              { id: "project.task.countParenthesized" },
+              { count: backlogTasks.length },
+            )}
             </span>
 
             <StatusCircles counts={statusCounts(backlogTasks)} />
@@ -231,15 +238,15 @@ export default function ListView({
                 onClick={() => setShowCreateSprintBar(true)}
                 className="rounded border border-slate-300 bg-[#DFE1E6] px-2.5 py-1 text-xs font-bold text-[#42526E] shadow-sm transition hover:bg-[#C1C7D0]"
               >
-                Create sprint
+              {intl.formatMessage({ id: "project.sprint.create" })}
               </button>
             </div>
           </div>
 
           {showCreateSprintBar && onAddTaskInline && (
             <TaskInlineCreator
-              placeholder="Nhập tên Sprint mới..."
-              buttonLabel="Create sprint"
+            placeholder={intl.formatMessage({ id: "project.sprint.newNamePlaceholder" })}
+            buttonLabel={intl.formatMessage({ id: "project.sprint.create" })}
               onSubmit={async (title) => {
                 await onAddTaskInline(title, undefined, true);
                 setShowCreateSprintBar(false);
@@ -261,7 +268,7 @@ export default function ListView({
                 ))
               ) : (
                 <div className="m-3 rounded-md border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] py-8 text-center text-xs font-semibold text-slate-400">
-                  Your backlog is empty.
+                  {intl.formatMessage({ id: "project.backlog.emptyShort" })}
                 </div>
               )}
             </div>
@@ -270,8 +277,8 @@ export default function ListView({
           {/* Inline Creator for default backlog */}
           {!collapsedPanels.has("__backlog__") && onAddTaskInline && (
             <TaskInlineCreator
-              placeholder="Bạn cần làm gì?"
-              buttonLabel="Create"
+              placeholder={intl.formatMessage({ id: "project.task.titlePrompt" })}
+              buttonLabel={intl.formatMessage({ id: "app.create" })}
               onSubmit={(title) => onAddTaskInline(title)}
             />
           )}
@@ -282,8 +289,8 @@ export default function ListView({
       {isGeneralProject && onAddTaskInline && (
         <div className="pt-2">
           <TaskInlineCreator
-            placeholder="Nhập tên công việc mới..."
-            buttonLabel="Tạo công việc"
+          placeholder={intl.formatMessage({ id: "project.task.newNamePlaceholder" })}
+          buttonLabel={intl.formatMessage({ id: "project.task.create" })}
             onSubmit={(title) => onAddTaskInline(title, undefined, true)}
           />
         </div>

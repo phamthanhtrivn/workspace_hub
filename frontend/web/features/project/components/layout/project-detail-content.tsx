@@ -19,6 +19,7 @@ import {
   type Task,
   type TaskDependency,
 } from "@/features/project/types/project";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export type OpenProjectTaskForm = (
   status?: TaskStatus,
@@ -65,6 +66,7 @@ interface ProjectDetailContentProps {
 }
 
 export default function ProjectDetailContent(props: ProjectDetailContentProps) {
+  const intl = useAppIntl();
   const { userId } = useAppSelector((state) => state.auth);
   const { permissions } = props;
   const memberPanel = (
@@ -81,14 +83,13 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
     if (props.isLoading)
       return (
         <div className="rounded border border-slate-200 bg-white py-24 text-center text-sm font-semibold text-slate-400">
-          Đang tải công việc...
+          {intl.formatMessage({ id: "project.task.loading" })}
         </div>
       );
     if (props.isError)
       return (
         <div className="rounded border border-red-100 bg-red-50 py-24 text-center text-sm font-semibold text-red-500">
-          Không thể tải danh sách công việc. Vui lòng kiểm tra lại dịch vụ
-          backend.
+          {intl.formatMessage({ id: "project.task.loadFailed" })}
         </div>
       );
 

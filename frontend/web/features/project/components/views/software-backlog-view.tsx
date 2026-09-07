@@ -15,6 +15,7 @@ import BacklogBulkActionBar from "../backlog/backlog-bulk-action-bar";
 import { SprintCard } from "../backlog/sprint-card";
 import { SprintFormModal } from "../dialogs/sprint-form-modal";
 import { useBacklogManager } from "@/features/project/hooks/use-backlog-manager";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export interface SprintCreateValues {
   name: string;
@@ -73,6 +74,7 @@ export default function SoftwareBacklogView({
   canManageSprints?: boolean;
   canEditTask?: (task: Task) => boolean;
 }) {
+  const intl = useAppIntl();
   const {
     selectedTaskIds,
     targetSprintId,
@@ -130,7 +132,8 @@ export default function SoftwareBacklogView({
         onDownload={(file) => void downloadFile(file)}
         onRetry={() => void fileQuery.refetch()}
         sprintName={(id) =>
-          sprints.find((sprint) => sprint.id === id)?.name ?? "Sprint"
+      sprints.find((sprint) => sprint.id === id)?.name ??
+      intl.formatMessage({ id: "project.sprint.label" })
         }
         onAddFiles={(files) => void addFiles(files)}
         onRemoveFile={removeFile}
@@ -151,9 +154,11 @@ export default function SoftwareBacklogView({
       >
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3">
           <div>
-            <h2 className="text-sm font-black text-[#172B4D]">Backlog</h2>
+          <h2 className="text-sm font-black text-[#172B4D]">
+            {intl.formatMessage({ id: "project.backlog.title" })}
+          </h2>
             <p className="mt-0.5 text-xs font-semibold text-slate-400">
-              Chọn task để đưa vào Sprint.
+            {intl.formatMessage({ id: "project.backlog.selectHint" })}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -164,7 +169,7 @@ export default function SoftwareBacklogView({
                 className="inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700 shadow-sm hover:bg-blue-50"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Tạo task
+              {intl.formatMessage({ id: "project.task.create" })}
               </button>
             )}
             {canManageSprints && (
@@ -174,7 +179,7 @@ export default function SoftwareBacklogView({
                 className="inline-flex items-center gap-1.5 rounded bg-[#0052CC] px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#0747A6]"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Create sprint
+              {intl.formatMessage({ id: "project.sprint.create" })}
               </button>
             )}
           </div>
@@ -207,7 +212,10 @@ export default function SoftwareBacklogView({
                         isTerminalTaskStatus(task.status) || !canEditTask(task)
                       }
                       className="h-4 w-4 accent-[#0052CC] disabled:cursor-not-allowed disabled:opacity-40"
-                      aria-label={`Chọn ${task.title}`}
+              aria-label={intl.formatMessage(
+                { id: "project.task.select" },
+                { name: task.title },
+              )}
                     />
                     <button
                       type="button"
@@ -276,7 +284,7 @@ export default function SoftwareBacklogView({
             })
           ) : (
             <div className="px-4 py-10 text-center text-xs font-semibold text-slate-400">
-              Backlog đang trống. Hãy tạo task hoặc hoàn thành Sprint hiện tại.
+          {intl.formatMessage({ id: "project.backlog.empty" })}
             </div>
           )}
         </div>

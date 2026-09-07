@@ -9,15 +9,7 @@ import {
   useResendProjectInvitation,
 } from "@/features/project/hooks/use-invitations";
 import { confirmProjectAction } from "@/features/project/project-alert";
-
-function formatExpiry(value?: string): string {
-  if (!value) return "Không giới hạn";
-  return new Intl.DateTimeFormat("vi-VN", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(new Date(value));
-}
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function PendingInvitationsList({
   projectId,
@@ -26,6 +18,7 @@ export default function PendingInvitationsList({
   projectId: string;
   invitations: ProjectInvitationWithUser[];
 }) {
+  const intl = useAppIntl();
   const cancelMutation = useCancelProjectInvitation(projectId);
   const resendMutation = useResendProjectInvitation(projectId);
 
@@ -35,11 +28,15 @@ export default function PendingInvitationsList({
     const name =
       invitation.invitedUser.fullName ||
       invitation.invitedUser.email ||
-      "người này";
+      intl.formatMessage({ id: "app.thisUser" });
     const confirmed = await confirmProjectAction({
-      title: `Thu hồi lời mời của ${name}?`,
-      text: "Người này sẽ không thể chấp nhận lời mời hiện tại nữa.",
-      confirmText: "Thu hồi",
+      title: intl.formatMessage(
+        { id: "project.invitation.revokeConfirmTitle" },
+        { name },
+      ),
+      text: intl.formatMessage({ id: "project.invitation.revokeConfirmText" }),
+      confirmText: intl.formatMessage({ id: "project.invitation.revoke" }),
+      cancelText: intl.formatMessage({ id: "app.cancel" }),
       icon: "warning",
       destructive: true,
     });
@@ -47,10 +44,12 @@ export default function PendingInvitationsList({
 
     try {
       await cancelMutation.mutateAsync(invitation.id);
-      toast.success("Đã thu hồi lời mời");
+      toast.success(intl.formatMessage({ id: "project.invitation.revoked" }));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể thu hồi lời mời",
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: "project.invitation.revokeFailed" }),
       );
     }
   };
@@ -58,10 +57,12 @@ export default function PendingInvitationsList({
   const handleResend = async (invitation: ProjectInvitationWithUser) => {
     try {
       await resendMutation.mutateAsync(invitation.id);
-      toast.success("Đã gửi lại lời mời");
+      toast.success(intl.formatMessage({ id: "project.invitation.resent" }));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Không thể gửi lại lời mời",
+        error instanceof Error
+          ? error.message
+          : intl.formatMessage({ id: "project.invitation.resendFailed" }),
       );
     }
   };
@@ -71,13 +72,17 @@ export default function PendingInvitationsList({
       <div className="mb-2 flex items-center gap-2 px-2">
         <Clock3 className="h-3.5 w-3.5 text-amber-500" />
         <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
-          Lời mời đang chờ ({invitations.length})
+          {intl.formatMessage(
+            { id: "project.invitation.pendingTitle" },
+            { count: invitations.length },
+          )}
         </p>
       </div>
       <div className="space-y-1.5">
         {invitations.map((invitation) => {
           const user = invitation.invitedUser;
-          const displayName = user.fullName || "Người dùng";
+          const displayName =
+            user.fullName || intl.formatMessage({ id: "app.user" });
           const isCancelling =
             cancelMutation.isPending &&
             cancelMutation.variables === invitation.id;
@@ -109,8 +114,21 @@ export default function PendingInvitationsList({
                   {displayName}
                 </p>
                 <p className="truncate text-[11px] text-slate-400">
-                  {user.email || "Đang chờ phản hồi"} · hết hạn{" "}
-                  {formatExpiry(invitation.expiresAt)}
+                  {intl.formatMessage(
+                    { id: "project.invitation.expiry" },
+                    {
+                      email:
+                        user.email ||
+                        intl.formatMessage({ id: "project.invitation.awaitingResponse" }),
+                      expiry: invitation.expiresAt
+                        ? intl.formatDate(new Date(invitation.expiresAt), {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })
+                        : intl.formatMessage({ id: "app.unlimited" }),
+                    },
+                  )}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
@@ -119,8 +137,11 @@ export default function PendingInvitationsList({
                   onClick={() => void handleResend(invitation)}
                   disabled={isCancelling || resendMutation.isPending}
                   className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-white hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={`Gửi lại lời mời cho ${displayName}`}
-                  title="Gửi lại"
+                  aria-label={intl.formatMessage(
+                    { id: "project.invitation.resendFor" },
+                    { name: displayName },
+                  )}
+                  title={intl.formatMessage({ id: "project.invitation.resend" })}
                 >
                   <RotateCw
                     className={`h-3.5 w-3.5 ${isResending ? "animate-spin" : ""}`}
@@ -131,8 +152,11 @@ export default function PendingInvitationsList({
                   onClick={() => void handleCancel(invitation)}
                   disabled={isResending || cancelMutation.isPending}
                   className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-white hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={`Thu hồi lời mời của ${displayName}`}
-                  title="Thu hồi"
+                  aria-label={intl.formatMessage(
+                    { id: "project.invitation.revokeFor" },
+                    { name: displayName },
+                  )}
+                  title={intl.formatMessage({ id: "project.invitation.revoke" })}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link2 } from "lucide-react";
 import type { Task, TaskDependency } from "@/features/project/types/project";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface TaskDependenciesSectionProps {
   taskId: string;
@@ -21,6 +22,7 @@ export default function TaskDependenciesSection({
   onDeleteDependency,
   disabled = false,
 }: TaskDependenciesSectionProps) {
+  const intl = useAppIntl();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -58,14 +60,17 @@ export default function TaskDependenciesSection({
             onClick={() => setIsOpen((prev) => !prev)}
             className="inline-flex items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-indigo-400 hover:bg-indigo-50 hover:text-indigo-700"
           >
-            <Link2 className="h-3.5 w-3.5" /> Dependency (
-            {taskDependencies.length})
+            <Link2 className="h-3.5 w-3.5" />
+            {intl.formatMessage(
+              { id: "project.dependency.count" },
+              { count: taskDependencies.length },
+            )}
           </button>
           {isOpen && (
             <div className="absolute left-0 top-full z-30 mt-1 w-64 rounded border border-slate-200 bg-white p-1.5 shadow-lg">
               {dependencyCandidates.length === 0 ? (
                 <p className="px-2 py-2 text-[11px] text-slate-400">
-                  Không còn task để liên kết.
+                  {intl.formatMessage({ id: "project.dependency.noCandidates" })}
                 </p>
               ) : (
                 dependencyCandidates.slice(0, 20).map((candidate) => (
@@ -98,7 +103,7 @@ export default function TaskDependenciesSection({
                 key={dependency.id}
                 className="inline-flex max-w-full items-center gap-1 rounded bg-indigo-50 px-2 py-1 text-[10px] font-semibold text-indigo-700"
               >
-                ← {predecessor?.title || "Task trước"}
+                ← {predecessor?.title || intl.formatMessage({ id: "project.dependency.predecessor" })}
                 {onDeleteDependency && !disabled && (
                   <button
                     type="button"
@@ -106,7 +111,7 @@ export default function TaskDependenciesSection({
                       void onDeleteDependency(dependency.predecessorTaskId)
                     }
                     className="ml-1 font-black hover:text-red-600"
-                    aria-label="Xóa dependency"
+                    aria-label={intl.formatMessage({ id: "project.dependency.delete" })}
                   >
                     ×
                   </button>

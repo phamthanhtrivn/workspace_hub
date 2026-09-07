@@ -16,6 +16,7 @@ import {
 import { FilePickerButton } from "../ui/project-file-panel";
 import TaskChatButton from "../ui/task-chat-button";
 import { TaskStatusBadge } from "../ui/status-badge";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface SprintCardProps {
   sprint: Sprint;
@@ -72,6 +73,7 @@ export function SprintCard({
   onOpenChat,
   onCreateSprintTask,
 }: SprintCardProps) {
+  const intl = useAppIntl();
   const [isInlineCreating, setIsInlineCreating] = useState(false);
   const [inlineTitle, setInlineTitle] = useState("");
 
@@ -145,12 +147,22 @@ export function SprintCard({
           <div>
             <h3 className="text-sm font-black text-[#172B4D]">{sprint.name}</h3>
             <p className="text-[11px] font-semibold text-slate-400">
-              {sprint.startDate?.slice(0, 10)} → {sprint.endDate?.slice(0, 10)}{" "}
-              · {sprint.tasks.length} task
+              {intl.formatMessage(
+                { id: "project.sprint.dateAndTaskCount" },
+                {
+                  start: sprint.startDate
+                    ? intl.formatDate(new Date(sprint.startDate))
+                    : intl.formatMessage({ id: "app.notSet" }),
+                  end: sprint.endDate
+                    ? intl.formatDate(new Date(sprint.endDate))
+                    : intl.formatMessage({ id: "app.notSet" }),
+                  count: sprint.tasks.length,
+                },
+              )}
             </p>
           </div>
           <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-600">
-            {sprint.status}
+            {intl.formatMessage({ id: `project.sprint.status.${sprint.status.toLowerCase()}` })}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -158,7 +170,7 @@ export function SprintCard({
             <FilePickerButton
               compact
               disabled={filesBusy}
-              label="Thêm tệp"
+              label={intl.formatMessage({ id: "project.file.add" })}
               onFiles={(files: FileList | File[]) =>
                 void onAddFiles?.(files, sprint.id)
               }
@@ -171,7 +183,8 @@ export function SprintCard({
               onClick={() => onEditSprint(sprint)}
               className="inline-flex items-center gap-1 rounded border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
             >
-              <Pencil className="h-3.5 w-3.5" /> Chỉnh sửa
+              <Pencil className="h-3.5 w-3.5" />
+              {intl.formatMessage({ id: "app.edit" })}
             </button>
           )}
           {canManageSprints && sprint.status === SprintStatus.PLANNED && (
@@ -181,7 +194,8 @@ export function SprintCard({
               onClick={() => void onStartSprint(sprint.id)}
               className="inline-flex items-center gap-1 rounded bg-blue-600 px-2.5 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
             >
-              <CirclePlay className="h-3.5 w-3.5" /> Start sprint
+              <CirclePlay className="h-3.5 w-3.5" />
+              {intl.formatMessage({ id: "project.sprint.start" })}
             </button>
           )}
           {canManageSprints && sprint.status === SprintStatus.ACTIVE && (
@@ -191,7 +205,8 @@ export function SprintCard({
               onClick={() => void onCompleteSprint(sprint.id)}
               className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2.5 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
             >
-              <Check className="h-3.5 w-3.5" /> Complete sprint
+              <Check className="h-3.5 w-3.5" />
+              {intl.formatMessage({ id: "project.sprint.complete" })}
             </button>
           )}
           {canManageSprints && sprint.status === SprintStatus.COMPLETED && (
@@ -201,14 +216,15 @@ export function SprintCard({
               onClick={() => void onReopenSprint(sprint.id)}
               className="inline-flex items-center gap-1 rounded border border-blue-200 px-2.5 py-1.5 text-[11px] font-bold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
             >
-              <RotateCcw className="h-3.5 w-3.5" /> Reopen sprint
+              <RotateCcw className="h-3.5 w-3.5" />
+              {intl.formatMessage({ id: "project.sprint.reopen" })}
             </button>
           )}
         </div>
       </div>
       {sprint.goal && (
         <p className="border-b border-slate-100 px-4 py-2 text-xs font-semibold text-slate-500">
-          Goal: {sprint.goal}
+          {intl.formatMessage({ id: "project.sprint.goalValue" }, { goal: sprint.goal })}
         </p>
       )}
       <div className="divide-y divide-slate-100">
@@ -221,7 +237,7 @@ export function SprintCard({
           ])
         ) : (
           <div className="px-4 py-6 text-center text-xs font-semibold text-slate-400">
-            Chưa có task trong Sprint.
+            {intl.formatMessage({ id: "project.sprint.noTasks" })}
           </div>
         )}
       </div>
@@ -238,7 +254,7 @@ export function SprintCard({
                 autoFocus
                 value={inlineTitle}
                 onChange={(event) => setInlineTitle(event.target.value)}
-                placeholder="Nhập tên task..."
+                placeholder={intl.formatMessage({ id: "project.task.namePlaceholder" })}
                 className="min-w-0 flex-1 rounded border border-blue-300 px-3 py-2 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-blue-100"
               />
               <button
@@ -246,7 +262,7 @@ export function SprintCard({
                 disabled={isBusy || !inlineTitle.trim()}
                 className="rounded bg-blue-600 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
               >
-                Tạo
+                {intl.formatMessage({ id: "app.create" })}
               </button>
               <button
                 type="button"
@@ -256,7 +272,7 @@ export function SprintCard({
                 }}
                 className="rounded px-2 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100"
               >
-                Hủy
+                {intl.formatMessage({ id: "app.cancel" })}
               </button>
             </form>
           ) : (
@@ -268,7 +284,8 @@ export function SprintCard({
               }}
               className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 hover:text-blue-900"
             >
-              <Plus className="h-3.5 w-3.5" /> Tạo task trong Sprint
+              <Plus className="h-3.5 w-3.5" />
+              {intl.formatMessage({ id: "project.sprint.createTask" })}
             </button>
           ))}
       </div>

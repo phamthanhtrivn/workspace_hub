@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CalendarDays, X } from "lucide-react";
 import type { Task } from "@/features/project/types/project";
 import { toDateTimeInput } from "@/features/project/utils/task-dates";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export interface SprintFormValues {
   name: string;
@@ -26,6 +27,7 @@ export default function SprintEditDialog({
   onSubmit: (values: SprintFormValues) => Promise<void>;
   isSubmitting?: boolean;
 }) {
+  const intl = useAppIntl();
   const [name, setName] = useState(sprint?.title ?? "");
   const [startDate, setStartDate] = useState(
     toDateTimeInput(sprint?.startDate),
@@ -61,24 +63,28 @@ export default function SprintEditDialog({
           type="button"
           onClick={onClose}
           disabled={isSubmitting}
-          aria-label="Đóng"
+      aria-label={intl.formatMessage({ id: "app.close" })}
           className="absolute right-5 top-5 text-slate-600 hover:text-slate-900 disabled:opacity-50"
         >
           <X className="h-5 w-5" />
         </button>
 
         <h2 className="pr-8 text-xl font-bold text-slate-800">
-          Edit sprint: {sprint.title}
+          {intl.formatMessage(
+            { id: "project.sprint.editTitle" },
+            { name: sprint.title },
+          )}
         </h2>
         <p className="mt-4 text-sm text-slate-700">
-          Required fields are marked with an asterisk{" "}
+          {intl.formatMessage({ id: "app.requiredFieldsHint" })}{" "}
           <span className="text-red-600">*</span>
         </p>
 
         <div className="mt-5 space-y-4">
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-slate-700">
-              Sprint name <span className="text-red-600">*</span>
+          {intl.formatMessage({ id: "project.sprint.name" })}{" "}
+          <span className="text-red-600">*</span>
             </span>
             <input
               autoFocus
@@ -92,7 +98,8 @@ export default function SprintEditDialog({
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-slate-700">
-              Start date <span className="text-red-600">*</span>
+              {intl.formatMessage({ id: "project.startDate" })}{" "}
+              <span className="text-red-600">*</span>
             </span>
             <div className="relative">
               <input
@@ -108,7 +115,8 @@ export default function SprintEditDialog({
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-slate-700">
-              End date <span className="text-red-600">*</span>
+              {intl.formatMessage({ id: "project.dueDate" })}{" "}
+              <span className="text-red-600">*</span>
             </span>
             <div className="relative">
               <input
@@ -129,12 +137,12 @@ export default function SprintEditDialog({
               onChange={(event) => setAutoCompleteSprint(event.target.checked)}
               className="h-4 w-4 accent-slate-800"
             />
-            Automatically complete sprint
+          {intl.formatMessage({ id: "project.sprint.autoComplete" })}
           </label>
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-slate-700">
-              Sprint goal
+          {intl.formatMessage({ id: "project.sprint.goal" })}
             </span>
             <textarea
               value={goal}
@@ -152,14 +160,14 @@ export default function SprintEditDialog({
             disabled={isSubmitting}
             className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:opacity-50"
           >
-            Cancel
+          {intl.formatMessage({ id: "app.cancel" })}
           </button>
           <button
             type="submit"
             disabled={isSubmitting || !name.trim() || !startDate || !endDate}
             className="rounded-sm bg-blue-600 px-3 py-2 text-sm font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {isSubmitting ? "Updating..." : "Update"}
+          {intl.formatMessage({ id: isSubmitting ? "app.updating" : "app.update" })}
           </button>
         </div>
       </form>
