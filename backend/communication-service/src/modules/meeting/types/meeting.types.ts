@@ -58,7 +58,6 @@ export interface MeetingHistorySummaryResponse {
   endedMeetings: number;
   hostedMeetings: number;
   totalMinutes: number;
-  averageParticipants: number;
   lastMeetingAt: string | null;
 }
 

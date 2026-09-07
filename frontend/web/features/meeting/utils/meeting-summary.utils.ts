@@ -9,10 +9,21 @@ export function formatMeetingSummaryMinutes(totalMinutes: number) {
   return `${hours}h ${minutes}m`;
 }
 
-export function formatMeetingSummaryAverageParticipants(value: number) {
-  const safeValue = Math.max(0, value);
+export function formatMeetingSummaryLastMeetingAt(
+  value: string | null,
+  locale: string,
+  fallback: string,
+) {
+  if (!value) return fallback;
 
-  if (Number.isInteger(safeValue)) return String(safeValue);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
 
-  return safeValue.toFixed(1);
+  return new Intl.DateTimeFormat(locale, {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
 }

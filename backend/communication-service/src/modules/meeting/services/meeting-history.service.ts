@@ -170,7 +170,6 @@ export class MeetingHistoryService {
       liveMeetings,
       endedMeetings,
       hostedMeetings,
-      participantTotal,
       durationMeetings,
       lastMeeting,
     ] = await this.prisma.$transaction([
@@ -196,12 +195,6 @@ export class MeetingHistoryService {
               joinedAt: { not: null },
             },
           },
-        },
-      }),
-      this.prisma.meetingParticipant.count({
-        where: {
-          joinedAt: { not: null },
-          meeting: meetingWhere,
         },
       }),
       this.prisma.meeting.findMany({
@@ -230,10 +223,6 @@ export class MeetingHistoryService {
       const durationMs = meeting.endedAt.getTime() - meeting.startedAt.getTime();
       return total + Math.max(0, Math.round(durationMs / 60000));
     }, 0);
-    const averageParticipants =
-      totalMeetings > 0
-        ? Math.round((participantTotal / totalMeetings) * 10) / 10
-        : 0;
     const lastMeetingAt = lastMeeting
       ? (lastMeeting.startedAt ?? lastMeeting.createdAt).toISOString()
       : null;
@@ -244,7 +233,6 @@ export class MeetingHistoryService {
       endedMeetings,
       hostedMeetings,
       totalMinutes,
-      averageParticipants,
       lastMeetingAt,
     };
   }
