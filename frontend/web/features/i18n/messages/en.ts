@@ -614,6 +614,16 @@
   "meeting.dashboard.action.scheduleMeeting.description": "Plan a meeting ahead",
   "meeting.dashboard.action.viewRecordings.title": "View recordings",
   "meeting.dashboard.action.viewRecordings.description": "Browse saved sessions",
+  "meeting.stats.title": "Meeting stats",
+  "meeting.stats.totalMeetings":
+    "{count, plural, one {# meeting joined} other {# meetings joined}}",
+  "meeting.stats.live": "Live",
+  "meeting.stats.ended": "Ended",
+  "meeting.stats.hosted": "Hosted",
+  "meeting.stats.totalTime": "Total time",
+  "meeting.stats.avgParticipants": "Avg. people",
+  "meeting.stats.empty": "Your meeting stats will appear here.",
+  "meeting.stats.error": "Could not load meeting stats.",
   "meeting.joinModal.title": "Join a meeting",
   "meeting.joinModal.description":
     "Paste a WorkspaceHub meeting link or enter its join token.",

@@ -1,9 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MeetingRole, MeetingStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { UserProfileSnapshotService } from '../../user-profile-snapshot/user-profile-snapshot.service';
 import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
-import type { ListMeetingHistoryParams } from '../types/meeting.types';
+import type {
+  ListMeetingHistoryParams,
+  ListMeetingHistorySummaryParams,
+  MeetingHistorySummaryResponse,
+} from '../types/meeting.types';
 import { MeetingPresenterService } from './meeting-presenter.service';
 import { DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT, PARTICIPANT_PREVIEW_LIMIT } from '../types/meeting.constants';
 
@@ -22,6 +26,17 @@ export class MeetingHistoryService {
     private readonly meetingPresenterService: MeetingPresenterService,
   ) {}
 
+  private getJoinedMeetingWhere(userId: string): Prisma.MeetingWhereInput {
+    return {
+      participants: {
+        some: {
+          userId,
+          joinedAt: { not: null },
+        },
+      },
+    };
+  }
+
   async listMeetingHistory({ userId, query }: ListMeetingHistoryParams) {
     if (!userId) {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
@@ -32,15 +47,7 @@ export class MeetingHistoryService {
       MAX_HISTORY_LIMIT,
       normalizePositiveNumber(query?.limit, DEFAULT_HISTORY_LIMIT),
     );
-    const joinedParticipantWhere: Prisma.MeetingParticipantWhereInput = {
-      userId,
-      joinedAt: { not: null },
-    };
-    const meetingWhere: Prisma.MeetingWhereInput = {
-      participants: {
-        some: joinedParticipantWhere,
-      },
-    };
+    const meetingWhere = this.getJoinedMeetingWhere(userId);
 
     const [total, meetings] = await this.prisma.$transaction([
       this.prisma.meeting.count({ where: meetingWhere }),
@@ -147,6 +154,98 @@ export class MeetingHistoryService {
       limit,
       total,
       totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
+  async listMeetingHistorySummary({
+    userId,
+  }: ListMeetingHistorySummaryParams): Promise<MeetingHistorySummaryResponse> {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meetingWhere = this.getJoinedMeetingWhere(userId);
+    const [
+      totalMeetings,
+      liveMeetings,
+      endedMeetings,
+      hostedMeetings,
+      participantTotal,
+      durationMeetings,
+      lastMeeting,
+    ] = await this.prisma.$transaction([
+      this.prisma.meeting.count({ where: meetingWhere }),
+      this.prisma.meeting.count({
+        where: {
+          ...meetingWhere,
+          status: MeetingStatus.LIVE,
+        },
+      }),
+      this.prisma.meeting.count({
+        where: {
+          ...meetingWhere,
+          status: MeetingStatus.ENDED,
+        },
+      }),
+      this.prisma.meeting.count({
+        where: {
+          participants: {
+            some: {
+              userId,
+              role: MeetingRole.HOST,
+              joinedAt: { not: null },
+            },
+          },
+        },
+      }),
+      this.prisma.meetingParticipant.count({
+        where: {
+          joinedAt: { not: null },
+          meeting: meetingWhere,
+        },
+      }),
+      this.prisma.meeting.findMany({
+        where: {
+          ...meetingWhere,
+          startedAt: { not: null },
+          endedAt: { not: null },
+        },
+        select: {
+          startedAt: true,
+          endedAt: true,
+        },
+      }),
+      this.prisma.meeting.findFirst({
+        where: meetingWhere,
+        select: {
+          startedAt: true,
+          createdAt: true,
+        },
+        orderBy: [{ startedAt: 'desc' }, { createdAt: 'desc' }],
+      }),
+    ]);
+    const totalMinutes = durationMeetings.reduce((total, meeting) => {
+      if (!meeting.startedAt || !meeting.endedAt) return total;
+
+      const durationMs = meeting.endedAt.getTime() - meeting.startedAt.getTime();
+      return total + Math.max(0, Math.round(durationMs / 60000));
+    }, 0);
+    const averageParticipants =
+      totalMeetings > 0
+        ? Math.round((participantTotal / totalMeetings) * 10) / 10
+        : 0;
+    const lastMeetingAt = lastMeeting
+      ? (lastMeeting.startedAt ?? lastMeeting.createdAt).toISOString()
+      : null;
+
+    return {
+      totalMeetings,
+      liveMeetings,
+      endedMeetings,
+      hostedMeetings,
+      totalMinutes,
+      averageParticipants,
+      lastMeetingAt,
     };
   }
 }

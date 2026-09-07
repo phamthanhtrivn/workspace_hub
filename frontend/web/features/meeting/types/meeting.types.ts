@@ -317,6 +317,16 @@ export interface MeetingHistoryItem {
 export type MeetingHistoryResponse =
   MeetingPaginatedResponse<MeetingHistoryItem>;
 
+export interface MeetingHistorySummaryResponse {
+  totalMeetings: number;
+  liveMeetings: number;
+  endedMeetings: number;
+  hostedMeetings: number;
+  totalMinutes: number;
+  averageParticipants: number;
+  lastMeetingAt: string | null;
+}
+
 export interface MeetingEndedResponse {
   meetingId: string;
   joinToken: string;

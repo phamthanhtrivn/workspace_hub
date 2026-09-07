@@ -83,6 +83,22 @@ export class MeetingController {
     };
   }
 
+  @Get('history/summary')
+  async getMeetingHistorySummary(@Headers('x-user-id') userId: string) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const summary = await this.meetingService.listMeetingHistorySummary({
+      userId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.HISTORY_LISTED,
+      data: summary,
+    };
+  }
+
   @Get(':joinToken/access')
   async getMeetingAccess(
     @Param('joinToken') joinToken: string,
