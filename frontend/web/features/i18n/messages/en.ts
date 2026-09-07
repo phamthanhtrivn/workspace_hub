@@ -614,6 +614,15 @@
   "meeting.dashboard.action.scheduleMeeting.description": "Plan a meeting ahead",
   "meeting.dashboard.action.viewRecordings.title": "View recordings",
   "meeting.dashboard.action.viewRecordings.description": "Browse saved sessions",
+  "meeting.joinModal.title": "Join a meeting",
+  "meeting.joinModal.description":
+    "Paste a WorkspaceHub meeting link or enter its join token.",
+  "meeting.joinModal.linkLabel": "Meeting link",
+  "meeting.joinModal.placeholder": "https://workspacehub.app/meetings/...",
+  "meeting.joinModal.invalidLink": "Enter a valid meeting link or join token.",
+  "meeting.joinModal.openFailed":
+    "Could not open a new tab. Please allow pop-ups and try again.",
+  "meeting.joinModal.join": "Join in new tab",
   "meeting.comingSoon": "Soon",
   "meeting.prejoin.eyebrow": "Instant meeting",
   "meeting.prejoin.title": "Check your audio and video",

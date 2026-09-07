@@ -131,7 +131,7 @@ export const meetingDashboardActions = [
     titleId: "meeting.dashboard.action.joinMeeting.title",
     descriptionId: "meeting.dashboard.action.joinMeeting.description",
     tone: MeetingDashboardTone.BLUE,
-    enabled: false,
+    enabled: true,
   },
   {
     id: MeetingDashboardActionId.SCHEDULE_MEETING,
