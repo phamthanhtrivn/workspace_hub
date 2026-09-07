@@ -1,10 +1,12 @@
 import { api } from "@/lib/axios";
 import { type TaskComment } from "@/features/project/types/project";
+import { fetchAllPages, type PaginationMeta } from "./pagination";
 
 interface ApiResponse<T> {
   success: boolean;
   message: string;
   data: T;
+  meta?: PaginationMeta | null;
 }
 
 interface TaskCommentApiModel {
@@ -82,10 +84,14 @@ async function hydrateCommentAuthors(
 }
 
 export async function getTaskComments(taskId: string): Promise<TaskComment[]> {
-  const response = await api.get<ApiResponse<TaskCommentApiModel[]>>(
-    `/api/tasks/${taskId}/comments`,
-  );
-  return hydrateCommentAuthors(unwrap(response) || []);
+  const comments = await fetchAllPages(async (page, limit) => {
+    const response = await api.get<ApiResponse<TaskCommentApiModel[]>>(
+      `/api/tasks/${taskId}/comments`,
+      { params: { page, limit } },
+    );
+    return { items: unwrap(response) || [], meta: response.data.meta };
+  });
+  return hydrateCommentAuthors(comments);
 }
 
 export async function createTaskComment(

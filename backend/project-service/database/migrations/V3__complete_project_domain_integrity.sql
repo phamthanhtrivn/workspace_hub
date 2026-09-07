@@ -1,7 +1,7 @@
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS visibility VARCHAR(20) DEFAULT 'MEMBERS_ONLY';
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS start_date TIMESTAMP(6);
-ALTER TABLE projects ADD COLUMN IF NOT EXISTS due_date TIMESTAMP(6);
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS start_date TIMESTAMPTZ;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS due_date TIMESTAMPTZ;
 
 UPDATE projects SET visibility = 'MEMBERS_ONLY' WHERE visibility IS NULL;
 
@@ -18,8 +18,8 @@ ALTER TABLE projects ADD CONSTRAINT chk_projects_archive_consistency
     CHECK ((status = 'ARCHIVED') = archived);
 
 ALTER TABLE project_members ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ACTIVE';
-ALTER TABLE project_members ADD COLUMN IF NOT EXISTS left_at TIMESTAMP(6);
-ALTER TABLE project_members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE project_members ADD COLUMN IF NOT EXISTS left_at TIMESTAMPTZ;
+ALTER TABLE project_members ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE project_members ADD COLUMN IF NOT EXISTS version BIGINT NOT NULL DEFAULT 0;
 
 UPDATE project_members SET status = 'ACTIVE' WHERE status IS NULL;
@@ -35,7 +35,7 @@ ALTER TABLE project_members ADD CONSTRAINT chk_project_members_status
     CHECK (status IN ('ACTIVE', 'LEFT', 'REMOVED'));
 
 ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by UUID;
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP(6);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
 UPDATE tasks
 SET completed_at = COALESCE(completed_at, updated_at, created_at),

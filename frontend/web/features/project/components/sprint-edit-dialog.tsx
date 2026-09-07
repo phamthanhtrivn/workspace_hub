@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { CalendarDays, X } from "lucide-react";
 import type { Task } from "@/features/project/types/project";
 
@@ -30,20 +30,11 @@ export default function SprintEditDialog({
   onSubmit: (values: SprintFormValues) => Promise<void>;
   isSubmitting?: boolean;
 }) {
-  const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [autoCompleteSprint, setAutoCompleteSprint] = useState(false);
-  const [goal, setGoal] = useState("");
-
-  useEffect(() => {
-    if (!open || !sprint) return;
-    setName(sprint.title);
-    setStartDate(toDateTimeInput(sprint.startDate));
-    setEndDate(toDateTimeInput(sprint.dueDate));
-    setAutoCompleteSprint(Boolean(sprint.autoCompleteSprint));
-    setGoal(sprint.description || "");
-  }, [open, sprint]);
+  const [name, setName] = useState(sprint?.title ?? "");
+  const [startDate, setStartDate] = useState(toDateTimeInput(sprint?.startDate));
+  const [endDate, setEndDate] = useState(toDateTimeInput(sprint?.dueDate));
+  const [autoCompleteSprint, setAutoCompleteSprint] = useState(Boolean(sprint?.autoCompleteSprint));
+  const [goal, setGoal] = useState(sprint?.description ?? "");
 
   if (!open || !sprint) return null;
 

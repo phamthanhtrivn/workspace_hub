@@ -8,6 +8,7 @@ import {
   ProjectRole,
   TaskStatus,
   TaskPriority,
+  TaskType,
 } from "@/features/project/types/project";
 
 // ─── Labels ───────────────────────────────────────────────────────────────────
@@ -34,6 +35,24 @@ const labelsProject3: TaskLabel[] = [
 
 // ─── Members ──────────────────────────────────────────────────────────────────
 
+const ownerPermissions = {
+  canCreateTask: true,
+  canEditOwnTask: true,
+  canEditOthersTask: true,
+  canManageSprints: true,
+  canManageMembers: true,
+  canManageLabels: true,
+};
+
+const memberPermissions = {
+  canCreateTask: true,
+  canEditOwnTask: true,
+  canEditOthersTask: false,
+  canManageSprints: false,
+  canManageMembers: false,
+  canManageLabels: false,
+};
+
 const membersProject1: ProjectMember[] = [
   {
     id: "mem-1",
@@ -41,6 +60,7 @@ const membersProject1: ProjectMember[] = [
     userId: "u-1",
     displayName: "Thanh Trí",
     role: ProjectRole.OWNER,
+    ...ownerPermissions,
     joinedAt: "2026-05-01T08:00:00Z",
   },
   {
@@ -48,7 +68,8 @@ const membersProject1: ProjectMember[] = [
     projectId: "proj-1",
     userId: "u-2",
     displayName: "Minh Anh",
-    role: ProjectRole.ADMIN,
+    role: ProjectRole.MEMBER,
+    ...ownerPermissions,
     joinedAt: "2026-05-02T09:00:00Z",
   },
   {
@@ -57,6 +78,7 @@ const membersProject1: ProjectMember[] = [
     userId: "u-3",
     displayName: "Hoàng Nam",
     role: ProjectRole.MEMBER,
+    ...memberPermissions,
     joinedAt: "2026-05-03T10:00:00Z",
   },
   {
@@ -65,6 +87,7 @@ const membersProject1: ProjectMember[] = [
     userId: "u-4",
     displayName: "Thu Hà",
     role: ProjectRole.MEMBER,
+    ...memberPermissions,
     joinedAt: "2026-05-05T11:00:00Z",
   },
 ];
@@ -76,6 +99,7 @@ const membersProject2: ProjectMember[] = [
     userId: "u-1",
     displayName: "Thanh Trí",
     role: ProjectRole.OWNER,
+    ...ownerPermissions,
     joinedAt: "2026-06-01T08:00:00Z",
   },
   {
@@ -84,6 +108,7 @@ const membersProject2: ProjectMember[] = [
     userId: "u-5",
     displayName: "Quốc Bảo",
     role: ProjectRole.MEMBER,
+    ...memberPermissions,
     joinedAt: "2026-06-02T09:00:00Z",
   },
 ];
@@ -95,6 +120,7 @@ const membersProject3: ProjectMember[] = [
     userId: "u-1",
     displayName: "Thanh Trí",
     role: ProjectRole.OWNER,
+    ...ownerPermissions,
     joinedAt: "2026-04-15T08:00:00Z",
   },
   {
@@ -103,6 +129,7 @@ const membersProject3: ProjectMember[] = [
     userId: "u-2",
     displayName: "Minh Anh",
     role: ProjectRole.MEMBER,
+    ...memberPermissions,
     joinedAt: "2026-04-16T09:00:00Z",
   },
   {
@@ -110,7 +137,8 @@ const membersProject3: ProjectMember[] = [
     projectId: "proj-3",
     userId: "u-6",
     displayName: "Lan Phương",
-    role: ProjectRole.ADMIN,
+    role: ProjectRole.MEMBER,
+    ...ownerPermissions,
     joinedAt: "2026-04-17T10:00:00Z",
   },
 ];
@@ -127,6 +155,12 @@ function buildTask(
   },
 ): Task {
   return {
+    taskNumber: Number(overrides.id.replace(/\D/g, "")) || 1,
+    taskType: overrides.parentTaskId
+      ? TaskType.SUBTASK
+      : overrides.isParentTask
+        ? TaskType.EPIC
+        : TaskType.TASK,
     description: "",
     createdBy: "u-1",
     reporterId: "u-1",
@@ -675,6 +709,10 @@ export const mockProjects: Project[] = [
     archived: false,
     createdAt: "2026-05-01T08:00:00Z",
     updatedAt: "2026-06-27T12:00:00Z",
+    totalTaskCount: tasksProject1.length,
+    completedTaskCount: tasksProject1.filter(
+      (task) => task.status === TaskStatus.DONE,
+    ).length,
     projectSetting: {
       id: "ps-1",
       projectId: "proj-1",
@@ -698,6 +736,10 @@ export const mockProjects: Project[] = [
     archived: false,
     createdAt: "2026-06-01T08:00:00Z",
     updatedAt: "2026-06-27T10:00:00Z",
+    totalTaskCount: tasksProject2.length,
+    completedTaskCount: tasksProject2.filter(
+      (task) => task.status === TaskStatus.DONE,
+    ).length,
     projectSetting: {
       id: "ps-2",
       projectId: "proj-2",
@@ -721,6 +763,10 @@ export const mockProjects: Project[] = [
     archived: false,
     createdAt: "2026-04-15T08:00:00Z",
     updatedAt: "2026-06-20T10:00:00Z",
+    totalTaskCount: tasksProject3.length,
+    completedTaskCount: tasksProject3.filter(
+      (task) => task.status === TaskStatus.DONE,
+    ).length,
     projectSetting: {
       id: "ps-3",
       projectId: "proj-3",

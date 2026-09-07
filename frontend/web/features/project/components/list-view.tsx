@@ -5,6 +5,7 @@ import {
   type Task,
   ProjectType,
   TaskStatus,
+  isTerminalTaskStatus,
 } from "@/features/project/types/project";
 import { TaskStatusBadge, LabelBadge } from "./status-badge";
 import { Avatar } from "./avatar-stack";
@@ -238,9 +239,11 @@ export default function ListView({
         key={task.id}
         role="button"
         tabIndex={0}
-        draggable={reorder?.enabled}
+        draggable={reorder?.enabled && !isTerminalTaskStatus(task.status)}
         onDragStart={() => {
-          if (reorder?.enabled) setDraggedTaskId(task.id);
+          if (reorder?.enabled && !isTerminalTaskStatus(task.status)) {
+            setDraggedTaskId(task.id);
+          }
         }}
         onDragEnd={() => setDraggedTaskId(null)}
         onDragOver={(e) => {
@@ -345,6 +348,7 @@ export default function ListView({
 
   // ── Inline Creator ("+ Create" bar) ──
   const renderInlineCreator = (parentTaskId?: string, isParentTask = false) => {
+    if (!onAddTaskInline) return null;
     const key = isParentTask
       ? "__new_parent_task__"
       : parentTaskId || "__backlog__";
@@ -730,7 +734,7 @@ export default function ListView({
       {/* ════════════════════════════════════════════════════════
           3. BOTTOM "+ Create" — creates a new root group task
          ════════════════════════════════════════════════════════ */}
-      {isGeneralProject && activeInlineCreatorId !== "__backlog__" && (
+      {isGeneralProject && onAddTaskInline && activeInlineCreatorId !== "__backlog__" && (
         <button
           type="button"
           onClick={() => {

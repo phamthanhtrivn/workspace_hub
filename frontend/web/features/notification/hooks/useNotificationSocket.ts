@@ -2,7 +2,10 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { RootState, useAppDispatch, useAppSelector } from "@/store/store";
 import { notificationSocketService } from "../api/notification-socket.service";
-import { addNotification } from "@/store/notification/notification.slice";
+import {
+  addNotification,
+  updateNotificationSuccess,
+} from "@/store/notification/notification.slice";
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import {
   NotificationType,
@@ -52,9 +55,14 @@ export function useNotificationSocket() {
     };
 
     socket.on("new_notification", handleNewNotification);
+    const handleUpdatedNotification = (notification: AppNotification) => {
+      dispatch(updateNotificationSuccess(notification));
+    };
+    socket.on("notification_updated", handleUpdatedNotification);
 
     return () => {
       socket.off("new_notification", handleNewNotification);
+      socket.off("notification_updated", handleUpdatedNotification);
     };
   }, [accessToken, dispatch, queryClient]);
 }

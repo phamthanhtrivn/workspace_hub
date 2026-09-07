@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiResponse } from '../../common/api-response';
+import { PaginationQueryDto } from '../../common/pagination';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
@@ -13,8 +14,10 @@ export class CommentController {
   async findAll(
     @CurrentUserId() userId: string,
     @Param('taskId', new ParseUUIDPipe()) taskId: string,
+    @Query() query: PaginationQueryDto,
   ) {
-    return ApiResponse.success(await this.comments.findAll(userId, taskId), 'Comments loaded successfully');
+    const result = await this.comments.findAll(userId, taskId, query);
+    return ApiResponse.success(result.items, 'Comments loaded successfully', result.pagination);
   }
 
   @Post('tasks/:taskId/comments')

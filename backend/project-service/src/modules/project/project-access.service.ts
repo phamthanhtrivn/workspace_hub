@@ -1,17 +1,32 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ProjectMemberStatus, ProjectRole, ProjectVisibility } from './project.enums';
+import { ProjectMemberStatus, ProjectVisibility } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 export type ProjectWithSetting = Prisma.ProjectGetPayload<{
   include: { setting: true };
 }>;
 
+type DelegatedPermission =
+  | 'canCreateTask'
+  | 'canEditOwnTask'
+  | 'canEditOthersTask'
+  | 'canManageSprints'
+  | 'canManageMembers'
+  | 'canManageLabels';
+
 @Injectable()
 export class ProjectAccessService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async requireReadAccess(userId: string, projectId: string): Promise<ProjectWithSetting> {
+  async requireReadAccess(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
     const project = await this.findProject(projectId);
     const isOwner = project.ownerId === userId;
     const isPublic = project.visibility === ProjectVisibility.PUBLIC;
@@ -24,63 +39,94 @@ export class ProjectAccessService {
     return project;
   }
 
-  async requireManager(userId: string, projectId: string): Promise<ProjectWithSetting> {
+  async requireOwner(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
     const project = await this.findProject(projectId);
-    if (project.ownerId === userId) {
-      return project;
+    if (project.ownerId !== userId) {
+      throw new ForbiddenException('Project owner permission is required');
     }
-
-    const member = await this.getActiveMember(projectId, userId);
-    if (member.role !== ProjectRole.ADMIN) {
-      throw new ForbiddenException('Project manager permission is required');
-    }
-
     return project;
   }
 
-  async requireCanCreateTask(userId: string, projectId: string): Promise<ProjectWithSetting> {
+  async requireCanCreateTask(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
     const project = await this.requireReadAccess(userId, projectId);
     if (project.ownerId === userId) {
       return project;
     }
 
-    const member = await this.getActiveMember(projectId, userId);
-    const canCreate = member.role === ProjectRole.ADMIN
-      || project.setting?.allowMemberCreateTask === true;
-
-    if (!canCreate) {
-      throw new ForbiddenException('You cannot create tasks in this project');
-    }
-
-    return project;
+    return this.requireMemberPermission(
+      userId,
+      project,
+      'canCreateTask',
+      'You cannot create tasks in this project',
+    );
   }
 
-  async requireCanEditTask(userId: string, projectId: string, createdBy: string): Promise<ProjectWithSetting> {
+  async requireCanEditTask(
+    userId: string,
+    projectId: string,
+    createdBy: string,
+  ): Promise<ProjectWithSetting> {
     const project = await this.requireReadAccess(userId, projectId);
     if (project.ownerId === userId) {
-      return project;
-    }
-
-    const member = await this.getActiveMember(projectId, userId);
-    if (member.role === ProjectRole.ADMIN) {
       return project;
     }
 
     const isOwnTask = createdBy === userId;
-    const canEdit = isOwnTask
-      ? project.setting?.allowMemberEditOwnTask === true
-      : project.setting?.allowMemberEditOthersTask === true;
-
-    if (!canEdit) {
-      throw new ForbiddenException('You cannot edit this task');
-    }
-
-    return project;
+    return this.requireMemberPermission(
+      userId,
+      project,
+      isOwnTask ? 'canEditOwnTask' : 'canEditOthersTask',
+      'You cannot edit this task',
+    );
   }
 
-  async requireCanInvite(userId: string, projectId: string): Promise<ProjectWithSetting> {
-    const project = await this.requireManagerOrMemberInvite(userId, projectId);
-    return project;
+  async requireCanInvite(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
+    return this.requireCanManageMembers(userId, projectId);
+  }
+
+  async requireCanManageSprints(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
+    return this.requireDelegatedPermission(
+      userId,
+      projectId,
+      'canManageSprints',
+      'You cannot manage sprints in this project',
+    );
+  }
+
+  async requireCanManageMembers(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
+    return this.requireDelegatedPermission(
+      userId,
+      projectId,
+      'canManageMembers',
+      'You cannot manage members in this project',
+    );
+  }
+
+  async requireCanManageLabels(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
+    return this.requireDelegatedPermission(
+      userId,
+      projectId,
+      'canManageLabels',
+      'You cannot manage labels in this project',
+    );
   }
 
   async findProject(projectId: string): Promise<ProjectWithSetting> {
@@ -117,20 +163,29 @@ export class ProjectAccessService {
     return member?.status === ProjectMemberStatus.ACTIVE;
   }
 
-  private async requireManagerOrMemberInvite(userId: string, projectId: string): Promise<ProjectWithSetting> {
-    const project = await this.findProject(projectId);
+  private async requireDelegatedPermission(
+    userId: string,
+    projectId: string,
+    permission: DelegatedPermission,
+    message: string,
+  ): Promise<ProjectWithSetting> {
+    const project = await this.requireReadAccess(userId, projectId);
     if (project.ownerId === userId) {
       return project;
     }
+    return this.requireMemberPermission(userId, project, permission, message);
+  }
 
-    const member = await this.getActiveMember(projectId, userId);
-    const canInvite = member.role === ProjectRole.ADMIN
-      || project.setting?.allowMemberInvite === true;
-
-    if (!canInvite) {
-      throw new ForbiddenException('You cannot invite members to this project');
+  private async requireMemberPermission(
+    userId: string,
+    project: ProjectWithSetting,
+    permission: DelegatedPermission,
+    message: string,
+  ): Promise<ProjectWithSetting> {
+    const member = await this.getActiveMember(project.id, userId);
+    if (!member[permission]) {
+      throw new ForbiddenException(message);
     }
-
     return project;
   }
 }

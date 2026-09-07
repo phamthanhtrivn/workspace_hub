@@ -1,11 +1,8 @@
 import { api } from "@/lib/axios";
+import { getUserProfiles } from "./project.api";
 
 export type ProjectInvitationStatus =
-  | "PENDING"
-  | "ACCEPTED"
-  | "DECLINED"
-  | "CANCELLED"
-  | "EXPIRED";
+  "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED";
 
 export interface ProjectInvitation {
   id: string;
@@ -17,6 +14,15 @@ export interface ProjectInvitation {
   createdAt: string;
   respondedAt?: string;
   expiresAt?: string;
+}
+
+export interface ProjectInvitationWithUser extends ProjectInvitation {
+  invitedUser: {
+    id: string;
+    email?: string;
+    fullName?: string;
+    avatarUrl?: string;
+  };
 }
 
 interface ApiResponse<T> {
@@ -43,13 +49,6 @@ export async function createProjectInvitation(
   return unwrap(response);
 }
 
-export async function getPendingProjectInvitations(): Promise<ProjectInvitation[]> {
-  const response = await api.get<ApiResponse<ProjectInvitation[]>>(
-    "/api/project-invitations/pending",
-  );
-  return unwrap(response) || [];
-}
-
 export async function acceptProjectInvitation(
   invitationId: string,
 ): Promise<ProjectInvitation> {
@@ -68,9 +67,47 @@ export async function declineProjectInvitation(
   return unwrap(response);
 }
 
-export async function removeProjectMember(
+export async function getPendingProjectInvitations(
   projectId: string,
-  memberUserId: string,
+): Promise<ProjectInvitationWithUser[]> {
+  const response = await api.get<ApiResponse<ProjectInvitation[]>>(
+    `/api/projects/${projectId}/invitations`,
+  );
+  const invitations = unwrap(response) || [];
+  const profiles = await getUserProfiles(
+    invitations.map((invitation) => invitation.invitedUserId),
+  );
+
+  return invitations.map((invitation) => {
+    const profile = profiles.get(invitation.invitedUserId);
+    return {
+      ...invitation,
+      invitedUser: {
+        id: invitation.invitedUserId,
+        ...(profile?.email ? { email: profile.email } : {}),
+        ...(profile?.fullName ? { fullName: profile.fullName } : {}),
+        ...(profile?.avatarUrl ? { avatarUrl: profile.avatarUrl } : {}),
+      },
+    };
+  });
+}
+
+export async function cancelProjectInvitation(
+  projectId: string,
+  invitationId: string,
 ): Promise<void> {
-  await api.delete(`/api/projects/${projectId}/members/${memberUserId}`);
+  const response = await api.delete<ApiResponse<null>>(
+    `/api/projects/${projectId}/invitations/${invitationId}`,
+  );
+  unwrap(response);
+}
+
+export async function resendProjectInvitation(
+  projectId: string,
+  invitationId: string,
+): Promise<ProjectInvitation> {
+  const response = await api.post<ApiResponse<ProjectInvitation>>(
+    `/api/projects/${projectId}/invitations/${invitationId}/resend`,
+  );
+  return unwrap(response);
 }

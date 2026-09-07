@@ -1,6 +1,7 @@
 export const KAFKA_TOPICS = {
   // Topic where other services publish raw notifications to be persisted
   NOTIFICATION_TOPIC: 'notification-topic',
+  CALENDAR_REMINDER_TOPIC: 'calendar-reminder-events',
 };
 
 export const KAFKA_EVENTS = {
@@ -12,6 +13,7 @@ export const KAFKA_EVENTS = {
     SPACE_MEMBER_REMOVED: 'SPACE_MEMBER_REMOVED',
     CHANNEL_DISBANDED: 'CHANNEL_DISBANDED',
     SPACE_OWNERSHIP_TRANSFERRED: 'SPACE_OWNERSHIP_TRANSFERRED',
+    CALENDAR_REMINDER: 'CALENDAR_REMINDER',
   },
 };
 

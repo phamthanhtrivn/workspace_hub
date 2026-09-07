@@ -1,6 +1,8 @@
 import { IsDateString, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Trim } from '../../../common/trim.decorator';
 
 export class CreateSprintDto {
+  @Trim()
   @IsString()
   @MinLength(1)
   @MaxLength(200)

@@ -25,7 +25,6 @@ export enum ProjectVisibility {
 
 export enum ProjectRole {
   OWNER = 'OWNER',
-  ADMIN = 'ADMIN',
   MEMBER = 'MEMBER',
 }
 
@@ -58,6 +57,14 @@ export enum TaskPriority {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
   URGENT = 'URGENT',
+}
+
+export enum TaskType {
+  TASK = 'TASK',
+  BUG = 'BUG',
+  STORY = 'STORY',
+  EPIC = 'EPIC',
+  SUBTASK = 'SUBTASK',
 }
 
 export enum InvitationStatus {

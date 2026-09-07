@@ -15,6 +15,7 @@ export default function ProjectSettingsDialog({
   onClose,
   onSave,
   onArchive,
+  canEditProject = true,
   labels = [],
   onCreateLabel,
   onDeleteLabel,
@@ -31,6 +32,7 @@ export default function ProjectSettingsDialog({
     dueDate: string | null;
   }) => Promise<void>;
   onArchive: () => Promise<void>;
+  canEditProject?: boolean;
   labels?: TaskLabel[];
   onCreateLabel?: (payload: { name: string; color: string }) => Promise<void>;
   onDeleteLabel?: (labelId: string) => Promise<void>;
@@ -49,7 +51,7 @@ export default function ProjectSettingsDialog({
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!name.trim() || isBusy) return;
+    if (!canEditProject || !name.trim() || isBusy) return;
     if (startDate && dueDate && startDate > dueDate) return;
     await onSave({
       name: name.trim(),
@@ -75,10 +77,12 @@ export default function ProjectSettingsDialog({
         <div className="flex items-start justify-between">
           <div>
             <h2 className="text-lg font-black text-[#172B4D]">
-              Cài đặt Project
+              {canEditProject ? "Cài đặt Project" : "Nhãn của Project"}
             </h2>
             <p className="mt-1 text-xs font-semibold text-slate-400">
-              Cập nhật thông tin và trạng thái Project.
+              {canEditProject
+                ? "Cập nhật thông tin, trạng thái và nhãn của Project."
+                : "Quản lý các nhãn dùng cho công việc trong Project."}
             </p>
           </div>
           <button
@@ -90,65 +94,69 @@ export default function ProjectSettingsDialog({
           </button>
         </div>
         <div className="mt-5 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-xs font-bold text-slate-500">
-              Ngày bắt đầu
-              <input
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-                max={dueDate || undefined}
-                className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-              />
-            </label>
-            <label className="block text-xs font-bold text-slate-500">
-              Ngày kết thúc dự kiến
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(event) => setDueDate(event.target.value)}
-                min={startDate || undefined}
-                className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-              />
-            </label>
-          </div>
-          {startDate && dueDate && startDate > dueDate && (
-            <p className="text-xs font-semibold text-red-600">
-              Ngày bắt đầu không được sau ngày kết thúc.
-            </p>
+          {canEditProject && (
+            <>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block text-xs font-bold text-slate-500">
+                  Ngày bắt đầu
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    max={dueDate || undefined}
+                    className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
+                  />
+                </label>
+                <label className="block text-xs font-bold text-slate-500">
+                  Ngày kết thúc dự kiến
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(event) => setDueDate(event.target.value)}
+                    min={startDate || undefined}
+                    className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
+                  />
+                </label>
+              </div>
+              {startDate && dueDate && startDate > dueDate && (
+                <p className="text-xs font-semibold text-red-600">
+                  Ngày bắt đầu không được sau ngày kết thúc.
+                </p>
+              )}
+              <label className="block text-xs font-bold text-slate-500">
+                Tên Project
+                <input
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
+                />
+              </label>
+              <label className="block text-xs font-bold text-slate-500">
+                Mô tả
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  rows={3}
+                  className="mt-1 w-full resize-none rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
+                />
+              </label>
+              <label className="block text-xs font-bold text-slate-500">
+                Trạng thái
+                <select
+                  value={status}
+                  onChange={(event) =>
+                    setStatus(event.target.value as ProjectStatus)
+                  }
+                  className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
+                >
+                  <option value={ProjectStatus.ACTIVE}>Đang hoạt động</option>
+                  <option value={ProjectStatus.ON_HOLD}>Tạm dừng</option>
+                  <option value={ProjectStatus.COMPLETED}>Đã hoàn thành</option>
+                </select>
+              </label>
+            </>
           )}
-          <label className="block text-xs font-bold text-slate-500">
-            Tên Project
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-            />
-          </label>
-          <label className="block text-xs font-bold text-slate-500">
-            Mô tả
-            <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              rows={3}
-              className="mt-1 w-full resize-none rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-            />
-          </label>
-          <label className="block text-xs font-bold text-slate-500">
-            Trạng thái
-            <select
-              value={status}
-              onChange={(event) =>
-                setStatus(event.target.value as ProjectStatus)
-              }
-              className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-            >
-              <option value={ProjectStatus.ACTIVE}>Đang hoạt động</option>
-              <option value={ProjectStatus.ON_HOLD}>Tạm dừng</option>
-              <option value={ProjectStatus.COMPLETED}>Đã hoàn thành</option>
-            </select>
-          </label>
           {onCreateLabel && (
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
               <p className="text-xs font-bold text-slate-600">
@@ -208,14 +216,18 @@ export default function ProjectSettingsDialog({
           )}
         </div>
         <div className="mt-6 flex items-center justify-between gap-2">
-          <button
-            type="button"
-            disabled={isBusy}
-            onClick={() => void onArchive()}
-            className="inline-flex items-center gap-1.5 rounded px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
-          >
-            <Archive className="h-3.5 w-3.5" /> Archive Project
-          </button>
+          {canEditProject ? (
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => void onArchive()}
+              className="inline-flex items-center gap-1.5 rounded px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
+            >
+              <Archive className="h-3.5 w-3.5" /> Archive Project
+            </button>
+          ) : (
+            <span />
+          )}
           <div className="flex gap-2">
             <button
               type="button"
@@ -224,13 +236,15 @@ export default function ProjectSettingsDialog({
             >
               Hủy
             </button>
-            <button
-              type="submit"
-              disabled={isBusy || !name.trim()}
-              className="rounded bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
-            >
-              Lưu thay đổi
-            </button>
+            {canEditProject && (
+              <button
+                type="submit"
+                disabled={isBusy || !name.trim()}
+                className="rounded bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+              >
+                Lưu thay đổi
+              </button>
+            )}
           </div>
         </div>
       </form>

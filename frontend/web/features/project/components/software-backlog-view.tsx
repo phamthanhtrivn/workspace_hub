@@ -19,6 +19,7 @@ import {
 } from "@/features/project/types/project";
 import { TaskStatusBadge } from "./status-badge";
 import TaskChatButton from "./task-chat-button";
+import { getIssueKey } from "./task-card";
 import ProjectFilePanel, {
   createProjectFileItems,
   FilePickerButton,
@@ -48,6 +49,9 @@ export default function SoftwareBacklogView({
   onCompleteSprint,
   onReopenSprint,
   isBusy = false,
+  canCreateTask = false,
+  canManageSprints = false,
+  canEditTask = () => false,
 }: {
   tasks: Task[];
   sprints: Sprint[];
@@ -67,6 +71,9 @@ export default function SoftwareBacklogView({
   onCompleteSprint: (sprintId: string) => Promise<void>;
   onReopenSprint: (sprintId: string) => Promise<void>;
   isBusy?: boolean;
+  canCreateTask?: boolean;
+  canManageSprints?: boolean;
+  canEditTask?: (task: Task) => boolean;
 }) {
   const [selectedTaskIds, setSelectedTaskIds] = useState<string[]>([]);
   const [targetSprintId, setTargetSprintId] = useState("");
@@ -212,6 +219,8 @@ export default function SoftwareBacklogView({
     if (sprint.status !== SprintStatus.PLANNED || !onAddTasksToSprint) return;
     const payload = readDragPayload(event);
     if (!payload || payload.sprintId === sprint.id) return;
+    const task = activeTasks.find((item) => item.id === payload.taskId);
+    if (!task || !canEditTask(task) || isTerminalTaskStatus(task.status)) return;
     await onAddTasksToSprint(sprint.id, [payload.taskId]);
   };
 
@@ -220,6 +229,8 @@ export default function SoftwareBacklogView({
     setDragOverTarget(null);
     const payload = readDragPayload(event);
     if (!payload?.sprintId || !onRemoveTaskFromSprint) return;
+    const task = activeTasks.find((item) => item.id === payload.taskId);
+    if (!task || !canEditTask(task) || isTerminalTaskStatus(task.status)) return;
     await onRemoveTaskFromSprint(payload.sprintId, payload.taskId);
   };
 
@@ -247,22 +258,22 @@ export default function SoftwareBacklogView({
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            {canCreateTask && <button
               type="button"
               onClick={() => onCreateTask?.()}
               className="inline-flex items-center gap-1.5 rounded border border-blue-200 bg-white px-3 py-2 text-xs font-bold text-blue-700 shadow-sm hover:bg-blue-50"
             >
               <Plus className="h-3.5 w-3.5" />
               Tạo task
-            </button>
-            <button
+            </button>}
+            {canManageSprints && <button
               type="button"
               onClick={openCreateSprint}
               className="inline-flex items-center gap-1.5 rounded bg-[#0052CC] px-3 py-2 text-xs font-bold text-white shadow-sm hover:bg-[#0747A6]"
             >
               <Plus className="h-3.5 w-3.5" />
               Create sprint
-            </button>
+            </button>}
           </div>
         </div>
 
@@ -327,24 +338,30 @@ export default function SoftwareBacklogView({
                       type="checkbox"
                       checked={selectedTaskIds.includes(task.id)}
                       onChange={() => toggleTask(task.id)}
-                      disabled={isTerminalTaskStatus(task.status)}
+                      disabled={
+                        isTerminalTaskStatus(task.status) || !canEditTask(task)
+                      }
                       className="h-4 w-4 accent-[#0052CC] disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label={`Chọn ${task.title}`}
                     />
                     <button
                       type="button"
-                      draggable={!isTerminalTaskStatus(task.status)}
+                      draggable={
+                        canEditTask(task) && !isTerminalTaskStatus(task.status)
+                      }
                       onDragStart={(event) => {
-                        if (!isTerminalTaskStatus(task.status)) handleDragStart(event, task.id);
+                        if (canEditTask(task) && !isTerminalTaskStatus(task.status)) {
+                          handleDragStart(event, task.id);
+                        }
                       }}
                       onClick={() => onTaskClick?.(task)}
-                      className="min-w-0 flex-1 cursor-grab text-left active:cursor-grabbing"
+                      className={`min-w-0 flex-1 text-left ${canEditTask(task) && !isTerminalTaskStatus(task.status) ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
                     >
                       <span className="block truncate text-xs font-bold text-[#172B4D]">
                         {task.title}
                       </span>
                       <span className="mt-0.5 block text-[10px] font-semibold text-slate-400">
-                        {task.id.slice(0, 8).toUpperCase()}
+                        {getIssueKey(task)}
                       </span>
                     </button>
                     <TaskChatButton
@@ -406,11 +423,11 @@ export default function SoftwareBacklogView({
           const renderTaskRow = (task: Task, nested = false) => (
             <div
               key={task.id}
-              draggable
+              draggable={canEditTask(task) && !isTerminalTaskStatus(task.status)}
               onDragStart={(event) =>
                 handleDragStart(event, task.id, sprint.id)
               }
-              className={`flex w-full cursor-grab items-center gap-3 py-2.5 pr-4 text-left hover:bg-slate-50 active:cursor-grabbing ${nested ? "border-t border-slate-100 bg-slate-50/50 pl-12" : "px-4"}`}
+              className={`flex w-full items-center gap-3 py-2.5 pr-4 text-left hover:bg-slate-50 ${canEditTask(task) && !isTerminalTaskStatus(task.status) ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${nested ? "border-t border-slate-100 bg-slate-50/50 pl-12" : "px-4"}`}
             >
               {nested && <span className="text-xs text-slate-400">↳</span>}
               <button
@@ -467,15 +484,15 @@ export default function SoftwareBacklogView({
                       addFiles(files, `Sprint: ${sprint.name}`)
                     }
                   />
-                  <button
+                  {canManageSprints && <button
                     type="button"
                     disabled={isBusy}
                     onClick={() => openEditSprint(sprint)}
                     className="inline-flex items-center gap-1 rounded border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
                   >
                     <Pencil className="h-3.5 w-3.5" /> Chỉnh sửa
-                  </button>
-                  {sprint.status === SprintStatus.PLANNED && (
+                  </button>}
+                  {canManageSprints && sprint.status === SprintStatus.PLANNED && (
                     <button
                       type="button"
                       disabled={isBusy}
@@ -485,7 +502,7 @@ export default function SoftwareBacklogView({
                       <CirclePlay className="h-3.5 w-3.5" /> Start sprint
                     </button>
                   )}
-                  {sprint.status === SprintStatus.ACTIVE && (
+                  {canManageSprints && sprint.status === SprintStatus.ACTIVE && (
                     <button
                       type="button"
                       disabled={isBusy}
@@ -495,7 +512,7 @@ export default function SoftwareBacklogView({
                       <Check className="h-3.5 w-3.5" /> Complete sprint
                     </button>
                   )}
-                  {sprint.status === SprintStatus.COMPLETED && (
+                  {canManageSprints && sprint.status === SprintStatus.COMPLETED && (
                     <button
                       type="button"
                       disabled={isBusy}
@@ -529,7 +546,7 @@ export default function SoftwareBacklogView({
                 )}
               </div>
               <div className="border-t border-slate-100 px-4 py-2.5">
-                {inlineSprintId === sprint.id ? (
+                {canCreateTask && (inlineSprintId === sprint.id ? (
                   <form
                     onSubmit={(event) =>
                       void handleInlineSprintTask(event, sprint.id)
@@ -574,7 +591,7 @@ export default function SoftwareBacklogView({
                   >
                     <Plus className="h-3.5 w-3.5" /> Tạo task trong Sprint
                   </button>
-                )}
+                ))}
               </div>
             </section>
           );

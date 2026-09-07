@@ -6,8 +6,8 @@ CREATE TABLE projects (
     owner_id UUID NOT NULL,
     status VARCHAR(20) NOT NULL,
     archived BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP(6) NOT NULL,
-    updated_at TIMESTAMP(6),
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT chk_projects_status CHECK (status IN ('ACTIVE', 'ON_HOLD', 'COMPLETED', 'ARCHIVED'))
 );
@@ -28,7 +28,7 @@ CREATE TABLE project_members (
     project_id UUID NOT NULL,
     user_id UUID NOT NULL,
     role VARCHAR(20) NOT NULL,
-    joined_at TIMESTAMP(6) NOT NULL,
+    joined_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT uk_project_member_project_user UNIQUE (project_id, user_id),
     CONSTRAINT chk_project_members_role CHECK (role IN ('OWNER', 'ADMIN', 'MEMBER')),
     CONSTRAINT fk_project_members_project FOREIGN KEY (project_id)
@@ -45,17 +45,17 @@ CREATE TABLE tasks (
     status VARCHAR(20) NOT NULL,
     created_by UUID NOT NULL,
     reporter_id UUID NOT NULL,
-    start_date TIMESTAMP(6),
-    due_date TIMESTAMP(6),
+    start_date TIMESTAMPTZ,
+    due_date TIMESTAMPTZ,
     all_day BOOLEAN NOT NULL DEFAULT FALSE,
-    completed_at TIMESTAMP(6),
+    completed_at TIMESTAMPTZ,
     estimated_minutes INTEGER NOT NULL DEFAULT 0,
     rank VARCHAR(100),
     archived BOOLEAN NOT NULL DEFAULT FALSE,
     is_parent_task BOOLEAN NOT NULL DEFAULT FALSE,
     auto_complete_sprint BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP(6) NOT NULL,
-    updated_at TIMESTAMP(6),
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT chk_tasks_priority CHECK (priority IN ('LOW', 'MEDIUM', 'HIGH', 'URGENT')),
     CONSTRAINT chk_tasks_status CHECK (status IN ('TODO', 'IN_PROGRESS', 'IN_REVIEW', 'DONE')),
@@ -73,7 +73,7 @@ CREATE TABLE task_checklists (
     title VARCHAR(500) NOT NULL,
     completed BOOLEAN NOT NULL DEFAULT FALSE,
     completed_by UUID,
-    created_at TIMESTAMP(6) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
     rank VARCHAR(100),
     CONSTRAINT fk_task_checklists_task FOREIGN KEY (task_id)
         REFERENCES tasks (id) ON DELETE CASCADE
@@ -83,7 +83,7 @@ CREATE TABLE task_assignees (
     id UUID PRIMARY KEY,
     task_id UUID NOT NULL,
     user_id UUID NOT NULL,
-    assigned_at TIMESTAMP(6) NOT NULL,
+    assigned_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT uk_task_assignee_task_user UNIQUE (task_id, user_id),
     CONSTRAINT fk_task_assignees_task FOREIGN KEY (task_id)
         REFERENCES tasks (id) ON DELETE CASCADE
@@ -95,8 +95,8 @@ CREATE TABLE task_comments (
     author_id UUID NOT NULL,
     content TEXT NOT NULL,
     edited BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP(6) NOT NULL,
-    updated_at TIMESTAMP(6),
+    created_at TIMESTAMPTZ NOT NULL,
+    updated_at TIMESTAMPTZ,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT fk_task_comments_task FOREIGN KEY (task_id)
         REFERENCES tasks (id) ON DELETE CASCADE
@@ -109,7 +109,7 @@ CREATE TABLE task_activities (
     field VARCHAR(100) NOT NULL,
     old_value TEXT,
     new_value TEXT,
-    created_at TIMESTAMP(6) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL,
     CONSTRAINT fk_task_activities_task FOREIGN KEY (task_id)
         REFERENCES tasks (id) ON DELETE CASCADE
 );
@@ -139,8 +139,8 @@ CREATE TABLE time_trackings (
     id UUID PRIMARY KEY,
     task_id UUID NOT NULL,
     user_id UUID NOT NULL,
-    started_at TIMESTAMP(6) NOT NULL,
-    ended_at TIMESTAMP(6),
+    started_at TIMESTAMPTZ NOT NULL,
+    ended_at TIMESTAMPTZ,
     CONSTRAINT chk_time_trackings_date_order CHECK (ended_at IS NULL OR started_at <= ended_at),
     CONSTRAINT fk_time_trackings_task FOREIGN KEY (task_id)
         REFERENCES tasks (id) ON DELETE CASCADE
@@ -166,8 +166,8 @@ CREATE TABLE pomodoro_sessions (
     user_id UUID NOT NULL,
     session_type VARCHAR(20) NOT NULL,
     status VARCHAR(20) NOT NULL,
-    started_at TIMESTAMP(6) NOT NULL,
-    ended_at TIMESTAMP(6),
+    started_at TIMESTAMPTZ NOT NULL,
+    ended_at TIMESTAMPTZ,
     CONSTRAINT chk_pomodoro_session_type CHECK (session_type IN ('FOCUS', 'SHORT_BREAK', 'LONG_BREAK')),
     CONSTRAINT chk_pomodoro_session_status CHECK (status IN ('COMPLETED', 'STOPPED', 'CANCELED')),
     CONSTRAINT chk_pomodoro_session_date_order CHECK (ended_at IS NULL OR started_at <= ended_at),
@@ -181,9 +181,9 @@ CREATE TABLE project_invitations (
     invited_user_id UUID NOT NULL,
     invited_by UUID NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
-    created_at TIMESTAMP(6) NOT NULL,
-    responded_at TIMESTAMP(6),
-    expires_at TIMESTAMP(6),
+    created_at TIMESTAMPTZ NOT NULL,
+    responded_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
     CONSTRAINT chk_project_invitations_status CHECK (
         status IN ('PENDING', 'ACCEPTED', 'DECLINED', 'CANCELLED', 'EXPIRED')
     ),

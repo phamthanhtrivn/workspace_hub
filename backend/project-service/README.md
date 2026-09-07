@@ -13,6 +13,16 @@ npm run prisma:generate
 npm run start:dev
 ```
 
+`JWT_SECRET_KEY` must be the same HS256 secret used by User Service and Kong.
+For the standalone container stack, set this variable and run:
+
+```bash
+docker compose up --build
+```
+
+The full Workspace Hub stack includes `docker-compose.stack.yml`, which does
+not publish port `8082`; Project Service is reachable through Kong only.
+
 The database schema is managed by the SQL migrations under
 `database/migrations`. Prisma is used as the typed query client only; do not
 run `prisma migrate` against this database.
@@ -22,11 +32,13 @@ migrations through the deployment/database workflow before starting a new
 service version. In particular, never add `prisma db push --accept-data-loss`
 to the startup command.
 
-> Migration audit note: the repository currently contains two historical
-> `V4` files. They are retained to avoid rewriting already-applied migration
-> history. A deployment runner must use the file names/order recorded by that
-> environment until these migrations are baselined in a migration history
-> table.
+Project and invitation notifications use the `notification_outbox` table.
+Application writes and outbox inserts commit together; the in-process worker
+delivers events with exponential retry. Failed events stop retrying after
+`OUTBOX_MAX_ATTEMPTS` and remain queryable for operations review.
+
+Migration versions are unique and must be applied in numeric order. The
+renumbered history assumes a clean Project Service database.
 
 ## Checks
 

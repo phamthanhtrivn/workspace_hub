@@ -39,8 +39,16 @@ public class UserService {
         return accountSettingMapper.toResponse(setting);
     }
 
-    public List<UserSearchResponse> searchUserByEmail(UUID userId, String email) {
-        List<User> users = userRepository.findByEmailContainingIgnoreCase(email);
+    public List<UserSearchResponse> searchUsers(UUID userId, String query) {
+        String normalizedQuery = query == null ? "" : query.trim();
+        if (normalizedQuery.length() < 2) {
+            return List.of();
+        }
+
+        List<User> users = userRepository
+                .findTop20ByEmailContainingIgnoreCaseOrProfileFullNameContainingIgnoreCase(
+                        normalizedQuery,
+                        normalizedQuery);
 
         return users.stream()
                 .filter(user -> !user.getId().equals(userId))

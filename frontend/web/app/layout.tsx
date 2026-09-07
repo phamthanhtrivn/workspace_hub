@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ToastContainer } from "react-toastify";
 import { Toaster } from "sonner";
 import StoreProvider from "@/store/store-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -39,15 +38,6 @@ export default function RootLayout({
             </StoreProvider>
           </QueryProvider>
         </GoogleOAuthProvider>
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          pauseOnHover
-          draggable
-        />
         <Toaster richColors position="top-right" />
       </body>
     </html>

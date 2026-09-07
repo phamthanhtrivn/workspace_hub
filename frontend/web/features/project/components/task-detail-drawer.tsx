@@ -1,42 +1,33 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import {
-  type Task,
+  type TaskLabel,
   TaskStatus,
   TaskPriority,
-  type ProjectMember,
-  type TaskChecklist,
-  type TaskLabel,
-  type TaskActivity,
-  type TaskDependency,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
-import { useAppSelector } from "@/store/store";
-import {
-  useCreateTaskComment,
-  useDeleteTaskComment,
-  useTaskComments,
-  useUpdateTaskComment,
-} from "@/features/project/hooks/use-comments";
 import { useTaskActivities } from "@/features/project/hooks/use-tasks";
-import type { UpdateTaskPayload } from "@/features/project/api/task.api";
+import type { TaskDetailDrawerProps } from "../types/task-detail-drawer.types";
 import { TaskStatusBadge, LabelBadge } from "./status-badge";
 import { Avatar } from "./avatar-stack";
 import { getIssueKey, getIssueTypeDetails, getPriorityIcon } from "./task-card";
 import TaskChatButton from "./task-chat-button";
+import { createTaskActivityPresenter } from "@/features/project/task-activity-presenter";
+import TaskActivityPanel from "./task-activity-panel";
+import TaskChecklistSection from "./task-checklist-section";
+import TaskCommentsSection from "./task-comments-section";
+import {
+  TASK_DRAWER_PRIORITY_OPTIONS,
+  TASK_DRAWER_STATUS_OPTIONS,
+} from "../constants/task.constants";
 import {
   X,
   Pencil,
   Tag,
-  CheckSquare,
-  MessageSquare,
   History,
   FileText,
-  ArrowRight,
-  Send,
-  Trash2,
   ListTree,
   Plus,
   ChevronDown,
@@ -45,88 +36,7 @@ import {
   LockKeyhole,
 } from "lucide-react";
 
-const STATUS_OPTS = [
-  {
-    value: TaskStatus.TODO,
-    label: "TO DO",
-    color: "text-[#42526E] bg-[#DFE1E6] hover:bg-[#C1C7D0]",
-  },
-  {
-    value: TaskStatus.IN_PROGRESS,
-    label: "IN PROGRESS",
-    color: "text-[#0747A6] bg-[#DEEBFF] hover:bg-[#B3D4FF]",
-  },
-  {
-    value: TaskStatus.IN_REVIEW,
-    label: "IN REVIEW",
-    color: "text-[#A54800] bg-[#FFF0B3] hover:bg-[#FFE380]",
-  },
-  {
-    value: TaskStatus.DONE,
-    label: "DONE",
-    color: "text-[#006644] bg-[#E3FCEF] hover:bg-[#ABF5D1]",
-  },
-  {
-    value: TaskStatus.CANCELLED,
-    label: "ĐÃ HỦY",
-    color: "text-slate-600 bg-slate-200 hover:bg-slate-300",
-  },
-];
-
-const PRIORITY_OPTS = [
-  { value: TaskPriority.URGENT, label: "Khẩn cấp" },
-  { value: TaskPriority.HIGH, label: "Cao" },
-  { value: TaskPriority.MEDIUM, label: "Trung bình" },
-  { value: TaskPriority.LOW, label: "Thấp" },
-];
-
 type TaskDetailTab = "details" | "activity";
-type TaskDrawerUpdatePayload = UpdateTaskPayload & {
-  assignees?: Task["assignees"];
-  assigneeUserId?: string | null;
-};
-
-const ACTIVITY_ACTION_LABELS: Record<string, string> = {
-  created: "Đã tạo công việc",
-  title: "Đã đổi tên công việc",
-  description: "Đã cập nhật mô tả",
-  priority: "Đã thay đổi độ ưu tiên",
-  status: "Đã thay đổi trạng thái",
-  startDate: "Đã thay đổi ngày bắt đầu",
-  dueDate: "Đã thay đổi hạn hoàn thành",
-  estimatedMinutes: "Đã thay đổi thời gian ước tính",
-  allDay: "Đã thay đổi chế độ cả ngày",
-  archived: "Đã thay đổi trạng thái lưu trữ",
-  parentTaskId: "Đã thay đổi task cha",
-  assigneeUserId: "Đã thay đổi người thực hiện",
-  isParentTask: "Đã thay đổi loại task",
-  autoCompleteSprint: "Đã thay đổi tự động hoàn thành sprint",
-  rank: "Đã thay đổi thứ tự",
-  checklist_created: "Đã thêm mục checklist",
-  checklist_completed: "Đã cập nhật mục checklist",
-  checklist_deleted: "Đã xóa mục checklist",
-  label_attached: "Đã gắn nhãn",
-  label_detached: "Đã gỡ nhãn",
-  comment_created: "Đã thêm bình luận",
-  comment_updated: "Đã chỉnh sửa bình luận",
-  comment_deleted: "Đã xóa bình luận",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  TODO: "Cần làm",
-  IN_PROGRESS: "Đang làm",
-  IN_REVIEW: "Đang review",
-  DONE: "Hoàn thành",
-  CANCELLED: "Đã hủy",
-};
-
-const PRIORITY_LABELS: Record<string, string> = {
-  LOW: "Thấp",
-  MEDIUM: "Trung bình",
-  HIGH: "Cao",
-  URGENT: "Khẩn cấp",
-};
-
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("vi-VN", {
     day: "2-digit",
@@ -135,17 +45,6 @@ function formatDateTime(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function formatRelative(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const minutes = Math.floor(diff / 60000);
-  if (minutes < 1) return "Vừa xong";
-  if (minutes < 60) return `${minutes} phút trước`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} giờ trước`;
-  const days = Math.floor(hours / 24);
-  return `${days} ngày trước`;
 }
 
 export default function TaskDetailDrawer({
@@ -166,46 +65,9 @@ export default function TaskDetailDrawer({
   dependencies = [],
   onCreateDependency,
   onDeleteDependency,
-}: {
-  task: Task | null;
-  tasks?: Task[];
-  members?: ProjectMember[];
-  project?: unknown;
-  onClose: () => void;
-  onOpenChat?: (task: Task) => void;
-  onEdit?: (task: Task) => void;
-  onTaskClick?: (task: Task) => void;
-  onUpdateTask?: (
-    taskId: string,
-    payload: TaskDrawerUpdatePayload,
-  ) => Promise<void>;
-  onCreateSubtask?: (task: Task) => void;
-  onCreateChecklist?: (taskId: string, title: string) => Promise<TaskChecklist>;
-  onUpdateChecklist?: (
-    checklistId: string,
-    completed: boolean,
-  ) => Promise<TaskChecklist>;
-  onDeleteChecklist?: (checklistId: string) => Promise<void>;
-  labels?: TaskLabel[];
-  onToggleLabel?: (
-    taskId: string,
-    labelId: string,
-    attached: boolean,
-  ) => Promise<void>;
-  dependencies?: TaskDependency[];
-  onCreateDependency?: (
-    successorTaskId: string,
-    predecessorTaskId: string,
-  ) => Promise<void>;
-  onDeleteDependency?: (
-    successorTaskId: string,
-    predecessorTaskId: string,
-  ) => Promise<void>;
-}) {
+  canEditTask = false,
+}: TaskDetailDrawerProps) {
   const [activeTab, setActiveTab] = useState<TaskDetailTab>("details");
-  const [newComment, setNewComment] = useState("");
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editingComment, setEditingComment] = useState("");
 
   // Inline edit states
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -225,21 +87,16 @@ export default function TaskDetailDrawer({
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
 
-  const { userId: currentUserId } = useAppSelector((state) => state.auth);
-  const { data: loadedComments } = useTaskComments(task?.id || "");
   const {
     data: activities = [],
     isLoading: isActivitiesLoading,
     isError: isActivitiesError,
     refetch: refetchActivities,
   } = useTaskActivities(task?.id || "");
-  const createCommentMutation = useCreateTaskComment(task?.id || "");
-  const updateCommentMutation = useUpdateTaskComment(task?.id || "");
-  const deleteCommentMutation = useDeleteTaskComment(task?.id || "");
-  const [showChecklistInput, setShowChecklistInput] = useState(false);
-  const [checklistTitle, setChecklistTitle] = useState("");
   const [estimateDraft, setEstimateDraft] = useState("");
-  const isReadOnly = task ? isTerminalTaskStatus(task.status) : false;
+  const isReadOnly = task
+    ? isTerminalTaskStatus(task.status) || !canEditTask
+    : true;
 
   // Detect clicks outside dropdowns
   useEffect(() => {
@@ -301,15 +158,6 @@ export default function TaskDetailDrawer({
 
   if (!task) return null;
 
-  const comments = (loadedComments ?? task.comments).map((comment) => {
-    const author = members.find((member) => member.userId === comment.authorId);
-    if (!author) return comment;
-    return {
-      ...comment,
-      authorName: author.displayName,
-      authorAvatar: author.avatarUrl || comment.authorAvatar,
-    };
-  });
   const childTasks = tasks.filter(
     (candidate) => candidate.parentTaskId === task.id && !candidate.archived,
   );
@@ -319,6 +167,7 @@ export default function TaskDetailDrawer({
 
   const issueKey = getIssueKey(task);
   const issueType = getIssueTypeDetails(task);
+  const { memberDisplayName } = createTaskActivityPresenter(members, tasks);
 
   const handleTitleSave = async () => {
     if (isReadOnly) return;
@@ -485,163 +334,14 @@ export default function TaskDetailDrawer({
     }
   };
 
-  const handleCreateComment = async () => {
-    if (isReadOnly) return;
-    const content = newComment.trim();
-    if (!content || createCommentMutation.isPending) return;
-
-    try {
-      await createCommentMutation.mutateAsync({ content });
-      setNewComment("");
-      toast.success("Đã thêm bình luận");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể thêm bình luận",
-      );
-    }
-  };
-
-  const handleUpdateComment = async () => {
-    if (isReadOnly) return;
-    if (!editingCommentId || !editingComment.trim()) return;
-
-    try {
-      await updateCommentMutation.mutateAsync({
-        commentId: editingCommentId,
-        payload: { content: editingComment.trim() },
-      });
-      setEditingCommentId(null);
-      setEditingComment("");
-      toast.success("Đã cập nhật bình luận");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể cập nhật bình luận",
-      );
-    }
-  };
-
-  const handleDeleteComment = (commentId: string) => {
-    if (isReadOnly) return;
-    if (!window.confirm("Bạn có chắc muốn xóa bình luận này?")) return;
-
-    deleteCommentMutation.mutate(commentId, {
-      onSuccess: () => toast.success("Đã xóa bình luận"),
-      onError: (error) =>
-        toast.error(
-          error instanceof Error ? error.message : "Không thể xóa bình luận",
-        ),
-    });
-  };
-
-  const checklistTotal = task.checklists.length;
-  const checklistDone = task.checklists.filter((c) => c.completed).length;
-  const checklistProgress =
-    checklistTotal > 0 ? Math.round((checklistDone / checklistTotal) * 100) : 0;
-  const handleCreateChecklist = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (isReadOnly) return;
-    const title = checklistTitle.trim();
-    if (!title || !onCreateChecklist) return;
-    try {
-      await onCreateChecklist(task.id, title);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể thêm checklist",
-      );
-      return;
-    }
-    setChecklistTitle("");
-    setShowChecklistInput(false);
-  };
-
-  const handleToggleChecklist = async (item: TaskChecklist) => {
-    if (isReadOnly) return;
-    if (!onUpdateChecklist) return;
-    try {
-      await onUpdateChecklist(item.id, !item.completed);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể cập nhật checklist",
-      );
-    }
-  };
-
-  const handleDeleteChecklist = async (checklistId: string) => {
-    if (isReadOnly) return;
-    if (!onDeleteChecklist) return;
-    try {
-      await onDeleteChecklist(checklistId);
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Không thể xóa checklist",
-      );
-    }
-  };
-
-  const memberDisplayName = (userId?: string | null) => {
-    if (!userId) return "Người dùng";
-    const name = members.find((member) => member.userId === userId)?.displayName;
-    return name && name !== userId ? name : "Người dùng";
-  };
-
-  const activityLabel = (activity: TaskActivity) => {
-    const memberName = memberDisplayName(activity.actorId);
-    if (memberName !== "Người dùng") return memberName;
-    if (activity.actorName && activity.actorName !== activity.actorId) {
-      return activity.actorName;
-    }
-    return activity.actorId ? "Thành viên" : "Hệ thống";
-  };
-
-  const formatActivityValue = (
-    activity: TaskActivity,
-    value?: string | null,
-  ): string | null => {
-    if (value === undefined || value === null || value === "") return null;
-
-    if (activity.field.startsWith("checklist_")) {
-      try {
-        const checklist = JSON.parse(value) as {
-          title?: string;
-          completed?: boolean;
-        };
-        if (typeof checklist.completed === "boolean") {
-          return `${checklist.title || "Checklist"}: ${checklist.completed ? "Đã hoàn thành" : "Chưa hoàn thành"}`;
-        }
-        return checklist.title || "Checklist";
-      } catch {
-        return value;
-      }
-    }
-
-    if (activity.field === "status") return STATUS_LABELS[value] || value;
-    if (activity.field === "priority") return PRIORITY_LABELS[value] || value;
-    if (activity.field === "assigneeUserId") {
-      return memberDisplayName(value);
-    }
-    if (activity.field === "parentTaskId") {
-      return tasks.find((item) => item.id === value)?.title || value;
-    }
-    if (activity.field === "estimatedMinutes") return `${value} phút`;
-    if (["startDate", "dueDate"].includes(activity.field)) {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime())
-        ? value
-        : date.toLocaleDateString("vi-VN");
-    }
-    if (["allDay", "archived", "isParentTask", "autoCompleteSprint"].includes(activity.field)) {
-      return value === "true" ? "Bật" : "Tắt";
-    }
-    return value;
-  };
-
   const handleTabChange = (tab: TaskDetailTab) => {
     setActiveTab(tab);
     if (tab === "activity") void refetchActivities();
   };
 
   const currentStatusOpt =
-    STATUS_OPTS.find((opt) => opt.value === task.status) || STATUS_OPTS[0];
+    TASK_DRAWER_STATUS_OPTIONS.find((opt) => opt.value === task.status) ||
+    TASK_DRAWER_STATUS_OPTIONS[0];
   const assignedUser = task.assignees[0];
 
   // The core UI of the panel (without drawer wrapping container)
@@ -651,6 +351,9 @@ export default function TaskDetailDrawer({
       <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
         <div className="flex items-center gap-1.5 text-xs text-slate-500 font-semibold">
           {issueType.icon}
+          <span className="text-[10px] font-bold uppercase text-slate-400">
+            {issueType.label}
+          </span>
           <span className="hover:underline font-semibold uppercase tracking-wide text-slate-700">
             {issueKey}
           </span>
@@ -724,7 +427,9 @@ export default function TaskDetailDrawer({
       {isReadOnly && (
         <div className="mx-5 mt-3 flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
           <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
-          Công việc {task.status === TaskStatus.CANCELLED ? "đã hủy" : "đã hoàn thành"} và đang ở chế độ chỉ đọc.
+          {isTerminalTaskStatus(task.status)
+            ? `Công việc ${task.status === TaskStatus.CANCELLED ? "đã hủy" : "đã hoàn thành"} và đang ở chế độ chỉ đọc.`
+            : "Bạn chỉ có quyền xem công việc này."}
         </div>
       )}
 
@@ -800,7 +505,7 @@ export default function TaskDetailDrawer({
 
             {showStatusDropdown && !isReadOnly && (
               <div className="absolute left-0 mt-1 w-40 rounded border border-slate-200 bg-white py-1 shadow-lg z-20">
-                {STATUS_OPTS.map((opt) => (
+                    {TASK_DRAWER_STATUS_OPTIONS.map((opt) => (
                   <button
                     key={opt.value}
                     onClick={() => void handleStatusChange(opt.value)}
@@ -1050,105 +755,13 @@ export default function TaskDetailDrawer({
           )}
         </div>
 
-        {/* Checklist Section */}
-        <div className="space-y-1.5 border-t border-slate-100 pt-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5">
-              <CheckSquare className="h-3.5 w-3.5" />
-              <span>Checklist</span>
-            </h3>
-            <div className="flex items-center gap-2">
-              {checklistTotal > 0 && (
-                <span className="text-[10px] font-bold text-slate-500">
-                  {checklistDone}/{checklistTotal} ({checklistProgress}%)
-                </span>
-              )}
-              {!isReadOnly && (
-                <button
-                  type="button"
-                  onClick={() => setShowChecklistInput((value) => !value)}
-                  className="rounded p-1 text-slate-400 hover:bg-blue-50 hover:text-blue-600"
-                  title="Thêm checklist"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {showChecklistInput && !isReadOnly && (
-            <form
-              onSubmit={(event) => void handleCreateChecklist(event)}
-              className="mt-2 flex items-center gap-2"
-            >
-              <input
-                autoFocus
-                value={checklistTitle}
-                onChange={(event) => setChecklistTitle(event.target.value)}
-                placeholder="Nhập nội dung checklist..."
-                className="min-w-0 flex-1 rounded border border-blue-300 px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-100"
-              />
-              <button
-                type="submit"
-                disabled={!checklistTitle.trim()}
-                className="rounded bg-blue-600 px-2.5 py-1.5 text-[10px] font-bold text-white disabled:opacity-50"
-              >
-                Thêm
-              </button>
-            </form>
-          )}
-
-          {checklistTotal > 0 ? (
-            <div className="space-y-1">
-              <div className="h-1 w-full overflow-hidden rounded bg-slate-100 mb-2">
-                <div
-                  className="h-full rounded bg-[#36B37E] transition-all duration-300"
-                  style={{ width: `${checklistProgress}%` }}
-                />
-              </div>
-              <div className="space-y-0.5 bg-white">
-                {task.checklists.map((item) => (
-                  <label
-                    key={item.id}
-                    className={`flex items-center gap-2 rounded px-2 py-1.5 text-xs border border-transparent select-none ${isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-slate-50"}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={item.completed}
-                      onChange={() => void handleToggleChecklist(item)}
-                      disabled={isReadOnly}
-                      className="h-3.5 w-3.5 rounded border-slate-300 text-[#36B37E] accent-[#36B37E]"
-                    />
-                    <span
-                      className={[
-                        "font-medium",
-                        item.completed
-                          ? "text-slate-400 line-through"
-                          : "text-slate-700",
-                      ].join(" ")}
-                    >
-                      {item.title}
-                    </span>
-                    {onDeleteChecklist && !isReadOnly && (
-                      <button
-                        type="button"
-                        onClick={() => void handleDeleteChecklist(item.id)}
-                        className="ml-auto rounded p-1 text-slate-300 hover:bg-red-50 hover:text-red-500"
-                        title="Xóa checklist"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="text-[11px] text-slate-400 font-semibold bg-slate-50/30 rounded border border-dashed border-slate-200 py-4 text-center">
-              Không có checklist.
-            </div>
-          )}
-        </div>
+        <TaskChecklistSection
+          task={task}
+          isReadOnly={isReadOnly}
+          onCreate={onCreateChecklist}
+          onUpdate={onUpdateChecklist}
+          onDelete={onDeleteChecklist}
+        />
 
         {/* Details Accordion / Grid Panel */}
         <div className="border border-slate-200 rounded bg-white shadow-sm overflow-hidden select-none">
@@ -1252,7 +865,7 @@ export default function TaskDetailDrawer({
 
                 {showPriorityDropdown && !isReadOnly && (
                   <div className="absolute left-0 mt-1 w-full rounded border border-slate-200 bg-white py-1 shadow-lg z-20">
-                    {PRIORITY_OPTS.map((opt) => (
+                      {TASK_DRAWER_PRIORITY_OPTIONS.map((opt) => (
                       <button
                         key={opt.value}
                         onClick={() => void handlePriorityChange(opt.value)}
@@ -1334,256 +947,23 @@ export default function TaskDetailDrawer({
           </div>
         </div>
 
-        {/* Comments section at the very bottom */}
-        <div className="space-y-4 border-t border-slate-100 pt-4 pb-2">
-          <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide flex items-center gap-1.5 select-none">
-            <MessageSquare className="h-3.5 w-3.5" />
-            <span>Bình luận ({comments.length})</span>
-          </h3>
-
-          {/* List of comments */}
-          {comments.length > 0 ? (
-            <div className="space-y-3">
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-2.5">
-                  <Avatar
-                    user={{
-                      userId: comment.authorId,
-                      displayName: comment.authorName,
-                      avatarUrl: comment.authorAvatar,
-                    }}
-                    size="sm"
-                  />
-                  <div className="flex-1 bg-slate-50 hover:bg-slate-100/50 p-2.5 rounded border border-slate-150 transition">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold text-[#172B4D]">
-                        {comment.authorName}
-                      </span>
-                      <div className="flex items-center gap-1.5 select-none">
-                        <span className="text-[9px] text-slate-400 font-semibold">
-                          {formatRelative(comment.createdAt)}
-                          {comment.edited && " (đã sửa)"}
-                        </span>
-                        {currentUserId === comment.authorId && !isReadOnly && (
-                          <div className="flex items-center gap-0.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditingCommentId(comment.id);
-                                setEditingComment(comment.content);
-                              }}
-                              className="grid h-5 w-5 place-items-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteComment(comment.id)}
-                              className="grid h-5 w-5 place-items-center rounded text-slate-400 hover:bg-red-50 hover:text-red-500"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {editingCommentId === comment.id && !isReadOnly ? (
-                      <div className="mt-1.5 space-y-1.5">
-                        <textarea
-                          value={editingComment}
-                          onChange={(e) => setEditingComment(e.target.value)}
-                          rows={2}
-                          className="w-full resize-none rounded border border-[#0052CC] p-2 text-xs text-slate-700 outline-none"
-                        />
-                        <div className="flex justify-end gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setEditingCommentId(null)}
-                            className="rounded px-2 py-0.5 text-[9px] font-bold text-slate-500 hover:bg-slate-200 transition"
-                          >
-                            Hủy
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => void handleUpdateComment()}
-                            disabled={
-                              !editingComment.trim() ||
-                              updateCommentMutation.isPending
-                            }
-                            className="rounded bg-[#0052CC] px-2 py-0.5 text-[9px] font-bold text-white disabled:opacity-50 transition"
-                          >
-                            Lưu
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="mt-1 text-xs leading-relaxed text-[#42526E] break-words">
-                        {comment.content}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-[11px] text-slate-400 font-semibold bg-slate-50/30 rounded border border-dashed border-slate-200 py-6 text-center select-none">
-              Chưa có bình luận.
-            </div>
-          )}
-
-          {/* Add comment field */}
-          {!isReadOnly && (
-            <div className="flex gap-2.5 pt-2 border-t border-slate-100">
-              <Avatar
-              user={{ userId: currentUserId || "u-curr", displayName: "Me" }}
-              size="sm"
-            />
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Viết phản hồi..."
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleCreateComment();
-                }}
-                className="w-full rounded border border-slate-300 bg-white py-2 pl-3 pr-9 text-xs font-semibold text-[#172B4D] outline-none transition placeholder:text-slate-400 focus:border-[#0052CC]"
-              />
-              <button
-                type="button"
-                onClick={() => void handleCreateComment()}
-                disabled={!newComment.trim() || createCommentMutation.isPending}
-                className="absolute right-1.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-[#0052CC] hover:bg-slate-100 transition"
-              >
-                <Send className="h-3 w-3" strokeWidth={2.5} />
-              </button>
-              </div>
-            </div>
-          )}
-        </div>
+        <TaskCommentsSection
+          key={task.id}
+          task={task}
+          members={members}
+          isReadOnly={isReadOnly}
+        />
       </div>
 
       {activeTab === "activity" && (
-        <div
-          role="tabpanel"
-          className="min-h-0 flex-1 overflow-y-auto px-5 py-4"
-        >
-          <div className="mb-4 flex items-start justify-between gap-3">
-            <div>
-              <h3 className="text-sm font-bold text-[#172B4D]">
-                Nhật ký hoạt động
-              </h3>
-              <p className="mt-0.5 text-[11px] text-slate-500">
-                Các thay đổi mới nhất của công việc này.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => void refetchActivities()}
-              className="shrink-0 rounded px-2 py-1 text-[10px] font-bold text-[#0052CC] hover:bg-blue-50"
-            >
-              Làm mới
-            </button>
-          </div>
-
-          {isActivitiesLoading ? (
-            <div className="space-y-3" aria-label="Đang tải nhật ký">
-              {[0, 1, 2].map((item) => (
-                <div key={item} className="flex animate-pulse gap-3">
-                  <div className="h-7 w-7 shrink-0 rounded-full bg-slate-100" />
-                  <div className="flex-1 space-y-2 py-1">
-                    <div className="h-3 w-2/3 rounded bg-slate-100" />
-                    <div className="h-3 w-1/3 rounded bg-slate-100" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : isActivitiesError ? (
-            <div className="rounded border border-red-100 bg-red-50 px-4 py-5 text-center">
-              <p className="text-xs font-semibold text-red-700">
-                Không thể tải nhật ký hoạt động.
-              </p>
-              <button
-                type="button"
-                onClick={() => void refetchActivities()}
-                className="mt-2 text-[11px] font-bold text-red-700 underline"
-              >
-                Thử lại
-              </button>
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="rounded border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
-              <History className="mx-auto h-6 w-6 text-slate-300" />
-              <p className="mt-2 text-xs font-semibold text-slate-500">
-                Chưa có hoạt động nào được ghi nhận.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-0">
-              {activities.map((activity, index) => {
-                const oldValue = formatActivityValue(
-                  activity,
-                  activity.oldValue,
-                );
-                const newValue = formatActivityValue(
-                  activity,
-                  activity.newValue,
-                );
-
-                return (
-                  <article
-                    key={activity.id}
-                    className="relative flex gap-3 pb-5"
-                  >
-                    {index < activities.length - 1 && (
-                      <span className="absolute bottom-0 left-3.5 top-7 w-px bg-slate-200" />
-                    )}
-                    <span className="relative z-[1] grid h-7 w-7 shrink-0 place-items-center rounded-full border border-blue-100 bg-blue-50 text-[#0052CC]">
-                      <History className="h-3.5 w-3.5" />
-                    </span>
-                    <div className="min-w-0 flex-1 pt-0.5">
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-xs leading-5 text-slate-700">
-                          <strong className="font-bold text-[#172B4D]">
-                            {activityLabel(activity)}
-                          </strong>{" "}
-                          {ACTIVITY_ACTION_LABELS[activity.field] ||
-                            `Đã thay đổi ${activity.field}`}
-                        </p>
-                        <time
-                          dateTime={activity.createdAt}
-                          title={formatDateTime(activity.createdAt)}
-                          className="shrink-0 pt-0.5 text-[9px] font-semibold text-slate-400"
-                        >
-                          {formatRelative(activity.createdAt)}
-                        </time>
-                      </div>
-
-                      {(oldValue || newValue) && (
-                        <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-slate-500">
-                          {oldValue && (
-                            <span className="min-w-0 break-words rounded bg-slate-100 px-1.5 py-1">
-                              {oldValue}
-                            </span>
-                          )}
-                          {oldValue && newValue && (
-                            <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
-                          )}
-                          {newValue && (
-                            <span className="min-w-0 break-words rounded bg-blue-50 px-1.5 py-1 text-blue-700">
-                              {newValue}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <TaskActivityPanel
+          activities={activities}
+          tasks={tasks}
+          members={members}
+          isLoading={isActivitiesLoading}
+          isError={isActivitiesError}
+          onRefresh={() => void refetchActivities()}
+        />
       )}
     </div>
   );

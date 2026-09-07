@@ -1,9 +1,12 @@
-import { IsDateString, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ProjectStatus, ProjectType, ProjectVisibility } from '../project.enums';
+import { Trim } from '../../../common/trim.decorator';
 
 export class UpdateProjectDto {
   @IsOptional()
+  @Trim()
   @IsString()
+  @IsNotEmpty()
   @MaxLength(100)
   name?: string;
 
@@ -36,9 +39,9 @@ export class UpdateProjectDto {
 
   @IsOptional()
   @IsDateString()
-  startDate?: string;
+  startDate?: string | null;
 
   @IsOptional()
   @IsDateString()
-  dueDate?: string;
+  dueDate?: string | null;
 }

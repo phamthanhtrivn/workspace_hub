@@ -17,5 +17,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findByEmailContainingIgnoreCase(String email);
 
+    List<User> findTop20ByEmailContainingIgnoreCaseOrProfileFullNameContainingIgnoreCase(
+            String email,
+            String fullName);
+
     List<User> findByEmailIn(List<String> emails);
 }

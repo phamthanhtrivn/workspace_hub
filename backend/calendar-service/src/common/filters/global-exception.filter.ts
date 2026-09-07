@@ -1,0 +1,61 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call */
+import {
+  ArgumentsHost,
+  Catch,
+  ExceptionFilter,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
+import { Response } from 'express';
+
+@Catch()
+export class GlobalExceptionFilter implements ExceptionFilter {
+  catch(exception: unknown, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse<Response>();
+
+    let status = HttpStatus.INTERNAL_SERVER_ERROR;
+    let message = 'Internal server error';
+    let errors: any = null;
+
+    if (exception instanceof HttpException) {
+      status = exception.getStatus();
+      const exceptionResponse: any = exception.getResponse();
+
+      if (
+        status === HttpStatus.BAD_REQUEST &&
+        typeof exceptionResponse === 'object' &&
+        exceptionResponse.errors
+      ) {
+        message = 'Validation failed';
+        errors = exceptionResponse.errors;
+      } else if (
+        status === HttpStatus.BAD_REQUEST &&
+        typeof exceptionResponse === 'object' &&
+        Array.isArray(exceptionResponse.message)
+      ) {
+        message = 'Validation failed';
+        errors = {};
+        exceptionResponse.message.forEach((msg: string) => {
+          const field = msg.split(' ')[0];
+          errors[field] = msg;
+        });
+      } else {
+        message =
+          typeof exceptionResponse === 'string'
+            ? exceptionResponse
+            : exceptionResponse.message || exception.message;
+      }
+    } else if (exception instanceof Error) {
+      message = exception.message;
+    }
+
+    response.status(status).json({
+      success: false,
+      message,
+      data: null,
+      errors,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}

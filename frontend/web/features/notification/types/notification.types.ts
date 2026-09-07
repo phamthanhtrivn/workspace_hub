@@ -1,13 +1,14 @@
 export enum NotificationType {
-  SPACE_INVITATION = 'SPACE_INVITATION',
-  SPACE_INVITATION_ACCEPTED = 'SPACE_INVITATION_ACCEPTED',
-  SPACE_INVITATION_DECLINED = 'SPACE_INVITATION_DECLINED',
-  SPACE_DISBANDED = 'SPACE_DISBANDED',
-  SPACE_MEMBER_REMOVED = 'SPACE_MEMBER_REMOVED',
-  CHANNEL_DISBANDED = 'CHANNEL_DISBANDED',
-  PROJECT_TASK_ASSIGNED = 'PROJECT_TASK_ASSIGNED',
-  PROJECT_TASK_UPDATED = 'PROJECT_TASK_UPDATED',
-  PROJECT_SPRINT_STARTED = 'PROJECT_SPRINT_STARTED',
+  SPACE_INVITATION = "SPACE_INVITATION",
+  SPACE_INVITATION_ACCEPTED = "SPACE_INVITATION_ACCEPTED",
+  SPACE_INVITATION_DECLINED = "SPACE_INVITATION_DECLINED",
+  SPACE_DISBANDED = "SPACE_DISBANDED",
+  SPACE_MEMBER_REMOVED = "SPACE_MEMBER_REMOVED",
+  CHANNEL_DISBANDED = "CHANNEL_DISBANDED",
+  PROJECT_INVITATION = "PROJECT_INVITATION",
+  PROJECT_TASK_ASSIGNED = "PROJECT_TASK_ASSIGNED",
+  PROJECT_TASK_UPDATED = "PROJECT_TASK_UPDATED",
+  PROJECT_SPRINT_STARTED = "PROJECT_SPRINT_STARTED",
 }
 
 export interface InvitationMetadata {
@@ -22,6 +23,18 @@ export interface InvitationResponseMetadata {
   spaceId: string;
   spaceName?: string;
   conversationName?: string;
+}
+
+export type ProjectInvitationNotificationStatus =
+  "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED" | "EXPIRED";
+
+export interface ProjectInvitationMetadata {
+  invitationId: string;
+  projectId: string;
+  projectName: string;
+  status: ProjectInvitationNotificationStatus;
+  expiresAt?: string | null;
+  respondedAt?: string;
 }
 
 export interface Notification {

@@ -10,6 +10,7 @@ import {
   Headers,
   BadRequestException,
   Res,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { DocumentService } from './document.service';
@@ -295,6 +296,24 @@ export class DocumentController {
     await this.documentService.deleteItemPermanently(userId, userEmail, id);
     return {
       message: 'Item permanently deleted successfully',
+    };
+  }
+
+  @Get(':id/access')
+  async getAccessibleItem(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    const item = await this.documentService.checkPermission(
+      id,
+      userId,
+      userEmail,
+    );
+    return {
+      message: 'Document access verified',
+      data: { id: item.id, name: item.name, type: item.type },
     };
   }
 

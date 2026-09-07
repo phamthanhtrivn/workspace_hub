@@ -3,12 +3,14 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { RuntimeConfigService } from './common/config/runtime-config.service';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  const config = app.get(RuntimeConfigService);
 
   app.enableCors({
-    origin: true,
+    origin: config.corsAllowedOrigins,
     credentials: true,
   });
   app.useGlobalPipes(new ValidationPipe({

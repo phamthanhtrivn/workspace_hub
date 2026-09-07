@@ -92,11 +92,14 @@ public class UserController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<UserSearchResponse>>> searchUserByEmail(
+    public ResponseEntity<ApiResponse<List<UserSearchResponse>>> searchUsers(
             @RequestHeader("X-User-Id") UUID userId,
-            @RequestParam String email) {
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String email) {
 
-        List<UserSearchResponse> users = userService.searchUserByEmail(userId, email);
+        List<UserSearchResponse> users = userService.searchUsers(
+                userId,
+                query != null ? query : email);
         return ResponseEntity.ok(ApiResponse.<List<UserSearchResponse>>builder()
                 .success(true)
                 .message("Users searched successfully")
