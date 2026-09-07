@@ -7,6 +7,7 @@ import {
   meetingDashboardNavItems,
   meetingNavIconById,
 } from "../types/meeting.constants";
+import { MeetingSidebarStatsPanel } from "./meeting-sidebar-stats-panel";
 
 interface MeetingSidebarProps {
   activeItemId: MeetingDashboardNavItemId;
@@ -25,7 +26,7 @@ export function MeetingSidebar({
   const intl = useAppIntl();
 
   return (
-    <aside className="shrink-0 border-b border-slate-200 bg-white/90 px-4 py-4 shadow-[0_12px_32px_rgba(15,40,84,0.06)] xl:w-80 xl:border-b-0 xl:border-r xl:py-6">
+    <aside className="flex shrink-0 flex-col gap-5 border-b border-slate-200 bg-white/90 px-4 py-4 shadow-[0_12px_32px_rgba(15,40,84,0.06)] xl:w-80 xl:border-b-0 xl:border-r xl:py-6">
       <nav
         className="flex gap-2 overflow-x-auto xl:flex-col xl:overflow-visible"
         aria-label={intl.formatMessage({
@@ -66,6 +67,8 @@ export function MeetingSidebar({
           );
         })}
       </nav>
+
+      <MeetingSidebarStatsPanel />
     </aside>
   );
 }

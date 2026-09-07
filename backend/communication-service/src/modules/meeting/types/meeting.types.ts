@@ -48,6 +48,19 @@ export interface ListMeetingHistoryParams {
   query?: ListMeetingHistoryDto;
 }
 
+export interface ListMeetingHistorySummaryParams {
+  userId: string;
+}
+
+export interface MeetingHistorySummaryResponse {
+  totalMeetings: number;
+  liveMeetings: number;
+  endedMeetings: number;
+  hostedMeetings: number;
+  totalMinutes: number;
+  lastMeetingAt: string | null;
+}
+
 export interface ResolveJoinRequestParams extends MeetingModeratorParams {
   targetUserId: string;
 }

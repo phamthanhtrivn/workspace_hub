@@ -22,6 +22,7 @@ export const MEETING_ROUTES = {
 export const MEETING_API_PATHS = {
   INSTANT: "/api/meetings/instant",
   HISTORY: "/api/meetings/history",
+  HISTORY_SUMMARY: "/api/meetings/history/summary",
   join: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/join`,
   joinRequests: (joinToken: string) =>

@@ -10,6 +10,7 @@ import type {
   JoinMeetingParams,
   ListJoinRequestsParams,
   ListMeetingHistoryParams,
+  ListMeetingHistorySummaryParams,
   ListMeetingParticipantViewPreferencesParams,
   ListMeetingParticipantsParams,
   MeetingJoinRequestParams,
@@ -49,6 +50,10 @@ export class MeetingService {
 
   listMeetingHistory(params: ListMeetingHistoryParams) {
     return this.meetingHistoryService.listMeetingHistory(params);
+  }
+
+  listMeetingHistorySummary(params: ListMeetingHistorySummaryParams) {
+    return this.meetingHistoryService.listMeetingHistorySummary(params);
   }
 
   updateMeetingSettings(params: UpdateMeetingSettingsParams) {
