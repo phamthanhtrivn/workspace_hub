@@ -1,4 +1,7 @@
 export const meetingKeys = {
+  historyRoot: ["meeting-history"] as const,
+  history: (page: number, limit: number) =>
+    ["meeting-history", page, limit] as const,
   access: (joinToken: string) => ["meeting-access", joinToken] as const,
   joinRequestCount: (joinToken: string) =>
     ["meeting-join-requests", joinToken, "count"] as const,

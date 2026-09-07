@@ -7,6 +7,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
 import { MeetingController } from './meeting.controller';
 import { MeetingService } from './meeting.service';
 import { MeetingAdmissionService } from './services/meeting-admission.service';
+import { MeetingHistoryService } from './services/meeting-history.service';
 import { MeetingParticipantService } from './services/meeting-participant.service';
 import { MeetingMessageService } from './services/meeting-message.service';
 import { MeetingPolicyService } from './services/meeting-policy.service';
@@ -27,6 +28,7 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
   providers: [
     MeetingService,
     MeetingRoomService,
+    MeetingHistoryService,
     MeetingParticipantService,
     MeetingMessageService,
     MeetingAdmissionService,

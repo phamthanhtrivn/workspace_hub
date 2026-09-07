@@ -87,6 +87,60 @@ export class MeetingPresenterService {
     };
   }
 
+  toMeetingHistoryItem(
+    meeting: {
+      id: string;
+      joinToken: string;
+      type: MeetingType;
+      status: MeetingStatus;
+      startedAt: Date | null;
+      endedAt: Date | null;
+      createdAt: Date;
+    },
+    myParticipant: {
+      id: string;
+      meetingId: string;
+      userId: string;
+      role: MeetingRole;
+      status: MeetingParticipantStatus;
+      joinedAt: Date | null;
+      leftAt?: Date | null;
+      lastReadMessageId?: string | null;
+      lastReadAt?: Date | null;
+      updatedAt: Date;
+      profile?: unknown;
+    },
+    participants: Array<{
+      id: string;
+      meetingId: string;
+      userId: string;
+      role: MeetingRole;
+      status: MeetingParticipantStatus;
+      joinedAt: Date | null;
+      leftAt?: Date | null;
+      lastReadMessageId?: string | null;
+      lastReadAt?: Date | null;
+      updatedAt: Date;
+      profile?: unknown;
+    }>,
+    participantCount: number,
+  ) {
+    return {
+      id: meeting.id,
+      joinToken: meeting.joinToken,
+      type: meeting.type,
+      status: meeting.status,
+      startedAt: meeting.startedAt?.toISOString() ?? null,
+      endedAt: meeting.endedAt?.toISOString() ?? null,
+      createdAt: meeting.createdAt.toISOString(),
+      myParticipant: this.toMeetingParticipantListItem(myParticipant),
+      participants: participants.map((participant) =>
+        this.toMeetingParticipantListItem(participant),
+      ),
+      participantCount,
+    };
+  }
+
   toJoinRequestSocketPayload(
     meetingId: string,
     request: {

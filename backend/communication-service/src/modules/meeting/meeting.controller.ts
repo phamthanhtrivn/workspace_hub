@@ -15,6 +15,7 @@ import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
 import { CreateMeetingMessageDto } from './dto/create-meeting-message.dto';
 import { EditMeetingMessageDto } from './dto/edit-meeting-message.dto';
 import { ListJoinRequestsDto } from './dto/list-join-requests.dto';
+import { ListMeetingHistoryDto } from './dto/list-meeting-history.dto';
 import { ListMeetingMessagesDto } from './dto/list-meeting-messages.dto';
 import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
 import { MeetingMessageReactionDto } from './dto/meeting-message-reaction.dto';
@@ -59,6 +60,26 @@ export class MeetingController {
     return {
       message: MEETING_SUCCESS_MESSAGES.INSTANT_CREATED,
       data: meeting,
+    };
+  }
+
+  @Get('history')
+  async listMeetingHistory(
+    @Headers('x-user-id') userId: string,
+    @Query() query: ListMeetingHistoryDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const history = await this.meetingService.listMeetingHistory({
+      userId,
+      query,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.HISTORY_LISTED,
+      data: history,
     };
   }
 

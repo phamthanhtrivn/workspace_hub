@@ -7,6 +7,7 @@ export enum MEETING_SUCCESS_MESSAGES {
   INSTANT_CREATED = 'Instant meeting created successfully',
   JOINED = 'Meeting joined successfully',
   ACCESS_CHECKED = 'Meeting access checked successfully',
+  HISTORY_LISTED = 'Meeting history listed successfully',
   SETTINGS_UPDATED = 'Meeting settings updated successfully',
   PARTICIPANTS_LISTED = 'Meeting participants listed successfully',
   JOIN_REQUESTED = 'Meeting join request submitted successfully',

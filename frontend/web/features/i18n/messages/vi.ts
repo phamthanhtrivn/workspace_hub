@@ -619,6 +619,31 @@ const vi = {
   "meeting.joinModal.openFailed":
     "Không thể mở tab mới. Hãy cho phép pop-up rồi thử lại.",
   "meeting.joinModal.join": "Tham gia ở tab mới",
+  "meeting.history.title": "Lịch sử cuộc họp",
+  "meeting.history.description":
+    "Các cuộc họp bạn đã từng tham gia, kèm thành viên và join token.",
+  "meeting.history.viewLabel": "Kiểu hiển thị lịch sử cuộc họp",
+  "meeting.history.view.grid": "Dạng lưới",
+  "meeting.history.view.list": "Dạng danh sách",
+  "meeting.history.loading": "Đang tải lịch sử cuộc họp...",
+  "meeting.history.error": "Không thể tải lịch sử cuộc họp.",
+  "meeting.history.emptyTitle": "Chưa có lịch sử cuộc họp",
+  "meeting.history.emptyDescription":
+    "Các cuộc họp sẽ xuất hiện ở đây sau khi bạn tham gia.",
+  "meeting.history.paginationSummary":
+    "Hiển thị {start} - {end} trong {total} cuộc họp",
+  "meeting.history.participantCount":
+    "{count, plural, one {# người tham gia} other {# người tham gia}}",
+  "meeting.history.copyJoinToken": "Sao chép join token {joinToken}",
+  "meeting.history.joinTokenCopied": "Đã sao chép join token",
+  "meeting.history.joinTokenCopyFailed": "Không thể sao chép join token",
+  "meeting.history.notStarted": "Chưa bắt đầu",
+  "meeting.history.type.INSTANT": "Instant Meeting",
+  "meeting.history.type.SCHEDULED": "Scheduled Meeting",
+  "meeting.history.status.SCHEDULED": "Đã lên lịch",
+  "meeting.history.status.LIVE": "Đang diễn ra",
+  "meeting.history.status.ENDED": "Đã kết thúc",
+  "meeting.history.status.CANCELLED": "Đã hủy",
   "meeting.comingSoon": "Sắp có",
   "meeting.prejoin.eyebrow": "Họp tức thì",
   "meeting.prejoin.title": "Kiểm tra âm thanh và video",

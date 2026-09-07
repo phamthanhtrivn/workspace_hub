@@ -1,1 +1,5 @@
 export const MESSAGE_UPDATE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+export const DEFAULT_HISTORY_LIMIT = 8;
+export const MAX_HISTORY_LIMIT = 50;
+export const PARTICIPANT_PREVIEW_LIMIT = 4;
