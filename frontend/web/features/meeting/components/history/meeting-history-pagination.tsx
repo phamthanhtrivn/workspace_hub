@@ -42,10 +42,11 @@ export function MeetingHistoryPagination({
           type="button"
           disabled={safePage === 1}
           onClick={() => onPageChange(Math.max(1, safePage - 1))}
-          className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={intl.formatMessage({ id: "app.previous" })}
         >
           <ChevronLeft className="h-4 w-4" />
+          {intl.formatMessage({ id: "app.previous" })}
         </button>
         {pageNumbers.map((pageNumber) =>
           typeof pageNumber === "number" ? (
@@ -77,9 +78,10 @@ export function MeetingHistoryPagination({
           type="button"
           disabled={safePage === totalPages}
           onClick={() => onPageChange(Math.min(totalPages, safePage + 1))}
-          className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           aria-label={intl.formatMessage({ id: "app.next" })}
         >
+          {intl.formatMessage({ id: "app.next" })}
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>

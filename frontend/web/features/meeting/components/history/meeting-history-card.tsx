@@ -1,11 +1,15 @@
 "use client";
 
-import { CalendarClock, Hash } from "lucide-react";
+import { CalendarClock } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingStatusTag } from "../common/meeting-status-tag";
 import type { MeetingHistoryItem } from "../../types/meeting.types";
 import { MeetingHistoryAvatarStack } from "./meeting-history-avatar-stack";
-import { formatMeetingHistoryStartTime, getMeetingHistoryTitleId } from "../../utils/meeting-history.utils";
+import { MeetingJoinTokenCopyButton } from "./meeting-join-token-copy-button";
+import {
+  formatMeetingHistoryStartTime,
+  getMeetingHistoryTitleId,
+} from "../../utils/meeting-history.utils";
 
 interface MeetingHistoryCardProps {
   meeting: MeetingHistoryItem;
@@ -34,10 +38,7 @@ export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
       </div>
 
       <div className="space-y-4">
-        <span className="flex min-w-0 items-center gap-2 text-xs font-bold text-slate-500">
-          <Hash className="h-4 w-4 shrink-0 text-[#0052CC]" />
-          <span className="truncate font-mono">{meeting.joinToken}</span>
-        </span>
+        <MeetingJoinTokenCopyButton joinToken={meeting.joinToken} />
         <MeetingHistoryAvatarStack
           participants={meeting.participants}
           participantCount={meeting.participantCount}

@@ -1,5 +1,5 @@
 import type { IntlShape } from "react-intl";
-import type { MeetingHistoryItem } from "../../types/meeting.types";
+import type { MeetingHistoryItem } from "../types/meeting.types";
 
 export function getMeetingHistoryTitleId(meeting: MeetingHistoryItem) {
   return `meeting.history.type.${meeting.type}`;
@@ -37,32 +37,47 @@ export function getMeetingHistoryPageNumbers(
   totalPages: number,
 ): MeetingHistoryPageNumber[] {
   if (totalPages <= 0) return [];
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
 
   const safeCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
-  let firstPage = Math.max(1, safeCurrentPage - 1);
-  let lastPage = Math.min(totalPages, safeCurrentPage + 1);
-
-  if (safeCurrentPage === 1) {
-    lastPage = Math.min(totalPages, 3);
-  }
-
-  if (safeCurrentPage === totalPages) {
-    firstPage = Math.max(1, totalPages - 2);
-  }
-
+  const firstNearbyPage = Math.max(2, safeCurrentPage - 2);
+  const lastNearbyPage = Math.min(totalPages - 1, safeCurrentPage + 2);
   const pages: MeetingHistoryPageNumber[] = [];
 
-  if (firstPage > 1) {
+  pages.push(1);
+
+  if (firstNearbyPage > 2) {
     pages.push("ellipsis-start");
   }
 
-  for (let page = firstPage; page <= lastPage; page += 1) {
+  for (let page = firstNearbyPage; page <= lastNearbyPage; page += 1) {
     pages.push(page);
   }
 
-  if (lastPage < totalPages) {
+  if (lastNearbyPage < totalPages - 1) {
     pages.push("ellipsis-end");
   }
 
+  pages.push(totalPages);
+
   return pages;
+}
+
+export function copyTextFallback(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("Copy command failed");
+  }
 }

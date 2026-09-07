@@ -638,6 +638,9 @@
     "Showing {start} - {end} of {total} meetings",
   "meeting.history.participantCount":
     "{count, plural, one {# participant} other {# participants}}",
+  "meeting.history.copyJoinToken": "Copy join token {joinToken}",
+  "meeting.history.joinTokenCopied": "Join token copied",
+  "meeting.history.joinTokenCopyFailed": "Could not copy join token",
   "meeting.history.notStarted": "Not started",
   "meeting.history.type.INSTANT": "Instant Meeting",
   "meeting.history.type.SCHEDULED": "Scheduled Meeting",

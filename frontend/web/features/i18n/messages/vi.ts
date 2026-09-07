@@ -634,6 +634,9 @@ const vi = {
     "Hiển thị {start} - {end} trong {total} cuộc họp",
   "meeting.history.participantCount":
     "{count, plural, one {# người tham gia} other {# người tham gia}}",
+  "meeting.history.copyJoinToken": "Sao chép join token {joinToken}",
+  "meeting.history.joinTokenCopied": "Đã sao chép join token",
+  "meeting.history.joinTokenCopyFailed": "Không thể sao chép join token",
   "meeting.history.notStarted": "Chưa bắt đầu",
   "meeting.history.type.INSTANT": "Instant Meeting",
   "meeting.history.type.SCHEDULED": "Scheduled Meeting",
