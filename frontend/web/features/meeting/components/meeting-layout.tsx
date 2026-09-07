@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
+import { MeetingJoinLinkModal } from "./common/meeting-join-link-modal";
 import {
   MeetingDashboardActionId,
   meetingDashboardActions,
@@ -20,6 +22,7 @@ export function MeetingLayout() {
   const intl = useAppIntl();
   const clock = useMeetingClock();
   const [flowStep, setFlowStep] = useState(MeetingFlowStep.DASHBOARD);
+  const [isJoinLinkModalOpen, setIsJoinLinkModalOpen] = useState(false);
   const isPreJoinOpen = flowStep === MeetingFlowStep.PREJOIN;
   const {
     settings: preJoinSettings,
@@ -51,6 +54,11 @@ export function MeetingLayout() {
   });
 
   const handleActionClick = (actionId: MeetingDashboardActionId) => {
+    if (actionId === MeetingDashboardActionId.JOIN_MEETING) {
+      setIsJoinLinkModalOpen(true);
+      return;
+    }
+
     if (actionId !== MeetingDashboardActionId.NEW_MEETING) return;
 
     reloadSettings();
@@ -97,6 +105,16 @@ export function MeetingLayout() {
           </section>
         </div>
       </section>
+
+      <MeetingJoinLinkModal
+        open={isJoinLinkModalOpen}
+        onClose={() => setIsJoinLinkModalOpen(false)}
+        onOpenFailed={() => {
+          toast.error(
+            intl.formatMessage({ id: "meeting.joinModal.openFailed" }),
+          );
+        }}
+      />
 
       {isPreJoinOpen && (
         <MeetingPreJoin

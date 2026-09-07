@@ -609,6 +609,16 @@ const vi = {
   "meeting.dashboard.action.scheduleMeeting.description": "Chuẩn bị cuộc họp trước",
   "meeting.dashboard.action.viewRecordings.title": "Xem bản ghi",
   "meeting.dashboard.action.viewRecordings.description": "Các phiên đã lưu",
+  "meeting.joinModal.title": "Tham gia cuộc họp",
+  "meeting.joinModal.description":
+    "Dán liên kết cuộc họp WorkspaceHub hoặc nhập join token.",
+  "meeting.joinModal.linkLabel": "Liên kết cuộc họp",
+  "meeting.joinModal.placeholder": "https://workspacehub.app/meetings/...",
+  "meeting.joinModal.invalidLink":
+    "Nhập liên kết cuộc họp hoặc join token hợp lệ.",
+  "meeting.joinModal.openFailed":
+    "Không thể mở tab mới. Hãy cho phép pop-up rồi thử lại.",
+  "meeting.joinModal.join": "Tham gia ở tab mới",
   "meeting.comingSoon": "Sắp có",
   "meeting.prejoin.eyebrow": "Họp tức thì",
   "meeting.prejoin.title": "Kiểm tra âm thanh và video",
