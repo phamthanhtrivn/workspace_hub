@@ -30,6 +30,7 @@ export enum MEETING_SUCCESS_MESSAGES {
   CHAT_NOTIFICATION_PREFERENCE_UPDATED = 'Meeting chat notification preference updated successfully',
   SCREEN_SHARE_STARTED = 'Screen share started successfully',
   SCREEN_SHARE_STOPPED = 'Screen share stopped successfully',
+  LIVEKIT_WEBHOOK_RECEIVED = 'LiveKit webhook received successfully',
 }
 
 export enum MEETING_ERROR_MESSAGES {
@@ -56,6 +57,8 @@ export enum MEETING_ERROR_MESSAGES {
   MEETING_SCREEN_SHARE_NOT_ACTIVE = 'No active screen share found',
   MEETING_SCREEN_SHARE_STOP_FORBIDDEN = 'Only meeting hosts or co-hosts can stop another participant screen share',
   LIVEKIT_NOT_CONFIGURED = 'LiveKit is not configured',
+  LIVEKIT_WEBHOOK_BODY_REQUIRED = 'LiveKit webhook body is required',
+  LIVEKIT_WEBHOOK_INVALID = 'Invalid LiveKit webhook',
   INSTANT_CREATE_FAILED = 'Failed to create instant meeting',
   INVALID_MESSAGE_DATA = 'Invalid meeting message data',
   MESSAGE_NOT_FOUND = 'Meeting message not found',

@@ -1,8 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk';
+import {
+  AccessToken,
+  RoomServiceClient,
+  TrackSource,
+  WebhookReceiver,
+} from 'livekit-server-sdk';
 import { getLiveKitConfig, LiveKitConfig } from './livekit.config';
-import { LiveKitParticipantTokenParams, LiveKitRoomMetadata } from './types/livekit.types';
-import { BASE_PUBLISH_SOURCES, SCREEN_SHARE_PUBLISH_SOURCES } from './types/livekit.constants';
+import {
+  LiveKitParticipantTokenParams,
+  LiveKitRoomMetadata,
+} from './types/livekit.types';
+import {
+  BASE_PUBLISH_SOURCES,
+  LIVEKIT_ROOM_DEPARTURE_TIMEOUT_SECONDS,
+  LIVEKIT_ROOM_EMPTY_TIMEOUT_SECONDS,
+  SCREEN_SHARE_PUBLISH_SOURCES,
+} from './types/livekit.constants';
 
 @Injectable()
 export class LiveKitService {
@@ -33,8 +46,19 @@ export class LiveKitService {
   async createRoom(roomName: string, metadata?: LiveKitRoomMetadata) {
     return this.createRoomServiceClient().createRoom({
       name: roomName,
+      emptyTimeout: LIVEKIT_ROOM_EMPTY_TIMEOUT_SECONDS,
+      departureTimeout: LIVEKIT_ROOM_DEPARTURE_TIMEOUT_SECONDS,
       metadata: metadata ? JSON.stringify(metadata) : undefined,
     });
+  }
+
+  async receiveWebhook(body: string, authorization?: string) {
+    const receiver = new WebhookReceiver(
+      this.config.apiKey,
+      this.config.apiSecret,
+    );
+
+    return receiver.receive(body, authorization);
   }
 
   async deleteRoom(roomName: string): Promise<void> {
