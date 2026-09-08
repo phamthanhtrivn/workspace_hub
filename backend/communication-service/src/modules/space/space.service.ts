@@ -76,11 +76,35 @@ export class SpaceService {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
     }
     if (space.createdBy !== userId) {
-      throw new ForbiddenException(
-        'Only the space owner can perform this action',
-      );
+      throw new ForbiddenException(SPACE_ERROR_MESSAGES.OWNER_REQUIRED);
     }
     return space;
+  }
+
+  private async assertSpaceAdminOrOwner(spaceId: string, userId: string) {
+    const [space, member] = await Promise.all([
+      this.prisma.space.findUnique({
+        where: { id: spaceId },
+        select: { createdBy: true, name: true },
+      }),
+      this.prisma.spaceMember.findUnique({
+        where: { spaceId_userId: { spaceId, userId } },
+      }),
+    ]);
+
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (!member) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+    }
+
+    const isOwner = space.createdBy === userId;
+    if (!isOwner && member.role !== SpaceRole.ADMIN) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.ADMIN_REQUIRED);
+    }
+
+    return { space, member, isOwner };
   }
 
   private async getAdminCount(spaceId: string) {
@@ -187,7 +211,9 @@ export class SpaceService {
     leftSpace: boolean,
   ) {
     this.chatSocketPublisher.publishMemberLeft([userId, ...channelIds], {
-      eventType: leftSpace ? SPACE_SOCKET_EVENT_TYPE.MEMBER_LEFT : 'member_left',
+      eventType: leftSpace
+        ? SPACE_SOCKET_EVENT_TYPE.MEMBER_LEFT
+        : 'member_left',
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       spaceId,
       channelId: channelIds[0] ?? null,
@@ -641,12 +667,12 @@ export class SpaceService {
     }
     if (space.createdBy !== userId) {
       throw new ForbiddenException(
-        'Only the space creator can transfer ownership',
+        SPACE_ERROR_MESSAGES.OWNER_TRANSFER_REQUIRED,
       );
     }
     if (userId === targetUserId) {
       throw new BadRequestException(
-        'You cannot transfer ownership to yourself',
+        SPACE_ERROR_MESSAGES.SELF_OWNERSHIP_TRANSFER,
       );
     }
 
@@ -663,16 +689,14 @@ export class SpaceService {
         data: { createdBy: targetUserId },
       });
 
-      // Ensure the new owner has ADMIN role
       await tx.spaceMember.update({
         where: { spaceId_userId: { spaceId, userId: targetUserId } },
         data: { role: SpaceRole.ADMIN },
       });
 
-      // Ensure the old owner explicitly retains ADMIN role (not demoted to MEMBER)
       await tx.spaceMember.update({
         where: { spaceId_userId: { spaceId, userId } },
-        data: { role: SpaceRole.ADMIN },
+        data: { role: SpaceRole.MEMBER },
       });
 
       return [sp];
@@ -703,26 +727,30 @@ export class SpaceService {
       );
     }
 
-    // Notify all clients that the new owner is now ADMIN (owner)
+    const rolePatches = [
+      { userId: targetUserId, role: SpaceRole.ADMIN },
+      { userId, role: SpaceRole.MEMBER },
+    ];
+
     this.chatSocketPublisher.publishMemberRoleUpdated(
       [
-        ...channels.map((channel) => channel.id),
-        ...members.map((member) => member.userId),
+        ...new Set([
+          ...channels.map((channel) => channel.id),
+          ...members.map((member) => member.userId),
+        ]),
       ],
       {
         eventType: SPACE_SOCKET_EVENT_TYPE.MEMBER_ROLE_UPDATED,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         spaceId,
         spaceName: space?.name ?? null,
+        createdBy: targetUserId,
+        ownerId: targetUserId,
+        previousOwnerId: userId,
         affectedUserIds: [targetUserId, userId],
         actorProfile: actorProfile ?? null,
         targetProfile: targetProfile ?? null,
-        // Both actors retain/gain ADMIN role; pass both so frontend can patch caches
-        members: [
-          { userId: targetUserId, role: SpaceRole.ADMIN },
-          { userId, role: SpaceRole.ADMIN },
-        ],
-        // Legacy single-member field kept for backwards compatibility
+        members: rolePatches,
         member: {
           userId: targetUserId,
           role: SpaceRole.ADMIN,
@@ -736,8 +764,8 @@ export class SpaceService {
       actorName: actorProfile?.fullName || 'an admin',
       actorAvatar: actorProfile?.avatarUrl,
       type: KAFKA_EVENTS.NOTIFICATION.SPACE_OWNERSHIP_TRANSFERRED,
-      title: 'Space admin transferred',
-      content: `${targetProfile?.fullName || 'Someone'} is now the Admin of ${space.name} (transferred by ${actorProfile?.fullName || 'an admin'})`,
+      title: 'Space ownership transferred',
+      content: `${targetProfile?.fullName || 'Someone'} is now the Owner of ${space.name} (transferred by ${actorProfile?.fullName || 'an admin'})`,
       metadata: {
         spaceId,
         spaceName: space.name,
@@ -830,11 +858,10 @@ export class SpaceService {
     spaceId: string,
     targetUserId: string,
   ) {
-    await this.assertSpaceOwner(spaceId, userId);
-    const space = await this.prisma.space.findUnique({
-      where: { id: spaceId },
-      select: { name: true },
-    });
+    const { space, isOwner } = await this.assertSpaceAdminOrOwner(
+      spaceId,
+      userId,
+    );
     if (userId === targetUserId) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SELF_REMOVE);
     }
@@ -843,6 +870,14 @@ export class SpaceService {
     });
     if (!target) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.MEMBER_NOT_FOUND);
+    }
+    if (targetUserId === space.createdBy) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.OWNER_REMOVE);
+    }
+    if (!isOwner && target.role !== SpaceRole.MEMBER) {
+      throw new BadRequestException(
+        SPACE_ERROR_MESSAGES.ADMIN_REMOVE_MEMBER_ONLY,
+      );
     }
     if (target.role === SpaceRole.ADMIN) {
       const adminCount = await this.getAdminCount(spaceId);
@@ -854,6 +889,10 @@ export class SpaceService {
     const channels = await this.prisma.channel.findMany({
       where: { spaceId },
       select: { id: true, name: true },
+    });
+    const members = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: { userId: true },
     });
     const defaultChannel = await this.getDefaultChannel(spaceId);
     const profileByUserId = await this.getProfileMap([userId, targetUserId]);
@@ -882,7 +921,15 @@ export class SpaceService {
     });
 
     this.chatSocketPublisher.publishMemberKicked(
-      [targetUserId, ...channels.map((channel) => channel.id)],
+      [
+        ...new Set([
+          targetUserId,
+          ...members
+            .map((member) => member.userId)
+            .filter((memberId) => memberId !== targetUserId),
+          ...channels.map((channel) => channel.id),
+        ]),
+      ],
       {
         eventType: SPACE_SOCKET_EVENT_TYPE.MEMBER_REMOVED,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
@@ -1248,9 +1295,7 @@ export class SpaceService {
         role: true,
       },
     });
-    const roleByUserId = new Map(
-      spaceMembers.map((m) => [m.userId, m.role]),
-    );
+    const roleByUserId = new Map(spaceMembers.map((m) => [m.userId, m.role]));
 
     return Promise.all(
       channels.map((channel) =>

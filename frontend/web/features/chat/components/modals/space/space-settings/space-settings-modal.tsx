@@ -145,6 +145,7 @@ export default function SpaceSettingsModal({
             {activeTab === SpaceSettingsTab.MEMBERS && settings.isAdmin && (
               <MembersTab
                 currentUserId={currentUserId}
+                currentUserRole={settings.currentMember?.role}
                 isLoading={settings.isLoadingMembers}
                 isMutating={
                   settings.transferOwnershipMutation.isPending ||

@@ -61,6 +61,9 @@ export interface ChatSocketRoleUpdatedPayload extends Partial<ChatContextPayload
   eventType?: string;
   spaceId?: string;
   spaceName?: string | null;
+  createdBy?: string | null;
+  ownerId?: string | null;
+  previousOwnerId?: string | null;
   affectedUserIds?: string[];
   actorProfile?: UserProfileSnapshotResponse | null;
   targetProfile?: UserProfileSnapshotResponse | null;

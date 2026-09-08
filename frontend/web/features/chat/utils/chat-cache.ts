@@ -21,6 +21,11 @@ import {
 import { sortDirectConversations } from "./direct-conversation-utils";
 import { normalizeSpaceSetting } from "./space-setting-utils";
 
+type SpaceMemberRolePatch = {
+  userId: string;
+  role: SpaceMemberRole;
+};
+
 export function getMessageChatId(
   payload: Partial<ChatContextPayload> | null | undefined,
 ): string | null {
@@ -157,14 +162,38 @@ export function patchSpaceSettingInCaches(
   );
 }
 
+export function patchSpaceOwnerInCaches(
+  queryClient: QueryClient,
+  spaceId: string,
+  ownerId: string,
+) {
+  queryClient.setQueriesData<SpaceResponse[]>(
+    { queryKey: chatKeys.allSpaces() },
+    (oldSpaces: SpaceResponse[] | undefined) =>
+      oldSpaces?.map((space) =>
+        space.id === spaceId
+          ? { ...space, createdBy: ownerId, ownerId }
+          : space,
+      ) ?? oldSpaces,
+  );
+
+  queryClient.setQueriesData<SpaceResponse>(
+    { queryKey: chatKeys.spaceDetails(spaceId) },
+    (oldSpace: SpaceResponse | undefined) =>
+      oldSpace ? { ...oldSpace, createdBy: ownerId, ownerId } : oldSpace,
+  );
+}
+
 export function patchSpaceMemberRoleInCaches(
   queryClient: QueryClient,
   spaceId: string,
   memberId: string,
   role: SpaceMemberRole,
 ) {
+  const spaceMembersQueryKey = chatKeys.spaceMembers(spaceId).slice(0, 2);
+
   queryClient.setQueriesData<SpaceMembersListResponse>(
-    { queryKey: chatKeys.spaceMembers(spaceId) },
+    { queryKey: spaceMembersQueryKey },
     (oldData: SpaceMembersListResponse | undefined) => {
       if (!oldData) return oldData;
       const allMembers = [
@@ -179,6 +208,82 @@ export function patchSpaceMemberRoleInCaches(
         admins: nextMembers.filter((member) => member.role === SpaceRole.ADMIN),
         members: nextMembers.filter(
           (member) => member.role !== SpaceRole.ADMIN,
+        ),
+      };
+    },
+  );
+}
+
+export function patchChannelMemberRolesInCaches(
+  queryClient: QueryClient,
+  spaceId: string,
+  rolePatches: SpaceMemberRolePatch[],
+) {
+  if (rolePatches.length === 0) return;
+
+  const roleByUserId = new Map(
+    rolePatches.map((member) => [member.userId, member.role]),
+  );
+
+  queryClient.setQueriesData<SpaceChannelsQueryData>(
+    { queryKey: chatKeys.allChannels() },
+    (oldData: SpaceChannelsQueryData | undefined) => {
+      if (!oldData?.channels) return oldData;
+      return {
+        ...oldData,
+        channels: oldData.channels.map((channel: SpaceChannel) => {
+          if (channel.spaceId !== spaceId || !channel.members) return channel;
+          return {
+            ...channel,
+            members: channel.members.map((member: ConversationMember) => {
+              const nextRole = roleByUserId.get(member.userId);
+              return nextRole ? { ...member, role: nextRole } : member;
+            }),
+          };
+        }),
+      };
+    },
+  );
+}
+
+export function removeSpaceMemberFromCaches(
+  queryClient: QueryClient,
+  spaceId: string,
+  memberId: string,
+) {
+  const spaceMembersQueryKey = chatKeys.spaceMembers(spaceId).slice(0, 2);
+
+  queryClient.setQueriesData<SpaceMembersListResponse>(
+    { queryKey: spaceMembersQueryKey },
+    (oldData: SpaceMembersListResponse | undefined) =>
+      oldData
+        ? {
+            ...oldData,
+            admins: oldData.admins?.filter(
+              (member) => member.userId !== memberId,
+            ),
+            members: oldData.members?.filter(
+              (member) => member.userId !== memberId,
+            ),
+          }
+        : oldData,
+  );
+
+  queryClient.setQueriesData<SpaceChannelsQueryData>(
+    { queryKey: chatKeys.allChannels() },
+    (oldData: SpaceChannelsQueryData | undefined) => {
+      if (!oldData?.channels) return oldData;
+      return {
+        ...oldData,
+        channels: oldData.channels.map((channel: SpaceChannel) =>
+          channel.spaceId === spaceId
+            ? {
+                ...channel,
+                members: channel.members?.filter(
+                  (member) => member.userId !== memberId,
+                ),
+              }
+            : channel,
         ),
       };
     },
