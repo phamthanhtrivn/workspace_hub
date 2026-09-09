@@ -5,9 +5,11 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { SocketModule } from '../socket/socket.module';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 import { MeetingController } from './meeting.controller';
+import { MeetingLiveKitWebhookController } from './meeting-livekit-webhook.controller';
 import { MeetingService } from './meeting.service';
 import { MeetingAdmissionService } from './services/meeting-admission.service';
 import { MeetingHistoryService } from './services/meeting-history.service';
+import { MeetingLiveKitWebhookService } from './services/meeting-livekit-webhook.service';
 import { MeetingParticipantService } from './services/meeting-participant.service';
 import { MeetingMessageService } from './services/meeting-message.service';
 import { MeetingPolicyService } from './services/meeting-policy.service';
@@ -24,10 +26,11 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
     S3Module,
     UserProfileSnapshotModule,
   ],
-  controllers: [MeetingController],
+  controllers: [MeetingController, MeetingLiveKitWebhookController],
   providers: [
     MeetingService,
     MeetingRoomService,
+    MeetingLiveKitWebhookService,
     MeetingHistoryService,
     MeetingParticipantService,
     MeetingMessageService,

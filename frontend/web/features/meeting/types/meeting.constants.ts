@@ -113,11 +113,7 @@ export const meetingDashboardNavItems = [
   {
     id: MeetingDashboardNavItemId.RECORDINGS,
     labelId: "meeting.dashboard.nav.recordings",
-  },
-  {
-    id: MeetingDashboardNavItemId.PERSONAL_ROOM,
-    labelId: "meeting.dashboard.nav.personalRoom",
-  },
+  }
 ] as const;
 
 export const meetingDashboardActions = [

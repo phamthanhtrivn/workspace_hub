@@ -11,6 +11,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
+import { MeetingScreenShareStopReason } from '../types/meeting.constants';
 import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
 import type {
   StartMeetingScreenShareParams,
@@ -19,14 +20,6 @@ import type {
 } from '../types/meeting.types';
 import { MeetingPolicyService } from './meeting-policy.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
-
-export type ScreenShareStopReason =
-  | 'stopped'
-  | 'interrupted'
-  | 'disabled'
-  | 'participant_left'
-  | 'participant_removed'
-  | 'meeting_ended';
 
 @Injectable()
 export class MeetingScreenShareService {
@@ -128,7 +121,7 @@ export class MeetingScreenShareService {
                 type: MeetingEventType.SCREEN_SHARE_STOPPED,
                 metadata: {
                   targetUserId: previousScreenShareUserId,
-                  reason: 'interrupted',
+                  reason: MeetingScreenShareStopReason.INTERRUPTED,
                 },
               },
             ]
@@ -165,7 +158,7 @@ export class MeetingScreenShareService {
         screenShareStartedAt: null,
         userId: previousScreenShareUserId,
         stoppedBy: userId,
-        reason: 'interrupted',
+        reason: MeetingScreenShareStopReason.INTERRUPTED,
       });
     }
 
@@ -207,7 +200,7 @@ export class MeetingScreenShareService {
       meetingHostId: meeting.hostId,
       targetUserId: userId,
       stoppedBy: userId,
-      reason: 'stopped',
+      reason: MeetingScreenShareStopReason.STOPPED,
     });
 
     if (!payload) {
@@ -249,7 +242,10 @@ export class MeetingScreenShareService {
       meetingHostId: meeting.hostId,
       targetUserId,
       stoppedBy: userId,
-      reason: userId === targetUserId ? 'stopped' : 'interrupted',
+      reason:
+        userId === targetUserId
+          ? MeetingScreenShareStopReason.STOPPED
+          : MeetingScreenShareStopReason.INTERRUPTED,
     });
 
     if (!payload) {
@@ -276,7 +272,7 @@ export class MeetingScreenShareService {
     meetingHostId: string;
     targetUserId?: string | null;
     stoppedBy?: string | null;
-    reason: ScreenShareStopReason;
+    reason: MeetingScreenShareStopReason;
   }) {
     const meeting = await this.prisma.meeting.findUnique({
       where: { id: meetingId },
@@ -383,7 +379,7 @@ export class MeetingScreenShareService {
     screenShareStartedAt: null;
     userId: string;
     stoppedBy: string;
-    reason: ScreenShareStopReason;
+    reason: MeetingScreenShareStopReason;
   }) {
     this.meetingRealtimeService.emitMeetingEvent(
       payload.meetingId,
@@ -480,8 +476,7 @@ export class MeetingScreenShareService {
       joinToken: meeting.joinToken,
       screenShareEnabled: meeting.screenShareEnabled,
       activeScreenShareUserId: meeting.activeScreenShareUserId,
-      screenShareStartedAt:
-        meeting.screenShareStartedAt?.toISOString() ?? null,
+      screenShareStartedAt: meeting.screenShareStartedAt?.toISOString() ?? null,
       startedBy: userId,
     };
   }

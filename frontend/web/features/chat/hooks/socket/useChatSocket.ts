@@ -28,9 +28,12 @@ import {
   cleanupRemovedSpaceCaches,
   clearChatUnread,
   getMessageChatId,
+  patchChannelMemberRolesInCaches,
   patchChatMember,
   patchSpaceMemberRoleInCaches,
+  patchSpaceOwnerInCaches,
   patchSpaceSettingInCaches,
+  removeSpaceMemberFromCaches,
   removeChannelFromCaches,
   updateChannelsCache,
   updateDirectMessagesCache,
@@ -77,6 +80,10 @@ function isSpaceSetting(value: unknown): value is SpaceSettingResponse {
     value !== null &&
     "allowMemberCreateChannel" in value
   );
+}
+
+function normalizeSpaceRole(role: unknown) {
+  return String(role) === SpaceRole.ADMIN ? SpaceRole.ADMIN : SpaceRole.MEMBER;
 }
 
 export function useChatSocket() {
@@ -341,6 +348,10 @@ export function useChatSocket() {
         data.affectedUserIds?.includes(currentUserId);
 
       if (isChannelPayload(data)) {
+        if (data.spaceId && data.userId) {
+          removeSpaceMemberFromCaches(queryClient, data.spaceId, data.userId);
+        }
+
         if (affectsCurrentUser && data.leftSpace && data.spaceId) {
           dispatch(setActiveConversation(null));
           dispatch(setActiveSpaceId(null));
@@ -377,18 +388,32 @@ export function useChatSocket() {
     const handleMemberRoleUpdated = (data: ChatSocketRoleUpdatedPayload) => {
       const chatId = getMessageChatId(data);
       if (data.spaceId) {
-        // Support multi-member role patch (e.g. ownership transfer affects both old and new owner)
-        const membersToUpdate = data.members ?? [data.member];
-        membersToUpdate.forEach((m) => {
+        const nextOwnerId = data.createdBy ?? data.ownerId;
+        if (nextOwnerId) {
+          patchSpaceOwnerInCaches(queryClient, data.spaceId, nextOwnerId);
+        }
+
+        const membersToUpdate =
+          data.members && data.members.length > 0
+            ? data.members
+            : data.member
+              ? [data.member]
+              : [];
+        const rolePatches = membersToUpdate.map((member) => ({
+          userId: member.userId,
+          role: normalizeSpaceRole(member.role),
+        }));
+
+        rolePatches.forEach((member) => {
           patchSpaceMemberRoleInCaches(
             queryClient,
             data.spaceId!,
-            m.userId,
-            String(m.role) === SpaceRole.ADMIN
-              ? SpaceRole.ADMIN
-              : SpaceRole.MEMBER,
+            member.userId,
+            member.role,
           );
         });
+        patchChannelMemberRolesInCaches(queryClient, data.spaceId, rolePatches);
+
         queryClient.invalidateQueries({
           queryKey: chatKeys.spaceMembers(data.spaceId),
         });
@@ -409,7 +434,7 @@ export function useChatSocket() {
 
       updateChannelsCache(queryClient, chatId, (channel) =>
         patchChatMember(channel, data.member.userId, {
-          role: data.member.role,
+          role: normalizeSpaceRole(data.member.role),
         }),
       );
     };

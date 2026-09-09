@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
 import { UserProfileSnapshotService } from '../../user-profile-snapshot/user-profile-snapshot.service';
+import { MeetingScreenShareStopReason } from '../types/meeting.constants';
 import { MEETING_ERROR_MESSAGES } from '../types/meeting.enums';
 import type {
   ListMeetingParticipantViewPreferencesParams,
@@ -146,7 +147,7 @@ export class MeetingParticipantService {
         meetingHostId: meeting.hostId,
         targetUserId: userId,
         stoppedBy: userId,
-        reason: 'participant_left',
+        reason: MeetingScreenShareStopReason.PARTICIPANT_LEFT,
       });
     }
 
@@ -231,7 +232,7 @@ export class MeetingParticipantService {
         meetingHostId: meeting.hostId,
         targetUserId,
         stoppedBy: userId,
-        reason: 'participant_removed',
+        reason: MeetingScreenShareStopReason.PARTICIPANT_REMOVED,
       });
     }
     await this.meetingRealtimeService.removeLiveKitParticipant(
@@ -317,7 +318,7 @@ export class MeetingParticipantService {
         meetingHostId: meeting.hostId,
         targetUserId,
         stoppedBy: userId,
-        reason: 'disabled',
+        reason: MeetingScreenShareStopReason.DISABLED,
       });
     } else {
       await this.meetingRealtimeService.syncLiveKitParticipantPublishPermissions(
@@ -597,7 +598,7 @@ export class MeetingParticipantService {
             meetingHostId: targetParticipant.userId,
             targetUserId: previousHostId,
             stoppedBy: currentHostUserId,
-            reason: 'disabled',
+            reason: MeetingScreenShareStopReason.DISABLED,
           })
         : this.meetingRealtimeService.syncLiveKitParticipantPublishPermissions({
             roomName: meeting.roomName,

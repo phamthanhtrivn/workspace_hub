@@ -53,8 +53,11 @@ import { useChatMessageActions } from "../../hooks/message/useChatMessageActions
 import { upsertMessageById } from "../../utils/message-state-utils";
 import {
   cleanupRemovedSpaceCaches,
+  patchChannelMemberRolesInCaches,
   patchSpaceMemberRoleInCaches,
+  patchSpaceOwnerInCaches,
   patchSpaceSettingInCaches,
+  removeSpaceMemberFromCaches,
   removeChannelFromCaches,
 } from "../../utils/chat-cache";
 import MessageList from "../message/message-list";
@@ -71,6 +74,10 @@ function isSpaceSetting(value: unknown): value is SpaceSettingResponse {
     value !== null &&
     "allowMemberCreateChannel" in value
   );
+}
+
+function normalizeSpaceRole(role: unknown) {
+  return String(role) === SpaceRole.ADMIN ? SpaceRole.ADMIN : SpaceRole.MEMBER;
 }
 
 interface ChatAreaProps {
@@ -547,14 +554,41 @@ export default function ChatArea({
         ) {
           queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
           if (data.spaceId) {
+            const spaceId = String(data.spaceId);
+            const nextOwnerId = data.createdBy ?? data.ownerId;
+            if (nextOwnerId) {
+              patchSpaceOwnerInCaches(queryClient, spaceId, nextOwnerId);
+            }
+
+            const membersToUpdate =
+              data.members && data.members.length > 0
+                ? data.members
+                : data.member
+                  ? [data.member]
+                  : [];
+            const rolePatches = membersToUpdate.map((member) => ({
+              userId: member.userId,
+              role: normalizeSpaceRole(member.role),
+            }));
+
+            rolePatches.forEach((member) => {
+              patchSpaceMemberRoleInCaches(
+                queryClient,
+                spaceId,
+                member.userId,
+                member.role,
+              );
+            });
+            patchChannelMemberRolesInCaches(queryClient, spaceId, rolePatches);
+
             queryClient.invalidateQueries({
-              queryKey: chatKeys.channels(String(data.spaceId)),
+              queryKey: chatKeys.channels(spaceId),
             });
             queryClient.invalidateQueries({
-              queryKey: chatKeys.spaceMembers(String(data.spaceId)),
+              queryKey: chatKeys.spaceMembers(spaceId),
             });
             queryClient.invalidateQueries({
-              queryKey: chatKeys.spaceDetails(String(data.spaceId)),
+              queryKey: chatKeys.spaceDetails(spaceId),
             });
           }
         }
@@ -568,6 +602,10 @@ export default function ChatArea({
           (data.spaceId && data.spaceId === activeSpaceId);
 
         if (affectsActiveConversation) {
+          if (data.spaceId && data.userId) {
+            removeSpaceMemberFromCaches(queryClient, data.spaceId, data.userId);
+          }
+
           if (affectsCurrentUser) {
             dispatch(setActiveConversation(null));
             if (data.leftSpace) {

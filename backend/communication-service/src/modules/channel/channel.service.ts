@@ -538,13 +538,35 @@ export class ChannelService {
       where: { id: channel.spaceId },
       select: { createdBy: true },
     });
-    if (!space || space.createdBy !== userId) {
+    const isOwner = space?.createdBy === userId;
+    const isAdmin = requester.role === SpaceRole.ADMIN;
+    if (!space || (!isOwner && !isAdmin)) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.KICK_ACCESS_DENIED);
+    }
+    if (memberId === space.createdBy) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.OWNER_KICK_DENIED);
+    }
+    if (!isOwner && target.role !== SpaceRole.MEMBER) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.KICK_ADMIN_ACCESS_DENIED,
+      );
+    }
+    if (target.role === SpaceRole.ADMIN) {
+      const adminCount = await this.prisma.spaceMember.count({
+        where: { spaceId: channel.spaceId, role: SpaceRole.ADMIN },
+      });
+      if (adminCount <= 1) {
+        throw new BadRequestException(CHANNEL_ERROR_MESSAGES.LAST_ADMIN);
+      }
     }
 
     const spaceChannels = await this.prisma.channel.findMany({
       where: { spaceId: channel.spaceId },
       select: { id: true },
+    });
+    const spaceMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId: channel.spaceId },
+      select: { userId: true },
     });
 
     await this.prisma.$transaction(async (tx) => {
@@ -565,8 +587,13 @@ export class ChannelService {
     });
 
     const targetRooms = [
-      memberId,
-      ...spaceChannels.map((spaceChannel) => spaceChannel.id),
+      ...new Set([
+        memberId,
+        ...spaceMembers
+          .map((spaceMember) => spaceMember.userId)
+          .filter((spaceMemberId) => spaceMemberId !== memberId),
+        ...spaceChannels.map((spaceChannel) => spaceChannel.id),
+      ]),
     ];
 
     this.chatSocketPublisher.publishMemberKicked(targetRooms, {
@@ -626,7 +653,11 @@ export class ChannelService {
       await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
     const actorProfile = profileMap.get(userId);
     const content = `Channel name was updated to "${updatedChannel.name}" by ${actorProfile?.fullName || 'an admin'}`;
-    await this.chatSocketPublisher.sendSystemMessage(channelId, userId, content);
+    await this.chatSocketPublisher.sendSystemMessage(
+      channelId,
+      userId,
+      content,
+    );
 
     const payload = {
       id: channelId,

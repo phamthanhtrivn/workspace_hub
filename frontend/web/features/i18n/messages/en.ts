@@ -219,7 +219,7 @@
   "chat.thisUser": "this user",
   "chat.transferOwnershipTitle": "Transfer ownership?",
   "chat.transferOwnershipDescription":
-    "Are you sure you want to transfer ownership of this space to {name}? You will remain as an Admin.",
+    "Are you sure you want to transfer ownership of this space to {name}? You will become a Member.",
   "chat.transfer": "Transfer",
   "chat.spaceOwnershipTransferred":
     "Space ownership transferred successfully",
@@ -358,7 +358,7 @@
   "chat.closeChannelMembers": "Close channel members",
   "chat.searchMembersByName": "Search members by name",
   "chat.failedLoadChannelMembers": "Failed to load channel members",
-  "chat.transferAdmin": "Transfer Admin",
+  "chat.transferAdmin": "Transfer ownership",
   "chat.channelPermissions": "Channel permissions",
   "chat.memberChannelPermissionsHelp":
     "Admins can always create and delete channels.",
@@ -369,8 +369,8 @@
   "chat.updateSpaceFailed": "Failed to update space",
   "chat.spacePermissionsUpdated": "Space permissions updated",
   "chat.updatePermissionsFailed": "Failed to update permissions",
-  "chat.spaceAdminTransferred": "Space admin transferred successfully",
-  "chat.transferAdminFailed": "Failed to transfer admin",
+  "chat.spaceAdminTransferred": "Space ownership transferred successfully",
+  "chat.transferAdminFailed": "Failed to transfer ownership",
   "chat.memberRemoved": "Member removed",
   "chat.removeMemberFailed": "Failed to remove member",
   "chat.memberRoleUpdated": "Member role updated",
@@ -382,9 +382,9 @@
   "chat.cancelInvitationFailed": "Failed to cancel invitation",
   "chat.invitationResent": "Invitation resent",
   "chat.resendInvitationFailed": "Failed to resend invitation",
-  "chat.transferAdminTitle": "Transfer admin?",
+  "chat.transferAdminTitle": "Transfer ownership?",
   "chat.transferAdminDescription":
-    "Transfer admin of this space to {name}? You will remain as an Admin.",
+    "Transfer ownership of this space to {name}? You will become a Member.",
   "chat.removeMemberTitle": "Remove member?",
   "chat.removeMemberDescription": "Remove {name} from this space?",
   "chat.remove": "Remove",

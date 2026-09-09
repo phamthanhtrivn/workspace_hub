@@ -17,6 +17,7 @@ LIVEKIT_RTC_TCP_PORT=7881
 LIVEKIT_RTC_UDP_PORT=7882
 LIVEKIT_API_KEY=replace_me
 LIVEKIT_API_SECRET=replace_me
+LIVEKIT_EGRESS_WEBHOOK_URL=http://host.docker.internal:8083/api/meetings/livekit/webhook
 ```
 
 ## Start

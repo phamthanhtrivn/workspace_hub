@@ -31,6 +31,12 @@ export interface GetMeetingAccessParams {
 
 export type MeetingModeratorParams = GetMeetingAccessParams;
 
+export interface EndMeetingFromLiveKitRoomFinishedParams {
+  roomName: string;
+  endedAt?: Date;
+  webhookEventId?: string;
+}
+
 export interface MeetingJoinRequestParams extends CreateInstantMeetingParams {
   joinToken: string;
 }
@@ -79,8 +85,7 @@ export interface TargetMeetingParticipantParams extends MeetingModeratorParams {
   targetUserId: string;
 }
 
-export type StopTargetMeetingScreenShareParams =
-  TargetMeetingParticipantParams;
+export type StopTargetMeetingScreenShareParams = TargetMeetingParticipantParams;
 
 export interface UpdateMeetingParticipantRoleParams extends TargetMeetingParticipantParams {
   dto: UpdateMeetingParticipantRoleDto;
