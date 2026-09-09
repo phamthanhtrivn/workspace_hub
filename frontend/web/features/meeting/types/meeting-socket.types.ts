@@ -17,6 +17,7 @@ export enum MeetingSocketEvent {
   PARTICIPANT_REMOVED = "meeting:participant_removed",
   HOST_TRANSFERRED = "meeting:host_transferred",
   STATUS_UPDATED = "meeting:status_updated",
+  STARTED = "meeting:started",
   ENDED = "meeting:ended",
   JOIN_REQUESTED = "meeting:join_requested",
   JOIN_REQUEST_UPDATED = "meeting:join_request_updated",
@@ -39,6 +40,8 @@ export interface MeetingStatusUpdatedPayload {
   screenShareStartedAt: string | null;
   endedBy?: string;
   endedAt?: string;
+  startedBy?: string;
+  startedAt?: string;
 }
 
 export interface MeetingJoinRequestUpdatedPayload
@@ -97,6 +100,7 @@ export interface ServerToClientMeetingEvents {
   [MeetingSocketEvent.STATUS_UPDATED]: (
     payload: MeetingStatusUpdatedPayload,
   ) => void;
+  [MeetingSocketEvent.STARTED]: (payload: MeetingStatusUpdatedPayload) => void;
   [MeetingSocketEvent.ENDED]: (payload: MeetingEndedPayload) => void;
   [MeetingSocketEvent.JOIN_REQUESTED]: (
     payload: MeetingJoinRequestUpdatedPayload,

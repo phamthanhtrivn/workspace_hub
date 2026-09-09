@@ -7,6 +7,9 @@ import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
 import { MeetingJoinLinkModal } from "./common/meeting-join-link-modal";
 import { MeetingPreviousView } from "./history/meeting-previous-view";
+import { ScheduleMeetingModal } from "./schedule/schedule-meeting-modal";
+import { UpcomingMeetingsOverview } from "./schedule/upcoming-meetings-overview";
+import { UpcomingMeetingsView } from "./schedule/upcoming-meetings-view";
 import {
   MeetingDashboardActionId,
   MeetingDashboardNavItemId,
@@ -14,7 +17,11 @@ import {
 } from "../types/meeting.constants";
 import { MeetingSidebar } from "./meeting-sidebar";
 import { useMeetingClock } from "../hooks/useMeetingClock";
-import { MeetingFlowStep, MeetingPreJoinMode } from "../types/meeting.types";
+import {
+  MeetingFlowStep,
+  MeetingPreJoinMode,
+  type UpcomingMeetingItem,
+} from "../types/meeting.types";
 import { MeetingPreJoin } from "./room/meeting-prejoin";
 import { MeetingCreatingOverlay } from "./room/meeting-fullscreen-overlay";
 import { useCreateInstantMeeting } from "../hooks/useCreateInstantMeeting";
@@ -28,9 +35,15 @@ export function MeetingLayout() {
     MeetingDashboardNavItemId.OVERVIEW,
   );
   const [isJoinLinkModalOpen, setIsJoinLinkModalOpen] = useState(false);
+  const [isScheduleMeetingModalOpen, setIsScheduleMeetingModalOpen] =
+    useState(false);
+  const [editingScheduledMeeting, setEditingScheduledMeeting] =
+    useState<UpcomingMeetingItem | null>(null);
   const isPreJoinOpen = flowStep === MeetingFlowStep.PREJOIN;
   const isOverviewActive =
     activeNavItemId === MeetingDashboardNavItemId.OVERVIEW;
+  const isUpcomingActive =
+    activeNavItemId === MeetingDashboardNavItemId.UPCOMING;
   const {
     settings: preJoinSettings,
     setSettings: setPreJoinSettings,
@@ -66,6 +79,12 @@ export function MeetingLayout() {
       return;
     }
 
+    if (actionId === MeetingDashboardActionId.SCHEDULE_MEETING) {
+      setEditingScheduledMeeting(null);
+      setIsScheduleMeetingModalOpen(true);
+      return;
+    }
+
     if (actionId !== MeetingDashboardActionId.NEW_MEETING) return;
 
     reloadSettings();
@@ -78,6 +97,18 @@ export function MeetingLayout() {
 
   const handleStartMeeting = () => {
     createMeeting(preJoinSettings);
+  };
+  const handleScheduleMeeting = () => {
+    setEditingScheduledMeeting(null);
+    setIsScheduleMeetingModalOpen(true);
+  };
+  const handleEditScheduledMeeting = (meeting: UpcomingMeetingItem) => {
+    setEditingScheduledMeeting(meeting);
+    setIsScheduleMeetingModalOpen(true);
+  };
+  const handleCloseScheduleMeeting = () => {
+    setIsScheduleMeetingModalOpen(false);
+    setEditingScheduledMeeting(null);
   };
 
   return (
@@ -115,7 +146,13 @@ export function MeetingLayout() {
                   />
                 ))}
               </section>
+              <UpcomingMeetingsOverview onViewAll={setActiveNavItemId} />
             </>
+          ) : isUpcomingActive ? (
+            <UpcomingMeetingsView
+              onSchedule={handleScheduleMeeting}
+              onEdit={handleEditScheduledMeeting}
+            />
           ) : (
             <MeetingPreviousView />
           )}
@@ -130,6 +167,12 @@ export function MeetingLayout() {
             intl.formatMessage({ id: "meeting.joinModal.openFailed" }),
           );
         }}
+      />
+
+      <ScheduleMeetingModal
+        open={isScheduleMeetingModalOpen}
+        meeting={editingScheduledMeeting}
+        onClose={handleCloseScheduleMeeting}
       />
 
       {isPreJoinOpen && (

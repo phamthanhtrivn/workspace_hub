@@ -19,6 +19,7 @@ import type { MeetingJoinRequestUpdatedPayload } from "../types/meeting-socket.t
 import { useMeetingSocket } from "./useMeetingSocket";
 import { useJoinMeetingRoom } from "./useJoinMeetingRoom";
 import { usePreJoinMeetingDevices } from "./usePreJoinMeetingDevices";
+import { useStartScheduledMeeting } from "./useScheduledMeetings";
 
 export function useMeetingRoomJoinFlow(joinToken: string) {
   const router = useRouter();
@@ -42,6 +43,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     retry: false,
   });
   const access = accessResponse?.data;
+  const startScheduledMeetingMutation = useStartScheduledMeeting(joinToken);
   const canJoinWithoutApproval = access?.canJoinWithoutApproval ?? access?.autoAdmit;
   const currentParticipantStatus =
     waitingStatus ?? access?.participantStatus ?? null;
@@ -63,12 +65,23 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       !requestApprovalMutation.isPending &&
       !isAccessError &&
       !isJoinError &&
+      access?.status !== "SCHEDULED" &&
       currentParticipantStatus !== MeetingParticipantStatusValue.REQUESTED &&
       currentParticipantStatus !== MeetingParticipantStatusValue.REJECTED,
   });
 
   useMeetingSocket({
-    meetingId: null,
+    meetingId,
+    onMeetingStarted: useCallback(() => {
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.access(joinToken),
+      });
+    }, [joinToken, queryClient]),
+    onReconnect: useCallback(() => {
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.access(joinToken),
+      });
+    }, [joinToken, queryClient]),
     onJoinRequestChanged: useCallback(
       (payload: MeetingJoinRequestUpdatedPayload) => {
         if (!meetingId || payload.meetingId !== meetingId) return;
@@ -86,7 +99,11 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   const flowStep = useMemo(() => {
     if (room) return MeetingJoinFlowStep.ROOM;
     if (isCheckingAccess) return MeetingJoinFlowStep.CHECKING;
-    if (isJoining || requestApprovalMutation.isPending) {
+    if (
+      isJoining ||
+      requestApprovalMutation.isPending ||
+      startScheduledMeetingMutation.isPending
+    ) {
       return MeetingJoinFlowStep.JOINING;
     }
 
@@ -95,6 +112,10 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       isJoinError
     ) {
       return MeetingJoinFlowStep.ERROR;
+    }
+
+    if (access?.status === "SCHEDULED") {
+      return MeetingJoinFlowStep.WAITING_HOST;
     }
 
     if (
@@ -113,11 +134,20 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     isJoining,
     requestApprovalMutation.isPending,
     room,
+    access?.status,
+    startScheduledMeetingMutation.isPending,
   ]);
   const goBackToMeetings = useCallback(() => {
     router.push(MEETING_ROUTES.DASHBOARD);
   }, [router]);
   const joinMeeting = useCallback(() => {
+    if (access?.status === "SCHEDULED" && access.canStart) {
+      startScheduledMeetingMutation.mutate({
+        deviceSettings: preJoinDevices.settings,
+      });
+      return;
+    }
+
     if (canJoinWithoutApproval === false) {
       requestApprovalMutation.mutate();
       return;
@@ -126,15 +156,20 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     joinRoom(preJoinDevices.settings);
   }, [
     canJoinWithoutApproval,
+    access?.canStart,
+    access?.status,
     joinRoom,
     preJoinDevices.settings,
     requestApprovalMutation,
+    startScheduledMeetingMutation,
   ]);
 
   return {
     flowStep,
     room,
     meetingId,
+    access,
+    isStartingScheduledMeeting: startScheduledMeetingMutation.isPending,
     waitingStatus: waitingStatus ?? access?.participantStatus ?? null,
     settings: preJoinDevices.settings,
     preJoinProps: {

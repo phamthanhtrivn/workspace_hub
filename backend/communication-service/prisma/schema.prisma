@@ -527,6 +527,7 @@ model Meeting {
   id                       String                  @id @default(uuid()) @db.Uuid
   roomName                 String                  @unique @map("room_name")
   joinToken                String                  @unique @map("join_token")
+  title                    String                  @default("Untitled meeting")
   description              String?
   type                     MeetingType
   status                   MeetingStatus
@@ -556,6 +557,7 @@ model Meeting {
   @@index([hostId])
   @@index([status])
   @@index([scheduledStartAt])
+  @@index([status, scheduledStartAt, createdBy])
   @@map("meetings")
 }
 

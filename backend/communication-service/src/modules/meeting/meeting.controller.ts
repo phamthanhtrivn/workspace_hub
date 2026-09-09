@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 import { CreateInstantMeetingDto } from './dto/create-instant-meeting.dto';
+import { CreateScheduledMeetingDto } from './dto/create-scheduled-meeting.dto';
 import { CreateMeetingMessageDto } from './dto/create-meeting-message.dto';
 import { EditMeetingMessageDto } from './dto/edit-meeting-message.dto';
 import { ListJoinRequestsDto } from './dto/list-join-requests.dto';
@@ -25,6 +26,7 @@ import { UpdateMeetingChatNotificationPreferenceDto } from './dto/update-meeting
 import { UpdateMeetingParticipantViewPreferenceDto } from './dto/update-meeting-participant-view-preference.dto';
 import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
 import { UpdateMeetingSettingsDto } from './dto/update-meeting-settings.dto';
+import { UpdateScheduledMeetingDto } from './dto/update-scheduled-meeting.dto';
 import { MeetingService } from './meeting.service';
 import { MeetingMessageService } from './services/meeting-message.service';
 import {
@@ -63,6 +65,30 @@ export class MeetingController {
     };
   }
 
+  @Post('scheduled')
+  async createScheduledMeeting(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-name') userName: string,
+    @Headers('x-user-avatar') avatarUrl: string,
+    @Body() createScheduledMeetingDto: CreateScheduledMeetingDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.meetingService.createScheduledMeeting({
+      userId,
+      userName: decodeHeaderUtf8(userName),
+      avatarUrl: decodeHeaderUtf8(avatarUrl),
+      dto: createScheduledMeetingDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCHEDULED_CREATED,
+      data: meeting,
+    };
+  }
+
   @Get('history')
   async listMeetingHistory(
     @Headers('x-user-id') userId: string,
@@ -80,6 +106,26 @@ export class MeetingController {
     return {
       message: MEETING_SUCCESS_MESSAGES.HISTORY_LISTED,
       data: history,
+    };
+  }
+
+  @Get('upcoming')
+  async listUpcomingMeetings(
+    @Headers('x-user-id') userId: string,
+    @Query() query: ListMeetingHistoryDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const upcoming = await this.meetingService.listUpcomingMeetings({
+      userId,
+      query,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.UPCOMING_LISTED,
+      data: upcoming,
     };
   }
 
@@ -141,6 +187,74 @@ export class MeetingController {
 
     return {
       message: MEETING_SUCCESS_MESSAGES.JOINED,
+      data: meeting,
+    };
+  }
+
+  @Post(':joinToken/start')
+  async startScheduledMeeting(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-name') userName: string,
+    @Headers('x-user-avatar') avatarUrl: string,
+    @Body() startMeetingDto: CreateInstantMeetingDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.meetingService.startScheduledMeeting({
+      joinToken,
+      userId,
+      userName: decodeHeaderUtf8(userName),
+      avatarUrl: decodeHeaderUtf8(avatarUrl),
+      dto: startMeetingDto ?? {},
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCHEDULED_STARTED,
+      data: meeting,
+    };
+  }
+
+  @Patch(':joinToken/schedule')
+  async updateScheduledMeeting(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Body() updateScheduledMeetingDto: UpdateScheduledMeetingDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.meetingService.updateScheduledMeeting({
+      joinToken,
+      userId,
+      dto: updateScheduledMeetingDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCHEDULED_UPDATED,
+      data: meeting,
+    };
+  }
+
+  @Post(':joinToken/cancel')
+  async cancelScheduledMeeting(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.meetingService.cancelScheduledMeeting({
+      joinToken,
+      userId,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCHEDULED_CANCELLED,
       data: meeting,
     };
   }

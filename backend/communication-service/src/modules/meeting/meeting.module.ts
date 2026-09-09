@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { LiveKitModule } from '../../infrastructure/livekit/livekit.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
+import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.module';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { SocketModule } from '../socket/socket.module';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
@@ -10,6 +11,8 @@ import { MeetingService } from './meeting.service';
 import { MeetingAdmissionService } from './services/meeting-admission.service';
 import { MeetingHistoryService } from './services/meeting-history.service';
 import { MeetingLiveKitWebhookService } from './services/meeting-livekit-webhook.service';
+import { MeetingSchedulePublisher } from './events/meeting-schedule.publisher';
+import { MeetingScheduleService } from './services/meeting-schedule.service';
 import { MeetingParticipantService } from './services/meeting-participant.service';
 import { MeetingMessageService } from './services/meeting-message.service';
 import { MeetingPolicyService } from './services/meeting-policy.service';
@@ -24,6 +27,7 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
     SocketModule,
     LiveKitModule,
     S3Module,
+    KafkaProducerModule,
     UserProfileSnapshotModule,
   ],
   controllers: [MeetingController, MeetingLiveKitWebhookController],
@@ -39,6 +43,8 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
     MeetingPresenterService,
     MeetingRealtimeService,
     MeetingScreenShareService,
+    MeetingScheduleService,
+    MeetingSchedulePublisher,
   ],
   exports: [MeetingService],
 })

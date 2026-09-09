@@ -3,6 +3,7 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -23,6 +24,11 @@ export class MeetingDeviceSettingsDto {
 }
 
 export class CreateInstantMeetingDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  password?: string;
+
   @IsBoolean()
   @IsOptional()
   autoAdmit?: boolean;

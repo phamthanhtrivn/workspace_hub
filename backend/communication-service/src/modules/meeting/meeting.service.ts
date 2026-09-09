@@ -4,19 +4,24 @@ import { MeetingHistoryService } from './services/meeting-history.service';
 import { MeetingParticipantService } from './services/meeting-participant.service';
 import { MeetingRoomService } from './services/meeting-room.service';
 import { MeetingScreenShareService } from './services/meeting-screen-share.service';
+import { MeetingScheduleService } from './services/meeting-schedule.service';
 import type {
   CreateInstantMeetingParams,
+  CreateScheduledMeetingParams,
+  CancelScheduledMeetingParams,
   GetMeetingAccessParams,
   JoinMeetingParams,
   ListJoinRequestsParams,
   ListMeetingHistoryParams,
   ListMeetingHistorySummaryParams,
+  ListUpcomingMeetingsParams,
   ListMeetingParticipantViewPreferencesParams,
   ListMeetingParticipantsParams,
   MeetingJoinRequestParams,
   MeetingModeratorParams,
   ResolveJoinRequestParams,
   StartMeetingScreenShareParams,
+  StartScheduledMeetingParams,
   StopMeetingScreenShareParams,
   StopTargetMeetingScreenShareParams,
   TargetMeetingParticipantParams,
@@ -24,6 +29,7 @@ import type {
   UpdateMeetingParticipantViewPreferenceParams,
   UpdateMeetingParticipantRoleParams,
   UpdateMeetingSettingsParams,
+  UpdateScheduledMeetingParams,
 } from './types/meeting.types';
 
 @Injectable()
@@ -34,10 +40,19 @@ export class MeetingService {
     private readonly meetingAdmissionService: MeetingAdmissionService,
     private readonly meetingHistoryService: MeetingHistoryService,
     private readonly meetingScreenShareService: MeetingScreenShareService,
+    private readonly meetingScheduleService: MeetingScheduleService,
   ) {}
 
   createInstantMeeting(params: CreateInstantMeetingParams) {
     return this.meetingRoomService.createInstantMeeting(params);
+  }
+
+  createScheduledMeeting(params: CreateScheduledMeetingParams) {
+    return this.meetingScheduleService.createScheduledMeeting(params);
+  }
+
+  listUpcomingMeetings(params: ListUpcomingMeetingsParams) {
+    return this.meetingScheduleService.listUpcomingMeetings(params);
   }
 
   getMeetingAccess(params: GetMeetingAccessParams) {
@@ -46,6 +61,18 @@ export class MeetingService {
 
   joinMeeting(params: JoinMeetingParams) {
     return this.meetingRoomService.joinMeeting(params);
+  }
+
+  startScheduledMeeting(params: StartScheduledMeetingParams) {
+    return this.meetingRoomService.startScheduledMeeting(params);
+  }
+
+  updateScheduledMeeting(params: UpdateScheduledMeetingParams) {
+    return this.meetingScheduleService.updateScheduledMeeting(params);
+  }
+
+  cancelScheduledMeeting(params: CancelScheduledMeetingParams) {
+    return this.meetingScheduleService.cancelScheduledMeeting(params);
   }
 
   listMeetingHistory(params: ListMeetingHistoryParams) {

@@ -12,6 +12,7 @@ export enum MeetingPreJoinMode {
 export enum MeetingJoinFlowStep {
   CHECKING = "checking",
   PREJOIN = "prejoin",
+  WAITING_HOST = "waiting-host",
   WAITING_APPROVAL = "waiting-approval",
   JOINING = "joining",
   ROOM = "room",
@@ -43,6 +44,7 @@ export interface MeetingPreJoinSettings {
 }
 
 export interface CreateInstantMeetingPayload {
+  password?: string;
   autoAdmit?: boolean;
   chatEnabled?: boolean;
   deviceSettings?: {
@@ -85,13 +87,17 @@ export interface InstantMeetingResponse {
     id: string;
     roomName: string;
     joinToken: string;
-    type: "INSTANT";
-    status: "LIVE";
+    title: string | null;
+    description: string | null;
+    type: MeetingType;
+    status: MeetingStatus;
     autoAdmit: boolean;
     chatEnabled: boolean;
     screenShareEnabled: boolean;
     activeScreenShareUserId: string | null;
     screenShareStartedAt: string | null;
+    scheduledStartAt: string | null;
+    scheduledEndAt: string | null;
     startedAt: string | null;
     createdAt: string;
     participantRole: MeetingParticipantRole;
@@ -106,7 +112,10 @@ export interface InstantMeetingResponse {
 export interface MeetingAccessResponse {
   meetingId: string;
   joinToken: string;
-  status: "LIVE";
+  title: string | null;
+  description: string | null;
+  type: MeetingType;
+  status: MeetingStatus;
   autoAdmit: boolean;
   chatEnabled: boolean;
   screenShareEnabled: boolean;
@@ -116,6 +125,11 @@ export interface MeetingAccessResponse {
   chatMuted: boolean;
   activeScreenShareUserId: string | null;
   screenShareStartedAt: string | null;
+  scheduledStartAt: string | null;
+  scheduledEndAt: string | null;
+  canStart: boolean;
+  requiresPassword: boolean;
+  errorCode: "MEETING_NOT_STARTED" | null;
 }
 
 export type JoinMeetingPayload = Pick<
@@ -316,6 +330,60 @@ export interface MeetingHistoryItem {
 
 export type MeetingHistoryResponse =
   MeetingPaginatedResponse<MeetingHistoryItem>;
+
+export interface ScheduledMeetingPayload {
+  title: string;
+  scheduledStartAt: string;
+  scheduledEndAt: string;
+  description?: string | null;
+  recurrenceRule?: string | null;
+  inviteeIds?: string[];
+  password?: string;
+  autoAdmit?: boolean;
+  chatEnabled?: boolean;
+  screenShareEnabled?: boolean;
+}
+
+export type UpdateScheduledMeetingPayload = Partial<ScheduledMeetingPayload>;
+
+export interface ScheduledMeetingResponse {
+  id: string;
+  joinToken: string;
+  title: string;
+  description: string | null;
+  type: "SCHEDULED";
+  status: MeetingStatus;
+  scheduledStartAt: string | null;
+  scheduledEndAt: string | null;
+  autoAdmit: boolean;
+  chatEnabled: boolean;
+  screenShareEnabled: boolean;
+  requiresPassword: boolean;
+  participants: MeetingParticipantResponse[];
+}
+
+export interface UpcomingMeetingItem {
+  id: string;
+  joinToken: string;
+  title: string;
+  description: string | null;
+  type: "SCHEDULED";
+  status: MeetingStatus;
+  scheduledStartAt: string | null;
+  scheduledEndAt: string | null;
+  hostUserId: string;
+  hostProfile: MeetingParticipantProfile | null;
+  myParticipant: MeetingParticipantResponse | null;
+  participants: MeetingParticipantResponse[];
+  participantCount: number;
+  autoAdmit: boolean;
+  chatEnabled: boolean;
+  screenShareEnabled: boolean;
+  requiresPassword: boolean;
+}
+
+export type UpcomingMeetingsResponse =
+  MeetingPaginatedResponse<UpcomingMeetingItem>;
 
 export interface MeetingHistorySummaryResponse {
   totalMeetings: number;

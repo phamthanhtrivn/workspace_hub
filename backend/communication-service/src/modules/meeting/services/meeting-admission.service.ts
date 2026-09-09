@@ -54,7 +54,13 @@ export class MeetingAdmissionService {
     }
 
     if (meeting.status !== MeetingStatus.LIVE) {
-      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE);
+      throw new BadRequestException(
+        meeting.status === MeetingStatus.SCHEDULED
+          ? MEETING_ERROR_MESSAGES.MEETING_NOT_STARTED
+          : meeting.status === MeetingStatus.CANCELLED
+            ? MEETING_ERROR_MESSAGES.MEETING_CANCELLED
+            : MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED,
+      );
     }
 
     const existingParticipant = meeting.participants[0];
