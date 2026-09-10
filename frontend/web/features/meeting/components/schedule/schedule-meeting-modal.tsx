@@ -3,6 +3,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ChevronDown,
+  Eye,
+  EyeOff,
   Loader2,
   Lock,
   Search,
@@ -262,6 +264,7 @@ export function ScheduleMeetingModal({
   const [inviteeQuery, setInviteeQuery] = useState("");
   const [selectedUsers, setSelectedUsers] = useState<UserSearchResponse[]>([]);
   const [optionsOpen, setOptionsOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const isEditing = Boolean(meeting);
   const { data: inviteeResults = [], isFetching } =
     useMeetingInviteeSearch(inviteeQuery);
@@ -590,14 +593,37 @@ export function ScheduleMeetingModal({
                   </span>
                 </label>
                 {values.requirePassword ? (
-                  <input
-                    type="password"
-                    {...form.register("password")}
-                    placeholder={intl.formatMessage({
-                      id: "meeting.schedule.password",
-                    })}
-                    className="h-10 w-full rounded-lg border border-slate-200 px-3 text-sm font-semibold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      {...form.register("password")}
+                      placeholder={intl.formatMessage({
+                        id: "meeting.schedule.password",
+                      })}
+                      className="h-10 w-full rounded-lg border border-slate-200 px-3 pr-11 text-sm font-semibold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((current) => !current)}
+                      className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 cursor-pointer place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-[#0052CC]"
+                      aria-label={intl.formatMessage({
+                        id: showPassword
+                          ? "meeting.schedule.hidePassword"
+                          : "meeting.schedule.showPassword",
+                      })}
+                      title={intl.formatMessage({
+                        id: showPassword
+                          ? "meeting.schedule.hidePassword"
+                          : "meeting.schedule.showPassword",
+                      })}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  </div>
                 ) : null}
                 <MeetingAutoAdmitToggle
                   checked={values.autoAdmit}

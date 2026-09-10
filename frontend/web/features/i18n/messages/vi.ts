@@ -668,6 +668,8 @@ const vi = {
   "meeting.schedule.options": "Tùy chọn cuộc họp",
   "meeting.schedule.requirePassword": "Yêu cầu mật khẩu",
   "meeting.schedule.password": "Mật khẩu cuộc họp",
+  "meeting.schedule.showPassword": "Hiện mật khẩu cuộc họp",
+  "meeting.schedule.hidePassword": "Ẩn mật khẩu cuộc họp",
   "meeting.schedule.schedule": "Lên lịch",
   "meeting.schedule.update": "Cập nhật",
   "meeting.schedule.created": "Đã lên lịch cuộc họp",

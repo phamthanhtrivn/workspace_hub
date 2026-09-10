@@ -673,6 +673,8 @@
   "meeting.schedule.options": "Meeting options",
   "meeting.schedule.requirePassword": "Require password",
   "meeting.schedule.password": "Meeting password",
+  "meeting.schedule.showPassword": "Show meeting password",
+  "meeting.schedule.hidePassword": "Hide meeting password",
   "meeting.schedule.schedule": "Schedule",
   "meeting.schedule.update": "Update",
   "meeting.schedule.created": "Meeting scheduled",
