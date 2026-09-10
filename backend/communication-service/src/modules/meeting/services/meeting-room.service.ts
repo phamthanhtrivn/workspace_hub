@@ -183,44 +183,10 @@ export class MeetingRoomService {
       throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
     }
 
-    const existingParticipant = meeting.participants[0];
-    const participantRole =
-      existingParticipant?.role ??
-      (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
-    const canJoinWithoutApproval =
-      meeting.autoAdmit ||
-      canJoinLockedMeeting({
-        hostId: meeting.hostId,
-        userId,
-        role: participantRole,
-        participantStatus: existingParticipant?.status,
-      });
-
-    return {
-      meetingId: meeting.id,
-      joinToken: meeting.joinToken,
-      status: meeting.status,
-      autoAdmit: meeting.autoAdmit,
-      chatEnabled: meeting.chatEnabled,
-      screenShareEnabled: meeting.screenShareEnabled,
-      canJoinWithoutApproval,
-      participantRole,
-      participantStatus: existingParticipant?.status ?? null,
-      chatMuted: existingParticipant?.chatMuted ?? false,
-      activeScreenShareUserId: meeting.activeScreenShareUserId,
-      screenShareStartedAt: meeting.screenShareStartedAt?.toISOString() ?? null,
-      title: meeting.title,
-      description: meeting.description,
-      type: meeting.type,
-      scheduledStartAt: meeting.scheduledStartAt?.toISOString() ?? null,
-      scheduledEndAt: meeting.scheduledEndAt?.toISOString() ?? null,
-      canStart: this.canStartScheduledMeeting(meeting, userId),
-      requiresPassword: Boolean(meeting.passwordHash),
-      errorCode:
-        meeting.status === MeetingStatus.SCHEDULED
-          ? 'MEETING_NOT_STARTED'
-          : null,
-    };
+    return this.meetingPresenterService.toMeetingAccessResponse(
+      meeting,
+      userId,
+    );
   }
 
   async joinMeeting({
@@ -232,12 +198,6 @@ export class MeetingRoomService {
   }: JoinMeetingParams) {
     if (!userId) {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
-    }
-
-    if (!this.liveKitService.isConfigured()) {
-      throw new ServiceUnavailableException(
-        MEETING_ERROR_MESSAGES.LIVEKIT_NOT_CONFIGURED,
-      );
     }
 
     const meeting = await this.prisma.meeting.findUnique({
@@ -254,9 +214,22 @@ export class MeetingRoomService {
       throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
     }
 
+    if (meeting.status === MeetingStatus.ENDED) {
+      return this.meetingPresenterService.toMeetingAccessResponse(
+        meeting,
+        userId,
+      );
+    }
+
     if (meeting.status !== MeetingStatus.LIVE) {
       throw new BadRequestException(
         this.getMeetingStatusErrorMessage(meeting.status),
+      );
+    }
+
+    if (!this.liveKitService.isConfigured()) {
+      throw new ServiceUnavailableException(
+        MEETING_ERROR_MESSAGES.LIVEKIT_NOT_CONFIGURED,
       );
     }
 
@@ -828,18 +801,6 @@ export class MeetingRoomService {
     }
 
     return payload;
-  }
-
-  private canStartScheduledMeeting(
-    meeting: MeetingWithParticipants,
-    userId: string,
-  ): boolean {
-    const participant = meeting.participants[0];
-    return (
-      meeting.hostId === userId ||
-      participant?.role === MeetingRole.HOST ||
-      participant?.role === MeetingRole.COHOST
-    );
   }
 
   private async createLiveKitRoomIfNeeded(

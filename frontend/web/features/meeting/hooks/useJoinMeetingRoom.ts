@@ -4,12 +4,27 @@ import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { joinMeeting } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
-import type { MeetingPreJoinSettings } from "../types/meeting.types";
+import type {
+  InstantMeetingResponse,
+  MeetingJoinResponse,
+  MeetingPreJoinSettings,
+} from "../types/meeting.types";
 import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
-export function useJoinMeetingRoom(joinToken: string) {
+interface UseJoinMeetingRoomOptions {
+  onMeetingAlreadyEnded?: () => void;
+}
+
+export function useJoinMeetingRoom(
+  joinToken: string,
+  options: UseJoinMeetingRoomOptions = {},
+) {
   const queryClient = useQueryClient();
   const queryKey = meetingKeys.room(joinToken);
+  const isInstantMeetingResponse = (
+    response: MeetingJoinResponse,
+  ): response is InstantMeetingResponse =>
+    "meeting" in response && "livekit" in response;
 
   const {
     data,
@@ -27,7 +42,14 @@ export function useJoinMeetingRoom(joinToken: string) {
         },
       }),
     onSuccess: (response) => {
-      queryClient.setQueryData(queryKey, response);
+      if (isInstantMeetingResponse(response.data)) {
+        queryClient.setQueryData(queryKey, response);
+        return;
+      }
+
+      if (response.data.status === "ENDED") {
+        options.onMeetingAlreadyEnded?.();
+      }
     },
   });
 
@@ -45,6 +67,7 @@ export function useJoinMeetingRoom(joinToken: string) {
     joinRoom,
     isJoining: isPending,
     isJoinError: isError,
-    room: data?.data,
+    room:
+      data?.data && isInstantMeetingResponse(data.data) ? data.data : undefined,
   };
 }

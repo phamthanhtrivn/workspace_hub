@@ -751,6 +751,7 @@ const vi = {
   "meeting.room.joinFailed": "Không thể vào phòng họp",
   "meeting.room.joinFailedDescription":
     "Cuộc họp có thể đã kết thúc, liên kết không hợp lệ hoặc cần chủ phòng duyệt.",
+  "meeting.room.alreadyEnded": "Cuộc họp đã kết thúc",
   "meeting.room.backToMeetings": "Về trang cuộc họp",
   "meeting.room.statusConnected": "Đã kết nối",
   "meeting.room.statusConnecting": "Đang kết nối",

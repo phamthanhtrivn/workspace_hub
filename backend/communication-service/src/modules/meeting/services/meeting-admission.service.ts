@@ -53,6 +53,16 @@ export class MeetingAdmissionService {
       throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
     }
 
+    if (meeting.status === MeetingStatus.ENDED) {
+      return {
+        ...this.meetingPresenterService.toMeetingAccessResponse(
+          meeting,
+          userId,
+        ),
+        meetingStatus: meeting.status,
+      };
+    }
+
     if (meeting.status !== MeetingStatus.LIVE) {
       throw new BadRequestException(
         meeting.status === MeetingStatus.SCHEDULED

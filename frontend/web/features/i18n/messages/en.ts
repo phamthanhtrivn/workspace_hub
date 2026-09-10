@@ -756,6 +756,7 @@
   "meeting.room.joinFailed": "Could not join meeting",
   "meeting.room.joinFailedDescription":
     "The meeting may have ended, the link may be invalid, or approval may be required.",
+  "meeting.room.alreadyEnded": "Meeting has ended",
   "meeting.room.backToMeetings": "Back to meetings",
   "meeting.room.statusConnected": "Connected",
   "meeting.room.statusConnecting": "Connecting",

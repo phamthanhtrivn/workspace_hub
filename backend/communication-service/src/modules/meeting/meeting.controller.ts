@@ -34,6 +34,15 @@ import {
   MEETING_SUCCESS_MESSAGES,
 } from './types/meeting.enums';
 
+function isEndedMeetingResponse(payload: unknown): boolean {
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'status' in payload &&
+    payload.status === 'ENDED'
+  );
+}
+
 @Controller('api/meetings')
 export class MeetingController {
   constructor(
@@ -186,7 +195,9 @@ export class MeetingController {
     });
 
     return {
-      message: MEETING_SUCCESS_MESSAGES.JOINED,
+      message: isEndedMeetingResponse(meeting)
+        ? MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED
+        : MEETING_SUCCESS_MESSAGES.JOINED,
       data: meeting,
     };
   }
@@ -723,7 +734,9 @@ export class MeetingController {
     });
 
     return {
-      message: MEETING_SUCCESS_MESSAGES.JOIN_REQUESTED,
+      message: isEndedMeetingResponse(request)
+        ? MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED
+        : MEETING_SUCCESS_MESSAGES.JOIN_REQUESTED,
       data: request,
     };
   }

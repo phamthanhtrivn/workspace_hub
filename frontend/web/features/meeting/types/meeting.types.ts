@@ -109,6 +109,8 @@ export interface InstantMeetingResponse {
   };
 }
 
+export type MeetingJoinResponse = InstantMeetingResponse | MeetingAccessResponse;
+
 export interface MeetingAccessResponse {
   meetingId: string;
   joinToken: string;
@@ -129,7 +131,11 @@ export interface MeetingAccessResponse {
   scheduledEndAt: string | null;
   canStart: boolean;
   requiresPassword: boolean;
-  errorCode: "MEETING_NOT_STARTED" | null;
+  errorCode:
+    | "MEETING_NOT_STARTED"
+    | "MEETING_ALREADY_ENDED"
+    | "MEETING_CANCELLED"
+    | null;
 }
 
 export type JoinMeetingPayload = Pick<
@@ -237,6 +243,7 @@ export interface MeetingJoinRequestStatusResponse {
   joinToken?: string;
   userId?: string;
   participantStatus?: MeetingParticipantStatus;
+  meetingStatus?: MeetingStatus;
   status?: MeetingParticipantStatus;
   requestedAt?: string;
 }

@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { ApiResponse } from "@/features/chat/types/chat.types";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { getMeetingAccess, requestMeetingJoinApproval } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
-import { MEETING_ROUTES } from "../types/meeting.constants";
+import { MEETING_ROUTES, MEETING_STATUS } from "../types/meeting.constants";
 import {
   MeetingJoinFlowStep,
   MeetingParticipantStatusValue,
@@ -22,15 +24,32 @@ import { usePreJoinMeetingDevices } from "./usePreJoinMeetingDevices";
 import { useStartScheduledMeeting } from "./useScheduledMeetings";
 
 export function useMeetingRoomJoinFlow(joinToken: string) {
+  const intl = useAppIntl();
   const router = useRouter();
   const queryClient = useQueryClient();
+  const handledMeetingEndedRef = useRef(false);
   const [waitingStatus, setWaitingStatus] =
     useState<MeetingParticipantStatus | null>(null);
+  const handleMeetingAlreadyEnded = useCallback(() => {
+    if (handledMeetingEndedRef.current) return;
+
+    handledMeetingEndedRef.current = true;
+    toast.info(intl.formatMessage({ id: "meeting.room.alreadyEnded" }));
+    queryClient.removeQueries({
+      queryKey: meetingKeys.access(joinToken),
+    });
+    queryClient.removeQueries({
+      queryKey: meetingKeys.room(joinToken),
+    });
+    router.replace(MEETING_ROUTES.DASHBOARD);
+  }, [intl, joinToken, queryClient, router]);
   const cachedRoom = queryClient.getQueryData<ApiResponse<InstantMeetingResponse>>(
     meetingKeys.room(joinToken),
   );
   const { joinRoom, room: joinedRoom, isJoining, isJoinError } =
-    useJoinMeetingRoom(joinToken);
+    useJoinMeetingRoom(joinToken, {
+      onMeetingAlreadyEnded: handleMeetingAlreadyEnded,
+    });
   const room = cachedRoom?.data ?? joinedRoom;
   const {
     data: accessResponse,
@@ -50,6 +69,11 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   const requestApprovalMutation = useMutation({
     mutationFn: () => requestMeetingJoinApproval(joinToken),
     onSuccess: (response) => {
+      if (response.data.meetingStatus === MEETING_STATUS.ENDED) {
+        handleMeetingAlreadyEnded();
+        return;
+      }
+
       setWaitingStatus(
         response.data.participantStatus ??
           MeetingParticipantStatusValue.REQUESTED,
@@ -69,6 +93,12 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       currentParticipantStatus !== MeetingParticipantStatusValue.REQUESTED &&
       currentParticipantStatus !== MeetingParticipantStatusValue.REJECTED,
   });
+
+  useEffect(() => {
+    if (access?.status === MEETING_STATUS.ENDED) {
+      handleMeetingAlreadyEnded();
+    }
+  }, [access?.status, handleMeetingAlreadyEnded]);
 
   useMeetingSocket({
     meetingId,
@@ -97,6 +127,9 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   });
 
   const flowStep = useMemo(() => {
+    if (access?.status === MEETING_STATUS.ENDED) {
+      return MeetingJoinFlowStep.CHECKING;
+    }
     if (room) return MeetingJoinFlowStep.ROOM;
     if (isCheckingAccess) return MeetingJoinFlowStep.CHECKING;
     if (
@@ -141,7 +174,12 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     router.push(MEETING_ROUTES.DASHBOARD);
   }, [router]);
   const joinMeeting = useCallback(() => {
-    if (access?.status === "SCHEDULED" && access.canStart) {
+    if (access?.status === MEETING_STATUS.ENDED) {
+      handleMeetingAlreadyEnded();
+      return;
+    }
+
+    if (access?.status === MEETING_STATUS.SCHEDULED && access.canStart) {
       startScheduledMeetingMutation.mutate({
         deviceSettings: preJoinDevices.settings,
       });
@@ -158,6 +196,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     canJoinWithoutApproval,
     access?.canStart,
     access?.status,
+    handleMeetingAlreadyEnded,
     joinRoom,
     preJoinDevices.settings,
     requestApprovalMutation,

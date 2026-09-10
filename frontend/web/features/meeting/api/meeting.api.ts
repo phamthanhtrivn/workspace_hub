@@ -9,6 +9,7 @@ import type {
   MeetingHistoryResponse,
   MeetingHistorySummaryResponse,
   ScheduledMeetingResponse,
+  MeetingJoinResponse,
   MeetingEndedResponse,
   MeetingJoinRequestsResponse,
   MeetingJoinRequestStatusResponse,
@@ -78,9 +79,9 @@ export const getUpcomingMeetings = async ({
 export const joinMeeting = async (
   joinToken: string,
   payload: JoinMeetingPayload,
-): Promise<ApiResponse<InstantMeetingResponse>> => {
+): Promise<ApiResponse<MeetingJoinResponse>> => {
   const response = await api.post(MEETING_API_PATHS.join(joinToken), payload);
-  return normalizeApiResponse<InstantMeetingResponse>(response.data);
+  return normalizeApiResponse<MeetingJoinResponse>(response.data);
 };
 
 export const startScheduledMeeting = async (
