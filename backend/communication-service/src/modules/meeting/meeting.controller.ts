@@ -33,15 +33,7 @@ import {
   MEETING_ERROR_MESSAGES,
   MEETING_SUCCESS_MESSAGES,
 } from './types/meeting.enums';
-
-function isEndedMeetingResponse(payload: unknown): boolean {
-  return (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'status' in payload &&
-    payload.status === 'ENDED'
-  );
-}
+import { getTerminalMeetingMessage } from './utils/meeting.utils';
 
 @Controller('api/meetings')
 export class MeetingController {
@@ -194,10 +186,10 @@ export class MeetingController {
       dto: joinMeetingDto ?? {},
     });
 
+    const terminalMeetingMessage = getTerminalMeetingMessage(meeting);
+
     return {
-      message: isEndedMeetingResponse(meeting)
-        ? MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED
-        : MEETING_SUCCESS_MESSAGES.JOINED,
+      message: terminalMeetingMessage ?? MEETING_SUCCESS_MESSAGES.JOINED,
       data: meeting,
     };
   }
@@ -733,10 +725,11 @@ export class MeetingController {
       avatarUrl: decodeHeaderUtf8(avatarUrl),
     });
 
+    const terminalMeetingMessage = getTerminalMeetingMessage(request);
+
     return {
-      message: isEndedMeetingResponse(request)
-        ? MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED
-        : MEETING_SUCCESS_MESSAGES.JOIN_REQUESTED,
+      message:
+        terminalMeetingMessage ?? MEETING_SUCCESS_MESSAGES.JOIN_REQUESTED,
       data: request,
     };
   }

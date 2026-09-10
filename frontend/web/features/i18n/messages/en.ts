@@ -699,6 +699,8 @@
   "meeting.upcoming.edit": "Edit",
   "meeting.upcoming.cancel": "Cancel meeting",
   "meeting.upcoming.cancelConfirm": "Cancel this scheduled meeting?",
+  "meeting.upcoming.cancelConfirmDescription":
+    "This meeting will be removed from upcoming meetings and guests will no longer be able to join.",
   "meeting.upcoming.cancelled": "Meeting cancelled",
   "meeting.upcoming.cancelFailed": "Could not cancel meeting",
   "meeting.upcoming.linkCopied": "Meeting link copied",
@@ -757,6 +759,7 @@
   "meeting.room.joinFailedDescription":
     "The meeting may have ended, the link may be invalid, or approval may be required.",
   "meeting.room.alreadyEnded": "Meeting has ended",
+  "meeting.room.cancelled": "Meeting has been cancelled",
   "meeting.room.backToMeetings": "Back to meetings",
   "meeting.room.statusConnected": "Connected",
   "meeting.room.statusConnecting": "Connecting",

@@ -16,6 +16,7 @@ import {
 import type {
   InstantMeetingResponse,
   MeetingParticipantStatus,
+  MeetingStatus,
 } from "../types/meeting.types";
 import type { MeetingJoinRequestUpdatedPayload } from "../types/meeting-socket.types";
 import { useMeetingSocket } from "./useMeetingSocket";
@@ -27,14 +28,21 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   const intl = useAppIntl();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const handledMeetingEndedRef = useRef(false);
+  const handledUnavailableMeetingRef = useRef(false);
   const [waitingStatus, setWaitingStatus] =
     useState<MeetingParticipantStatus | null>(null);
-  const handleMeetingAlreadyEnded = useCallback(() => {
-    if (handledMeetingEndedRef.current) return;
+  const handleMeetingUnavailable = useCallback((status: MeetingStatus) => {
+    if (handledUnavailableMeetingRef.current) return;
 
-    handledMeetingEndedRef.current = true;
-    toast.info(intl.formatMessage({ id: "meeting.room.alreadyEnded" }));
+    handledUnavailableMeetingRef.current = true;
+    toast.info(
+      intl.formatMessage({
+        id:
+          status === MEETING_STATUS.CANCELLED
+            ? "meeting.room.cancelled"
+            : "meeting.room.alreadyEnded",
+      }),
+    );
     queryClient.removeQueries({
       queryKey: meetingKeys.access(joinToken),
     });
@@ -48,7 +56,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   );
   const { joinRoom, room: joinedRoom, isJoining, isJoinError } =
     useJoinMeetingRoom(joinToken, {
-      onMeetingAlreadyEnded: handleMeetingAlreadyEnded,
+      onMeetingUnavailable: handleMeetingUnavailable,
     });
   const room = cachedRoom?.data ?? joinedRoom;
   const {
@@ -69,8 +77,11 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   const requestApprovalMutation = useMutation({
     mutationFn: () => requestMeetingJoinApproval(joinToken),
     onSuccess: (response) => {
-      if (response.data.meetingStatus === MEETING_STATUS.ENDED) {
-        handleMeetingAlreadyEnded();
+      if (
+        response.data.meetingStatus === MEETING_STATUS.ENDED ||
+        response.data.meetingStatus === MEETING_STATUS.CANCELLED
+      ) {
+        handleMeetingUnavailable(response.data.meetingStatus);
         return;
       }
 
@@ -95,10 +106,13 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   });
 
   useEffect(() => {
-    if (access?.status === MEETING_STATUS.ENDED) {
-      handleMeetingAlreadyEnded();
+    if (
+      access?.status === MEETING_STATUS.ENDED ||
+      access?.status === MEETING_STATUS.CANCELLED
+    ) {
+      handleMeetingUnavailable(access.status);
     }
-  }, [access?.status, handleMeetingAlreadyEnded]);
+  }, [access?.status, handleMeetingUnavailable]);
 
   useMeetingSocket({
     meetingId,
@@ -127,7 +141,10 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   });
 
   const flowStep = useMemo(() => {
-    if (access?.status === MEETING_STATUS.ENDED) {
+    if (
+      access?.status === MEETING_STATUS.ENDED ||
+      access?.status === MEETING_STATUS.CANCELLED
+    ) {
       return MeetingJoinFlowStep.CHECKING;
     }
     if (room) return MeetingJoinFlowStep.ROOM;
@@ -174,8 +191,11 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     router.push(MEETING_ROUTES.DASHBOARD);
   }, [router]);
   const joinMeeting = useCallback(() => {
-    if (access?.status === MEETING_STATUS.ENDED) {
-      handleMeetingAlreadyEnded();
+    if (
+      access?.status === MEETING_STATUS.ENDED ||
+      access?.status === MEETING_STATUS.CANCELLED
+    ) {
+      handleMeetingUnavailable(access.status);
       return;
     }
 
@@ -196,7 +216,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     canJoinWithoutApproval,
     access?.canStart,
     access?.status,
-    handleMeetingAlreadyEnded,
+    handleMeetingUnavailable,
     joinRoom,
     preJoinDevices.settings,
     requestApprovalMutation,

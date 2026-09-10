@@ -53,7 +53,10 @@ export class MeetingAdmissionService {
       throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
     }
 
-    if (meeting.status === MeetingStatus.ENDED) {
+    if (
+      meeting.status === MeetingStatus.ENDED ||
+      meeting.status === MeetingStatus.CANCELLED
+    ) {
       return {
         ...this.meetingPresenterService.toMeetingAccessResponse(
           meeting,

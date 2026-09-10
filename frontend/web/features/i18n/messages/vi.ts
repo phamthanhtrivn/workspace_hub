@@ -694,6 +694,8 @@ const vi = {
   "meeting.upcoming.edit": "Chỉnh sửa",
   "meeting.upcoming.cancel": "Hủy cuộc họp",
   "meeting.upcoming.cancelConfirm": "Hủy cuộc họp đã lên lịch này?",
+  "meeting.upcoming.cancelConfirmDescription":
+    "Cuộc họp này sẽ rời khỏi danh sách sắp tới và khách mời sẽ không thể tham gia nữa.",
   "meeting.upcoming.cancelled": "Đã hủy cuộc họp",
   "meeting.upcoming.cancelFailed": "Không thể hủy cuộc họp",
   "meeting.upcoming.linkCopied": "Đã sao chép liên kết cuộc họp",
@@ -752,6 +754,7 @@ const vi = {
   "meeting.room.joinFailedDescription":
     "Cuộc họp có thể đã kết thúc, liên kết không hợp lệ hoặc cần chủ phòng duyệt.",
   "meeting.room.alreadyEnded": "Cuộc họp đã kết thúc",
+  "meeting.room.cancelled": "Cuộc họp đã bị hủy",
   "meeting.room.backToMeetings": "Về trang cuộc họp",
   "meeting.room.statusConnected": "Đã kết nối",
   "meeting.room.statusConnecting": "Đang kết nối",

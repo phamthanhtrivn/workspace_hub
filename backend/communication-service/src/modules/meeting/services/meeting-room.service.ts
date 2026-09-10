@@ -48,6 +48,10 @@ type MeetingWithParticipants = Prisma.MeetingGetPayload<{
   include: { participants: true };
 }>;
 
+function isTerminalMeetingAccessStatus(status: MeetingStatus): boolean {
+  return status === MeetingStatus.ENDED || status === MeetingStatus.CANCELLED;
+}
+
 @Injectable()
 export class MeetingRoomService {
   constructor(
@@ -214,7 +218,7 @@ export class MeetingRoomService {
       throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
     }
 
-    if (meeting.status === MeetingStatus.ENDED) {
+    if (isTerminalMeetingAccessStatus(meeting.status)) {
       return this.meetingPresenterService.toMeetingAccessResponse(
         meeting,
         userId,

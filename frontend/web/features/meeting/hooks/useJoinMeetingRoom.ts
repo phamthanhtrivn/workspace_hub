@@ -7,12 +7,13 @@ import { meetingKeys } from "../types/meeting.query-keys";
 import type {
   InstantMeetingResponse,
   MeetingJoinResponse,
+  MeetingStatus,
   MeetingPreJoinSettings,
 } from "../types/meeting.types";
 import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
 interface UseJoinMeetingRoomOptions {
-  onMeetingAlreadyEnded?: () => void;
+  onMeetingUnavailable?: (status: MeetingStatus) => void;
 }
 
 export function useJoinMeetingRoom(
@@ -47,8 +48,8 @@ export function useJoinMeetingRoom(
         return;
       }
 
-      if (response.data.status === "ENDED") {
-        options.onMeetingAlreadyEnded?.();
+      if (response.data.status === "ENDED" || response.data.status === "CANCELLED") {
+        options.onMeetingUnavailable?.(response.data.status);
       }
     },
   });
