@@ -51,6 +51,7 @@ const MEETING_USER_STALE_TIME_MS = 5 * 60 * 1000;
 const MEETING_DURATION_OPTIONS = [
   30, 45, 60, 90, 120, 180, 240, 300, 360, 420, 480, 600, 720,
 ];
+const DEFAULT_SCHEDULED_MEETING_TITLE = "Schedule meeting";
 
 const meetingInviteeKeys = {
   search: (query: string) => ["meeting", "invitees", "search", query] as const,
@@ -196,7 +197,7 @@ function createDefaultScheduleValues(): ScheduleMeetingValues {
   start.setHours(Math.max(9, start.getHours() + 1));
 
   return {
-    title: "",
+    title: DEFAULT_SCHEDULED_MEETING_TITLE,
     scheduledStartAt: toDateTimeLocal(start),
     scheduledEndAt: addMinutesToDateTimeLocal(toDateTimeLocal(start), 60),
     recurrenceRule: null,
