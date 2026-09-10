@@ -8,7 +8,6 @@ import { MeetingActionTile } from "./common/meeting-action-tile";
 import { MeetingJoinLinkModal } from "./common/meeting-join-link-modal";
 import { MeetingPreviousView } from "./history/meeting-previous-view";
 import { ScheduleMeetingModal } from "./schedule/schedule-meeting-modal";
-import { UpcomingMeetingsOverview } from "./schedule/upcoming-meetings-overview";
 import { UpcomingMeetingsView } from "./schedule/upcoming-meetings-view";
 import {
   MeetingDashboardActionId,
@@ -26,6 +25,7 @@ import { MeetingPreJoin } from "./room/meeting-prejoin";
 import { MeetingCreatingOverlay } from "./room/meeting-fullscreen-overlay";
 import { useCreateInstantMeeting } from "../hooks/useCreateInstantMeeting";
 import { usePreJoinMeetingDevices } from "../hooks/usePreJoinMeetingDevices";
+import { useUpcomingMeetings } from "../hooks/useScheduledMeetings";
 
 export function MeetingLayout() {
   const intl = useAppIntl();
@@ -39,6 +39,7 @@ export function MeetingLayout() {
     useState(false);
   const [editingScheduledMeeting, setEditingScheduledMeeting] =
     useState<UpcomingMeetingItem | null>(null);
+  const upcomingOverviewQuery = useUpcomingMeetings({ page: 1, limit: 1 });
   const isPreJoinOpen = flowStep === MeetingFlowStep.PREJOIN;
   const isOverviewActive =
     activeNavItemId === MeetingDashboardNavItemId.OVERVIEW;
@@ -110,6 +111,9 @@ export function MeetingLayout() {
     setIsScheduleMeetingModalOpen(false);
     setEditingScheduledMeeting(null);
   };
+  const handleViewUpcomingMeetings = () => {
+    setActiveNavItemId(MeetingDashboardNavItemId.UPCOMING);
+  };
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f5f9fb] text-[#172B4D] xl:flex-row">
@@ -125,7 +129,10 @@ export function MeetingLayout() {
               <MeetingHero
                 dateLabel={clock.dateLabel}
                 timeLabel={clock.timeLabel}
-                liveMeetingCount={2}
+                upcomingMeetingCount={
+                  upcomingOverviewQuery.data?.data.total ?? 0
+                }
+                onUpcomingClick={handleViewUpcomingMeetings}
               />
 
               <section
@@ -146,7 +153,6 @@ export function MeetingLayout() {
                   />
                 ))}
               </section>
-              <UpcomingMeetingsOverview onViewAll={setActiveNavItemId} />
             </>
           ) : isUpcomingActive ? (
             <UpcomingMeetingsView

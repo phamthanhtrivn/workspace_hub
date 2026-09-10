@@ -604,7 +604,7 @@
   "meeting.dashboard.nav.personalRoom": "Personal room",
   "meeting.dashboard.actionsLabel": "Meeting actions",
   "meeting.dashboard.heroBadge":
-    "{count, plural, =0 {No live rooms yet} one {# live room now} other {# live rooms now}}",
+    "{count, plural, =0 {No upcoming meetings} one {# upcoming meeting} other {# upcoming meetings}}",
   "meeting.dashboard.heroEyebrow": "Workspace meeting center",
   "meeting.dashboard.action.newMeeting.title": "New meeting",
   "meeting.dashboard.action.newMeeting.description": "Start an instant meeting",

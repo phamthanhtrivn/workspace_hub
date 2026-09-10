@@ -599,7 +599,7 @@ const vi = {
   "meeting.dashboard.nav.personalRoom": "Phòng cá nhân",
   "meeting.dashboard.actionsLabel": "Thao tác cuộc họp",
   "meeting.dashboard.heroBadge":
-    "{count, plural, =0 {Chưa có phòng đang diễn ra} one {# phòng đang diễn ra} other {# phòng đang diễn ra}}",
+    "{count, plural, =0 {Chưa có cuộc họp sắp tới} one {# cuộc họp sắp tới} other {# cuộc họp sắp tới}}",
   "meeting.dashboard.heroEyebrow": "Trung tâm họp Workspace",
   "meeting.dashboard.action.newMeeting.title": "Tạo cuộc họp",
   "meeting.dashboard.action.newMeeting.description": "Bắt đầu họp tức thì",
