@@ -31,6 +31,7 @@ import {
   MeetingScreenShareStopReason,
 } from '../types/meeting.constants';
 import {
+  canBypassMeetingPassword,
   canJoinLockedMeeting,
   createJoinToken,
   createRoomName,
@@ -187,8 +188,17 @@ export class MeetingRoomService {
       throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
     }
 
+    const participant = meeting.participants[0];
+    const hasApprovedJoinRequest =
+      participant?.status === MeetingParticipantStatus.APPROVED
+        ? await this.hasApprovedJoinRequest(meeting.id, userId)
+        : false;
+
     return this.meetingPresenterService.toMeetingAccessResponse(
-      meeting,
+      {
+        ...meeting,
+        hasApprovedJoinRequest,
+      },
       userId,
     );
   }
@@ -242,24 +252,37 @@ export class MeetingRoomService {
     const role =
       existingParticipant?.role ??
       (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
-    const canEnterLockedMeeting = canJoinLockedMeeting({
+    const hasApprovedJoinRequest =
+      existingParticipant?.status === MeetingParticipantStatus.APPROVED
+        ? await this.hasApprovedJoinRequest(meeting.id, userId)
+        : false;
+    const canEnterLockedMeeting =
+      canJoinLockedMeeting({
+        hostId: meeting.hostId,
+        userId,
+        role,
+        participantStatus: existingParticipant?.status,
+      }) ||
+      (existingParticipant?.status === MeetingParticipantStatus.APPROVED &&
+        hasApprovedJoinRequest);
+    const canBypassPassword = canBypassMeetingPassword({
       hostId: meeting.hostId,
       userId,
       role,
       participantStatus: existingParticipant?.status,
     });
 
+    if (
+      !canBypassPassword &&
+      !isMeetingPasswordValid(meeting.passwordHash, dto?.password)
+    ) {
+      throw new ForbiddenException(MEETING_ERROR_MESSAGES.INCORRECT_PASSWORD);
+    }
+
     if (!meeting.autoAdmit && !canEnterLockedMeeting) {
       throw new ForbiddenException(
         MEETING_ERROR_MESSAGES.MEETING_JOIN_REQUIRES_APPROVAL,
       );
-    }
-
-    if (
-      !canEnterLockedMeeting &&
-      !isMeetingPasswordValid(meeting.passwordHash, dto?.password)
-    ) {
-      throw new ForbiddenException(MEETING_ERROR_MESSAGES.INCORRECT_PASSWORD);
     }
 
     const now = new Date();
@@ -846,6 +869,19 @@ export class MeetingRoomService {
       if (message.includes('already') || message.includes('exist')) return;
       throw error;
     }
+  }
+
+  private async hasApprovedJoinRequest(meetingId: string, userId: string) {
+    const approval = await this.prisma.meetingEvent.findFirst({
+      where: {
+        meetingId,
+        type: MeetingEventType.JOIN_REQUEST_APPROVED,
+        metadata: { path: ['targetUserId'], equals: userId },
+      },
+      select: { id: true },
+    });
+
+    return Boolean(approval);
   }
 
   private getMeetingStatusErrorMessage(status: MeetingStatus): string {

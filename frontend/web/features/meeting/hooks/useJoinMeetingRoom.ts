@@ -14,6 +14,12 @@ import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
 interface UseJoinMeetingRoomOptions {
   onMeetingUnavailable?: (status: MeetingStatus) => void;
+  onJoinError?: () => void;
+}
+
+interface JoinMeetingRoomInput {
+  settings: MeetingPreJoinSettings;
+  password?: string;
 }
 
 export function useJoinMeetingRoom(
@@ -33,7 +39,7 @@ export function useJoinMeetingRoom(
     isPending,
     mutate,
   } = useMutation({
-    mutationFn: (settings: MeetingPreJoinSettings) =>
+    mutationFn: ({ settings, password }: JoinMeetingRoomInput) =>
       joinMeeting(joinToken, {
         deviceSettings: {
           cameraEnabled: settings.cameraEnabled,
@@ -41,6 +47,7 @@ export function useJoinMeetingRoom(
           cameraDeviceId: settings.cameraDeviceId || undefined,
           microphoneDeviceId: settings.microphoneDeviceId || undefined,
         },
+        password: password?.trim() || undefined,
       }),
     onSuccess: (response) => {
       if (isInstantMeetingResponse(response.data)) {
@@ -52,14 +59,17 @@ export function useJoinMeetingRoom(
         options.onMeetingUnavailable?.(response.data.status);
       }
     },
+    onError: () => {
+      options.onJoinError?.();
+    },
   });
 
   const joinRoom = useCallback(
-    (settings: MeetingPreJoinSettings) => {
+    (settings: MeetingPreJoinSettings, password?: string) => {
       if (!joinToken || isPending) return;
 
       saveMeetingDeviceSettings(settings);
-      mutate(settings);
+      mutate({ settings, password });
     },
     [isPending, joinToken, mutate],
   );

@@ -8,6 +8,7 @@ import type { ListMeetingMessagesDto } from '../dto/list-meeting-messages.dto';
 import type { ListMeetingParticipantsDto } from '../dto/list-meeting-participants.dto';
 import type { MeetingMessageReactionDto } from '../dto/meeting-message-reaction.dto';
 import type { ReadMeetingMessageDto } from '../dto/read-meeting-message.dto';
+import type { RequestMeetingJoinApprovalDto } from '../dto/request-meeting-join-approval.dto';
 import type { StartMeetingScreenShareDto } from '../dto/start-meeting-screen-share.dto';
 import type { UpdateMeetingChatNotificationPreferenceDto } from '../dto/update-meeting-chat-notification-preference.dto';
 import type { UpdateMeetingParticipantViewPreferenceDto } from '../dto/update-meeting-participant-view-preference.dto';
@@ -58,8 +59,12 @@ export interface EndMeetingFromLiveKitRoomFinishedParams {
   webhookEventId?: string;
 }
 
-export interface MeetingJoinRequestParams extends CreateInstantMeetingParams {
+export interface MeetingJoinRequestParams {
   joinToken: string;
+  userId: string;
+  userName?: string;
+  avatarUrl?: string;
+  dto?: RequestMeetingJoinApprovalDto;
 }
 
 export interface ListJoinRequestsParams extends MeetingModeratorParams {

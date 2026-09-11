@@ -25,12 +25,30 @@ export function canJoinLockedMeeting({
     hostId === userId ||
     role === MeetingRole.HOST ||
     role === MeetingRole.COHOST ||
-    participantStatus === MeetingParticipantStatus.APPROVED ||
     participantStatus === MeetingParticipantStatus.JOINED ||
     participantStatus === MeetingParticipantStatus.LEFT
   );
 }
 
+export function canBypassMeetingPassword({
+  hostId,
+  userId,
+  role,
+  participantStatus,
+}: {
+  hostId: string;
+  userId: string;
+  role: MeetingRole;
+  participantStatus?: MeetingParticipantStatus | null;
+}) {
+  return (
+    hostId === userId ||
+    role === MeetingRole.HOST ||
+    role === MeetingRole.COHOST ||
+    participantStatus === MeetingParticipantStatus.JOINED ||
+    participantStatus === MeetingParticipantStatus.LEFT
+  );
+}
 
 export function getTerminalMeetingMessage(payload: unknown): string | null {
   if (typeof payload !== 'object' || payload === null || !('status' in payload)) {

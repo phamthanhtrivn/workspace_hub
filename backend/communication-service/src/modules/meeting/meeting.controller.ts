@@ -21,6 +21,7 @@ import { ListMeetingMessagesDto } from './dto/list-meeting-messages.dto';
 import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
 import { MeetingMessageReactionDto } from './dto/meeting-message-reaction.dto';
 import { ReadMeetingMessageDto } from './dto/read-meeting-message.dto';
+import { RequestMeetingJoinApprovalDto } from './dto/request-meeting-join-approval.dto';
 import { StartMeetingScreenShareDto } from './dto/start-meeting-screen-share.dto';
 import { UpdateMeetingChatNotificationPreferenceDto } from './dto/update-meeting-chat-notification-preference.dto';
 import { UpdateMeetingParticipantViewPreferenceDto } from './dto/update-meeting-participant-view-preference.dto';
@@ -755,6 +756,7 @@ export class MeetingController {
     @Headers('x-user-id') userId: string,
     @Headers('x-user-name') userName: string,
     @Headers('x-user-avatar') avatarUrl: string,
+    @Body() requestJoinApprovalDto: RequestMeetingJoinApprovalDto,
   ) {
     if (!userId) {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
@@ -765,6 +767,7 @@ export class MeetingController {
       userId,
       userName: decodeHeaderUtf8(userName),
       avatarUrl: decodeHeaderUtf8(avatarUrl),
+      dto: requestJoinApprovalDto ?? {},
     });
 
     const terminalMeetingMessage = getTerminalMeetingMessage(request);

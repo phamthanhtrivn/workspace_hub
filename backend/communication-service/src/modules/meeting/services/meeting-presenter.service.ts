@@ -183,6 +183,7 @@ export class MeetingPresenterService {
       scheduledStartAt?: Date | null;
       scheduledEndAt?: Date | null;
       passwordHash?: string | null;
+      hasApprovedJoinRequest?: boolean;
       participants: Array<{
         role: MeetingRole;
         status: MeetingParticipantStatus;
@@ -202,7 +203,9 @@ export class MeetingPresenterService {
         userId,
         role: participantRole,
         participantStatus: existingParticipant?.status,
-      });
+      }) ||
+      (existingParticipant?.status === MeetingParticipantStatus.APPROVED &&
+        meeting.hasApprovedJoinRequest === true);
 
     return {
       meetingId: meeting.id,

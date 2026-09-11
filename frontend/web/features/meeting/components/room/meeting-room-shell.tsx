@@ -11,6 +11,7 @@ import {
   getVideoSetting,
 } from "../../utils/meeting-room.utils";
 import { MeetingPreJoin } from "./meeting-prejoin";
+import { MeetingPasswordGate } from "./meeting-password-gate";
 import { MeetingRoomContent } from "./meeting-room-content";
 import { MeetingRoomError, MeetingRoomLoading } from "./meeting-room-state";
 import { MeetingWaitingApproval } from "./meeting-waiting-approval";
@@ -29,6 +30,7 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
     waitingStatus,
     settings,
     preJoinProps,
+    passwordGateProps,
     goBackToMeetings,
   } =
     useMeetingRoomJoinFlow(joinToken);
@@ -44,6 +46,8 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
           {...preJoinProps}
         />
       );
+    case MeetingJoinFlowStep.PASSWORD:
+      return <MeetingPasswordGate {...passwordGateProps} />;
     case MeetingJoinFlowStep.WAITING_HOST:
       return access ? (
         <MeetingWaitingHost

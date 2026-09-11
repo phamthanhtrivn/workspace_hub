@@ -12,6 +12,7 @@ export enum MeetingPreJoinMode {
 export enum MeetingJoinFlowStep {
   CHECKING = "checking",
   PREJOIN = "prejoin",
+  PASSWORD = "password",
   WAITING_HOST = "waiting-host",
   WAITING_APPROVAL = "waiting-approval",
   JOINING = "joining",
@@ -140,7 +141,12 @@ export interface MeetingAccessResponse {
 
 export type JoinMeetingPayload = Pick<
   CreateInstantMeetingPayload,
-  "deviceSettings"
+  "deviceSettings" | "password"
+>;
+
+export type RequestMeetingJoinApprovalPayload = Pick<
+  CreateInstantMeetingPayload,
+  "password"
 >;
 
 export enum MeetingRoomPanel {

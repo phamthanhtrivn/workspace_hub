@@ -23,6 +23,7 @@ import { useMeetingSocket } from "./useMeetingSocket";
 import { useJoinMeetingRoom } from "./useJoinMeetingRoom";
 import { usePreJoinMeetingDevices } from "./usePreJoinMeetingDevices";
 import { useStartScheduledMeeting } from "./useScheduledMeetings";
+import { needsMeetingPassword } from "../utils/meeting-room.utils";
 
 export function useMeetingRoomJoinFlow(joinToken: string) {
   const intl = useAppIntl();
@@ -31,6 +32,9 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   const handledUnavailableMeetingRef = useRef(false);
   const [waitingStatus, setWaitingStatus] =
     useState<MeetingParticipantStatus | null>(null);
+  const [isPasswordStepOpen, setIsPasswordStepOpen] = useState(false);
+  const [meetingPassword, setMeetingPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const handleMeetingUnavailable = useCallback((status: MeetingStatus) => {
     if (handledUnavailableMeetingRef.current) return;
 
@@ -54,11 +58,6 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   const cachedRoom = queryClient.getQueryData<ApiResponse<InstantMeetingResponse>>(
     meetingKeys.room(joinToken),
   );
-  const { joinRoom, room: joinedRoom, isJoining, isJoinError } =
-    useJoinMeetingRoom(joinToken, {
-      onMeetingUnavailable: handleMeetingUnavailable,
-    });
-  const room = cachedRoom?.data ?? joinedRoom;
   const {
     data: accessResponse,
     isLoading: isCheckingAccess,
@@ -74,8 +73,25 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
   const canJoinWithoutApproval = access?.canJoinWithoutApproval ?? access?.autoAdmit;
   const currentParticipantStatus =
     waitingStatus ?? access?.participantStatus ?? null;
+  const shouldAskForPassword = needsMeetingPassword(access);
+  const { joinRoom, room: joinedRoom, isJoining, isJoinError } =
+    useJoinMeetingRoom(joinToken, {
+      onMeetingUnavailable: handleMeetingUnavailable,
+      onJoinError: () => {
+        if (!shouldAskForPassword && !isPasswordStepOpen) return;
+
+        setPasswordError(
+          intl.formatMessage({ id: "meeting.password.incorrect" }),
+        );
+        setIsPasswordStepOpen(true);
+      },
+    });
+  const room = cachedRoom?.data ?? joinedRoom;
   const requestApprovalMutation = useMutation({
-    mutationFn: () => requestMeetingJoinApproval(joinToken),
+    mutationFn: ({ password }: { password?: string } = {}) =>
+      requestMeetingJoinApproval(joinToken, {
+        password: password?.trim() || undefined,
+      }),
     onSuccess: (response) => {
       if (
         response.data.meetingStatus === MEETING_STATUS.ENDED ||
@@ -89,6 +105,16 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
         response.data.participantStatus ??
           MeetingParticipantStatusValue.REQUESTED,
       );
+      setIsPasswordStepOpen(false);
+      setPasswordError(null);
+    },
+    onError: () => {
+      if (!shouldAskForPassword && !isPasswordStepOpen) return;
+
+      setPasswordError(
+        intl.formatMessage({ id: "meeting.password.incorrect" }),
+      );
+      setIsPasswordStepOpen(true);
     },
   });
   const meetingId = access?.meetingId ?? room?.meeting.id ?? null;
@@ -133,10 +159,21 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
         setWaitingStatus(payload.status);
 
         if (payload.status === MeetingParticipantStatusValue.APPROVED) {
-          joinRoom(preJoinDevices.settings);
+          if (shouldAskForPassword && !meetingPassword) {
+            setIsPasswordStepOpen(true);
+            return;
+          }
+
+          joinRoom(preJoinDevices.settings, meetingPassword);
         }
       },
-      [joinRoom, meetingId, preJoinDevices.settings],
+      [
+        joinRoom,
+        meetingId,
+        meetingPassword,
+        preJoinDevices.settings,
+        shouldAskForPassword,
+      ],
     ),
   });
 
@@ -157,15 +194,12 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       return MeetingJoinFlowStep.JOINING;
     }
 
-    if (
-      isAccessError ||
-      isJoinError
-    ) {
-      return MeetingJoinFlowStep.ERROR;
-    }
-
     if (access?.status === "SCHEDULED") {
       return MeetingJoinFlowStep.WAITING_HOST;
+    }
+
+    if (isPasswordStepOpen) {
+      return MeetingJoinFlowStep.PASSWORD;
     }
 
     if (
@@ -175,6 +209,10 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       return MeetingJoinFlowStep.WAITING_APPROVAL;
     }
 
+    if (isAccessError || isJoinError) {
+      return MeetingJoinFlowStep.ERROR;
+    }
+
     return MeetingJoinFlowStep.PREJOIN;
   }, [
     currentParticipantStatus,
@@ -182,6 +220,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     isCheckingAccess,
     isJoinError,
     isJoining,
+    isPasswordStepOpen,
     requestApprovalMutation.isPending,
     room,
     access?.status,
@@ -206,22 +245,63 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       return;
     }
 
-    if (canJoinWithoutApproval === false) {
-      requestApprovalMutation.mutate();
+    if (shouldAskForPassword && !meetingPassword) {
+      setPasswordError(null);
+      setIsPasswordStepOpen(true);
       return;
     }
 
-    joinRoom(preJoinDevices.settings);
+    if (canJoinWithoutApproval === false) {
+      requestApprovalMutation.mutate({
+        password: shouldAskForPassword ? meetingPassword : undefined,
+      });
+      return;
+    }
+
+    joinRoom(
+      preJoinDevices.settings,
+      shouldAskForPassword ? meetingPassword : undefined,
+    );
   }, [
     canJoinWithoutApproval,
     access?.canStart,
     access?.status,
     handleMeetingUnavailable,
     joinRoom,
+    meetingPassword,
     preJoinDevices.settings,
     requestApprovalMutation,
+    shouldAskForPassword,
     startScheduledMeetingMutation,
   ]);
+  const submitMeetingPassword = useCallback(
+    (password: string) => {
+      const normalizedPassword = password.trim();
+      if (!normalizedPassword) {
+        setPasswordError(
+          intl.formatMessage({ id: "meeting.password.required" }),
+        );
+        return;
+      }
+
+      setMeetingPassword(normalizedPassword);
+      setPasswordError(null);
+
+      if (canJoinWithoutApproval === false) {
+        requestApprovalMutation.mutate({ password: normalizedPassword });
+        return;
+      }
+
+      joinRoom(preJoinDevices.settings, normalizedPassword);
+    },
+    [
+      canJoinWithoutApproval,
+      intl,
+      joinRoom,
+      preJoinDevices.settings,
+      requestApprovalMutation,
+    ],
+  );
 
   return {
     flowStep,
@@ -242,6 +322,13 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       stopPreview: preJoinDevices.stopPreview,
       onCancel: goBackToMeetings,
       onStart: joinMeeting,
+    },
+    passwordGateProps: {
+      meetingTitle: access?.title ?? null,
+      isSubmitting: isJoining || requestApprovalMutation.isPending,
+      errorMessage: passwordError,
+      onBack: goBackToMeetings,
+      onSubmit: submitMeetingPassword,
     },
     goBackToMeetings,
   };

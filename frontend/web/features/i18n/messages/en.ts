@@ -745,6 +745,14 @@
     "Guests can enter the room immediately when they have the meeting link.",
   "meeting.prejoin.startMeeting": "Start meeting",
   "meeting.prejoin.joinMeeting": "Join meeting",
+  "meeting.password.title": "Enter meeting password",
+  "meeting.password.description":
+    "This meeting is protected. Enter the password before continuing.",
+  "meeting.password.label": "Password",
+  "meeting.password.placeholder": "Enter meeting password",
+  "meeting.password.continue": "Continue",
+  "meeting.password.required": "Enter the meeting password.",
+  "meeting.password.incorrect": "Incorrect meeting password.",
   "meeting.waiting.title": "Waiting for approval",
   "meeting.waiting.description":
     "A host or co-host needs to approve your request before you can enter this meeting.",

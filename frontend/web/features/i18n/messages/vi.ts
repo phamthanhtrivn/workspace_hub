@@ -740,6 +740,14 @@ const vi = {
     "Khách có link cuộc họp có thể vào phòng ngay lập tức.",
   "meeting.prejoin.startMeeting": "Bắt đầu họp",
   "meeting.prejoin.joinMeeting": "Vào phòng họp",
+  "meeting.password.title": "Nhập mật khẩu cuộc họp",
+  "meeting.password.description":
+    "Cuộc họp này được bảo vệ. Nhập mật khẩu trước khi tiếp tục.",
+  "meeting.password.label": "Mật khẩu",
+  "meeting.password.placeholder": "Nhập mật khẩu cuộc họp",
+  "meeting.password.continue": "Tiếp tục",
+  "meeting.password.required": "Nhập mật khẩu cuộc họp.",
+  "meeting.password.incorrect": "Mật khẩu cuộc họp không đúng.",
   "meeting.waiting.title": "Đang chờ duyệt",
   "meeting.waiting.description":
     "Chủ phòng hoặc đồng chủ phòng cần duyệt yêu cầu trước khi bạn có thể vào cuộc họp.",

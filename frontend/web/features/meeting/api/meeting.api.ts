@@ -19,6 +19,7 @@ import type {
   MeetingMessageReadReceiptResponse,
   MeetingMessageResponse,
   MeetingMessagesResponse,
+  RequestMeetingJoinApprovalPayload,
   MeetingChatNotificationPreferenceResponse,
   MeetingUnreadMessageCountResponse,
   MeetingParticipantResponse,
@@ -187,8 +188,12 @@ export const stopParticipantScreenShare = async (
 
 export const requestMeetingJoinApproval = async (
   joinToken: string,
+  payload: RequestMeetingJoinApprovalPayload = {},
 ): Promise<ApiResponse<MeetingJoinRequestStatusResponse>> => {
-  const response = await api.post(MEETING_API_PATHS.joinRequests(joinToken));
+  const response = await api.post(
+    MEETING_API_PATHS.joinRequests(joinToken),
+    payload,
+  );
   return normalizeApiResponse<MeetingJoinRequestStatusResponse>(response.data);
 };
 
