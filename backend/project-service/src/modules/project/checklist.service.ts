@@ -14,7 +14,7 @@ export class ChecklistService {
   ) {}
 
   async create(userId: string, taskId: string, dto: CreateChecklistDto) {
-    await this.taskPolicy.requireEditable(userId, taskId);
+    await this.taskPolicy.requireContributable(userId, taskId);
     const item = await this.prisma.$transaction(async (tx) => {
       const created = await tx.taskChecklist.create({
         data: {
@@ -33,7 +33,7 @@ export class ChecklistService {
 
   async update(userId: string, checklistId: string, dto: UpdateChecklistDto) {
     const item = await this.getChecklist(checklistId);
-    await this.taskPolicy.requireEditable(userId, item.taskId);
+    await this.taskPolicy.requireContributable(userId, item.taskId);
     const updated = await this.prisma.$transaction(async (tx) => {
       const result = await tx.taskChecklist.update({
         where: { id: checklistId },
@@ -54,7 +54,7 @@ export class ChecklistService {
 
   async remove(userId: string, checklistId: string) {
     const item = await this.getChecklist(checklistId);
-    await this.taskPolicy.requireEditable(userId, item.taskId);
+    await this.taskPolicy.requireContributable(userId, item.taskId);
     await this.prisma.$transaction(async (tx) => {
       await tx.taskChecklist.delete({ where: { id: checklistId } });
       await this.activities.record(item.taskId, userId, 'checklist_deleted', { title: item.title }, null, tx);

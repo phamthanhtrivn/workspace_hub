@@ -18,6 +18,7 @@ describe("Concurrent write conflicts", () => {
   const access = {
     requireCanManageMembers: jest.fn(),
     requireCanManageSprints: jest.fn(),
+    requireOwnerWriteAccess: jest.fn().mockResolvedValue({ setting: null }),
   } as unknown as ProjectAccessService;
 
   beforeEach(() => jest.clearAllMocks());

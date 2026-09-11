@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { InvitationService } from "./invitation.service";
 import { NotificationOutboxService } from "./notification-outbox.service";
@@ -57,7 +58,9 @@ describe("InvitationService management", () => {
       {
         id: invitationId,
         projectId,
-        project: { name: "Workspace Hub" },
+        project: {
+          name: "Workspace Hub",
+        },
         invitedUserId,
         invitedBy: inviterId,
         status: InvitationStatus.PENDING,
@@ -110,7 +113,11 @@ describe("InvitationService management", () => {
     const create = jest.fn().mockImplementation(({ data }) =>
       Promise.resolve({
         ...data,
-        project: { name: "Workspace Hub" },
+        project: {
+          name: "Workspace Hub",
+          icon: "P",
+          color: "#0052CC",
+        },
         respondedAt: null,
       }),
     );
@@ -147,9 +154,42 @@ describe("InvitationService management", () => {
       expect.objectContaining({
         recipientId: invitedUserId,
         type: "PROJECT_INVITATION",
-        metadata: expect.objectContaining({ status: InvitationStatus.PENDING }),
+        metadata: expect.objectContaining({
+          projectIcon: "P",
+          projectColor: "#0052CC",
+          status: InvitationStatus.PENDING,
+        }),
       }),
       expect.anything(),
     );
+  });
+
+  it('does not accept an invitation after its project is archived', async () => {
+    const findUnique = jest.fn().mockResolvedValue({
+      id: invitationId,
+      projectId,
+      invitedUserId,
+      invitedBy: inviterId,
+      status: InvitationStatus.PENDING,
+      createdAt: now,
+      respondedAt: null,
+      expiresAt: new Date('2099-09-03T08:00:00.000Z'),
+      project: { name: 'Workspace Hub', archived: true, status: 'ARCHIVED' },
+    });
+    const localTransaction = jest.fn();
+    const localService = new InvitationService(
+      {
+        projectInvitation: { findUnique, updateMany: jest.fn() },
+        $transaction: localTransaction,
+      } as unknown as PrismaService,
+      access,
+      calendarEvents,
+      notifications,
+    );
+
+    await expect(
+      localService.accept(invitedUserId, invitationId),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(localTransaction).not.toHaveBeenCalled();
   });
 });

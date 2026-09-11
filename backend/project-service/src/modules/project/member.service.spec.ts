@@ -9,14 +9,14 @@ describe("MemberService.updatePermissions", () => {
   const projectId = crypto.randomUUID();
   const ownerId = crypto.randomUUID();
   const memberUserId = crypto.randomUUID();
-  const requireOwner = jest.fn();
+  const requireOwnerWriteAccess = jest.fn();
   const findUnique = jest.fn();
   const update = jest.fn();
   const service = new MemberService(
     {
       projectMember: { findUnique, update },
     } as unknown as PrismaService,
-    { requireOwner } as unknown as ProjectAccessService,
+    { requireOwnerWriteAccess } as unknown as ProjectAccessService,
     { publishProject: jest.fn() } as unknown as TaskCalendarEventService,
   );
   const permissions = {
@@ -30,7 +30,7 @@ describe("MemberService.updatePermissions", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    requireOwner.mockResolvedValue(undefined);
+    requireOwnerWriteAccess.mockResolvedValue(undefined);
     findUnique.mockResolvedValue({
       id: crypto.randomUUID(),
       projectId,
@@ -67,7 +67,7 @@ describe("MemberService.updatePermissions", () => {
       permissions,
     );
 
-    expect(requireOwner).toHaveBeenCalledWith(ownerId, projectId);
+    expect(requireOwnerWriteAccess).toHaveBeenCalledWith(ownerId, projectId);
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining(permissions) }),
     );
@@ -83,5 +83,50 @@ describe("MemberService.updatePermissions", () => {
       service.updatePermissions(ownerId, projectId, ownerId, permissions),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(update).not.toHaveBeenCalled();
+  });
+
+  it('allows only the owner to add a member and applies project task defaults', async () => {
+    const create = jest.fn().mockImplementation(({ data }) =>
+      Promise.resolve({ ...data, version: 0n, leftAt: null }),
+    );
+    const tx = {
+      projectMember: {
+        updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+        create,
+      },
+    };
+    const project = {
+      id: projectId,
+      ownerId,
+      archived: false,
+      status: 'ACTIVE',
+      setting: {
+        allowMemberCreateTask: true,
+        allowMemberEditOwnTask: true,
+        allowMemberEditOthersTask: false,
+      },
+    };
+    const ownerWrite = jest.fn().mockResolvedValue(project);
+    const localService = new MemberService(
+      {
+        $transaction: jest.fn(async (callback) => callback(tx)),
+      } as unknown as PrismaService,
+      { requireOwnerWriteAccess: ownerWrite } as unknown as ProjectAccessService,
+      { publishProject: jest.fn() } as unknown as TaskCalendarEventService,
+    );
+
+    await localService.add(ownerId, projectId, { userId: memberUserId });
+
+    expect(ownerWrite).toHaveBeenCalledWith(ownerId, projectId);
+    expect(create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        canCreateTask: true,
+        canEditOwnTask: true,
+        canEditOthersTask: false,
+        canManageSprints: false,
+        canManageMembers: false,
+        canManageLabels: false,
+      }),
+    });
   });
 });

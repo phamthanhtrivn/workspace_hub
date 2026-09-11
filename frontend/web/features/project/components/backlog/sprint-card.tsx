@@ -32,7 +32,6 @@ interface SprintCardProps {
   canContribute: boolean;
   canManageSprints: boolean;
   canCreateTask: boolean;
-  canEditTask: (task: Task) => boolean;
   filesBusy?: boolean;
   isBusy?: boolean;
   onAddFiles?: (
@@ -61,7 +60,6 @@ export function SprintCard({
   canContribute,
   canManageSprints,
   canCreateTask,
-  canEditTask,
   filesBusy = false,
   isBusy = false,
   onAddFiles,
@@ -105,10 +103,14 @@ export function SprintCard({
   const renderTaskRow = (task: Task, nested = false) => (
     <div
       key={task.id}
-      draggable={canEditTask(task) && !isTerminalTaskStatus(task.status)}
-      onDragStart={(event) => onDragStart(event, task.id, sprint.id)}
+      draggable={canManageSprints && !isTerminalTaskStatus(task.status)}
+      onDragStart={(event) => {
+        if (canManageSprints && !isTerminalTaskStatus(task.status)) {
+          onDragStart(event, task.id, sprint.id);
+        }
+      }}
       className={`flex w-full items-center gap-3 py-2.5 pr-4 text-left hover:bg-slate-50 ${
-        canEditTask(task) && !isTerminalTaskStatus(task.status)
+        canManageSprints && !isTerminalTaskStatus(task.status)
           ? "cursor-grab active:cursor-grabbing"
           : "cursor-default"
       } ${nested ? "border-t border-slate-100 bg-slate-50/50 pl-12" : "px-4"}`}
@@ -243,7 +245,6 @@ export function SprintCard({
       </div>
       <div className="border-t border-slate-100 px-4 py-2.5">
         {canCreateTask &&
-          canManageSprints &&
           sprint.status === SprintStatus.PLANNED &&
           (isInlineCreating ? (
             <form

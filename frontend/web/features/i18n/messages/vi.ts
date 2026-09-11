@@ -1063,6 +1063,22 @@ const vi = {
   "project.invitation.declined": "Đã từ chối lời mời",
   "project.invitation.respondFailed":
     "Không thể phản hồi. Lời mời có thể đã hết hạn hoặc đã được xử lý.",
+  "notification.projectInvitation.title": "Lời mời tham gia dự án",
+  "notification.projectInvitation.invitedBy": "Được mời bởi {name}",
+  "notification.projectInvitation.inviterLabel": "Người mời",
+  "notification.projectInvitation.memberRole":
+    "Bạn được mời tham gia dự án này với vai trò thành viên.",
+  "notification.projectInvitation.noExpiry": "Không có thời hạn",
+  "notification.projectInvitation.openProject": "Mở dự án",
+  "notification.projectInvitation.close": "Đóng",
+  "notification.projectInvitation.invalid": "Thông tin lời mời không hợp lệ",
+  "notification.projectInvitation.fallbackProject": "Dự án chưa đặt tên",
+  "notification.projectInvitation.fallbackInviter": "Một thành viên dự án",
+  "notification.projectInvitation.status.pending": "Đang chờ phản hồi",
+  "notification.projectInvitation.status.accepted": "Đã chấp nhận",
+  "notification.projectInvitation.status.declined": "Đã từ chối",
+  "notification.projectInvitation.status.cancelled": "Đã thu hồi",
+  "notification.projectInvitation.status.expired": "Đã hết hạn",
   "project.task.readOnlyTerminal":
     "Công việc đã kết thúc và chỉ có thể xem",
   "project.task.editForbidden":

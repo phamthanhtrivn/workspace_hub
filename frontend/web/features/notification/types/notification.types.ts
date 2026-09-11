@@ -32,6 +32,8 @@ export interface ProjectInvitationMetadata {
   invitationId: string;
   projectId: string;
   projectName: string;
+  projectIcon?: string | null;
+  projectColor?: string | null;
   status: ProjectInvitationNotificationStatus;
   expiresAt?: string | null;
   respondedAt?: string;
@@ -48,7 +50,7 @@ export interface Notification {
   content: string;
   isRead: boolean;
   link?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
 }

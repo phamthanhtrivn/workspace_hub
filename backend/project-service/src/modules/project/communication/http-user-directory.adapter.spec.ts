@@ -12,11 +12,18 @@ describe('HttpUserDirectoryAdapter', () => {
   beforeEach(() => request.mockReset());
 
   it('maps a valid user contact', async () => {
-    request.mockResolvedValue({ data: { email: 'member@example.com', fullName: 'Member' } });
+    request.mockResolvedValue({
+      data: {
+        email: 'member@example.com',
+        fullName: 'Member',
+        avatarUrl: 'https://cdn.example.com/member.png',
+      },
+    });
 
     await expect(adapter.getContact('user-1')).resolves.toEqual({
       email: 'member@example.com',
       fullName: 'Member',
+      avatarUrl: 'https://cdn.example.com/member.png',
     });
     expect(request).toHaveBeenCalledWith({
       service: 'User service',

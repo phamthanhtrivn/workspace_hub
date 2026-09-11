@@ -7,14 +7,19 @@ import { TaskPolicyService } from './task-policy.service';
 describe('TaskPolicyService', () => {
   const findFirst = jest.fn();
   const requireCanEditTask = jest.fn();
+  const requireCanContributeTask = jest.fn();
   const service = new TaskPolicyService(
     { task: { findFirst } } as unknown as PrismaService,
-    { requireCanEditTask } as unknown as ProjectAccessService,
+    {
+      requireCanEditTask,
+      requireCanContributeTask,
+    } as unknown as ProjectAccessService,
   );
 
   beforeEach(() => {
     findFirst.mockReset();
     requireCanEditTask.mockReset();
+    requireCanContributeTask.mockReset();
   });
 
   it('checks project permission before returning an editable task', async () => {
@@ -38,5 +43,25 @@ describe('TaskPolicyService', () => {
     });
 
     await expect(service.requireEditable('user-1', 'task-1')).rejects.toBeInstanceOf(ConflictException);
+  });
+
+  it('uses assignee-aware permission for task collaboration', async () => {
+    findFirst.mockResolvedValue({
+      id: 'task-1',
+      projectId: 'project-1',
+      createdBy: 'creator-1',
+      status: TaskStatus.IN_PROGRESS,
+      assignees: [{ userId: 'user-1' }],
+    });
+
+    await expect(
+      service.requireContributable('user-1', 'task-1'),
+    ).resolves.toMatchObject({ id: 'task-1' });
+    expect(requireCanContributeTask).toHaveBeenCalledWith(
+      'user-1',
+      'project-1',
+      'creator-1',
+      ['user-1'],
+    );
   });
 });

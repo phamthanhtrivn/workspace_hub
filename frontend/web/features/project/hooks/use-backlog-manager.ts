@@ -20,7 +20,7 @@ interface UseBacklogManagerOptions {
   tasks: Task[];
   sprints: Sprint[];
   canContribute?: boolean;
-  canEditTask?: (task: Task) => boolean;
+  canManageSprints?: boolean;
   onCreateSprint: (values: SprintCreateValues) => Promise<void>;
   onUpdateSprint: (sprintId: string, values: SprintCreateValues) => Promise<void>;
   onAddTasksToSprint: (sprintId: string, taskIds: string[]) => Promise<void>;
@@ -33,7 +33,7 @@ export function useBacklogManager({
   tasks,
   sprints = [],
   canContribute = false,
-  canEditTask = () => false,
+  canManageSprints = false,
   onCreateSprint,
   onUpdateSprint,
   onAddTasksToSprint,
@@ -177,7 +177,7 @@ export function useBacklogManager({
   };
 
   const handleSprintDragOver = (event: React.DragEvent, sprint: Sprint) => {
-    if (sprint.status === SprintStatus.PLANNED) {
+    if (canManageSprints && sprint.status === SprintStatus.PLANNED) {
       event.preventDefault();
       setDragOverTarget(sprint.id);
     }
@@ -186,12 +186,11 @@ export function useBacklogManager({
   const handleDropOnSprint = async (event: React.DragEvent, sprint: Sprint) => {
     event.preventDefault();
     setDragOverTarget(null);
-    if (sprint.status !== SprintStatus.PLANNED || !onAddTasksToSprint) return;
+    if (!canManageSprints || sprint.status !== SprintStatus.PLANNED || !onAddTasksToSprint) return;
     const payload = readDragPayload(event);
     if (!payload || payload.sprintId === sprint.id) return;
     const task = activeTasks.find((item) => item.id === payload.taskId);
-    if (!task || !canEditTask(task) || isTerminalTaskStatus(task.status))
-      return;
+    if (!task || isTerminalTaskStatus(task.status)) return;
     await onAddTasksToSprint(sprint.id, [payload.taskId]);
   };
 
@@ -199,10 +198,9 @@ export function useBacklogManager({
     event.preventDefault();
     setDragOverTarget(null);
     const payload = readDragPayload(event);
-    if (!payload?.sprintId || !onRemoveTaskFromSprint) return;
+    if (!canManageSprints || !payload?.sprintId || !onRemoveTaskFromSprint) return;
     const task = activeTasks.find((item) => item.id === payload.taskId);
-    if (!task || !canEditTask(task) || isTerminalTaskStatus(task.status))
-      return;
+    if (!task || isTerminalTaskStatus(task.status)) return;
     await onRemoveTaskFromSprint(payload.sprintId, payload.taskId);
   };
 

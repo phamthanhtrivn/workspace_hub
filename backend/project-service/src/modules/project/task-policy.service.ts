@@ -13,7 +13,13 @@ export class TaskPolicyService {
   async findActive(taskId: string, notFoundMessage = 'Task not found') {
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, deletedAt: null },
-      select: { id: true, projectId: true, createdBy: true, status: true },
+      select: {
+        id: true,
+        projectId: true,
+        createdBy: true,
+        status: true,
+        assignees: { select: { userId: true } },
+      },
     });
     if (!task) throw new NotFoundException(notFoundMessage);
     return task;
@@ -28,6 +34,22 @@ export class TaskPolicyService {
   async requireEditable(userId: string, taskId: string, notFoundMessage = 'Task not found') {
     const task = await this.findActive(taskId, notFoundMessage);
     await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
+    assertTaskEditable(task.status);
+    return task;
+  }
+
+  async requireContributable(
+    userId: string,
+    taskId: string,
+    notFoundMessage = 'Task not found',
+  ) {
+    const task = await this.findActive(taskId, notFoundMessage);
+    await this.access.requireCanContributeTask(
+      userId,
+      task.projectId,
+      task.createdBy,
+      task.assignees.map((assignee) => assignee.userId),
+    );
     assertTaskEditable(task.status);
     return task;
   }

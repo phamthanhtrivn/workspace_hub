@@ -109,7 +109,7 @@ export default function SoftwareBacklogView({
     tasks,
     sprints,
     canContribute,
-    canEditTask,
+    canManageSprints,
     onCreateSprint,
     onUpdateSprint,
     onAddTasksToSprint,
@@ -146,6 +146,7 @@ export default function SoftwareBacklogView({
             : "border-slate-200"
         }`}
         onDragOver={(event) => {
+          if (!canManageSprints) return;
           event.preventDefault();
           setDragOverTarget("backlog");
         }}
@@ -303,7 +304,6 @@ export default function SoftwareBacklogView({
             canContribute={canContribute}
             canManageSprints={canManageSprints}
             canCreateTask={canCreateTask}
-            canEditTask={canEditTask}
             filesBusy={filesBusy}
             isBusy={isBusy}
             onAddFiles={addFiles}

@@ -17,6 +17,8 @@ import {
   NOTIFICATION_GATEWAY,
   NotificationGateway,
   ProjectNotification,
+  USER_DIRECTORY,
+  UserDirectory,
 } from "./communication/project-communication.port";
 
 type OutboxDatabase = PrismaService | Prisma.TransactionClient;
@@ -45,6 +47,7 @@ export class NotificationOutboxService
     private readonly prisma: PrismaService,
     private readonly config: RuntimeConfigService,
     @Inject(NOTIFICATION_GATEWAY) private readonly gateway: NotificationGateway,
+    @Inject(USER_DIRECTORY) private readonly users: UserDirectory,
     private readonly invitationEmails: InvitationEmailService,
     private readonly calendarEvents: TaskCalendarEventService,
   ) {}
@@ -162,7 +165,17 @@ export class NotificationOutboxService
   private async deliver(record: OutboxRecord): Promise<void> {
     try {
       if (record.eventType === PROJECT_NOTIFICATION) {
-        await this.gateway.send(this.toProjectNotification(record.payload));
+        const notification = this.toProjectNotification(record.payload);
+        if (
+          notification.type === "PROJECT_INVITATION" &&
+          notification.senderId &&
+          !notification.senderName
+        ) {
+          const sender = await this.users.getContact(notification.senderId);
+          notification.senderName = sender.fullName;
+          notification.senderAvatar = sender.avatarUrl;
+        }
+        await this.gateway.send(notification);
       } else if (record.eventType === INVITATION_EMAIL) {
         await this.invitationEmails.send(
           this.toInvitationEmail(record.payload),
@@ -232,8 +245,17 @@ export class NotificationOutboxService
   ): ProjectNotification {
     if (!this.isObject(payload))
       throw new Error("Invalid project notification payload");
-    const { recipientId, senderId, type, title, content, link, metadata } =
-      payload;
+    const {
+      recipientId,
+      senderId,
+      senderName,
+      senderAvatar,
+      type,
+      title,
+      content,
+      link,
+      metadata,
+    } = payload;
     if (
       typeof recipientId !== "string" ||
       typeof type !== "string" ||
@@ -245,6 +267,8 @@ export class NotificationOutboxService
     return {
       recipientId,
       ...(typeof senderId === "string" ? { senderId } : {}),
+      ...(typeof senderName === "string" ? { senderName } : {}),
+      ...(typeof senderAvatar === "string" ? { senderAvatar } : {}),
       type,
       title,
       content,

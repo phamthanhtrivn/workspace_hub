@@ -1,7 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { RuntimeConfigService } from "../../common/config/runtime-config.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
-import { NotificationGateway } from "./communication/project-communication.port";
+import {
+  NotificationGateway,
+  UserDirectory,
+} from "./communication/project-communication.port";
 import { InvitationEmailService } from "./invitation-email.service";
 import { NotificationOutboxService } from "./notification-outbox.service";
 import { TaskCalendarEventService } from "./task-calendar-event.service";
@@ -12,6 +15,7 @@ describe("NotificationOutboxService", () => {
   const send = jest.fn();
   const sendInvitation = jest.fn();
   const updateProjectInvitationStatus = jest.fn();
+  const getContact = jest.fn();
   const deliverUpsert = jest.fn();
   const service = new NotificationOutboxService(
     {
@@ -24,6 +28,7 @@ describe("NotificationOutboxService", () => {
       outboxMaxAttempts: 5,
     } as RuntimeConfigService,
     { send, updateProjectInvitationStatus } as unknown as NotificationGateway,
+    { getContact } as unknown as UserDirectory,
     { send: sendInvitation } as unknown as InvitationEmailService,
     { deliverUpsert } as unknown as TaskCalendarEventService,
   );
@@ -34,6 +39,7 @@ describe("NotificationOutboxService", () => {
     send.mockReset();
     sendInvitation.mockReset();
     updateProjectInvitationStatus.mockReset();
+    getContact.mockReset();
     deliverUpsert.mockReset();
   });
 
@@ -83,6 +89,41 @@ describe("NotificationOutboxService", () => {
     expect(
       (executeRaw.mock.calls[0][0] as TemplateStringsArray).join(""),
     ).toContain("status = 'FAILED'");
+  });
+
+  it("adds inviter identity when delivering a project invitation", async () => {
+    const senderId = crypto.randomUUID();
+    queryRaw.mockResolvedValue([
+      {
+        id: crypto.randomUUID(),
+        eventType: "PROJECT_NOTIFICATION",
+        payload: {
+          recipientId: crypto.randomUUID(),
+          senderId,
+          type: "PROJECT_INVITATION",
+          title: "Project invitation",
+          content: "You were invited",
+        } satisfies Prisma.JsonObject,
+        attemptCount: 0,
+      },
+    ]);
+    getContact.mockResolvedValue({
+      email: "owner@example.com",
+      fullName: "Nguyen Minh Anh",
+      avatarUrl: "https://cdn.example.com/owner.png",
+    });
+    send.mockResolvedValue(undefined);
+
+    await service.drain();
+
+    expect(getContact).toHaveBeenCalledWith(senderId);
+    expect(send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        senderId,
+        senderName: "Nguyen Minh Anh",
+        senderAvatar: "https://cdn.example.com/owner.png",
+      }),
+    );
   });
 
   it("keeps calendar events retryable after the normal attempt limit and delivers after recovery", async () => {

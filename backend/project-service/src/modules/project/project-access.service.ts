@@ -1,10 +1,11 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { ProjectMemberStatus, ProjectVisibility } from './project.enums';
+import { ProjectMemberStatus, ProjectStatus } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 
 export type ProjectWithSetting = Prisma.ProjectGetPayload<{
@@ -29,13 +30,30 @@ export class ProjectAccessService {
   ): Promise<ProjectWithSetting> {
     const project = await this.findProject(projectId);
     const isOwner = project.ownerId === userId;
-    const isPublic = project.visibility === ProjectVisibility.PUBLIC;
     const isMember = await this.isActiveMember(projectId, userId);
 
-    if (!isOwner && !isPublic && !isMember) {
+    if (!isOwner && !isMember) {
       throw new ForbiddenException('You do not have access to this project');
     }
 
+    return project;
+  }
+
+  async requireWriteAccess(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
+    const project = await this.requireReadAccess(userId, projectId);
+    this.assertWritable(project);
+    return project;
+  }
+
+  async requireOwnerWriteAccess(
+    userId: string,
+    projectId: string,
+  ): Promise<ProjectWithSetting> {
+    const project = await this.requireOwner(userId, projectId);
+    this.assertWritable(project);
     return project;
   }
 
@@ -54,7 +72,7 @@ export class ProjectAccessService {
     userId: string,
     projectId: string,
   ): Promise<ProjectWithSetting> {
-    const project = await this.requireReadAccess(userId, projectId);
+    const project = await this.requireWriteAccess(userId, projectId);
     if (project.ownerId === userId) {
       return project;
     }
@@ -72,7 +90,7 @@ export class ProjectAccessService {
     projectId: string,
     createdBy: string,
   ): Promise<ProjectWithSetting> {
-    const project = await this.requireReadAccess(userId, projectId);
+    const project = await this.requireWriteAccess(userId, projectId);
     if (project.ownerId === userId) {
       return project;
     }
@@ -83,6 +101,26 @@ export class ProjectAccessService {
       project,
       isOwnTask ? 'canEditOwnTask' : 'canEditOthersTask',
       'You cannot edit this task',
+    );
+  }
+
+  async requireCanContributeTask(
+    userId: string,
+    projectId: string,
+    createdBy: string,
+    assigneeUserIds: string[],
+  ): Promise<ProjectWithSetting> {
+    const project = await this.requireWriteAccess(userId, projectId);
+    if (project.ownerId === userId || assigneeUserIds.includes(userId)) {
+      return project;
+    }
+
+    const isOwnTask = createdBy === userId;
+    return this.requireMemberPermission(
+      userId,
+      project,
+      isOwnTask ? 'canEditOwnTask' : 'canEditOthersTask',
+      'You cannot contribute to this task',
     );
   }
 
@@ -169,7 +207,7 @@ export class ProjectAccessService {
     permission: DelegatedPermission,
     message: string,
   ): Promise<ProjectWithSetting> {
-    const project = await this.requireReadAccess(userId, projectId);
+    const project = await this.requireWriteAccess(userId, projectId);
     if (project.ownerId === userId) {
       return project;
     }
@@ -187,5 +225,11 @@ export class ProjectAccessService {
       throw new ForbiddenException(message);
     }
     return project;
+  }
+
+  private assertWritable(project: ProjectWithSetting): void {
+    if (project.archived || project.status === ProjectStatus.ARCHIVED) {
+      throw new ConflictException('Archived projects are read-only');
+    }
   }
 }

@@ -127,9 +127,7 @@ export class CommentService {
     userId: string,
     projectId: string,
   ): Promise<void> {
-    const project = await this.access.requireReadAccess(userId, projectId);
-    if (project.ownerId === userId) return;
-    await this.access.getActiveMember(projectId, userId);
+    await this.access.requireWriteAccess(userId, projectId);
   }
 
   private async requireCanManage(

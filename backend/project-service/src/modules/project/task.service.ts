@@ -28,6 +28,16 @@ import { lockProject } from "./project-transaction";
 import { normalizeTaskRank } from "./task-rank";
 
 const taskWithCount = taskInclude;
+const TASK_PROGRESS_FIELDS = new Set<keyof UpdateTaskDto>(['status', 'rank']);
+
+function isTaskProgressUpdate(dto: UpdateTaskDto): boolean {
+  const fields = Object.entries(dto)
+    .filter(([, value]) => value !== undefined)
+    .map(([field]) => field as keyof UpdateTaskDto);
+  return (
+    fields.length > 0 && fields.every((field) => TASK_PROGRESS_FIELDS.has(field))
+  );
+}
 
 @Injectable()
 export class TaskService {
@@ -44,7 +54,6 @@ export class TaskService {
     const startDate = this.toDate(dto.startDate);
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
-    if (dto.sprintId) await this.access.requireCanManageSprints(userId, projectId);
     if (!dto.parentTaskId && dto.taskType === TaskType.SUBTASK) {
       throw new ConflictException("A subtask must have a parent task");
     }
@@ -144,11 +153,20 @@ export class TaskService {
 
   async update(userId: string, taskId: string, dto: UpdateTaskDto) {
     const current = await this.findTask(taskId);
-    await this.access.requireCanEditTask(
-      userId,
-      current.projectId,
-      current.createdBy,
-    );
+    if (isTaskProgressUpdate(dto)) {
+      await this.access.requireCanContributeTask(
+        userId,
+        current.projectId,
+        current.createdBy,
+        current.assignees.map((assignee) => assignee.userId),
+      );
+    } else {
+      await this.access.requireCanEditTask(
+        userId,
+        current.projectId,
+        current.createdBy,
+      );
+    }
     assertTaskEditable(current.status);
 
     if (dto.title !== undefined && !dto.title.trim()) {
@@ -238,6 +256,7 @@ export class TaskService {
         if (dto.parentTaskId !== undefined) {
           const sprintId = await this.validateParent(current.projectId, dto.parentTaskId, current.id, tx);
           if (current.sprintId !== sprintId) {
+            await this.access.requireCanManageSprints(userId, current.projectId);
             const affected = await tx.sprint.findMany({ where: { id: { in: [current.sprintId, sprintId].filter((id): id is string => Boolean(id)) } } });
             if (affected.some((sprint) => sprint.status !== "PLANNED")) {
               throw new ConflictException("Only planned sprint tasks can be reparented across sprints");

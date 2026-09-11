@@ -1069,6 +1069,22 @@
   "project.invitation.declined": "Invitation declined",
   "project.invitation.respondFailed":
     "Could not respond. The invitation may have expired or already been handled.",
+  "notification.projectInvitation.title": "Project invitation",
+  "notification.projectInvitation.invitedBy": "Invited by {name}",
+  "notification.projectInvitation.inviterLabel": "Invited by",
+  "notification.projectInvitation.memberRole":
+    "You were invited to join this project as a member.",
+  "notification.projectInvitation.noExpiry": "No expiration date",
+  "notification.projectInvitation.openProject": "Open project",
+  "notification.projectInvitation.close": "Close",
+  "notification.projectInvitation.invalid": "Invitation information is invalid",
+  "notification.projectInvitation.fallbackProject": "Untitled project",
+  "notification.projectInvitation.fallbackInviter": "A project member",
+  "notification.projectInvitation.status.pending": "Awaiting response",
+  "notification.projectInvitation.status.accepted": "Accepted",
+  "notification.projectInvitation.status.declined": "Declined",
+  "notification.projectInvitation.status.cancelled": "Revoked",
+  "notification.projectInvitation.status.expired": "Expired",
   "project.task.readOnlyTerminal":
     "This task is finished and is available as read-only",
   "project.task.editForbidden": "You do not have permission to edit this task",

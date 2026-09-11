@@ -25,6 +25,7 @@ interface ProjectResourceActionsOptions {
   selectedTask: Task | null;
   setSelectedTask: Dispatch<SetStateAction<Task | null>>;
   rejectChange: (taskId: string) => boolean;
+  rejectChecklistChange: (taskId: string) => boolean;
 }
 
 export function useProjectResourceActions({
@@ -33,6 +34,7 @@ export function useProjectResourceActions({
   selectedTask,
   setSelectedTask,
   rejectChange,
+  rejectChecklistChange,
 }: ProjectResourceActionsOptions) {
   const intl = useAppIntl();
   const createLabelMutation = useCreateLabel(projectId);
@@ -100,7 +102,7 @@ export function useProjectResourceActions({
   };
 
   const createChecklist = async (taskId: string, title: string) => {
-    if (rejectChange(taskId)) throw new Error(intl.formatMessage({ id: "project.task.readOnly.completed" }));
+    if (rejectChecklistChange(taskId)) throw new Error(intl.formatMessage({ id: "project.task.readOnly.completed" }));
     const item = await createChecklistMutation.mutateAsync({ taskId, title });
     setSelectedTask((current) => current?.id === taskId
       ? { ...current, checklists: [...current.checklists, item] }
@@ -109,7 +111,7 @@ export function useProjectResourceActions({
   };
 
   const updateChecklist = async (checklistId: string, completed: boolean) => {
-    if (selectedTask && rejectChange(selectedTask.id)) {
+    if (selectedTask && rejectChecklistChange(selectedTask.id)) {
       throw new Error(intl.formatMessage({ id: "project.task.readOnly.completed" }));
     }
     const item = await updateChecklistMutation.mutateAsync({ checklistId, completed });
@@ -121,7 +123,7 @@ export function useProjectResourceActions({
   };
 
   const deleteChecklist = async (checklistId: string) => {
-    if (selectedTask && rejectChange(selectedTask.id)) {
+    if (selectedTask && rejectChecklistChange(selectedTask.id)) {
       throw new Error(intl.formatMessage({ id: "project.task.readOnly.completed" }));
     }
     await deleteChecklistMutation.mutateAsync(checklistId);

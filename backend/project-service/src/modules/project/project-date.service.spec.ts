@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
@@ -76,6 +77,51 @@ describe('ProjectService date updates', () => {
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ startDate: null, dueDate: null }),
+      }),
+    );
+  });
+
+  it('allows only a standalone restore update for an archived project', async () => {
+    const projectId = crypto.randomUUID();
+    const ownerId = crypto.randomUUID();
+    const current = {
+      id: projectId,
+      name: 'Archived project',
+      ownerId,
+      status: ProjectStatus.ARCHIVED,
+      projectType: ProjectType.GENERAL,
+      visibility: ProjectVisibility.MEMBERS_ONLY,
+      archived: true,
+      startDate: null,
+      dueDate: null,
+      version: 1n,
+      setting: null,
+    };
+    const update = jest.fn().mockImplementation(({ data }) =>
+      Promise.resolve({ ...current, ...data }),
+    );
+    const service = new ProjectService(
+      { project: { update } } as unknown as PrismaService,
+      {
+        requireOwner: jest.fn().mockResolvedValue(current),
+      } as unknown as ProjectAccessService,
+      {} as ProjectTemplateService,
+    );
+
+    await expect(
+      service.update(ownerId, projectId, { name: 'Changed while archived' }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    await expect(
+      service.update(ownerId, projectId, { status: ProjectStatus.ACTIVE }),
+    ).resolves.toBeDefined();
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: ProjectStatus.ACTIVE,
+          archived: false,
+        }),
       }),
     );
   });

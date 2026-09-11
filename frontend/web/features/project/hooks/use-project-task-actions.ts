@@ -75,7 +75,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
   const moveTask = async (taskId: string, newStatus: TaskStatus) => {
     const task = options.tasks.find((item) => item.id === taskId);
     if (!task || task.status === newStatus) return;
-    if (isTerminalTaskStatus(task.status) || !options.permissions.canEditTask(task)) return;
+    if (isTerminalTaskStatus(task.status) || !options.permissions.canContributeTask(task)) return;
     if (!canMoveTaskForward(task, newStatus)) return;
     const confirmed = await confirmProjectAction({
       title: intl.formatMessage({ id: "project.task.statusChangeTitle" }),

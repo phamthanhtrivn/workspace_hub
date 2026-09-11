@@ -14,18 +14,22 @@ import { UpdateSprintDto } from './dto/update-sprint.dto';
 import { normalizeTaskRank } from './task-rank';
 import { ProjectFileService } from './project-file.service';
 import { ClientKafka } from '@nestjs/microservices';
+import { TaskStatus } from './project.enums';
 
 describe('Project production regressions', () => {
   const projectId = crypto.randomUUID();
   const userId = crypto.randomUUID();
   const access = {
-    requireCanCreateTask: jest.fn(), requireCanManageSprints: jest.fn(), requireCanEditTask: jest.fn(),
-    requireReadAccess: jest.fn().mockResolvedValue({ id: projectId, ownerId: userId }), getActiveMember: jest.fn(),
+    requireCanCreateTask: jest.fn(), requireCanManageSprints: jest.fn(), requireCanEditTask: jest.fn(), requireCanContributeTask: jest.fn(),
+    requireReadAccess: jest.fn().mockResolvedValue({ id: projectId, ownerId: userId }),
+    requireWriteAccess: jest.fn().mockResolvedValue({ id: projectId, ownerId: userId }),
+    getActiveMember: jest.fn(),
   } as unknown as ProjectAccessService;
 
   function setupTask() {
+    jest.clearAllMocks();
     const current = { id: crypto.randomUUID(), projectId, createdBy: userId, title: 'A', status: 'TODO',
-      parentTaskId: null, sprintId: null, version: 0n, assignees: [], _count: { children: 0 } };
+      parentTaskId: null, sprintId: null, version: 0n, assignees: [] as Array<{ userId: string }>, _count: { children: 0 } };
     const tx = {
       $queryRaw: jest.fn().mockResolvedValue([]), $executeRaw: jest.fn().mockResolvedValue(1),
       project: { update: jest.fn().mockResolvedValue({ nextTaskNumber: 2 }) },
@@ -60,12 +64,59 @@ describe('Project production regressions', () => {
     expect(tx.$executeRaw).not.toHaveBeenCalled();
   });
 
-  it('creates a task directly in a planned sprint in the same transaction', async () => {
+  it('lets a task creator create directly in a planned sprint', async () => {
     const { service, tx } = setupTask();
     const sprintId = crypto.randomUUID();
     tx.sprint.findFirst.mockResolvedValue({ id: sprintId, status: 'PLANNED' });
     await expect(service.create(userId, projectId, { title: 'Atomic', sprintId })).resolves.toMatchObject({ sprintId });
-    expect(access.requireCanManageSprints).toHaveBeenCalledWith(userId, projectId);
+    expect(access.requireCanManageSprints).not.toHaveBeenCalled();
+  });
+
+  it('lets a task creator inherit the parent sprint without sprint-management permission', async () => {
+    const { service, tx } = setupTask();
+    const sprintId = crypto.randomUUID();
+    tx.task.findFirst.mockResolvedValue({
+      parentTaskId: null,
+      status: 'TODO',
+      archived: false,
+      sprintId,
+    });
+    tx.sprint.findFirst.mockResolvedValue({ id: sprintId, status: 'PLANNED' });
+
+    await service.create(userId, projectId, {
+      title: 'Inherited sprint',
+      parentTaskId: crypto.randomUUID(),
+    });
+
+    expect(access.requireCanManageSprints).not.toHaveBeenCalled();
+  });
+
+  it('uses assignee progress permission only for status and rank updates', async () => {
+    const { service, current } = setupTask();
+    const assigneeId = crypto.randomUUID();
+    current.assignees.push({ userId: assigneeId });
+
+    await service.update(assigneeId, current.id, {
+      status: TaskStatus.IN_PROGRESS,
+      rank: '2000',
+    });
+
+    expect(access.requireCanContributeTask).toHaveBeenCalledWith(
+      assigneeId,
+      projectId,
+      userId,
+      [assigneeId],
+    );
+    expect(access.requireCanEditTask).not.toHaveBeenCalled();
+
+    jest.clearAllMocks();
+    await service.update(assigneeId, current.id, { title: 'Renamed' });
+    expect(access.requireCanEditTask).toHaveBeenCalledWith(
+      assigneeId,
+      projectId,
+      userId,
+    );
+    expect(access.requireCanContributeTask).not.toHaveBeenCalled();
   });
 
   it('rejects a third hierarchy level when reparenting a task with children', async () => {
@@ -82,6 +133,7 @@ describe('Project production regressions', () => {
     tx.task.findFirst.mockResolvedValueOnce(current).mockResolvedValueOnce({ parentTaskId: null, status: 'TODO', archived: false, sprintId });
     tx.sprint.findMany.mockResolvedValue([{ id: sprintId, status: 'PLANNED' }]);
     await service.update(userId, current.id, { parentTaskId: crypto.randomUUID() });
+    expect(access.requireCanManageSprints).toHaveBeenCalledWith(userId, projectId);
     expect(tx.task.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ sprint: { connect: { id: sprintId } } }) }));
   });
 
