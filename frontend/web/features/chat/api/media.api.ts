@@ -38,7 +38,10 @@ export const getPresignedUrls = async (
     files: params.files,
     ...(params.chatType === ChatContextType.CHANNEL
       ? { channelId: params.chatId }
-      : { conversationId: params.chatId }),
+      : {}),
+    ...(params.chatType === ChatContextType.DIRECT_MESSAGE
+      ? { conversationId: params.chatId }
+      : {}),
   };
   const response = await api.post("/api/medias/presign", {
     ...payload,

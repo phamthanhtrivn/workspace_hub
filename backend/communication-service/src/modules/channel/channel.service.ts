@@ -6,12 +6,11 @@ import {
 } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { SpaceRole } from '@prisma/client';
-import { ChatGateway } from '../chat/chat.gateway';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { S3Service } from 'src/infrastructure/s3/s3.service';
 import { UpdateChannelSettingDto } from './dto/update-channel-setting.dto';
-import { ChatEvent } from '../chat/chat.events';
-import { CHAT_CONTEXT_TYPE } from '../chat/types/chat.enums';
+import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { getMediaUrl } from 'src/common/utils/file.util';
 import { S3_UPLOAD_TYPE } from 'src/common/types/file.enums';
 import {
@@ -33,7 +32,7 @@ import {
 export class ChannelService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly chatGateway: ChatGateway,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
@@ -205,14 +204,12 @@ export class ChannelService {
     const channelIds = await this.getSpaceChannelIds(spaceId);
 
     channelIds.forEach((channelId) => {
-      this.chatGateway.server
-        .to(channelId)
-        .emit(ChatEvent.MEMBER_ROLE_UPDATED, {
-          chatId: channelId,
-          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-          channelId,
-          member,
-        });
+      this.chatSocketPublisher.publishMemberRoleUpdated(channelId, {
+        chatId: channelId,
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId,
+        member,
+      });
     });
   }
 
@@ -388,14 +385,12 @@ export class ChannelService {
       data: updateSettingDto,
     });
 
-    this.chatGateway.server
-      .to(channelId)
-      .emit(ChatEvent.CHANNEL_SETTING_UPDATED, {
-        chatId: channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId,
-        setting: updatedSettings,
-      });
+    await this.chatSocketPublisher.publishChannelSettingUpdated(channelId, {
+      chatId: channelId,
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+      channelId,
+      setting: updatedSettings,
+    });
 
     return updatedSettings;
   }
@@ -451,7 +446,7 @@ export class ChannelService {
 
     const roleName = newRole === SpaceRole.ADMIN ? 'Admin' : 'Member';
 
-    await this.chatGateway.sendSystemMessage(
+    await this.chatSocketPublisher.sendSystemMessage(
       channelId,
       userId,
       `${userId} set ${targetUserId} as ${roleName}`,
@@ -486,16 +481,12 @@ export class ChannelService {
     });
 
     // Emit websocket event to user's private room to sync all sessions/tabs
-    if (this.chatGateway?.server) {
-      this.chatGateway.server
-        .to(userId)
-        .emit(ChatEvent.CONVERSATION_MUTE_UPDATED, {
-          chatId: channelId,
-          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-          channelId,
-          muted,
-        });
-    }
+    await this.chatSocketPublisher.publishConversationMuteUpdated(
+      userId,
+      CHAT_CONTEXT_TYPE.CHANNEL,
+      channelId,
+      muted,
+    );
 
     return updatedMember;
   }
@@ -547,13 +538,35 @@ export class ChannelService {
       where: { id: channel.spaceId },
       select: { createdBy: true },
     });
-    if (!space || space.createdBy !== userId) {
+    const isOwner = space?.createdBy === userId;
+    const isAdmin = requester.role === SpaceRole.ADMIN;
+    if (!space || (!isOwner && !isAdmin)) {
       throw new BadRequestException(CHANNEL_ERROR_MESSAGES.KICK_ACCESS_DENIED);
+    }
+    if (memberId === space.createdBy) {
+      throw new BadRequestException(CHANNEL_ERROR_MESSAGES.OWNER_KICK_DENIED);
+    }
+    if (!isOwner && target.role !== SpaceRole.MEMBER) {
+      throw new BadRequestException(
+        CHANNEL_ERROR_MESSAGES.KICK_ADMIN_ACCESS_DENIED,
+      );
+    }
+    if (target.role === SpaceRole.ADMIN) {
+      const adminCount = await this.prisma.spaceMember.count({
+        where: { spaceId: channel.spaceId, role: SpaceRole.ADMIN },
+      });
+      if (adminCount <= 1) {
+        throw new BadRequestException(CHANNEL_ERROR_MESSAGES.LAST_ADMIN);
+      }
     }
 
     const spaceChannels = await this.prisma.channel.findMany({
       where: { spaceId: channel.spaceId },
       select: { id: true },
+    });
+    const spaceMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId: channel.spaceId },
+      select: { userId: true },
     });
 
     await this.prisma.$transaction(async (tx) => {
@@ -574,11 +587,16 @@ export class ChannelService {
     });
 
     const targetRooms = [
-      memberId,
-      ...spaceChannels.map((spaceChannel) => spaceChannel.id),
+      ...new Set([
+        memberId,
+        ...spaceMembers
+          .map((spaceMember) => spaceMember.userId)
+          .filter((spaceMemberId) => spaceMemberId !== memberId),
+        ...spaceChannels.map((spaceChannel) => spaceChannel.id),
+      ]),
     ];
 
-    this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEMBER_KICKED, {
+    this.chatSocketPublisher.publishMemberKicked(targetRooms, {
       chatId: channelId,
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
@@ -635,7 +653,11 @@ export class ChannelService {
       await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
     const actorProfile = profileMap.get(userId);
     const content = `Channel name was updated to "${updatedChannel.name}" by ${actorProfile?.fullName || 'an admin'}`;
-    await this.chatGateway.sendSystemMessage(channelId, userId, content);
+    await this.chatSocketPublisher.sendSystemMessage(
+      channelId,
+      userId,
+      content,
+    );
 
     const payload = {
       id: channelId,
@@ -645,9 +667,7 @@ export class ChannelService {
       name: updatedChannel.name,
     };
 
-    this.chatGateway.server
-      .to(channelId)
-      .emit(ChatEvent.CONVERSATION_UPDATED, payload);
+    this.chatSocketPublisher.publishConversationUpdated(channelId, payload);
 
     return updatedChannel;
   }
@@ -699,7 +719,7 @@ export class ChannelService {
       ...remainingMembers.map((m) => m.userId),
     ];
 
-    this.chatGateway.server.to(targetRooms).emit(ChatEvent.MEMBER_LEFT, {
+    this.chatSocketPublisher.publishMemberLeft(targetRooms, {
       chatId: channelId,
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
@@ -708,7 +728,7 @@ export class ChannelService {
       leftSpace: false,
     });
 
-    await this.chatGateway.sendSystemMessage(
+    await this.chatSocketPublisher.sendSystemMessage(
       channelId,
       userId,
       `${await this.getUserDisplayName(userId)} left the channel`,
@@ -743,7 +763,7 @@ export class ChannelService {
       select: { id: true },
     });
 
-    await this.chatGateway.sendSystemMessage(
+    await this.chatSocketPublisher.sendSystemMessage(
       channelId,
       userId,
       `${await this.getUserDisplayName(userId)} left the space`,
@@ -763,16 +783,17 @@ export class ChannelService {
       });
     });
 
-    this.chatGateway.server
-      .to([userId, ...spaceChannels.map((spaceChannel) => spaceChannel.id)])
-      .emit(ChatEvent.MEMBER_LEFT, {
+    this.chatSocketPublisher.publishMemberLeft(
+      [userId, ...spaceChannels.map((spaceChannel) => spaceChannel.id)],
+      {
         chatId: channelId,
         chatType: CHAT_CONTEXT_TYPE.CHANNEL,
         channelId,
         spaceId,
         userId,
         leftSpace: true,
-      });
+      },
+    );
 
     return { success: true };
   }
@@ -838,22 +859,20 @@ export class ChannelService {
     );
     const targetRooms = [channelId, ...affectedUserIds];
 
-    this.chatGateway.server
-      .to(targetRooms)
-      .emit(ChatEvent.CONVERSATION_DISBANDED, {
-        eventType: 'channel_disbanded',
-        chatId: channelId,
-        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
-        channelId,
-        channelName: channel.name,
-        spaceId: channel.spaceId,
-        spaceName: space?.name ?? null,
-        affectedUserIds,
-        leftSpace: false,
-        actorProfile,
-      });
+    this.chatSocketPublisher.publishConversationDisbanded(targetRooms, {
+      eventType: 'channel_disbanded',
+      chatId: channelId,
+      chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+      channelId,
+      channelName: channel.name,
+      spaceId: channel.spaceId,
+      spaceName: space?.name ?? null,
+      affectedUserIds,
+      leftSpace: false,
+      actorProfile,
+    });
 
-    this.chatGateway.server.in(channelId).socketsLeave(channelId);
+    this.chatSocketPublisher.leaveRoom(channelId);
     this.publishChannelDisbandedNotifications({
       recipientIds: affectedUserIds,
       actorId: userId,
@@ -954,7 +973,7 @@ export class ChannelService {
       },
     });
 
-    await this.chatGateway.sendSystemMessage(
+    await this.chatSocketPublisher.sendSystemMessage(
       channelId,
       userId,
       `${userName || userId} joined the chat channel`,
@@ -966,7 +985,7 @@ export class ChannelService {
     });
     const targetRooms = [channelId, ...members.map((m) => m.userId)];
 
-    this.chatGateway.emitMemberJoin(targetRooms, {
+    this.chatSocketPublisher.publishMemberJoin(targetRooms, {
       chatId: channelId,
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,

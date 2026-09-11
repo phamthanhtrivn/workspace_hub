@@ -8,6 +8,10 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { refreshApi } from "@/features/auth/api/auth.api";
 import axios from "axios";
+import {
+  getLoginRedirectPath,
+  getReturnToFromSearch,
+} from "@/features/auth/utils/auth-redirect";
 
 const PUBLIC_PATHS = [
   "/login",
@@ -27,6 +31,12 @@ function shouldRedirectAuthenticatedUser(pathname: string): boolean {
   return pathname === "/" || pathname === "/login" || pathname === "/register";
 }
 
+function getCurrentSearch() {
+  if (typeof window === "undefined") return "";
+
+  return window.location.search;
+}
+
 function AuthInitializer({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -43,16 +53,18 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
 
     const initializeAuth = async () => {
       const currentToken = store.getState().auth.accessToken;
+      const currentSearch = getCurrentSearch();
+      const safeReturnTo = getReturnToFromSearch(currentSearch);
 
       // 1. If we have already checked authentication on initial mount, skip refreshApi
       if (hasInitialized.current) {
         if (currentToken) {
           if (shouldRedirectAuthenticatedUser(pathname)) {
-            replaceIfNeeded("/dashboard");
+            replaceIfNeeded(safeReturnTo ?? "/dashboard");
           }
         } else {
           if (!isPublicPath(pathname)) {
-            replaceIfNeeded("/login");
+            replaceIfNeeded(getLoginRedirectPath(pathname, currentSearch));
           }
         }
         setIsInitializing(false);
@@ -80,7 +92,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
         );
 
         if (shouldRedirectAuthenticatedUser(pathname)) {
-          replaceIfNeeded("/dashboard");
+          replaceIfNeeded(safeReturnTo ?? "/dashboard");
         }
       } catch {
         dispatch(clearCredentials());
@@ -96,7 +108,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
             // Ignore logout error
           }
 
-          replaceIfNeeded("/login");
+          replaceIfNeeded(getLoginRedirectPath(pathname, currentSearch));
         }
       } finally {
         hasInitialized.current = true;

@@ -4,21 +4,27 @@ import { toast } from "sonner";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
 import {
+  addChannelPollOption,
+  editChannelMessage,
+  editChannelNote,
+  editChannelPoll,
+  markChannelMessageAsRead,
+  pinChannelMessage,
+  reactChannelMessage,
+  recallChannelMessage,
+  sendChannelMessage,
+  unpinChannelMessage,
+  voteChannelPoll,
+} from "../../api/chat.api";
+import {
   ChatContextType,
   ChatMessageResponse,
   CreateNotePayload,
   CreatePollPayload,
 } from "../../types/chat.types";
-import {
-  ChatSocketAckResponse,
-  SendSocketMessageMedia,
-} from "../../types/chat-socket.types";
+import { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { ChatScope, chatKeys } from "../../types/chat.constant";
-import {
-  SocketAckStatus,
-  MessageType,
-  ReactionAction,
-} from "../../types/chat.enums";
+import { MessageType, ReactionAction } from "../../types/chat.enums";
 import { useDirectMessageActions } from "../useDirectMessageActions";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
@@ -55,6 +61,28 @@ export function useChatMessageActions({
     togglePinMessage: toggleDirectPinMessage,
   } = useDirectMessageActions();
 
+  const getErrorMessage = useCallback(
+    (error: unknown, fallbackId: string) => {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof error.response === "object" &&
+        error.response !== null &&
+        "data" in error.response &&
+        typeof error.response.data === "object" &&
+        error.response.data !== null &&
+        "message" in error.response.data &&
+        typeof error.response.data.message === "string"
+      ) {
+        return error.response.data.message;
+      }
+
+      return intl.formatMessage({ id: fallbackId });
+    },
+    [intl],
+  );
+
   // ─── Send / Edit ───────────────────────────────────────────────────────────
 
   const handleSendMessage = useCallback(
@@ -65,7 +93,6 @@ export function useChatMessageActions({
       editingMessage?: ChatMessageResponse | null,
       onEditDone?: () => void,
     ) => {
-      const socket = socketService.getSocket();
       if (!conversationId) return;
 
       if (editingMessage) {
@@ -85,16 +112,15 @@ export function useChatMessageActions({
           }
           return;
         }
-        if (!socket) {
-          toast.error(intl.formatMessage({ id: "chat.connectionNotReady" }));
-          return;
+        try {
+          await editChannelMessage(editingMessage.id, content);
+          queryClient.invalidateQueries({
+            queryKey: chatKeys.messages(activeChatType, conversationId, jumpTargetId),
+          });
+          onEditDone?.();
+        } catch (error: unknown) {
+          toast.error(getErrorMessage(error, "chat.failedEditMessage"));
         }
-        socket.emit(ChatEvent.EDIT_MESSAGE, {
-          channelId: conversationId,
-          messageId: editingMessage.id,
-          content,
-        });
-        onEditDone?.();
         return;
       }
 
@@ -115,37 +141,31 @@ export function useChatMessageActions({
         return;
       }
 
-      if (!socket) {
-        toast.error(intl.formatMessage({ id: "chat.connectionNotReady" }));
-        return;
-      }
-      socket.emit(
-        ChatEvent.SEND_MESSAGE,
-        {
-          channelId: conversationId,
-          chatId: conversationId,
-          chatType: ChatContextType.CHANNEL,
+      try {
+        const response = await sendChannelMessage(conversationId, {
           content,
           medias,
           mentions,
-        },
-        (response: ChatSocketAckResponse) => {
-          if (response?.status === SocketAckStatus.SUCCESS && response.data) {
-            appendRealtimeMessage(response.data);
-          } else if (response?.message) {
-            toast.error(response.message);
-          }
-        },
-      );
+        });
+
+        if (response.data) {
+          appendRealtimeMessage(response.data);
+        }
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedSendMessage"));
+      }
     },
     [
       conversationId,
-      intl,
+      activeChatType,
+      jumpTargetId,
+      queryClient,
       isDirectConversation,
       editDirectChatMessage,
       sendDirectChatMessage,
       appendRealtimeMessage,
       scrollToBottom,
+      getErrorMessage,
     ],
   );
 
@@ -175,7 +195,6 @@ export function useChatMessageActions({
 
   const handleRecallMessage = useCallback(
     async (msg: ChatMessageResponse) => {
-      const socket = socketService.getSocket();
       if (!conversationId) return;
 
       if (isDirectConversation) {
@@ -186,20 +205,30 @@ export function useChatMessageActions({
         }
         return;
       }
-      if (!socket) return;
-      socket.emit(ChatEvent.RECALL_MESSAGE, {
-        channelId: conversationId,
-        messageId: msg.id,
-      });
+      try {
+        await recallChannelMessage(msg.id);
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.messages(activeChatType, conversationId, jumpTargetId),
+        });
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedRecallMessage"));
+      }
     },
-    [conversationId, isDirectConversation, recallDirectChatMessage],
+    [
+      activeChatType,
+      conversationId,
+      getErrorMessage,
+      isDirectConversation,
+      jumpTargetId,
+      queryClient,
+      recallDirectChatMessage,
+    ],
   );
 
   // ─── Pin / Unpin ───────────────────────────────────────────────────────────
 
   const handlePinMessage = useCallback(
     async (msg: ChatMessageResponse) => {
-      const socket = socketService.getSocket();
       if (!conversationId) return;
 
       if (isDirectConversation) {
@@ -210,34 +239,31 @@ export function useChatMessageActions({
         }
         return;
       }
-      if (!socket) return;
-
-      const pinEvent = msg.pinned
-        ? ChatEvent.UNPIN_MESSAGE
-        : ChatEvent.PIN_MESSAGE;
-      socket.emit(
-        pinEvent,
-        {
-          channelId: conversationId,
-          chatId: conversationId,
-          chatType: ChatContextType.CHANNEL,
-          messageId: msg.id,
-        },
-        (response: ChatSocketAckResponse) => {
-          if (response?.status === SocketAckStatus.ERROR) {
-            toast.error(response.message);
-          }
-        },
-      );
+      try {
+        await (msg.pinned ? unpinChannelMessage : pinChannelMessage)(msg.id);
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.pinnedMessagesPreview(ChatScope.CHANNEL, conversationId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),
+        });
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedUpdatePin"));
+      }
     },
-    [conversationId, isDirectConversation, toggleDirectPinMessage],
+    [
+      conversationId,
+      getErrorMessage,
+      isDirectConversation,
+      queryClient,
+      toggleDirectPinMessage,
+    ],
   );
 
   // ─── React ─────────────────────────────────────────────────────────────────
 
   const handleReactMessage = useCallback(
     async (messageId: string, emoji: string, action: ReactionAction) => {
-      const socket = socketService.getSocket();
       if (conversationId && isDirectConversation) {
         try {
           await reactToDirectMessage(conversationId, messageId, emoji);
@@ -246,68 +272,68 @@ export function useChatMessageActions({
         }
         return;
       }
-      if (socket) {
-        socket.emit(ChatEvent.REACT_MESSAGE, {
-          channelId: conversationId,
-          messageId,
-          emoji,
-          action,
-        });
+      if (!conversationId) return;
+      try {
+        await reactChannelMessage(messageId, emoji, action);
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedReact"));
       }
     },
-    [conversationId, isDirectConversation, reactToDirectMessage],
+    [
+      conversationId,
+      getErrorMessage,
+      isDirectConversation,
+      reactToDirectMessage,
+    ],
   );
 
   // ─── Poll ──────────────────────────────────────────────────────────────────
 
   const handleCreatePoll = useCallback(
-    (data: CreatePollPayload) => {
+    async (data: CreatePollPayload) => {
       if (!conversationId) return;
-      const socket = socketService.getSocket();
-      if (socket) {
-        socket.emit(ChatEvent.SEND_MESSAGE, {
-          channelId: conversationId,
-          chatId: conversationId,
-          chatType: ChatContextType.CHANNEL,
+      try {
+        const response = await sendChannelMessage(conversationId, {
           content: "",
           type: MessageType.POLL,
           pollData: data,
         });
+        if (response.data) {
+          appendRealtimeMessage(response.data);
+        }
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedSendMessage"));
       }
     },
-    [conversationId],
+    [appendRealtimeMessage, conversationId, getErrorMessage],
   );
 
   const handlePollVoteMessage = useCallback(
-    (messageId: string, pollOptionId: string) => {
-      const socket = socketService.getSocket();
-      if (socket) {
-        socket.emit(ChatEvent.VOTE_POLL, {
-          channelId: conversationId,
-          messageId,
-          pollOptionId,
-        });
+    async (messageId: string, pollOptionId: string) => {
+      if (!conversationId) return;
+      try {
+        await voteChannelPoll(conversationId, messageId, pollOptionId);
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedUpdatePoll"));
       }
     },
-    [conversationId],
+    [conversationId, getErrorMessage],
   );
 
   const handlePollAddOptionMessage = useCallback(
-    (messageId: string, text: string) => {
-      const socket = socketService.getSocket();
-      if (socket) {
-        socket.emit(ChatEvent.ADD_POLL_OPTION, {
-          channelId: conversationId,
-          messageId,
-          text,
-        });
+    async (messageId: string, text: string) => {
+      if (!conversationId) return;
+      try {
+        await addChannelPollOption(conversationId, messageId, text);
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedUpdatePoll"));
       }
     },
-    [conversationId],
+    [conversationId, getErrorMessage],
   );
 
   const handlePollEditMessage = useCallback(
-    (
+    async (
       messageId: string,
       title: string,
       multipleChoice: boolean,
@@ -315,70 +341,68 @@ export function useChatMessageActions({
       anonymous: boolean,
       isLocked: boolean,
     ) => {
-      const socket = socketService.getSocket();
-      if (socket) {
-        socket.emit(ChatEvent.EDIT_POLL, {
-          channelId: conversationId,
-          messageId,
+      if (!conversationId) return;
+      try {
+        await editChannelPoll(conversationId, messageId, {
           title,
           multipleChoice,
           allowAddOptions,
           anonymous,
           isLocked,
         });
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedUpdatePoll"));
       }
     },
-    [conversationId],
+    [conversationId, getErrorMessage],
   );
 
   // ─── Note ──────────────────────────────────────────────────────────────────
 
   const handleCreateNote = useCallback(
-    (data: CreateNotePayload) => {
+    async (data: CreateNotePayload) => {
       if (!conversationId) return;
-      const socket = socketService.getSocket();
-      if (socket) {
-        socket.emit(ChatEvent.SEND_MESSAGE, {
-          channelId: conversationId,
-          chatId: conversationId,
-          chatType: ChatContextType.CHANNEL,
+      try {
+        const response = await sendChannelMessage(conversationId, {
           content: "",
           type: MessageType.NOTE,
           noteData: data,
         });
+        if (response.data) {
+          appendRealtimeMessage(response.data);
+        }
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedSendMessage"));
       }
     },
-    [conversationId],
+    [appendRealtimeMessage, conversationId, getErrorMessage],
   );
 
   const handleNoteEditMessage = useCallback(
-    (messageId: string, title: string, content: string) => {
-      const socket = socketService.getSocket();
-      if (socket) {
-        socket.emit(ChatEvent.EDIT_NOTE, {
-          channelId: conversationId,
-          messageId,
+    async (messageId: string, title: string, content: string) => {
+      if (!conversationId) return;
+      try {
+        await editChannelNote(conversationId, messageId, {
           title,
           content,
         });
+      } catch (error: unknown) {
+        toast.error(getErrorMessage(error, "chat.failedUpdateNote"));
       }
     },
-    [conversationId],
+    [conversationId, getErrorMessage],
   );
 
   // ─── Read Message ──────────────────────────────────────────────────────────
 
   const handleReadMessage = useCallback(
-    (messageId: string) => {
-      const socket = socketService.getSocket();
+    async (messageId: string) => {
       if (!conversationId || isDirectConversation) return;
-      if (!socket) return;
-      socket.emit(ChatEvent.READ_MESSAGE, {
-        channelId: conversationId,
-        chatId: conversationId,
-        chatType: ChatContextType.CHANNEL,
-        messageId,
-      });
+      try {
+        await markChannelMessageAsRead(conversationId, messageId);
+      } catch {
+        // Read receipts are best-effort; socket events keep the rest of the UI in sync.
+      }
     },
     [conversationId, isDirectConversation],
   );

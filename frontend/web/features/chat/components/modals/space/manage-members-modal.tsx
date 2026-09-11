@@ -19,6 +19,7 @@ import {
   ChannelResponse,
   ChatProfilesMap,
   ConversationMember,
+  SpaceRole,
 } from "@/features/chat/types/chat.types";
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import {
@@ -89,6 +90,7 @@ export default function ManageMembersModal({
     (member) => member.userId === currentUserId,
   );
   const currentUserRole = currentUserMember?.role;
+  const isCurrentUserAdmin = currentUserRole === SpaceRole.ADMIN;
   const leaveLabel = intl.formatMessage({
     id: channel.isDefault ? "chat.leaveSpace" : "chat.leaveChannel",
   });
@@ -339,6 +341,11 @@ export default function ManageMembersModal({
             const displayName = isMe
               ? intl.formatMessage({ id: "chat.you" })
               : name;
+            const isCreator = member.userId === spaceCreatorId;
+            const canCurrentUserRemove =
+              !isCreator &&
+              (isCurrentUserOwner ||
+                (isCurrentUserAdmin && member.role === SpaceRole.MEMBER));
 
             return (
               <div
@@ -362,14 +369,14 @@ export default function ManageMembersModal({
                         </span>
                       )}
                     </div>
-                    {member.userId === spaceCreatorId ? (
+                    {isCreator ? (
                       <span
                         className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
                         title={intl.formatMessage({ id: "chat.role.owner" })}
                       >
                         <FaKey size={8} />
                       </span>
-                    ) : member.role === "ADMIN" ? (
+                    ) : member.role === SpaceRole.ADMIN ? (
                       <span
                         className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
                         title={intl.formatMessage({ id: "chat.role.admin" })}
@@ -383,12 +390,12 @@ export default function ManageMembersModal({
                       <span className="text-sm font-medium text-gray-800">
                         {displayName}
                       </span>
-                      {member.userId === spaceCreatorId ? (
+                      {isCreator ? (
                         <span className="text-[10px] bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border border-amber-100">
                           <FaKey size={10} className="text-amber-500" />{" "}
                           {intl.formatMessage({ id: "chat.adminOwner" })}
                         </span>
-                      ) : member.role === "ADMIN" ? (
+                      ) : member.role === SpaceRole.ADMIN ? (
                         <span className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-1 border border-blue-100">
                           <FiShield size={10} className="text-blue-500" />{" "}
                           {intl.formatMessage({ id: "chat.role.admin" })}
@@ -405,10 +412,10 @@ export default function ManageMembersModal({
                   <div className="flex items-center gap-2">
                     {isCurrentUserOwner && (
                       <>
-                        {member.role === "MEMBER" && (
+                        {member.role === SpaceRole.MEMBER && (
                           <button
                             onClick={() =>
-                              handleUpdateRole(member.userId, "ADMIN")
+                              handleUpdateRole(member.userId, SpaceRole.ADMIN)
                             }
                             title={intl.formatMessage({
                               id: "chat.promoteToAdmin",
@@ -418,11 +425,10 @@ export default function ManageMembersModal({
                             <FiShield size={18} />
                           </button>
                         )}
-                        {member.role === "ADMIN" &&
-                          member.userId !== spaceCreatorId && (
+                        {member.role === SpaceRole.ADMIN && !isCreator && (
                             <button
                               onClick={() =>
-                                handleUpdateRole(member.userId, "MEMBER")
+                                handleUpdateRole(member.userId, SpaceRole.MEMBER)
                               }
                               title={intl.formatMessage({
                                 id: "chat.demoteToMember",
@@ -444,7 +450,7 @@ export default function ManageMembersModal({
                       </>
                     )}
 
-                    {isCurrentUserOwner && member.userId !== spaceCreatorId && (
+                    {canCurrentUserRemove && (
                       <button
                         onClick={() => handleKickMember(member.userId)}
                         title={intl.formatMessage({
@@ -472,7 +478,7 @@ export default function ManageMembersModal({
             {leaveLabel}
           </button>
 
-          {currentUserRole === "ADMIN" && (
+          {currentUserRole === SpaceRole.ADMIN && (
             <button
               onClick={handleDisbandChannel}
               disabled={isProcessing}

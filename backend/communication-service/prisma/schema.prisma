@@ -39,6 +39,65 @@ enum InvitationStatus {
   DECLINED
 }
 
+enum MeetingType {
+  INSTANT
+  SCHEDULED
+}
+
+enum MeetingStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+enum MeetingRole {
+  HOST
+  COHOST
+  PARTICIPANT
+}
+
+enum MeetingParticipantStatus {
+  INVITED
+  REQUESTED
+  APPROVED
+  JOINED
+  LEFT
+  REMOVED
+  REJECTED
+}
+
+enum MeetingRecordingStatus {
+  STARTING
+  RECORDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DELETED
+}
+
+enum MeetingEventType {
+  CREATED
+  STARTED
+  ENDED
+  CANCELLED
+  AUTO_ADMIT_UPDATED
+  CHAT_SETTING_UPDATED
+  JOIN_REQUESTED
+  JOIN_REQUEST_APPROVED
+  JOIN_REQUEST_REJECTED
+  PARTICIPANT_JOINED
+  PARTICIPANT_LEFT
+  PARTICIPANT_REMOVED
+  PARTICIPANT_ROLE_UPDATED
+  HOST_TRANSFERRED
+  RECORDING_STARTED
+  RECORDING_STOPPED
+  RECORDING_COMPLETED
+  SCREEN_SHARE_STARTED
+  SCREEN_SHARE_STOPPED
+}
+
 /* =========================================================
  * USER PROFILE SNAPSHOT
  * ========================================================= */
@@ -110,10 +169,6 @@ model SpaceInvitation {
   spaceId       String           @map("space_id") @db.Uuid
   invitedUserId String           @map("invited_user_id") @db.Uuid
   invitedBy     String           @map("invited_by") @db.Uuid
-  invitedByName String?          @map("invited_by_name")
-  invitedByAvatar String?        @map("invited_by_avatar")
-  invitedUserName String?        @map("invited_user_name")
-  invitedUserAvatar String?      @map("invited_user_avatar")
   status        InvitationStatus @default(PENDING)
   createdAt     DateTime         @default(now()) @map("created_at")
   respondedAt   DateTime?        @map("responded_at")
@@ -462,4 +517,196 @@ model DirectThreadFollower {
 
   @@unique([messageId, userId])
   @@map("direct_thread_followers")
+}
+
+/* =========================================================
+ * MEETING
+ * ========================================================= */
+
+model Meeting {
+  id                       String                  @id @default(uuid()) @db.Uuid
+  roomName                 String                  @unique @map("room_name")
+  joinToken                String                  @unique @map("join_token")
+  description              String?
+  type                     MeetingType
+  status                   MeetingStatus
+  createdBy                String                  @map("created_by") @db.Uuid
+  hostId                   String                  @map("host_id") @db.Uuid
+  scheduledStartAt         DateTime?               @map("scheduled_start_at")
+  scheduledEndAt           DateTime?               @map("scheduled_end_at")
+  startedAt                DateTime?               @map("started_at")
+  endedAt                  DateTime?               @map("ended_at")
+  cancelledAt              DateTime?               @map("cancelled_at")
+  passwordHash             String?                 @map("password_hash")
+  autoAdmit                Boolean                 @default(false) @map("auto_admit")
+  chatEnabled              Boolean                 @default(true) @map("chat_enabled")
+  screenShareEnabled       Boolean                 @default(true) @map("screen_share_enabled")
+  activeScreenShareUserId  String?                 @map("active_screen_share_user_id") @db.Uuid
+  screenShareStartedAt     DateTime?               @map("screen_share_started_at")
+  createdAt                DateTime                @default(now()) @map("created_at")
+  updatedAt                DateTime                @updatedAt @map("updated_at")
+
+  participants     MeetingParticipant[]
+  participantViewPreferences MeetingParticipantViewPreference[]
+  messages         MeetingMessage[]
+  recordings       MeetingRecording[]
+  events           MeetingEvent[]
+
+  @@index([createdBy])
+  @@index([hostId])
+  @@index([status])
+  @@index([scheduledStartAt])
+  @@map("meetings")
+}
+
+/* =========================================================
+ * MEETING PARTICIPANT
+ * ========================================================= */
+
+model MeetingParticipant {
+  id                String                   @id @default(uuid()) @db.Uuid
+  meetingId         String                   @map("meeting_id") @db.Uuid
+  userId            String                   @map("user_id") @db.Uuid
+  role              MeetingRole
+  status            MeetingParticipantStatus
+  invitedAt         DateTime?                @map("invited_at")
+  joinedAt          DateTime?                @map("joined_at")
+  leftAt            DateTime?                @map("left_at")
+  lastSeenAt        DateTime?                @map("last_seen_at")
+  lastReadMessageId String?                  @map("last_read_message_id") @db.Uuid
+  lastReadAt        DateTime?                @map("last_read_at")
+  chatMuted         Boolean                  @default(false) @map("chat_muted")
+  createdAt         DateTime                 @default(now()) @map("created_at")
+  updatedAt         DateTime                 @updatedAt @map("updated_at")
+
+  meeting           Meeting                  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([userId])
+  @@index([meetingId, status])
+  @@map("meeting_participants")
+}
+
+model MeetingParticipantViewPreference {
+  id           String   @id @default(uuid()) @db.Uuid
+  meetingId    String   @map("meeting_id") @db.Uuid
+  viewerUserId String   @map("viewer_user_id") @db.Uuid
+  targetUserId String   @map("target_user_id") @db.Uuid
+  audioMuted   Boolean  @default(false) @map("audio_muted")
+  pinned       Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  meeting      Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, viewerUserId, targetUserId])
+  @@index([meetingId, viewerUserId])
+  @@index([meetingId, targetUserId])
+  @@map("meeting_participant_view_preferences")
+}
+
+/* =========================================================
+ * MEETING MESSAGE
+ * ========================================================= */
+
+model MeetingMessage {
+  id        String      @id @default(uuid()) @db.Uuid
+  meetingId String      @map("meeting_id") @db.Uuid
+  senderId  String      @map("sender_id") @db.Uuid
+  content   String?
+  type      MessageType @default(TEXT)
+  edited    Boolean     @default(false)
+  recalled  Boolean     @default(false)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+  deletedAt DateTime?   @map("deleted_at")
+
+  meeting   Meeting     @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  reactions MeetingReaction[]
+  medias    MeetingMedia[]
+
+  @@index([meetingId, createdAt])
+  @@index([senderId])
+  @@map("meeting_messages")
+}
+
+/* =========================================================
+ * MEETING MEDIA
+ * ========================================================= */
+
+model MeetingMedia {
+  id        String         @id @default(uuid()) @db.Uuid
+  messageId String         @map("message_id") @db.Uuid
+  name      String
+  s3Key     String         @map("s3_key")
+  mimeType  String         @map("mime_type")
+  sizeBytes Int            @map("size_bytes")
+  type      MediaType
+
+  message   MeetingMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("meeting_medias")
+}
+
+/* =========================================================
+ * MEETING REACTION
+ * ========================================================= */
+
+model MeetingReaction {
+  id        String         @id @default(uuid()) @db.Uuid
+  messageId String         @map("message_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  emoji     String
+
+  message   MeetingMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("meeting_reactions")
+}
+
+/* =========================================================
+ * MEETING RECORDING
+ * ========================================================= */
+
+model MeetingRecording {
+  id              String                 @id @default(uuid()) @db.Uuid
+  meetingId       String                 @map("meeting_id") @db.Uuid
+  startedBy       String                 @map("started_by") @db.Uuid
+  stoppedBy       String?                @map("stopped_by") @db.Uuid
+  status          MeetingRecordingStatus
+  livekitEgressId String?                @map("livekit_egress_id")
+  s3Key           String?                @map("s3_key")
+  fileName        String?                @map("file_name")
+  mimeType        String?                @map("mime_type")
+  sizeBytes       Int?                   @map("size_bytes")
+  durationSeconds Int?                   @map("duration_seconds")
+  startedAt       DateTime               @default(now()) @map("started_at")
+  stoppedAt       DateTime?              @map("stopped_at")
+  completedAt     DateTime?              @map("completed_at")
+
+  meeting         Meeting                @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, startedAt])
+  @@index([status])
+  @@map("meeting_recordings")
+}
+
+/* =========================================================
+ * MEETING EVENT
+ * ========================================================= */
+
+model MeetingEvent {
+  id        String           @id @default(uuid()) @db.Uuid
+  meetingId String           @map("meeting_id") @db.Uuid
+  actorId   String?          @map("actor_id") @db.Uuid
+  type      MeetingEventType
+  metadata  Json?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  meeting   Meeting          @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@index([meetingId, createdAt])
+  @@map("meeting_events")
 }

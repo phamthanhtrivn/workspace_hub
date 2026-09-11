@@ -11,11 +11,14 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { setCredentials } from "@/store/auth/auth-slice";
 import type { AppDispatch } from "@/store/store";
 import { useLoginMutation } from "../hooks/useAuthMutations";
-import { AuthRouteTarget, USER_ROLES } from "../types/auth.constants";
 import {
   getAuthErrorMessage,
   getAuthValidationErrors,
 } from "../utils/auth-error";
+import {
+  getAuthenticatedHomePath,
+  getReturnToFromSearch,
+} from "../utils/auth-redirect";
 
 const LoginForm = React.memo(function LoginForm() {
   const intl = useAppIntl();
@@ -70,9 +73,8 @@ const LoginForm = React.memo(function LoginForm() {
 
           toast.success(response.message);
           router.replace(
-            data.role === USER_ROLES.ADMIN
-              ? AuthRouteTarget.ADMIN_HOME
-              : AuthRouteTarget.USER_DASHBOARD,
+            getReturnToFromSearch(window.location.search) ??
+              getAuthenticatedHomePath(data.role),
           );
         },
         onError: (error) => {

@@ -5,9 +5,8 @@ import { useInView } from "react-intersection-observer";
 import {
   getDirectPinnedMessages,
   getPinnedMessages,
+  unpinChannelMessage,
 } from "../../../api/chat.api";
-import { socketService } from "../../../api/chat-socket.service";
-import { ChatEvent } from "../../../api/chat.events";
 import { formatDateTime } from "@/lib/date";
 import { useDirectMessageActions } from "../../../hooks/useDirectMessageActions";
 import { useAppSelector } from "@/store/store";
@@ -15,6 +14,7 @@ import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { toast } from "sonner";
 
 interface PinnedMessagesDetailViewProps {
   conversationId: string;
@@ -147,13 +147,12 @@ export default function PinnedMessagesDetailView({
       return;
     }
 
-    const socket = socketService.getSocket();
-    if (!socket) return;
-
-    socket.emit(ChatEvent.UNPIN_MESSAGE, {
-      channelId: conversationId,
-      messageId,
-    });
+    try {
+      await unpinChannelMessage(messageId);
+    } catch {
+      toast.error(intl.formatMessage({ id: "chat.failedUnpinMessage" }));
+      return;
+    }
 
     queryClient.setQueryData(
       chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),

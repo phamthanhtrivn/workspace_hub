@@ -12,5 +12,6 @@ export enum POLL_ERROR_MESSAGES {
   EDIT_ACCESS_DENIED = 'Only the creator can edit this poll',
   LOCKED = 'Poll is locked',
   MISSING_USER_OR_CHANNEL_ID = 'Missing userId or channelId',
+  MISSING_REQUIRED_DATA = 'Missing required poll data',
   NOT_MEMBER_OF_CHANNEL = 'You are not a member of this channel',
 }

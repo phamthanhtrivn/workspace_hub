@@ -7,6 +7,7 @@ include:
   - path: ../document-service/docker-compose.yml
   - path: ../calendar-service/docker-compose.yml
   - path: ../notification-service/docker-compose.yml
+  - path: ../livekit/docker-compose.yml
   - path: ../../frontend/web/docker-compose.yml
 
 services:

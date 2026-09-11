@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import {
   UserProfileSnapshotPayload,
   UserProfileSnapshotResponse,
@@ -103,6 +103,32 @@ export class UserProfileSnapshotService {
     return members.map((member) => ({
       ...member,
       profile: profileByUserId.get(member.userId) ?? null,
+    }));
+  }
+
+  async attachProfilesToInvitations<
+    T extends { invitedBy: string; invitedUserId: string },
+  >(
+    invitations: T[],
+  ): Promise<
+    Array<
+      T & {
+        inviter: UserProfileSnapshotResponse | null;
+        invitee: UserProfileSnapshotResponse | null;
+      }
+    >
+  > {
+    const profileByUserId = await this.getProfilesByUserIds(
+      invitations.flatMap((invitation) => [
+        invitation.invitedBy,
+        invitation.invitedUserId,
+      ]),
+    );
+
+    return invitations.map((invitation) => ({
+      ...invitation,
+      inviter: profileByUserId.get(invitation.invitedBy) ?? null,
+      invitee: profileByUserId.get(invitation.invitedUserId) ?? null,
     }));
   }
 

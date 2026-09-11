@@ -3,13 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getDirectPinnedMessages,
   getPinnedMessages,
+  unpinChannelMessage,
 } from "../../../api/chat.api";
-import { socketService } from "../../../api/chat-socket.service";
-import { ChatEvent } from "../../../api/chat.events";
 import { useDirectMessageActions } from "../../../hooks/useDirectMessageActions";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import SeeAllButton from "../see-all-button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { toast } from "sonner";
 
 interface PinnedMessagesSectionProps {
   conversationId: string;
@@ -84,13 +84,12 @@ export default function PinnedMessagesSection({
       return;
     }
 
-    const socket = socketService.getSocket();
-    if (!socket) return;
-
-    socket.emit(ChatEvent.UNPIN_MESSAGE, {
-      channelId: conversationId,
-      messageId,
-    });
+    try {
+      await unpinChannelMessage(messageId);
+    } catch {
+      toast.error(intl.formatMessage({ id: "chat.failedUnpinMessage" }));
+      return;
+    }
 
     queryClient.setQueryData(
       chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),

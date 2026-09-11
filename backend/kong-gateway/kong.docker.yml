@@ -50,6 +50,7 @@ services:
           - /api/medias
           - /api/polls
           - /api/notes
+          - /api/meetings
         strip_path: false
 
       - name: websocket-route

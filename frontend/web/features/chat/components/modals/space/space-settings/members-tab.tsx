@@ -10,6 +10,7 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MembersTabProps {
   currentUserId: string | null;
+  currentUserRole?: SpaceRole | null;
   isLoading: boolean;
   isMutating: boolean;
   members: SpaceMemberListItem[];
@@ -23,6 +24,7 @@ interface MembersTabProps {
 
 export function MembersTab({
   currentUserId,
+  currentUserRole,
   isLoading,
   isMutating,
   members,
@@ -65,6 +67,7 @@ export function MembersTab({
             <MemberRow
               key={member.userId}
               currentUserId={currentUserId}
+              currentUserRole={currentUserRole}
               disabled={isMutating}
               member={member}
               onTransferOwnership={onTransferOwnership}
@@ -81,6 +84,7 @@ export function MembersTab({
 
 function MemberRow({
   currentUserId,
+  currentUserRole,
   disabled,
   member,
   onTransferOwnership,
@@ -89,6 +93,7 @@ function MemberRow({
   spaceCreatorId,
 }: {
   currentUserId: string | null;
+  currentUserRole?: SpaceRole | null;
   disabled: boolean;
   member: SpaceMemberListItem;
   onTransferOwnership?: (member: SpaceMemberListItem) => void;
@@ -101,6 +106,11 @@ function MemberRow({
   const isMe = member.userId === currentUserId;
   const isCreator = member.userId === spaceCreatorId;
   const isCurrentUserCreator = currentUserId === spaceCreatorId;
+  const canCurrentUserRemove =
+    !isCreator &&
+    (isCurrentUserCreator ||
+      (currentUserRole === SpaceRole.ADMIN &&
+        member.role === SpaceRole.MEMBER));
 
   return (
     <div className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-slate-50">
@@ -193,7 +203,7 @@ function MemberRow({
               </button>
             </>
           )}
-          {isCurrentUserCreator && !isCreator && (
+          {canCurrentUserRemove && (
             <button
               type="button"
               title={intl.formatMessage({ id: "chat.removeFromSpace" })}

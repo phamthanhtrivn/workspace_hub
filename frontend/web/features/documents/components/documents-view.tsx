@@ -109,7 +109,7 @@ function DocumentsView() {
       {/* Main Grid: Sidebar + Explorer */}
       <div className="flex-1 flex gap-6 min-h-0">
         {/* Navigation Sidebar */}
-        <div className="w-60 shrink-0 flex flex-col justify-between hidden md:flex">
+        <div className="w-70 shrink-0 flex flex-col justify-between hidden md:flex">
           <div className="flex flex-col gap-1">
             <button
               onClick={() => handleViewChange(DocumentViewType.MY_FILES)}

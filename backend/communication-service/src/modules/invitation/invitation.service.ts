@@ -5,19 +5,21 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SpaceRole } from '@prisma/client';
-import { ChatGateway } from '../chat/chat.gateway';
+import { ChatSocketPublisher } from '../socket/chat/chat-socket.publisher';
 import { MessageService } from '../message/message.service';
 import { INVITATION_STATUS } from './types/invitation.enums';
 import { InvitationPublisher } from './events/invitation.publisher';
 import { UserProfileSnapshot } from 'src/common/types/user.types';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
 export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly conversationPublisher: InvitationPublisher,
-    private readonly chatGateway: ChatGateway,
+    private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly messageService: MessageService,
+    private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
   async getPendingInvitations(userId: string) {
@@ -34,19 +36,9 @@ export class InvitationService {
       },
     });
 
-    return invitations.map((invitation) => ({
-      ...invitation,
-      inviter: {
-        userId: invitation.invitedBy,
-        fullName: invitation.invitedByName,
-        avatarUrl: invitation.invitedByAvatar,
-      },
-      invitee: {
-        userId: invitation.invitedUserId,
-        fullName: invitation.invitedUserName,
-        avatarUrl: invitation.invitedUserAvatar,
-      },
-    }));
+    return this.userProfileSnapshotService.attachProfilesToInvitations(
+      invitations,
+    );
   }
 
   async acceptInvitation(
@@ -156,7 +148,7 @@ export class InvitationService {
     });
 
     for (const channel of spaceChannels) {
-      await this.chatGateway.sendSystemMessage(
+      await this.chatSocketPublisher.sendSystemMessage(
         channel.id,
         userId,
         `${responderSnapshot.fullName || userId} joined the chat channel`,
@@ -167,7 +159,7 @@ export class InvitationService {
       );
       const targetRooms = [channel.id, ...memberUserIds];
 
-      this.chatGateway.emitMemberJoin(targetRooms, {
+      this.chatSocketPublisher.publishMemberJoin(targetRooms, {
         channelId: channel.id,
         member: {
           channelId: channel.id,
@@ -186,7 +178,15 @@ export class InvitationService {
       invitation.space.name,
     );
 
-    return invitationResult;
+    const [enrichedInvitation] =
+      await this.userProfileSnapshotService.attachProfilesToInvitations([
+        invitationResult.invitation,
+      ]);
+
+    return {
+      ...invitationResult,
+      invitation: enrichedInvitation,
+    };
   }
 
   async declineInvitation(
@@ -230,6 +230,11 @@ export class InvitationService {
       invitation.space?.name,
     );
 
-    return updatedInvitation;
+    const [enrichedInvitation] =
+      await this.userProfileSnapshotService.attachProfilesToInvitations([
+        updatedInvitation,
+      ]);
+
+    return enrichedInvitation;
   }
 }

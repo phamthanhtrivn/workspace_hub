@@ -6,13 +6,15 @@ import { SpaceModule } from './modules/space/space.module';
 import { InvitationModule } from './modules/invitation/invitation.module';
 import { MessageModule } from './modules/message/message.module';
 import { PrismaModule } from './prisma/prisma.module';
-import { ChatModule } from './modules/chat/chat.module';
 import { MediaModule } from './modules/media/media.module';
 import { PollModule } from './modules/poll/poll.module';
 import { NoteModule } from './modules/note/note.module';
 import { DirectConversationModule } from './modules/direct-conversation/direct-conversation.module';
 import { DirectMessageModule } from './modules/direct-message/direct-message.module';
 import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-profile-snapshot.module';
+import { SocketModule } from './modules/socket/socket.module';
+import { MeetingModule } from './modules/meeting/meeting.module';
+import { LiveKitModule } from './infrastructure/livekit/livekit.module';
 
 @Module({
   imports: [
@@ -21,7 +23,9 @@ import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-
     SpaceModule,
     InvitationModule,
     MessageModule,
-    ChatModule,
+    SocketModule,
+    MeetingModule,
+    LiveKitModule,
     MediaModule,
     PollModule,
     NoteModule,
