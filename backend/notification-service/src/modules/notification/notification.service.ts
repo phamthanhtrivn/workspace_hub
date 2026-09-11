@@ -6,6 +6,8 @@ import { NotificationGateway } from "./notification.gateway";
 import { PushService } from "./push.service";
 import { Notification, Prisma, PushSubscription } from "@prisma/client";
 import {
+  getNotificationCategoryWhere,
+  NotificationCategory,
   NotificationWhereInput,
   PushNotificationPayload,
 } from "./types/notification.types";
@@ -65,17 +67,31 @@ export class NotificationService {
     page = 1,
     limit = 10,
     isRead?: boolean,
-  ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
-    const where: NotificationWhereInput = {
+    category: NotificationCategory = "ALL",
+  ): Promise<{
+    list: Notification[];
+    total: number;
+    unreadCount: number;
+    categoryUnreadCount: number;
+  }> {
+    const baseWhere: NotificationWhereInput = {
       recipientId,
+    };
+    const categoryWhere = getNotificationCategoryWhere(category);
+    const where: NotificationWhereInput = {
+      AND: [baseWhere, categoryWhere],
     };
     if (isRead !== undefined) {
       where.isRead = isRead;
     }
+    const categoryUnreadWhere: NotificationWhereInput = {
+      AND: [baseWhere, categoryWhere],
+      isRead: false,
+    };
 
     const skip = (page - 1) * limit;
 
-    const [list, total, unreadCount] = await Promise.all([
+    const [list, total, unreadCount, categoryUnreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -89,9 +105,12 @@ export class NotificationService {
           isRead: false,
         },
       }),
+      this.prisma.notification.count({
+        where: categoryUnreadWhere,
+      }),
     ]);
 
-    return { list, total, unreadCount };
+    return { list, total, unreadCount, categoryUnreadCount };
   }
 
   async getUnreadCount(recipientId: string): Promise<number> {

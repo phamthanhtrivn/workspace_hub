@@ -60,7 +60,8 @@ export const InvitationDeclinedModalRenderer: React.FC<{
   notification: Notification;
   onClose: () => void;
 }> = ({ notification, onClose }) => {
-  const metadata = notification.metadata as InvitationResponseMetadata;
+  const metadata =
+    notification.metadata as unknown as InvitationResponseMetadata;
 
   return (
     <div className="p-5">

@@ -13,16 +13,32 @@ import {
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import {
+  getNotificationCategory,
+  NOTIFICATION_CHANGED_EVENT,
+} from "../utils/notification-category.utils";
+import {
   NotificationType,
   Notification as AppNotification,
 } from "../types/notification.types";
 
 const MEETING_NOTIFICATION_TYPES = new Set<NotificationType>([
   NotificationType.MEETING_INVITATION,
+  NotificationType.MEETING_INVITATION_STATUS,
   NotificationType.MEETING_INVITATION_DECLINED,
   NotificationType.MEETING_UPDATED,
   NotificationType.MEETING_CANCELLED,
 ]);
+
+function dispatchNotificationChanged(notification: AppNotification) {
+  window.dispatchEvent(
+    new CustomEvent(NOTIFICATION_CHANGED_EVENT, {
+      detail: {
+        id: notification.id,
+        category: getNotificationCategory(notification),
+      },
+    }),
+  );
+}
 
 /**
  * Global hook that owns the notification WebSocket connection lifecycle.
@@ -56,7 +72,10 @@ export function useNotificationSocket() {
         noti.type === NotificationType.SPACE_INVITATION_ACCEPTED ||
         noti.type === NotificationType.SPACE_INVITATION_DECLINED
       ) {
-        const spaceId = noti.metadata?.spaceId;
+        const spaceId =
+          typeof noti.metadata?.spaceId === "string"
+            ? noti.metadata.spaceId
+            : undefined;
         if (spaceId) {
           queryClient.invalidateQueries({
             queryKey: chatKeys.spaceInvitations(spaceId),
@@ -72,6 +91,7 @@ export function useNotificationSocket() {
           queryKey: meetingKeys.upcomingRoot,
         });
       }
+      dispatchNotificationChanged(noti);
     };
 
     const handleUpdatedNotification = (notification: AppNotification) => {
@@ -81,6 +101,7 @@ export function useNotificationSocket() {
           queryKey: meetingKeys.upcomingRoot,
         });
       }
+      dispatchNotificationChanged(notification);
     };
 
     const connectWhenReady = async () => {

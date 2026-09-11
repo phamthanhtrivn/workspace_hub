@@ -25,7 +25,7 @@ import Swal from "sweetalert2";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store/store";
-import { setActiveSpaceId, setActiveConversation } from "@/store/chat/chat-slice";
+import { setActiveSpaceId } from "@/store/chat/chat-slice";
 
 function getInitials(name?: string | null) {
   const source = name?.trim() || "Workspace";
@@ -66,11 +66,22 @@ function SenderAvatar({
   );
 }
 
+function getActionErrorMessage(error: unknown): string {
+  if (typeof error === "object" && error !== null && "response" in error) {
+    const response = (error as { response?: { data?: { message?: unknown } } })
+      .response;
+    if (typeof response?.data?.message === "string") {
+      return response.data.message;
+    }
+  }
+  return "Action failed";
+}
+
 export const InvitationListItemRenderer: React.FC<{
   notification: Notification;
   onClick: () => void;
 }> = ({ notification, onClick }) => {
-  const metadata = notification.metadata as InvitationMetadata;
+  const metadata = notification.metadata as unknown as InvitationMetadata;
   const spaceName = metadata?.spaceName || metadata?.conversationName || "space";
 
   return (
@@ -123,7 +134,7 @@ export const InvitationModalRenderer: React.FC<{
   onClose: () => void;
   onMarkAsRead: (id: string) => void;
 }> = ({ notification, onClose, onMarkAsRead }) => {
-  const metadata = notification.metadata as InvitationMetadata;
+  const metadata = notification.metadata as unknown as InvitationMetadata;
   const router = useRouter();
   const queryClient = useQueryClient();
   const dispatch = useAppDispatch();
@@ -137,7 +148,7 @@ export const InvitationModalRenderer: React.FC<{
         .then((res) => {
           if (res && res.data) {
             const isPending = res.data.some(
-              (inv: any) => inv.id === metadata.invitationId,
+              (inv: { id: string }) => inv.id === metadata.invitationId,
             );
             setIsResponded(!isPending);
           }
@@ -192,8 +203,8 @@ export const InvitationModalRenderer: React.FC<{
         queryClient.invalidateQueries({ queryKey: ["channels", metadata.spaceId] });
         router.push("/chat");
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Action failed");
+    } catch (error) {
+      toast.error(getActionErrorMessage(error));
     } finally {
       setIsProcessing(false);
     }
