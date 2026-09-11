@@ -8,21 +8,55 @@ import {
 import { notificationSocketService } from "../api/notification-socket.service";
 import {
   addNotification,
+  deleteNotificationSuccess,
+  deleteNotificationsSuccess,
   updateNotificationSuccess,
 } from "@/store/notification/notification.slice";
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import {
+  getNotificationCategory,
+  NOTIFICATION_CHANGED_EVENT,
+} from "../utils/notification-category.utils";
+import {
   NotificationType,
   Notification as AppNotification,
 } from "../types/notification.types";
 
+interface NotificationsDeletedPayload {
+  category: ReturnType<typeof getNotificationCategory>;
+  deletedCount: number;
+  unreadDeletedCount: number;
+}
+
 const MEETING_NOTIFICATION_TYPES = new Set<NotificationType>([
   NotificationType.MEETING_INVITATION,
+  NotificationType.MEETING_INVITATION_STATUS,
   NotificationType.MEETING_INVITATION_DECLINED,
   NotificationType.MEETING_UPDATED,
   NotificationType.MEETING_CANCELLED,
 ]);
+
+function dispatchNotificationChanged(notification: AppNotification) {
+  window.dispatchEvent(
+    new CustomEvent(NOTIFICATION_CHANGED_EVENT, {
+      detail: {
+        id: notification.id,
+        category: getNotificationCategory(notification),
+      },
+    }),
+  );
+}
+
+function dispatchNotificationCollectionChanged(
+  category?: ReturnType<typeof getNotificationCategory>,
+) {
+  window.dispatchEvent(
+    new CustomEvent(NOTIFICATION_CHANGED_EVENT, {
+      detail: { category },
+    }),
+  );
+}
 
 /**
  * Global hook that owns the notification WebSocket connection lifecycle.
@@ -56,7 +90,10 @@ export function useNotificationSocket() {
         noti.type === NotificationType.SPACE_INVITATION_ACCEPTED ||
         noti.type === NotificationType.SPACE_INVITATION_DECLINED
       ) {
-        const spaceId = noti.metadata?.spaceId;
+        const spaceId =
+          typeof noti.metadata?.spaceId === "string"
+            ? noti.metadata.spaceId
+            : undefined;
         if (spaceId) {
           queryClient.invalidateQueries({
             queryKey: chatKeys.spaceInvitations(spaceId),
@@ -72,6 +109,7 @@ export function useNotificationSocket() {
           queryKey: meetingKeys.upcomingRoot,
         });
       }
+      dispatchNotificationChanged(noti);
     };
 
     const handleUpdatedNotification = (notification: AppNotification) => {
@@ -81,6 +119,17 @@ export function useNotificationSocket() {
           queryKey: meetingKeys.upcomingRoot,
         });
       }
+      dispatchNotificationChanged(notification);
+    };
+
+    const handleDeletedNotification = ({ id }: { id: string }) => {
+      dispatch(deleteNotificationSuccess(id));
+      dispatchNotificationCollectionChanged();
+    };
+
+    const handleDeletedNotifications = (payload: NotificationsDeletedPayload) => {
+      dispatch(deleteNotificationsSuccess(payload));
+      dispatchNotificationCollectionChanged(payload.category);
     };
 
     const connectWhenReady = async () => {
@@ -99,9 +148,13 @@ export function useNotificationSocket() {
       const socket = notificationSocketService.connect(accessToken);
       socket.on("new_notification", handleNewNotification);
       socket.on("notification_updated", handleUpdatedNotification);
+      socket.on("notification_deleted", handleDeletedNotification);
+      socket.on("notifications_deleted", handleDeletedNotifications);
       cleanupSocketListeners = () => {
         socket.off("new_notification", handleNewNotification);
         socket.off("notification_updated", handleUpdatedNotification);
+        socket.off("notification_deleted", handleDeletedNotification);
+        socket.off("notifications_deleted", handleDeletedNotifications);
       };
     };
 

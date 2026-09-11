@@ -5,9 +5,10 @@ import {
   Notification,
   InvitationResponseMetadata,
 } from "../../types/notification.types";
-import { XCircle, UserX, User } from "lucide-react";
+import { XCircle, User } from "lucide-react";
 import Image from "next/image";
 import { formatTimeAgo } from "@/lib/date";
+import { NotificationCategoryIcon } from "../notification-category-icon";
 
 export const InvitationDeclinedListItemRenderer: React.FC<{
   notification: Notification;
@@ -18,18 +19,7 @@ export const InvitationDeclinedListItemRenderer: React.FC<{
       onClick={onClick}
       className={`flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer transition border-b border-slate-100 last:border-0 ${!notification.isRead ? "bg-blue-50/50" : ""}`}
     >
-      <div className="relative h-10 w-10 flex-shrink-0 rounded-full bg-red-50 overflow-hidden flex items-center justify-center text-red-500">
-        {notification.senderAvatar ? (
-          <Image
-            src={notification.senderAvatar}
-            alt="Avatar"
-            fill
-            className="object-cover opacity-80 grayscale"
-          />
-        ) : (
-          <UserX size={20} />
-        )}
-      </div>
+      <NotificationCategoryIcon notification={notification} className="h-10 w-10" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
@@ -60,7 +50,8 @@ export const InvitationDeclinedModalRenderer: React.FC<{
   notification: Notification;
   onClose: () => void;
 }> = ({ notification, onClose }) => {
-  const metadata = notification.metadata as InvitationResponseMetadata;
+  const metadata =
+    notification.metadata as unknown as InvitationResponseMetadata;
 
   return (
     <div className="p-5">

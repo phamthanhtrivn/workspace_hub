@@ -1,14 +1,22 @@
 import { api } from "@/lib/axios";
-import { GetNotificationsResponse } from "../types/notification.types";
+import {
+  DeleteNotificationsResponse,
+  GetNotificationsResponse,
+  NotificationCategory,
+} from "../types/notification.types";
 
 export const getNotifications = async (
   page = 1,
-  limit = 20,
+  limit = 10,
   isRead?: boolean,
+  category: NotificationCategory = "ALL",
 ): Promise<GetNotificationsResponse> => {
-  const params: any = { page, limit };
+  const params: Record<string, string | number | boolean> = { page, limit };
   if (isRead !== undefined) {
     params.isRead = isRead;
+  }
+  if (category !== "ALL") {
+    params.category = category;
   }
   const response = await api.get("/api/notifications", { params });
   return response.data;
@@ -19,17 +27,26 @@ export const getUnreadCount = async (): Promise<{ message: string; data: { unrea
   return response.data;
 };
 
-export const markAsRead = async (id: string): Promise<any> => {
+export const markAsRead = async (id: string): Promise<unknown> => {
   const response = await api.patch(`/api/notifications/${id}/read`);
   return response.data;
 };
 
-export const markAllAsRead = async (): Promise<any> => {
+export const markAllAsRead = async (): Promise<unknown> => {
   const response = await api.put("/api/notifications/read-all");
   return response.data;
 };
 
-export const deleteNotification = async (id: string): Promise<any> => {
+export const deleteNotification = async (id: string): Promise<unknown> => {
   const response = await api.delete(`/api/notifications/${id}`);
+  return response.data;
+};
+
+export const deleteNotifications = async (
+  category: NotificationCategory = "ALL",
+): Promise<DeleteNotificationsResponse> => {
+  const params =
+    category === "ALL" ? undefined : ({ category } satisfies { category: string });
+  const response = await api.delete("/api/notifications", { params });
   return response.data;
 };

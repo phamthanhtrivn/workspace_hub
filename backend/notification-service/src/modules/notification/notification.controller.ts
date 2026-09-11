@@ -22,6 +22,10 @@ import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { ResolveProjectInvitationDto } from "./dtos/resolve-project-invitation.dto";
+import {
+  isNotificationCategory,
+  NotificationCategory,
+} from "./types/notification.types";
 
 @Controller("api/notifications")
 export class NotificationController {
@@ -96,13 +100,22 @@ export class NotificationController {
     @Query("page") page?: string,
     @Query("limit") limit?: string,
     @Query("isRead") isReadStr?: string,
+    @Query("category") categoryStr?: string,
   ) {
     if (!userId) {
       throw new BadRequestException("Missing User Context Header");
     }
 
-    const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 10;
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    const parsedLimit = limit ? parseInt(limit, 10) : 10;
+    const pageNum = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const limitNum =
+      Number.isInteger(parsedLimit) && parsedLimit > 0
+        ? Math.min(parsedLimit, 50)
+        : 10;
+    const category = isNotificationCategory(categoryStr)
+      ? categoryStr
+      : "ALL";
 
     let isRead: boolean | undefined = undefined;
     if (isReadStr === "true") isRead = true;
@@ -113,7 +126,9 @@ export class NotificationController {
       pageNum,
       limitNum,
       isRead,
+      category,
     );
+    const totalPages = Math.max(1, Math.ceil(result.total / limitNum));
 
     return {
       message: "Notifications retrieved successfully",
@@ -122,7 +137,9 @@ export class NotificationController {
         page: pageNum,
         limit: limitNum,
         total: result.total,
+        totalPages,
         unreadCount: result.unreadCount,
+        categoryUnreadCount: result.categoryUnreadCount,
       },
     };
   }
@@ -174,6 +191,29 @@ export class NotificationController {
     return {
       message: "Marked all as read successfully",
       data: { modifiedCount: count },
+    };
+  }
+
+  @Delete()
+  async deleteNotifications(
+    @Headers("x-user-id") userId: string,
+    @Query("category") categoryStr?: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException("Missing User Context Header");
+    }
+
+    const category: NotificationCategory = isNotificationCategory(categoryStr)
+      ? categoryStr
+      : "ALL";
+    const result = await this.notificationService.deleteNotifications(
+      userId,
+      category,
+    );
+
+    return {
+      message: "Notifications deleted successfully",
+      data: result,
     };
   }
 

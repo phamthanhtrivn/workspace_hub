@@ -111,6 +111,22 @@
   "notifications.emptyTitle": "No notifications",
   "notifications.emptyDescription": "You're all caught up.",
   "notifications.loading": "Loading notifications...",
+  "notifications.deleteOne": "Delete notification",
+  "notifications.deleteCategory": "Delete {category}",
+  "notifications.deleteAll": "Delete all",
+  "notifications.deleteOneConfirmTitle": "Delete this notification?",
+  "notifications.deleteOneConfirmText":
+    "This notification will be removed from your list.",
+  "notifications.deleteCategoryConfirmTitle": "Delete category notifications?",
+  "notifications.deleteCategoryConfirm":
+    "Delete all notifications in {category}? This cannot be undone.",
+  "notifications.deleteAllConfirmTitle": "Delete all notifications?",
+  "notifications.deleteAllConfirm":
+    "Delete all notifications? This cannot be undone.",
+  "notifications.deleteSuccess": "Notification deleted",
+  "notifications.deleteCategorySuccess": "Category notifications deleted",
+  "notifications.deleteAllSuccess": "All notifications deleted",
+  "notifications.deleteFailed": "Could not delete notifications",
 
   "auth.email": "Email",
   "auth.password": "Password",
