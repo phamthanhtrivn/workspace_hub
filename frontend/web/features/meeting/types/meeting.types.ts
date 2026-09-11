@@ -369,6 +369,13 @@ export interface ScheduledMeetingResponse {
   participants: MeetingParticipantResponse[];
 }
 
+export interface ScheduledMeetingInvitationResponse {
+  meetingId: string;
+  joinToken: string;
+  status: Extract<MeetingParticipantStatus, "APPROVED" | "REJECTED">;
+  respondedAt: string;
+}
+
 export interface UpcomingMeetingItem {
   id: string;
   joinToken: string;

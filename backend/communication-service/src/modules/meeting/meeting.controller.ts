@@ -262,6 +262,48 @@ export class MeetingController {
     };
   }
 
+  @Post(':joinToken/invitations/accept')
+  async acceptScheduledMeetingInvitation(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const invitation =
+      await this.meetingService.acceptScheduledMeetingInvitation({
+        joinToken,
+        userId,
+      });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCHEDULED_INVITATION_ACCEPTED,
+      data: invitation,
+    };
+  }
+
+  @Post(':joinToken/invitations/decline')
+  async declineScheduledMeetingInvitation(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const invitation =
+      await this.meetingService.declineScheduledMeetingInvitation({
+        joinToken,
+        userId,
+      });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.SCHEDULED_INVITATION_DECLINED,
+      data: invitation,
+    };
+  }
+
   @Get(':joinToken/messages')
   async listMeetingMessages(
     @Param('joinToken') joinToken: string,

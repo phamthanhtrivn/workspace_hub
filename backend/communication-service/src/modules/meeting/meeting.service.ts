@@ -19,6 +19,7 @@ import type {
   ListMeetingParticipantsParams,
   MeetingJoinRequestParams,
   MeetingModeratorParams,
+  RespondScheduledMeetingInvitationParams,
   ResolveJoinRequestParams,
   StartMeetingScreenShareParams,
   StartScheduledMeetingParams,
@@ -73,6 +74,18 @@ export class MeetingService {
 
   cancelScheduledMeeting(params: CancelScheduledMeetingParams) {
     return this.meetingScheduleService.cancelScheduledMeeting(params);
+  }
+
+  acceptScheduledMeetingInvitation(
+    params: RespondScheduledMeetingInvitationParams,
+  ) {
+    return this.meetingScheduleService.acceptScheduledMeetingInvitation(params);
+  }
+
+  declineScheduledMeetingInvitation(
+    params: RespondScheduledMeetingInvitationParams,
+  ) {
+    return this.meetingScheduleService.declineScheduledMeetingInvitation(params);
   }
 
   listMeetingHistory(params: ListMeetingHistoryParams) {

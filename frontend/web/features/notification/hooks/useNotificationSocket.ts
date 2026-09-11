@@ -15,6 +15,7 @@ import {
 
 const MEETING_NOTIFICATION_TYPES = new Set<NotificationType>([
   NotificationType.MEETING_INVITATION,
+  NotificationType.MEETING_INVITATION_DECLINED,
   NotificationType.MEETING_UPDATED,
   NotificationType.MEETING_CANCELLED,
 ]);
@@ -70,6 +71,11 @@ export function useNotificationSocket() {
     socket.on("new_notification", handleNewNotification);
     const handleUpdatedNotification = (notification: AppNotification) => {
       dispatch(updateNotificationSuccess(notification));
+      if (MEETING_NOTIFICATION_TYPES.has(notification.type)) {
+        queryClient.invalidateQueries({
+          queryKey: meetingKeys.upcomingRoot,
+        });
+      }
     };
     socket.on("notification_updated", handleUpdatedNotification);
 

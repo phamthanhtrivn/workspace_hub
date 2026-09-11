@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, Loader2, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   upcomingMeetingsPageSize,
@@ -11,21 +11,52 @@ import type { UpcomingMeetingItem } from "../../types/meeting.types";
 import { UpcomingMeetingCard } from "./upcoming-meeting-card";
 import { MeetingHistoryPagination } from "../history/meeting-history-pagination";
 
+const MEETING_HIGHLIGHT_DURATION_MS = 4_000;
+
 interface UpcomingMeetingsViewProps {
+  highlightJoinToken?: string | null;
   onSchedule: () => void;
   onEdit: (meeting: UpcomingMeetingItem) => void;
 }
 
 export function UpcomingMeetingsView({
+  highlightJoinToken,
   onSchedule,
   onEdit,
 }: UpcomingMeetingsViewProps) {
   const intl = useAppIntl();
   const [page, setPage] = useState(1);
+  const [activeHighlightJoinToken, setActiveHighlightJoinToken] = useState<
+    string | null
+  >(null);
   const upcomingQuery = useUpcomingMeetings({ page });
   const upcoming = upcomingQuery.data?.data;
   const meetings = upcoming?.items ?? [];
   const isInitialLoading = upcomingQuery.isLoading && !upcoming;
+
+  useEffect(() => {
+    if (!highlightJoinToken) {
+      setActiveHighlightJoinToken(null);
+      return;
+    }
+
+    setActiveHighlightJoinToken(highlightJoinToken);
+    const timeoutId = window.setTimeout(
+      () => setActiveHighlightJoinToken(null),
+      MEETING_HIGHLIGHT_DURATION_MS,
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [highlightJoinToken]);
+
+  useEffect(() => {
+    if (!highlightJoinToken || meetings.length === 0) return;
+
+    const highlightedCard = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-meeting-join-token]"),
+    ).find((card) => card.dataset.meetingJoinToken === highlightJoinToken);
+    highlightedCard?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlightJoinToken, meetings.length]);
 
   return (
     <section className="flex flex-1 flex-col gap-5">
@@ -100,6 +131,9 @@ export function UpcomingMeetingsView({
               <UpcomingMeetingCard
                 key={meeting.id}
                 meeting={meeting}
+                isHighlighted={
+                  meeting.joinToken === activeHighlightJoinToken
+                }
                 onEdit={onEdit}
               />
             ))}

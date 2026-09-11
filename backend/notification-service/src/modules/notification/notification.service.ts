@@ -171,6 +171,45 @@ export class NotificationService {
     return updated;
   }
 
+  async resolveMeetingInvitation(
+    meetingId: string,
+    recipientId: string,
+    status: "ACCEPTED" | "DECLINED" | "CANCELLED",
+  ): Promise<Notification | null> {
+    const notification = await this.prisma.notification.findFirst({
+      where: {
+        recipientId,
+        type: "MEETING_INVITATION",
+        metadata: { path: ["meetingId"], equals: meetingId },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!notification) return null;
+
+    const currentMetadata =
+      notification.metadata &&
+      typeof notification.metadata === "object" &&
+      !Array.isArray(notification.metadata)
+        ? notification.metadata
+        : {};
+    const updated = await this.prisma.notification.update({
+      where: { id: notification.id },
+      data: {
+        isRead: true,
+        metadata: {
+          ...currentMetadata,
+          status,
+          respondedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    this.notificationGateway.server
+      .to(updated.recipientId)
+      .emit("notification_updated", updated);
+    return updated;
+  }
+
   async deleteNotification(id: string, recipientId: string): Promise<boolean> {
     const notification = await this.prisma.notification.findFirst({
       where: { id, recipientId },

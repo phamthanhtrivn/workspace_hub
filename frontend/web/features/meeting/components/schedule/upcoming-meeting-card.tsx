@@ -29,6 +29,7 @@ import { MeetingHistoryAvatarStack } from "../history/meeting-history-avatar-sta
 
 interface UpcomingMeetingCardProps {
   meeting: UpcomingMeetingItem;
+  isHighlighted?: boolean;
   onEdit?: (meeting: UpcomingMeetingItem) => void;
 }
 
@@ -55,6 +56,7 @@ function formatMeetingRange(
 
 export function UpcomingMeetingCard({
   meeting,
+  isHighlighted = false,
   onEdit,
 }: UpcomingMeetingCardProps) {
   const intl = useAppIntl();
@@ -114,7 +116,14 @@ export function UpcomingMeetingCard({
 
   return (
     <>
-      <article className="flex min-h-52 flex-col justify-between rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <article
+        data-meeting-join-token={meeting.joinToken}
+        className={`flex min-h-52 flex-col justify-between rounded-lg border bg-white p-4 shadow-sm transition ${
+          isHighlighted
+            ? "border-blue-300 ring-4 ring-blue-100"
+            : "border-slate-200"
+        }`}
+      >
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">

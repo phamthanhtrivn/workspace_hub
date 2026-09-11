@@ -69,6 +69,10 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/schedule`,
   cancel: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/cancel`,
+  acceptInvitation: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/invitations/accept`,
+  declineInvitation: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/invitations/decline`,
   approveJoinRequest: (joinToken: string, userId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/join-requests/${encodeURIComponent(userId)}/approve`,
   declineJoinRequest: (joinToken: string, userId: string) =>

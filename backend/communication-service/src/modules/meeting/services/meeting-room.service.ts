@@ -476,9 +476,18 @@ export class MeetingRoomService {
       MeetingEvent.STARTED,
       payload,
     );
-    for (const participantUserId of new Set(
-      startedMeeting.participants.map((participant) => participant.userId),
-    )) {
+    const startedNotificationRecipients = new Set(
+      startedMeeting.participants
+        .filter(
+          (participant) =>
+            participant.userId === startedMeeting.hostId ||
+            participant.status === MeetingParticipantStatus.APPROVED ||
+            participant.status === MeetingParticipantStatus.JOINED ||
+            participant.status === MeetingParticipantStatus.LEFT,
+        )
+        .map((participant) => participant.userId),
+    );
+    for (const participantUserId of startedNotificationRecipients) {
       this.meetingRealtimeService.emitUserEvent(
         participantUserId,
         MeetingEvent.STARTED,

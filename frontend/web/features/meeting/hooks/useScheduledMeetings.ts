@@ -2,8 +2,10 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  acceptScheduledMeetingInvitation,
   cancelScheduledMeeting,
   createScheduledMeeting,
+  declineScheduledMeetingInvitation,
   getUpcomingMeetings,
   startScheduledMeeting,
   updateScheduledMeeting,
@@ -91,6 +93,28 @@ export function useCancelScheduledMeeting(joinToken: string) {
       void queryClient.invalidateQueries({
         queryKey: meetingKeys.access(joinToken),
       });
+      void queryClient.invalidateQueries({
+        queryKey: meetingKeys.upcomingRoot,
+      });
+    },
+  });
+}
+
+export function useRespondMeetingInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      joinToken,
+      action,
+    }: {
+      joinToken: string;
+      action: "accept" | "decline";
+    }) =>
+      action === "accept"
+        ? acceptScheduledMeetingInvitation(joinToken)
+        : declineScheduledMeetingInvitation(joinToken),
+    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: meetingKeys.upcomingRoot,
       });

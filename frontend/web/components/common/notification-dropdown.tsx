@@ -45,6 +45,10 @@ import {
   ProjectInvitationListItemRenderer,
   ProjectInvitationModalRenderer,
 } from "@/features/notification/components/renderers/project-invitation-renderer";
+import {
+  MeetingInvitationListItemRenderer,
+  MeetingInvitationModalRenderer,
+} from "@/features/notification/components/renderers/meeting-invitation-renderer";
 
 // Initialize Registry
 let isRegistryInitialized = false;
@@ -73,6 +77,26 @@ if (!isRegistryInitialized) {
     NotificationType.PROJECT_INVITATION,
     ProjectInvitationModalRenderer,
     ProjectInvitationListItemRenderer,
+  );
+  registerNotificationRenderer(
+    NotificationType.MEETING_INVITATION,
+    MeetingInvitationModalRenderer,
+    MeetingInvitationListItemRenderer,
+  );
+  registerNotificationRenderer(
+    NotificationType.MEETING_INVITATION_DECLINED,
+    MeetingInvitationModalRenderer,
+    MeetingInvitationListItemRenderer,
+  );
+  registerNotificationRenderer(
+    NotificationType.MEETING_UPDATED,
+    MeetingInvitationModalRenderer,
+    MeetingInvitationListItemRenderer,
+  );
+  registerNotificationRenderer(
+    NotificationType.MEETING_CANCELLED,
+    MeetingInvitationModalRenderer,
+    MeetingInvitationListItemRenderer,
   );
   isRegistryInitialized = true;
 }

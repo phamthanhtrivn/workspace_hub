@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingHero } from "./common/meeting-hero";
@@ -33,6 +34,7 @@ import { meetingKeys } from "../types/meeting.query-keys";
 export function MeetingLayout() {
   const intl = useAppIntl();
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
   const clock = useMeetingClock();
   const [flowStep, setFlowStep] = useState(MeetingFlowStep.DASHBOARD);
   const [activeNavItemId, setActiveNavItemId] = useState(
@@ -49,6 +51,7 @@ export function MeetingLayout() {
     activeNavItemId === MeetingDashboardNavItemId.OVERVIEW;
   const isUpcomingActive =
     activeNavItemId === MeetingDashboardNavItemId.UPCOMING;
+  const highlightedMeetingJoinToken = searchParams.get("meeting");
   const {
     settings: preJoinSettings,
     setSettings: setPreJoinSettings,
@@ -124,8 +127,15 @@ export function MeetingLayout() {
     });
   }, [queryClient]);
 
+  useEffect(() => {
+    if (searchParams.get("tab") === MeetingDashboardNavItemId.UPCOMING) {
+      setActiveNavItemId(MeetingDashboardNavItemId.UPCOMING);
+    }
+  }, [searchParams]);
+
   useMeetingSocket({
     onMeetingStarted: refreshUpcomingMeetings,
+    onParticipantUpdated: refreshUpcomingMeetings,
   });
 
   return (
@@ -169,6 +179,7 @@ export function MeetingLayout() {
             </>
           ) : isUpcomingActive ? (
             <UpcomingMeetingsView
+              highlightJoinToken={highlightedMeetingJoinToken}
               onSchedule={handleScheduleMeeting}
               onEdit={handleEditScheduledMeeting}
             />

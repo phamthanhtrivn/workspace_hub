@@ -50,6 +50,8 @@ export interface UpdateScheduledMeetingParams extends MeetingModeratorParams {
 
 export interface CancelScheduledMeetingParams extends MeetingModeratorParams {}
 
+export type RespondScheduledMeetingInvitationParams = MeetingModeratorParams;
+
 export interface EndMeetingFromLiveKitRoomFinishedParams {
   roomName: string;
   endedAt?: Date;

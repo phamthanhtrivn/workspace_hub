@@ -8,6 +8,7 @@ import type {
   JoinMeetingPayload,
   MeetingHistoryResponse,
   MeetingHistorySummaryResponse,
+  ScheduledMeetingInvitationResponse,
   ScheduledMeetingResponse,
   MeetingJoinResponse,
   MeetingEndedResponse,
@@ -105,6 +106,20 @@ export const cancelScheduledMeeting = async (
 ): Promise<ApiResponse<ScheduledMeetingResponse>> => {
   const response = await api.post(MEETING_API_PATHS.cancel(joinToken));
   return normalizeApiResponse<ScheduledMeetingResponse>(response.data);
+};
+
+export const acceptScheduledMeetingInvitation = async (
+  joinToken: string,
+): Promise<ApiResponse<ScheduledMeetingInvitationResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.acceptInvitation(joinToken));
+  return normalizeApiResponse<ScheduledMeetingInvitationResponse>(response.data);
+};
+
+export const declineScheduledMeetingInvitation = async (
+  joinToken: string,
+): Promise<ApiResponse<ScheduledMeetingInvitationResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.declineInvitation(joinToken));
+  return normalizeApiResponse<ScheduledMeetingInvitationResponse>(response.data);
 };
 
 export const getMeetingAccess = async (

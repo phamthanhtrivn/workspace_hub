@@ -21,6 +21,12 @@ interface MeetingNotificationProfile {
   senderAvatar?: string | null;
 }
 
+type MeetingInvitationNotificationStatus =
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'DECLINED'
+  | 'CANCELLED';
+
 @Injectable()
 export class MeetingSchedulePublisher {
   constructor(
@@ -39,7 +45,8 @@ export class MeetingSchedulePublisher {
       profile,
       type: KAFKA_EVENTS.NOTIFICATION.MEETING_INVITATION,
       title: 'Meeting invitation',
-      content: `You were invited to ${meeting.title}`,
+      content: `${this.getSenderName(profile)} invited you to "${meeting.title}" from ${this.formatScheduleRange(meeting)}.`,
+      status: 'PENDING',
     });
   }
 
@@ -55,7 +62,7 @@ export class MeetingSchedulePublisher {
       profile,
       type: KAFKA_EVENTS.NOTIFICATION.MEETING_UPDATED,
       title: 'Meeting updated',
-      content: `${meeting.title} was updated`,
+      content: `${this.getSenderName(profile)} updated "${meeting.title}" scheduled for ${this.formatScheduleRange(meeting)}.`,
     });
   }
 
@@ -71,7 +78,57 @@ export class MeetingSchedulePublisher {
       profile,
       type: KAFKA_EVENTS.NOTIFICATION.MEETING_CANCELLED,
       title: 'Meeting cancelled',
-      content: `${meeting.title} was cancelled`,
+      content: `${this.getSenderName(profile)} cancelled "${meeting.title}" scheduled for ${this.formatScheduleRange(meeting)}.`,
+      status: 'CANCELLED',
+    });
+  }
+
+  publishInvitationStatusUpdate({
+    meetingId,
+    recipientUserId,
+    status,
+  }: {
+    meetingId: string;
+    recipientUserId: string;
+    status: MeetingInvitationNotificationStatus;
+  }): void {
+    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+      key: recipientUserId,
+      value: {
+        recipientId: recipientUserId,
+        type: KAFKA_EVENTS.NOTIFICATION.MEETING_INVITATION_STATUS,
+        title: 'Meeting invitation status',
+        content: 'Meeting invitation status updated',
+        metadata: {
+          meetingId,
+          status,
+          respondedAt: new Date().toISOString(),
+        },
+      },
+    });
+  }
+
+  publishInvitationDeclinedNotification(
+    meeting: MeetingScheduleSnapshot,
+    declinedUserId: string,
+    profile: MeetingNotificationProfile,
+  ): void {
+    this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
+      key: meeting.hostUserId,
+      value: {
+        recipientId: meeting.hostUserId,
+        senderId: declinedUserId,
+        senderName: profile.senderName,
+        senderAvatar: profile.senderAvatar,
+        type: KAFKA_EVENTS.NOTIFICATION.MEETING_INVITATION_DECLINED,
+        title: 'Meeting invitation declined',
+        content: `${this.getSenderName(profile)} declined the invitation to "${meeting.title}" scheduled for ${this.formatScheduleRange(meeting)}.`,
+        link: `/meetings?tab=upcoming&meeting=${meeting.joinToken}`,
+        metadata: {
+          ...this.toScheduleMetadata(meeting, 'DECLINED'),
+          declinedUserId,
+        },
+      },
     });
   }
 
@@ -82,6 +139,7 @@ export class MeetingSchedulePublisher {
     type,
     title,
     content,
+    status,
   }: {
     meeting: MeetingScheduleSnapshot;
     recipientIds: string[];
@@ -89,6 +147,7 @@ export class MeetingSchedulePublisher {
     type: string;
     title: string;
     content: string;
+    status?: MeetingInvitationNotificationStatus;
   }): void {
     for (const recipientId of new Set(recipientIds)) {
       this.kafkaClient.emit(KAFKA_TOPICS.NOTIFICATION_TOPIC, {
@@ -102,14 +161,7 @@ export class MeetingSchedulePublisher {
           title,
           content,
           link: `/meetings/${meeting.joinToken}`,
-          metadata: {
-            meetingId: meeting.id,
-            joinToken: meeting.joinToken,
-            hostUserId: meeting.hostUserId,
-            title: meeting.title,
-            scheduledStartAt: this.toIso(meeting.scheduledStartAt),
-            scheduledEndAt: this.toIso(meeting.scheduledEndAt),
-          },
+          metadata: this.toScheduleMetadata(meeting, status),
         },
       });
     }
@@ -117,5 +169,30 @@ export class MeetingSchedulePublisher {
 
   private toIso(value: Date | string): string {
     return value instanceof Date ? value.toISOString() : value;
+  }
+
+  private getSenderName(profile: MeetingNotificationProfile): string {
+    return profile.senderName || 'Someone';
+  }
+
+  private formatScheduleRange(meeting: MeetingScheduleSnapshot): string {
+    const startAt = this.toIso(meeting.scheduledStartAt);
+    const endAt = this.toIso(meeting.scheduledEndAt);
+    return `${startAt} to ${endAt}`;
+  }
+
+  private toScheduleMetadata(
+    meeting: MeetingScheduleSnapshot,
+    status?: MeetingInvitationNotificationStatus,
+  ) {
+    return {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      hostUserId: meeting.hostUserId,
+      title: meeting.title,
+      scheduledStartAt: this.toIso(meeting.scheduledStartAt),
+      scheduledEndAt: this.toIso(meeting.scheduledEndAt),
+      ...(status ? { status } : {}),
+    };
   }
 }

@@ -18,6 +18,7 @@ import type {
   CancelScheduledMeetingParams,
   CreateScheduledMeetingParams,
   ListUpcomingMeetingsParams,
+  RespondScheduledMeetingInvitationParams,
   UpdateScheduledMeetingParams,
 } from '../types/meeting.types';
 import {
@@ -29,10 +30,18 @@ import { createJoinToken, createRoomName } from '../utils/meeting.utils';
 import { hashMeetingPassword } from '../utils/meeting-password.util';
 import { MeetingSchedulePublisher } from '../events/meeting-schedule.publisher';
 import { MeetingPresenterService } from './meeting-presenter.service';
+import { MeetingRealtimeService } from './meeting-realtime.service';
+import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
 
 type MeetingWithParticipants = Prisma.MeetingGetPayload<{
   include: { participants: true };
 }>;
+
+const UPCOMING_PARTICIPANT_STATUSES = [
+  MeetingParticipantStatus.APPROVED,
+  MeetingParticipantStatus.JOINED,
+  MeetingParticipantStatus.LEFT,
+];
 
 @Injectable()
 export class MeetingScheduleService {
@@ -41,6 +50,7 @@ export class MeetingScheduleService {
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
     private readonly meetingPresenterService: MeetingPresenterService,
     private readonly meetingSchedulePublisher: MeetingSchedulePublisher,
+    private readonly meetingRealtimeService: MeetingRealtimeService,
   ) {}
 
   async createScheduledMeeting({
@@ -141,7 +151,17 @@ export class MeetingScheduleService {
       type: MeetingType.SCHEDULED,
       status: { in: [MeetingStatus.SCHEDULED, MeetingStatus.LIVE] },
       scheduledStartAt: { not: null },
-      OR: [{ createdBy: userId }, { participants: { some: { userId } } }],
+      OR: [
+        { hostId: userId },
+        {
+          participants: {
+            some: {
+              userId,
+              status: { in: UPCOMING_PARTICIPANT_STATUSES },
+            },
+          },
+        },
+      ],
     };
 
     const [total, meetings] = await this.prisma.$transaction([
@@ -286,6 +306,148 @@ export class MeetingScheduleService {
     return this.toScheduledMeetingResponse(cancelledMeeting);
   }
 
+  acceptScheduledMeetingInvitation(
+    params: RespondScheduledMeetingInvitationParams,
+  ) {
+    return this.respondScheduledMeetingInvitation(
+      params,
+      MeetingParticipantStatus.APPROVED,
+      'ACCEPTED',
+    );
+  }
+
+  declineScheduledMeetingInvitation(
+    params: RespondScheduledMeetingInvitationParams,
+  ) {
+    return this.respondScheduledMeetingInvitation(
+      params,
+      MeetingParticipantStatus.REJECTED,
+      'DECLINED',
+    );
+  }
+
+  private async respondScheduledMeetingInvitation(
+    { joinToken, userId }: RespondScheduledMeetingInvitationParams,
+    participantStatus: MeetingParticipantStatus,
+    notificationStatus: 'ACCEPTED' | 'DECLINED',
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { joinToken },
+      include: {
+        participants: {
+          where: { userId },
+          take: 1,
+        },
+      },
+    });
+    if (!meeting) {
+      throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
+    }
+    if (meeting.status === MeetingStatus.CANCELLED) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_CANCELLED);
+    }
+    if (meeting.status === MeetingStatus.ENDED) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED);
+    }
+
+    const participant = meeting.participants[0];
+    if (!participant) {
+      throw new ForbiddenException(
+        MEETING_ERROR_MESSAGES.MEETING_INVITATION_NOT_FOUND,
+      );
+    }
+    if (participant.status !== MeetingParticipantStatus.INVITED) {
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.MEETING_INVITATION_ALREADY_HANDLED,
+      );
+    }
+
+    const respondedAt = new Date();
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
+      where: {
+        meetingId_userId: {
+          meetingId: meeting.id,
+          userId,
+        },
+      },
+      data: {
+        status: participantStatus,
+        lastSeenAt: respondedAt,
+      },
+    });
+
+    this.meetingSchedulePublisher.publishInvitationStatusUpdate({
+      meetingId: meeting.id,
+      recipientUserId: userId,
+      status: notificationStatus,
+    });
+    await this.emitInvitationResponseParticipantUpdate(
+      meeting.id,
+      meeting.hostId,
+      updatedParticipant,
+    );
+    if (notificationStatus === 'DECLINED') {
+      const profile = await this.getPublisherProfile(userId);
+      this.meetingSchedulePublisher.publishInvitationDeclinedNotification(
+        {
+          id: meeting.id,
+          joinToken: meeting.joinToken,
+          title: meeting.title,
+          description: meeting.description,
+          scheduledStartAt: meeting.scheduledStartAt!,
+          scheduledEndAt: meeting.scheduledEndAt!,
+          hostUserId: meeting.hostId,
+          recipientUserIds: [meeting.hostId],
+        },
+        userId,
+        profile,
+      );
+    }
+
+    return {
+      meetingId: meeting.id,
+      joinToken: meeting.joinToken,
+      status: updatedParticipant.status,
+      respondedAt: respondedAt.toISOString(),
+    };
+  }
+
+  private async emitInvitationResponseParticipantUpdate(
+    meetingId: string,
+    hostUserId: string,
+    participant: {
+      id: string;
+      meetingId: string;
+      userId: string;
+      role: MeetingRole;
+      status: MeetingParticipantStatus;
+      joinedAt: Date | null;
+      leftAt: Date | null;
+      lastReadMessageId: string | null;
+      lastReadAt: Date | null;
+      updatedAt: Date;
+    },
+  ) {
+    const payload =
+      await this.meetingPresenterService.toMeetingParticipantSocketPayload(
+        meetingId,
+        participant,
+      );
+    const recipientIds = new Set([hostUserId, participant.userId]);
+
+    for (const recipientId of recipientIds) {
+      this.meetingRealtimeService.emitUserEvent(
+        recipientId,
+        MeetingEvent.PARTICIPANT_UPDATED,
+        payload,
+      );
+    }
+  }
+
   private async assertScheduledMeetingModerator(
     joinToken: string,
     userId: string,
@@ -382,6 +544,14 @@ export class MeetingScheduleService {
       snapshot,
       profile,
     );
+    for (const participant of meeting.participants) {
+      if (participant.userId === meeting.hostId) continue;
+      this.meetingSchedulePublisher.publishInvitationStatusUpdate({
+        meetingId: meeting.id,
+        recipientUserId: participant.userId,
+        status: 'CANCELLED',
+      });
+    }
   }
 
   private toPublisherSnapshot(meeting: MeetingWithParticipants) {
@@ -443,6 +613,9 @@ export class MeetingScheduleService {
         meeting.hostId,
       ])
     ).get(meeting.hostId);
+    const visibleParticipants = enrichedParticipants.filter(
+      (participant) => participant.status !== MeetingParticipantStatus.REJECTED,
+    );
 
     return {
       id: meeting.id,
@@ -458,10 +631,10 @@ export class MeetingScheduleService {
       myParticipant:
         enrichedParticipants.find((participant) => participant.userId === userId) ??
         null,
-      participants: enrichedParticipants.map((participant) =>
+      participants: visibleParticipants.map((participant) =>
         this.meetingPresenterService.toMeetingParticipantListItem(participant),
       ),
-      participantCount: meeting.participants.length,
+      participantCount: visibleParticipants.length,
       autoAdmit: meeting.autoAdmit,
       chatEnabled: meeting.chatEnabled,
       screenShareEnabled: meeting.screenShareEnabled,
