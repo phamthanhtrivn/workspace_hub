@@ -56,8 +56,11 @@ export class MeetingHistoryService {
         select: {
           id: true,
           joinToken: true,
+          title: true,
           type: true,
           status: true,
+          scheduledStartAt: true,
+          scheduledEndAt: true,
           startedAt: true,
           endedAt: true,
           createdAt: true,

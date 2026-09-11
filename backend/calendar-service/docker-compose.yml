@@ -25,7 +25,7 @@ services:
       kafka:
         condition: service_started
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 8086"]
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1:8086/ready >/dev/null 2>&1"]
       interval: 5s
       timeout: 5s
       retries: 12

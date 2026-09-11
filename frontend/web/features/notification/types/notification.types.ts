@@ -9,6 +9,10 @@ export enum NotificationType {
   PROJECT_TASK_ASSIGNED = "PROJECT_TASK_ASSIGNED",
   PROJECT_TASK_UPDATED = "PROJECT_TASK_UPDATED",
   PROJECT_SPRINT_STARTED = "PROJECT_SPRINT_STARTED",
+  MEETING_INVITATION = "MEETING_INVITATION",
+  MEETING_INVITATION_DECLINED = "MEETING_INVITATION_DECLINED",
+  MEETING_UPDATED = "MEETING_UPDATED",
+  MEETING_CANCELLED = "MEETING_CANCELLED",
 }
 
 export interface InvitationMetadata {
@@ -35,6 +39,24 @@ export interface ProjectInvitationMetadata {
   status: ProjectInvitationNotificationStatus;
   expiresAt?: string | null;
   respondedAt?: string;
+}
+
+export type MeetingInvitationNotificationStatus =
+  | "PENDING"
+  | "ACCEPTED"
+  | "DECLINED"
+  | "CANCELLED";
+
+export interface MeetingInvitationMetadata {
+  meetingId: string;
+  joinToken: string;
+  hostUserId: string;
+  title: string;
+  scheduledStartAt: string;
+  scheduledEndAt: string;
+  status?: MeetingInvitationNotificationStatus;
+  respondedAt?: string;
+  declinedUserId?: string;
 }
 
 export interface Notification {

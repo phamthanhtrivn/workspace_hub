@@ -3,10 +3,14 @@ import { normalizeApiResponse } from "@/features/chat/api/chat.api";
 import { MEETING_API_PATHS } from "../types/meeting.constants";
 import type {
   CreateInstantMeetingPayload,
+  ScheduledMeetingPayload,
   InstantMeetingResponse,
   JoinMeetingPayload,
   MeetingHistoryResponse,
   MeetingHistorySummaryResponse,
+  ScheduledMeetingInvitationResponse,
+  ScheduledMeetingResponse,
+  MeetingJoinResponse,
   MeetingEndedResponse,
   MeetingJoinRequestsResponse,
   MeetingJoinRequestStatusResponse,
@@ -15,6 +19,7 @@ import type {
   MeetingMessageReadReceiptResponse,
   MeetingMessageResponse,
   MeetingMessagesResponse,
+  RequestMeetingJoinApprovalPayload,
   MeetingChatNotificationPreferenceResponse,
   MeetingUnreadMessageCountResponse,
   MeetingParticipantResponse,
@@ -28,6 +33,8 @@ import type {
   CreateMeetingMessagePayload,
   EditMeetingMessagePayload,
   UpdateMeetingSettingsPayload,
+  UpcomingMeetingsResponse,
+  UpdateScheduledMeetingPayload,
   UpdateMeetingParticipantViewPreferencePayload,
 } from "../types/meeting.types";
 import type { ApiResponse } from "@/features/chat/types/chat.types";
@@ -51,12 +58,69 @@ export const createInstantMeeting = async (
   return normalizeApiResponse<InstantMeetingResponse>(response.data);
 };
 
+export const createScheduledMeeting = async (
+  payload: ScheduledMeetingPayload,
+): Promise<ApiResponse<ScheduledMeetingResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.SCHEDULED, payload);
+  return normalizeApiResponse<ScheduledMeetingResponse>(response.data);
+};
+
+export const getUpcomingMeetings = async ({
+  page,
+  limit,
+}: {
+  page: number;
+  limit: number;
+}): Promise<ApiResponse<UpcomingMeetingsResponse>> => {
+  const response = await api.get(MEETING_API_PATHS.UPCOMING, {
+    params: { page, limit },
+  });
+  return normalizeApiResponse<UpcomingMeetingsResponse>(response.data);
+};
+
 export const joinMeeting = async (
   joinToken: string,
   payload: JoinMeetingPayload,
-): Promise<ApiResponse<InstantMeetingResponse>> => {
+): Promise<ApiResponse<MeetingJoinResponse>> => {
   const response = await api.post(MEETING_API_PATHS.join(joinToken), payload);
+  return normalizeApiResponse<MeetingJoinResponse>(response.data);
+};
+
+export const startScheduledMeeting = async (
+  joinToken: string,
+  payload: JoinMeetingPayload,
+): Promise<ApiResponse<InstantMeetingResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.start(joinToken), payload);
   return normalizeApiResponse<InstantMeetingResponse>(response.data);
+};
+
+export const updateScheduledMeeting = async (
+  joinToken: string,
+  payload: UpdateScheduledMeetingPayload,
+): Promise<ApiResponse<ScheduledMeetingResponse>> => {
+  const response = await api.patch(MEETING_API_PATHS.schedule(joinToken), payload);
+  return normalizeApiResponse<ScheduledMeetingResponse>(response.data);
+};
+
+export const cancelScheduledMeeting = async (
+  joinToken: string,
+): Promise<ApiResponse<ScheduledMeetingResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.cancel(joinToken));
+  return normalizeApiResponse<ScheduledMeetingResponse>(response.data);
+};
+
+export const acceptScheduledMeetingInvitation = async (
+  joinToken: string,
+): Promise<ApiResponse<ScheduledMeetingInvitationResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.acceptInvitation(joinToken));
+  return normalizeApiResponse<ScheduledMeetingInvitationResponse>(response.data);
+};
+
+export const declineScheduledMeetingInvitation = async (
+  joinToken: string,
+): Promise<ApiResponse<ScheduledMeetingInvitationResponse>> => {
+  const response = await api.post(MEETING_API_PATHS.declineInvitation(joinToken));
+  return normalizeApiResponse<ScheduledMeetingInvitationResponse>(response.data);
 };
 
 export const getMeetingAccess = async (
@@ -124,8 +188,12 @@ export const stopParticipantScreenShare = async (
 
 export const requestMeetingJoinApproval = async (
   joinToken: string,
+  payload: RequestMeetingJoinApprovalPayload = {},
 ): Promise<ApiResponse<MeetingJoinRequestStatusResponse>> => {
-  const response = await api.post(MEETING_API_PATHS.joinRequests(joinToken));
+  const response = await api.post(
+    MEETING_API_PATHS.joinRequests(joinToken),
+    payload,
+  );
   return normalizeApiResponse<MeetingJoinRequestStatusResponse>(response.data);
 };
 

@@ -21,6 +21,10 @@ import {
 import NotificationList from "@/features/notification/components/notification-list";
 import NotificationDetailModal from "@/features/notification/components/notification-detail-modal";
 import { registerNotificationRenderer } from "@/features/notification/components/notification-registry";
+import {
+  BACKEND_HEALTH_PATHS,
+  waitForBackendReady,
+} from "@/lib/backend-readiness";
 import { logApiError } from "@/lib/interceptors";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
@@ -45,6 +49,10 @@ import {
   ProjectInvitationListItemRenderer,
   ProjectInvitationModalRenderer,
 } from "@/features/notification/components/renderers/project-invitation-renderer";
+import {
+  MeetingInvitationListItemRenderer,
+  MeetingInvitationModalRenderer,
+} from "@/features/notification/components/renderers/meeting-invitation-renderer";
 
 // Initialize Registry
 let isRegistryInitialized = false;
@@ -74,6 +82,26 @@ if (!isRegistryInitialized) {
     ProjectInvitationModalRenderer,
     ProjectInvitationListItemRenderer,
   );
+  registerNotificationRenderer(
+    NotificationType.MEETING_INVITATION,
+    MeetingInvitationModalRenderer,
+    MeetingInvitationListItemRenderer,
+  );
+  registerNotificationRenderer(
+    NotificationType.MEETING_INVITATION_DECLINED,
+    MeetingInvitationModalRenderer,
+    MeetingInvitationListItemRenderer,
+  );
+  registerNotificationRenderer(
+    NotificationType.MEETING_UPDATED,
+    MeetingInvitationModalRenderer,
+    MeetingInvitationListItemRenderer,
+  );
+  registerNotificationRenderer(
+    NotificationType.MEETING_CANCELLED,
+    MeetingInvitationModalRenderer,
+    MeetingInvitationListItemRenderer,
+  );
   isRegistryInitialized = true;
 }
 
@@ -95,21 +123,48 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let isCancelled = false;
+    let retryTimer: number | undefined;
+
     if (accessToken) {
-      getUnreadCount()
-        .then((res) =>
+      const fetchUnreadWhenReady = async () => {
+        const isReady = await waitForBackendReady(
+          BACKEND_HEALTH_PATHS.notification,
+          { attempts: 1 },
+        );
+
+        if (isCancelled) return;
+
+        if (!isReady) {
+          retryTimer = window.setTimeout(fetchUnreadWhenReady, 3_000);
+          return;
+        }
+
+        try {
+          const res = await getUnreadCount();
+          if (isCancelled) return;
+
           dispatch(
             setNotifications({
               list: notifications,
               total: notifications.length,
               unreadCount: res.data.unreadCount,
             }),
-          ),
-        )
-        .catch((error) =>
-          logApiError(error, "Failed to fetch notification unread count"),
-        );
+          );
+        } catch (error) {
+          logApiError(error, "Failed to fetch notification unread count");
+        }
+      };
+
+      void fetchUnreadWhenReady();
     }
+
+    return () => {
+      isCancelled = true;
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken, dispatch]);
 

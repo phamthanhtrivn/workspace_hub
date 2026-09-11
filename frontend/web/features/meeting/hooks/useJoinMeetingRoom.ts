@@ -4,12 +4,34 @@ import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { joinMeeting } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
-import type { MeetingPreJoinSettings } from "../types/meeting.types";
+import type {
+  InstantMeetingResponse,
+  MeetingJoinResponse,
+  MeetingStatus,
+  MeetingPreJoinSettings,
+} from "../types/meeting.types";
 import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
-export function useJoinMeetingRoom(joinToken: string) {
+interface UseJoinMeetingRoomOptions {
+  onMeetingUnavailable?: (status: MeetingStatus) => void;
+  onJoinError?: () => void;
+}
+
+interface JoinMeetingRoomInput {
+  settings: MeetingPreJoinSettings;
+  password?: string;
+}
+
+export function useJoinMeetingRoom(
+  joinToken: string,
+  options: UseJoinMeetingRoomOptions = {},
+) {
   const queryClient = useQueryClient();
   const queryKey = meetingKeys.room(joinToken);
+  const isInstantMeetingResponse = (
+    response: MeetingJoinResponse,
+  ): response is InstantMeetingResponse =>
+    "meeting" in response && "livekit" in response;
 
   const {
     data,
@@ -17,7 +39,7 @@ export function useJoinMeetingRoom(joinToken: string) {
     isPending,
     mutate,
   } = useMutation({
-    mutationFn: (settings: MeetingPreJoinSettings) =>
+    mutationFn: ({ settings, password }: JoinMeetingRoomInput) =>
       joinMeeting(joinToken, {
         deviceSettings: {
           cameraEnabled: settings.cameraEnabled,
@@ -25,18 +47,29 @@ export function useJoinMeetingRoom(joinToken: string) {
           cameraDeviceId: settings.cameraDeviceId || undefined,
           microphoneDeviceId: settings.microphoneDeviceId || undefined,
         },
+        password: password?.trim() || undefined,
       }),
     onSuccess: (response) => {
-      queryClient.setQueryData(queryKey, response);
+      if (isInstantMeetingResponse(response.data)) {
+        queryClient.setQueryData(queryKey, response);
+        return;
+      }
+
+      if (response.data.status === "ENDED" || response.data.status === "CANCELLED") {
+        options.onMeetingUnavailable?.(response.data.status);
+      }
+    },
+    onError: () => {
+      options.onJoinError?.();
     },
   });
 
   const joinRoom = useCallback(
-    (settings: MeetingPreJoinSettings) => {
+    (settings: MeetingPreJoinSettings, password?: string) => {
       if (!joinToken || isPending) return;
 
       saveMeetingDeviceSettings(settings);
-      mutate(settings);
+      mutate({ settings, password });
     },
     [isPending, joinToken, mutate],
   );
@@ -45,6 +78,7 @@ export function useJoinMeetingRoom(joinToken: string) {
     joinRoom,
     isJoining: isPending,
     isJoinError: isError,
-    room: data?.data,
+    room:
+      data?.data && isInstantMeetingResponse(data.data) ? data.data : undefined,
   };
 }

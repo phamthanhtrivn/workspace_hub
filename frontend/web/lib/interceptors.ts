@@ -38,6 +38,9 @@ export function logApiError(error: unknown, context = "API request failed") {
       ? responseData
       : responseData?.message || responseData?.error || error.message;
   const status = error.response?.status || "";
+  const gatewayHint = error.response
+    ? undefined
+    : "Gateway/upstream service may not be ready, or the connection was reset before an HTTP response.";
   const logKey = `${context}:${method}:${url}:${status}:${message}`;
   const now = Date.now();
   const lastLoggedAt = apiErrorLogTimes.get(logKey) || 0;
@@ -50,6 +53,7 @@ export function logApiError(error: unknown, context = "API request failed") {
     url,
     status,
     message,
+    ...(gatewayHint ? { gatewayHint } : {}),
   });
 }
 

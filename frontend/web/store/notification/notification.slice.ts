@@ -1,6 +1,9 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Notification } from "../../features/notification/types/notification.types";
-import type { ProjectInvitationNotificationStatus } from "../../features/notification/types/notification.types";
+import type {
+  MeetingInvitationNotificationStatus,
+  ProjectInvitationNotificationStatus,
+} from "../../features/notification/types/notification.types";
 
 interface NotificationState {
   list: Notification[];
@@ -91,6 +94,27 @@ const notificationSlice = createSlice({
         state.unreadCount = Math.max(0, state.unreadCount - 1);
       }
     },
+    setMeetingInvitationStatus: (
+      state,
+      action: PayloadAction<{
+        notificationId: string;
+        status: MeetingInvitationNotificationStatus;
+      }>,
+    ) => {
+      const notification = state.list.find(
+        (item) => item.id === action.payload.notificationId,
+      );
+      if (!notification) return;
+      notification.metadata = {
+        ...notification.metadata,
+        status: action.payload.status,
+        respondedAt: new Date().toISOString(),
+      };
+      if (!notification.isRead) {
+        notification.isRead = true;
+        state.unreadCount = Math.max(0, state.unreadCount - 1);
+      }
+    },
     deleteNotificationSuccess: (state, action: PayloadAction<string>) => {
       const notification = state.list.find((n) => n.id === action.payload);
       if (notification) {
@@ -113,6 +137,7 @@ export const {
   markAllReadSuccess,
   updateNotificationSuccess,
   setProjectInvitationStatus,
+  setMeetingInvitationStatus,
   deleteNotificationSuccess,
 } = notificationSlice.actions;
 

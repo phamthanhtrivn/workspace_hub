@@ -20,6 +20,11 @@ import type {
   MeetingModeratorParams,
   ResolveJoinRequestParams,
 } from '../types/meeting.types';
+import {
+  canBypassMeetingPassword,
+  canJoinLockedMeeting,
+} from '../utils/meeting.utils';
+import { isMeetingPasswordValid } from '../utils/meeting-password.util';
 import { MeetingPolicyService } from './meeting-policy.service';
 import { MeetingPresenterService } from './meeting-presenter.service';
 import { MeetingRealtimeService } from './meeting-realtime.service';
@@ -34,7 +39,11 @@ export class MeetingAdmissionService {
     private readonly meetingRealtimeService: MeetingRealtimeService,
   ) {}
 
-  async requestJoinApproval({ joinToken, userId }: MeetingJoinRequestParams) {
+  async requestJoinApproval({
+    joinToken,
+    userId,
+    dto,
+  }: MeetingJoinRequestParams) {
     if (!userId) {
       throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
     }
@@ -53,24 +62,69 @@ export class MeetingAdmissionService {
       throw new NotFoundException(MEETING_ERROR_MESSAGES.MEETING_NOT_FOUND);
     }
 
+    if (
+      meeting.status === MeetingStatus.ENDED ||
+      meeting.status === MeetingStatus.CANCELLED
+    ) {
+      return {
+        ...this.meetingPresenterService.toMeetingAccessResponse(
+          meeting,
+          userId,
+        ),
+        meetingStatus: meeting.status,
+      };
+    }
+
     if (meeting.status !== MeetingStatus.LIVE) {
-      throw new BadRequestException(MEETING_ERROR_MESSAGES.MEETING_NOT_LIVE);
+      throw new BadRequestException(
+        meeting.status === MeetingStatus.SCHEDULED
+          ? MEETING_ERROR_MESSAGES.MEETING_NOT_STARTED
+          : meeting.status === MeetingStatus.CANCELLED
+            ? MEETING_ERROR_MESSAGES.MEETING_CANCELLED
+            : MEETING_ERROR_MESSAGES.MEETING_ALREADY_ENDED,
+      );
     }
 
     const existingParticipant = meeting.participants[0];
+    const role =
+      existingParticipant?.role ??
+      (meeting.hostId === userId ? MeetingRole.HOST : MeetingRole.PARTICIPANT);
     const isModerator =
       meeting.hostId === userId ||
-      existingParticipant?.role === MeetingRole.HOST ||
-      existingParticipant?.role === MeetingRole.COHOST;
+      role === MeetingRole.HOST ||
+      role === MeetingRole.COHOST;
+    const hasApprovedJoinRequest =
+      existingParticipant?.status === MeetingParticipantStatus.APPROVED
+        ? await this.hasApprovedJoinRequest(meeting.id, userId)
+        : false;
+    const canEnterLockedMeeting =
+      canJoinLockedMeeting({
+        hostId: meeting.hostId,
+        userId,
+        role,
+        participantStatus: existingParticipant?.status,
+      }) ||
+      (existingParticipant?.status === MeetingParticipantStatus.APPROVED &&
+        hasApprovedJoinRequest);
+    const canBypassPassword = canBypassMeetingPassword({
+      hostId: meeting.hostId,
+      userId,
+      role,
+      participantStatus: existingParticipant?.status,
+    });
+
+    if (
+      existingParticipant?.status !== MeetingParticipantStatus.REQUESTED &&
+      !canBypassPassword &&
+      !isMeetingPasswordValid(meeting.passwordHash, dto?.password)
+    ) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.INCORRECT_PASSWORD);
+    }
+
     if (
       meeting.autoAdmit ||
       isModerator ||
-      (existingParticipant &&
-        [
-          MeetingParticipantStatus.APPROVED,
-          MeetingParticipantStatus.JOINED,
-          MeetingParticipantStatus.LEFT,
-        ].some((status) => status === existingParticipant.status))
+      canEnterLockedMeeting
     ) {
       return {
         meetingId: meeting.id,
@@ -326,5 +380,18 @@ export class MeetingAdmissionService {
     );
 
     return { count: requests.length };
+  }
+
+  private async hasApprovedJoinRequest(meetingId: string, userId: string) {
+    const approval = await this.prisma.meetingEvent.findFirst({
+      where: {
+        meetingId,
+        type: MeetingEventType.JOIN_REQUEST_APPROVED,
+        metadata: { path: ['targetUserId'], equals: userId },
+      },
+      select: { id: true },
+    });
+
+    return Boolean(approval);
   }
 }

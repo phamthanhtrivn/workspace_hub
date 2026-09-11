@@ -16,6 +16,7 @@ interface MeetingSidebarProps {
 
 const enabledMeetingNavItems = new Set<MeetingDashboardNavItemId>([
   MeetingDashboardNavItemId.OVERVIEW,
+  MeetingDashboardNavItemId.UPCOMING,
   MeetingDashboardNavItemId.PREVIOUS,
 ]);
 

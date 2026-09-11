@@ -5,6 +5,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { QuotaModule } from './modules/quota/quota.module';
 import { DocumentModule } from './modules/document/document.module';
 import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-profile-snapshot.module';
+import { HealthController } from './common/health.controller';
 
 @Module({
   imports: [
@@ -13,7 +14,7 @@ import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-
     DocumentModule,
     UserProfileSnapshotModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}
