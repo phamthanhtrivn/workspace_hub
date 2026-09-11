@@ -4,6 +4,7 @@ import { CalendarClock, Clock3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatTimeAgo } from "@/lib/date";
 import type { Notification } from "../../types/notification.types";
+import { NotificationCategoryIcon } from "../notification-category-icon";
 
 function getEventTitle(notification: Notification): string {
   return (
@@ -28,9 +29,7 @@ export function CalendarReminderListItemRenderer({
         notification.isRead ? "bg-white" : "bg-blue-50/60"
       }`}
     >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-600 text-white shadow-sm shadow-sky-600/20">
-        <CalendarClock className="h-5 w-5" />
-      </span>
+      <NotificationCategoryIcon notification={notification} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-black text-slate-900">

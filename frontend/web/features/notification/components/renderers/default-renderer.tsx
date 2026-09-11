@@ -5,6 +5,7 @@ import { Notification } from "../../types/notification.types";
 import { Bell } from "lucide-react";
 import Image from "next/image";
 import { formatTimeAgo } from "@/lib/date";
+import { NotificationCategoryIcon } from "../notification-category-icon";
 
 export const DefaultListItemRenderer: React.FC<{
   notification: Notification;
@@ -15,18 +16,7 @@ export const DefaultListItemRenderer: React.FC<{
       onClick={onClick}
       className={`flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer transition border-b border-slate-100 last:border-0 ${!notification.isRead ? "bg-blue-50/50" : ""}`}
     >
-      <div className="relative h-10 w-10 flex-shrink-0 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center text-slate-500">
-        {notification.senderAvatar ? (
-          <Image
-            src={notification.senderAvatar}
-            alt="Avatar"
-            fill
-            className="object-cover"
-          />
-        ) : (
-          <Bell size={20} />
-        )}
-      </div>
+      <NotificationCategoryIcon notification={notification} className="h-10 w-10" />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-slate-800 line-clamp-2">
           {notification.title}

@@ -14,6 +14,7 @@ import { formatTimeAgo } from "@/lib/date";
 import { useAppDispatch } from "@/store/store";
 import { setProjectInvitationStatus } from "@/store/notification/notification.slice";
 import { useRespondProjectInvitation } from "@/features/project/hooks/use-invitations";
+import { NotificationCategoryIcon } from "../notification-category-icon";
 import type {
   Notification,
   ProjectInvitationMetadata,
@@ -68,9 +69,7 @@ export function ProjectInvitationListItemRenderer({
         notification.isRead ? "bg-white" : "bg-blue-50/60"
       }`}
     >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-blue-600 text-white shadow-sm shadow-blue-600/20">
-        <FolderKanban className="h-5 w-5" />
-      </span>
+      <NotificationCategoryIcon notification={notification} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-black text-slate-900">

@@ -15,6 +15,7 @@ import { useRespondMeetingInvitation } from "@/features/meeting/hooks/useSchedul
 import { useAppDispatch } from "@/store/store";
 import { setMeetingInvitationStatus } from "@/store/notification/notification.slice";
 import { formatTimeAgo } from "@/lib/date";
+import { NotificationCategoryIcon } from "../notification-category-icon";
 import type {
   MeetingInvitationMetadata,
   MeetingInvitationNotificationStatus,
@@ -123,9 +124,7 @@ export function MeetingInvitationListItemRenderer({
         notification.isRead ? "bg-white" : "bg-blue-50/60"
       }`}
     >
-      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-indigo-600 text-white shadow-sm shadow-indigo-600/20">
-        <Video className="h-5 w-5" />
-      </span>
+      <NotificationCategoryIcon notification={notification} />
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-black text-slate-900">

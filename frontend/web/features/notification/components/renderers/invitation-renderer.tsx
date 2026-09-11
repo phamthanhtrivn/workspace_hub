@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store/store";
 import { setActiveSpaceId } from "@/store/chat/chat-slice";
+import { NotificationCategoryIcon } from "../notification-category-icon";
 
 function getInitials(name?: string | null) {
   const source = name?.trim() || "Workspace";
@@ -92,12 +93,7 @@ export const InvitationListItemRenderer: React.FC<{
         !notification.isRead ? "bg-blue-50/60" : "bg-white"
       }`}
     >
-      <div className="relative">
-        <SenderAvatar notification={notification} />
-        <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-blue-600 text-white shadow-sm">
-          <UserPlus size={11} />
-        </span>
-      </div>
+      <NotificationCategoryIcon notification={notification} />
 
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2">
