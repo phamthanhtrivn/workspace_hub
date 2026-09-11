@@ -1,8 +1,9 @@
 import { toast } from "sonner";
-import type { SprintCreateValues } from "../components/software-backlog-view";
+import type { SprintCreateValues } from "../components/views/software-backlog-view";
 import { TaskStatus } from "../types/project";
 
 interface SprintActionDependencies {
+  formatMessage: (id: string, values?: Record<string, number>) => string;
   createSprint: (values: SprintCreateValues) => Promise<unknown>;
   addTasks: (input: { sprintId: string; taskIds: string[] }) => Promise<unknown>;
   updateTasks: (taskId: string, status: TaskStatus) => Promise<unknown>;
@@ -29,54 +30,59 @@ async function runSprintAction(
 }
 
 export function createProjectSprintActions(actions: SprintActionDependencies) {
+  const message = actions.formatMessage;
   return {
     createSprint: (values: SprintCreateValues) =>
       runSprintAction(
         () => actions.createSprint(values),
-        "Tạo Sprint thành công",
-        "Không thể tạo Sprint",
+        message("project.sprint.created"),
+        message("project.sprint.createFailed"),
         true,
       ),
     addTasks: (sprintId: string, taskIds: string[]) =>
       runSprintAction(
         () => actions.addTasks({ sprintId, taskIds }),
-        "Đã đưa task vào Sprint",
-        "Không thể đưa task vào Sprint",
+        message("project.sprint.tasksAdded"),
+        message("project.sprint.addTasksFailed"),
         true,
       ),
     bulkUpdateTasks: (taskIds: string[], status: TaskStatus) =>
       runSprintAction(
         () => Promise.all(taskIds.map((taskId) => actions.updateTasks(taskId, status))),
-        `Đã cập nhật ${taskIds.length} task`,
-        "Không thể cập nhật hàng loạt task",
+        message("project.task.bulkUpdated", { count: taskIds.length }),
+        message("project.task.bulkUpdateFailed"),
         true,
       ),
     updateSprint: (sprintId: string, values: SprintCreateValues) =>
       runSprintAction(
         () => actions.updateSprint({ sprintId, payload: values }),
-        "Đã cập nhật Sprint",
-        "Không thể cập nhật Sprint",
+        message("project.sprint.updated"),
+        message("project.sprint.updateFailed"),
         true,
       ),
     startSprint: (sprintId: string) =>
-      runSprintAction(() => actions.startSprint(sprintId), "Đã Start Sprint", "Không thể Start Sprint"),
+      runSprintAction(
+        () => actions.startSprint(sprintId),
+        message("project.sprint.started"),
+        message("project.sprint.startFailed"),
+      ),
     completeSprint: (sprintId: string) =>
       runSprintAction(
         () => actions.completeSprint(sprintId),
-        "Đã Complete Sprint; task chưa xong quay lại Backlog",
-        "Không thể Complete Sprint",
+        message("project.sprint.completed"),
+        message("project.sprint.completeFailed"),
       ),
     reopenSprint: (sprintId: string) =>
       runSprintAction(
         () => actions.reopenSprint(sprintId),
-        "Đã mở lại Sprint ở trạng thái Planned",
-        "Không thể mở lại Sprint",
+        message("project.sprint.reopened"),
+        message("project.sprint.reopenFailed"),
       ),
     removeTask: (sprintId: string, taskId: string) =>
       runSprintAction(
         () => actions.removeTask({ sprintId, taskId }),
-        "Đã đưa task về Backlog",
-        "Không thể đưa task về Backlog",
+        message("project.backlog.taskReturned"),
+        message("project.backlog.returnTaskFailed"),
         true,
       ),
   };

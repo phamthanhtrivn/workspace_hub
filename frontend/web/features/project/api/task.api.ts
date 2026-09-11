@@ -51,13 +51,14 @@ export interface TaskApiModel {
 }
 
 export interface CreateTaskPayload {
+  sprintId?: string;
   title: string;
   description?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
   taskType?: TaskType;
-  startDate?: string;
-  dueDate?: string;
+  startDate?: string | null;
+  dueDate?: string | null;
   allDay?: boolean;
   estimatedMinutes?: number;
   rank?: string;
@@ -68,12 +69,13 @@ export interface CreateTaskPayload {
 }
 
 export interface UpdateTaskPayload {
+  assigneeUserId?: string | null;
   title?: string;
   description?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
   taskType?: TaskType;
-  startDate?: string;
+  startDate?: string | null;
   dueDate?: string | null;
   allDay?: boolean;
   estimatedMinutes?: number;

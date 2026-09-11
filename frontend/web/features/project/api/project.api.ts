@@ -127,7 +127,7 @@ function normalizeMember(
     id: member.id,
     projectId,
     userId: member.userId,
-    displayName: profile?.fullName?.trim() || "Người dùng",
+    displayName: profile?.fullName?.trim() || profile?.email || member.userId,
     avatarUrl: profile?.avatarUrl || undefined,
     role: member.role,
     canCreateTask: member.canCreateTask ?? false,
@@ -160,7 +160,7 @@ export async function getProjects(): Promise<Project[]> {
         projectId: project.id,
         userId: project.ownerId,
         displayName:
-          profilesById.get(project.ownerId)?.fullName?.trim() || "Người dùng",
+          profilesById.get(project.ownerId)?.fullName?.trim() || project.ownerId,
         avatarUrl: profilesById.get(project.ownerId)?.avatarUrl || undefined,
         role: ProjectRole.OWNER,
         canCreateTask: true,

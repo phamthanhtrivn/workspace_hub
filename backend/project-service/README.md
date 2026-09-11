@@ -34,8 +34,11 @@ to the startup command.
 
 Project and invitation notifications use the `notification_outbox` table.
 Application writes and outbox inserts commit together; the in-process worker
-delivers events with exponential retry. Failed events stop retrying after
-`OUTBOX_MAX_ATTEMPTS` and remain queryable for operations review.
+delivers events with exponential retry. Notification and email events stop
+retrying after `OUTBOX_MAX_ATTEMPTS` and remain queryable for operations review.
+Calendar snapshots (`PROJECT_TASK_CALENDAR`) retry indefinitely, with a delay
+capped at one hour, and load the current task state before publishing. Kafka
+availability does not determine whether a committed task request succeeds.
 
 Migration versions are unique and must be applied in numeric order. The
 renumbered history assumes a clean Project Service database.
@@ -50,3 +53,36 @@ npm run build
 
 This NestJS service is the active Project Service. Apply the SQL migrations in
 order before starting the service in a new environment.
+
+## Project production fixes (September 2026)
+
+The lockfile includes patched `fast-uri` and `qs`. A scoped override pins
+`@prisma/config`'s `deepmerge-ts` to 8.0.0 while retaining Prisma 6.19.3.
+This fixes [GHSA-ggr8-5vv4-36mx](https://github.com/advisories/GHSA-ggr8-5vv4-36mx).
+Prisma generation, schema validation, build and database integration checks
+cover the configuration/client workflow with this override. Remove the override
+when a supported Prisma update brings a patched dependency itself.
+
+Apply V11 (normalize numeric task ranks) and V12 (`project_files`) after the
+existing migration history, then regenerate Prisma Client and deploy backend
+and frontend together. The migrations were verified on a disposable PostgreSQL
+15 database; they have not been applied to the shared development or production
+database. Check the applied migration history before running them.
+
+Project attachments are stored durably as PostgreSQL `BYTEA`, with metadata
+queries that exclude file contents. Limits are 10 MiB per file, 100 MiB and 500
+files per project. This bounded storage is included in database backups. The
+download route serves an attachment, and all file routes check Project access;
+upload requires membership, while deletion requires the uploader or owner.
+There is no external object-storage or virus-scanning integration in this change.
+
+Task creation accepts `sprintId` and creates the task in a planned Sprint in
+one transaction. Timed task dates must include a timezone offset or `Z`; null
+start/due dates clear the field. Project task discussions use the persisted
+comment API, refreshed every five seconds while open. Sprint metrics display
+current recorded progress; historical burndown is not generated without history.
+
+To run database and HTTP integration checks, use a disposable database with
+all migrations applied and set `TEST_DATABASE_URL`, then run
+`npm run test:integration`. The suite deletes test data; never point it at a
+shared or production database. Unit tests use `npm test`.

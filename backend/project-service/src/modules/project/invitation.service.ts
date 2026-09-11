@@ -301,14 +301,13 @@ export class InvitationService {
         InvitationStatus.ACCEPTED,
         tx,
       );
+      await this.calendarEvents.publishProject(invitation.projectId, tx);
 
       return tx.projectInvitation.findUniqueOrThrow({
         where: { id: invitationId },
         include: { project: { select: { name: true } } },
       });
     });
-
-    await this.calendarEvents.publishProject(updated.projectId);
 
     return toInvitationResponse(updated);
   }

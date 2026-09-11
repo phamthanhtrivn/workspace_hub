@@ -17,6 +17,7 @@ export function useTaskComments(taskId: string) {
     queryKey: commentKeys.task(taskId),
     queryFn: () => getTaskComments(taskId),
     enabled: Boolean(taskId),
+    refetchInterval: 5000,
   });
 }
 

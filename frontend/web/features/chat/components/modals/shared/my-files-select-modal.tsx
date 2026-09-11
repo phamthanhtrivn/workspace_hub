@@ -8,7 +8,7 @@ import { DocumentItem } from "@/features/documents/types/documents.types";
 import { chatKeys } from "@/features/chat/types/chat.constant";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
-import { formatFileSize } from "@/features/project/components/project-file-panel";
+import { formatFileSize } from "@/features/project/components/ui/project-file-panel";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MyFilesSelectModalProps {
@@ -59,7 +59,7 @@ export default function MyFilesSelectModal({
       setCurrentFolderId(folderId);
 
       if (folderId === null) {
-      setFolderHistory([{ id: null, name: "Home" }]);
+        setFolderHistory([{ id: null, name: "Home" }]);
       } else {
         const index = folderHistory.findIndex((h) => h.id === folderId);
         if (index !== -1) {

@@ -3,6 +3,10 @@ import { TaskPriority, TaskStatus, TaskType } from '../project.enums';
 import { Trim } from '../../../common/trim.decorator';
 
 export class CreateTaskDto {
+  @IsOptional()
+  @IsUUID()
+  sprintId?: string;
+
   @Trim()
   @IsString()
   @IsNotEmpty()

@@ -4,73 +4,77 @@ import type {
   TaskActivity,
 } from "./types/project";
 
-export const ACTIVITY_ACTION_LABELS: Record<string, string> = {
-  created: "Đã tạo công việc",
-  title: "Đã đổi tên công việc",
-  description: "Đã cập nhật mô tả",
-  priority: "Đã thay đổi độ ưu tiên",
-  status: "Đã thay đổi trạng thái",
-  taskType: "Đã thay đổi loại công việc",
-  startDate: "Đã thay đổi ngày bắt đầu",
-  dueDate: "Đã thay đổi hạn hoàn thành",
-  estimatedMinutes: "Đã thay đổi thời gian ước tính",
-  allDay: "Đã thay đổi chế độ cả ngày",
-  archived: "Đã thay đổi trạng thái lưu trữ",
-  parentTaskId: "Đã thay đổi task cha",
-  assigneeUserId: "Đã thay đổi người thực hiện",
-  isParentTask: "Đã thay đổi loại task",
-  autoCompleteSprint: "Đã thay đổi tự động hoàn thành sprint",
-  rank: "Đã thay đổi thứ tự",
-  checklist_created: "Đã thêm mục checklist",
-  checklist_completed: "Đã cập nhật mục checklist",
-  checklist_deleted: "Đã xóa mục checklist",
-  label_attached: "Đã gắn nhãn",
-  label_detached: "Đã gỡ nhãn",
-  comment_created: "Đã thêm bình luận",
-  comment_updated: "Đã chỉnh sửa bình luận",
-  comment_deleted: "Đã xóa bình luận",
+export const ACTIVITY_ACTION_LABEL_IDS: Record<string, string> = {
+  created: "project.activity.action.created",
+  title: "project.activity.action.title",
+  description: "project.activity.action.description",
+  priority: "project.activity.action.priority",
+  status: "project.activity.action.status",
+  taskType: "project.activity.action.taskType",
+  startDate: "project.activity.action.startDate",
+  dueDate: "project.activity.action.dueDate",
+  estimatedMinutes: "project.activity.action.estimatedMinutes",
+  allDay: "project.activity.action.allDay",
+  archived: "project.activity.action.archived",
+  parentTaskId: "project.activity.action.parentTaskId",
+  assigneeUserId: "project.activity.action.assigneeUserId",
+  isParentTask: "project.activity.action.isParentTask",
+  autoCompleteSprint: "project.activity.action.autoCompleteSprint",
+  rank: "project.activity.action.rank",
+  checklist_created: "project.activity.action.checklistCreated",
+  checklist_completed: "project.activity.action.checklistCompleted",
+  checklist_deleted: "project.activity.action.checklistDeleted",
+  label_attached: "project.activity.action.labelAttached",
+  label_detached: "project.activity.action.labelDetached",
+  comment_created: "project.activity.action.commentCreated",
+  comment_updated: "project.activity.action.commentUpdated",
+  comment_deleted: "project.activity.action.commentDeleted",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  TODO: "Cần làm",
-  IN_PROGRESS: "Đang làm",
-  IN_REVIEW: "Đang review",
-  DONE: "Hoàn thành",
-  CANCELLED: "Đã hủy",
+const STATUS_LABEL_IDS: Record<string, string> = {
+  TODO: "project.task.status.todo",
+  IN_PROGRESS: "project.task.status.inProgress",
+  IN_REVIEW: "project.task.status.inReview",
+  DONE: "project.task.status.done",
+  CANCELLED: "project.task.status.cancelled",
 };
 
-const PRIORITY_LABELS: Record<string, string> = {
-  LOW: "Thấp",
-  MEDIUM: "Trung bình",
-  HIGH: "Cao",
-  URGENT: "Khẩn cấp",
+const PRIORITY_LABEL_IDS: Record<string, string> = {
+  LOW: "project.task.priority.low",
+  MEDIUM: "project.task.priority.medium",
+  HIGH: "project.task.priority.high",
+  URGENT: "project.task.priority.urgent",
 };
 
-const TASK_TYPE_LABELS: Record<string, string> = {
-  TASK: "Task",
-  BUG: "Bug",
-  STORY: "Story",
-  EPIC: "Epic",
-  SUBTASK: "Subtask",
+const TASK_TYPE_LABEL_IDS: Record<string, string> = {
+  TASK: "project.task.type.task",
+  BUG: "project.task.type.bug",
+  STORY: "project.task.type.story",
+  EPIC: "project.task.type.epic",
+  SUBTASK: "project.task.type.subtask",
 };
 
 export function createTaskActivityPresenter(
   members: ProjectMember[],
   tasks: Task[],
+  formatMessage: (id: string, values?: Record<string, string | number>) => string,
+  formatDate: (value: Date) => string,
 ) {
   const memberDisplayName = (userId?: string | null) => {
-    if (!userId) return "Người dùng";
+    if (!userId) return formatMessage("app.user");
     const name = members.find((member) => member.userId === userId)?.displayName;
-    return name && name !== userId ? name : "Người dùng";
+    return name && name !== userId ? name : formatMessage("app.user");
   };
 
   const activityActor = (activity: TaskActivity) => {
-    const memberName = memberDisplayName(activity.actorId);
-    if (memberName !== "Người dùng") return memberName;
+    const memberName = members.find(
+      (member) => member.userId === activity.actorId,
+    )?.displayName;
+    if (memberName && memberName !== activity.actorId) return memberName;
     if (activity.actorName && activity.actorName !== activity.actorId) {
       return activity.actorName;
     }
-    return activity.actorId ? "Thành viên" : "Hệ thống";
+    return formatMessage(activity.actorId ? "project.role.member" : "app.system");
   };
 
   const activityValue = (activity: TaskActivity, value?: string | null) => {
@@ -82,29 +86,43 @@ export function createTaskActivityPresenter(
           completed?: boolean;
         };
         if (typeof checklist.completed === "boolean") {
-          return `${checklist.title || "Checklist"}: ${checklist.completed ? "Đã hoàn thành" : "Chưa hoàn thành"}`;
+          return formatMessage(
+            "project.activity.checklistValue",
+            {
+              title: checklist.title || formatMessage("project.checklist.title"),
+              state: formatMessage(
+                checklist.completed
+                  ? "project.task.status.done"
+                  : "project.checklist.incomplete",
+              ),
+            },
+          );
         }
-        return checklist.title || "Checklist";
+        return checklist.title || formatMessage("project.checklist.title");
       } catch {
         return value;
       }
     }
-    if (activity.field === "status") return STATUS_LABELS[value] || value;
-    if (activity.field === "priority") return PRIORITY_LABELS[value] || value;
-    if (activity.field === "taskType") return TASK_TYPE_LABELS[value] || value;
+    if (activity.field === "status")
+      return STATUS_LABEL_IDS[value] ? formatMessage(STATUS_LABEL_IDS[value]) : value;
+    if (activity.field === "priority")
+      return PRIORITY_LABEL_IDS[value] ? formatMessage(PRIORITY_LABEL_IDS[value]) : value;
+    if (activity.field === "taskType")
+      return TASK_TYPE_LABEL_IDS[value] ? formatMessage(TASK_TYPE_LABEL_IDS[value]) : value;
     if (activity.field === "assigneeUserId") return memberDisplayName(value);
     if (activity.field === "parentTaskId") {
       return tasks.find((task) => task.id === value)?.title || value;
     }
-    if (activity.field === "estimatedMinutes") return `${value} phút`;
+    if (activity.field === "estimatedMinutes")
+      return formatMessage("project.task.minutes", { count: value });
     if (["startDate", "dueDate"].includes(activity.field)) {
       const date = new Date(value);
       return Number.isNaN(date.getTime())
         ? value
-        : date.toLocaleDateString("vi-VN");
+        : formatDate(date);
     }
     if (["allDay", "archived", "isParentTask", "autoCompleteSprint"].includes(activity.field)) {
-      return value === "true" ? "Bật" : "Tắt";
+      return formatMessage(value === "true" ? "app.enabled" : "app.disabled");
     }
     return value;
   };

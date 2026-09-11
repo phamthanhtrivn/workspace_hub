@@ -5,8 +5,8 @@ type ProjectAlertIcon = "question" | "warning" | "error";
 type ConfirmProjectActionOptions = {
   title: string;
   text?: string;
-  confirmText?: string;
-  cancelText?: string;
+  confirmText: string;
+  cancelText: string;
   icon?: ProjectAlertIcon;
   destructive?: boolean;
 };
@@ -14,8 +14,8 @@ type ConfirmProjectActionOptions = {
 export async function confirmProjectAction({
   title,
   text,
-  confirmText = "Xác nhận",
-  cancelText = "Hủy",
+  confirmText,
+  cancelText,
   icon = "question",
   destructive = false,
 }: ConfirmProjectActionOptions): Promise<boolean> {

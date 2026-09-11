@@ -1,11 +1,17 @@
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
 import type { CreateTaskPayload, UpdateTaskPayload } from "./api/task.api";
-import type { SprintFormValues } from "./components/sprint-edit-dialog";
+import type { SprintFormValues } from "./components/dialogs/sprint-edit-dialog";
 import { confirmProjectAction } from "./project-alert";
 import { TaskStatus, type Task } from "./types/project";
+import { toApiDateTime } from "./utils/task-dates";
+import { getProjectErrorMessage } from "./project-error-message";
 
 interface ProjectGroupActionDependencies {
+  formatMessage: (
+    id: string,
+    values?: Record<string, string | number>,
+  ) => string;
   tasks: Task[];
   editingGroup: Task | null;
   setEditingGroup: Dispatch<SetStateAction<Task | null>>;
@@ -17,6 +23,7 @@ interface ProjectGroupActionDependencies {
 }
 
 export function createProjectGroupActions(deps: ProjectGroupActionDependencies) {
+  const message = deps.formatMessage;
   const editGroup = (group: Task) => {
     if (deps.rejectChange(group.id)) return;
     deps.setSelectedTask(null);
@@ -30,25 +37,26 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
         taskId: deps.editingGroup.id,
         payload: {
           title: values.name,
-          startDate: values.startDate,
-          dueDate: values.endDate,
+          startDate: toApiDateTime(values.startDate || "", false),
+          dueDate: toApiDateTime(values.endDate || "", false),
           description: values.goal,
           allDay: false,
           autoCompleteSprint: values.autoCompleteSprint,
         },
       });
       deps.setEditingGroup(null);
-      toast.success("Cập nhật sprint thành công");
+      toast.success(message("project.sprint.updated"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể cập nhật sprint");
+      toast.error(getProjectErrorMessage(error, message, "project.sprint.updateFailed"));
     }
   };
 
   const deleteGroup = async (group: Task) => {
     const confirmed = await confirmProjectAction({
-      title: `Xóa nhóm “${group.title}”?`,
-      text: "Các công việc bên trong sẽ được chuyển về Backlog.",
-      confirmText: "Xóa nhóm",
+      title: message("project.group.deleteConfirmTitle", { name: group.title }),
+      text: message("project.group.deleteConfirmText"),
+      confirmText: message("project.group.delete"),
+      cancelText: message("app.cancel"),
       icon: "warning",
       destructive: true,
     });
@@ -64,9 +72,9 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
         payload: { archived: true, isParentTask: false },
       });
       deps.setSelectedTask(null);
-      toast.success("Đã xóa sprint và chuyển task về Backlog");
+      toast.success(message("project.group.deleted"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể xóa sprint");
+      toast.error(getProjectErrorMessage(error, message, "project.group.deleteFailed"));
     }
   };
 
@@ -74,11 +82,11 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
     try {
       await Promise.all(orderedTasks.map((task, index) => deps.updateTask({
         taskId: task.id,
-        payload: { rank: String((index + 1) * 1000) },
+        payload: { rank: String((index + 1) * 1000).padStart(20, "0") },
       })));
-      toast.success(`Đã sắp xếp lại work items trong "${group.title}"`);
+      toast.success(message("project.group.reordered", { name: group.title }));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể sắp xếp work items");
+      toast.error(getProjectErrorMessage(error, message, "project.group.reorderFailed"));
     }
   };
 
@@ -89,20 +97,22 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
         ...(parentTaskId ? { parentTaskId } : {}),
         ...(isParentTask ? { isParentTask: true } : {}),
       });
-      toast.success("Tạo công việc thành công");
+      toast.success(message("project.task.created"));
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
-      toast.error(apiError.response?.data?.message || (error instanceof Error ? error.message : "Không thể tạo công việc"));
+      toast.error(
+        apiError.response?.data?.message ||
+          getProjectErrorMessage(error, message, "project.task.createFailed"),
+      );
     }
   };
 
   const createSprintTask = async (sprintId: string, title: string) => {
     try {
-      const task = await deps.createTask({ title, status: TaskStatus.TODO });
-      await deps.addTasksToSprint({ sprintId, taskIds: [task.id] });
-      toast.success("Tạo task trong Sprint thành công");
+      await deps.createTask({ title, status: TaskStatus.TODO, sprintId });
+      toast.success(message("project.sprint.taskCreated"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể tạo task trong Sprint");
+      toast.error(getProjectErrorMessage(error, message, "project.sprint.createTaskFailed"));
       throw error;
     }
   };

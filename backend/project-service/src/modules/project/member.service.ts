@@ -24,10 +24,11 @@ export class MemberService {
   ) {}
 
   async add(userId: string, projectId: string, dto: AddMemberDto) {
+    return this.prisma.$transaction(async (tx) => {
     await this.access.requireCanManageMembers(userId, projectId);
     const now = new Date();
 
-    const reactivated = await this.prisma.projectMember.updateMany({
+    const reactivated = await tx.projectMember.updateMany({
       where: {
         projectId,
         userId: dto.userId,
@@ -48,15 +49,15 @@ export class MemberService {
       },
     });
     if (reactivated.count === 1) {
-      const member = await this.prisma.projectMember.findUniqueOrThrow({
+      const member = await tx.projectMember.findUniqueOrThrow({
         where: { projectId_userId: { projectId, userId: dto.userId } },
       });
-      await this.calendarEvents.publishProject(projectId);
+      await this.calendarEvents.publishProject(projectId, tx);
       return toMemberResponse(member);
     }
 
     try {
-      const member = await this.prisma.projectMember.create({
+      const member = await tx.projectMember.create({
         data: {
           id: crypto.randomUUID(),
           projectId,
@@ -67,7 +68,7 @@ export class MemberService {
           updatedAt: now,
         },
       });
-      await this.calendarEvents.publishProject(projectId);
+      await this.calendarEvents.publishProject(projectId, tx);
       return toMemberResponse(member);
     } catch (error) {
       if (isUniqueConstraintError(error)) {
@@ -75,6 +76,8 @@ export class MemberService {
       }
       throw error;
     }
+  
+    });
   }
 
   async updatePermissions(
@@ -118,8 +121,9 @@ export class MemberService {
     projectId: string,
     memberUserId: string,
   ): Promise<void> {
+    return this.prisma.$transaction(async (tx) => {
     await this.access.requireCanManageMembers(userId, projectId);
-    const member = await this.prisma.projectMember.findUnique({
+    const member = await tx.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },
     });
 
@@ -131,7 +135,7 @@ export class MemberService {
     }
 
     try {
-      await this.prisma.projectMember.update({
+      await tx.projectMember.update({
         where: { id: member.id, version: member.version },
         data: {
           status: ProjectMemberStatus.LEFT,
@@ -146,6 +150,8 @@ export class MemberService {
         "Project member was changed by another request",
       );
     }
-    await this.calendarEvents.publishProject(projectId);
+    await this.calendarEvents.publishProject(projectId, tx);
+  
+    });
   }
 }

@@ -32,10 +32,28 @@ model Project {
   invitations ProjectInvitation[]
   labels      TaskLabel[]
   dependencies TaskDependency[]
+  files       ProjectFile[]
 
   @@index([ownerId, archived], map: "idx_projects_owner_archived")
   @@index([status, archived], map: "idx_projects_status_archived")
   @@map("projects")
+}
+
+model ProjectFile {
+  id         String   @id @db.Uuid
+  projectId  String   @map("project_id") @db.Uuid
+  sprintId   String?  @map("sprint_id") @db.Uuid
+  name       String   @db.VarChar(255)
+  mimeType   String   @map("mime_type") @db.VarChar(255)
+  sizeBytes  Int      @map("size_bytes")
+  content    Bytes
+  uploadedBy String   @map("uploaded_by") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sprint     Sprint?  @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt(sort: Desc)], map: "idx_project_files_project_created")
+  @@map("project_files")
 }
 
 model ProjectSetting {
@@ -141,6 +159,7 @@ model Sprint {
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   tasks   Task[]
+  files   ProjectFile[]
 
   @@index([projectId, status, startDate], map: "idx_project_sprints_project_status_start")
   @@map("project_sprints")

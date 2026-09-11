@@ -1,39 +1,40 @@
+import { OptionalField } from '../../../common/optional-field.decorator';
 import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ProjectStatus, ProjectType, ProjectVisibility } from '../project.enums';
 import { Trim } from '../../../common/trim.decorator';
 
 export class UpdateProjectDto {
-  @IsOptional()
+  @OptionalField()
   @Trim()
   @IsString()
   @IsNotEmpty()
   @MaxLength(100)
   name?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsString()
   @MaxLength(20)
   color?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsString()
   @MaxLength(10)
   icon?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsEnum(ProjectStatus)
   status?: ProjectStatus;
 
-  @IsOptional()
+  @OptionalField()
   @IsString()
   @MaxLength(2000)
   description?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsEnum(ProjectType)
   projectType?: ProjectType;
 
-  @IsOptional()
+  @OptionalField()
   @IsEnum(ProjectVisibility)
   visibility?: ProjectVisibility;
 

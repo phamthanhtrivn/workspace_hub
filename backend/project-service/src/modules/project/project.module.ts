@@ -32,9 +32,12 @@ import { HttpNotificationAdapter } from "./communication/http-notification.adapt
 import { HttpUserDirectoryAdapter } from "./communication/http-user-directory.adapter";
 import { ProjectTemplateService } from "./project-template.service";
 import { TaskPolicyService } from "./task-policy.service";
+import { ProjectFileController } from "./project-file.controller";
+import { ProjectFileService } from "./project-file.service";
 
 @Module({
   controllers: [
+    ProjectFileController,
     ProjectController,
     MemberController,
     InvitationController,
@@ -47,6 +50,7 @@ import { TaskPolicyService } from "./task-policy.service";
     DependencyController,
   ],
   providers: [
+    ProjectFileService,
     ProjectAccessService,
     ProjectService,
     MemberService,

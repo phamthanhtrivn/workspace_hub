@@ -2,10 +2,12 @@ import type { Dispatch, SetStateAction } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { UpdateTaskPayload } from "../api/task.api";
-import type { TaskFormValues } from "../components/task-form-dialog";
+import type { TaskFormValues } from "../components/dialogs/task-form-dialog";
 import { confirmProjectAction } from "../project-alert";
 import type { ProjectPermissions } from "../project-permissions";
-import { canMoveTaskForward, TASK_STATUS_LABELS } from "../task-status-transition";
+import { canMoveTaskForward } from "../task-status-transition";
+import { TASK_STATUS_LABEL_IDS } from "../constants/task.constants";
+import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { TaskDrawerUpdatePayload } from "../types/task-detail-drawer.types";
 import {
   isTerminalTaskStatus,
@@ -39,7 +41,7 @@ interface ProjectTaskActionOptions {
   setStatusOverrides: Dispatch<SetStateAction<Record<string, TaskStatus>>>;
   rejectChange: (taskId: string) => boolean;
   closeTaskForm: () => void;
-  createTask: (payload: TaskFormValues) => Promise<Task>;
+  createTask: (payload: TaskFormValues & { sprintId?: string }) => Promise<Task>;
   updateTask: (input: { taskId: string; payload: UpdateTaskPayload }) => Promise<unknown>;
   addTasksToSprint: (input: { sprintId: string; taskIds: string[] }) => Promise<unknown>;
 }
@@ -67,6 +69,7 @@ function resolveAssignees(
 }
 
 export function useProjectTaskActions(options: ProjectTaskActionOptions) {
+  const intl = useAppIntl();
   const queryClient = useQueryClient();
 
   const moveTask = async (taskId: string, newStatus: TaskStatus) => {
@@ -75,9 +78,17 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
     if (isTerminalTaskStatus(task.status) || !options.permissions.canEditTask(task)) return;
     if (!canMoveTaskForward(task, newStatus)) return;
     const confirmed = await confirmProjectAction({
-      title: "Chuyển trạng thái công việc?",
-      text: `Chuyển “${task.title}” từ ${TASK_STATUS_LABELS[task.status]} sang ${TASK_STATUS_LABELS[newStatus]}?`,
-      confirmText: "Chuyển trạng thái",
+      title: intl.formatMessage({ id: "project.task.statusChangeTitle" }),
+      text: intl.formatMessage(
+        { id: "project.task.statusChangeText" },
+        {
+          name: task.title,
+          from: intl.formatMessage({ id: TASK_STATUS_LABEL_IDS[task.status] }),
+          to: intl.formatMessage({ id: TASK_STATUS_LABEL_IDS[newStatus] }),
+        },
+      ),
+      confirmText: intl.formatMessage({ id: "project.task.statusChangeAction" }),
+      cancelText: intl.formatMessage({ id: "app.cancel" }),
       icon: "question",
     });
     if (!confirmed) return;
@@ -91,8 +102,12 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         return next;
       });
     } catch {
-      options.setStatusOverrides((current) => ({ ...current, [taskId]: task.status }));
-      toast.error("Không thể cập nhật trạng thái task");
+      options.setStatusOverrides((current) => {
+        const next = { ...current };
+        delete next[taskId];
+        return next;
+      });
+      toast.error(intl.formatMessage({ id: "project.task.statusUpdateFailed" }));
     }
   };
 
@@ -104,25 +119,19 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
           ? { ...values, clearParent: true }
           : values;
         await options.updateTask({ taskId: options.editingTask.id, payload });
-        toast.success("Cập nhật task thành công");
+        toast.success(intl.formatMessage({ id: "project.task.updated" }));
       } else {
-        const task = await options.createTask(values);
-        if (options.targetSprintId) {
-          await options.addTasksToSprint({
-            sprintId: options.targetSprintId,
-            taskIds: [task.id],
-          });
-        }
-        toast.success("Tạo task thành công");
+        await options.createTask({ ...values, sprintId: options.targetSprintId });
+        toast.success(intl.formatMessage({ id: "project.task.created" }));
       }
       options.closeTaskForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không thể lưu task");
+      toast.error(error instanceof Error ? error.message : intl.formatMessage({ id: "project.task.saveFailed" }));
     }
   };
 
   const updateTaskDirect = async (taskId: string, payload: TaskDrawerUpdatePayload) => {
-    if (options.rejectChange(taskId)) return;
+    if (options.rejectChange(taskId)) throw new Error(intl.formatMessage({ id: "project.task.editForbidden" }));
     try {
       const backendPayload = Object.fromEntries(
         Object.entries(payload).filter(([key]) => BACKEND_TASK_FIELDS.has(key)),
@@ -145,7 +154,8 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
       } as Task : current);
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
-      toast.error(apiError.response?.data?.message || "Không thể cập nhật công việc");
+      toast.error(apiError.response?.data?.message || intl.formatMessage({ id: "project.task.updateFailed" }));
+      throw error;
     }
   };
 

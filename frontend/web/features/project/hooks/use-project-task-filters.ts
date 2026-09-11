@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { TaskKindFilter } from "../components/task-quick-filters";
+import type { TaskKindFilter } from "../components/ui/task-quick-filters";
 import { enrichProjectTasks, filterProjectTasks } from "../project-task-view";
 import {
   TaskPriority,

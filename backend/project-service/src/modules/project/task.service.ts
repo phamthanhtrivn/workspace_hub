@@ -23,13 +23,11 @@ import {
 } from "../../common/prisma/prisma-errors";
 import { paginate, PaginationQueryDto } from "../../common/pagination";
 import { TaskCalendarEventService } from "./task-calendar-event.service";
+import { taskInclude } from "./task-query";
+import { lockProject } from "./project-transaction";
+import { normalizeTaskRank } from "./task-rank";
 
-const taskWithCount = {
-  _count: { select: { children: true } },
-  checklists: { orderBy: [{ rank: "asc" }, { createdAt: "asc" }] },
-  assignees: { orderBy: { assignedAt: "asc" } },
-  labelMappings: { include: { label: true }, orderBy: { labelId: "asc" } },
-} satisfies Prisma.TaskInclude;
+const taskWithCount = taskInclude;
 
 @Injectable()
 export class TaskService {
@@ -46,10 +44,7 @@ export class TaskService {
     const startDate = this.toDate(dto.startDate);
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
-    const parentSprintId = await this.validateParent(
-      projectId,
-      dto.parentTaskId,
-    );
+    if (dto.sprintId) await this.access.requireCanManageSprints(userId, projectId);
     if (!dto.parentTaskId && dto.taskType === TaskType.SUBTASK) {
       throw new ConflictException("A subtask must have a parent task");
     }
@@ -62,6 +57,17 @@ export class TaskService {
         data: { nextTaskNumber: { increment: 1 } },
         select: { nextTaskNumber: true },
       });
+      const parentSprintId = await this.validateParent(projectId, dto.parentTaskId, undefined, tx);
+      if (dto.parentTaskId && dto.sprintId && parentSprintId !== dto.sprintId) {
+        throw new ConflictException("A subtask must belong to its parent's sprint");
+      }
+      const sprintId = dto.sprintId ?? parentSprintId;
+      if (sprintId) {
+        const sprint = await tx.sprint.findFirst({ where: { id: sprintId, projectId } });
+        if (!sprint || sprint.status !== "PLANNED") {
+          throw new ConflictException("Tasks can only be added to a planned sprint");
+        }
+      }
       const created = await tx.task.create({
         data: {
           id: crypto.randomUUID(),
@@ -73,7 +79,7 @@ export class TaskService {
             : dto.isParentTask
               ? TaskType.EPIC
               : (dto.taskType ?? TaskType.TASK),
-          ...(parentSprintId !== undefined ? { sprintId: parentSprintId } : {}),
+          ...(sprintId !== undefined ? { sprintId } : {}),
           title: dto.title.trim(),
           description: dto.description,
           priority: dto.priority ?? "MEDIUM",
@@ -86,7 +92,7 @@ export class TaskService {
           completedAt: isTerminalTaskStatus(status) ? now : undefined,
           completedBy: isTerminalTaskStatus(status) ? userId : undefined,
           estimatedMinutes: dto.estimatedMinutes ?? 0,
-          rank: dto.rank,
+          rank: normalizeTaskRank(dto.rank),
           archived: false,
           isParentTask: dto.isParentTask ?? false,
           autoCompleteSprint: dto.autoCompleteSprint ?? false,
@@ -103,10 +109,10 @@ export class TaskService {
         created.title,
         tx,
       );
+      await this.calendarEvents.publishUpsert(created.id, tx);
       return created;
     });
 
-    await this.calendarEvents.publishUpsert(task.id);
     return toTaskResponse(task);
   }
 
@@ -179,11 +185,6 @@ export class TaskService {
     if (dto.clearParent) {
       parentTaskId = null;
     } else if (dto.parentTaskId !== undefined) {
-      await this.validateParent(
-        current.projectId,
-        dto.parentTaskId,
-        current.id,
-      );
       parentTaskId = dto.parentTaskId;
     }
 
@@ -196,7 +197,7 @@ export class TaskService {
     if (dto.allDay !== undefined) data.allDay = dto.allDay;
     if (dto.estimatedMinutes !== undefined)
       data.estimatedMinutes = dto.estimatedMinutes;
-    if (dto.rank !== undefined) data.rank = dto.rank;
+    if (dto.rank !== undefined) data.rank = normalizeTaskRank(dto.rank);
     if (dto.archived !== undefined) data.archived = dto.archived;
     if (dto.isParentTask !== undefined) data.isParentTask = dto.isParentTask;
     if (parentTaskId !== undefined) {
@@ -233,6 +234,18 @@ export class TaskService {
     let task: Prisma.TaskGetPayload<{ include: typeof taskWithCount }>;
     try {
       task = await this.prisma.$transaction(async (tx) => {
+        await lockProject(tx, current.projectId);
+        if (dto.parentTaskId !== undefined) {
+          const sprintId = await this.validateParent(current.projectId, dto.parentTaskId, current.id, tx);
+          if (current.sprintId !== sprintId) {
+            const affected = await tx.sprint.findMany({ where: { id: { in: [current.sprintId, sprintId].filter((id): id is string => Boolean(id)) } } });
+            if (affected.some((sprint) => sprint.status !== "PLANNED")) {
+              throw new ConflictException("Only planned sprint tasks can be reparented across sprints");
+            }
+          }
+          data.sprint = sprintId ? { connect: { id: sprintId } } : { disconnect: true };
+          data.isParentTask = false;
+        }
         const updated = await tx.task.update({
           where: { id: taskId, version: current.version },
           data: { ...data, version: { increment: 1 } },
@@ -287,6 +300,7 @@ export class TaskService {
             );
           }
         }
+        await this.calendarEvents.publishUpsert(updated.id, tx);
         if (dto.assigneeUserId === undefined) return updated;
         return tx.task.findUniqueOrThrow({
           where: { id: taskId },
@@ -299,7 +313,6 @@ export class TaskService {
       }
       throw error;
     }
-    await this.calendarEvents.publishUpsert(task.id);
     return toTaskResponse(task);
   }
 
@@ -313,6 +326,10 @@ export class TaskService {
     assertTaskEditable(task.status);
     try {
       await this.prisma.$transaction(async (tx) => {
+        await lockProject(tx, task.projectId);
+        const children = await tx.task.findMany({ where: { parentTaskId: task.id, deletedAt: null }, select: { id: true, status: true } });
+        children.forEach((child) => assertTaskEditable(child.status));
+        await tx.task.updateMany({ where: { id: { in: children.map((child) => child.id) } }, data: { parentTaskId: null, taskType: TaskType.TASK, version: { increment: 1 } } });
         await tx.task.update({
           where: { id: taskId, version: task.version },
           data: {
@@ -329,11 +346,11 @@ export class TaskService {
           true,
           tx,
         );
+        await this.calendarEvents.publishUpsert(taskId, tx);
       });
     } catch (error) {
       rethrowWriteConflict(error, "Task was changed by another request");
     }
-    await this.calendarEvents.publishUpsert(taskId);
   }
 
   private async findTask(taskId: string) {
@@ -349,12 +366,13 @@ export class TaskService {
     projectId: string,
     parentTaskId?: string,
     currentTaskId?: string,
+    database: Prisma.TransactionClient = this.prisma,
   ): Promise<string | null | undefined> {
     if (!parentTaskId) return undefined;
     if (parentTaskId === currentTaskId)
       throw new ConflictException("A task cannot be its own parent");
 
-    const parent = await this.prisma.task.findFirst({
+    const parent = await database.task.findFirst({
       where: { id: parentTaskId, projectId, deletedAt: null },
       select: {
         archived: true,
@@ -370,6 +388,9 @@ export class TaskService {
     assertTaskEditable(parent.status);
     if (parent.parentTaskId)
       throw new ConflictException("Only top-level tasks can be parents");
+    if (currentTaskId && await database.task.count({ where: { parentTaskId: currentTaskId, deletedAt: null } })) {
+      throw new ConflictException("A task with children cannot become a subtask");
+    }
     return parent.sprintId;
   }
 
@@ -389,6 +410,9 @@ export class TaskService {
   }
 
   private toDate(value?: string | null): Date | null | undefined {
+    if (value && value.includes('T') && !/(Z|[+-]\d{2}:?\d{2})$/i.test(value)) {
+      throw new BadRequestException('Task timestamps must include a timezone offset');
+    }
     return value == null ? value : new Date(value);
   }
 

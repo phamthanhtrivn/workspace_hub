@@ -1,3 +1,4 @@
+import { OptionalField } from '../../../common/optional-field.decorator';
 import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
 import { TaskPriority, TaskStatus, TaskType } from '../project.enums';
 import { Trim } from '../../../common/trim.decorator';
@@ -7,26 +8,26 @@ export class UpdateTaskDto {
   @IsUUID()
   assigneeUserId?: string | null;
 
-  @IsOptional()
+  @OptionalField()
   @Trim()
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
   title?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsString()
   description?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsEnum(TaskPriority)
   priority?: TaskPriority;
 
-  @IsOptional()
+  @OptionalField()
   @IsEnum(TaskStatus)
   status?: TaskStatus;
 
-  @IsOptional()
+  @OptionalField()
   @IsEnum(TaskType)
   taskType?: TaskType;
 
@@ -38,37 +39,37 @@ export class UpdateTaskDto {
   @IsDateString()
   dueDate?: string | null;
 
-  @IsOptional()
+  @OptionalField()
   @IsBoolean()
   allDay?: boolean;
 
-  @IsOptional()
+  @OptionalField()
   @IsInt()
   @Min(0)
   estimatedMinutes?: number;
 
-  @IsOptional()
+  @OptionalField()
   @IsString()
   @MaxLength(100)
   rank?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsBoolean()
   archived?: boolean;
 
-  @IsOptional()
+  @OptionalField()
   @IsUUID()
   parentTaskId?: string;
 
-  @IsOptional()
+  @OptionalField()
   @IsBoolean()
   clearParent?: boolean;
 
-  @IsOptional()
+  @OptionalField()
   @IsBoolean()
   isParentTask?: boolean;
 
-  @IsOptional()
+  @OptionalField()
   @IsBoolean()
   autoCompleteSprint?: boolean;
 }
