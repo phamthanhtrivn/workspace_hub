@@ -1,7 +1,7 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
-import { PrismaService } from './prisma/prisma.service';
-import { Public } from './decorators/public.decorator';
+import { createClient } from 'redis';
+import { PrismaService } from '../prisma/prisma.service';
 
 type DependencyCheck = {
   name: string;
@@ -9,23 +9,25 @@ type DependencyCheck = {
   message?: string;
 };
 
-const SERVICE_NAME = 'project-service';
+const SERVICE_NAME = 'communication-service';
 const KAFKA_DEFAULT_BROKER = 'localhost:9092';
 
 @Controller()
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Public()
   @Get('health')
   health() {
     return this.response('ok', []);
   }
 
-  @Public()
   @Get('ready')
   async ready() {
-    const checks = await Promise.all([this.checkDatabase(), this.checkKafka()]);
+    const checks = await Promise.all([
+      this.checkDatabase(),
+      this.checkKafka(),
+      this.checkRedis(),
+    ]);
     const isReady = checks.every((check) => check.status === 'ok');
 
     if (!isReady) {
@@ -78,6 +80,36 @@ export class HealthController {
       return this.errorCheck('kafka', error);
     } finally {
       await admin.disconnect().catch(() => undefined);
+    }
+  }
+
+  private async checkRedis(): Promise<DependencyCheck> {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      return {
+        name: 'redis',
+        status: 'error',
+        message: 'REDIS_URL is not configured',
+      };
+    }
+
+    const client = createClient({
+      url: redisUrl,
+      socket: {
+        connectTimeout: 3_000,
+        reconnectStrategy: false,
+      },
+    });
+    client.on('error', () => undefined);
+
+    try {
+      await client.connect();
+      await client.ping();
+      return { name: 'redis', status: 'ok' };
+    } catch (error) {
+      return this.errorCheck('redis', error);
+    } finally {
+      await client.quit().catch(() => undefined);
     }
   }
 

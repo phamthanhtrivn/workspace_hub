@@ -39,6 +39,16 @@ services:
     volumes:
       - ../kong-gateway/kong.docker.yml:/usr/local/kong/declarative/kong.yml
     depends_on:
+      user-service:
+        condition: service_healthy
+      project-service:
+        condition: service_healthy
+      communication-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+      document-service:
+        condition: service_healthy
       calendar-service:
         condition: service_healthy
     networks:

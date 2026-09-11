@@ -9,6 +9,54 @@ consumers:
         algorithm: HS256
 
 services:
+  - name: user-service-ready
+    url: http://host.docker.internal:8081/ready
+    routes:
+      - name: user-health-route
+        paths:
+          - /health/user
+        strip_path: true
+
+  - name: project-service-ready
+    url: http://host.docker.internal:8082/ready
+    routes:
+      - name: project-health-route
+        paths:
+          - /health/project
+        strip_path: true
+
+  - name: communication-service-ready
+    url: http://host.docker.internal:8083/ready
+    routes:
+      - name: communication-health-route
+        paths:
+          - /health/communication
+        strip_path: true
+
+  - name: notification-service-ready
+    url: http://host.docker.internal:8084/ready
+    routes:
+      - name: notification-health-route
+        paths:
+          - /health/notification
+        strip_path: true
+
+  - name: document-service-ready
+    url: http://host.docker.internal:8085/ready
+    routes:
+      - name: document-health-route
+        paths:
+          - /health/document
+        strip_path: true
+
+  - name: calendar-service-ready
+    url: http://host.docker.internal:8086/ready
+    routes:
+      - name: calendar-health-route
+        paths:
+          - /health/calendar
+        strip_path: true
+
   - name: user-service
     url: http://host.docker.internal:8081
     routes:

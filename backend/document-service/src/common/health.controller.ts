@@ -1,7 +1,6 @@
 import { Controller, Get, ServiceUnavailableException } from '@nestjs/common';
 import { Kafka } from 'kafkajs';
-import { PrismaService } from './prisma/prisma.service';
-import { Public } from './decorators/public.decorator';
+import { PrismaService } from '../prisma/prisma.service';
 
 type DependencyCheck = {
   name: string;
@@ -9,20 +8,18 @@ type DependencyCheck = {
   message?: string;
 };
 
-const SERVICE_NAME = 'project-service';
+const SERVICE_NAME = 'document-service';
 const KAFKA_DEFAULT_BROKER = 'localhost:9092';
 
 @Controller()
 export class HealthController {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Public()
   @Get('health')
   health() {
     return this.response('ok', []);
   }
 
-  @Public()
   @Get('ready')
   async ready() {
     const checks = await Promise.all([this.checkDatabase(), this.checkKafka()]);
