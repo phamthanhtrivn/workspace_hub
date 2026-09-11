@@ -439,12 +439,7 @@ export class MeetingRoomService {
 
       return tx.meeting.findUniqueOrThrow({
         where: { id: meeting.id },
-        include: {
-          participants: {
-            where: { userId },
-            take: 1,
-          },
-        },
+        include: { participants: true },
       });
     });
 
@@ -454,7 +449,9 @@ export class MeetingRoomService {
       );
     }
 
-    const startedParticipant = startedMeeting.participants[0];
+    const startedParticipant = startedMeeting.participants.find(
+      (participant) => participant.userId === userId,
+    );
     const payload = {
       meetingId: startedMeeting.id,
       joinToken: startedMeeting.joinToken,
@@ -479,6 +476,15 @@ export class MeetingRoomService {
       MeetingEvent.STARTED,
       payload,
     );
+    for (const participantUserId of new Set(
+      startedMeeting.participants.map((participant) => participant.userId),
+    )) {
+      this.meetingRealtimeService.emitUserEvent(
+        participantUserId,
+        MeetingEvent.STARTED,
+        payload,
+      );
+    }
 
     const token = await this.liveKitService.createParticipantToken({
       roomName: startedMeeting.roomName,

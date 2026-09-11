@@ -7,10 +7,17 @@ import {
   updateNotificationSuccess,
 } from "@/store/notification/notification.slice";
 import { chatKeys } from "@/features/chat/types/chat.constant";
+import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import {
   NotificationType,
   Notification as AppNotification,
 } from "../types/notification.types";
+
+const MEETING_NOTIFICATION_TYPES = new Set<NotificationType>([
+  NotificationType.MEETING_INVITATION,
+  NotificationType.MEETING_UPDATED,
+  NotificationType.MEETING_CANCELLED,
+]);
 
 /**
  * Global hook that owns the notification WebSocket connection lifecycle.
@@ -51,6 +58,12 @@ export function useNotificationSocket() {
             queryKey: chatKeys.spaceMembers(spaceId),
           });
         }
+      }
+
+      if (MEETING_NOTIFICATION_TYPES.has(noti.type)) {
+        queryClient.invalidateQueries({
+          queryKey: meetingKeys.upcomingRoot,
+        });
       }
     };
 

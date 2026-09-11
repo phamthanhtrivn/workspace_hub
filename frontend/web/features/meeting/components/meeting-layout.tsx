@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingHero } from "./common/meeting-hero";
@@ -24,11 +25,14 @@ import {
 import { MeetingPreJoin } from "./room/meeting-prejoin";
 import { MeetingCreatingOverlay } from "./room/meeting-fullscreen-overlay";
 import { useCreateInstantMeeting } from "../hooks/useCreateInstantMeeting";
+import { useMeetingSocket } from "../hooks/useMeetingSocket";
 import { usePreJoinMeetingDevices } from "../hooks/usePreJoinMeetingDevices";
 import { useUpcomingMeetings } from "../hooks/useScheduledMeetings";
+import { meetingKeys } from "../types/meeting.query-keys";
 
 export function MeetingLayout() {
   const intl = useAppIntl();
+  const queryClient = useQueryClient();
   const clock = useMeetingClock();
   const [flowStep, setFlowStep] = useState(MeetingFlowStep.DASHBOARD);
   const [activeNavItemId, setActiveNavItemId] = useState(
@@ -114,6 +118,15 @@ export function MeetingLayout() {
   const handleViewUpcomingMeetings = () => {
     setActiveNavItemId(MeetingDashboardNavItemId.UPCOMING);
   };
+  const refreshUpcomingMeetings = useCallback(() => {
+    void queryClient.invalidateQueries({
+      queryKey: meetingKeys.upcomingRoot,
+    });
+  }, [queryClient]);
+
+  useMeetingSocket({
+    onMeetingStarted: refreshUpcomingMeetings,
+  });
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f5f9fb] text-[#172B4D] xl:flex-row">
