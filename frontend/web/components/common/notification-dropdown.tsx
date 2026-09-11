@@ -8,6 +8,7 @@ import {
   FileText,
   FolderKanban,
   MessageCircle,
+  Trash2,
   Video,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -22,6 +23,7 @@ import {
   getUnreadCount,
   markAllAsRead,
 } from "@/features/notification/api/notification.api";
+import { useNotificationActions } from "@/features/notification/hooks/use-notification-actions";
 import {
   NotificationCategory,
   Notification,
@@ -72,6 +74,9 @@ import {
   NOTIFICATION_CHANGED_EVENT,
   isNotificationInCategory,
 } from "@/features/notification/utils/notification-category.utils";
+import { toast } from "sonner";
+import { useMeetingConfirmDialog } from "@/features/meeting/hooks/useMeetingConfirmDialog";
+import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
 
 const PAGE_SIZE = 10;
 
@@ -166,8 +171,10 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     totalPages: 1,
     categoryUnreadCount: 0,
   });
+  const [globalNotificationTotal, setGlobalNotificationTotal] = useState(0);
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
+  const { confirm, alertDialogProps } = useMeetingConfirmDialog();
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -221,6 +228,12 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
           tab === "UNREAD" ? false : undefined,
           category,
         );
+        if (category === "ALL") {
+          setGlobalNotificationTotal(res.pagination.total);
+        } else {
+          const globalRes = await getNotifications(1, 1, undefined, "ALL");
+          setGlobalNotificationTotal(globalRes.pagination.total);
+        }
         dispatch(
           setNotifications({
             list: res.data,
@@ -243,6 +256,11 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     },
     [accessToken, category, dispatch, page, tab],
   );
+  const {
+    deleteNotificationMutation,
+    deleteNotificationsMutation,
+    deletingNotificationId,
+  } = useNotificationActions();
 
   useEffect(() => {
     if (isOpen) void fetchList(page);
@@ -254,7 +272,12 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     const handleNotificationChanged = (event: Event) => {
       const detail = (event as CustomEvent<{ category?: NotificationCategory }>)
         .detail;
-      if (!detail?.category || category === "ALL" || detail.category === category) {
+      if (
+        !detail?.category ||
+        detail.category === "ALL" ||
+        category === "ALL" ||
+        detail.category === category
+      ) {
         void fetchList(page);
       }
     };
@@ -313,11 +336,100 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     setIsOpen(false); // Close dropdown when opening modal
   };
 
+  const confirmDelete = async ({
+    title,
+    text,
+    confirmButtonText,
+  }: {
+    title: string;
+    text: string;
+    confirmButtonText: string;
+  }) => {
+    return confirm({
+      title,
+      description: text,
+      confirmLabel: confirmButtonText,
+      cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+      variant: "danger",
+    });
+  };
+
+  const handleDeleteNotification = async (notificationId: string) => {
+    const confirmed = await confirmDelete({
+      title: intl.formatMessage({ id: "notifications.deleteOneConfirmTitle" }),
+      text: intl.formatMessage({ id: "notifications.deleteOneConfirmText" }),
+      confirmButtonText: intl.formatMessage({ id: "notifications.deleteOne" }),
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteNotificationMutation.mutateAsync(notificationId);
+      const nextPage =
+        page > 1 && visibleNotifications.length <= 1 ? page - 1 : page;
+      if (nextPage !== page) {
+        setPage(nextPage);
+      } else if (isOpen) {
+        void fetchList(nextPage);
+      }
+      toast.success(
+        intl.formatMessage({ id: "notifications.deleteSuccess" }),
+      );
+    } catch (error) {
+      logApiError(error, "Failed to delete notification");
+      toast.error(intl.formatMessage({ id: "notifications.deleteFailed" }));
+    }
+  };
+
+  const handleDeleteCategory = async (targetCategory: NotificationCategory) => {
+    const categoryLabel = categoryConfig[targetCategory].label;
+    const isAll = targetCategory === "ALL";
+    const confirmed = await confirmDelete({
+      title: intl.formatMessage({
+        id: isAll
+          ? "notifications.deleteAllConfirmTitle"
+          : "notifications.deleteCategoryConfirmTitle",
+      }),
+      text: intl.formatMessage(
+        {
+          id: isAll
+            ? "notifications.deleteAllConfirm"
+            : "notifications.deleteCategoryConfirm",
+        },
+        { category: categoryLabel },
+      ),
+      confirmButtonText: intl.formatMessage(
+        {
+          id: isAll ? "notifications.deleteAll" : "notifications.deleteCategory",
+        },
+        { category: categoryLabel },
+      ),
+    });
+    if (!confirmed) return;
+
+    try {
+      await deleteNotificationsMutation.mutateAsync(targetCategory);
+      setPage(1);
+      if (isOpen) void fetchList(1);
+      toast.success(
+        intl.formatMessage({
+          id: isAll
+            ? "notifications.deleteAllSuccess"
+            : "notifications.deleteCategorySuccess",
+        }),
+      );
+    } catch (error) {
+      logApiError(error, "Failed to delete notifications");
+      toast.error(intl.formatMessage({ id: "notifications.deleteFailed" }));
+    }
+  };
+
   const visibleNotifications = notifications.filter((notification) =>
     isNotificationInCategory(notification, category),
   );
   const unreadTabCount =
     category === "ALL" ? unreadCount : pagination.categoryUnreadCount;
+  const hasCategoryData = pagination.total > 0;
+  const hasGlobalData = globalNotificationTotal > 0;
   const currentPage = Math.min(page, pagination.totalPages);
   const canGoPrevious = currentPage > 1;
   const canGoNext = currentPage < pagination.totalPages;
@@ -347,15 +459,28 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             <h3 className="font-black text-slate-800 text-base">
               {intl.formatMessage({ id: "notifications.title" })}
             </h3>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllAsRead}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition cursor-pointer"
-              >
-                <Check size={14} />
-                {intl.formatMessage({ id: "notifications.markAllRead" })}
-              </button>
-            )}
+            <div className="flex items-center justify-end gap-2">
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full px-2 text-xs font-bold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-800"
+                >
+                  <Check size={14} />
+                  {intl.formatMessage({ id: "notifications.markAllRead" })}
+                </button>
+              )}
+              {hasGlobalData && (
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteCategory("ALL")}
+                  disabled={deleteNotificationsMutation.isPending}
+                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full px-2 text-xs font-bold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {intl.formatMessage({ id: "notifications.deleteAll" })}
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-2 overflow-x-auto border-b border-slate-100 px-3 py-2">
@@ -381,40 +506,64 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
             })}
           </div>
 
-          <div className="flex px-4 border-b border-slate-100">
-            <button
-              onClick={() => handleTabChange("ALL")}
-              className={`py-2.5 px-2 text-sm font-bold border-b-2 transition cursor-pointer ${
-                tab === "ALL"
-                  ? "border-indigo-600 text-indigo-600"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {intl.formatMessage({ id: "notifications.all" })}
-            </button>
-            <button
-              onClick={() => handleTabChange("UNREAD")}
-              className={`py-2.5 px-4 text-sm font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
-                tab === "UNREAD"
-                  ? "border-indigo-600 text-indigo-600"
-                  : "border-transparent text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              {intl.formatMessage({ id: "notifications.unread" })}
-              {unreadTabCount > 0 && (
-                <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${tab === "UNREAD" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}
+          <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4">
+            <div className="flex shrink-0">
+              <button
+                onClick={() => handleTabChange("ALL")}
+                className={`py-2.5 px-2 text-sm font-bold border-b-2 transition cursor-pointer ${
+                  tab === "ALL"
+                    ? "border-indigo-600 text-indigo-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {intl.formatMessage({ id: "notifications.all" })}
+              </button>
+              <button
+                onClick={() => handleTabChange("UNREAD")}
+                className={`py-2.5 px-3 text-sm font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
+                  tab === "UNREAD"
+                    ? "border-indigo-600 text-indigo-600"
+                    : "border-transparent text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {intl.formatMessage({ id: "notifications.unread" })}
+                {unreadTabCount > 0 && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-full text-[10px] ${tab === "UNREAD" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}
+                  >
+                    {unreadTabCount > 99 ? "99+" : unreadTabCount}
+                  </span>
+                )}
+              </button>
+            </div>
+            <div className="flex min-w-0 items-center justify-end gap-1 overflow-x-auto py-2">
+              {category !== "ALL" && hasCategoryData && (
+                <button
+                  type="button"
+                  onClick={() => void handleDeleteCategory(category)}
+                  disabled={deleteNotificationsMutation.isPending}
+                  className="inline-flex h-7 max-w-32 shrink-0 cursor-pointer items-center gap-1 rounded-full bg-slate-50 px-2 text-[10px] font-black text-slate-500 ring-1 ring-slate-200 transition hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {unreadTabCount > 99 ? "99+" : unreadTabCount}
-                </span>
+                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">
+                    {intl.formatMessage(
+                      { id: "notifications.deleteCategory" },
+                      { category: categoryConfig[category].label },
+                    )}
+                  </span>
+                </button>
               )}
-            </button>
+            </div>
           </div>
 
           <div className="max-h-[52vh] overflow-y-auto overscroll-contain">
             <NotificationList
               notifications={visibleNotifications}
               onItemClick={handleItemClick}
+              onDelete={(notificationId) =>
+                void handleDeleteNotification(notificationId)
+              }
+              deletingNotificationId={deletingNotificationId}
               isLoading={loading}
             />
           </div>
@@ -466,6 +615,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
           onClose={() => setSelectedNotification(null)}
         />
       )}
+      <MeetingAlertDialog {...alertDialogProps} />
     </div>
   );
 });

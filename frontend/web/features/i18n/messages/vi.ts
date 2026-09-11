@@ -79,6 +79,22 @@ const vi = {
   "notifications.emptyTitle": "Không có thông báo",
   "notifications.emptyDescription": "Bạn đã xem hết thông báo.",
   "notifications.loading": "Đang tải thông báo...",
+  "notifications.deleteOne": "Xóa thông báo",
+  "notifications.deleteCategory": "Xóa {category}",
+  "notifications.deleteAll": "Xóa tất cả",
+  "notifications.deleteOneConfirmTitle": "Xóa thông báo này?",
+  "notifications.deleteOneConfirmText":
+    "Thông báo này sẽ bị xóa khỏi danh sách của bạn.",
+  "notifications.deleteCategoryConfirmTitle": "Xóa thông báo trong danh mục?",
+  "notifications.deleteCategoryConfirm":
+    "Xóa tất cả thông báo trong {category}? Hành động này không thể hoàn tác.",
+  "notifications.deleteAllConfirmTitle": "Xóa tất cả thông báo?",
+  "notifications.deleteAllConfirm":
+    "Xóa tất cả thông báo? Hành động này không thể hoàn tác.",
+  "notifications.deleteSuccess": "Đã xóa thông báo",
+  "notifications.deleteCategorySuccess": "Đã xóa thông báo trong danh mục",
+  "notifications.deleteAllSuccess": "Đã xóa tất cả thông báo",
+  "notifications.deleteFailed": "Không thể xóa thông báo",
 
   "auth.email": "Email",
   "auth.password": "Mật khẩu",

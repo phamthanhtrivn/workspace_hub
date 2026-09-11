@@ -8,6 +8,8 @@ import {
 import { notificationSocketService } from "../api/notification-socket.service";
 import {
   addNotification,
+  deleteNotificationSuccess,
+  deleteNotificationsSuccess,
   updateNotificationSuccess,
 } from "@/store/notification/notification.slice";
 import { chatKeys } from "@/features/chat/types/chat.constant";
@@ -20,6 +22,12 @@ import {
   NotificationType,
   Notification as AppNotification,
 } from "../types/notification.types";
+
+interface NotificationsDeletedPayload {
+  category: ReturnType<typeof getNotificationCategory>;
+  deletedCount: number;
+  unreadDeletedCount: number;
+}
 
 const MEETING_NOTIFICATION_TYPES = new Set<NotificationType>([
   NotificationType.MEETING_INVITATION,
@@ -36,6 +44,16 @@ function dispatchNotificationChanged(notification: AppNotification) {
         id: notification.id,
         category: getNotificationCategory(notification),
       },
+    }),
+  );
+}
+
+function dispatchNotificationCollectionChanged(
+  category?: ReturnType<typeof getNotificationCategory>,
+) {
+  window.dispatchEvent(
+    new CustomEvent(NOTIFICATION_CHANGED_EVENT, {
+      detail: { category },
     }),
   );
 }
@@ -104,6 +122,16 @@ export function useNotificationSocket() {
       dispatchNotificationChanged(notification);
     };
 
+    const handleDeletedNotification = ({ id }: { id: string }) => {
+      dispatch(deleteNotificationSuccess(id));
+      dispatchNotificationCollectionChanged();
+    };
+
+    const handleDeletedNotifications = (payload: NotificationsDeletedPayload) => {
+      dispatch(deleteNotificationsSuccess(payload));
+      dispatchNotificationCollectionChanged(payload.category);
+    };
+
     const connectWhenReady = async () => {
       const isReady = await waitForBackendReady(
         BACKEND_HEALTH_PATHS.notification,
@@ -120,9 +148,13 @@ export function useNotificationSocket() {
       const socket = notificationSocketService.connect(accessToken);
       socket.on("new_notification", handleNewNotification);
       socket.on("notification_updated", handleUpdatedNotification);
+      socket.on("notification_deleted", handleDeletedNotification);
+      socket.on("notifications_deleted", handleDeletedNotifications);
       cleanupSocketListeners = () => {
         socket.off("new_notification", handleNewNotification);
         socket.off("notification_updated", handleUpdatedNotification);
+        socket.off("notification_deleted", handleDeletedNotification);
+        socket.off("notifications_deleted", handleDeletedNotifications);
       };
     };
 

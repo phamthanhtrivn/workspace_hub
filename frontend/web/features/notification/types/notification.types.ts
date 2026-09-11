@@ -101,3 +101,12 @@ export interface GetNotificationsResponse {
     categoryUnreadCount?: number;
   };
 }
+
+export interface DeleteNotificationsResponse {
+  message: string;
+  data: {
+    deletedCount: number;
+    unreadDeletedCount: number;
+    category: NotificationCategory;
+  };
+}

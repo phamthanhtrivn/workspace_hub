@@ -22,7 +22,10 @@ import { CreateNotificationDto } from "./dtos/create-notification.dto";
 import { PushService } from "./push.service";
 import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { ResolveProjectInvitationDto } from "./dtos/resolve-project-invitation.dto";
-import { isNotificationCategory } from "./types/notification.types";
+import {
+  isNotificationCategory,
+  NotificationCategory,
+} from "./types/notification.types";
 
 @Controller("api/notifications")
 export class NotificationController {
@@ -188,6 +191,29 @@ export class NotificationController {
     return {
       message: "Marked all as read successfully",
       data: { modifiedCount: count },
+    };
+  }
+
+  @Delete()
+  async deleteNotifications(
+    @Headers("x-user-id") userId: string,
+    @Query("category") categoryStr?: string,
+  ) {
+    if (!userId) {
+      throw new BadRequestException("Missing User Context Header");
+    }
+
+    const category: NotificationCategory = isNotificationCategory(categoryStr)
+      ? categoryStr
+      : "ALL";
+    const result = await this.notificationService.deleteNotifications(
+      userId,
+      category,
+    );
+
+    return {
+      message: "Notifications deleted successfully",
+      data: result,
     };
   }
 

@@ -1,5 +1,6 @@
 import { api } from "@/lib/axios";
 import {
+  DeleteNotificationsResponse,
   GetNotificationsResponse,
   NotificationCategory,
 } from "../types/notification.types";
@@ -38,5 +39,14 @@ export const markAllAsRead = async (): Promise<unknown> => {
 
 export const deleteNotification = async (id: string): Promise<unknown> => {
   const response = await api.delete(`/api/notifications/${id}`);
+  return response.data;
+};
+
+export const deleteNotifications = async (
+  category: NotificationCategory = "ALL",
+): Promise<DeleteNotificationsResponse> => {
+  const params =
+    category === "ALL" ? undefined : ({ category } satisfies { category: string });
+  const response = await api.delete("/api/notifications", { params });
   return response.data;
 };

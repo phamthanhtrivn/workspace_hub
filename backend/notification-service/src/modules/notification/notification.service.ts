@@ -241,7 +241,42 @@ export class NotificationService {
     await this.prisma.notification.delete({
       where: { id: notification.id },
     });
+    this.notificationGateway.server
+      .to(recipientId)
+      .emit("notification_deleted", { id: notification.id });
     return true;
+  }
+
+  async deleteNotifications(
+    recipientId: string,
+    category: NotificationCategory = "ALL",
+  ): Promise<{
+    deletedCount: number;
+    unreadDeletedCount: number;
+    category: NotificationCategory;
+  }> {
+    const where: NotificationWhereInput = {
+      AND: [{ recipientId }, getNotificationCategoryWhere(category)],
+    };
+    const unreadWhere: NotificationWhereInput = {
+      AND: [where, { isRead: false }],
+    };
+
+    const [unreadDeletedCount, deleteResult] = await this.prisma.$transaction([
+      this.prisma.notification.count({ where: unreadWhere }),
+      this.prisma.notification.deleteMany({ where }),
+    ]);
+    const payload = {
+      deletedCount: deleteResult.count,
+      unreadDeletedCount,
+      category,
+    };
+
+    this.notificationGateway.server
+      .to(recipientId)
+      .emit("notifications_deleted", payload);
+
+    return payload;
   }
 
   async saveSubscription(
