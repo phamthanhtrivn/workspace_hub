@@ -1,17 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useCalendarEventForm } from "../../hooks/use-calendar-event-form";
 import {
   CalendarEvent,
   CalendarEventDraft,
   CalendarEventFormValues,
+  EventSourceType,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
 import { CustomRecurrenceModal } from "./custom-recurrence-modal";
-import { EventAdvancedForm } from "./event-advanced-form";
 import { QuickCreateKind, QuickCreateModal } from "./quick-create-modal";
 
 interface EventFormModalProps {
@@ -19,6 +17,7 @@ interface EventFormModalProps {
   calendars: WorkspaceCalendar[];
   initialDraft: CalendarEventDraft | null;
   event?: CalendarEvent | null;
+  tasksColor?: string;
   onClose: () => void;
   onSubmit: (values: CalendarEventFormValues) => Promise<void>;
   submitting?: boolean;
@@ -29,20 +28,20 @@ export function EventFormModal({
   calendars,
   initialDraft,
   event,
+  tasksColor,
   onClose,
   onSubmit,
   submitting,
 }: EventFormModalProps) {
-  const intl = useAppIntl();
   const controller = useCalendarEventForm({
     calendars,
     draft: initialDraft,
     event,
     onSubmit,
   });
-  const [showMoreOptions, setShowMoreOptions] = useState(Boolean(event));
-  const [quickCreateKind, setQuickCreateKind] =
-    useState<QuickCreateKind>("event");
+  const [quickCreateKind, setQuickCreateKind] = useState<QuickCreateKind>(
+    event?.sourceType === EventSourceType.TASK ? "task" : "event",
+  );
 
   if (!open) return null;
 
@@ -56,58 +55,17 @@ export function EventFormModal({
     />
   ) : null;
 
-  if (!event && !showMoreOptions) {
-    return (
-      <>
-        <QuickCreateModal
-          form={controller.form}
-          calendars={calendars}
-          kind={quickCreateKind}
-          timeEditor={{
-            recurrencePreset: controller.recurrencePreset,
-            recurrenceOptions: controller.recurrenceOptions,
-            onStartDateChange: controller.handleStartDateChange,
-            onStartTimeChange: controller.handleStartTimeChange,
-            onEndDateTimeChange: controller.handleEndDateTimeChange,
-            onAllDayChange: controller.handleAllDayChange,
-            onRecurrenceChange: controller.handleRecurrenceChange,
-          }}
-          attendees={controller.attendees}
-          submitting={submitting}
-          onKindChange={setQuickCreateKind}
-          onAttendeesChange={controller.setAttendees}
-          onClose={onClose}
-          onMoreOptions={() => setShowMoreOptions(true)}
-          onSubmitEvent={controller.submit}
-          onSubmitUiOnly={(kind) =>
-            toast.info(
-              intl.formatMessage({
-                id:
-                  kind === "task"
-                    ? "calendar.quick.taskUiOnly"
-                    : "calendar.quick.appointmentUiOnly",
-              }),
-            )
-          }
-          onUnavailableFeature={() =>
-            toast.info(
-              intl.formatMessage({ id: "calendar.quick.conferenceUiOnly" }),
-            )
-          }
-        />
-        {customRecurrenceModal}
-      </>
-    );
-  }
-
   return (
     <>
-      <EventAdvancedForm
-        calendars={calendars}
+      <QuickCreateModal
         controller={controller}
+        calendars={calendars}
         event={event}
-        onClose={onClose}
+        kind={quickCreateKind}
+        tasksColor={tasksColor}
         submitting={submitting}
+        onKindChange={setQuickCreateKind}
+        onClose={onClose}
       />
       {customRecurrenceModal}
     </>

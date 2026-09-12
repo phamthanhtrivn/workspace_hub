@@ -1,4 +1,4 @@
-﻿const en = {
+const en = {
   "app.loading": "Loading...",
   "app.workspace": "Workspace",
   "app.workspaceHub": "WorkspaceHub",
@@ -1430,7 +1430,8 @@
   "calendar.quick.addGuests": "Add guests",
   "calendar.quick.addConference": "Add video conferencing",
   "calendar.quick.addLocation": "Add location",
-  "calendar.quick.deadline": "Add deadline",
+  "calendar.quick.deadline": "Deadline",
+  "calendar.quick.addDeadline": "Add deadline",
   "calendar.quick.myTasks": "My tasks",
   "calendar.quick.projectTasks": "Project tasks",
   "calendar.quick.duration": "Appointment duration",

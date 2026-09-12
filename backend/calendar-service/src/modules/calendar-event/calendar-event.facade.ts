@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   AttendeeResponseStatus,
+  EventSourceType,
   EventStatus,
   EventVisibility,
   Prisma,
@@ -52,7 +53,7 @@ export class CalendarEventService {
       userId,
       dto.calendarId,
     );
-    await this.resourceAccess.assertProjectAccess(userId, calendar.projectId);
+    this.accessPolicy.assertPersonalCalendar(calendar);
     this.assertValidRange(dto.startAt, dto.endAt);
     this.recurrence.assertValidRule(dto.recurrenceRule);
     await this.resourceAccess.assertDocumentAccess(
@@ -88,6 +89,7 @@ export class CalendarEventService {
           color: dto.color ?? calendar.color,
           status: dto.status ?? EventStatus.CONFIRMED,
           visibility: dto.visibility,
+          sourceType: dto.sourceType ?? EventSourceType.USER,
         },
       });
       await this.relations.createEventRelations(
@@ -108,7 +110,6 @@ export class CalendarEventService {
 
   async getEvents(userId: string, filters: GetCalendarEventsQueryDto) {
     this.assertValidQueryRange(filters.startAt, filters.endAt);
-    await this.resourceAccess.assertProjectAccess(userId, filters.projectId);
     const where = this.buildListFilter(userId, filters);
     const skip = (filters.page - 1) * filters.limit;
     const [events, total] = await Promise.all([
@@ -157,7 +158,7 @@ export class CalendarEventService {
     const calendar = dto.calendarId
       ? await this.accessPolicy.assertCalendarOwner(userId, dto.calendarId)
       : event.calendar;
-    await this.resourceAccess.assertProjectAccess(userId, calendar.projectId);
+    this.accessPolicy.assertPersonalCalendar(calendar);
     this.assertValidRange(
       dto.startAt ?? event.startAt.toISOString(),
       dto.endAt ?? event.endAt.toISOString(),

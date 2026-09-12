@@ -1,8 +1,5 @@
 import { useMemo } from "react";
-import {
-  UseFormRegister,
-  UseFormRegisterReturn,
-} from "react-hook-form";
+import { UseFormRegister, UseFormRegisterReturn } from "react-hook-form";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
 import { RecurrenceScope } from "../../types/calendar.types";
@@ -70,14 +67,14 @@ export function EventTimeEditor({
 
   return (
     <>
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5">
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
             aria-label={intl.formatMessage({ id: "calendar.start" })}
             value={getDateInputValue(startAt)}
             onChange={(event) => onStartDateChange(event.target.value)}
-            className="h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+            className="h-9 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
           {!allDay && (
             <CalendarSelect
@@ -85,11 +82,11 @@ export function EventTimeEditor({
               options={startTimeOptions}
               ariaLabel={intl.formatMessage({ id: "calendar.start" })}
               onChange={onStartTimeChange}
-              triggerClassName="h-10 min-w-[6.6rem] border border-slate-200 bg-white px-3"
+              triggerClassName="h-9 min-w-[6.2rem] rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold"
               popupClassName="min-w-[11.75rem]"
             />
           )}
-          <span className="px-1 text-sm font-black text-slate-400">
+          <span className="px-0.5 text-xs font-medium text-slate-400">
             {intl.formatMessage({ id: "calendar.to" })}
           </span>
           {!allDay && (
@@ -99,7 +96,7 @@ export function EventTimeEditor({
               ariaLabel={intl.formatMessage({ id: "calendar.end" })}
               onChange={onEndDateTimeChange}
               triggerLabel={selectedEndTimeLabel}
-              triggerClassName="h-10 min-w-[6.6rem] border border-slate-200 bg-white px-3"
+              triggerClassName="h-9 min-w-[6.2rem] rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold"
               popupClassName="min-w-[11.75rem]"
             />
           )}
@@ -108,11 +105,11 @@ export function EventTimeEditor({
             aria-label={intl.formatMessage({ id: "calendar.end" })}
             value={getDateInputValue(endAt)}
             onChange={(event) => onEndDateChange(event.target.value)}
-            className="h-10 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+            className="h-9 cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <label className="inline-flex cursor-pointer items-center gap-2 text-sm font-bold text-slate-600">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-700">
             <input
               {...allDayRegistration}
               type="checkbox"
@@ -121,7 +118,7 @@ export function EventTimeEditor({
                 void allDayRegistration.onChange(event);
                 onAllDayChange(event.target.checked);
               }}
-              className="h-4 w-4 cursor-pointer rounded border-slate-300"
+              className="h-3.5 w-3.5 cursor-pointer rounded border-slate-300 text-blue-600 focus:ring-blue-500"
             />
             {intl.formatMessage({ id: "calendar.allDay" })}
           </label>
@@ -133,15 +130,15 @@ export function EventTimeEditor({
               onRecurrenceChange(value as CalendarRecurrencePreset)
             }
             alignItemWithTrigger={false}
-            triggerClassName="h-10 min-w-[10.5rem] border border-slate-200 bg-white px-3"
+            triggerClassName="h-9 min-w-[10rem] rounded-lg border border-slate-200 bg-white px-3 text-xs font-semibold"
             popupClassName="min-w-[15.5rem]"
           />
         </div>
       </div>
 
       {showRecurrenceScope && (
-        <label className="block space-y-2 rounded-xl border border-blue-100 bg-blue-50 p-3">
-          <span className="text-xs font-black uppercase text-blue-700">
+        <label className="block space-y-1.5 rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+          <span className="text-xs font-medium uppercase tracking-wider text-blue-700">
             {intl.formatMessage({ id: "calendar.recurrenceScope" })}
           </span>
           <select

@@ -31,6 +31,14 @@ export class EventAccessPolicy {
     return calendar;
   }
 
+  assertPersonalCalendar(calendar: Calendar): void {
+    if (calendar.projectId) {
+      throw new ForbiddenException(
+        CALENDAR_ERROR_MESSAGES.PROJECT_CALENDAR_READ_ONLY,
+      );
+    }
+  }
+
   async findEventOrThrow(eventId: string): Promise<EventWithRelations> {
     const event = await this.prisma.calendarEvent.findUnique({
       where: { id: eventId },
@@ -63,7 +71,7 @@ export class EventAccessPolicy {
   }
 
   assertUserManagedEvent(event: EventWithRelations): void {
-    if (event.sourceType !== EventSourceType.USER) {
+    if (event.sourceType !== EventSourceType.USER && event.sourceId) {
       throw new ForbiddenException(
         CALENDAR_ERROR_MESSAGES.EXTERNAL_EVENT_READ_ONLY,
       );

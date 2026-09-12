@@ -1,5 +1,4 @@
 import {
-  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -12,43 +11,21 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateCalendarDto } from './dto/create-calendar.dto';
 import { UpdateCalendarDto } from './dto/update-calendar.dto';
-import { ResourceAccessService } from '../../infrastructure/integrations/resource-access.service';
 
 @Injectable()
 export class CalendarService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly resourceAccess: ResourceAccessService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async createCalendar(
     userId: string,
     dto: CreateCalendarDto,
   ): Promise<Calendar> {
-    await this.resourceAccess.assertProjectAccess(userId, dto.projectId);
-
     return this.prisma.$transaction(async (tx) => {
       await this.lockUserCalendars(tx, userId);
       const calendarCount = await tx.calendar.count({
-        where: { ownerUserId: userId },
+        where: { ownerUserId: userId, projectId: null },
       });
       const shouldBeDefault = dto.isDefault === true || calendarCount === 0;
-
-      if (dto.projectId) {
-        const existing = await tx.calendar.findUnique({
-          where: {
-            ownerUserId_projectId: {
-              ownerUserId: userId,
-              projectId: dto.projectId,
-            },
-          },
-        });
-        if (existing) {
-          throw new ConflictException(
-            'A calendar for this project already exists',
-          );
-        }
-      }
 
       if (shouldBeDefault) {
         await tx.calendar.updateMany({
@@ -60,7 +37,7 @@ export class CalendarService {
       return tx.calendar.create({
         data: {
           ownerUserId: userId,
-          projectId: dto.projectId ?? null,
+          projectId: null,
           name: dto.name,
           icon: dto.icon === undefined ? CALENDAR_DEFAULTS.ICON : dto.icon,
           description: dto.description ?? null,
@@ -88,10 +65,20 @@ export class CalendarService {
     dto: UpdateCalendarDto,
   ): Promise<Calendar> {
     const calendar = await this.assertCalendarOwner(userId, calendarId);
-    await this.resourceAccess.assertProjectAccess(
-      userId,
-      dto.projectId === undefined ? calendar.projectId : dto.projectId,
-    );
+
+    if (calendar.projectId) {
+      if (
+        dto.name !== undefined ||
+        dto.icon !== undefined ||
+        dto.description !== undefined ||
+        dto.timeZone !== undefined ||
+        dto.isDefault !== undefined
+      ) {
+        throw new ForbiddenException(
+          CALENDAR_ERROR_MESSAGES.PROJECT_CALENDAR_READ_ONLY,
+        );
+      }
+    }
 
     return this.prisma.$transaction(async (tx) => {
       await this.lockUserCalendars(tx, userId);
@@ -110,7 +97,6 @@ export class CalendarService {
           name: updateData.name,
           icon: updateData.icon,
           description: updateData.description,
-          projectId: updateData.projectId,
           color: updateData.color,
           timeZone: updateData.timeZone,
           isDefault:
@@ -123,6 +109,12 @@ export class CalendarService {
 
   async deleteCalendar(userId: string, calendarId: string): Promise<void> {
     const calendar = await this.assertCalendarOwner(userId, calendarId);
+
+    if (calendar.projectId) {
+      throw new ForbiddenException(
+        CALENDAR_ERROR_MESSAGES.PROJECT_CALENDAR_READ_ONLY,
+      );
+    }
 
     if (calendar.isDefault) {
       throw new ForbiddenException(
@@ -156,13 +148,17 @@ export class CalendarService {
     await this.prisma.$transaction(async (tx) => {
       await this.lockUserCalendars(tx, userId);
       const defaultCalendar = await tx.calendar.findFirst({
-        where: { ownerUserId: userId, isDefault: true },
+        where: { ownerUserId: userId, projectId: null, isDefault: true },
       });
 
       if (defaultCalendar) return;
+      await tx.calendar.updateMany({
+        where: { ownerUserId: userId, isDefault: true },
+        data: { isDefault: false },
+      });
 
       const firstCalendar = await tx.calendar.findFirst({
-        where: { ownerUserId: userId },
+        where: { ownerUserId: userId, projectId: null },
         orderBy: { createdAt: 'asc' },
       });
 
@@ -177,6 +173,7 @@ export class CalendarService {
       await tx.calendar.create({
         data: {
           ownerUserId: userId,
+          projectId: null,
           name: CALENDAR_DEFAULTS.NAME,
           icon: CALENDAR_DEFAULTS.ICON,
           color: CALENDAR_DEFAULTS.COLOR,

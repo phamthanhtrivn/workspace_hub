@@ -8,7 +8,6 @@ import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-
 import { IntegrationsModule } from './infrastructure/integrations/integrations.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReminderDispatchModule } from './modules/reminder-dispatch/reminder-dispatch.module';
-import { TaskCalendarSyncModule } from './modules/task-calendar-sync/task-calendar-sync.module';
 import { HealthController } from './common/health.controller';
 
 @Module({
@@ -20,7 +19,6 @@ import { HealthController } from './common/health.controller';
     IntegrationsModule,
     ScheduleModule.forRoot(),
     ReminderDispatchModule,
-    TaskCalendarSyncModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService],
