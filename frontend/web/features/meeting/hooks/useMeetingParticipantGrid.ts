@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   useParticipants,
   useSpeakingParticipants,
   useTracks,
-  useVisualStableUpdate,
   isTrackReference,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
@@ -50,17 +49,19 @@ const sidePanelGridClassNameByVariant: Record<
     "grid grid-cols-[minmax(0,min(100%,28rem))] place-content-center justify-center gap-4 sm:grid-cols-[repeat(2,minmax(0,22rem))] 2xl:grid-cols-[repeat(3,minmax(0,20rem))]",
 };
 
-const tileFrameClassNameByVariant: Record<MeetingParticipantGridVariant, string> =
-  {
-    [MeetingParticipantGridVariant.SINGLE]:
-      "aspect-video w-full max-h-[min(64dvh,32rem)] [&>article]:!min-h-0 [&>article]:h-full",
-    [MeetingParticipantGridVariant.PAIR]:
-      "aspect-video w-full max-h-[min(52dvh,26rem)] [&>article]:!min-h-0 [&>article]:h-full",
-    [MeetingParticipantGridVariant.QUAD]:
-      "aspect-video w-full max-h-[min(42dvh,22rem)] [&>article]:!min-h-0 [&>article]:h-full",
-    [MeetingParticipantGridVariant.GALLERY]:
-      "aspect-video w-full min-h-[9rem] [&>article]:!min-h-0 [&>article]:h-full",
-  };
+const tileFrameClassNameByVariant: Record<
+  MeetingParticipantGridVariant,
+  string
+> = {
+  [MeetingParticipantGridVariant.SINGLE]:
+    "aspect-video w-full max-h-[min(64dvh,32rem)] [&>article]:!min-h-0 [&>article]:h-full",
+  [MeetingParticipantGridVariant.PAIR]:
+    "aspect-video w-full max-h-[min(52dvh,26rem)] [&>article]:!min-h-0 [&>article]:h-full",
+  [MeetingParticipantGridVariant.QUAD]:
+    "aspect-video w-full max-h-[min(42dvh,22rem)] [&>article]:!min-h-0 [&>article]:h-full",
+  [MeetingParticipantGridVariant.GALLERY]:
+    "aspect-video w-full min-h-[9rem] [&>article]:!min-h-0 [&>article]:h-full",
+};
 
 function sortCameraTracks(
   cameraTracks: TrackReferenceOrPlaceholder[],
@@ -119,13 +120,13 @@ function sortCameraTracks(
 
     if (lastSpokeDifference !== 0) return lastSpokeDifference;
 
-    return firstParticipant.identity.localeCompare(
-      secondParticipant.identity,
-    );
+    return firstParticipant.identity.localeCompare(secondParticipant.identity);
   });
 }
 
-function getGridVariant(visibleTileCount: number): MeetingParticipantGridVariant {
+function getGridVariant(
+  visibleTileCount: number,
+): MeetingParticipantGridVariant {
   if (visibleTileCount <= 1) return MeetingParticipantGridVariant.SINGLE;
   if (visibleTileCount === 2) return MeetingParticipantGridVariant.PAIR;
   if (visibleTileCount <= 4) return MeetingParticipantGridVariant.QUAD;
@@ -158,15 +159,10 @@ export function useMeetingParticipantGrid(
       ),
     [activeSpeakers],
   );
-  const sortStableCameraTracks = useCallback(
-    (trackReferences: TrackReferenceOrPlaceholder[]) =>
-      sortCameraTracks(trackReferences, activeSpeakerRanks, pinnedParticipantId),
-    [activeSpeakerRanks, pinnedParticipantId],
-  );
-  const sortedCameraTracks = useVisualStableUpdate(
-    cameraTracks,
-    participantPageSize,
-    { customSortFunction: sortStableCameraTracks },
+  const sortedCameraTracks = useMemo(
+    () =>
+      sortCameraTracks(cameraTracks, activeSpeakerRanks, pinnedParticipantId),
+    [cameraTracks, activeSpeakerRanks, pinnedParticipantId],
   );
   const activeScreenShareTrack =
     screenShareTracks.find(isTrackReference) ?? null;
