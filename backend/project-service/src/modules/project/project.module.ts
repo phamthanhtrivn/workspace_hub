@@ -34,6 +34,10 @@ import { ProjectTemplateService } from "./project-template.service";
 import { TaskPolicyService } from "./task-policy.service";
 import { ProjectFileController } from "./project-file.controller";
 import { ProjectFileService } from "./project-file.service";
+import { APP_INTERCEPTOR } from "@nestjs/core";
+import { ProjectGateway } from "./project.gateway";
+import { ProjectRealtimeService } from "./project-realtime.service";
+import { ProjectRealtimeInterceptor } from "./project-realtime.interceptor";
 
 @Module({
   controllers: [
@@ -70,6 +74,9 @@ import { ProjectFileService } from "./project-file.service";
     { provide: NOTIFICATION_GATEWAY, useClass: HttpNotificationAdapter },
     ProjectTemplateService,
     TaskPolicyService,
+    ProjectGateway,
+    ProjectRealtimeService,
+    { provide: APP_INTERCEPTOR, useClass: ProjectRealtimeInterceptor },
   ],
 })
 export class ProjectModule {}

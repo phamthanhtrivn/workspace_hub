@@ -3,6 +3,7 @@ import { createHmac } from 'node:crypto';
 import { RuntimeConfigService } from '../config/runtime-config.service';
 import { JwtIdentityGuard } from './jwt-identity.guard';
 import { Reflector } from '@nestjs/core';
+import { AccessTokenVerifier } from './access-token-verifier';
 
 const SECRET = 'project-service-test-secret-at-least-32-bytes';
 const USER_ID = '9d0deeb4-a868-45d9-923e-62feecde6a6e';
@@ -39,7 +40,7 @@ describe('JwtIdentityGuard', () => {
     jwtSecret: SECRET,
     jwtIssuer: 'workspace-hub',
   } as RuntimeConfigService;
-  const guard = new JwtIdentityGuard(config, new Reflector());
+  const guard = new JwtIdentityGuard(new AccessTokenVerifier(config), new Reflector());
 
   it('accepts a valid token matching the trusted user header', () => {
     const executionContext = context(token());

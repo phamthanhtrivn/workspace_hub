@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { createHmac } from 'node:crypto';
 import { JwtIdentityGuard } from '../src/common/auth/jwt-identity.guard';
+import { AccessTokenVerifier } from '../src/common/auth/access-token-verifier';
 import { RuntimeConfigService } from '../src/common/config/runtime-config.service';
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter';
 import { ProjectFileController } from '../src/modules/project/project-file.controller';
@@ -25,7 +26,8 @@ export async function withProjectHttpApp(tasks: TaskService, files: ProjectFileS
     providers: [{ provide: TaskService, useValue: tasks }, { provide: ProjectFileService, useValue: files }],
   }).compile();
   const app = module.createNestApplication();
-  app.useGlobalGuards(new JwtIdentityGuard({ jwtSecret: secret, jwtIssuer: 'workspace-hub' } as RuntimeConfigService, new Reflector()));
+  const config = { jwtSecret: secret, jwtIssuer: 'workspace-hub' } as RuntimeConfigService;
+  app.useGlobalGuards(new JwtIdentityGuard(new AccessTokenVerifier(config), new Reflector()));
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true, forbidNonWhitelisted: true }));
   app.useGlobalFilters(new GlobalExceptionFilter());
   try {

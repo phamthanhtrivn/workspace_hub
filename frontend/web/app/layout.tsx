@@ -7,6 +7,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import QueryProvider from "@/store/query-provider";
 import NotificationManagers from "@/features/notification/components/notification-managers";
 import AppIntlProvider from "@/features/i18n/app-intl-provider";
+import ProjectRealtimeManager from "@/features/project/components/project-realtime-manager";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -34,6 +35,7 @@ export default function RootLayout({
               <AppIntlProvider>
                 {children}
                 <NotificationManagers />
+                <ProjectRealtimeManager />
               </AppIntlProvider>
             </StoreProvider>
           </QueryProvider>
