@@ -1,5 +1,4 @@
-import { Prisma } from "@prisma/client";
-import type { NotificationType } from "../dtos/create-notification.dto";
+import { Prisma, NotificationType } from "@prisma/client";
 
 export type NotificationMetadata = Record<string, unknown>;
 export type NotificationCategory =
@@ -12,33 +11,33 @@ export type NotificationCategory =
 
 const CATEGORY_TYPES: Record<
   Exclude<NotificationCategory, "ALL" | "DOCUMENT">,
-  string[]
+  NotificationType[]
 > = {
   PROJECT: [
-    "PROJECT_INVITATION",
-    "PROJECT_TASK_ASSIGNED",
-    "PROJECT_TASK_UPDATED",
-    "PROJECT_SPRINT_STARTED",
+    NotificationType.PROJECT_INVITATION,
+    NotificationType.PROJECT_TASK_ASSIGNED,
+    NotificationType.PROJECT_TASK_UPDATED,
+    NotificationType.PROJECT_SPRINT_STARTED,
   ],
   CHAT: [
-    "SPACE_INVITATION",
-    "SPACE_INVITATION_ACCEPTED",
-    "SPACE_INVITATION_DECLINED",
-    "SPACE_DISBANDED",
-    "SPACE_MEMBER_REMOVED",
-    "SPACE_OWNERSHIP_TRANSFERRED",
-    "CHANNEL_DISBANDED",
-    "CHAT_GROUP_INVITATION",
-    "CHAT_INVITATION_ACCEPTED",
-    "CHAT_INVITATION_DECLINED",
+    NotificationType.SPACE_INVITATION,
+    NotificationType.SPACE_INVITATION_ACCEPTED,
+    NotificationType.SPACE_INVITATION_DECLINED,
+    NotificationType.SPACE_DISBANDED,
+    NotificationType.SPACE_MEMBER_REMOVED,
+    NotificationType.SPACE_OWNERSHIP_TRANSFERRED,
+    NotificationType.CHANNEL_DISBANDED,
+    NotificationType.CHAT_GROUP_INVITATION,
+    NotificationType.CHAT_INVITATION_ACCEPTED,
+    NotificationType.CHAT_INVITATION_DECLINED,
   ],
-  CALENDAR: ["CALENDAR_REMINDER"],
+  CALENDAR: [NotificationType.CALENDAR_REMINDER],
   MEETING: [
-    "MEETING_INVITATION",
-    "MEETING_INVITATION_STATUS",
-    "MEETING_INVITATION_DECLINED",
-    "MEETING_UPDATED",
-    "MEETING_CANCELLED",
+    NotificationType.MEETING_INVITATION,
+    NotificationType.MEETING_INVITATION_STATUS,
+    NotificationType.MEETING_INVITATION_DECLINED,
+    NotificationType.MEETING_UPDATED,
+    NotificationType.MEETING_CANCELLED,
   ],
 };
 
@@ -65,10 +64,7 @@ export function getNotificationCategoryWhere(
   if (category === "ALL") return {};
   if (category === "DOCUMENT") {
     return {
-      OR: [
-        { type: { startsWith: "DOCUMENT_" } },
-        { link: { startsWith: "/documents" } },
-      ],
+      link: { startsWith: "/documents" },
     };
   }
   return {
