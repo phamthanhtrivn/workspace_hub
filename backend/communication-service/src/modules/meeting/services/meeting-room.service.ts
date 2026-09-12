@@ -15,6 +15,7 @@ import {
   MessageType,
 } from '@prisma/client';
 import { ChatSocketPublisher } from '../../socket/chat/chat-socket.publisher';
+import { ChatEvent } from '../../socket/chat/chat-socket.events';
 import { LiveKitService } from '../../../infrastructure/livekit/livekit.service';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MeetingEvent } from '../../socket/meeting/meeting-socket.events';
@@ -953,6 +954,34 @@ export class MeetingRoomService {
         MeetingEvent.ENDED,
         payload,
       );
+
+      const targetChannelId = meeting.channelId;
+      const targetConversationId = meeting.conversationId;
+
+      if (targetChannelId) {
+        const channelMessage = await this.prisma.message.findFirst({
+          where: { meetingId: meeting.id },
+          include: { meeting: true, reactions: true, medias: true },
+        });
+        if (channelMessage) {
+          await this.chatSocketPublisher.publishChannelMessageUpdated(
+            targetChannelId,
+            channelMessage as any,
+          );
+        }
+      } else if (targetConversationId) {
+        const directMessage = await this.prisma.directMessage.findFirst({
+          where: { meetingId: meeting.id },
+          include: { meeting: true, reactions: true, medias: true },
+        });
+        if (directMessage) {
+          await this.chatSocketPublisher.publishDirectMessageUpdated(
+            targetConversationId,
+            ChatEvent.MESSAGE_UPDATED,
+            directMessage as any,
+          );
+        }
+      }
     }
 
     if (deleteLiveKitRoom && result.didEnd) {

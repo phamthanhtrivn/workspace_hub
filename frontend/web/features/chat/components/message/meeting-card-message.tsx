@@ -3,6 +3,7 @@
 import React from "react";
 import { Video, ExternalLink, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
@@ -43,12 +44,18 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
   const meetingTitle =
     meeting?.title ||
     intl.formatMessage({ id: "chat.meeting.cardTitle" });
-  const isLive = !meeting?.status || meeting?.status === "LIVE";
+  const isLive = meeting?.status === "LIVE" || (!meeting?.status && Boolean(message.meeting));
+  const isEnded = meeting?.status === "ENDED";
   const startedAtFormatted = message.createdAt
     ? formatDateTime(message.createdAt)
     : "";
 
   const handleJoinInApp = () => {
+    if (isEnded) {
+      toast.info(intl.formatMessage({ id: "meeting.room.alreadyEnded" }));
+      return;
+    }
+
     if (joinToken) {
       const currentPath =
         typeof window !== "undefined"
@@ -62,6 +69,11 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
   };
 
   const handleOpenNewTab = () => {
+    if (isEnded) {
+      toast.info(intl.formatMessage({ id: "meeting.room.alreadyEnded" }));
+      return;
+    }
+
     if (joinToken) {
       window.open(`/meetings/${encodeURIComponent(joinToken)}`, "_blank");
     }
@@ -105,31 +117,39 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={handleJoinInApp}
-            disabled={!joinToken}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs md:text-sm transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <Play size={15} className="fill-current" />
-            <span>{intl.formatMessage({ id: "chat.meeting.joinNow" })}</span>
-          </button>
+        {/* Action buttons or Ended status text */}
+        {isLive ? (
+          <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={handleJoinInApp}
+              disabled={!joinToken}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs md:text-sm transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Play size={15} className="fill-current" />
+              <span>{intl.formatMessage({ id: "chat.meeting.joinNow" })}</span>
+            </button>
 
-          <button
-            type="button"
-            onClick={handleOpenNewTab}
-            disabled={!joinToken}
-            title={intl.formatMessage({ id: "chat.meeting.openNewTab" })}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 font-medium text-xs transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ExternalLink size={15} />
-            <span className="hidden sm:inline">
-              {intl.formatMessage({ id: "chat.meeting.openNewTab" })}
+            <button
+              type="button"
+              onClick={handleOpenNewTab}
+              disabled={!joinToken}
+              title={intl.formatMessage({ id: "chat.meeting.openNewTab" })}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 font-medium text-xs transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ExternalLink size={15} />
+              <span className="hidden sm:inline">
+                {intl.formatMessage({ id: "chat.meeting.openNewTab" })}
+              </span>
+            </button>
+          </div>
+        ) : (
+          <div className="pt-2.5 border-t border-slate-100 text-center">
+            <span className="text-xs font-semibold text-slate-500 py-1 inline-block">
+              {intl.formatMessage({ id: "meeting.room.alreadyEnded" })}
             </span>
-          </button>
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

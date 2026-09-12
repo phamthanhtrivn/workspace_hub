@@ -133,15 +133,26 @@ export function useChatMessageList({
 
   const allMessages = useMemo(() => {
     const messagePages = data?.pages;
-    if (!messagePages) return [...newSocketMessages].reverse();
+    const rawMessages = !messagePages
+      ? [...newSocketMessages].reverse()
+      : hasPreviousPage
+        ? messagePages.flatMap((page) => [...page.messages].reverse())
+        : [
+            ...[...newSocketMessages].reverse(),
+            ...messagePages.flatMap((page) => [...page.messages].reverse()),
+          ];
 
-    const pagesMessages = messagePages.flatMap((page) =>
-      [...page.messages].reverse(),
-    );
-    if (hasPreviousPage) {
-      return pagesMessages;
+    const seenIds = new Set<string>();
+    const dedupedMessages: ChatMessageResponse[] = [];
+
+    for (const message of rawMessages) {
+      if (message && message.id && !seenIds.has(message.id)) {
+        seenIds.add(message.id);
+        dedupedMessages.push(message);
+      }
     }
-    return [...[...newSocketMessages].reverse(), ...pagesMessages];
+
+    return dedupedMessages;
   }, [data?.pages, newSocketMessages, hasPreviousPage]);
 
   return {
