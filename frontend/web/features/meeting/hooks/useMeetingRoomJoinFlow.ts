@@ -62,6 +62,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     data: accessResponse,
     isLoading: isCheckingAccess,
     isError: isAccessError,
+    error: accessError,
   } = useQuery({
     queryKey: meetingKeys.access(joinToken),
     queryFn: () => getMeetingAccess(joinToken),
@@ -209,12 +210,21 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       return MeetingJoinFlowStep.WAITING_APPROVAL;
     }
 
+    const isForbidden =
+      (accessError as { response?: { status?: number }; status?: number })?.response?.status === 403 ||
+      (accessError as { response?: { status?: number }; status?: number })?.status === 403;
+
+    if (isForbidden) {
+      return MeetingJoinFlowStep.ACCESS_DENIED;
+    }
+
     if (isAccessError || isJoinError) {
       return MeetingJoinFlowStep.ERROR;
     }
 
     return MeetingJoinFlowStep.PREJOIN;
   }, [
+    accessError,
     currentParticipantStatus,
     isAccessError,
     isCheckingAccess,

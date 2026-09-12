@@ -788,6 +788,10 @@ const vi = {
     "Cuộc họp có thể đã kết thúc, liên kết không hợp lệ hoặc cần chủ phòng duyệt.",
   "meeting.room.alreadyEnded": "Cuộc họp đã kết thúc",
   "meeting.room.cancelled": "Cuộc họp đã bị hủy",
+  "meeting.room.accessDeniedTitle": "Bạn không có quyền tham gia cuộc họp này",
+  "meeting.room.accessDeniedDescription":
+    "Cuộc họp này chỉ dành cho các thành viên trong kênh hoặc cuộc trò chuyện trực tiếp.",
+  "meeting.room.backToChat": "Về trang trò chuyện",
   "meeting.room.backToMeetings": "Về trang cuộc họp",
   "meeting.room.statusConnected": "Đã kết nối",
   "meeting.room.statusConnecting": "Đang kết nối",

@@ -793,6 +793,10 @@ const en = {
     "The meeting may have ended, the link may be invalid, or approval may be required.",
   "meeting.room.alreadyEnded": "Meeting has ended",
   "meeting.room.cancelled": "Meeting has been cancelled",
+  "meeting.room.accessDeniedTitle": "Access Denied",
+  "meeting.room.accessDeniedDescription":
+    "This meeting is restricted to members of the direct message or channel.",
+  "meeting.room.backToChat": "Back to Chat",
   "meeting.room.backToMeetings": "Back to meetings",
   "meeting.room.statusConnected": "Connected",
   "meeting.room.statusConnecting": "Connecting",

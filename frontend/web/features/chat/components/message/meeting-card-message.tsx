@@ -58,23 +58,19 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
   };
 
   return (
-    <div className="flex flex-col items-center my-4 w-full">
-      <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white border border-indigo-500/30 rounded-2xl p-5 shadow-xl max-w-md w-full relative overflow-hidden transition-all duration-300 hover:shadow-2xl hover:border-indigo-400/50">
-        {/* Glow decoration */}
-        <div className="absolute -top-12 -right-12 w-36 h-36 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-
+    <div className="flex flex-col items-center my-3 w-full">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-sm max-w-md w-full relative transition-all duration-200 hover:border-blue-300 hover:shadow-md">
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-600/20 p-2.5 rounded-2xl text-blue-400 border border-blue-500/30 shrink-0">
-              <Video size={22} />
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="bg-blue-50 text-blue-600 border border-blue-100 p-2.5 rounded-xl shrink-0">
+              <Video size={20} />
             </div>
-            <div>
-              <h3 className="text-base font-bold text-slate-100 leading-tight">
+            <div className="min-w-0">
+              <h3 className="text-sm md:text-base font-bold text-slate-900 leading-tight truncate">
                 {meetingTitle}
               </h3>
-              <p className="text-xs text-slate-400 mt-1 font-medium">
+              <p className="text-xs text-slate-500 mt-0.5 font-medium truncate">
                 {intl.formatMessage(
                   { id: "chat.meeting.startedBy" },
                   { name: senderName },
@@ -87,12 +83,12 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
           {/* Status badge */}
           <div className="shrink-0">
             {isLive ? (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)]">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 {intl.formatMessage({ id: "chat.meeting.liveStatus" })}
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
                 {intl.formatMessage({ id: "chat.meeting.endedStatus" })}
               </span>
             )}
@@ -100,14 +96,14 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
         </div>
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80 relative z-10">
+        <div className="flex items-center gap-2 pt-2.5 border-t border-slate-100">
           <button
             type="button"
             onClick={handleJoinInApp}
             disabled={!joinToken}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-semibold text-sm transition shadow-lg shadow-blue-600/25 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs md:text-sm transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Play size={16} className="fill-current" />
+            <Play size={15} className="fill-current" />
             <span>{intl.formatMessage({ id: "chat.meeting.joinNow" })}</span>
           </button>
 
@@ -116,9 +112,9 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
             onClick={handleOpenNewTab}
             disabled={!joinToken}
             title={intl.formatMessage({ id: "chat.meeting.openNewTab" })}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 active:bg-slate-800 text-slate-200 border border-slate-700 font-medium text-xs transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 font-medium text-xs transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <ExternalLink size={16} />
+            <ExternalLink size={15} />
             <span className="hidden sm:inline">
               {intl.formatMessage({ id: "chat.meeting.openNewTab" })}
             </span>

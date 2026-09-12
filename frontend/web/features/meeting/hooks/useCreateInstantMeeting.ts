@@ -41,7 +41,6 @@ export function useCreateInstantMeeting(options?: UseCreateInstantMeetingOptions
       }),
     onSuccess: (response) => {
       const joinToken = response.data.meeting.joinToken;
-      queryClient.setQueryData(meetingKeys.room(joinToken), response);
       router.push(MEETING_ROUTES.room(joinToken));
       options?.onCreated?.();
     },
