@@ -9,6 +9,7 @@ import { IntegrationsModule } from './infrastructure/integrations/integrations.m
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReminderDispatchModule } from './modules/reminder-dispatch/reminder-dispatch.module';
 import { TaskCalendarSyncModule } from './modules/task-calendar-sync/task-calendar-sync.module';
+import { HealthController } from './common/health.controller';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { TaskCalendarSyncModule } from './modules/task-calendar-sync/task-calend
     ReminderDispatchModule,
     TaskCalendarSyncModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}

@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export type MeetingAlertDialogVariant = "danger" | "warning";
 
@@ -30,9 +31,11 @@ export function MeetingAlertDialog({
   onConfirm,
   onCancel,
 }: MeetingAlertDialogProps) {
-  if (!open) return null;
+  const portalRoot = typeof document === "undefined" ? null : document.body;
 
-  return (
+  if (!open || !portalRoot) return null;
+
+  return createPortal(
     <div
       role="alertdialog"
       aria-modal="true"
@@ -88,5 +91,7 @@ export function MeetingAlertDialog({
         </div>
       </div>
     </div>
+    ,
+    portalRoot,
   );
 }

@@ -14,11 +14,11 @@ import {
   type MeetingMessageReadPayload,
   type MeetingScreenShareStartedPayload,
   type MeetingScreenShareStoppedPayload,
+  type MeetingStatusUpdatedPayload,
   MeetingSocketEvent,
   type MeetingJoinRequestUpdatedPayload,
   type MeetingParticipantRemovedPayload,
   type MeetingParticipantUpdatedPayload,
-  type MeetingStatusUpdatedPayload,
   type ServerToClientMeetingEvents,
 } from "../types/meeting-socket.types";
 import type { MeetingMessageResponse } from "../types/meeting.types";
@@ -26,6 +26,8 @@ import type { MeetingMessageResponse } from "../types/meeting.types";
 interface MeetingSocketOptions {
   meetingId?: string | null;
   onStatusUpdated?: (payload: MeetingStatusUpdatedPayload) => void;
+  onMeetingStarted?: (payload: MeetingStatusUpdatedPayload) => void;
+  onReconnect?: () => void;
   onMeetingEnded?: (payload: MeetingEndedPayload) => void;
   onParticipantJoined?: (payload: MeetingParticipantJoinedPayload) => void;
   onParticipantLeft?: (payload: MeetingParticipantLeftPayload) => void;
@@ -51,6 +53,8 @@ type MeetingSocket = Socket<
 export function useMeetingSocket({
   meetingId,
   onStatusUpdated,
+  onMeetingStarted,
+  onReconnect,
   onMeetingEnded,
   onParticipantJoined,
   onParticipantLeft,
@@ -77,6 +81,16 @@ export function useMeetingSocket({
 
     const handleStatusUpdated = (payload: MeetingStatusUpdatedPayload) => {
       onStatusUpdated?.(payload);
+    };
+    const handleMeetingStarted = (payload: MeetingStatusUpdatedPayload) => {
+      onMeetingStarted?.(payload);
+      onStatusUpdated?.(payload);
+    };
+    const handleReconnect = () => {
+      if (meetingId) {
+        socket.emit(MeetingSocketEvent.JOIN, { meetingId });
+      }
+      onReconnect?.();
     };
     const handleMeetingEnded = (payload: MeetingEndedPayload) => {
       onMeetingEnded?.(payload);
@@ -139,6 +153,8 @@ export function useMeetingSocket({
     socket.on(MeetingSocketEvent.PARTICIPANT_REMOVED, handleParticipantRemoved);
     socket.on(MeetingSocketEvent.HOST_TRANSFERRED, handleHostTransferred);
     socket.on(MeetingSocketEvent.STATUS_UPDATED, handleStatusUpdated);
+    socket.on(MeetingSocketEvent.STARTED, handleMeetingStarted);
+    socket.on("connect", handleReconnect);
     socket.on(MeetingSocketEvent.ENDED, handleMeetingEnded);
     socket.on(MeetingSocketEvent.JOIN_REQUESTED, handleJoinRequested);
     socket.on(
@@ -176,6 +192,8 @@ export function useMeetingSocket({
       );
       socket.off(MeetingSocketEvent.HOST_TRANSFERRED, handleHostTransferred);
       socket.off(MeetingSocketEvent.STATUS_UPDATED, handleStatusUpdated);
+      socket.off(MeetingSocketEvent.STARTED, handleMeetingStarted);
+      socket.off("connect", handleReconnect);
       socket.off(MeetingSocketEvent.ENDED, handleMeetingEnded);
       socket.off(MeetingSocketEvent.JOIN_REQUESTED, handleJoinRequested);
       socket.off(
@@ -214,5 +232,7 @@ export function useMeetingSocket({
     onParticipantRemoved,
     onParticipantUpdated,
     onStatusUpdated,
+    onMeetingStarted,
+    onReconnect,
   ]);
 }

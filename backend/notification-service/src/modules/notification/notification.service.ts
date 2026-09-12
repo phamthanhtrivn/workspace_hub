@@ -6,6 +6,8 @@ import { NotificationGateway } from "./notification.gateway";
 import { PushService } from "./push.service";
 import { Notification, Prisma, PushSubscription } from "@prisma/client";
 import {
+  getNotificationCategoryWhere,
+  NotificationCategory,
   NotificationWhereInput,
   PushNotificationPayload,
 } from "./types/notification.types";
@@ -65,17 +67,31 @@ export class NotificationService {
     page = 1,
     limit = 10,
     isRead?: boolean,
-  ): Promise<{ list: Notification[]; total: number; unreadCount: number }> {
-    const where: NotificationWhereInput = {
+    category: NotificationCategory = "ALL",
+  ): Promise<{
+    list: Notification[];
+    total: number;
+    unreadCount: number;
+    categoryUnreadCount: number;
+  }> {
+    const baseWhere: NotificationWhereInput = {
       recipientId,
+    };
+    const categoryWhere = getNotificationCategoryWhere(category);
+    const where: NotificationWhereInput = {
+      AND: [baseWhere, categoryWhere],
     };
     if (isRead !== undefined) {
       where.isRead = isRead;
     }
+    const categoryUnreadWhere: NotificationWhereInput = {
+      AND: [baseWhere, categoryWhere],
+      isRead: false,
+    };
 
     const skip = (page - 1) * limit;
 
-    const [list, total, unreadCount] = await Promise.all([
+    const [list, total, unreadCount, categoryUnreadCount] = await Promise.all([
       this.prisma.notification.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -89,9 +105,12 @@ export class NotificationService {
           isRead: false,
         },
       }),
+      this.prisma.notification.count({
+        where: categoryUnreadWhere,
+      }),
     ]);
 
-    return { list, total, unreadCount };
+    return { list, total, unreadCount, categoryUnreadCount };
   }
 
   async getUnreadCount(recipientId: string): Promise<number> {
@@ -171,6 +190,45 @@ export class NotificationService {
     return updated;
   }
 
+  async resolveMeetingInvitation(
+    meetingId: string,
+    recipientId: string,
+    status: "ACCEPTED" | "DECLINED" | "CANCELLED",
+  ): Promise<Notification | null> {
+    const notification = await this.prisma.notification.findFirst({
+      where: {
+        recipientId,
+        type: "MEETING_INVITATION",
+        metadata: { path: ["meetingId"], equals: meetingId },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!notification) return null;
+
+    const currentMetadata =
+      notification.metadata &&
+      typeof notification.metadata === "object" &&
+      !Array.isArray(notification.metadata)
+        ? notification.metadata
+        : {};
+    const updated = await this.prisma.notification.update({
+      where: { id: notification.id },
+      data: {
+        isRead: true,
+        metadata: {
+          ...currentMetadata,
+          status,
+          respondedAt: new Date().toISOString(),
+        },
+      },
+    });
+
+    this.notificationGateway.server
+      .to(updated.recipientId)
+      .emit("notification_updated", updated);
+    return updated;
+  }
+
   async deleteNotification(id: string, recipientId: string): Promise<boolean> {
     const notification = await this.prisma.notification.findFirst({
       where: { id, recipientId },
@@ -183,7 +241,42 @@ export class NotificationService {
     await this.prisma.notification.delete({
       where: { id: notification.id },
     });
+    this.notificationGateway.server
+      .to(recipientId)
+      .emit("notification_deleted", { id: notification.id });
     return true;
+  }
+
+  async deleteNotifications(
+    recipientId: string,
+    category: NotificationCategory = "ALL",
+  ): Promise<{
+    deletedCount: number;
+    unreadDeletedCount: number;
+    category: NotificationCategory;
+  }> {
+    const where: NotificationWhereInput = {
+      AND: [{ recipientId }, getNotificationCategoryWhere(category)],
+    };
+    const unreadWhere: NotificationWhereInput = {
+      AND: [where, { isRead: false }],
+    };
+
+    const [unreadDeletedCount, deleteResult] = await this.prisma.$transaction([
+      this.prisma.notification.count({ where: unreadWhere }),
+      this.prisma.notification.deleteMany({ where }),
+    ]);
+    const payload = {
+      deletedCount: deleteResult.count,
+      unreadDeletedCount,
+      category,
+    };
+
+    this.notificationGateway.server
+      .to(recipientId)
+      .emit("notifications_deleted", payload);
+
+    return payload;
   }
 
   async saveSubscription(

@@ -3,6 +3,8 @@ import { ConnectionState } from "livekit-client";
 import {
   MEETING_ROLE,
   MeetingParticipantRole,
+  MeetingParticipantStatusValue,
+  type MeetingAccessResponse,
   MeetingPreJoinSettings,
   MeetingRoomPanel,
   ParticipantMetadata,
@@ -63,6 +65,15 @@ export function getVideoSetting(settings: MeetingPreJoinSettings) {
   return {
     deviceId: settings.cameraDeviceId || undefined,
   };
+}
+
+export function needsMeetingPassword(access?: MeetingAccessResponse | null) {
+  if (!access?.requiresPassword || access.canStart) return false;
+
+  return (
+    access.participantStatus !== MeetingParticipantStatusValue.JOINED &&
+    access.participantStatus !== MeetingParticipantStatusValue.LEFT
+  );
 }
 
 export function getPanelTitleLabelId(activePanel: MeetingRoomPanel) {

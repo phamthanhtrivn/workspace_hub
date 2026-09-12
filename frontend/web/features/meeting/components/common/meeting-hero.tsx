@@ -6,13 +6,15 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 interface MeetingHeroProps {
   dateLabel: string;
   timeLabel: string;
-  liveMeetingCount: number;
+  upcomingMeetingCount: number;
+  onUpcomingClick: () => void;
 }
 
 export function MeetingHero({
   dateLabel,
   timeLabel,
-  liveMeetingCount,
+  upcomingMeetingCount,
+  onUpcomingClick,
 }: MeetingHeroProps) {
   const intl = useAppIntl();
 
@@ -23,15 +25,19 @@ export function MeetingHero({
       <div className="absolute bottom-8 right-24 hidden h-24 w-36 -rotate-6 rounded-lg border border-white/12 bg-slate-900/30 shadow-2xl lg:block" />
 
       <div className="relative z-10 flex h-full max-w-2xl flex-col justify-between gap-12">
-        <div className="inline-flex w-fit items-center gap-2 rounded-md bg-white/14 px-3 py-2 text-sm font-bold text-blue-50 ring-1 ring-white/18">
+        <button
+          type="button"
+          onClick={onUpcomingClick}
+          className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-md bg-white/14 px-3 py-2 text-sm font-bold text-blue-50 ring-1 ring-white/18 transition hover:bg-white/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
           <Clock3 className="h-4 w-4" />
           <span>
             {intl.formatMessage(
               { id: "meeting.dashboard.heroBadge" },
-              { count: liveMeetingCount },
+              { count: upcomingMeetingCount },
             )}
           </span>
-        </div>
+        </button>
 
         <div>
           <p className="text-sm font-bold text-blue-100">

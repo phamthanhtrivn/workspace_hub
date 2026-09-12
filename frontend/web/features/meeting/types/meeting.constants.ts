@@ -21,6 +21,8 @@ export const MEETING_ROUTES = {
 
 export const MEETING_API_PATHS = {
   INSTANT: "/api/meetings/instant",
+  SCHEDULED: "/api/meetings/scheduled",
+  UPCOMING: "/api/meetings/upcoming",
   HISTORY: "/api/meetings/history",
   HISTORY_SUMMARY: "/api/meetings/history/summary",
   join: (joinToken: string) =>
@@ -61,6 +63,16 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/leave`,
   end: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/end`,
+  start: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/start`,
+  schedule: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/schedule`,
+  cancel: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/cancel`,
+  acceptInvitation: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/invitations/accept`,
+  declineInvitation: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/invitations/decline`,
   approveJoinRequest: (joinToken: string, userId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/join-requests/${encodeURIComponent(userId)}/approve`,
   declineJoinRequest: (joinToken: string, userId: string) =>
@@ -136,7 +148,7 @@ export const meetingDashboardActions = [
     titleId: "meeting.dashboard.action.scheduleMeeting.title",
     descriptionId: "meeting.dashboard.action.scheduleMeeting.description",
     tone: MeetingDashboardTone.VIOLET,
-    enabled: false,
+    enabled: true,
   },
   {
     id: MeetingDashboardActionId.VIEW_RECORDINGS,
@@ -214,6 +226,7 @@ export const OVERFLOW_BADGE_LABEL = "99+";
 export const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"] 
 
 export const MESSAGE_ACTION_WINDOW_MS = 24 * 60 * 60 * 1000;
+export const MIN_SCHEDULED_MEETING_DURATION_MS = 15 * 60 * 1000;
 
 export enum MEETING_STATUS {
   SCHEDULED = "SCHEDULED",

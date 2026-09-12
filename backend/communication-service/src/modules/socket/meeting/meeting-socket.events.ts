@@ -7,6 +7,7 @@ export enum MeetingEvent {
   PARTICIPANT_REMOVED = 'meeting:participant_removed',
   HOST_TRANSFERRED = 'meeting:host_transferred',
   STATUS_UPDATED = 'meeting:status_updated',
+  STARTED = 'meeting:started',
   ENDED = 'meeting:ended',
   JOIN_REQUESTED = 'meeting:join_requested',
   JOIN_REQUEST_UPDATED = 'meeting:join_request_updated',

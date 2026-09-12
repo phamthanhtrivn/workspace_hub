@@ -8,12 +8,16 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 interface NotificationListProps {
   notifications: Notification[];
   onItemClick: (notification: Notification) => void;
+  onDelete?: (notificationId: string) => void;
+  deletingNotificationId?: string | null;
   isLoading?: boolean;
 }
 
 const NotificationList = React.memo(function NotificationList({
   notifications,
   onItemClick,
+  onDelete,
+  deletingNotificationId,
   isLoading,
 }: NotificationListProps) {
   const intl = useAppIntl();
@@ -46,6 +50,9 @@ const NotificationList = React.memo(function NotificationList({
           key={notification.id} 
           notification={notification} 
           onClick={onItemClick} 
+          onDelete={onDelete}
+          isDeleting={deletingNotificationId === notification.id}
+          deleteLabel={intl.formatMessage({ id: "notifications.deleteOne" })}
         />
       ))}
     </div>

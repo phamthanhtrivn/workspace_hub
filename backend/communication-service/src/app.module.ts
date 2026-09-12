@@ -15,6 +15,7 @@ import { UserProfileSnapshotModule } from './modules/user-profile-snapshot/user-
 import { SocketModule } from './modules/socket/socket.module';
 import { MeetingModule } from './modules/meeting/meeting.module';
 import { LiveKitModule } from './infrastructure/livekit/livekit.module';
+import { HealthController } from './common/health.controller';
 
 @Module({
   imports: [
@@ -33,7 +34,7 @@ import { LiveKitModule } from './infrastructure/livekit/livekit.module';
     DirectMessageModule,
     UserProfileSnapshotModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService],
 })
 export class AppModule {}
