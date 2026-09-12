@@ -10,26 +10,31 @@ import { meetingKeys } from "../types/meeting.query-keys";
 import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
 interface UseCreateInstantMeetingOptions {
-  onCreating: () => void;
-  onCreated: () => void;
-  onError: () => void;
+  onCreating?: () => void;
+  onCreated?: () => void;
+  onError?: (error: unknown) => void;
 }
 
-export function useCreateInstantMeeting({
-  onCreating,
-  onCreated,
-  onError,
-}: UseCreateInstantMeetingOptions) {
+export interface CreateInstantMeetingSettings extends Partial<MeetingPreJoinSettings> {
+  channelId?: string;
+  conversationId?: string;
+  title?: string;
+}
+
+export function useCreateInstantMeeting(options?: UseCreateInstantMeetingOptions) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { isPending, mutate } = useMutation({
-    mutationFn: (settings: MeetingPreJoinSettings) =>
+    mutationFn: (settings: CreateInstantMeetingSettings) =>
       createInstantMeeting({
-        autoAdmit: settings.autoAdmin,
-        chatEnabled: settings.chatEnabled,
+        autoAdmit: settings.autoAdmin ?? true,
+        chatEnabled: settings.chatEnabled ?? true,
+        title: settings.title,
+        channelId: settings.channelId,
+        conversationId: settings.conversationId,
         deviceSettings: {
-          cameraEnabled: settings.cameraEnabled,
-          microphoneEnabled: settings.microphoneEnabled,
+          cameraEnabled: settings.cameraEnabled ?? true,
+          microphoneEnabled: settings.microphoneEnabled ?? true,
           cameraDeviceId: settings.cameraDeviceId || undefined,
           microphoneDeviceId: settings.microphoneDeviceId || undefined,
         },
@@ -38,20 +43,34 @@ export function useCreateInstantMeeting({
       const joinToken = response.data.meeting.joinToken;
       queryClient.setQueryData(meetingKeys.room(joinToken), response);
       router.push(MEETING_ROUTES.room(joinToken));
-      onCreated();
+      options?.onCreated?.();
     },
-    onError,
+    onError: (err) => {
+      options?.onError?.(err);
+    },
   });
 
   const createMeeting = useCallback(
-    (settings: MeetingPreJoinSettings) => {
+    (settings: CreateInstantMeetingSettings) => {
       if (isPending) return;
 
-      saveMeetingDeviceSettings(settings);
-      onCreating();
+      if (
+        settings.cameraEnabled !== undefined ||
+        settings.microphoneEnabled !== undefined
+      ) {
+        saveMeetingDeviceSettings({
+          cameraEnabled: settings.cameraEnabled ?? true,
+          microphoneEnabled: settings.microphoneEnabled ?? true,
+          cameraDeviceId: settings.cameraDeviceId ?? "",
+          microphoneDeviceId: settings.microphoneDeviceId ?? "",
+          autoAdmin: settings.autoAdmin ?? true,
+          chatEnabled: settings.chatEnabled ?? true,
+        });
+      }
+      options?.onCreating?.();
       mutate(settings);
     },
-    [isPending, mutate, onCreating],
+    [isPending, mutate, options],
   );
 
   return {

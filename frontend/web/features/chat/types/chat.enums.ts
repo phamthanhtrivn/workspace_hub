@@ -41,6 +41,7 @@ export enum MessageType {
   TASK = "TASK",
   SYSTEM = "SYSTEM",
   EVENT = "EVENT",
+  MEETING = "MEETING",
 }
 
 /**

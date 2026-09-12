@@ -48,6 +48,9 @@ export interface CreateInstantMeetingPayload {
   password?: string;
   autoAdmit?: boolean;
   chatEnabled?: boolean;
+  title?: string;
+  channelId?: string;
+  conversationId?: string;
   deviceSettings?: {
     cameraEnabled: boolean;
     microphoneEnabled: boolean;

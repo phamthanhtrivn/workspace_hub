@@ -1,9 +1,10 @@
-import { ArrowLeft, Info, Search, User } from "lucide-react";
+import { ArrowLeft, Info, Search, User, Video } from "lucide-react";
 import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 
 interface DirectConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -20,6 +21,7 @@ export default function DirectConversationHeader({
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
+  const { createMeeting, isCreating } = useCreateInstantMeeting();
 
   const otherMember = activeConversation?.members?.find(
     (member) => member.userId !== currentUserId,
@@ -98,6 +100,25 @@ export default function DirectConversationHeader({
           title={intl.formatMessage({ id: "app.search" })}
         >
           <Search size={20} />
+        </button>
+        <button
+          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
+          onClick={() => {
+            if (activeConversation?.id) {
+              createMeeting({
+                conversationId: activeConversation.id,
+                title: `${intl.formatMessage({ id: "chat.meeting.cardTitle" })} - ${displayName}`,
+                cameraEnabled: true,
+                microphoneEnabled: true,
+                autoAdmin: true,
+                chatEnabled: true,
+              });
+            }
+          }}
+          disabled={isCreating || !activeConversation?.id}
+          title={intl.formatMessage({ id: "chat.header.startMeeting" })}
+        >
+          <Video size={20} />
         </button>
         <div className="w-px h-6 bg-gray-200 mx-1" />
         <button

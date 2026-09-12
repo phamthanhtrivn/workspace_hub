@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { ArrowLeft, Globe, Hash, Info, Search, User } from "lucide-react";
+import { ArrowLeft, Globe, Hash, Info, Search, User, Video } from "lucide-react";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../api/chat.api";
 import { chatKeys } from "../../types/chat.constant";
 import ChannelMembersModal from "../modals/channel/channel-members-modal";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 
 interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -21,6 +22,7 @@ export default function ChannelChatHeader({
   const intl = useAppIntl();
   const { activeChat: activeChannel } = useActiveChat();
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const { createMeeting, isCreating } = useCreateInstantMeeting();
 
   const spaceId =
     activeChannel && "spaceId" in activeChannel
@@ -88,6 +90,25 @@ export default function ChannelChatHeader({
           title={intl.formatMessage({ id: "app.search" })}
         >
           <Search size={20} />
+        </button>
+        <button
+          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
+          onClick={() => {
+            if (activeChannel?.id) {
+              createMeeting({
+                channelId: activeChannel.id,
+                title: `${intl.formatMessage({ id: "chat.meeting.cardTitle" })} - #${displayName}`,
+                cameraEnabled: true,
+                microphoneEnabled: true,
+                autoAdmin: true,
+                chatEnabled: true,
+              });
+            }
+          }}
+          disabled={isCreating || !activeChannel?.id}
+          title={intl.formatMessage({ id: "chat.header.startMeeting" })}
+        >
+          <Video size={20} />
         </button>
         <div className="w-px h-6 bg-gray-200 mx-1" />
         <button
