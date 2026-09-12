@@ -2,9 +2,7 @@ import Link from "next/link";
 import { ChevronRight, Plus, Search, Users } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
 import { ProjectTypeBadge } from "../ui/project-type-badge";
-import TaskQuickFilters, {
-  type TaskKindFilter,
-} from "../ui/task-quick-filters";
+import TaskQuickFilters from "../ui/task-quick-filters";
 import {
   ProjectType,
   TaskPriority,
@@ -24,7 +22,6 @@ interface ProjectDetailToolbarProps {
   statusFilter: TaskStatus | "";
   priorityFilter: TaskPriority | "";
   assigneeFilter: string;
-  taskKindFilter: TaskKindFilter;
   selectedAssigneeIds: string[];
   onlyMyIssues: boolean;
   isFiltersActive: boolean;
@@ -33,7 +30,6 @@ interface ProjectDetailToolbarProps {
   onStatusChange: (value: TaskStatus | "") => void;
   onPriorityChange: (value: TaskPriority | "") => void;
   onAssigneeChange: (value: string) => void;
-  onTaskKindChange: (value: TaskKindFilter) => void;
   onToggleAssignee: (userId: string) => void;
   onToggleOnlyMyIssues: () => void;
   onClearFilters: () => void;
@@ -72,7 +68,6 @@ export default function ProjectDetailToolbar({
   statusFilter,
   priorityFilter,
   assigneeFilter,
-  taskKindFilter,
   selectedAssigneeIds,
   onlyMyIssues,
   isFiltersActive,
@@ -81,7 +76,6 @@ export default function ProjectDetailToolbar({
   onStatusChange,
   onPriorityChange,
   onAssigneeChange,
-  onTaskKindChange,
   onToggleAssignee,
   onToggleOnlyMyIssues,
   onClearFilters,
@@ -155,11 +149,9 @@ export default function ProjectDetailToolbar({
           status={statusFilter}
           priority={priorityFilter}
           assignee={assigneeFilter}
-          taskKind={taskKindFilter}
           onStatusChange={onStatusChange}
           onPriorityChange={onPriorityChange}
           onAssigneeChange={onAssigneeChange}
-          onTaskKindChange={onTaskKindChange}
         />
 
         <div className="flex items-center gap-1">

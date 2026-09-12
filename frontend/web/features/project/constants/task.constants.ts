@@ -60,20 +60,6 @@ export const TASK_TYPE_SELECT_OPTIONS = [
   { value: TaskType.SUBTASK, labelId: "project.task.type.subtask" },
 ] as const;
 
-export const TASK_KIND_FILTER_OPTIONS = [
-  { value: "ALL", labelId: "project.task.kind.all" },
-  { value: "PARENT", labelId: "project.task.kind.parentOnly" },
-  { value: "TASK", labelId: "project.task.kind.regular" },
-  { value: "SUBTASK", labelId: "project.task.type.subtask" },
-] as const;
-
-export const TASK_KIND_QUICK_FILTER_OPTIONS = [
-  { value: "ALL", labelId: "project.task.kind.request" },
-  { value: "PARENT", labelId: "project.task.parentTask" },
-  { value: "TASK", labelId: "project.task.kind.regularShort" },
-  { value: "SUBTASK", labelId: "project.task.type.subtask" },
-] as const;
-
 export const TASK_FILTER_LABELS = {
   STATUS_ALL: "project.task.status",
   PRIORITY_ALL: "project.task.priority",

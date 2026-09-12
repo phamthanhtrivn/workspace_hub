@@ -185,8 +185,6 @@ export default function ProjectDetailScreen() {
     setPriority: setPriorityFilter,
     quickAssignee: quickAssigneeFilter,
     setQuickAssignee: setQuickAssigneeFilter,
-    kind: taskKindFilter,
-    setKind: setTaskKindFilter,
     onlyMyIssues,
     setOnlyMyIssues,
     setStatusOverrides: setTaskStatusOverrides,
@@ -312,7 +310,6 @@ export default function ProjectDetailScreen() {
           statusFilter={statusFilter}
           priorityFilter={priorityFilter}
           assigneeFilter={quickAssigneeFilter}
-          taskKindFilter={taskKindFilter}
           selectedAssigneeIds={activeAssigneeFilters}
           onlyMyIssues={onlyMyIssues}
           isFiltersActive={isFiltersActive}
@@ -324,7 +321,6 @@ export default function ProjectDetailScreen() {
             setQuickAssigneeFilter(value);
             setActiveAssigneeFilters([]);
           }}
-          onTaskKindChange={setTaskKindFilter}
           onToggleAssignee={toggleAssigneeFilter}
           onToggleOnlyMyIssues={() => setOnlyMyIssues((value) => !value)}
           onClearFilters={clearAllFilters}
