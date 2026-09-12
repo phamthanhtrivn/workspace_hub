@@ -33,6 +33,13 @@ enum MessageType {
   DOCUMENT
 }
 
+enum MeetingMessageType {
+  TEXT
+  SYSTEM
+  AI
+  DOCUMENT
+}
+
 enum InvitationStatus {
   PENDING
   ACCEPTED
@@ -616,7 +623,7 @@ model MeetingMessage {
   meetingId String      @map("meeting_id") @db.Uuid
   senderId  String      @map("sender_id") @db.Uuid
   content   String?
-  type      MessageType @default(TEXT)
+  type      MeetingMessageType @default(TEXT)
   edited    Boolean     @default(false)
   recalled  Boolean     @default(false)
   createdAt DateTime    @default(now()) @map("created_at")
