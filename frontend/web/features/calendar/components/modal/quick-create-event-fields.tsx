@@ -1,5 +1,8 @@
+"use client";
+
 import { MapPin, Users, Video } from "lucide-react";
 import { UseFormRegister } from "react-hook-form";
+import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
 import { CalendarEventAttendeePayload } from "../../types/calendar.types";
@@ -9,14 +12,12 @@ import { QuickRow } from "./quick-create-time-section";
 interface QuickCreateEventFieldsProps {
   attendees: CalendarEventAttendeePayload[];
   onAttendeesChange: (attendees: CalendarEventAttendeePayload[]) => void;
-  onUnavailableConference: () => void;
   register: UseFormRegister<CalendarEventEditorValues>;
 }
 
 export function QuickCreateEventFields({
   attendees,
   onAttendeesChange,
-  onUnavailableConference,
   register,
 }: QuickCreateEventFieldsProps) {
   const intl = useAppIntl();
@@ -33,8 +34,12 @@ export function QuickCreateEventFields({
       <QuickRow icon={<Video className="h-5 w-5" />}>
         <button
           type="button"
-          onClick={onUnavailableConference}
-          className="w-full cursor-pointer rounded-lg px-2 py-2.5 text-left text-sm text-slate-600 transition hover:bg-slate-200/60"
+          onClick={() =>
+            toast.info(
+              intl.formatMessage({ id: "calendar.quick.conferenceUiOnly" }),
+            )
+          }
+          className="w-full cursor-pointer rounded-lg px-2 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-200/60"
         >
           {intl.formatMessage({ id: "calendar.quick.addConference" })}
         </button>
