@@ -20,12 +20,13 @@ describe('assertTaskEditable', () => {
 });
 
 describe('assertTaskStatusTransition', () => {
-  it('allows moving forward, skipping stages, or cancelling', () => {
+  it('allows moving forward, review rework, or cancelling', () => {
     expect(() => assertTaskStatusTransition(TaskStatus.TODO, TaskStatus.IN_REVIEW)).not.toThrow();
+    expect(() => assertTaskStatusTransition(TaskStatus.IN_REVIEW, TaskStatus.IN_PROGRESS)).not.toThrow();
     expect(() => assertTaskStatusTransition(TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED)).not.toThrow();
   });
 
-  it('rejects moving backwards', () => {
+  it('rejects moving review all the way back to todo', () => {
     expect(() => assertTaskStatusTransition(TaskStatus.IN_REVIEW, TaskStatus.TODO)).toThrow(
       ConflictException,
     );

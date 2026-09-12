@@ -20,7 +20,6 @@ export enum ProjectTemplate {
 export enum ProjectVisibility {
   PRIVATE = 'PRIVATE',
   MEMBERS_ONLY = 'MEMBERS_ONLY',
-  PUBLIC = 'PUBLIC',
 }
 
 export enum ProjectRole {

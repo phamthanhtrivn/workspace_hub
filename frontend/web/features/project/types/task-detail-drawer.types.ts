@@ -32,4 +32,6 @@ export interface TaskDetailDrawerProps {
   onCreateDependency?: (successorTaskId: string, predecessorTaskId: string) => Promise<void>;
   onDeleteDependency?: (successorTaskId: string, predecessorTaskId: string) => Promise<void>;
   canEditTask?: boolean;
+  canContributeTask?: boolean;
+  canComment?: boolean;
 }

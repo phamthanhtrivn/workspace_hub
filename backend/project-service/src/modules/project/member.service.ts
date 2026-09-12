@@ -14,6 +14,7 @@ import {
   isUniqueConstraintError,
   rethrowWriteConflict,
 } from "../../common/prisma/prisma-errors";
+import { defaultMemberPermissions } from "./member-permissions";
 
 @Injectable()
 export class MemberService {
@@ -24,59 +25,56 @@ export class MemberService {
   ) {}
 
   async add(userId: string, projectId: string, dto: AddMemberDto) {
-    return this.prisma.$transaction(async (tx) => {
-    await this.access.requireCanManageMembers(userId, projectId);
+    const project = await this.access.requireOwnerWriteAccess(userId, projectId);
+    const permissions = defaultMemberPermissions(project.setting);
     const now = new Date();
-
-    const reactivated = await tx.projectMember.updateMany({
-      where: {
-        projectId,
-        userId: dto.userId,
-        status: { not: ProjectMemberStatus.ACTIVE },
-      },
-      data: {
-        role: ProjectRole.MEMBER,
-        status: ProjectMemberStatus.ACTIVE,
-        canCreateTask: false,
-        canEditOwnTask: false,
-        canEditOthersTask: false,
-        canManageSprints: false,
-        canManageMembers: false,
-        canManageLabels: false,
-        leftAt: null,
-        updatedAt: now,
-        version: { increment: 1 },
-      },
-    });
-    if (reactivated.count === 1) {
-      const member = await tx.projectMember.findUniqueOrThrow({
-        where: { projectId_userId: { projectId, userId: dto.userId } },
-      });
-      await this.calendarEvents.publishProject(projectId, tx);
-      return toMemberResponse(member);
-    }
-
-    try {
-      const member = await tx.projectMember.create({
-        data: {
-          id: crypto.randomUUID(),
+    return this.prisma.$transaction(async (tx) => {
+      const reactivated = await tx.projectMember.updateMany({
+        where: {
           projectId,
           userId: dto.userId,
+          status: { not: ProjectMemberStatus.ACTIVE },
+        },
+        data: {
           role: ProjectRole.MEMBER,
           status: ProjectMemberStatus.ACTIVE,
-          joinedAt: now,
+          ...permissions,
+          leftAt: null,
           updatedAt: now,
+          version: { increment: 1 },
         },
       });
-      await this.calendarEvents.publishProject(projectId, tx);
-      return toMemberResponse(member);
-    } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        throw new ConflictException("User is already an active project member");
+      if (reactivated.count === 1) {
+        const member = await tx.projectMember.findUniqueOrThrow({
+          where: { projectId_userId: { projectId, userId: dto.userId } },
+        });
+        await this.calendarEvents.publishProject(projectId, tx);
+        return toMemberResponse(member);
       }
-      throw error;
-    }
-  
+
+      try {
+        const member = await tx.projectMember.create({
+          data: {
+            id: crypto.randomUUID(),
+            projectId,
+            userId: dto.userId,
+            role: ProjectRole.MEMBER,
+            status: ProjectMemberStatus.ACTIVE,
+            ...permissions,
+            joinedAt: now,
+            updatedAt: now,
+          },
+        });
+        await this.calendarEvents.publishProject(projectId, tx);
+        return toMemberResponse(member);
+      } catch (error) {
+        if (isUniqueConstraintError(error)) {
+          throw new ConflictException(
+            "User is already an active project member",
+          );
+        }
+        throw error;
+      }
     });
   }
 
@@ -86,7 +84,7 @@ export class MemberService {
     memberUserId: string,
     dto: UpdateMemberPermissionsDto,
   ) {
-    await this.access.requireOwner(userId, projectId);
+    await this.access.requireOwnerWriteAccess(userId, projectId);
     const member = await this.prisma.projectMember.findUnique({
       where: { projectId_userId: { projectId, userId: memberUserId } },
     });

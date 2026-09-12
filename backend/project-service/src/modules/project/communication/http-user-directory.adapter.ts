@@ -7,6 +7,7 @@ interface UserProfileResponse {
   data?: {
     email?: unknown;
     fullName?: unknown;
+    avatarUrl?: unknown;
   };
 }
 
@@ -28,9 +29,11 @@ export class HttpUserDirectoryAdapter implements UserDirectory {
     }
 
     const fullName = response.data?.fullName;
+    const avatarUrl = response.data?.avatarUrl;
     return {
       email,
       ...(typeof fullName === 'string' && fullName.trim() ? { fullName } : {}),
+      ...(typeof avatarUrl === 'string' && avatarUrl.trim() ? { avatarUrl } : {}),
     };
   }
 }

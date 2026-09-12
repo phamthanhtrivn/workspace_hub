@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import type { TaskKindFilter } from "../components/ui/task-quick-filters";
 import { enrichProjectTasks, filterProjectTasks } from "../project-task-view";
 import {
   TaskPriority,
@@ -18,7 +17,6 @@ export function useProjectTaskFilters(
   const [status, setStatus] = useState<TaskStatus | "">("");
   const [priority, setPriority] = useState<TaskPriority | "">("");
   const [quickAssignee, setQuickAssignee] = useState("");
-  const [kind, setKind] = useState<TaskKindFilter>("ALL");
   const [onlyMyIssues, setOnlyMyIssues] = useState(false);
   const [statusOverrides, setStatusOverrides] = useState<Record<string, TaskStatus>>({});
 
@@ -36,12 +34,10 @@ export function useProjectTaskFilters(
         status,
         priority,
         quickAssignee,
-        kind,
       }),
     [
       assigneeIds,
       currentUserId,
-      kind,
       onlyMyIssues,
       priority,
       quickAssignee,
@@ -66,7 +62,6 @@ export function useProjectTaskFilters(
     setStatus("");
     setPriority("");
     setQuickAssignee("");
-    setKind("ALL");
   };
   const isActive =
     assigneeIds.length > 0 ||
@@ -74,8 +69,7 @@ export function useProjectTaskFilters(
     searchQuery.length > 0 ||
     status !== "" ||
     priority !== "" ||
-    quickAssignee !== "" ||
-    kind !== "ALL";
+    quickAssignee !== "";
 
   return {
     tasks,
@@ -90,8 +84,6 @@ export function useProjectTaskFilters(
     setPriority,
     quickAssignee,
     setQuickAssignee,
-    kind,
-    setKind,
     onlyMyIssues,
     setOnlyMyIssues,
     statusOverrides,

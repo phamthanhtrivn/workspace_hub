@@ -1,5 +1,4 @@
 import {
-  TaskType,
   type ProjectMember,
   type Task,
   type TaskPriority,
@@ -14,7 +13,6 @@ export interface ProjectTaskFilters {
   status: TaskStatus | "";
   priority: TaskPriority | "";
   quickAssignee: string;
-  kind: "ALL" | "PARENT" | "TASK" | "SUBTASK";
 }
 
 export function enrichProjectTasks(
@@ -66,21 +64,13 @@ export function filterProjectTasks(
         : task.assignees.some(
             (assignee) => assignee.userId === filters.quickAssignee,
           ));
-    const matchesKind =
-      filters.kind === "ALL" ||
-      (filters.kind === "PARENT" && task.taskType === TaskType.EPIC) ||
-      (filters.kind === "SUBTASK" && task.taskType === TaskType.SUBTASK) ||
-      (filters.kind === "TASK" &&
-        [TaskType.TASK, TaskType.BUG, TaskType.STORY].includes(task.taskType));
-
     return (
       matchesSearch &&
       matchesAvatarAssignee &&
       matchesCurrentUser &&
       matchesStatus &&
       matchesPriority &&
-      matchesQuickAssignee &&
-      matchesKind
+      matchesQuickAssignee
     );
   });
 }

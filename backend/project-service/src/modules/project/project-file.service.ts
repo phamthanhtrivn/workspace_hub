@@ -89,8 +89,6 @@ export class ProjectFileService {
   }
 
   private async requireContributor(userId: string, projectId: string) {
-    const project = await this.access.requireReadAccess(userId, projectId);
-    if (project.ownerId !== userId) await this.access.getActiveMember(projectId, userId);
-    return project;
+    return this.access.requireWriteAccess(userId, projectId);
   }
 }

@@ -10,12 +10,9 @@ import {
 import {
   TASK_STATUS_SELECT_OPTIONS,
   TASK_PRIORITY_SELECT_OPTIONS,
-  TASK_KIND_QUICK_FILTER_OPTIONS,
   TASK_FILTER_LABELS,
   TASK_ASSIGNEE_FILTER_OPTIONS,
 } from "@/features/project/constants/task.constants";
-
-export type TaskKindFilter = "ALL" | "PARENT" | "TASK" | "SUBTASK";
 
 function FilterSelect({
   label,
@@ -55,21 +52,17 @@ export default function TaskQuickFilters({
   status,
   priority,
   assignee,
-  taskKind,
   onStatusChange,
   onPriorityChange,
   onAssigneeChange,
-  onTaskKindChange,
 }: {
   members: ProjectMember[];
   status: TaskStatus | "";
   priority: TaskPriority | "";
   assignee: string;
-  taskKind: TaskKindFilter;
   onStatusChange: (value: TaskStatus | "") => void;
   onPriorityChange: (value: TaskPriority | "") => void;
   onAssigneeChange: (value: string) => void;
-  onTaskKindChange: (value: TaskKindFilter) => void;
 }) {
   const intl = useAppIntl();
   return (
@@ -121,17 +114,6 @@ export default function TaskQuickFilters({
         ))}
       </FilterSelect>
 
-      <FilterSelect
-        label={intl.formatMessage({ id: TASK_KIND_QUICK_FILTER_OPTIONS[0].labelId })}
-        value={taskKind}
-        onChange={(value) => onTaskKindChange(value as TaskKindFilter)}
-      >
-        {TASK_KIND_QUICK_FILTER_OPTIONS.map((item) => (
-          <option key={item.value} value={item.value}>
-            {intl.formatMessage({ id: item.labelId })}
-          </option>
-        ))}
-      </FilterSelect>
     </div>
   );
 }

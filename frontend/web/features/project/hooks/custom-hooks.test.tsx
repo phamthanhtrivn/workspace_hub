@@ -6,11 +6,14 @@ import {
   TaskStatus,
   TaskType,
   ProjectRole,
+  SprintStatus,
   type TaskAssignee,
   type ProjectMember,
   type Task,
   type TaskDependency,
+  type Sprint,
 } from "@/features/project/types/project";
+import type { DragEvent } from "react";
 import { useProjectSummaryMetrics } from "./use-project-summary-metrics";
 import { useBacklogManager } from "./use-backlog-manager";
 import { useTaskDetailDrawerState } from "./use-task-detail-drawer-state";
@@ -151,6 +154,65 @@ describe("Custom Hooks for Project Service", () => {
         TaskStatus.IN_PROGRESS,
       );
       expect(result.current.selectedTaskIds).toHaveLength(0);
+    });
+
+    it("moves tasks between backlog and planned sprints only for sprint managers", async () => {
+      const task = mockTask({ id: "t1" });
+      const sprint = {
+        id: "s1",
+        projectId: "p1",
+        name: "Sprint 1",
+        status: SprintStatus.PLANNED,
+        createdBy: "owner",
+        createdAt: "2026-09-12T00:00:00.000Z",
+        updatedAt: "2026-09-12T00:00:00.000Z",
+        tasks: [],
+      } satisfies Sprint;
+      const onAddTasksToSprint = vi.fn().mockResolvedValue(undefined);
+      const onRemoveTaskFromSprint = vi.fn().mockResolvedValue(undefined);
+      const dragEvent = {
+        preventDefault: vi.fn(),
+        dataTransfer: {
+          getData: vi.fn(() => JSON.stringify({ taskId: "t1" })),
+        },
+      } as unknown as DragEvent;
+
+      const { result, rerender } = renderHook(
+        ({ canManageSprints }) =>
+          useBacklogManager({
+            projectId: "p1",
+            tasks: [task],
+            sprints: [sprint],
+            canManageSprints,
+            onCreateSprint: vi.fn(),
+            onUpdateSprint: vi.fn(),
+            onAddTasksToSprint,
+            onRemoveTaskFromSprint,
+          }),
+        { initialProps: { canManageSprints: false } },
+      );
+
+      await act(() => result.current.handleDropOnSprint(dragEvent, sprint));
+      expect(onAddTasksToSprint).not.toHaveBeenCalled();
+
+      vi.mocked(dragEvent.dataTransfer.getData).mockReturnValue(
+        JSON.stringify({ taskId: "t1", sprintId: "s1" }),
+      );
+      await act(() => result.current.handleDropOnBacklog(dragEvent));
+      expect(onRemoveTaskFromSprint).not.toHaveBeenCalled();
+
+      rerender({ canManageSprints: true });
+      vi.mocked(dragEvent.dataTransfer.getData).mockReturnValue(
+        JSON.stringify({ taskId: "t1" }),
+      );
+      await act(() => result.current.handleDropOnSprint(dragEvent, sprint));
+      expect(onAddTasksToSprint).toHaveBeenCalledWith("s1", ["t1"]);
+
+      vi.mocked(dragEvent.dataTransfer.getData).mockReturnValue(
+        JSON.stringify({ taskId: "t1", sprintId: "s1" }),
+      );
+      await act(() => result.current.handleDropOnBacklog(dragEvent));
+      expect(onRemoveTaskFromSprint).toHaveBeenCalledWith("s1", "t1");
     });
   });
 

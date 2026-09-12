@@ -97,7 +97,6 @@ export class ProjectService {
     const where: Prisma.ProjectWhereInput = {
       archived: false,
       OR: [
-        { visibility: ProjectVisibility.PUBLIC },
         { ownerId: userId },
         { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
       ],
@@ -159,6 +158,15 @@ export class ProjectService {
 
   async update(userId: string, projectId: string, dto: UpdateProjectDto) {
     const current = await this.access.requireOwner(userId, projectId);
+    if (current.archived || current.status === ProjectStatus.ARCHIVED) {
+      const fields = Object.entries(dto).filter(([, value]) => value !== undefined);
+      const isRestore = fields.length === 1 && dto.status === ProjectStatus.ACTIVE;
+      if (!isRestore) {
+        throw new ConflictException(
+          'Archived projects are read-only; restore the project before editing it',
+        );
+      }
+    }
     const data: Prisma.ProjectUpdateInput = {};
 
     if (dto.name !== undefined) {

@@ -56,14 +56,14 @@ export default function BoardView({
   onTaskMove,
   onAddTask,
   onOpenChat,
-  canEditTask = () => false,
+  canMoveTask = () => false,
 }: {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void;
   onAddTask?: (status: TaskStatus) => void;
   onOpenChat?: (task: Task) => void;
-  canEditTask?: (task: Task) => boolean;
+  canMoveTask?: (task: Task) => boolean;
 }) {
   const intl = useAppIntl();
 
@@ -125,7 +125,7 @@ export default function BoardView({
                   task={task}
                   onClick={() => onTaskClick?.(task)}
                   onOpenChat={onOpenChat}
-                  canDrag={Boolean(onTaskMove) && canEditTask(task)}
+                  canDrag={Boolean(onTaskMove) && canMoveTask(task)}
                 />
               ))}
 

@@ -147,6 +147,13 @@ export default function ProjectDetailScreen() {
     return false;
   }
 
+  function rejectTerminalTaskChange(taskId: string): boolean {
+    const target = serverTasks.find((task) => task.id === taskId);
+    if (!target || !isTerminalTaskStatus(target.status)) return false;
+    toast.info(intl.formatMessage({ id: "project.task.readOnlyTerminal" }));
+    return true;
+  }
+
   const {
     toggleLabel: handleToggleLabel,
     createDependency: handleCreateDependency,
@@ -162,6 +169,7 @@ export default function ProjectDetailScreen() {
     selectedTask,
     setSelectedTask,
     rejectChange: rejectCompletedTaskChange,
+    rejectChecklistChange: rejectTerminalTaskChange,
   });
 
   const {
@@ -177,8 +185,6 @@ export default function ProjectDetailScreen() {
     setPriority: setPriorityFilter,
     quickAssignee: quickAssigneeFilter,
     setQuickAssignee: setQuickAssigneeFilter,
-    kind: taskKindFilter,
-    setKind: setTaskKindFilter,
     onlyMyIssues,
     setOnlyMyIssues,
     setStatusOverrides: setTaskStatusOverrides,
@@ -304,7 +310,6 @@ export default function ProjectDetailScreen() {
           statusFilter={statusFilter}
           priorityFilter={priorityFilter}
           assigneeFilter={quickAssigneeFilter}
-          taskKindFilter={taskKindFilter}
           selectedAssigneeIds={activeAssigneeFilters}
           onlyMyIssues={onlyMyIssues}
           isFiltersActive={isFiltersActive}
@@ -316,7 +321,6 @@ export default function ProjectDetailScreen() {
             setQuickAssigneeFilter(value);
             setActiveAssigneeFilters([]);
           }}
-          onTaskKindChange={setTaskKindFilter}
           onToggleAssignee={toggleAssigneeFilter}
           onToggleOnlyMyIssues={() => setOnlyMyIssues((value) => !value)}
           onClearFilters={clearAllFilters}
@@ -386,6 +390,8 @@ export default function ProjectDetailScreen() {
           onCreateDependency={handleCreateDependency}
           onDeleteDependency={handleDeleteDependency}
           canEditTask={permissions.canEditTask(selectedTask)}
+          canContributeTask={permissions.canContributeTask(selectedTask)}
+          canComment={Boolean(permissions.role)}
           onCreateSubtask={
             permissions.canCreateTask
               ? (task) => {

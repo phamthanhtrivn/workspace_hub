@@ -16,6 +16,7 @@ export function assertTaskEditable(status: string): void {
 
 export function assertTaskStatusTransition(current: string, next: string): void {
   if (current === next || next === TaskStatus.CANCELLED) return;
+  if (current === TaskStatus.IN_REVIEW && next === TaskStatus.IN_PROGRESS) return;
   const currentOrder = ACTIVE_STATUS_ORDER[current];
   const nextOrder = ACTIVE_STATUS_ORDER[next];
   if (currentOrder === undefined || nextOrder === undefined || nextOrder < currentOrder) {

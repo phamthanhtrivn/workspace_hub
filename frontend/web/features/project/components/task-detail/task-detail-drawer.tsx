@@ -38,6 +38,8 @@ export default function TaskDetailDrawer({
   onCreateDependency,
   onDeleteDependency,
   canEditTask = false,
+  canContributeTask = false,
+  canComment = false,
 }: TaskDetailDrawerProps) {
   const intl = useAppIntl();
   const {
@@ -84,6 +86,9 @@ export default function TaskDetailDrawer({
 
   const issueKey = getIssueKey(task);
   const issueType = getIssueTypeDetails(task);
+  const isTaskClosed = isTerminalTaskStatus(task.status);
+  const isCollaborationReadOnly = isTaskClosed || !canContributeTask;
+  const areCommentsReadOnly = isTaskClosed || !canComment;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -337,7 +342,7 @@ export default function TaskDetailDrawer({
           {/* Checklist Section */}
           <TaskChecklistSection
             task={task}
-            isReadOnly={isReadOnly}
+            isReadOnly={isCollaborationReadOnly}
             onCreate={onCreateChecklist}
             onUpdate={onUpdateChecklist}
             onDelete={onDeleteChecklist}
@@ -360,7 +365,7 @@ export default function TaskDetailDrawer({
           <TaskCommentsSection
             task={task}
             members={members}
-            isReadOnly={isReadOnly}
+            isReadOnly={areCommentsReadOnly}
           />
         </div>
 

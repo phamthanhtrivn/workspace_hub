@@ -16,6 +16,7 @@ import { toInvitationResponse } from "./project.mapper";
 import { TaskCalendarEventService } from "./task-calendar-event.service";
 import { isUniqueConstraintError } from "../../common/prisma/prisma-errors";
 import { NotificationOutboxService } from "./notification-outbox.service";
+import { defaultMemberPermissions } from "./member-permissions";
 
 const EXPIRY_DAYS = 7;
 
@@ -66,7 +67,9 @@ export class InvitationService {
               now.getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000,
             ),
           },
-          include: { project: { select: { name: true } } },
+          include: {
+            project: { select: { name: true, icon: true, color: true } },
+          },
         });
         await this.notifications.enqueueInvitationEmail(
           {
@@ -89,6 +92,8 @@ export class InvitationService {
               invitationId: created.id,
               projectId,
               projectName: created.project.name,
+              projectIcon: created.project.icon,
+              projectColor: created.project.color,
               status: InvitationStatus.PENDING,
               expiresAt: created.expiresAt?.toISOString() ?? null,
             },
@@ -191,7 +196,9 @@ export class InvitationService {
             now.getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000,
           ),
         },
-        include: { project: { select: { name: true } } },
+        include: {
+          project: { select: { name: true, icon: true, color: true } },
+        },
       });
 
       await this.notifications.enqueueInvitationEmail(
@@ -215,6 +222,8 @@ export class InvitationService {
             invitationId: created.id,
             projectId,
             projectName: created.project.name,
+            projectIcon: created.project.icon,
+            projectColor: created.project.color,
             status: InvitationStatus.PENDING,
             expiresAt: created.expiresAt?.toISOString() ?? null,
           },
@@ -235,16 +244,34 @@ export class InvitationService {
       initial.status,
       initial.expiresAt,
     );
+    this.ensureProjectWritable(initial.project);
 
     const now = new Date();
     const updated = await this.prisma.$transaction(async (tx) => {
       const invitation = await tx.projectInvitation.findUnique({
         where: { id: invitationId },
-        include: { project: { select: { name: true } } },
+        include: {
+          project: {
+            select: {
+              name: true,
+              archived: true,
+              status: true,
+              setting: {
+                select: {
+                  allowMemberCreateTask: true,
+                  allowMemberEditOwnTask: true,
+                  allowMemberEditOthersTask: true,
+                },
+              },
+            },
+          },
+        },
       });
       if (!invitation) throw new NotFoundException("Invitation not found");
       this.requireInvitee(userId, invitation.invitedUserId);
       this.ensurePending(invitation.status, invitation.expiresAt);
+      this.ensureProjectWritable(invitation.project);
+      const permissions = defaultMemberPermissions(invitation.project.setting);
 
       const claimed = await tx.projectInvitation.updateMany({
         where: { id: invitationId, status: InvitationStatus.PENDING },
@@ -271,12 +298,7 @@ export class InvitationService {
           data: {
             role: ProjectRole.MEMBER,
             status: ProjectMemberStatus.ACTIVE,
-            canCreateTask: false,
-            canEditOwnTask: false,
-            canEditOthersTask: false,
-            canManageSprints: false,
-            canManageMembers: false,
-            canManageLabels: false,
+            ...permissions,
             leftAt: null,
             updatedAt: now,
           },
@@ -289,6 +311,7 @@ export class InvitationService {
             userId,
             role: ProjectRole.MEMBER,
             status: ProjectMemberStatus.ACTIVE,
+            ...permissions,
             joinedAt: now,
             updatedAt: now,
           },
@@ -374,10 +397,34 @@ export class InvitationService {
   private async findInvitation(id: string) {
     const invitation = await this.prisma.projectInvitation.findUnique({
       where: { id },
-      include: { project: { select: { name: true } } },
+      include: {
+        project: {
+          select: {
+            name: true,
+            archived: true,
+            status: true,
+            setting: {
+              select: {
+                allowMemberCreateTask: true,
+                allowMemberEditOwnTask: true,
+                allowMemberEditOthersTask: true,
+              },
+            },
+          },
+        },
+      },
     });
     if (!invitation) throw new NotFoundException("Invitation not found");
     return invitation;
+  }
+
+  private ensureProjectWritable(project: {
+    archived: boolean;
+    status: string;
+  }): void {
+    if (project.archived || project.status === 'ARCHIVED') {
+      throw new ConflictException('Archived projects are read-only');
+    }
   }
 
   private requireInvitee(userId: string, invitedUserId: string): void {

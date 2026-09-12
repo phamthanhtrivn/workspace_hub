@@ -112,7 +112,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           onOpenChat={props.onChatOpen}
           onTaskMove={props.onTaskMove}
           onAddTask={permissions.canCreateTask ? props.openTaskForm : undefined}
-          canEditTask={permissions.canEditTask}
+          canMoveTask={permissions.canContributeTask}
         />
       );
     }
@@ -159,12 +159,22 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           projectType={props.project.projectType}
           onTaskClick={props.onTaskSelect}
           onOpenChat={props.onChatOpen}
-          onAddTask={() => props.openTaskForm()}
+          onAddTask={
+            permissions.canCreateTask ? () => props.openTaskForm() : undefined
+          }
           onAddTaskInline={
             permissions.canCreateTask ? props.onCreateTaskInline : undefined
           }
-          onAddSubtask={(task) =>
-            props.openTaskForm(TaskStatus.TODO, undefined, false, task.id)
+          onAddSubtask={
+            permissions.canCreateTask
+              ? (task) =>
+                  props.openTaskForm(
+                    TaskStatus.TODO,
+                    undefined,
+                    false,
+                    task.id,
+                  )
+              : undefined
           }
           onEditGroup={
             permissions.canManageProject ? props.onEditGroup : undefined

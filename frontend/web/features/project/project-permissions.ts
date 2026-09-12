@@ -15,6 +15,7 @@ export interface ProjectPermissions {
   canManageLabels: boolean;
   canCreateTask: boolean;
   canEditTask: (task: Pick<Task, "createdBy">) => boolean;
+  canContributeTask: (task: Pick<Task, "createdBy" | "assignees">) => boolean;
 }
 
 export const NO_PROJECT_PERMISSIONS: ProjectPermissions = {
@@ -26,6 +27,7 @@ export const NO_PROJECT_PERMISSIONS: ProjectPermissions = {
   canManageLabels: false,
   canCreateTask: false,
   canEditTask: () => false,
+  canContributeTask: () => false,
 };
 
 export function getProjectPermissions(
@@ -38,6 +40,13 @@ export function getProjectPermissions(
     project.ownerId === currentUserId ? ProjectRole.OWNER : membership?.role;
   const canManageProject = role === ProjectRole.OWNER;
   const isMember = Boolean(role);
+  const canEditTask = (task: Pick<Task, "createdBy">) => {
+    if (canManageProject) return true;
+    if (!isMember || !currentUserId) return false;
+    return task.createdBy === currentUserId
+      ? Boolean(membership?.canEditOwnTask)
+      : Boolean(membership?.canEditOthersTask);
+  };
 
   return {
     role,
@@ -48,12 +57,15 @@ export function getProjectPermissions(
     canManageSprints: canManageProject || Boolean(membership?.canManageSprints),
     canManageLabels: canManageProject || Boolean(membership?.canManageLabels),
     canCreateTask: canManageProject || Boolean(membership?.canCreateTask),
-    canEditTask: (task) => {
-      if (canManageProject) return true;
-      if (!isMember || !currentUserId) return false;
-      return task.createdBy === currentUserId
-        ? Boolean(membership?.canEditOwnTask)
-        : Boolean(membership?.canEditOthersTask);
-    },
+    canEditTask,
+    canContributeTask: (task) =>
+      canEditTask(task) ||
+      Boolean(
+        isMember &&
+          currentUserId &&
+          task.assignees.some(
+            (assignee) => assignee.userId === currentUserId,
+          ),
+      ),
   };
 }

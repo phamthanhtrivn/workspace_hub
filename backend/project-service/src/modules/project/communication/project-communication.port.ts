@@ -4,6 +4,7 @@ export const NOTIFICATION_GATEWAY = Symbol("NOTIFICATION_GATEWAY");
 export interface UserContact {
   email: string;
   fullName?: string;
+  avatarUrl?: string;
 }
 
 export interface UserDirectory {
@@ -13,6 +14,8 @@ export interface UserDirectory {
 export interface ProjectNotification {
   recipientId: string;
   senderId?: string;
+  senderName?: string;
+  senderAvatar?: string;
   type: string;
   title: string;
   content: string;

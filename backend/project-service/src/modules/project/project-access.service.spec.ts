@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   ProjectMemberStatus,
@@ -23,6 +23,8 @@ describe('ProjectAccessService member permissions', () => {
     findProject.mockResolvedValue({
       id: projectId,
       ownerId,
+      archived: false,
+      status: 'ACTIVE',
       visibility: ProjectVisibility.MEMBERS_ONLY,
       setting: {
         allowMemberCreateTask: false,
@@ -56,6 +58,33 @@ describe('ProjectAccessService member permissions', () => {
     ).resolves.toBeDefined();
   });
 
+  it('lets an assignee progress a task without general edit permission', async () => {
+    findMember.mockResolvedValue({
+      userId: memberId,
+      role: ProjectRole.MEMBER,
+      status: ProjectMemberStatus.ACTIVE,
+      canEditOwnTask: false,
+      canEditOthersTask: false,
+    });
+
+    await expect(
+      service.requireCanContributeTask(
+        memberId,
+        projectId,
+        crypto.randomUUID(),
+        [memberId],
+      ),
+    ).resolves.toBeDefined();
+    await expect(
+      service.requireCanContributeTask(
+        memberId,
+        projectId,
+        crypto.randomUUID(),
+        [],
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
   it('uses the member-specific permission when inviting members', async () => {
     await expect(
       service.requireCanInvite(memberId, projectId),
@@ -73,5 +102,37 @@ describe('ProjectAccessService member permissions', () => {
     await expect(
       service.requireCanCreateTask(memberId, projectId),
     ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('does not grant anonymous access to legacy PUBLIC project data', async () => {
+    findProject.mockResolvedValue({
+      id: projectId,
+      ownerId,
+      archived: false,
+      status: 'ACTIVE',
+      visibility: 'PUBLIC',
+      setting: null,
+    });
+    findMember.mockResolvedValue(null);
+
+    await expect(
+      service.requireReadAccess(crypto.randomUUID(), projectId),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it('keeps archived projects readable but rejects writes', async () => {
+    findProject.mockResolvedValue({
+      id: projectId,
+      ownerId,
+      archived: true,
+      status: 'ARCHIVED',
+      visibility: ProjectVisibility.MEMBERS_ONLY,
+      setting: null,
+    });
+
+    await expect(service.requireReadAccess(ownerId, projectId)).resolves.toBeDefined();
+    await expect(
+      service.requireCanCreateTask(ownerId, projectId),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 });

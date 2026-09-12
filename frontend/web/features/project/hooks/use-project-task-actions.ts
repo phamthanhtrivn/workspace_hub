@@ -5,7 +5,7 @@ import type { UpdateTaskPayload } from "../api/task.api";
 import type { TaskFormValues } from "../components/dialogs/task-form-dialog";
 import { confirmProjectAction } from "../project-alert";
 import type { ProjectPermissions } from "../project-permissions";
-import { canMoveTaskForward } from "../task-status-transition";
+import { canMoveTaskToStatus } from "../task-status-transition";
 import { TASK_STATUS_LABEL_IDS } from "../constants/task.constants";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { TaskDrawerUpdatePayload } from "../types/task-detail-drawer.types";
@@ -75,8 +75,8 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
   const moveTask = async (taskId: string, newStatus: TaskStatus) => {
     const task = options.tasks.find((item) => item.id === taskId);
     if (!task || task.status === newStatus) return;
-    if (isTerminalTaskStatus(task.status) || !options.permissions.canEditTask(task)) return;
-    if (!canMoveTaskForward(task, newStatus)) return;
+    if (isTerminalTaskStatus(task.status) || !options.permissions.canContributeTask(task)) return;
+    if (!canMoveTaskToStatus(task, newStatus)) return;
     const confirmed = await confirmProjectAction({
       title: intl.formatMessage({ id: "project.task.statusChangeTitle" }),
       text: intl.formatMessage(
