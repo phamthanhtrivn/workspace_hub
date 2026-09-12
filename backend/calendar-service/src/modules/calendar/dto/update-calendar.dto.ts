@@ -2,7 +2,6 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
-  IsUUID,
   IsNotEmpty,
   MaxLength,
   IsTimeZone,
@@ -24,10 +23,6 @@ export class UpdateCalendarDto {
   @IsString()
   @MaxLength(500)
   description?: string;
-
-  @IsOptional()
-  @IsUUID()
-  projectId?: string | null;
 
   @IsOptional()
   @IsString()

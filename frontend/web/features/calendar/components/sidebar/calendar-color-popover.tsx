@@ -2,17 +2,20 @@
 
 import { Check, MoreVertical, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import { CALENDAR_COLOR_CHOICES } from "../../types/calendar.constants";
 
 export function CalendarColorPopover({
   value,
   label,
   pending = false,
+  triggerClassName,
   onChange,
 }: {
   value: string;
   label: string;
   pending?: boolean;
+  triggerClassName?: string;
   onChange: (color: string) => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -45,7 +48,11 @@ export function CalendarColorPopover({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+        className={cn(
+          "grid h-6 w-6 cursor-pointer place-items-center rounded-md text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
+          triggerClassName,
+          open && "!opacity-100 bg-slate-100 text-slate-700",
+        )}
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-label={label}

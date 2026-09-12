@@ -8,8 +8,8 @@ export const CALENDAR_MIN_EVENT_DURATION_MS = 15 * 60 * 1000;
 export const CALENDAR_INITIAL_RANGE_LOOKBACK_DAYS = 14;
 export const CALENDAR_INITIAL_RANGE_LOOKAHEAD_DAYS = 45;
 export const CALENDAR_INITIAL_VIEW = "timeGridWeek";
-export const CALENDAR_SLOT_MIN_TIME = "06:00:00";
-export const CALENDAR_SLOT_MAX_TIME = "22:00:00";
+export const CALENDAR_SLOT_MIN_TIME = "00:00:00";
+export const CALENDAR_SLOT_MAX_TIME = "24:00:00";
 
 export const CALENDAR_COLOR_CHOICES = [
   "#2563eb",

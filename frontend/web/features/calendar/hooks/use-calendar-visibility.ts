@@ -10,7 +10,10 @@ import {
   EventStatus,
   WorkspaceCalendar,
 } from "../types/calendar.types";
-import { mapCalendarEventToFullCalendar } from "../utils/calendar-event.utils";
+import {
+  isTaskCalendarEvent,
+  mapCalendarEventToFullCalendar,
+} from "../utils/calendar-event.utils";
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
@@ -68,14 +71,14 @@ export function useCalendarVisibility(
     return events
       .filter((event) => event.status !== EventStatus.CANCELLED)
       .filter((event) =>
-        event.sourceType === EventSourceType.TASK
+        isTaskCalendarEvent(event)
           ? tasksVisible
           : visibleIds.has(event.calendarId),
       )
       .map((event) =>
         mapCalendarEventToFullCalendar(
           event,
-          event.sourceType === EventSourceType.TASK
+          isTaskCalendarEvent(event)
             ? tasksColor
             : calendarColors.get(event.calendarId),
         ),

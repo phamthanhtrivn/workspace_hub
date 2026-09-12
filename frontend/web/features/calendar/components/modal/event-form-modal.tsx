@@ -19,6 +19,7 @@ interface EventFormModalProps {
   calendars: WorkspaceCalendar[];
   initialDraft: CalendarEventDraft | null;
   event?: CalendarEvent | null;
+  tasksColor?: string;
   onClose: () => void;
   onSubmit: (values: CalendarEventFormValues) => Promise<void>;
   submitting?: boolean;
@@ -29,6 +30,7 @@ export function EventFormModal({
   calendars,
   initialDraft,
   event,
+  tasksColor,
   onClose,
   onSubmit,
   submitting,
@@ -63,6 +65,7 @@ export function EventFormModal({
           form={controller.form}
           calendars={calendars}
           kind={quickCreateKind}
+          tasksColor={tasksColor}
           timeEditor={{
             recurrencePreset: controller.recurrencePreset,
             recurrenceOptions: controller.recurrenceOptions,
@@ -79,16 +82,6 @@ export function EventFormModal({
           onClose={onClose}
           onMoreOptions={() => setShowMoreOptions(true)}
           onSubmitEvent={controller.submit}
-          onSubmitUiOnly={(kind) =>
-            toast.info(
-              intl.formatMessage({
-                id:
-                  kind === "task"
-                    ? "calendar.quick.taskUiOnly"
-                    : "calendar.quick.appointmentUiOnly",
-              }),
-            )
-          }
           onUnavailableFeature={() =>
             toast.info(
               intl.formatMessage({ id: "calendar.quick.conferenceUiOnly" }),

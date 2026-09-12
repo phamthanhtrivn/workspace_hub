@@ -230,3 +230,180 @@ export function getRecurrencePresetFromRule(
 
   return CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM;
 }
+
+const WEEKDAY_ORDER: CalendarRecurrenceWeekday[] = [
+  "MO",
+  "TU",
+  "WE",
+  "TH",
+  "FR",
+  "SA",
+  "SU",
+];
+
+export function getWeekdayNameByCode(
+  code: CalendarRecurrenceWeekday,
+  locale: string,
+): string {
+  const offset = weekdayCodes.indexOf(code);
+  const targetDate = new Date(Date.UTC(2026, 0, 4 + (offset >= 0 ? offset : 0)));
+  return new Intl.DateTimeFormat(locale, { weekday: "long" }).format(targetDate);
+}
+
+export function formatRecurrenceRuleText(
+  rule?: string | null,
+  locale = "vi",
+  startDateInput?: Date | string | null,
+): string | null {
+  if (!rule) return null;
+
+  try {
+    const parsed = parseRule(rule);
+    const isVi = locale.toLowerCase().startsWith("vi");
+    const interval = Math.max(1, parsed.interval || 1);
+    let weekdays = getParsedWeekdays(parsed.byweekday);
+
+    const startDate = startDateInput
+      ? typeof startDateInput === "string"
+        ? new Date(startDateInput)
+        : startDateInput
+      : undefined;
+    const validStartDate =
+      startDate && !Number.isNaN(startDate.getTime()) ? startDate : undefined;
+
+    let baseText = "";
+
+    if (parsed.freq === RRule.DAILY) {
+      if (interval === 1) {
+        baseText = isVi ? "Hàng ngày" : "Daily";
+      } else {
+        baseText = isVi ? `Mỗi ${interval} ngày` : `Every ${interval} days`;
+      }
+    } else if (parsed.freq === RRule.WEEKLY) {
+      const workdays: CalendarRecurrenceWeekday[] = [
+        "MO",
+        "TU",
+        "WE",
+        "TH",
+        "FR",
+      ];
+      const isWorkdays =
+        interval === 1 &&
+        weekdays.length === 5 &&
+        workdays.every((w) => weekdays.includes(w));
+
+      if (isWorkdays) {
+        baseText = isVi
+          ? "Mọi ngày trong tuần (từ Thứ Hai đến Thứ Sáu)"
+          : "Every weekday (Monday to Friday)";
+      } else {
+        if (weekdays.length === 0 && validStartDate) {
+          weekdays = [getWeekdayCode(validStartDate)];
+        }
+
+        const sortedWeekdays = [...weekdays].sort(
+          (a, b) => WEEKDAY_ORDER.indexOf(a) - WEEKDAY_ORDER.indexOf(b),
+        );
+        const dayNames = sortedWeekdays.map((c) =>
+          getWeekdayNameByCode(c, locale),
+        );
+
+        if (dayNames.length === 1) {
+          if (interval === 1) {
+            baseText = isVi
+              ? `Hàng tuần vào ${dayNames[0]}`
+              : `Weekly on ${dayNames[0]}`;
+          } else {
+            baseText = isVi
+              ? `Mỗi ${interval} tuần vào ${dayNames[0]}`
+              : `Every ${interval} weeks on ${dayNames[0]}`;
+          }
+        } else if (dayNames.length > 1) {
+          const joinedDays = dayNames.join(", ");
+          if (interval === 1) {
+            baseText = isVi
+              ? `Hàng tuần vào các ngày ${joinedDays}`
+              : `Weekly on ${joinedDays}`;
+          } else {
+            baseText = isVi
+              ? `Mỗi ${interval} tuần vào ${joinedDays}`
+              : `Every ${interval} weeks on ${joinedDays}`;
+          }
+        } else {
+          baseText =
+            interval === 1
+              ? isVi
+                ? "Hàng tuần"
+                : "Weekly"
+              : isVi
+                ? `Mỗi ${interval} tuần`
+                : `Every ${interval} weeks`;
+        }
+      }
+    } else if (parsed.freq === RRule.MONTHLY) {
+      const day = validStartDate ? validStartDate.getDate() : undefined;
+      if (interval === 1) {
+        baseText = day
+          ? isVi
+            ? `Hàng tháng vào ngày ${day}`
+            : `Monthly on day ${day}`
+          : isVi
+            ? "Hàng tháng"
+            : "Monthly";
+      } else {
+        baseText = day
+          ? isVi
+            ? `Mỗi ${interval} tháng vào ngày ${day}`
+            : `Every ${interval} months on day ${day}`
+          : isVi
+            ? `Mỗi ${interval} tháng`
+            : `Every ${interval} months`;
+      }
+    } else if (parsed.freq === RRule.YEARLY) {
+      const monthDay = validStartDate
+        ? new Intl.DateTimeFormat(locale, {
+            month: "long",
+            day: "numeric",
+          }).format(validStartDate)
+        : undefined;
+
+      if (interval === 1) {
+        baseText = monthDay
+          ? isVi
+            ? `Hàng năm vào ${monthDay}`
+            : `Annually on ${monthDay}`
+          : isVi
+            ? "Hàng năm"
+            : "Annually";
+      } else {
+        baseText = monthDay
+          ? isVi
+            ? `Mỗi ${interval} năm vào ${monthDay}`
+            : `Every ${interval} years on ${monthDay}`
+          : isVi
+            ? `Mỗi ${interval} năm`
+            : `Every ${interval} years`;
+      }
+    } else {
+      baseText = isVi ? "Lặp lại định kỳ" : "Recurring";
+    }
+
+    if (parsed.count) {
+      baseText += isVi ? `, ${parsed.count} lần` : `, ${parsed.count} times`;
+    } else if (parsed.until) {
+      const formattedUntil = new Intl.DateTimeFormat(locale, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }).format(parsed.until);
+      baseText += isVi
+        ? `, đến ${formattedUntil}`
+        : `, until ${formattedUntil}`;
+    }
+
+    return baseText;
+  } catch {
+    return null;
+  }
+}
+
