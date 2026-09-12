@@ -295,6 +295,7 @@ export class MessageService {
       medias: true,
       poll: { include: { options: { include: { votes: true } } } },
       note: true,
+      meeting: true,
       threadFollowers: true,
     };
 

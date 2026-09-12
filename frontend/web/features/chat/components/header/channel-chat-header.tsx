@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { ArrowLeft, Globe, Hash, Info, Search, User } from "lucide-react";
+import { ArrowLeft, Globe, Hash, Info, Search, User, Video } from "lucide-react";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../api/chat.api";
 import { chatKeys } from "../../types/chat.constant";
 import ChannelMembersModal from "../modals/channel/channel-members-modal";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
+import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
 
 interface ChannelChatHeaderProps {
   onToggleRightPanel: () => void;
@@ -21,6 +23,8 @@ export default function ChannelChatHeader({
   const intl = useAppIntl();
   const { activeChat: activeChannel } = useActiveChat();
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const { createMeeting, isCreating } = useCreateInstantMeeting();
 
   const spaceId =
     activeChannel && "spaceId" in activeChannel
@@ -38,6 +42,20 @@ export default function ChannelChatHeader({
   const memberCount = activeChannel?.members?.length || 0;
   const isDefaultChannel =
     !!activeChannel && "isDefault" in activeChannel && activeChannel.isDefault;
+
+  const handleStartMeeting = () => {
+    if (activeChannel?.id) {
+      createMeeting({
+        channelId: activeChannel.id,
+        title: `${intl.formatMessage({ id: "chat.meeting.cardTitle" })} - #${displayName}`,
+        cameraEnabled: true,
+        microphoneEnabled: true,
+        autoAdmin: true,
+        chatEnabled: true,
+      });
+      setIsConfirmModalOpen(false);
+    }
+  };
 
   return (
     <div className="py-2 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">
@@ -89,6 +107,14 @@ export default function ChannelChatHeader({
         >
           <Search size={20} />
         </button>
+        <button
+          className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
+          onClick={() => setIsConfirmModalOpen(true)}
+          disabled={isCreating || !activeChannel?.id}
+          title={intl.formatMessage({ id: "chat.header.startMeeting" })}
+        >
+          <Video size={20} />
+        </button>
         <div className="w-px h-6 bg-gray-200 mx-1" />
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
@@ -107,6 +133,13 @@ export default function ChannelChatHeader({
           spaceCreatorId={spaceDetail?.createdBy}
         />
       ) : null}
+      <StartMeetingConfirmModal
+        isOpen={isConfirmModalOpen}
+        isCreating={isCreating}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleStartMeeting}
+        targetName={`#${displayName}`}
+      />
     </div>
   );
 }

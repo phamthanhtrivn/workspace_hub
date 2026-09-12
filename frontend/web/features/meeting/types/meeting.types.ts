@@ -18,6 +18,7 @@ export enum MeetingJoinFlowStep {
   JOINING = "joining",
   ROOM = "room",
   ERROR = "error",
+  ACCESS_DENIED = "access-denied",
 }
 
 export enum MeetingHistoryViewMode {

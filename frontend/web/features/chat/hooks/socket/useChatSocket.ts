@@ -7,7 +7,7 @@ import {
 } from "@/store/chat/chat-slice";
 import { socketService } from "../../api/chat-socket.service";
 import { ChatEvent } from "../../api/chat.events";
-import { chatKeys } from "../../types/chat.constant";
+import { chatKeys, ChatQueryRoot } from "../../types/chat.constant";
 import {
   ChatContextType,
   SpaceRole,
@@ -240,6 +240,31 @@ export function useChatSocket() {
     const handleMessageUpdated = (message: ChatSocketMessagePayload) => {
       const chatId = getMessageChatId(message);
       if (!chatId) return;
+
+      queryClient.setQueriesData({ queryKey: [ChatQueryRoot.MESSAGES] }, (oldData: any) => {
+        if (!oldData) return oldData;
+
+        if (oldData.pages && Array.isArray(oldData.pages)) {
+          return {
+            ...oldData,
+            pages: oldData.pages.map((page: any) => {
+              if (!page?.messages || !Array.isArray(page.messages)) return page;
+              return {
+                ...page,
+                messages: page.messages.map((m: any) =>
+                  m.id === message.id ? { ...m, ...message } : m,
+                ),
+              };
+            }),
+          };
+        }
+
+        return oldData;
+      });
+
+      queryClient.invalidateQueries({
+        queryKey: [ChatQueryRoot.MESSAGES],
+      });
 
       if (isChannelPayload(message)) {
         updateChannelsCache(queryClient, chatId, (channel) =>
