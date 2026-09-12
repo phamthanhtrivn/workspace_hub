@@ -41,7 +41,14 @@ export function useCreateInstantMeeting(options?: UseCreateInstantMeetingOptions
       }),
     onSuccess: (response) => {
       const joinToken = response.data.meeting.joinToken;
-      router.push(MEETING_ROUTES.room(joinToken));
+      const currentPath =
+        typeof window !== "undefined"
+          ? window.location.pathname + window.location.search
+          : "";
+      const returnUrlQuery = currentPath
+        ? `?returnUrl=${encodeURIComponent(currentPath)}`
+        : "";
+      router.push(`${MEETING_ROUTES.room(joinToken)}${returnUrlQuery}`);
       options?.onCreated?.();
     },
     onError: (err) => {

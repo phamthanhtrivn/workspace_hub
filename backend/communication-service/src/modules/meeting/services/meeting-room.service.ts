@@ -214,15 +214,22 @@ export class MeetingRoomService {
       return createdMeeting;
     });
 
+    const senderProfile = {
+      id: userId,
+      userId,
+      fullName: userName,
+      avatarUrl,
+    };
+
     if (channelId && createdMessage) {
       await this.chatSocketPublisher.publishChannelMessageCreated(
         channelId,
-        createdMessage as any,
+        { ...createdMessage, senderProfile } as any,
       );
     } else if (conversationId && createdDirectMessage) {
       await this.chatSocketPublisher.publishDirectMessageCreated(
         conversationId,
-        createdDirectMessage as any,
+        { ...createdDirectMessage, senderProfile } as any,
       );
     }
 

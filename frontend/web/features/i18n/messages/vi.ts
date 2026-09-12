@@ -221,6 +221,13 @@ const vi = {
   "chat.meeting.joinNow": "Tham gia",
   "chat.meeting.openNewTab": "Mở trong thẻ mới",
   "chat.meeting.startedBy": "bởi {name}",
+  "chat.meeting.confirmTitle": "Tạo cuộc họp video mới?",
+  "chat.meeting.confirmDescription":
+    "Bạn có muốn khởi tạo một cuộc họp video mới không? Một thẻ thông báo cuộc họp sẽ được tự động chia sẻ vào cuộc trò chuyện này.",
+  "chat.meeting.confirmDescriptionWithTarget":
+    "Bạn có muốn khởi tạo một cuộc họp video mới trong {target} không? Thẻ cuộc họp sẽ được tự động chia sẻ vào cuộc trò chuyện.",
+  "chat.meeting.confirmStart": "Bắt đầu cuộc họp",
+  "chat.meeting.confirmCancel": "Hủy bỏ",
   "chat.pinMessage": "Ghim tin nhắn",
   "chat.unpinMessage": "Bỏ ghim tin nhắn",
   "chat.recallMessage": "Thu hồi",

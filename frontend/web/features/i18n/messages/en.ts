@@ -222,6 +222,13 @@ const en = {
   "chat.meeting.joinNow": "Join",
   "chat.meeting.openNewTab": "Open in new tab",
   "chat.meeting.startedBy": "by {name}",
+  "chat.meeting.confirmTitle": "Start Video Meeting?",
+  "chat.meeting.confirmDescription":
+    "Are you sure you want to start a video meeting in this conversation? A meeting card will be automatically shared with the members.",
+  "chat.meeting.confirmDescriptionWithTarget":
+    "Are you sure you want to start a video meeting in {target}? A meeting card will be shared with the members.",
+  "chat.meeting.confirmStart": "Start Meeting",
+  "chat.meeting.confirmCancel": "Cancel",
   "chat.pinMessage": "Pin message",
   "chat.unpinMessage": "Unpin message",
   "chat.recallMessage": "Recall",

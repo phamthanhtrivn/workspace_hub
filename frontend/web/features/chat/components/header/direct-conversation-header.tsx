@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ArrowLeft, Info, Search, User, Video } from "lucide-react";
 import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
@@ -5,6 +6,7 @@ import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
+import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
 
 interface DirectConversationHeaderProps {
   onToggleRightPanel: () => void;
@@ -22,6 +24,7 @@ export default function DirectConversationHeader({
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
   const { createMeeting, isCreating } = useCreateInstantMeeting();
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const otherMember = activeConversation?.members?.find(
     (member) => member.userId !== currentUserId,
@@ -35,6 +38,20 @@ export default function DirectConversationHeader({
     otherMemberId ||
     intl.formatMessage({ id: "app.user" });
   const displayAvatarUrl = profile?.avatarUrl || null;
+
+  const handleStartMeeting = () => {
+    if (activeConversation?.id) {
+      createMeeting({
+        conversationId: activeConversation.id,
+        title: `${intl.formatMessage({ id: "chat.meeting.cardTitle" })} - ${displayName}`,
+        cameraEnabled: true,
+        microphoneEnabled: true,
+        autoAdmin: true,
+        chatEnabled: true,
+      });
+      setIsConfirmModalOpen(false);
+    }
+  };
 
   return (
     <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm z-10">
@@ -103,18 +120,7 @@ export default function DirectConversationHeader({
         </button>
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
-          onClick={() => {
-            if (activeConversation?.id) {
-              createMeeting({
-                conversationId: activeConversation.id,
-                title: `${intl.formatMessage({ id: "chat.meeting.cardTitle" })} - ${displayName}`,
-                cameraEnabled: true,
-                microphoneEnabled: true,
-                autoAdmin: true,
-                chatEnabled: true,
-              });
-            }
-          }}
+          onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeConversation?.id}
           title={intl.formatMessage({ id: "chat.header.startMeeting" })}
         >
@@ -129,6 +135,14 @@ export default function DirectConversationHeader({
           <Info size={20} />
         </button>
       </div>
+
+      <StartMeetingConfirmModal
+        isOpen={isConfirmModalOpen}
+        isCreating={isCreating}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleStartMeeting}
+        targetName={displayName}
+      />
     </div>
   );
 }

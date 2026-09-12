@@ -28,12 +28,15 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
   const meeting = propMeeting || (message.meeting as MeetingResponse | null);
 
   const senderId = message.senderId;
-  const isMe = senderId === currentUser?.userId;
+  const isMe = Boolean(
+    senderId && currentUser?.userId && senderId === currentUser.userId,
+  );
   const senderProfile =
     message.senderProfile || (senderId ? memberProfiles?.[senderId] : null);
   const senderName =
     senderProfile?.fullName ||
     senderProfile?.email ||
+    (isMe ? currentUser?.fullName || currentUser?.email : null) ||
     intl.formatMessage({ id: "app.user" });
 
   const joinToken = meeting?.joinToken;
@@ -47,7 +50,14 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
 
   const handleJoinInApp = () => {
     if (joinToken) {
-      router.push(`/meetings/${encodeURIComponent(joinToken)}`);
+      const currentPath =
+        typeof window !== "undefined"
+          ? window.location.pathname + window.location.search
+          : "";
+      const returnUrlQuery = currentPath
+        ? `?returnUrl=${encodeURIComponent(currentPath)}`
+        : "";
+      router.push(`/meetings/${encodeURIComponent(joinToken)}${returnUrlQuery}`);
     }
   };
 
