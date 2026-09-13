@@ -9,8 +9,9 @@ import {
   useState,
 } from "react";
 import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
-import { Loader2, Paperclip, Send, Smile, X } from "lucide-react";
+import { Folder, Loader2, Paperclip, Send, Smile, X } from "lucide-react";
 import { toast } from "sonner";
+import MyFilesSelectModal from "@/features/chat/components/modals/shared/my-files-select-modal";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { formatFileSize } from "@/lib/file";
 import {
@@ -56,6 +57,8 @@ export const MeetingMessageInput = forwardRef<
   const [message, setMessage] = useState(editingMessage?.content ?? "");
   const [uploads, setUploads] = useState<UploadingMeetingMedia[]>([]);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
+  const [isAttachOptionsOpen, setIsAttachOptionsOpen] = useState(false);
+  const [isMyFilesModalOpen, setIsMyFilesModalOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const emojiButtonRef = useRef<HTMLButtonElement>(null);
@@ -66,6 +69,8 @@ export const MeetingMessageInput = forwardRef<
     setMessage("");
     setUploads([]);
     setIsEmojiOpen(false);
+    setIsAttachOptionsOpen(false);
+    setIsMyFilesModalOpen(false);
   }, []);
 
   useImperativeHandle(
@@ -79,10 +84,19 @@ export const MeetingMessageInput = forwardRef<
         setMessage(content);
         setUploads([]);
         setIsEmojiOpen(false);
+        setIsAttachOptionsOpen(false);
+        setIsMyFilesModalOpen(false);
       },
     }),
     [resetComposer],
   );
+
+  useEffect(() => {
+    if (!editingMessage) return;
+
+    setIsAttachOptionsOpen(false);
+    setIsMyFilesModalOpen(false);
+  }, [editingMessage]);
 
   useEffect(() => {
     const textarea = textareaRef.current;
@@ -173,6 +187,30 @@ export const MeetingMessageInput = forwardRef<
       }
     },
     [intl, meetingId],
+  );
+
+  const handleSelectMyFiles = useCallback(
+    (
+      files: Array<{
+        name: string;
+        s3Key: string;
+        mimeType: string;
+        sizeBytes: number;
+      }>,
+    ) => {
+      const nextUploads = files.map<UploadingMeetingMedia>((file) => ({
+        id: `${file.s3Key}-${Date.now()}-${Math.random()}`,
+        file: new File([], file.name, { type: file.mimeType }),
+        name: file.name,
+        s3Key: file.s3Key,
+        mimeType: file.mimeType,
+        sizeBytes: file.sizeBytes,
+        status: "success",
+      }));
+
+      setUploads((current) => [...current, ...nextUploads]);
+    },
+    [],
   );
 
   const handleSubmit = async () => {
@@ -275,15 +313,46 @@ export const MeetingMessageInput = forwardRef<
         />
 
         {!editingMessage && (
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-            title={intl.formatMessage({ id: "meeting.chat.attachFile" })}
-          >
-            <Paperclip className="h-4 w-4" />
-          </button>
+          <div className="relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setIsAttachOptionsOpen((value) => !value)}
+              disabled={isUploading}
+              className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+              title={intl.formatMessage({ id: "chat.attachOptions" })}
+            >
+              <Paperclip className="h-4 w-4" />
+            </button>
+
+            {isAttachOptionsOpen && (
+              <div className="absolute bottom-full left-0 z-[95] mb-2 flex min-w-40 flex-col gap-1 rounded-xl border border-white/10 bg-[#111827] p-2 shadow-2xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAttachOptionsOpen(false);
+                    fileInputRef.current?.click();
+                  }}
+                  disabled={isUploading}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Paperclip className="h-4 w-4 text-slate-400" />
+                  {intl.formatMessage({ id: "chat.files" })}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAttachOptionsOpen(false);
+                    setIsMyFilesModalOpen(true);
+                  }}
+                  disabled={isUploading}
+                  className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Folder className="h-4 w-4 text-sky-300" />
+                  {intl.formatMessage({ id: "documents.nav.myFiles" })}
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         <textarea
@@ -330,6 +399,14 @@ export const MeetingMessageInput = forwardRef<
           <Send className="h-4 w-4" />
         </button>
       </div>
+
+      <MyFilesSelectModal
+        isOpen={isMyFilesModalOpen}
+        onClose={() => setIsMyFilesModalOpen(false)}
+        overlayClassName="z-[150]"
+        tone="dark"
+        onSelect={handleSelectMyFiles}
+      />
     </div>
   );
 });
