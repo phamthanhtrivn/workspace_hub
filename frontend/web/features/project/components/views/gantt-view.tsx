@@ -211,13 +211,13 @@ export default function GanttView({
           >
             {/* ─── Unified Single-Tier Header ───────────────────────────────── */}
             <div
-              className="sticky top-0 z-30 grid border-b border-slate-200 bg-slate-50"
+              className="sticky top-0 z-10 grid border-b border-slate-200 bg-slate-50"
               style={{
                 gridTemplateColumns: `${labelWidth}px ${timelineWidth}px`,
               }}
             >
               {/* Left Column Header (Solid Opaque, No Transparency) */}
-              <div className="sticky left-0 z-40 flex h-12 items-center justify-between border-r border-slate-200 bg-slate-50 px-4 text-xs font-bold uppercase tracking-wider text-slate-600 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
+              <div className="sticky left-0 z-20 flex h-12 items-center justify-between border-r border-slate-200 bg-slate-50 px-4 text-xs font-bold uppercase tracking-wider text-slate-600 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]">
                 <span className="flex items-center gap-1.5">
                   <Layers className="h-4 w-4 text-slate-400" />
                   {intl.formatMessage({ id: "project.task.label" })}
@@ -328,7 +328,7 @@ export default function GanttView({
               {/* Full-height vertical "Today" indicator line (clean, non-obstructing) */}
               {hasToday && (
                 <div
-                  className="pointer-events-none absolute bottom-0 top-0 z-10 border-l-2 border-[#0052CC]/75"
+                  className="pointer-events-none absolute bottom-0 top-0 z-[5] border-l-2 border-[#0052CC]/75"
                   style={{
                     left: `${labelWidth + todayLeft}px`,
                   }}
@@ -372,7 +372,7 @@ export default function GanttView({
                     >
                       {/* Left Task Column (Sticky, 100% Solid Opaque, No Transparency) */}
                       <div
-                        className={`sticky left-0 z-20 flex h-12 min-w-0 items-center justify-between gap-2 border-r border-slate-200 px-4 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] transition-colors ${
+                        className={`sticky left-0 z-10 flex h-12 min-w-0 items-center justify-between gap-2 border-r border-slate-200 px-4 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] transition-colors ${
                           isHovered
                             ? "bg-blue-50"
                             : "bg-white group-hover:bg-slate-50"

@@ -1208,6 +1208,7 @@ const en = {
   "project.view.members": "Project members",
   "project.members.view": "View members",
   "project.members.more": "+{count} more",
+  "project.members.viewAll": "View all",
   "project.members.subtitle": "Manage project members, access roles, and permissions.",
   "project.members.searchPlaceholder": "Search members by name...",
   "project.members.total": "Total Members",

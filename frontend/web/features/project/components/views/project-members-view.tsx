@@ -6,10 +6,10 @@ import {
   Briefcase,
   Calendar,
   Clock3,
-  Crown,
   Search,
   Settings2,
   ShieldCheck,
+  Star,
   Trash2,
   User,
   Users,
@@ -210,7 +210,7 @@ export default function ProjectMembersView({
         {/* Owners & Admins */}
         <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600">
-            <Crown className="h-6 w-6" />
+            <Star className="h-6 w-6 fill-amber-400 text-amber-500" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-slate-500">
@@ -421,7 +421,7 @@ export default function ProjectMembersView({
                         <td className="px-4 py-4 whitespace-nowrap">
                           {isOwner ? (
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">
-                              <Crown className="h-3 w-3 text-amber-600" />
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-600" />
                               {intl.formatMessage({
                                 id: "project.members.ownerBadge",
                               })}

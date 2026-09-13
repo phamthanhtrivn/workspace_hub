@@ -176,9 +176,10 @@ export default function ProjectDetailSidebar({
                   </span>
                   <span className="block text-[10px] text-slate-400">
                     {intl.formatMessage({
-                      id: member.role === ProjectRole.OWNER
-                        ? "project.role.owner"
-                        : "project.role.member",
+                      id:
+                        member.role === ProjectRole.OWNER
+                          ? "project.role.owner"
+                          : "project.role.member",
                     })}
                   </span>
                 </span>
@@ -196,13 +197,31 @@ export default function ProjectDetailSidebar({
                 )}
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => onViewChange("members")}
+              className={[
+                "mt-1 flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs font-semibold transition",
+                viewMode === "members"
+                  ? "bg-[#DEEBFF] text-[#0747A6]"
+                  : "text-[#0052CC] hover:bg-slate-200/60",
+              ].join(" ")}
+            >
+              <span>
+                {intl.formatMessage({ id: "project.members.viewAll" })}
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 opacity-70" />
+            </button>
           </div>
         </nav>
 
         <div className="border-t border-slate-200 bg-slate-100/50 p-4">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
             <span>
-              {intl.formatMessage({ id: "project.detail.key" }, { key: projectKey })}
+              {intl.formatMessage(
+                { id: "project.detail.key" },
+                { key: projectKey },
+              )}
             </span>
             {canOpenSettings && (
               <button
@@ -222,7 +241,11 @@ export default function ProjectDetailSidebar({
         type="button"
         onClick={onToggle}
         className="group relative z-30 -ml-1 flex w-3 items-center justify-center border-r border-slate-200 transition-colors hover:bg-slate-200"
-        title={intl.formatMessage({ id: isCollapsed ? "project.sidebar.expand" : "project.sidebar.collapse" })}
+        title={intl.formatMessage({
+          id: isCollapsed
+            ? "project.sidebar.expand"
+            : "project.sidebar.collapse",
+        })}
       >
         <div className="absolute left-1/2 top-16 -translate-x-1/2 cursor-pointer rounded-full border border-slate-200 bg-white p-0.5 opacity-0 shadow-sm transition-opacity group-hover:opacity-100">
           {isCollapsed ? (

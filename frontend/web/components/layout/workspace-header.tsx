@@ -23,7 +23,7 @@ const WorkspaceHeader = React.memo(function WorkspaceHeader({
   useNotificationSocket();
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/80 py-3.5 backdrop-blur-xl px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 py-3.5 backdrop-blur-xl px-4 sm:px-6 lg:px-8">
       <div className="flex w-full items-center justify-between gap-4">
         {/* Left: Breadcrumbs & Mobile Menu */}
         <div className="flex min-w-0 items-center gap-3">

@@ -64,6 +64,7 @@ interface ProjectDetailContentProps {
   onEditGroup: (task: Task) => void;
   onDeleteGroup: (task: Task) => Promise<void>;
   onReorderTasks: (group: Task, orderedTasks: Task[]) => Promise<void>;
+  onViewChange?: (view: ProjectViewMode) => void;
 }
 
 export default function ProjectDetailContent(props: ProjectDetailContentProps) {
@@ -77,6 +78,9 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
       canInvite={permissions.canInviteMembers}
       canRemoveMembers={permissions.canManageMembers}
       canManagePermissions={permissions.canManagePermissions}
+      onViewAll={
+        props.onViewChange ? () => props.onViewChange?.("members") : undefined
+      }
     />
   );
 

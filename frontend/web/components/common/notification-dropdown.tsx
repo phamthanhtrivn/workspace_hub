@@ -371,9 +371,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       } else if (isOpen) {
         void fetchList(nextPage);
       }
-      toast.success(
-        intl.formatMessage({ id: "notifications.deleteSuccess" }),
-      );
+      toast.success(intl.formatMessage({ id: "notifications.deleteSuccess" }));
     } catch (error) {
       logApiError(error, "Failed to delete notification");
       toast.error(intl.formatMessage({ id: "notifications.deleteFailed" }));
@@ -399,7 +397,9 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       ),
       confirmButtonText: intl.formatMessage(
         {
-          id: isAll ? "notifications.deleteAll" : "notifications.deleteCategory",
+          id: isAll
+            ? "notifications.deleteAll"
+            : "notifications.deleteCategory",
         },
         { category: categoryLabel },
       ),
@@ -438,7 +438,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`relative flex z-100 h-11 w-11 items-center justify-center rounded-full border bg-white shadow-sm transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer ${
+        className={`relative flex z-10 h-11 w-11 items-center justify-center rounded-full border bg-white shadow-sm transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer ${
           isOpen
             ? "border-indigo-300 text-indigo-600 bg-indigo-50"
             : "border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -454,7 +454,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-[-48] z-90 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
+        <div className="absolute right-0 sm:-right-12 z-50 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
             <h3 className="font-black text-slate-800 text-base">
               {intl.formatMessage({ id: "notifications.title" })}

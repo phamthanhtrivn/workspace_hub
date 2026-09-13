@@ -382,6 +382,7 @@ export default function ProjectDetailScreen() {
           onEditGroup={handleEditGroup}
           onDeleteGroup={handleDeleteGroup}
           onReorderTasks={handleReorderTasks}
+          onViewChange={setViewMode}
         />
       </main>
 

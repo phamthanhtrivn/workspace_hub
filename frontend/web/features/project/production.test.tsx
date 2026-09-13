@@ -18,7 +18,12 @@ import {
 import { useProjectTaskActions } from "./hooks/use-project-task-actions";
 import { useProjectResourceActions } from "./hooks/use-project-resource-actions";
 import { useUpdateTask } from "./hooks/use-tasks";
-import { useAttachLabel, useDetachLabel, useUpdateLabel, useDeleteLabel } from "./hooks/use-labels";
+import {
+  useAttachLabel,
+  useDetachLabel,
+  useUpdateLabel,
+  useDeleteLabel,
+} from "./hooks/use-labels";
 import * as labelApi from "./api/label.api";
 import { createProjectGroupActions } from "./project-group-actions";
 import { getProjectPermissions } from "./project-permissions";
@@ -61,9 +66,7 @@ vi.mock("@/store/store", () => ({
   }),
 }));
 vi.mock("./components/ui/avatar-stack", () => ({
-  Avatar: ({ user }: {
-    user: { displayName: string; avatarUrl?: string };
-  }) => (
+  Avatar: ({ user }: { user: { displayName: string; avatarUrl?: string } }) => (
     <span
       aria-label={user.displayName}
       data-avatar-url={user.avatarUrl || ""}
@@ -114,11 +117,13 @@ describe("ProjectDetailSidebar members", () => {
 
     render(
       <ProjectDetailSidebar
-        project={{
-          id: "p",
-          name: "Project",
-          projectType: ProjectType.GENERAL,
-        } as Project}
+        project={
+          {
+            id: "p",
+            name: "Project",
+            projectType: ProjectType.GENERAL,
+          } as Project
+        }
         members={members}
         projectKey="PRJ"
         viewMode="summary"
@@ -134,6 +139,8 @@ describe("ProjectDetailSidebar members", () => {
     expect(screen.queryByText("Member 6")).toBeNull();
     fireEvent.click(screen.getByText("+1 more"));
     expect(onViewChange).toHaveBeenCalledWith("members");
+    fireEvent.click(screen.getByText("View all"));
+    expect(onViewChange).toHaveBeenCalledWith("members");
   });
 });
 
@@ -146,8 +153,13 @@ describe("Calendar task ranges", () => {
       allDay: true,
     };
     const days = [
-      "2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24",
-      "2026-09-25", "2026-09-26", "2026-09-27",
+      "2026-09-21",
+      "2026-09-22",
+      "2026-09-23",
+      "2026-09-24",
+      "2026-09-25",
+      "2026-09-26",
+      "2026-09-27",
     ].map((key) => ({
       key,
       tasks: key >= "2026-09-25" ? [rangedTask] : [],
@@ -175,13 +187,15 @@ describe("Task assignee details", () => {
       allDay: false,
       createdAt: "2026-09-13T00:00:00.000Z",
       updatedAt: "2026-09-13T00:00:00.000Z",
-      assignees: [{
-        id: "assignment",
-        taskId: "assigned",
-        userId: "member-user",
-        displayName: "",
-        assignedAt: "2026-09-13T00:00:00.000Z",
-      }],
+      assignees: [
+        {
+          id: "assignment",
+          taskId: "assigned",
+          userId: "member-user",
+          displayName: "",
+          assignedAt: "2026-09-13T00:00:00.000Z",
+        },
+      ],
     };
     const assignedMember = {
       id: "member",
@@ -207,15 +221,16 @@ describe("Task assignee details", () => {
     );
 
     expect(screen.getByText("Assigned Person")).toBeTruthy();
-    expect(screen.getByLabelText("Assigned Person").getAttribute("data-avatar-url")).toBe(
-      "https://cdn.example.com/assigned.png",
-    );
+    expect(
+      screen.getByLabelText("Assigned Person").getAttribute("data-avatar-url"),
+    ).toBe("https://cdn.example.com/assigned.png");
   });
 });
 
 describe("Project relative time", () => {
   const now = new Date("2026-09-13T12:00:00.000Z").getTime();
-  const formatRelativeTime = (value: number, unit: string) => `${value}:${unit}`;
+  const formatRelativeTime = (value: number, unit: string) =>
+    `${value}:${unit}`;
   const formatDate = (value: Date) => value.toISOString().slice(0, 10);
 
   it.each([
@@ -224,12 +239,14 @@ describe("Project relative time", () => {
     ["2026-08-24T12:00:00.000Z", "-20:day"],
     ["2026-07-01T12:00:00.000Z", "2026-07-01"],
   ])("formats %s with a readable unit", (value, expected) => {
-    expect(formatTaskRelativeTime({
-      value,
-      now,
-      formatRelativeTime,
-      formatDate,
-    })).toBe(expected);
+    expect(
+      formatTaskRelativeTime({
+        value,
+        now,
+        formatRelativeTime,
+        formatDate,
+      }),
+    ).toBe(expected);
   });
 });
 
@@ -320,12 +337,18 @@ describe("Project production regressions", () => {
       createdAt: "2026-09-12T00:00:00.000Z",
       rank: "2000",
     };
-    const createChecklist = vi.spyOn(taskApi, "createChecklist").mockResolvedValue(created);
-    const updateChecklist = vi.spyOn(taskApi, "updateChecklist").mockResolvedValue({
-      ...selectedTask.checklists[0],
-      completed: true,
-    });
-    const deleteChecklist = vi.spyOn(taskApi, "deleteChecklist").mockResolvedValue(undefined);
+    const createChecklist = vi
+      .spyOn(taskApi, "createChecklist")
+      .mockResolvedValue(created);
+    const updateChecklist = vi
+      .spyOn(taskApi, "updateChecklist")
+      .mockResolvedValue({
+        ...selectedTask.checklists[0],
+        completed: true,
+      });
+    const deleteChecklist = vi
+      .spyOn(taskApi, "deleteChecklist")
+      .mockResolvedValue(undefined);
     const { wrapper } = setup();
     const { result } = renderHook(
       () =>
@@ -410,13 +433,7 @@ describe("Project production regressions", () => {
   it("exposes an accessible create-project form for a regular project", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
-    render(
-      <CreateProjectDialog
-        open
-        onClose={vi.fn()}
-        onSubmit={onSubmit}
-      />,
-    );
+    render(<CreateProjectDialog open onClose={vi.fn()} onSubmit={onSubmit} />);
 
     const dialog = screen.getByRole("dialog", {
       name: "Create new project",
@@ -509,25 +526,58 @@ describe("Project production regressions", () => {
     ).toBe(true);
   });
 
-  it.each(["attach", "detach", "update", "delete"] as const)("refreshes task and sprint projections after label %s", async (operation) => {
-    const { client, wrapper } = setup();
-    vi.spyOn(labelApi, "attachLabel").mockResolvedValue({ id: "label", name: "New", color: "#fff", projectId: "p" });
-    vi.spyOn(labelApi, "detachLabel").mockResolvedValue(undefined);
-    vi.spyOn(labelApi, "updateLabel").mockResolvedValue({ id: "label", name: "New", color: "#fff", projectId: "p" });
-    vi.spyOn(labelApi, "deleteLabel").mockResolvedValue(undefined);
-    const { result } = renderHook(() => ({
-      attach: useAttachLabel("p"), detach: useDetachLabel("p"),
-      update: useUpdateLabel("p"), delete: useDeleteLabel("p"),
-    }), { wrapper });
-    const keys = [["projects", "p", "tasks"], ["projects", "p", "sprints"], ["projects", "p", "labels"]];
-    keys.forEach((key) => client.setQueryData(key, []));
-    await act(async () => {
-      if (operation === "update") await result.current.update.mutateAsync({ labelId: "label", payload: { name: "New" } });
-      else if (operation === "delete") await result.current.delete.mutateAsync("label");
-      else await result.current[operation].mutateAsync({ taskId: "A", labelId: "label" });
-    });
-    keys.forEach((key) => expect(client.getQueryState(key)?.isInvalidated).toBe(true));
-  });
+  it.each(["attach", "detach", "update", "delete"] as const)(
+    "refreshes task and sprint projections after label %s",
+    async (operation) => {
+      const { client, wrapper } = setup();
+      vi.spyOn(labelApi, "attachLabel").mockResolvedValue({
+        id: "label",
+        name: "New",
+        color: "#fff",
+        projectId: "p",
+      });
+      vi.spyOn(labelApi, "detachLabel").mockResolvedValue(undefined);
+      vi.spyOn(labelApi, "updateLabel").mockResolvedValue({
+        id: "label",
+        name: "New",
+        color: "#fff",
+        projectId: "p",
+      });
+      vi.spyOn(labelApi, "deleteLabel").mockResolvedValue(undefined);
+      const { result } = renderHook(
+        () => ({
+          attach: useAttachLabel("p"),
+          detach: useDetachLabel("p"),
+          update: useUpdateLabel("p"),
+          delete: useDeleteLabel("p"),
+        }),
+        { wrapper },
+      );
+      const keys = [
+        ["projects", "p", "tasks"],
+        ["projects", "p", "sprints"],
+        ["projects", "p", "labels"],
+      ];
+      keys.forEach((key) => client.setQueryData(key, []));
+      await act(async () => {
+        if (operation === "update")
+          await result.current.update.mutateAsync({
+            labelId: "label",
+            payload: { name: "New" },
+          });
+        else if (operation === "delete")
+          await result.current.delete.mutateAsync("label");
+        else
+          await result.current[operation].mutateAsync({
+            taskId: "A",
+            labelId: "label",
+          });
+      });
+      keys.forEach((key) =>
+        expect(client.getQueryState(key)?.isInvalidated).toBe(true),
+      );
+    },
+  );
 
   it("creates a sprint task with one request and uses sortable ranks", async () => {
     const createTask = vi.fn().mockResolvedValue(task("A"));
@@ -594,9 +644,9 @@ describe("Project production regressions", () => {
       />,
       { wrapper },
     );
-    expect(screen.getByLabelText("Test User").getAttribute("data-avatar-url")).toBe(
-      "https://cdn.example.com/avatar.png",
-    );
+    expect(
+      screen.getByLabelText("Test User").getAttribute("data-avatar-url"),
+    ).toBe("https://cdn.example.com/avatar.png");
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "Message for A" },
     });
