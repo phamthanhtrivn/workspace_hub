@@ -62,6 +62,7 @@ import { createProjectSettingsActions } from "@/features/project/project-setting
 import { createProjectGroupActions } from "@/features/project/project-group-actions";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
+import { projectSocketService } from "../api/project-socket.service";
 
 export default function ProjectDetailScreen() {
   const intl = useAppIntl();
@@ -80,6 +81,14 @@ export default function ProjectDetailScreen() {
   const updateProjectMutation = useUpdateProject(projectId);
   const archiveProjectMutation = useArchiveProject(projectId);
   const { data: labels = [] } = useProjectLabels(projectId);
+
+  useEffect(() => {
+    if (!projectId) return;
+    projectSocketService.joinProject(projectId);
+    return () => {
+      projectSocketService.leaveProject(projectId);
+    };
+  }, [projectId]);
   const { data: dependencies = [] } = useProjectDependencies(projectId);
   const createSprintMutation = useCreateSprint(projectId);
   const addTasksToSprintMutation = useAddTasksToSprint(projectId);
@@ -227,7 +236,9 @@ export default function ProjectDetailScreen() {
   const viewTitle: Record<ProjectViewMode, string> = {
     summary: intl.formatMessage({ id: "project.view.summary" }),
     board: intl.formatMessage({ id: "project.view.board" }),
-    list: intl.formatMessage({ id: isSoftwareProject ? "project.view.backlog" : "project.view.tasks" }),
+    list: intl.formatMessage({
+      id: isSoftwareProject ? "project.view.backlog" : "project.view.tasks",
+    }),
     calendar: intl.formatMessage({ id: "project.view.calendar" }),
     gantt: intl.formatMessage({ id: "project.view.gantt" }),
     members: intl.formatMessage({ id: "project.view.members" }),
@@ -307,6 +318,7 @@ export default function ProjectDetailScreen() {
           members={projectWithMembers.members}
           tasks={tasks}
           viewTitle={viewTitle[viewMode]}
+          viewMode={viewMode}
           searchQuery={searchQuery}
           statusFilter={statusFilter}
           priorityFilter={priorityFilter}
@@ -315,6 +327,7 @@ export default function ProjectDetailScreen() {
           onlyMyIssues={onlyMyIssues}
           isFiltersActive={isFiltersActive}
           canCreateTask={permissions.canCreateTask}
+          canInviteMembers={permissions.canInviteMembers}
           onSearchChange={setSearchQuery}
           onStatusChange={setStatusFilter}
           onPriorityChange={setPriorityFilter}
@@ -327,6 +340,7 @@ export default function ProjectDetailScreen() {
           onClearFilters={clearAllFilters}
           onToggleMembers={() => setShowMembers((visible) => !visible)}
           onCreateTask={() => openCreateTask()}
+          onInviteMembers={() => setShowInviteDialog(true)}
         />
 
         <ProjectDetailContent
@@ -424,7 +438,9 @@ export default function ProjectDetailScreen() {
 
       {permissions.canInviteMembers && (
         <InviteMemberDialog
-          key={showInviteDialog ? "sidebar-invite-open" : "sidebar-invite-closed"}
+          key={
+            showInviteDialog ? "sidebar-invite-open" : "sidebar-invite-closed"
+          }
           open={showInviteDialog}
           projectId={projectId}
           members={projectWithMembers.members}

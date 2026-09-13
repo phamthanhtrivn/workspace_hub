@@ -39,9 +39,15 @@ class ProjectSocketService {
   private socket: ProjectSocket | null = null;
   private token: string | null = null;
   private joinedProjectIds = new Set<string>();
+  private desiredProjectIds = new Set<string>();
 
   connect(token: string): ProjectSocket {
-    if (this.socket && this.token === token) return this.socket;
+    if (this.socket && this.token === token) {
+      if (!this.socket.connected && !this.socket.active) {
+        this.socket.connect();
+      }
+      return this.socket;
+    }
     this.disconnect();
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -50,24 +56,62 @@ class ProjectSocketService {
       path: '/project.io',
       transports: ['websocket'],
       auth: { token },
+      query: { token },
     });
+
+    this.socket.on('connect', () => {
+      this.joinedProjectIds.clear();
+      for (const projectId of this.desiredProjectIds) {
+        this.socket?.emit('project:join', { projectId });
+        this.joinedProjectIds.add(projectId);
+      }
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.warn(`[ProjectSocket] Connection error: ${error.message}`);
+    });
+
     return this.socket;
   }
 
+  joinProject(projectId: string): void {
+    if (!projectId) return;
+    this.desiredProjectIds.add(projectId);
+    if (this.socket?.connected && !this.joinedProjectIds.has(projectId)) {
+      this.socket.emit('project:join', { projectId });
+      this.joinedProjectIds.add(projectId);
+    }
+  }
+
+  leaveProject(projectId: string): void {
+    if (!projectId) return;
+    this.desiredProjectIds.delete(projectId);
+    if (this.socket?.connected && this.joinedProjectIds.has(projectId)) {
+      this.socket.emit('project:leave', { projectId });
+      this.joinedProjectIds.delete(projectId);
+    }
+  }
+
   syncProjects(projectIds: string[]): void {
-    if (!this.socket) return;
     const nextIds = new Set(projectIds);
+    for (const id of nextIds) {
+      this.desiredProjectIds.add(id);
+    }
+
+    if (!this.socket?.connected) return;
+
     for (const projectId of nextIds) {
       if (!this.joinedProjectIds.has(projectId)) {
         this.socket.emit('project:join', { projectId });
+        this.joinedProjectIds.add(projectId);
       }
     }
     for (const projectId of this.joinedProjectIds) {
       if (!nextIds.has(projectId)) {
         this.socket.emit('project:leave', { projectId });
+        this.joinedProjectIds.delete(projectId);
       }
     }
-    this.joinedProjectIds = nextIds;
   }
 
   disconnect(): void {
@@ -75,6 +119,11 @@ class ProjectSocketService {
     this.socket = null;
     this.token = null;
     this.joinedProjectIds.clear();
+    this.desiredProjectIds.clear();
+  }
+
+  getSocket(): ProjectSocket | null {
+    return this.socket;
   }
 }
 

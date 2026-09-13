@@ -29,6 +29,7 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
   }
 
   const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
+    TASK: [[...projectKey, 'tasks']],
     SPRINT: [[...projectKey, 'sprints'], [...projectKey, 'tasks']],
     MEMBER: [[...projectKey, 'members']],
     INVITATION: [
@@ -41,6 +42,7 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
     DEPENDENCY: [[...projectKey, 'dependencies']],
     FILE: [[...projectKey, 'files']],
   };
+
   for (const queryKey of resourceKeys[event.resource] ?? []) {
     invalidations.push({ queryKey });
   }
@@ -48,7 +50,9 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
   const taskIds = new Set(event.taskIds ?? []);
   if (event.taskId) taskIds.add(event.taskId);
   if (event.resource === 'TASK' && event.entityId) taskIds.add(event.entityId);
-  for (const taskId of taskIds) invalidations.push({ queryKey: ['tasks', taskId] });
+  for (const taskId of taskIds) {
+    invalidations.push({ queryKey: ['tasks', taskId] });
+  }
 
   return invalidations;
 }

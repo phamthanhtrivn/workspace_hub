@@ -73,8 +73,9 @@ export const TASK_PRIORITY_CHART_CONFIG = [
 ] as const;
 
 export const GANTT_STATUS_LEGEND = [
-  { status: TaskStatus.TODO, labelId: "project.task.status.todo", color: "bg-slate-400" },
-  { status: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress", color: "bg-blue-600" },
+  { status: TaskStatus.TODO, labelId: "project.task.status.todo", color: "bg-slate-500" },
+  { status: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress", color: "bg-[#0052CC]" },
+  { status: TaskStatus.IN_REVIEW, labelId: "project.task.status.inReview", color: "bg-amber-500" },
   { status: TaskStatus.DONE, labelId: "project.task.status.done", color: "bg-emerald-500" },
 ] as const;
 

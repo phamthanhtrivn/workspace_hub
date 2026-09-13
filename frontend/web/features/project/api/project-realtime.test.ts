@@ -10,11 +10,21 @@ const baseEvent = {
 };
 
 describe('projectQueriesForEvent', () => {
-  it('invalidates only sprint and task-list queries for sprint events', () => {
+  it('invalidates sprint and task-list queries for sprint events', () => {
     expect(projectQueriesForEvent({ ...baseEvent, resource: 'SPRINT' })).toEqual([
       { queryKey: ['projects', 'project-1', 'sprints'] },
       { queryKey: ['projects', 'project-1', 'tasks'] },
     ]);
+  });
+
+  it('invalidates project tasks for task events', () => {
+    const invalidations = projectQueriesForEvent({ ...baseEvent, resource: 'TASK', taskId: 'task-1' });
+    expect(invalidations).toContainEqual({
+      queryKey: ['projects', 'project-1', 'tasks'],
+    });
+    expect(invalidations).toContainEqual({
+      queryKey: ['tasks', 'task-1'],
+    });
   });
 
   it('also invalidates task details, comments, and activities', () => {

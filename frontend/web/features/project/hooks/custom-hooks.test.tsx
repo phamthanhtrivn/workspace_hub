@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 import {
   TaskPriority,
   TaskStatus,
@@ -63,23 +63,48 @@ function mockTask(partial: Partial<Task> = {}): Task {
 }
 
 function assignee(taskId: string, userId: string): TaskAssignee {
-  return { id: `${taskId}-${userId}`, taskId, userId, displayName: userId, assignedAt: '2026-09-06T00:00:00Z' };
+  return {
+    id: `${taskId}-${userId}`,
+    taskId,
+    userId,
+    displayName: userId,
+    assignedAt: "2026-09-06T00:00:00Z",
+  };
 }
 
 function member(userId: string, displayName: string): ProjectMember {
   return {
-    id: userId, projectId: 'project-1', userId, displayName, role: ProjectRole.MEMBER,
-    canCreateTask: false, canEditOwnTask: false, canEditOthersTask: false,
-    canManageSprints: false, canManageMembers: false, canManageLabels: false,
-    joinedAt: '2026-09-06T00:00:00Z',
+    id: userId,
+    projectId: "project-1",
+    userId,
+    displayName,
+    role: ProjectRole.MEMBER,
+    canCreateTask: false,
+    canEditOwnTask: false,
+    canEditOthersTask: false,
+    canManageSprints: false,
+    canManageMembers: false,
+    canManageLabels: false,
+    joinedAt: "2026-09-06T00:00:00Z",
   };
 }
 
 describe("Custom Hooks for Project Service", () => {
   describe("useProjectSummaryMetrics", () => {
-    it('counts unassigned tasks independently of tasks shared by multiple assignees', () => {
-      const tasks = [mockTask({ id: 'shared', assignees: [assignee('shared', 'u1'), assignee('shared', 'u2')] }), mockTask({ id: 'unassigned' })];
-      const { result } = renderHook(() => useProjectSummaryMetrics(tasks, [member('u1', 'Alice'), member('u2', 'Bob')]));
+    it("counts unassigned tasks independently of tasks shared by multiple assignees", () => {
+      const tasks = [
+        mockTask({
+          id: "shared",
+          assignees: [assignee("shared", "u1"), assignee("shared", "u2")],
+        }),
+        mockTask({ id: "unassigned" }),
+      ];
+      const { result } = renderHook(() =>
+        useProjectSummaryMetrics(tasks, [
+          member("u1", "Alice"),
+          member("u2", "Bob"),
+        ]),
+      );
       expect(result.current.workloadItems[0].count).toBe(1);
     });
 
@@ -89,25 +114,25 @@ describe("Custom Hooks for Project Service", () => {
           id: "t1",
           status: TaskStatus.DONE,
           priority: TaskPriority.HIGH,
-          assignees: [assignee('t1', 'u1')],
+          assignees: [assignee("t1", "u1")],
         }),
         mockTask({
           id: "t2",
           status: TaskStatus.IN_PROGRESS,
           priority: TaskPriority.MEDIUM,
-          assignees: [assignee('t2', 'u1')],
+          assignees: [assignee("t2", "u1")],
         }),
         mockTask({
           id: "t3",
           status: TaskStatus.TODO,
           priority: TaskPriority.LOW,
-          assignees: [assignee('t3', 'u2')],
+          assignees: [assignee("t3", "u2")],
         }),
       ];
 
       const members: ProjectMember[] = [
-        member('u1', 'Alice'),
-        member('u2', 'Bob'),
+        member("u1", "Alice"),
+        member("u2", "Bob"),
       ];
 
       const { result } = renderHook(() =>
@@ -235,14 +260,21 @@ describe("Custom Hooks for Project Service", () => {
   });
 
   describe("useTaskDetailDrawerState", () => {
-    it('does not announce success when saving the title fails', async () => {
+    it("does not announce success when saving the title fails", async () => {
       vi.mocked(toast.success).mockClear();
-      const task = mockTask({ title: 'Original' });
-      const { result } = renderHook(() => useTaskDetailDrawerState({ task, onClose: vi.fn(), canEditTask: true, onUpdateTask: vi.fn().mockRejectedValue(new Error('HTTP 500')) }));
-      act(() => result.current.setTempTitle('Changed'));
+      const task = mockTask({ title: "Original" });
+      const { result } = renderHook(() =>
+        useTaskDetailDrawerState({
+          task,
+          onClose: vi.fn(),
+          canEditTask: true,
+          onUpdateTask: vi.fn().mockRejectedValue(new Error("HTTP 500")),
+        }),
+      );
+      act(() => result.current.setTempTitle("Changed"));
       await act(() => result.current.handleTitleSave());
       expect(toast.success).not.toHaveBeenCalled();
-      expect(result.current.tempTitle).toBe('Original');
+      expect(result.current.tempTitle).toBe("Original");
     });
 
     it("initializes draft inputs and updates title via onUpdateTask", async () => {
@@ -279,6 +311,35 @@ describe("Custom Hooks for Project Service", () => {
         title: "Updated Title",
       });
       expect(result.current.isEditingTitle).toBe(false);
+    });
+
+    it("allows status update when canContributeTask is true even if canEditTask is false", async () => {
+      const task = mockTask({
+        id: "t1",
+        status: TaskStatus.IN_REVIEW,
+      });
+      const onUpdateTask = vi.fn().mockResolvedValue(undefined);
+
+      const { result } = renderHook(() =>
+        useTaskDetailDrawerState({
+          task,
+          onClose: vi.fn(),
+          onUpdateTask,
+          canEditTask: false,
+          canContributeTask: true,
+        }),
+      );
+
+      expect(result.current.isReadOnly).toBe(true);
+      expect(result.current.canChangeStatus).toBe(true);
+
+      await act(async () => {
+        await result.current.handleStatusChange(TaskStatus.DONE);
+      });
+
+      expect(onUpdateTask).toHaveBeenCalledWith("t1", {
+        status: TaskStatus.DONE,
+      });
     });
   });
 
@@ -320,7 +381,15 @@ describe("Custom Hooks for Project Service", () => {
         dueDate: "2026-09-10T00:00:00Z",
       });
       const dependencies: TaskDependency[] = [
-        { id: "dep-1", successorTaskId: "tB", predecessorTaskId: "tA", projectId: 'project-1', dependencyType: 'FINISH_TO_START', createdBy: 'user-1', createdAt: '2026-09-06T00:00:00Z' },
+        {
+          id: "dep-1",
+          successorTaskId: "tB",
+          predecessorTaskId: "tA",
+          projectId: "project-1",
+          dependencyType: "FINISH_TO_START",
+          createdBy: "user-1",
+          createdAt: "2026-09-06T00:00:00Z",
+        },
       ];
 
       const { result } = renderHook(() =>
@@ -335,6 +404,78 @@ describe("Custom Hooks for Project Service", () => {
       expect(itemB?.predecessors[0]?.id).toBe("tA");
       expect(itemB?.left).toBeGreaterThan(0);
       expect(itemB?.width).toBeGreaterThanOrEqual(32);
+      expect(itemB?.durationDays).toBe(5);
+      expect(result.current.days.length).toBeGreaterThanOrEqual(7);
+    });
+
+    it("supports timeline navigation and jump to today", () => {
+      const taskA = mockTask({
+        id: "tA",
+        title: "Task A",
+        startDate: "2026-09-01T00:00:00Z",
+        dueDate: "2026-09-05T00:00:00Z",
+      });
+
+      const { result } = renderHook(() => useGanttTimeline({ tasks: [taskA] }));
+
+      expect(result.current.dayWidth).toBe(100);
+      expect(result.current.currentMonthFormatted).toBeDefined();
+
+      // Navigate forward by 1 week
+      const initialStart = result.current.range.start.getTime();
+      act(() => {
+        result.current.navigate(1);
+      });
+      expect(result.current.range.start.getTime()).toBeGreaterThan(
+        initialStart,
+      );
+
+      // Jump to today (resets offset)
+      act(() => {
+        result.current.jumpToToday();
+      });
+      expect(result.current.range.start.getTime()).toBe(initialStart);
+    });
+
+    it("supports week zoom mode with grouped week columns", () => {
+      const taskA = mockTask({
+        id: "tA",
+        title: "Task A",
+        startDate: "2026-09-07T00:00:00Z",
+        dueDate: "2026-09-18T00:00:00Z",
+      });
+
+      const { result } = renderHook(() =>
+        useGanttTimeline({ tasks: [taskA], initialZoom: "week" }),
+      );
+
+      expect(result.current.zoomMode).toBe("week");
+      expect(result.current.weeks.length).toBe(4);
+      expect(result.current.weeks[0].weekNumberFormatted).toBe("Tuần 1");
+      expect(result.current.weeks[0].dateRangeFormatted).toBeDefined();
+      expect(result.current.weekWidth).toBe(224);
+      expect(result.current.dayWidth).toBe(32);
+      expect(result.current.datedTasks).toHaveLength(1);
+    });
+
+    it("supports month zoom mode with 12 calendar month columns", () => {
+      const taskA = mockTask({
+        id: "tA",
+        title: "Task A",
+        startDate: "2026-03-01T00:00:00Z",
+        dueDate: "2026-05-15T00:00:00Z",
+      });
+
+      const { result } = renderHook(() =>
+        useGanttTimeline({ tasks: [taskA], initialZoom: "month" }),
+      );
+
+      expect(result.current.zoomMode).toBe("month");
+      expect(result.current.months.length).toBe(12);
+      expect(result.current.months[0].monthFormatted).toBe("Tháng 1");
+      expect(result.current.months[11].monthFormatted).toBe("Tháng 12");
+      expect(result.current.monthWidth).toBe(96);
+      expect(result.current.datedTasks).toHaveLength(1);
     });
   });
 });

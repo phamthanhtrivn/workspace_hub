@@ -28,6 +28,7 @@ export interface UseTaskDetailDrawerStateParams {
   onCreateDependency?: (successorTaskId: string, predecessorTaskId: string) => Promise<void>;
   onDeleteDependency?: (successorTaskId: string, predecessorTaskId: string) => Promise<void>;
   canEditTask?: boolean;
+  canContributeTask?: boolean;
 }
 
 export function useTaskDetailDrawerState({
@@ -40,6 +41,7 @@ export function useTaskDetailDrawerState({
   onCreateDependency,
   onDeleteDependency,
   canEditTask = false,
+  canContributeTask = false,
 }: UseTaskDetailDrawerStateParams) {
   const intl = useAppIntl();
   const [activeTab, setActiveTab] = useState<TaskDetailTab>("details");
@@ -60,6 +62,9 @@ export function useTaskDetailDrawerState({
   const isReadOnly = task
     ? isTerminalTaskStatus(task.status) || !canEditTask
     : true;
+  const canChangeStatus = task
+    ? !isTerminalTaskStatus(task.status) && (canEditTask || canContributeTask)
+    : false;
 
   // Reset temp inputs when task changes
   useEffect(() => {
@@ -132,7 +137,7 @@ export function useTaskDetailDrawerState({
   };
 
   const handleStatusChange = async (newStatus: TaskStatus) => {
-    if (!task || isReadOnly || newStatus === task.status) return;
+    if (!task || !canChangeStatus || newStatus === task.status) return;
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { status: newStatus });
@@ -257,6 +262,7 @@ export function useTaskDetailDrawerState({
     setTempDesc,
     handleDescSave,
     isReadOnly,
+    canChangeStatus,
     memberDisplayName,
     activities,
     isActivitiesLoading,
