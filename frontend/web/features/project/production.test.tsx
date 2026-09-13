@@ -38,6 +38,7 @@ import CreateProjectDialog from "./components/dialogs/create-project-dialog";
 import TaskChatDialog from "./components/dialogs/task-chat-dialog";
 import SprintMetricsView from "./components/views/sprint-metrics-view";
 import { SprintCard } from "./components/backlog/sprint-card";
+import { TaskDurationSelect } from "./components/forms/task-duration-select";
 
 vi.mock("@/lib/axios", () => ({ api: {} }));
 vi.mock("sonner", () => ({
@@ -54,6 +55,31 @@ vi.mock("./components/ui/avatar-stack", () => ({ Avatar: () => null }));
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+});
+
+describe("TaskDurationSelect", () => {
+  it("offers quick duration presets and custom minutes", () => {
+    const onValueChange = vi.fn();
+    const view = render(
+      <TaskDurationSelect value="" onValueChange={onValueChange} />,
+    );
+
+    const select = screen.getByRole("combobox");
+    expect(screen.getByRole("option", { name: "30 min" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "60 min (1h)" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "360 min (6h)" })).toBeTruthy();
+
+    fireEvent.change(select, { target: { value: "120" } });
+    expect(onValueChange).toHaveBeenLastCalledWith("120");
+
+    view.rerender(
+      <TaskDurationSelect value="120" onValueChange={onValueChange} />,
+    );
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "custom" },
+    });
+    expect(screen.getByRole("spinbutton")).toBeTruthy();
+  });
 });
 
 function setup() {

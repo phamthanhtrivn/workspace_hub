@@ -1,10 +1,10 @@
 import { ExecutionContext } from '@nestjs/common';
 import { lastValueFrom, of } from 'rxjs';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { ProjectRealtimeInterceptor } from './project-realtime.interceptor';
-import { ProjectRealtimeService } from './project-realtime.service';
+import { ProjectSocketInterceptor } from './project-socket.interceptor';
+import { ProjectSocketPublisher } from './project-socket.publisher';
 
-describe('ProjectRealtimeInterceptor', () => {
+describe('ProjectSocketInterceptor', () => {
   it('publishes invitation cancellation to the project and invited user', async () => {
     const invitationId = '59d2c930-239e-428d-a5a4-4361a8de85a7';
     const projectId = 'aa5658c8-24cd-42d8-8722-c3b7add9e50f';
@@ -15,8 +15,8 @@ describe('ProjectRealtimeInterceptor', () => {
         findUnique: jest.fn().mockResolvedValue({ projectId, invitedUserId }),
       },
     } as unknown as PrismaService;
-    const realtime = { publish: jest.fn() } as unknown as ProjectRealtimeService;
-    const interceptor = new ProjectRealtimeInterceptor(prisma, realtime);
+    const publisher = { publish: jest.fn() } as unknown as ProjectSocketPublisher;
+    const interceptor = new ProjectSocketInterceptor(prisma, publisher);
     const request = {
       method: 'DELETE',
       originalUrl: `/api/projects/${projectId}/invitations/${invitationId}`,
@@ -31,7 +31,7 @@ describe('ProjectRealtimeInterceptor', () => {
 
     await lastValueFrom(await interceptor.intercept(context, { handle: () => of({ data: null }) }));
 
-    expect(realtime.publish).toHaveBeenCalledWith(
+    expect(publisher.publish).toHaveBeenCalledWith(
       expect.objectContaining({ projectId, resource: 'INVITATION', action: 'DELETED', actorId }),
       [invitedUserId],
     );

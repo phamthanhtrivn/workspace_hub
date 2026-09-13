@@ -49,7 +49,6 @@ export const TASK_TYPE_LABEL_IDS: Record<TaskType, string> = {
   [TaskType.BUG]: "project.task.type.bug",
   [TaskType.STORY]: "project.task.type.story",
   [TaskType.EPIC]: "project.task.type.epic",
-  [TaskType.SUBTASK]: "project.task.type.subtask",
 };
 
 export const TASK_TYPE_SELECT_OPTIONS = [
@@ -57,7 +56,6 @@ export const TASK_TYPE_SELECT_OPTIONS = [
   { value: TaskType.BUG, labelId: "project.task.type.bug" },
   { value: TaskType.STORY, labelId: "project.task.type.story" },
   { value: TaskType.EPIC, labelId: "project.task.type.epic" },
-  { value: TaskType.SUBTASK, labelId: "project.task.type.subtask" },
 ] as const;
 
 export const TASK_FILTER_LABELS = {

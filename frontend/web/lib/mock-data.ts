@@ -156,11 +156,7 @@ function buildTask(
 ): Task {
   return {
     taskNumber: Number(overrides.id.replace(/\D/g, "")) || 1,
-    taskType: overrides.parentTaskId
-      ? TaskType.SUBTASK
-      : overrides.isParentTask
-        ? TaskType.EPIC
-        : TaskType.TASK,
+    taskType: overrides.taskType ?? TaskType.TASK,
     description: "",
     createdBy: "u-1",
     reporterId: "u-1",

@@ -20,6 +20,7 @@ export interface ProjectChangedEvent {
   entityId?: string;
   taskId?: string;
   taskIds?: string[];
+  data?: unknown;
   occurredAt: string;
 }
 

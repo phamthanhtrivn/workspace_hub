@@ -114,7 +114,6 @@ model Task {
   estimatedMinutes   Int          @default(0) @map("estimated_minutes")
   rank               String?      @db.VarChar(100)
   archived           Boolean      @default(false)
-  isParentTask       Boolean      @default(false) @map("is_parent_task")
   autoCompleteSprint Boolean      @default(false) @map("auto_complete_sprint")
   sprintId           String?      @map("sprint_id") @db.Uuid
   createdAt          DateTime     @map("created_at")

@@ -67,9 +67,5 @@ export class UpdateTaskDto {
 
   @OptionalField()
   @IsBoolean()
-  isParentTask?: boolean;
-
-  @OptionalField()
-  @IsBoolean()
   autoCompleteSprint?: boolean;
 }

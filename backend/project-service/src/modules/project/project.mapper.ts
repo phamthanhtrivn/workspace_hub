@@ -92,7 +92,6 @@ export function toTaskResponse(task: TaskWithCount | Task) {
     estimatedMinutes: task.estimatedMinutes,
     rank: task.rank,
     archived: task.archived,
-    isParentTask: task.isParentTask,
     autoCompleteSprint: task.autoCompleteSprint,
     sprintId: task.sprintId,
     createdAt: task.createdAt,

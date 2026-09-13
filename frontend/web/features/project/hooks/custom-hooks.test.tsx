@@ -125,6 +125,26 @@ describe("Custom Hooks for Project Service", () => {
   });
 
   describe("useBacklogManager", () => {
+    it("closes the sprint form without reopening it", () => {
+      const { result } = renderHook(() =>
+        useBacklogManager({
+          projectId: "p1",
+          tasks: [],
+          sprints: [],
+          onCreateSprint: vi.fn(),
+          onUpdateSprint: vi.fn(),
+          onAddTasksToSprint: vi.fn(),
+        }),
+      );
+
+      act(() => result.current.openCreateSprint());
+      expect(result.current.showCreateSprint).toBe(true);
+
+      act(() => result.current.closeSprintForm());
+      expect(result.current.showCreateSprint).toBe(false);
+      expect(result.current.editingSprint).toBeNull();
+    });
+
     it("manages task selection and bulk status operations", async () => {
       const tasks = [mockTask({ id: "t1" }), mockTask({ id: "t2" })];
       const onBulkUpdateTasks = vi.fn().mockResolvedValue(undefined);

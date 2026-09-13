@@ -16,6 +16,10 @@ import {
 import { taskDateKey } from "@/features/project/utils/task-dates";
 import { Avatar } from "../ui/avatar-stack";
 import { getPriorityIcon } from "../ui/task-card";
+import {
+  TASK_DURATION_PRESETS,
+  TaskDurationSelect,
+} from "../forms/task-duration-select";
 
 interface TaskPropertiesPanelProps {
   task: Task;
@@ -280,20 +284,27 @@ export default function TaskPropertiesPanel({
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             {intl.formatMessage({ id: "project.task.estimateMinutes" })}
           </span>
-          <input
-            type="number"
-            min={0}
-            step={1}
-            placeholder={intl.formatMessage({ id: "project.task.estimatePlaceholder" })}
+          <TaskDurationSelect
+            key={task.id}
             value={estimateDraft}
-            onChange={(e) => setEstimateDraft(e.target.value)}
-            onBlur={() => void handleEstimateBlur()}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") event.currentTarget.blur();
-            }}
+            onValueChange={setEstimateDraft}
+            onPresetSelect={(minutes) => void onEstimateSave(minutes)}
+            onCustomCommit={() => void handleEstimateBlur()}
             disabled={isReadOnly}
-            className="w-full cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-slate-700 outline-none focus:ring-0 disabled:cursor-default"
+            compact
           />
+          {!isReadOnly && estimateDraft !== "" &&
+            !TASK_DURATION_PRESETS.some(
+              (preset) => preset === Number(estimateDraft),
+            ) && (
+              <button
+                type="button"
+                onClick={() => void handleEstimateBlur()}
+                className="self-start text-[10px] font-bold text-blue-600 hover:text-blue-700"
+              >
+                {intl.formatMessage({ id: "app.save" })}
+              </button>
+            )}
         </div>
 
         {/* Reporter */}

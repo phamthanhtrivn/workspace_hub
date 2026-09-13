@@ -63,7 +63,6 @@ export enum TaskType {
   BUG = 'BUG',
   STORY = 'STORY',
   EPIC = 'EPIC',
-  SUBTASK = 'SUBTASK',
 }
 
 export enum InvitationStatus {

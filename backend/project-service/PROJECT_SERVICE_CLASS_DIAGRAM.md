@@ -588,7 +588,6 @@ class Task {
   +int estimatedMinutes
   +string rank
   +boolean archived
-  +boolean isParentTask
   +boolean autoCompleteSprint
   +bigint version
 }
@@ -726,7 +725,7 @@ Các enum được đặt ở trang `3 - Enumerations` trong file Draw.io hoàn 
 | `SprintStatus` | `PLANNED`, `ACTIVE`, `COMPLETED` |
 | `TaskStatus` | `TODO`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CANCELLED` |
 | `TaskPriority` | `LOW`, `MEDIUM`, `HIGH`, `URGENT` |
-| `TaskType` | `TASK`, `BUG`, `STORY`, `EPIC`, `SUBTASK` |
+| `TaskType` | `TASK`, `BUG`, `STORY`, `EPIC` |
 | `InvitationStatus` | `PENDING`, `ACCEPTED`, `DECLINED`, `CANCELLED`, `EXPIRED` |
 | `DependencyType` | `FINISH_TO_START`, `START_TO_START`, `FINISH_TO_FINISH` |
 

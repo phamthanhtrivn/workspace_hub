@@ -54,12 +54,13 @@ export class TaskService {
     const startDate = this.toDate(dto.startDate);
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
-    if (!dto.parentTaskId && dto.taskType === TaskType.SUBTASK) {
-      throw new ConflictException("A subtask must have a parent task");
+    if (dto.assigneeUserId) {
+      await this.requireActiveMember(projectId, dto.assigneeUserId);
     }
 
     const now = new Date();
     const status = dto.status ?? TaskStatus.TODO;
+    const taskType = dto.taskType ?? TaskType.TASK;
     const task = await this.prisma.$transaction(async (tx) => {
       const projectSequence = await tx.project.update({
         where: { id: projectId },
@@ -83,11 +84,7 @@ export class TaskService {
           projectId,
           parentTaskId: dto.parentTaskId,
           taskNumber: projectSequence.nextTaskNumber - 1,
-          taskType: dto.parentTaskId
-            ? TaskType.SUBTASK
-            : dto.isParentTask
-              ? TaskType.EPIC
-              : (dto.taskType ?? TaskType.TASK),
+          taskType,
           ...(sprintId !== undefined ? { sprintId } : {}),
           title: dto.title.trim(),
           description: dto.description,
@@ -103,10 +100,18 @@ export class TaskService {
           estimatedMinutes: dto.estimatedMinutes ?? 0,
           rank: normalizeTaskRank(dto.rank),
           archived: false,
-          isParentTask: dto.isParentTask ?? false,
           autoCompleteSprint: dto.autoCompleteSprint ?? false,
           createdAt: now,
           updatedAt: now,
+          assignees: dto.assigneeUserId
+            ? {
+                create: {
+                  id: crypto.randomUUID(),
+                  userId: dto.assigneeUserId,
+                  assignedAt: now,
+                },
+              }
+            : undefined,
         },
         include: taskWithCount,
       });
@@ -119,6 +124,20 @@ export class TaskService {
         tx,
       );
       await this.calendarEvents.publishUpsert(created.id, tx);
+      if (dto.assigneeUserId && dto.assigneeUserId !== userId) {
+        await this.notifications.enqueueNotification(
+          {
+            recipientId: dto.assigneeUserId,
+            senderId: userId,
+            type: "PROJECT_TASK_ASSIGNED",
+            title: "You were assigned a task",
+            content: `Task "${created.title}" was assigned to you.`,
+            link: `/projects/${projectId}`,
+            metadata: { taskId: created.id, projectId },
+          },
+          tx,
+        );
+      }
       return created;
     });
 
@@ -177,12 +196,6 @@ export class TaskService {
         "A task cannot be assigned and unassigned at the same time",
       );
     }
-    const effectiveParentTaskId = dto.clearParent
-      ? null
-      : (dto.parentTaskId ?? current.parentTaskId);
-    if (!effectiveParentTaskId && dto.taskType === TaskType.SUBTASK) {
-      throw new ConflictException("A subtask must have a parent task");
-    }
     if (dto.status !== undefined) {
       assertTaskStatusTransition(current.status, dto.status);
     }
@@ -217,24 +230,7 @@ export class TaskService {
       data.estimatedMinutes = dto.estimatedMinutes;
     if (dto.rank !== undefined) data.rank = normalizeTaskRank(dto.rank);
     if (dto.archived !== undefined) data.archived = dto.archived;
-    if (dto.isParentTask !== undefined) data.isParentTask = dto.isParentTask;
-    if (parentTaskId !== undefined) {
-      data.taskType =
-        parentTaskId === null
-          ? (dto.taskType ?? TaskType.TASK)
-          : TaskType.SUBTASK;
-    } else if (current.parentTaskId && dto.taskType !== undefined) {
-      data.taskType = TaskType.SUBTASK;
-    } else if (dto.isParentTask === true) {
-      data.taskType = TaskType.EPIC;
-    } else if (
-      dto.isParentTask === false &&
-      current.taskType === TaskType.EPIC
-    ) {
-      data.taskType = dto.taskType ?? TaskType.TASK;
-    } else if (dto.taskType !== undefined) {
-      data.taskType = dto.taskType;
-    }
+    if (dto.taskType !== undefined) data.taskType = dto.taskType;
     if (dto.autoCompleteSprint !== undefined)
       data.autoCompleteSprint = dto.autoCompleteSprint;
     if (parentTaskId !== undefined) {
@@ -263,7 +259,6 @@ export class TaskService {
             }
           }
           data.sprint = sprintId ? { connect: { id: sprintId } } : { disconnect: true };
-          data.isParentTask = false;
         }
         const updated = await tx.task.update({
           where: { id: taskId, version: current.version },
@@ -348,7 +343,7 @@ export class TaskService {
         await lockProject(tx, task.projectId);
         const children = await tx.task.findMany({ where: { parentTaskId: task.id, deletedAt: null }, select: { id: true, status: true } });
         children.forEach((child) => assertTaskEditable(child.status));
-        await tx.task.updateMany({ where: { id: { in: children.map((child) => child.id) } }, data: { parentTaskId: null, taskType: TaskType.TASK, version: { increment: 1 } } });
+        await tx.task.updateMany({ where: { id: { in: children.map((child) => child.id) } }, data: { parentTaskId: null, version: { increment: 1 } } });
         await tx.task.update({
           where: { id: taskId, version: task.version },
           data: {
@@ -496,12 +491,6 @@ export class TaskService {
         "parentTaskId",
         current.parentTaskId,
         updated.parentTaskId,
-      ]);
-    if (dto.isParentTask !== undefined)
-      changes.push([
-        "isParentTask",
-        current.isParentTask,
-        updated.isParentTask,
       ]);
     if (dto.autoCompleteSprint !== undefined)
       changes.push([

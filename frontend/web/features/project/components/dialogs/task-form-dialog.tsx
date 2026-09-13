@@ -16,6 +16,7 @@ import {
 } from "@/features/project/types/project";
 import { TaskDetailsFields } from "../forms/task-details-fields";
 import { TaskDateRangeFields } from "../forms/task-date-range-fields";
+import { TaskDurationSelect } from "../forms/task-duration-select";
 
 const toDateInput = (value?: string) => taskDateKey(value, true);
 
@@ -30,7 +31,6 @@ export interface TaskFormValues {
   allDay: boolean;
   estimatedMinutes: number;
   parentTaskId?: string;
-  isParentTask?: boolean;
 }
 
 function FieldLabel({
@@ -54,7 +54,6 @@ export default function TaskFormDialog({
   projectName,
   parentTasks = [],
   initialParentTaskId,
-  initialIsParentTask = false,
   initialStatus = TaskStatus.TODO,
   initialStartDate,
   initialAllDay = false,
@@ -67,7 +66,6 @@ export default function TaskFormDialog({
   projectName?: string;
   parentTasks?: Task[];
   initialParentTaskId?: string;
-  initialIsParentTask?: boolean;
   initialStatus?: TaskStatus;
   initialStartDate?: string;
   initialAllDay?: boolean;
@@ -85,12 +83,7 @@ export default function TaskFormDialog({
     task?.status || initialStatus,
   );
   const [taskType, setTaskType] = useState<TaskType>(
-    task?.taskType ||
-      (initialParentTaskId
-        ? TaskType.SUBTASK
-        : initialIsParentTask
-          ? TaskType.EPIC
-          : TaskType.TASK),
+    task?.taskType || TaskType.TASK,
   );
   const [startDate, setStartDate] = useState(
     task?.allDay || initialAllDay
@@ -107,7 +100,6 @@ export default function TaskFormDialog({
   const [parentTaskId, setParentTaskId] = useState(
     task?.parentTaskId || initialParentTaskId || "",
   );
-  const [isParentTask] = useState(task?.isParentTask ?? initialIsParentTask);
 
   useEffect(() => {
     if (!open) return;
@@ -137,7 +129,6 @@ export default function TaskFormDialog({
       allDay,
       estimatedMinutes: Number(estimatedMinutes) || 0,
       parentTaskId: parentTaskId || undefined,
-      isParentTask: isParentTask && !parentTaskId,
     });
   };
 
@@ -250,7 +241,6 @@ export default function TaskFormDialog({
             onParentTaskIdChange={setParentTaskId}
             parentTasks={parentTasks}
             currentTaskId={task?.id}
-            isParentTask={isParentTask}
           />
 
           <TaskDateRangeFields
@@ -268,21 +258,11 @@ export default function TaskFormDialog({
               <FieldLabel icon={Timer}>
                 {intl.formatMessage({ id: "project.task.estimate" })}
               </FieldLabel>
-              <div className="relative">
-                <input
-                  type="number"
-                  min={0}
-                  value={estimatedMinutes}
-                  onChange={(event) => setEstimatedMinutes(event.target.value)}
-                  placeholder={intl.formatMessage({
-                    id: "project.task.estimatePlaceholder",
-                  })}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-3 pr-20 text-sm text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
-                />
-                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-400">
-                  {intl.formatMessage({ id: "project.task.minutes" })}
-                </span>
-              </div>
+              <TaskDurationSelect
+                value={estimatedMinutes}
+                onValueChange={setEstimatedMinutes}
+                disabled={isSubmitting}
+              />
               <span className="mt-1 block text-[11px] text-slate-400">
                 {intl.formatMessage({ id: "project.task.estimateHint" })}
               </span>

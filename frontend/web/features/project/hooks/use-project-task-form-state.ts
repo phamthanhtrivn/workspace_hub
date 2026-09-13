@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { TaskStatus, type Task } from "../types/project";
 
-export function useProjectTaskFormState(isSoftwareProject: boolean) {
+export function useProjectTaskFormState() {
   const [isOpen, setIsOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.TODO);
@@ -9,7 +9,6 @@ export function useProjectTaskFormState(isSoftwareProject: boolean) {
   const [allDay, setAllDay] = useState(false);
   const [parentTaskId, setParentTaskId] = useState<string>();
   const [sprintId, setSprintId] = useState<string>();
-  const [isParentTask, setIsParentTask] = useState(false);
 
   const open = (
     nextStatus: TaskStatus = TaskStatus.TODO,
@@ -24,7 +23,6 @@ export function useProjectTaskFormState(isSoftwareProject: boolean) {
     setAllDay(nextAllDay);
     setParentTaskId(nextParentTaskId);
     setSprintId(nextSprintId);
-    setIsParentTask(!isSoftwareProject && !nextParentTaskId);
     setIsOpen(true);
   };
 
@@ -44,7 +42,6 @@ export function useProjectTaskFormState(isSoftwareProject: boolean) {
     setAllDay(false);
     setParentTaskId(undefined);
     setSprintId(undefined);
-    setIsParentTask(false);
   };
 
   return {
@@ -57,7 +54,6 @@ export function useProjectTaskFormState(isSoftwareProject: boolean) {
     allDay,
     parentTaskId,
     sprintId,
-    isParentTask,
     open,
     edit,
     close,

@@ -26,12 +26,6 @@ export function isWithinLastDays(
   return time >= referenceTime - days * DAY && time <= referenceTime;
 }
 
-export function getTaskType(task: Task): "Task" | "Epic" | "Subtask" {
-  if (task.taskType === TaskType.EPIC) return "Epic";
-  if (task.taskType === TaskType.SUBTASK) return "Subtask";
-  return "Task";
-}
-
 export function useProjectSummaryMetrics(
   tasks: Task[],
   members: ProjectMember[],
@@ -43,8 +37,11 @@ export function useProjectSummaryMetrics(
 
   return useMemo(() => {
     const activeTasks = tasks.filter((task) => !task.archived);
+    const parentIds = new Set(
+      activeTasks.flatMap((task) => task.parentTaskId ? [task.parentTaskId] : []),
+    );
     const workItems = isSoftware
-      ? activeTasks.filter((task) => !task.isParentTask)
+      ? activeTasks.filter((task) => !parentIds.has(task.id))
       : activeTasks;
 
     const completed = workItems.filter((task) => task.status === TaskStatus.DONE);
@@ -95,12 +92,13 @@ export function useProjectSummaryMetrics(
     const maxPriority = Math.max(1, ...priorityItems.map((item) => item.value));
 
     const typeItems = [
-      { type: "Task", labelId: "project.task.type.task" },
-      { type: "Epic", labelId: "project.task.type.epic" },
-      { type: "Subtask", labelId: "project.task.type.subtask" },
+      { type: TaskType.TASK, labelId: "project.task.type.task" },
+      { type: TaskType.BUG, labelId: "project.task.type.bug" },
+      { type: TaskType.STORY, labelId: "project.task.type.story" },
+      { type: TaskType.EPIC, labelId: "project.task.type.epic" },
     ].map(({ type, labelId }) => ({
       label: intl.formatMessage({ id: labelId }),
-      value: activeTasks.filter((task) => getTaskType(task) === type).length,
+      value: activeTasks.filter((task) => task.taskType === type).length,
     }));
     const maxType = Math.max(1, ...typeItems.map((item) => item.value));
 

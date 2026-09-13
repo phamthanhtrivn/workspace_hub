@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { projectQueriesForEvent } from './project-realtime';
+import { applyTaskSocketEvent, projectQueriesForEvent } from './project-realtime';
+import { TaskPriority, TaskStatus, TaskType, type Task } from '../types/project';
 
 const baseEvent = {
   projectId: 'project-1',
@@ -35,5 +36,38 @@ describe('projectQueriesForEvent', () => {
       queryKey: ['projects'],
       exact: true,
     });
+  });
+
+  it('adds the complete created task payload directly to cache', () => {
+    const data = {
+      id: 'task-1', projectId: 'project-1', taskNumber: 1, taskType: TaskType.STORY,
+      title: 'Socket task', priority: TaskPriority.HIGH, status: TaskStatus.TODO,
+      createdBy: 'user-1', reporterId: 'user-1', allDay: false,
+      estimatedMinutes: 30, archived: false,
+    };
+
+    const result = applyTaskSocketEvent([], {
+      ...baseEvent,
+      resource: 'TASK',
+      action: 'CREATED',
+      entityId: 'task-1',
+      data,
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result?.[0]).toMatchObject({ id: 'task-1', title: 'Socket task', taskType: TaskType.STORY });
+  });
+
+  it('removes a deleted task and detaches its cached children', () => {
+    const parent = { id: 'task-1', parentTaskId: undefined } as Task;
+    const child = { id: 'task-2', parentTaskId: 'task-1', taskType: TaskType.BUG } as Task;
+    const result = applyTaskSocketEvent([parent, child], {
+      ...baseEvent,
+      resource: 'TASK',
+      action: 'DELETED',
+      entityId: 'task-1',
+    });
+
+    expect(result).toEqual([expect.objectContaining({ id: 'task-2', parentTaskId: undefined, taskType: TaskType.BUG })]);
   });
 });

@@ -8,12 +8,12 @@ import { Request } from 'express';
 import { Observable, tap } from 'rxjs';
 import { AuthenticatedRequest } from '../../common/auth/jwt-identity.guard';
 import { PrismaService } from '../../common/prisma/prisma.service';
-import { ProjectRealtimeService } from './project-realtime.service';
 import {
   ProjectChangeAction,
   ProjectChangedEvent,
   ProjectResource,
 } from './project-socket.types';
+import { ProjectSocketPublisher } from './project-socket.publisher';
 
 interface MutationLocation {
   projectId?: string;
@@ -32,10 +32,10 @@ interface MutationBody {
 }
 
 @Injectable()
-export class ProjectRealtimeInterceptor implements NestInterceptor {
+export class ProjectSocketInterceptor implements NestInterceptor {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly realtime: ProjectRealtimeService,
+    private readonly socketPublisher: ProjectSocketPublisher,
   ) {}
 
   async intercept(context: ExecutionContext, next: CallHandler): Promise<Observable<unknown>> {
@@ -60,9 +60,10 @@ export class ProjectRealtimeInterceptor implements NestInterceptor {
           entityId: result?.data?.id ?? this.entityId(request),
           taskId: location.taskId ?? result?.data?.taskId,
           taskIds: this.taskIds(request),
+          data: result?.data ?? undefined,
           occurredAt: new Date().toISOString(),
         };
-        this.realtime.publish(event, this.targetUsers(request, location, resource, action));
+        this.socketPublisher.publish(event, this.targetUsers(request, location, resource, action));
       }),
     );
   }

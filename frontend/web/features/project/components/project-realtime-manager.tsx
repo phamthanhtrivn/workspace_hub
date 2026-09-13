@@ -4,9 +4,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useAppSelector } from '@/store/store';
 import { getProjects } from '../api/project.api';
-import { projectQueriesForEvent } from '../api/project-realtime';
+import { applyTaskSocketEvent, projectQueriesForEvent } from '../api/project-realtime';
 import { projectSocketService, type ProjectChangedEvent } from '../api/project-socket.service';
 import { projectKeys } from '../hooks/use-projects';
+import { taskKeys } from '../hooks/use-tasks';
+import type { Task } from '../types/project';
 
 export default function ProjectRealtimeManager() {
   const token = useAppSelector((state) => state.auth.accessToken);
@@ -28,6 +30,11 @@ export default function ProjectRealtimeManager() {
       }
     };
     const handleChange = (event: ProjectChangedEvent) => {
+      if (event.resource === 'TASK') {
+        queryClient.setQueryData<Task[]>(taskKeys.project(event.projectId), (current) =>
+          applyTaskSocketEvent(current, event),
+        );
+      }
       for (const invalidation of projectQueriesForEvent(event)) {
         void queryClient.invalidateQueries(invalidation);
       }

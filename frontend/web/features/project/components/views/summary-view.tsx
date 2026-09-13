@@ -54,7 +54,7 @@ export default function SummaryView({
   } = useProjectSummaryMetrics(tasks, members, { isSoftware: true });
 
   const sprintItems = activeTasks
-    .filter((task) => task.isParentTask)
+    .filter((task) => activeTasks.some((child) => child.parentTaskId === task.id))
     .map((sprint) => {
       const children = activeTasks.filter(
         (task) => task.parentTaskId === sprint.id,

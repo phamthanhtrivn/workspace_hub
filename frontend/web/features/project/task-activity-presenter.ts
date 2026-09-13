@@ -18,7 +18,6 @@ export const ACTIVITY_ACTION_LABEL_IDS: Record<string, string> = {
   archived: "project.activity.action.archived",
   parentTaskId: "project.activity.action.parentTaskId",
   assigneeUserId: "project.activity.action.assigneeUserId",
-  isParentTask: "project.activity.action.isParentTask",
   autoCompleteSprint: "project.activity.action.autoCompleteSprint",
   rank: "project.activity.action.rank",
   checklist_created: "project.activity.action.checklistCreated",
@@ -51,7 +50,6 @@ const TASK_TYPE_LABEL_IDS: Record<string, string> = {
   BUG: "project.task.type.bug",
   STORY: "project.task.type.story",
   EPIC: "project.task.type.epic",
-  SUBTASK: "project.task.type.subtask",
 };
 
 export function createTaskActivityPresenter(
@@ -121,7 +119,7 @@ export function createTaskActivityPresenter(
         ? value
         : formatDate(date);
     }
-    if (["allDay", "archived", "isParentTask", "autoCompleteSprint"].includes(activity.field)) {
+    if (["allDay", "archived", "autoCompleteSprint"].includes(activity.field)) {
       return formatMessage(value === "true" ? "app.enabled" : "app.disabled");
     }
     return value;

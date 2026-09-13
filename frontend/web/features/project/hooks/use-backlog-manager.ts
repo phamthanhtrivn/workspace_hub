@@ -146,6 +146,11 @@ export function useBacklogManager({
     setShowCreateSprint(true);
   };
 
+  const closeSprintForm = () => {
+    setEditingSprint(null);
+    setShowCreateSprint(false);
+  };
+
   const openEditSprint = (sprint: Sprint) => {
     setEditingSprint(sprint);
     setShowCreateSprint(true);
@@ -211,7 +216,6 @@ export function useBacklogManager({
     bulkStatus,
     setBulkStatus,
     showCreateSprint,
-    setShowCreateSprint,
     editingSprint,
     dragOverTarget,
     setDragOverTarget,
@@ -229,6 +233,7 @@ export function useBacklogManager({
     handleBulkStatus,
     handleSprintSubmit,
     openCreateSprint,
+    closeSprintForm,
     openEditSprint,
     handleDragStart,
     handleSprintDragOver,

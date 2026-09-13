@@ -153,7 +153,6 @@ export enum TaskType {
   BUG = "BUG",
   STORY = "STORY",
   EPIC = "EPIC",
-  SUBTASK = "SUBTASK",
 }
 
 export interface TaskAssignee {
@@ -190,7 +189,6 @@ export interface Task {
   taskType: TaskType;
   parentTaskId?: string;
   childCount?: number;
-  isParentTask?: boolean;
   autoCompleteSprint?: boolean;
   sprintId?: string;
   title: string;

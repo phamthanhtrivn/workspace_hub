@@ -57,9 +57,9 @@ export class CreateTaskDto {
 
   @IsOptional()
   @IsBoolean()
-  isParentTask?: boolean;
+  autoCompleteSprint?: boolean;
 
   @IsOptional()
-  @IsBoolean()
-  autoCompleteSprint?: boolean;
+  @IsUUID()
+  assigneeUserId?: string;
 }

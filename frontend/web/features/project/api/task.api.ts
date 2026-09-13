@@ -25,7 +25,6 @@ export interface TaskApiModel {
   taskType: TaskType;
   parentTaskId?: string | null;
   childCount?: number;
-  isParentTask?: boolean;
   autoCompleteSprint?: boolean;
   sprintId?: string | null;
   title: string;
@@ -63,7 +62,6 @@ export interface CreateTaskPayload {
   estimatedMinutes?: number;
   rank?: string;
   parentTaskId?: string;
-  isParentTask?: boolean;
   autoCompleteSprint?: boolean;
   assigneeUserId?: string | null;
 }
@@ -83,7 +81,6 @@ export interface UpdateTaskPayload {
   archived?: boolean;
   parentTaskId?: string;
   clearParent?: boolean;
-  isParentTask?: boolean;
   autoCompleteSprint?: boolean;
 }
 
@@ -105,7 +102,6 @@ export function normalizeTask(task: TaskApiModel): Task {
     taskType: task.taskType || TaskType.TASK,
     parentTaskId: task.parentTaskId || undefined,
     childCount: task.childCount || 0,
-    isParentTask: task.isParentTask || false,
     autoCompleteSprint: task.autoCompleteSprint || false,
     sprintId: task.sprintId || undefined,
     title: task.title,

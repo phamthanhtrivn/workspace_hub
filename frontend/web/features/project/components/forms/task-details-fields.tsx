@@ -24,7 +24,6 @@ interface TaskDetailsFieldsProps {
   onParentTaskIdChange: (parentTaskId: string) => void;
   parentTasks?: Task[];
   currentTaskId?: string;
-  isParentTask?: boolean;
 }
 
 export function TaskDetailsFields({
@@ -38,7 +37,6 @@ export function TaskDetailsFields({
   onParentTaskIdChange,
   parentTasks = [],
   currentTaskId,
-  isParentTask = false,
 }: TaskDetailsFieldsProps) {
   const intl = useAppIntl();
 
@@ -65,7 +63,6 @@ export function TaskDetailsFields({
           <div className="relative">
             <select
               value={taskType}
-              disabled={Boolean(parentTaskId) || isParentTask}
               onChange={(event) =>
                 onTaskTypeChange(event.target.value as TaskType)
               }
@@ -141,14 +138,7 @@ export function TaskDetailsFields({
           <div className="relative">
             <select
               value={parentTaskId}
-              disabled={isParentTask}
-              onChange={(event) => {
-                const nextParentId = event.target.value;
-                onParentTaskIdChange(nextParentId);
-                onTaskTypeChange(
-                  nextParentId ? TaskType.SUBTASK : TaskType.TASK,
-                );
-              }}
+              onChange={(event) => onParentTaskIdChange(event.target.value)}
               className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10 disabled:bg-slate-50"
             >
               <option value="">

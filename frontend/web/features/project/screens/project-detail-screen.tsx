@@ -122,13 +122,10 @@ export default function ProjectDetailScreen() {
     allDay: newTaskAllDay,
     parentTaskId: newTaskParentId,
     sprintId: newTaskSprintId,
-    isParentTask: newTaskIsParentTask,
     open: openCreateTask,
     edit: editTask,
     close: closeTaskForm,
-  } = useProjectTaskFormState(
-    project?.projectType === ProjectType.SOFTWARE_DEVELOPMENT,
-  );
+  } = useProjectTaskFormState();
 
   // Sidebar state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -443,13 +440,12 @@ export default function ProjectDetailScreen() {
       )}
 
       <TaskFormDialog
-        key={`${showTaskForm}-${editingTask?.id ?? "new"}-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}-${newTaskIsParentTask}`}
+        key={`${showTaskForm}-${editingTask?.id ?? "new"}-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}`}
         open={showTaskForm}
         task={editingTask}
         projectName={project.name}
         parentTasks={tasks}
         initialParentTaskId={newTaskParentId}
-        initialIsParentTask={newTaskIsParentTask}
         initialStatus={newTaskStatus}
         initialStartDate={newTaskStartDate}
         initialAllDay={newTaskAllDay}
