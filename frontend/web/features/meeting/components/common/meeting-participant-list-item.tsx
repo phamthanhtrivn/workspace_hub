@@ -2,6 +2,7 @@
 
 import {
   Crown,
+  Hand,
   Pin,
   PinOff,
   ScreenShareOff,
@@ -36,6 +37,7 @@ interface MeetingParticipantListItemProps {
     role: MeetingParticipantRole,
   ) => void;
   onStopScreenShare: (participant: MeetingParticipantResponse) => void;
+  onLowerHand: (participant: MeetingParticipantResponse) => void;
   onToggleAudioMute: (participantId: string) => void;
   onTogglePin: (participantId: string) => void;
 }
@@ -49,6 +51,7 @@ export function MeetingParticipantListItem({
   onRemove,
   onRoleChange,
   onStopScreenShare,
+  onLowerHand,
   onToggleAudioMute,
   onTogglePin,
 }: MeetingParticipantListItemProps) {
@@ -127,6 +130,16 @@ export function MeetingParticipantListItem({
     });
   }
 
+  if (item.canLowerHand) {
+    actionItems.push({
+      id: "lower-hand",
+      label: intl.formatMessage({ id: "meeting.participants.lowerHand" }),
+      icon: Hand,
+      disabled: isBusy,
+      onSelect: () => onLowerHand(item.participant),
+    });
+  }
+
   if (item.canRemove) {
     actionItems.push({
       id: "remove",
@@ -161,6 +174,19 @@ export function MeetingParticipantListItem({
             <span className="block truncate text-sm font-black">
               {item.displayName}
             </span>
+            {item.participant.handRaisedAt ? (
+              <span
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-amber-300 text-slate-950"
+                aria-label={intl.formatMessage({
+                  id: "meeting.participants.handRaised",
+                })}
+                title={intl.formatMessage({
+                  id: "meeting.participants.handRaised",
+                })}
+              >
+                <Hand className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
             {item.isSelf ? (
               <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-300">
                 {intl.formatMessage({ id: "meeting.room.participant.you" })}

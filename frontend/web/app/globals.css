@@ -135,6 +135,34 @@ html {
   }
 }
 
+@keyframes meeting-room-reaction-float {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.86);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, -60%) scale(1);
+  }
+  72% {
+    opacity: 0.92;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--meeting-reaction-drift-x)),
+        calc(-50% - var(--meeting-reaction-travel-y))
+      )
+      scale(1.18);
+  }
+}
+
+.meeting-room-floating-reaction {
+  animation: meeting-room-reaction-float var(--meeting-reaction-duration)
+    cubic-bezier(0.22, 0.72, 0.34, 1) forwards;
+  will-change: transform, opacity;
+}
+
 .calendar-shell .fc {
   height: 100%;
   --fc-border-color: rgb(226 232 240);
@@ -212,7 +240,9 @@ html {
 
 .calendar-shell .fc-event:hover {
   filter: brightness(0.96);
-  box-shadow: 0 4px 12px -2px rgb(15 23 42 / 18%), 0 2px 4px -1px rgb(15 23 42 / 10%);
+  box-shadow:
+    0 4px 12px -2px rgb(15 23 42 / 18%),
+    0 2px 4px -1px rgb(15 23 42 / 10%);
   transform: translateY(-0.5px);
   z-index: 5 !important;
 }
@@ -223,7 +253,9 @@ html {
 
 .calendar-shell .calendar-task-event {
   border-radius: 6px;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 16%), 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 16%),
+    0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .calendar-shell .calendar-task-event .fc-event-main {
@@ -238,15 +270,13 @@ html {
   overflow: hidden;
 }
 
-.calendar-shell
-  .fc-timegrid-event-harness-inset
-  > .fc-timegrid-event {
-  box-shadow: inset 0 0 0 1px #ffffff, 0 1px 2px 0 rgb(0 0 0 / 0.05);
+.calendar-shell .fc-timegrid-event-harness-inset > .fc-timegrid-event {
+  box-shadow:
+    inset 0 0 0 1px #ffffff,
+    0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
-.calendar-shell
-  .fc-timegrid-event-harness-inset
-  > .fc-timegrid-event:hover {
+.calendar-shell .fc-timegrid-event-harness-inset > .fc-timegrid-event:hover {
   box-shadow:
     inset 0 0 0 1px #ffffff,
     0 4px 12px -2px rgb(15 23 42 / 18%),

@@ -14,7 +14,7 @@ import {
 import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import { useMeetingRealtimeCache } from "./useMeetingRealtimeCache";
 import { useMeetingSocket } from "./useMeetingSocket";
-import { MEETING_ROUTES, MEETING_STATUS } from "../types/meeting.constants";
+import { MEETING_STATUS } from "../types/meeting.constants";
 import { meetingKeys } from "../types/meeting.query-keys";
 import type {
   MeetingEndedPayload,
@@ -29,6 +29,7 @@ import {
   MEETING_ROLE,
   type MeetingParticipantRole,
 } from "../types/meeting.types";
+import { getCurrentMeetingExitPath } from "../utils/meeting-room-navigation.utils";
 
 interface UseMeetingRoomLifecycleParams {
   meetingId: string;
@@ -107,29 +108,7 @@ export function useMeetingRoomLifecycle({
 
   const leaveRoom = useCallback(() => {
     room.disconnect();
-    if (typeof window !== "undefined") {
-      const searchParams = new URLSearchParams(window.location.search);
-      const returnUrl = searchParams.get("returnUrl");
-      if (returnUrl) {
-        router.push(returnUrl);
-        return;
-      }
-
-      if (
-        document.referrer &&
-        document.referrer.startsWith(window.location.origin) &&
-        !document.referrer.includes("/meetings/")
-      ) {
-        router.back();
-        return;
-      }
-
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
-    }
-    router.push(MEETING_ROUTES.DASHBOARD);
+    router.replace(getCurrentMeetingExitPath());
   }, [room, router]);
 
   const handleStatusUpdated = useCallback(

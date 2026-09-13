@@ -249,6 +249,7 @@ export class MeetingRoomService {
       MeetingRole.HOST,
       token,
       false,
+      null,
     );
   }
 
@@ -475,6 +476,7 @@ export class MeetingRoomService {
       role,
       token,
       updatedParticipant.chatMuted,
+      updatedParticipant.handRaisedAt,
     );
   }
 
@@ -535,6 +537,7 @@ export class MeetingRoomService {
         role,
         token,
         participant?.chatMuted ?? false,
+        participant?.handRaisedAt ?? null,
       );
     }
 
@@ -651,6 +654,7 @@ export class MeetingRoomService {
       role,
       token,
       startedParticipant?.chatMuted ?? false,
+      startedParticipant?.handRaisedAt ?? null,
     );
   }
 

@@ -9,6 +9,7 @@ import {
   leaveMeeting,
   removeMeetingParticipant,
   stopParticipantScreenShare as stopParticipantScreenShareApi,
+  updateMeetingParticipantHandState,
   updateMeetingParticipantRole,
 } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
@@ -112,10 +113,24 @@ export function useMeetingParticipantActions(joinToken: string) {
     },
   });
 
+  const lowerParticipantHand = useMutation({
+    mutationFn: (userId: string) =>
+      updateMeetingParticipantHandState(joinToken, userId, { raised: false }),
+    onSuccess: () => {
+      invalidateParticipants();
+    },
+    onError: () => {
+      toast.error(
+        intl.formatMessage({ id: "meeting.participants.lowerHandFailed" }),
+      );
+    },
+  });
+
   return {
     removeParticipant,
     updateRole,
     stopParticipantScreenShare,
+    lowerParticipantHand,
     invalidateParticipants,
   };
 }

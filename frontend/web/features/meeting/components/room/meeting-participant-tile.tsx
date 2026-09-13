@@ -5,7 +5,7 @@ import {
   isTrackReference,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
-import { MonitorUp, Pin } from "lucide-react";
+import { Hand, MonitorUp, Pin } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingParticipantTile } from "@/features/meeting/hooks/useMeetingParticipantTile";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ interface MeetingParticipantTileProps {
   isScreenShare?: boolean;
   isAudioMutedForMe?: boolean;
   isPinnedForMe?: boolean;
+  handRaisedAt?: string | null;
   isPreferencePending?: boolean;
   onToggleAudioMute?: (participantId: string) => void;
   onTogglePin?: (participantId: string) => void;
@@ -29,6 +30,7 @@ export function MeetingParticipantTile({
   isScreenShare = false,
   isAudioMutedForMe = false,
   isPinnedForMe = false,
+  handRaisedAt = null,
   isPreferencePending = false,
   onToggleAudioMute,
   onTogglePin,
@@ -57,6 +59,7 @@ export function MeetingParticipantTile({
 
   return (
     <article
+      data-meeting-participant-id={trackRef.participant.identity}
       className={cn(
         "relative flex min-h-[220px] overflow-hidden rounded-lg border border-white/10 bg-[#121a28] shadow-[0_18px_48px_rgba(0,0,0,0.24)] transition-[border-color,box-shadow] duration-200",
         shouldShowSpeakingHighlight
@@ -73,6 +76,18 @@ export function MeetingParticipantTile({
           title={pinnedLabel}
         >
           <Pin className="h-4 w-4" />
+        </span>
+      ) : null}
+
+      {handRaisedAt ? (
+        <span
+          className="absolute left-3 top-12 z-10 grid h-8 w-8 place-items-center rounded-md bg-amber-400/95 text-slate-950 shadow-[0_10px_28px_rgba(251,191,36,0.28)] ring-1 ring-amber-100/70 backdrop-blur"
+          aria-label={intl.formatMessage({
+            id: "meeting.participants.handRaised",
+          })}
+          title={intl.formatMessage({ id: "meeting.participants.handRaised" })}
+        >
+          <Hand className="h-4 w-4" />
         </span>
       ) : null}
 

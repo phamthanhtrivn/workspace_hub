@@ -19,6 +19,7 @@ import {
   type MeetingJoinRequestUpdatedPayload,
   type MeetingParticipantRemovedPayload,
   type MeetingParticipantUpdatedPayload,
+  type MeetingRoomReactionPayload,
   type ServerToClientMeetingEvents,
 } from "../types/meeting-socket.types";
 import type { MeetingMessageResponse } from "../types/meeting.types";
@@ -43,6 +44,7 @@ interface MeetingSocketOptions {
   ) => void;
   onScreenShareStarted?: (payload: MeetingScreenShareStartedPayload) => void;
   onScreenShareStopped?: (payload: MeetingScreenShareStoppedPayload) => void;
+  onRoomReaction?: (payload: MeetingRoomReactionPayload) => void;
 }
 
 type MeetingSocket = Socket<
@@ -68,13 +70,16 @@ export function useMeetingSocket({
   onChatNotificationPreferenceUpdated,
   onScreenShareStarted,
   onScreenShareStopped,
+  onRoomReaction,
 }: MeetingSocketOptions) {
   const accessToken = useAppSelector((state) => state.auth.accessToken);
 
   useEffect(() => {
     if (!accessToken) return;
 
-    const socket = socketService.connect(accessToken) as unknown as MeetingSocket;
+    const socket = socketService.connect(
+      accessToken,
+    ) as unknown as MeetingSocket;
     if (meetingId) {
       socket.emit(MeetingSocketEvent.JOIN, { meetingId });
     }
@@ -146,6 +151,9 @@ export function useMeetingSocket({
     ) => {
       onScreenShareStopped?.(payload);
     };
+    const handleRoomReaction = (payload: MeetingRoomReactionPayload) => {
+      onRoomReaction?.(payload);
+    };
 
     socket.on(MeetingSocketEvent.PARTICIPANT_JOINED, handleParticipantJoined);
     socket.on(MeetingSocketEvent.PARTICIPANT_LEFT, handleParticipantLeft);
@@ -175,6 +183,7 @@ export function useMeetingSocket({
       MeetingSocketEvent.SCREEN_SHARE_STOPPED,
       handleScreenShareStopped,
     );
+    socket.on(MeetingSocketEvent.ROOM_REACTION, handleRoomReaction);
 
     return () => {
       socket.off(
@@ -214,6 +223,7 @@ export function useMeetingSocket({
         MeetingSocketEvent.SCREEN_SHARE_STOPPED,
         handleScreenShareStopped,
       );
+      socket.off(MeetingSocketEvent.ROOM_REACTION, handleRoomReaction);
     };
   }, [
     accessToken,
@@ -227,6 +237,7 @@ export function useMeetingSocket({
     onChatNotificationPreferenceUpdated,
     onScreenShareStarted,
     onScreenShareStopped,
+    onRoomReaction,
     onParticipantJoined,
     onParticipantLeft,
     onParticipantRemoved,

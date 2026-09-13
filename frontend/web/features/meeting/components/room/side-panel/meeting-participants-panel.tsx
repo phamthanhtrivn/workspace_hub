@@ -43,6 +43,7 @@ export function MeetingParticipantsPanel({
     handleRemove,
     handleRoleChange,
     handleStopScreenShare,
+    handleLowerHand,
     alertDialogProps,
   } = useMeetingParticipantsPanel({
     joinToken,
@@ -93,6 +94,7 @@ export function MeetingParticipantsPanel({
                 onRemove={handleRemove}
                 onRoleChange={handleRoleChange}
                 onStopScreenShare={handleStopScreenShare}
+                onLowerHand={handleLowerHand}
                 onToggleAudioMute={onToggleParticipantAudioMute}
                 onTogglePin={onToggleParticipantPin}
               />
