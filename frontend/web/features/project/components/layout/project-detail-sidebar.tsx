@@ -7,11 +7,16 @@ import {
   LayoutGrid,
   List,
   Settings,
+  UserPlus,
   Users,
 } from "lucide-react";
-import { ProjectTypeBadge } from "../ui/project-type-badge";
-import type { Project, ProjectMember } from "@/features/project/types/project";
+import {
+  ProjectRole,
+  type Project,
+  type ProjectMember,
+} from "@/features/project/types/project";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Avatar } from "../ui/avatar-stack";
 
 export type ProjectViewMode =
   | "summary"
@@ -28,9 +33,11 @@ interface ProjectDetailSidebarProps {
   viewMode: ProjectViewMode;
   isCollapsed: boolean;
   canOpenSettings: boolean;
+  canInviteMembers?: boolean;
   onViewChange: (view: ProjectViewMode) => void;
   onToggle: () => void;
   onOpenSettings: () => void;
+  onInviteMembers?: () => void;
 }
 
 const NAV_ITEMS: Array<{
@@ -51,13 +58,16 @@ export default function ProjectDetailSidebar({
   viewMode,
   isCollapsed,
   canOpenSettings,
+  canInviteMembers = false,
   onViewChange,
   onToggle,
   onOpenSettings,
+  onInviteMembers,
 }: ProjectDetailSidebarProps) {
   const intl = useAppIntl();
-  const taskListLabel =
-    intl.formatMessage({ id: project.projectType === "SOFTWARE_DEVELOPMENT" ? "project.view.backlog" : "project.view.tasks" });
+  const taskListLabel = intl.formatMessage({ id: "project.view.tasks" });
+  const visibleMembers = members.slice(0, 5);
+  const remainingMembers = Math.max(0, members.length - visibleMembers.length);
 
   const renderNavItem = (
     view: ProjectViewMode,
@@ -99,9 +109,6 @@ export default function ProjectDetailSidebar({
             <h2 className="truncate text-sm font-semibold text-[#172B4D]">
               {project.name}
             </h2>
-            <div className="mt-1">
-              <ProjectTypeBadge type={project.projectType} compact />
-            </div>
           </div>
         </div>
 
@@ -114,7 +121,82 @@ export default function ProjectDetailSidebar({
             renderNavItem(view, intl.formatMessage({ id: labelId }), icon),
           )}
           <div className="my-4 h-px bg-slate-200" />
-          {renderNavItem("members", intl.formatMessage({ id: "project.members.count" }, { count: members.length }), Users)}
+          <div
+            className={[
+              "flex items-center rounded px-1 transition",
+              viewMode === "members"
+                ? "bg-[#DEEBFF] text-[#0747A6]"
+                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
+            ].join(" ")}
+          >
+            <button
+              type="button"
+              onClick={() => onViewChange("members")}
+              className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2 text-left text-xs font-semibold"
+            >
+              <Users className="h-4 w-4 shrink-0" />
+              <span className="truncate">
+                {intl.formatMessage(
+                  { id: "project.members.count" },
+                  { count: members.length },
+                )}
+              </span>
+            </button>
+            {canInviteMembers && (
+              <button
+                type="button"
+                onClick={onInviteMembers}
+                className="inline-flex shrink-0 items-center gap-1 rounded px-2 py-1 text-[10px] font-bold text-[#0052CC] transition hover:bg-white/70"
+                title={intl.formatMessage({ id: "project.member.invite" })}
+              >
+                <UserPlus className="h-3 w-3" />
+                {intl.formatMessage({ id: "project.member.inviteShort" })}
+              </button>
+            )}
+          </div>
+          <div className="mt-1 space-y-1 pl-3 pr-1">
+            {visibleMembers.map((member) => (
+              <button
+                key={member.id}
+                type="button"
+                onClick={() => onViewChange("members")}
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition hover:bg-slate-200/60"
+              >
+                <Avatar
+                  user={{
+                    userId: member.userId,
+                    displayName: member.displayName,
+                    avatarUrl: member.avatarUrl,
+                  }}
+                  size="xs"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-semibold text-slate-700">
+                    {member.displayName}
+                  </span>
+                  <span className="block text-[10px] text-slate-400">
+                    {intl.formatMessage({
+                      id: member.role === ProjectRole.OWNER
+                        ? "project.role.owner"
+                        : "project.role.member",
+                    })}
+                  </span>
+                </span>
+              </button>
+            ))}
+            {remainingMembers > 0 && (
+              <button
+                type="button"
+                onClick={() => onViewChange("members")}
+                className="w-full rounded px-2 py-1.5 text-left text-[11px] font-bold text-blue-600 transition hover:bg-blue-50"
+              >
+                {intl.formatMessage(
+                  { id: "project.members.more" },
+                  { count: remainingMembers },
+                )}
+              </button>
+            )}
+          </div>
         </nav>
 
         <div className="border-t border-slate-200 bg-slate-100/50 p-4">

@@ -14,6 +14,7 @@ import {
 import type { ProjectMember, Task } from "@/features/project/types/project";
 import { Avatar } from "../ui/avatar-stack";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { formatTaskRelativeTime } from "@/features/project/utils/task-relative-time";
 
 interface TaskCommentsSectionProps {
   task: Task;
@@ -31,7 +32,11 @@ export default function TaskCommentsSection({
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState("");
-  const { userId: currentUserId } = useAppSelector((state) => state.auth);
+  const {
+    userId: currentUserId,
+    fullName: currentUserName,
+    avatarUrl: currentUserAvatar,
+  } = useAppSelector((state) => state.auth);
   const {
     data: loadedComments,
     isLoading,
@@ -158,16 +163,13 @@ export default function TaskCommentsSection({
                   </span>
                   <div className="flex select-none items-center gap-1.5">
                     <span className="text-[9px] font-semibold text-slate-400">
-                      {intl.formatRelativeTime(
-                        -Math.max(
-                          1,
-                          Math.floor(
-                            (now - new Date(comment.createdAt).getTime()) /
-                              60000,
-                          ),
-                        ),
-                        "minute",
-                      )}
+                      {formatTaskRelativeTime({
+                        value: comment.createdAt,
+                        now,
+                        formatRelativeTime: (value, unit) =>
+                          intl.formatRelativeTime(value, unit),
+                        formatDate: (value) => intl.formatDate(value),
+                      })}
                       {comment.edited &&
                         intl.formatMessage({ id: "project.comment.edited" })}
                     </span>
@@ -245,7 +247,9 @@ export default function TaskCommentsSection({
           <Avatar
             user={{
               userId: currentUserId || "u-curr",
-              displayName: intl.formatMessage({ id: "app.me" }),
+              displayName:
+                currentUserName || intl.formatMessage({ id: "app.me" }),
+              avatarUrl: currentUserAvatar || undefined,
             }}
             size="sm"
           />

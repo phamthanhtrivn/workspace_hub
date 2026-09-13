@@ -1,6 +1,6 @@
 import { OptionalField } from '../../../common/optional-field.decorator';
 import { IsBoolean, IsDateString, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min } from 'class-validator';
-import { TaskPriority, TaskStatus, TaskType } from '../project.enums';
+import { TaskPriority, TaskStatus } from '../project.enums';
 import { Trim } from '../../../common/trim.decorator';
 
 export class UpdateTaskDto {
@@ -26,10 +26,6 @@ export class UpdateTaskDto {
   @OptionalField()
   @IsEnum(TaskStatus)
   status?: TaskStatus;
-
-  @OptionalField()
-  @IsEnum(TaskType)
-  taskType?: TaskType;
 
   @IsOptional()
   @IsDateString()

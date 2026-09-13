@@ -10,7 +10,6 @@ export const ACTIVITY_ACTION_LABEL_IDS: Record<string, string> = {
   description: "project.activity.action.description",
   priority: "project.activity.action.priority",
   status: "project.activity.action.status",
-  taskType: "project.activity.action.taskType",
   startDate: "project.activity.action.startDate",
   dueDate: "project.activity.action.dueDate",
   estimatedMinutes: "project.activity.action.estimatedMinutes",
@@ -43,13 +42,6 @@ const PRIORITY_LABEL_IDS: Record<string, string> = {
   MEDIUM: "project.task.priority.medium",
   HIGH: "project.task.priority.high",
   URGENT: "project.task.priority.urgent",
-};
-
-const TASK_TYPE_LABEL_IDS: Record<string, string> = {
-  TASK: "project.task.type.task",
-  BUG: "project.task.type.bug",
-  STORY: "project.task.type.story",
-  EPIC: "project.task.type.epic",
 };
 
 export function createTaskActivityPresenter(
@@ -105,8 +97,6 @@ export function createTaskActivityPresenter(
       return STATUS_LABEL_IDS[value] ? formatMessage(STATUS_LABEL_IDS[value]) : value;
     if (activity.field === "priority")
       return PRIORITY_LABEL_IDS[value] ? formatMessage(PRIORITY_LABEL_IDS[value]) : value;
-    if (activity.field === "taskType")
-      return TASK_TYPE_LABEL_IDS[value] ? formatMessage(TASK_TYPE_LABEL_IDS[value]) : value;
     if (activity.field === "assigneeUserId") return memberDisplayName(value);
     if (activity.field === "parentTaskId") {
       return tasks.find((task) => task.id === value)?.title || value;

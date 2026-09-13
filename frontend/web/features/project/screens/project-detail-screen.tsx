@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   type Task,
-  ProjectType,
   TaskStatus,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
@@ -45,6 +44,7 @@ import { TaskDetailDrawer } from "@/features/project/components/task-detail";
 import {
   TaskChatDialog,
   TaskFormDialog,
+  InviteMemberDialog,
   SprintEditDialog,
   ProjectSettingsDialog,
 } from "@/features/project/components/dialogs";
@@ -61,6 +61,7 @@ import { createProjectSprintActions } from "@/features/project/hooks/use-project
 import { createProjectSettingsActions } from "@/features/project/project-settings-actions";
 import { createProjectGroupActions } from "@/features/project/project-group-actions";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
 
 export default function ProjectDetailScreen() {
   const intl = useAppIntl();
@@ -68,10 +69,7 @@ export default function ProjectDetailScreen() {
   const projectId = params.id as string;
   const { data: project, isLoading, isError } = useProject(projectId);
   const { data: members = [] } = useProjectMembers(projectId);
-  const { data: sprints = [] } = useProjectSprints(
-    projectId,
-    project?.projectType === ProjectType.SOFTWARE_DEVELOPMENT,
-  );
+  const { data: sprints = [] } = useProjectSprints(projectId, false);
   const {
     data: serverTasks = [],
     isLoading: tasksLoading,
@@ -95,6 +93,10 @@ export default function ProjectDetailScreen() {
   const permissions = project
     ? getProjectPermissions(project, members, currentUserId)
     : NO_PROJECT_PERMISSIONS;
+  const pendingInvitationsQuery = usePendingProjectInvitations(
+    projectId,
+    permissions.canInviteMembers,
+  );
 
   // States
   const [viewMode, setViewMode] = useState<ProjectViewMode>("board");
@@ -106,6 +108,7 @@ export default function ProjectDetailScreen() {
   const [chatTask, setChatTask] = useState<Task | null>(null);
   const [showMembers, setShowMembers] = useState(false);
   const [showProjectSettings, setShowProjectSettings] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
 
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
@@ -220,8 +223,7 @@ export default function ProjectDetailScreen() {
 
   const projectKey = getProjectKey(project.name);
   const projectWithMembers = { ...project, members };
-  const isSoftwareProject =
-    project.projectType === ProjectType.SOFTWARE_DEVELOPMENT;
+  const isSoftwareProject = false;
   const viewTitle: Record<ProjectViewMode, string> = {
     summary: intl.formatMessage({ id: "project.view.summary" }),
     board: intl.formatMessage({ id: "project.view.board" }),
@@ -291,6 +293,8 @@ export default function ProjectDetailScreen() {
         canOpenSettings={
           permissions.canManageProject || permissions.canManageLabels
         }
+        canInviteMembers={permissions.canInviteMembers}
+        onInviteMembers={() => setShowInviteDialog(true)}
         onViewChange={setViewMode}
         onToggle={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
         onOpenSettings={() => setShowProjectSettings(true)}
@@ -417,6 +421,17 @@ export default function ProjectDetailScreen() {
         canComment={Boolean(permissions.role)}
         onClose={() => setChatTask(null)}
       />
+
+      {permissions.canInviteMembers && (
+        <InviteMemberDialog
+          key={showInviteDialog ? "sidebar-invite-open" : "sidebar-invite-closed"}
+          open={showInviteDialog}
+          projectId={projectId}
+          members={projectWithMembers.members}
+          pendingInvitations={pendingInvitationsQuery.data ?? []}
+          onClose={() => setShowInviteDialog(false)}
+        />
+      )}
 
       {(permissions.canManageProject || permissions.canManageLabels) && (
         <ProjectSettingsDialog

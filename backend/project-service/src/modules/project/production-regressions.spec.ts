@@ -15,7 +15,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { normalizeTaskRank } from './task-rank';
 import { ProjectFileService } from './project-file.service';
 import { ClientKafka } from '@nestjs/microservices';
-import { TaskStatus, TaskType } from './project.enums';
+import { TaskStatus } from './project.enums';
 
 describe('Project production regressions', () => {
   const projectId = crypto.randomUUID();
@@ -94,40 +94,17 @@ describe('Project production regressions', () => {
     expect(access.requireCanManageSprints).not.toHaveBeenCalled();
   });
 
-  it('keeps task type independent from its parent relationship', async () => {
-    const { service, tx } = setupTask();
-    tx.task.findFirst.mockResolvedValue({
-      parentTaskId: null,
-      status: 'TODO',
-      archived: false,
-      sprintId: null,
-    });
-
-    await service.create(userId, projectId, {
-      title: 'Nested bug',
-      taskType: TaskType.BUG,
-      parentTaskId: crypto.randomUUID(),
-    });
-
-    expect(tx.task.create).toHaveBeenCalledWith(expect.objectContaining({
-      data: expect.objectContaining({ taskType: TaskType.BUG }),
-    }));
-  });
-
-  it('creates an independent epic and persists an initial assignee', async () => {
+  it('persists an initial assignee when creating a task', async () => {
     const { service, tx, notifications } = setupTask();
     const assigneeUserId = crypto.randomUUID();
 
-    const result = await service.create(userId, projectId, {
-      title: 'Assigned epic',
-      taskType: TaskType.EPIC,
+    await service.create(userId, projectId, {
+      title: 'Assigned task',
       assigneeUserId,
     });
 
-    expect(result).toMatchObject({ taskType: 'EPIC' });
     expect(tx.task.create).toHaveBeenCalledWith(expect.objectContaining({
       data: expect.objectContaining({
-        taskType: 'EPIC',
         assignees: { create: expect.objectContaining({ userId: assigneeUserId }) },
       }),
     }));

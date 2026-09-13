@@ -23,6 +23,7 @@ import {
 
 import { useProjectSummaryMetrics } from "@/features/project/hooks/use-project-summary-metrics";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { formatTaskRelativeTime } from "@/features/project/utils/task-relative-time";
 
 export default function SummaryView({
   tasks,
@@ -46,8 +47,6 @@ export default function SummaryView({
     donePercent,
     priorityItems,
     maxPriority,
-    typeItems,
-    maxType,
     recentTasks,
     workloadItems,
     maxWorkloadItems: maxWorkload,
@@ -182,16 +181,13 @@ export default function SummaryView({
                   </p>
                   <p className="mt-0.5 text-[11px] text-slate-400">
                     {intl.formatMessage({ id: `project.task.status.${task.status === "IN_PROGRESS" ? "inProgress" : task.status === "IN_REVIEW" ? "inReview" : task.status.toLowerCase()}` })} ·{" "}
-                    {intl.formatRelativeTime(
-                      -Math.max(
-                        1,
-                        Math.floor(
-                          (now - new Date(task.updatedAt || task.createdAt).getTime()) /
-                            60000,
-                        ),
-                      ),
-                      "minute",
-                    )}
+                    {formatTaskRelativeTime({
+                      value: task.updatedAt || task.createdAt,
+                      now,
+                      formatRelativeTime: (value, unit) =>
+                        intl.formatRelativeTime(value, unit),
+                      formatDate: (value) => intl.formatDate(value),
+                    })}
                   </p>
                 </div>
               </div>
@@ -207,34 +203,6 @@ export default function SummaryView({
             items={priorityItems}
             maxValue={maxPriority}
           />
-        </ProjectSummaryPanel>
-
-        <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.typeTitle" })}
-          description={intl.formatMessage({ id: "project.summary.typeDescription" })}
-        >
-          <div className="space-y-3">
-            {typeItems.map((item) => (
-              <div
-                key={item.label}
-                className="grid grid-cols-[75px_1fr_28px] items-center gap-3 text-xs"
-              >
-                <span className="flex items-center gap-2 text-slate-600">
-                  <span className="h-2.5 w-2.5 rounded-sm bg-blue-500" />
-                  {item.label}
-                </span>
-                <div className="h-5 rounded-sm bg-slate-100">
-                  <div
-                    className="h-5 rounded-sm bg-slate-500"
-                    style={{ width: `${(item.value / maxType) * 100}%` }}
-                  />
-                </div>
-                <strong className="text-right text-slate-700">
-                  {item.value}
-                </strong>
-              </div>
-            ))}
-          </div>
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel

@@ -11,7 +11,7 @@ import { TaskStatusBadge, LabelBadge } from "../ui/status-badge";
 import { Avatar } from "../ui/avatar-stack";
 import {
   getIssueKey,
-  getIssueTypeDetails,
+  getIssueIcon,
   getPriorityIcon,
 } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
@@ -46,7 +46,7 @@ export default function ProjectTaskRow({
   const intl = useAppIntl();
   const overdue = isOverdue(task.dueDate, task.status);
   const issueKey = getIssueKey(task);
-  const issueType = getIssueTypeDetails(task);
+  const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
   const isDraggable = reorderEnabled && !isTerminalTaskStatus(task.status);
 
@@ -77,8 +77,7 @@ export default function ProjectTaskRow({
       }}
       className="group flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-[7px] text-left transition-colors hover:bg-[#F4F5F7] cursor-pointer focus-visible:bg-[#DEEBFF] focus-visible:outline-none"
     >
-      {/* Type icon */}
-      <div className="shrink-0">{issueType.icon}</div>
+      <div className="shrink-0">{issueIcon}</div>
 
       {/* Key */}
       <span className="shrink-0 min-w-[70px] text-[11px] font-semibold uppercase tracking-wide text-slate-500 hover:text-[#0052CC]">

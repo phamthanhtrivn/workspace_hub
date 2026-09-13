@@ -572,7 +572,6 @@ class Task {
   +UUID parentTaskId
   +UUID sprintId
   +int taskNumber
-  +TaskType taskType
   +string title
   +string description
   +TaskPriority priority
@@ -725,7 +724,6 @@ Các enum được đặt ở trang `3 - Enumerations` trong file Draw.io hoàn 
 | `SprintStatus` | `PLANNED`, `ACTIVE`, `COMPLETED` |
 | `TaskStatus` | `TODO`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CANCELLED` |
 | `TaskPriority` | `LOW`, `MEDIUM`, `HIGH`, `URGENT` |
-| `TaskType` | `TASK`, `BUG`, `STORY`, `EPIC` |
 | `InvitationStatus` | `PENDING`, `ACCEPTED`, `DECLINED`, `CANCELLED`, `EXPIRED` |
 | `DependencyType` | `FINISH_TO_START`, `START_TO_START`, `FINISH_TO_FINISH` |
 
@@ -740,7 +738,7 @@ Các enum được đặt ở trang `3 - Enumerations` trong file Draw.io hoàn 
 | Member | `AddMemberDto` | `userId` |
 | Member | `UpdateMemberPermissionsDto` | sáu quyền tạo/sửa task và quản lý sprint/member/label |
 | Invitation | `CreateInvitationDto` | `invitedUserId` |
-| Task | `CreateTaskDto` | `sprintId`, `title`, `description`, `priority`, `status`, `taskType`, ngày, thời lượng, rank, parent |
+| Task | `CreateTaskDto` | `sprintId`, `title`, `description`, `priority`, `status`, ngày, thời lượng, rank, parent |
 | Task | `UpdateTaskDto` | các trường task có thể đổi, `assigneeUserId`, `archived`, `clearParent` |
 | Sprint | `CreateSprintDto`, `UpdateSprintDto` | `name`, `goal`, `startDate`, `endDate` |
 | Sprint | `AddSprintTasksDto` | `taskIds[]` |

@@ -2,7 +2,6 @@ import { api } from "@/lib/axios";
 import {
   TaskPriority,
   TaskStatus,
-  TaskType,
   type Task,
   type TaskChecklist,
   type TaskAssignee,
@@ -22,7 +21,6 @@ export interface TaskApiModel {
   id: string;
   projectId: string;
   taskNumber: number;
-  taskType: TaskType;
   parentTaskId?: string | null;
   childCount?: number;
   autoCompleteSprint?: boolean;
@@ -55,7 +53,6 @@ export interface CreateTaskPayload {
   description?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
-  taskType?: TaskType;
   startDate?: string | null;
   dueDate?: string | null;
   allDay?: boolean;
@@ -72,7 +69,6 @@ export interface UpdateTaskPayload {
   description?: string;
   priority?: TaskPriority;
   status?: TaskStatus;
-  taskType?: TaskType;
   startDate?: string | null;
   dueDate?: string | null;
   allDay?: boolean;
@@ -99,7 +95,6 @@ export function normalizeTask(task: TaskApiModel): Task {
     id: task.id,
     projectId: task.projectId,
     taskNumber: task.taskNumber,
-    taskType: task.taskType || TaskType.TASK,
     parentTaskId: task.parentTaskId || undefined,
     childCount: task.childCount || 0,
     autoCompleteSprint: task.autoCompleteSprint || false,

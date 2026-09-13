@@ -15,7 +15,7 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ListView({
   tasks,
-  projectType = ProjectType.SOFTWARE_DEVELOPMENT,
+  projectType = ProjectType.GENERAL,
   onTaskClick,
   onAddTaskInline,
   onAddSubtask,

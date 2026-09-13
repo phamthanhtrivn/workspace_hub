@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlignLeft, Clock3, Timer, X } from "lucide-react";
+import { AlignLeft, Clock3, FileText, Paperclip, Timer, Trash2, Upload, X } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   taskDateKey,
@@ -11,7 +11,6 @@ import {
 import {
   TaskPriority,
   TaskStatus,
-  TaskType,
   type Task,
 } from "@/features/project/types/project";
 import { TaskDetailsFields } from "../forms/task-details-fields";
@@ -20,12 +19,17 @@ import { TaskDurationSelect } from "../forms/task-duration-select";
 
 const toDateInput = (value?: string) => taskDateKey(value, true);
 
+const formatFileSize = (size: number) => {
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 export interface TaskFormValues {
   title: string;
   description: string;
   priority: TaskPriority;
   status: TaskStatus;
-  taskType: TaskType;
   startDate?: string | null;
   dueDate?: string | null;
   allDay: boolean;
@@ -79,12 +83,7 @@ export default function TaskFormDialog({
   const [priority, setPriority] = useState<TaskPriority>(
     task?.priority || TaskPriority.MEDIUM,
   );
-  const [status, setStatus] = useState<TaskStatus>(
-    task?.status || initialStatus,
-  );
-  const [taskType, setTaskType] = useState<TaskType>(
-    task?.taskType || TaskType.TASK,
-  );
+  const status = task?.status || initialStatus;
   const [startDate, setStartDate] = useState(
     task?.allDay || initialAllDay
       ? toDateInput(task?.startDate || initialStartDate)
@@ -100,12 +99,22 @@ export default function TaskFormDialog({
   const [parentTaskId, setParentTaskId] = useState(
     task?.parentTaskId || initialParentTaskId || "",
   );
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  const handleClose = () => {
+    if (isSubmitting) return;
+    setPendingFiles([]);
+    onClose();
+  };
 
   useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isSubmitting) onClose();
+      if (event.key === "Escape" && !isSubmitting) {
+        setPendingFiles([]);
+        onClose();
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -123,13 +132,13 @@ export default function TaskFormDialog({
       description: description.trim(),
       priority,
       status,
-      taskType,
       startDate: toApiDateTime(startDate, allDay),
       dueDate: toApiDateTime(dueDate, allDay),
       allDay,
       estimatedMinutes: Number(estimatedMinutes) || 0,
       parentTaskId: parentTaskId || undefined,
     });
+    setPendingFiles([]);
   };
 
   const handleAllDayChange = (checked: boolean) => {
@@ -146,7 +155,7 @@ export default function TaskFormDialog({
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-6">
       <div
         className="absolute inset-0 bg-slate-950/45 backdrop-blur-[1px]"
-        onClick={() => !isSubmitting && onClose()}
+        onClick={handleClose}
       />
 
       <form
@@ -180,7 +189,7 @@ export default function TaskFormDialog({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isSubmitting}
             aria-label={intl.formatMessage({ id: "app.close" })}
             className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
@@ -231,10 +240,6 @@ export default function TaskFormDialog({
           </section>
 
           <TaskDetailsFields
-            taskType={taskType}
-            onTaskTypeChange={setTaskType}
-            status={status}
-            onStatusChange={setStatus}
             priority={priority}
             onPriorityChange={setPriority}
             parentTaskId={parentTaskId}
@@ -252,6 +257,70 @@ export default function TaskFormDialog({
             onDueDateChange={setDueDate}
             disabled={isSubmitting}
           />
+
+          <section className="border-t border-slate-100 pt-5">
+            <div className="mb-3 flex items-center gap-2">
+              <Paperclip className="h-4 w-4 text-slate-400" />
+              <span className="text-sm font-black text-[var(--color-primary-dark)]">
+                {intl.formatMessage({ id: "project.task.attachments" })}
+              </span>
+              <span className="text-xs text-slate-400">
+                {intl.formatMessage({ id: "project.task.attachmentsUiOnly" })}
+              </span>
+            </div>
+
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-sm font-bold text-slate-600 transition hover:border-[var(--color-secondary)] hover:bg-blue-50 hover:text-[var(--color-secondary)]">
+              <Upload className="h-4 w-4" />
+              {intl.formatMessage({ id: "project.task.chooseFiles" })}
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                disabled={isSubmitting}
+                onChange={(event) => {
+                  const selectedFiles = Array.from(event.target.files ?? []);
+                  setPendingFiles((current) => [...current, ...selectedFiles]);
+                  event.target.value = "";
+                }}
+              />
+            </label>
+
+            {pendingFiles.length > 0 && (
+              <ul className="mt-3 space-y-2">
+                {pendingFiles.map((file, index) => (
+                  <li
+                    key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5"
+                  >
+                    <FileText className="h-4 w-4 shrink-0 text-blue-500" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-700">
+                        {file.name}
+                      </p>
+                      <p className="text-[11px] text-slate-400">
+                        {formatFileSize(file.size)}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPendingFiles((current) =>
+                          current.filter((_, fileIndex) => fileIndex !== index),
+                        )
+                      }
+                      aria-label={intl.formatMessage(
+                        { id: "project.file.delete" },
+                        { name: file.name },
+                      )}
+                      className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
           <section className="border-t border-slate-100 pt-5">
             <label className="block max-w-sm">
@@ -278,7 +347,7 @@ export default function TaskFormDialog({
           <div className="ml-auto flex items-center gap-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSubmitting}
               className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-slate-700 disabled:opacity-50"
             >

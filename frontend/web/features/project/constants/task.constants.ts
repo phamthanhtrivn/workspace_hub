@@ -1,4 +1,4 @@
-import { TaskPriority, TaskStatus, TaskType } from "../types/project";
+import { TaskPriority, TaskStatus } from "../types/project";
 
 export const TASK_STATUS_OPTIONS = [
   { value: TaskStatus.TODO, labelId: "project.task.status.todo" },
@@ -43,20 +43,6 @@ export const TASK_PRIORITY_LABEL_IDS: Record<TaskPriority, string> = {
 export const TASK_PRIORITY_SELECT_OPTIONS = TASK_PRIORITY_OPTIONS;
 
 export const TASK_DRAWER_PRIORITY_OPTIONS = TASK_PRIORITY_OPTIONS;
-
-export const TASK_TYPE_LABEL_IDS: Record<TaskType, string> = {
-  [TaskType.TASK]: "project.task.type.task",
-  [TaskType.BUG]: "project.task.type.bug",
-  [TaskType.STORY]: "project.task.type.story",
-  [TaskType.EPIC]: "project.task.type.epic",
-};
-
-export const TASK_TYPE_SELECT_OPTIONS = [
-  { value: TaskType.TASK, labelId: "project.task.type.task" },
-  { value: TaskType.BUG, labelId: "project.task.type.bug" },
-  { value: TaskType.STORY, labelId: "project.task.type.story" },
-  { value: TaskType.EPIC, labelId: "project.task.type.epic" },
-] as const;
 
 export const TASK_FILTER_LABELS = {
   STATUS_ALL: "project.task.status",

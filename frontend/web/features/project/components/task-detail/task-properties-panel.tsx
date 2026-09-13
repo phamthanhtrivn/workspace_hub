@@ -80,7 +80,20 @@ export default function TaskPropertiesPanel({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const assignedUser = task.assignees[0];
+  const taskAssignee = task.assignees[0];
+  const assignedMember = taskAssignee
+    ? members.find((member) => member.userId === taskAssignee.userId)
+    : undefined;
+  const assignedUser = taskAssignee
+    ? {
+        ...taskAssignee,
+        displayName:
+          assignedMember?.displayName ||
+          taskAssignee.displayName ||
+          memberDisplayName(taskAssignee.userId),
+        avatarUrl: assignedMember?.avatarUrl || taskAssignee.avatarUrl,
+      }
+    : undefined;
 
   const handleEstimateBlur = async () => {
     if (isReadOnly) return;

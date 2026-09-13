@@ -6,7 +6,7 @@ import {
 } from "@/features/project/types/project";
 import type { TaskDetailDrawerProps } from "@/features/project/types/task-detail-drawer.types";
 import { useTaskDetailDrawerState } from "@/features/project/hooks/use-task-detail-drawer-state";
-import { getIssueKey, getIssueTypeDetails } from "../ui/task-card";
+import { getIssueIcon, getIssueKey } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
 import TaskActivityPanel from "./task-activity-panel";
 import TaskChecklistSection from "./task-checklist-section";
@@ -85,7 +85,6 @@ export default function TaskDetailDrawer({
   if (!task) return null;
 
   const issueKey = getIssueKey(task);
-  const issueType = getIssueTypeDetails(task);
   const isTaskClosed = isTerminalTaskStatus(task.status);
   const isCollaborationReadOnly = isTaskClosed || !canContributeTask;
   const areCommentsReadOnly = isTaskClosed || !canComment;
@@ -103,10 +102,7 @@ export default function TaskDetailDrawer({
         {/* ── Panel Header ── */}
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            {issueType.icon}
-            <span className="text-[10px] font-bold uppercase text-slate-400">
-              {intl.formatMessage({ id: issueType.labelId })}
-            </span>
+            {getIssueIcon()}
             <span className="font-semibold uppercase tracking-wide text-slate-700 hover:underline">
               {issueKey}
             </span>

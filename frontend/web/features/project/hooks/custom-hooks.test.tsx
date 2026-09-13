@@ -4,7 +4,6 @@ import { toast } from 'sonner';
 import {
   TaskPriority,
   TaskStatus,
-  TaskType,
   ProjectRole,
   SprintStatus,
   type TaskAssignee,
@@ -52,7 +51,6 @@ function mockTask(partial: Partial<Task> = {}): Task {
     title: "Test Task",
     status: TaskStatus.TODO,
     priority: TaskPriority.MEDIUM,
-    taskType: TaskType.TASK,
     createdBy: "user-1",
     labels: [],
     assignees: [],

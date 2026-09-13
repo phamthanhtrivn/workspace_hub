@@ -30,7 +30,6 @@ import {
 } from "./communication/project-communication.port";
 import { HttpNotificationAdapter } from "./communication/http-notification.adapter";
 import { HttpUserDirectoryAdapter } from "./communication/http-user-directory.adapter";
-import { ProjectTemplateService } from "./project-template.service";
 import { TaskPolicyService } from "./task-policy.service";
 import { ProjectFileController } from "./project-file.controller";
 import { ProjectFileService } from "./project-file.service";
@@ -70,7 +69,6 @@ import { SocketModule } from "../socket/socket.module";
     HttpJsonClient,
     { provide: USER_DIRECTORY, useClass: HttpUserDirectoryAdapter },
     { provide: NOTIFICATION_GATEWAY, useClass: HttpNotificationAdapter },
-    ProjectTemplateService,
     TaskPolicyService,
   ],
 })

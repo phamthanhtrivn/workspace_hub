@@ -75,7 +75,6 @@ export function toTaskResponse(task: TaskWithCount | Task) {
     projectId: task.projectId,
     parentTaskId: task.parentTaskId,
     taskNumber: task.taskNumber,
-    taskType: task.taskType,
     childCount,
     title: task.title,
     description: task.description,

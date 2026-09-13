@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
-import { isTerminalTaskStatus, TaskStatus, TaskType } from "./project.enums";
+import { isTerminalTaskStatus, TaskStatus } from "./project.enums";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateTaskDto } from "./dto/create-task.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
@@ -60,7 +60,6 @@ export class TaskService {
 
     const now = new Date();
     const status = dto.status ?? TaskStatus.TODO;
-    const taskType = dto.taskType ?? TaskType.TASK;
     const task = await this.prisma.$transaction(async (tx) => {
       const projectSequence = await tx.project.update({
         where: { id: projectId },
@@ -84,7 +83,6 @@ export class TaskService {
           projectId,
           parentTaskId: dto.parentTaskId,
           taskNumber: projectSequence.nextTaskNumber - 1,
-          taskType,
           ...(sprintId !== undefined ? { sprintId } : {}),
           title: dto.title.trim(),
           description: dto.description,
@@ -230,7 +228,6 @@ export class TaskService {
       data.estimatedMinutes = dto.estimatedMinutes;
     if (dto.rank !== undefined) data.rank = normalizeTaskRank(dto.rank);
     if (dto.archived !== undefined) data.archived = dto.archived;
-    if (dto.taskType !== undefined) data.taskType = dto.taskType;
     if (dto.autoCompleteSprint !== undefined)
       data.autoCompleteSprint = dto.autoCompleteSprint;
     if (parentTaskId !== undefined) {
@@ -453,13 +450,6 @@ export class TaskService {
       changes.push(["description", current.description, updated.description]);
     if (dto.priority !== undefined)
       changes.push(["priority", current.priority, updated.priority]);
-    if (
-      dto.taskType !== undefined ||
-      dto.parentTaskId !== undefined ||
-      dto.clearParent
-    ) {
-      changes.push(["taskType", current.taskType, updated.taskType]);
-    }
     if (dto.status !== undefined)
       changes.push(["status", current.status, updated.status]);
     if (dto.startDate !== undefined)

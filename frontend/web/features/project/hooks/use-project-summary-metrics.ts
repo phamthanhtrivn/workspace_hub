@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   TaskStatus,
-  TaskType,
   isTerminalTaskStatus,
   type ProjectMember,
   type Task,
@@ -91,17 +90,6 @@ export function useProjectSummaryMetrics(
     }));
     const maxPriority = Math.max(1, ...priorityItems.map((item) => item.value));
 
-    const typeItems = [
-      { type: TaskType.TASK, labelId: "project.task.type.task" },
-      { type: TaskType.BUG, labelId: "project.task.type.bug" },
-      { type: TaskType.STORY, labelId: "project.task.type.story" },
-      { type: TaskType.EPIC, labelId: "project.task.type.epic" },
-    ].map(({ type, labelId }) => ({
-      label: intl.formatMessage({ id: labelId }),
-      value: activeTasks.filter((task) => task.taskType === type).length,
-    }));
-    const maxType = Math.max(1, ...typeItems.map((item) => item.value));
-
     const recentTasks = [...activeTasks]
       .sort(
         (a, b) =>
@@ -162,8 +150,6 @@ export function useProjectSummaryMetrics(
       totalStatus,
       priorityItems,
       maxPriority,
-      typeItems,
-      maxType,
       recentTasks,
       workload,
       workloadItems,

@@ -98,7 +98,6 @@ model Task {
   projectId          String       @map("project_id") @db.Uuid
   parentTaskId       String?      @map("parent_task_id") @db.Uuid
   taskNumber         Int          @map("task_number")
-  taskType           String       @default("TASK") @map("task_type") @db.VarChar(20)
   title              String       @db.VarChar(200)
   description        String?
   priority           String       @db.VarChar(20)

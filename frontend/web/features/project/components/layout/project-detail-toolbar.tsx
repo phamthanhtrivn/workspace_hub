@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { ChevronRight, Plus, Search, Users } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
-import { ProjectTypeBadge } from "../ui/project-type-badge";
 import TaskQuickFilters from "../ui/task-quick-filters";
 import {
-  ProjectType,
   TaskPriority,
   TaskStatus,
   type Project,
@@ -98,7 +96,6 @@ export default function ProjectDetailToolbar({
       <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <h1 className="flex items-center gap-2 text-2xl font-semibold text-[#172B4D]">
           {viewTitle}
-          <ProjectTypeBadge type={project.projectType} compact />
         </h1>
         <div className="flex items-center gap-2">
           <button
@@ -121,16 +118,6 @@ export default function ProjectDetailToolbar({
           )}
         </div>
       </div>
-
-      {project.projectType === ProjectType.SOFTWARE_DEVELOPMENT && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 rounded border border-indigo-100 bg-indigo-50/60 px-4 py-3 text-xs font-semibold text-indigo-800">
-          <span className="font-bold">{intl.formatMessage({ id: "project.workflow.software" })}</span>
-          <span>{intl.formatMessage({ id: "project.view.backlog" })}</span>
-          <span>{intl.formatMessage({ id: "project.workflow.sprint" })}</span>
-          <span>{intl.formatMessage({ id: "project.workflow.codeReview" })}</span>
-          <span>{intl.formatMessage({ id: "project.workflow.release" })}</span>
-        </div>
-      )}
 
       <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
         <div className="relative">

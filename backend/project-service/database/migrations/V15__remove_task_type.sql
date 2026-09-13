@@ -1,0 +1,5 @@
+ALTER TABLE tasks
+DROP CONSTRAINT IF EXISTS chk_tasks_task_type;
+
+ALTER TABLE tasks
+DROP COLUMN IF EXISTS task_type;

@@ -20,14 +20,22 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
   ) {
     invalidations.push({ queryKey: ['projects'], exact: true });
   }
-  if (event.resource === 'PROJECT' || event.resource === 'MEMBER') {
+  if (
+    event.resource === 'PROJECT' ||
+    event.resource === 'MEMBER' ||
+    event.resource === 'INVITATION'
+  ) {
     invalidations.push({ queryKey: projectKey, exact: true });
   }
 
   const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
     SPRINT: [[...projectKey, 'sprints'], [...projectKey, 'tasks']],
     MEMBER: [[...projectKey, 'members']],
-    INVITATION: [[...projectKey, 'invitations', 'pending'], ['projects', 'invitations', 'mine']],
+    INVITATION: [
+      [...projectKey, 'members'],
+      [...projectKey, 'invitations', 'pending'],
+      ['projects', 'invitations', 'mine'],
+    ],
     CHECKLIST: [[...projectKey, 'tasks']],
     LABEL: [[...projectKey, 'labels'], [...projectKey, 'tasks']],
     DEPENDENCY: [[...projectKey, 'dependencies']],

@@ -69,13 +69,13 @@ export default function GeneralSummaryView({
         <ProjectMetricCard
           icon={ListChecks}
           value={rootTasks.length}
-          label={intl.formatMessage({ id: "project.task.type.task" })}
+          label={intl.formatMessage({ id: "project.task.task" })}
           color="bg-blue-50 text-blue-600"
         />
         <ProjectMetricCard
           icon={Activity}
           value={subtasks.length}
-          label={intl.formatMessage({ id: "project.task.type.subtask" })}
+          label={intl.formatMessage({ id: "project.task.subtask" })}
           color="bg-violet-50 text-violet-600"
         />
         <ProjectMetricCard
