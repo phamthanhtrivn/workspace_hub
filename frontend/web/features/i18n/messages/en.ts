@@ -999,6 +999,7 @@ const en = {
   "documents.modified": "Modified",
   "documents.size": "Size",
   "documents.sizeValue": "Size: {size}",
+  "documents.folderContentsSize": "Folder contents size",
   "documents.upload.preparing": "Preparing...",
   "documents.upload.uploading": "Uploading...",
   "documents.upload.processing": "Processing...",
