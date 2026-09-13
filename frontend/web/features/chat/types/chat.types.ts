@@ -232,6 +232,22 @@ export interface NoteResponse {
   creatorProfile?: UserProfileSnapshotResponse | null;
 }
 
+// ─── Meeting ───────────────────────────────────────────────────────────────
+
+export interface MeetingResponse {
+  id: string;
+  roomName: string;
+  joinToken: string;
+  title: string;
+  status: string;
+  createdBy: string;
+  hostId: string;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  channelId?: string | null;
+  conversationId?: string | null;
+}
+
 // ─── Payloads ──────────────────────────────────────────────────────────────
 
 export type CreatePollPayload = Pick<
@@ -264,6 +280,7 @@ export interface ChatMessageResponse {
   medias?: ChatMediaResponse[];
   poll?: PollResponse | null;
   note?: NoteResponse | null;
+  meeting?: MeetingResponse | null;
   pinned?: boolean;
   reactions?: ChatReactionResponse[];
   [key: string]: unknown;

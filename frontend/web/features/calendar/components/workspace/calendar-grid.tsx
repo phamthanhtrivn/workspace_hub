@@ -77,6 +77,7 @@ export function CalendarGrid({
         navLinks
         slotDuration="00:30:00"
         snapDuration="00:15:00"
+        defaultTimedEventDuration="01:00:00"
         scrollTime="08:00:00"
         selectLongPressDelay={250}
         slotMinTime={CALENDAR_SLOT_MIN_TIME}

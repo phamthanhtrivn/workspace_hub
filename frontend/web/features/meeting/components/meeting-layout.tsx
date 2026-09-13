@@ -76,6 +76,7 @@ export function MeetingLayout() {
     [],
   );
   const { createMeeting } = useCreateInstantMeeting({
+    skipJoinPrejoinAfterCreate: true,
     onCreating: handleCreateStarted,
     onCreated: handleCreateSucceeded,
     onError: handleCreateFailed,

@@ -190,6 +190,7 @@ export class DirectMessageService {
     const includeQuery = {
       reactions: true,
       medias: true,
+      meeting: true,
       threadFollowers: true,
     };
 
@@ -617,6 +618,7 @@ export class DirectMessageService {
     const includeQuery = {
       reactions: true,
       medias: true,
+      meeting: true,
       threadFollowers: true,
     };
 

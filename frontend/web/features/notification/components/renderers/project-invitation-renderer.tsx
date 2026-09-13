@@ -19,6 +19,7 @@ import { setProjectInvitationStatus } from "@/store/notification/notification.sl
 import { useRespondProjectInvitation } from "@/features/project/hooks/use-invitations";
 import { getUserProfiles } from "@/features/project/api/project.api";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { NotificationCategoryIcon } from "../notification-category-icon";
 import type {
   Notification,
   ProjectInvitationMetadata,
@@ -113,38 +114,48 @@ export function ProjectInvitationListItemRenderer({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-start gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 ${
+      className={`group flex w-full items-start gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 ${
         notification.isRead ? "bg-white" : "bg-blue-50/60"
       }`}
     >
-      <span
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-lg font-black ring-1 ring-inset ring-current/10"
-        style={{ backgroundColor: `${projectColor}14`, color: projectColor }}
-        aria-label={projectName}
-      >
-        {metadata.projectIcon?.trim() || <FolderKanban className="h-5 w-5" />}
-      </span>
+      <NotificationCategoryIcon notification={notification} />
+
       <span className="min-w-0 flex-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="truncate text-sm font-black text-slate-900">
-            {projectName}
+        <span className="mb-1 flex items-center gap-2">
+          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-blue-700">
+            Project invite
           </span>
-          <span className="shrink-0 text-[10px] font-semibold text-slate-400">
+          <span className="text-[10px] font-semibold text-slate-400">
             {formatTimeAgo(new Date(notification.createdAt))}
           </span>
         </span>
+
+        <span className="flex items-center gap-1.5 truncate text-sm font-black text-slate-900">
+          {metadata.projectIcon?.trim() ? (
+            <span
+              className="inline-flex h-4 w-4 shrink-0 items-center justify-center text-xs"
+              style={{ color: projectColor }}
+            >
+              {metadata.projectIcon.trim()}
+            </span>
+          ) : null}
+          <span className="truncate">{projectName}</span>
+        </span>
+
         <span className="mt-0.5 block truncate text-xs font-semibold text-slate-500">
           {intl.formatMessage(
             { id: "notification.projectInvitation.invitedBy" },
             { name: inviterName },
           )}
         </span>
+
         <span
           className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${statusClasses[status]}`}
         >
           {intl.formatMessage({ id: statusMessageIds[status] })}
         </span>
       </span>
+
       {!notification.isRead && (
         <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500" />
       )}

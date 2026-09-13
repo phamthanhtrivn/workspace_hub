@@ -27,6 +27,7 @@ export interface DocumentItem {
   s3Key: string | null;
   mimeType: string | null;
   sizeBytes: number;
+  containedSizeBytes?: number;
   isStarred: boolean;
   isArchived: boolean;
   archivedAt: string | null;
@@ -101,6 +102,7 @@ export interface ChatMetadataResponse {
   name: string;
   type: DocumentItemType;
   sizeBytes: number;
+  containedSizeBytes?: number;
   mimeType: string | null;
   ownerEmail: string;
   ownerName: string | null;

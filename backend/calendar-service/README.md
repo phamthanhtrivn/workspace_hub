@@ -8,7 +8,7 @@ NestJS + Prisma service for WorkspaceHub calendars, events, attendees, recurring
 - Dispatches due reminders to `calendar-reminder-events`; Notification Service delivers `ALERT`, `PUSH`, or `EMAIL`.
 - Enforces private/public visibility and returns per-user event permissions.
 - Verifies project and document access through their owning services.
-- Consumes `project-task-events` and creates read-only calendar projections for project members.
+- Keeps read-only project-task presentation fields for a future integration, but does not currently consume Project events.
 - Validates date/UUID filters and paginates event range queries.
 
 ## Local configuration
@@ -26,5 +26,5 @@ The shared Docker Compose stack does not publish port `8086` to the host; Calend
 
 ## Kafka topics
 
-- consumes: `user-profile-events`, `project-task-events`
+- consumes: `user-profile-events`
 - produces: `calendar-reminder-events`

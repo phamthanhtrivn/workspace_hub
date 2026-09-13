@@ -62,6 +62,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     data: accessResponse,
     isLoading: isCheckingAccess,
     isError: isAccessError,
+    error: accessError,
   } = useQuery({
     queryKey: meetingKeys.access(joinToken),
     queryFn: () => getMeetingAccess(joinToken),
@@ -209,12 +210,21 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       return MeetingJoinFlowStep.WAITING_APPROVAL;
     }
 
+    const isForbidden =
+      (accessError as { response?: { status?: number }; status?: number })?.response?.status === 403 ||
+      (accessError as { response?: { status?: number }; status?: number })?.status === 403;
+
+    if (isForbidden) {
+      return MeetingJoinFlowStep.ACCESS_DENIED;
+    }
+
     if (isAccessError || isJoinError) {
       return MeetingJoinFlowStep.ERROR;
     }
 
     return MeetingJoinFlowStep.PREJOIN;
   }, [
+    accessError,
     currentParticipantStatus,
     isAccessError,
     isCheckingAccess,
@@ -227,6 +237,28 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     startScheduledMeetingMutation.isPending,
   ]);
   const goBackToMeetings = useCallback(() => {
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      const returnUrl = searchParams.get("returnUrl");
+      if (returnUrl) {
+        router.push(returnUrl);
+        return;
+      }
+
+      if (
+        document.referrer &&
+        document.referrer.startsWith(window.location.origin) &&
+        !document.referrer.includes("/meetings/")
+      ) {
+        router.back();
+        return;
+      }
+
+      if (window.history.length > 1) {
+        router.back();
+        return;
+      }
+    }
     router.push(MEETING_ROUTES.DASHBOARD);
   }, [router]);
   const joinMeeting = useCallback(() => {

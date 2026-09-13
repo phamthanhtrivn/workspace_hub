@@ -137,11 +137,11 @@ html {
 
 .calendar-shell .fc {
   height: 100%;
-  --fc-border-color: rgb(218 220 224);
+  --fc-border-color: rgb(226 232 240);
   --fc-page-bg-color: #ffffff;
   --fc-neutral-bg-color: rgb(248 250 252);
-  --fc-today-bg-color: rgb(232 240 254 / 0.55);
-  --fc-now-indicator-color: #ea4335;
+  --fc-today-bg-color: rgb(239 246 255 / 0.45);
+  --fc-now-indicator-color: #ef4444;
   --fc-event-border-color: transparent;
   --fc-event-bg-color: var(--color-primary);
   --fc-small-font-size: 0.75rem;
@@ -157,16 +157,39 @@ html {
 
 .calendar-shell .fc-col-header-cell {
   background: #ffffff;
-  padding: 0.55rem 0;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgb(226 232 240);
 }
 
-.calendar-shell .fc-col-header-cell-cushion,
-.calendar-shell .fc-timegrid-axis-cushion,
-.calendar-shell .fc-timegrid-slot-label-cushion {
+.calendar-shell .fc-col-header-cell.fc-day-today {
+  background: rgb(239 246 255 / 0.4);
+}
+
+.calendar-shell .fc-col-header-cell-cushion {
   color: rgb(100 116 139);
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.calendar-shell .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: rgb(37 99 235);
+  font-weight: 700;
+}
+
+.calendar-shell .fc-timegrid-axis-cushion,
+.calendar-shell .fc-timegrid-slot-label-cushion {
+  color: rgb(148 163 184);
+  font-size: 0.7rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.calendar-shell .fc-timegrid-slot-minor {
+  border-top-style: dotted;
+  border-top-color: rgb(241 245 249);
 }
 
 .calendar-shell .fc-daygrid-day-number {
@@ -177,28 +200,30 @@ html {
 }
 
 .calendar-shell .fc-event {
-  border-radius: 0.25rem;
+  border-radius: 6px;
   border: 0;
-  box-shadow: none;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   cursor: pointer;
   transition:
-    filter 140ms ease,
-    box-shadow 140ms ease,
-    transform 140ms ease;
+    filter 130ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 130ms cubic-bezier(0.4, 0, 0.2, 1),
+    transform 130ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .calendar-shell .fc-event:hover {
   filter: brightness(0.96);
-  box-shadow: 0 1px 3px rgb(15 23 42 / 18%);
+  box-shadow: 0 4px 12px -2px rgb(15 23 42 / 18%), 0 2px 4px -1px rgb(15 23 42 / 10%);
+  transform: translateY(-0.5px);
+  z-index: 5 !important;
 }
 
 .calendar-shell .fc-event:active {
-  transform: translateY(1px);
+  transform: translateY(0.5px);
 }
 
 .calendar-shell .calendar-task-event {
-  border-radius: 0.25rem;
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 12%);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 16%), 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .calendar-shell .calendar-task-event .fc-event-main {
@@ -216,7 +241,7 @@ html {
 .calendar-shell
   .fc-timegrid-event-harness-inset
   > .fc-timegrid-event {
-  box-shadow: inset 0 0 0 1px #ffffff;
+  box-shadow: inset 0 0 0 1px #ffffff, 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .calendar-shell
@@ -224,11 +249,22 @@ html {
   > .fc-timegrid-event:hover {
   box-shadow:
     inset 0 0 0 1px #ffffff,
-    0 1px 3px rgb(15 23 42 / 18%);
+    0 4px 12px -2px rgb(15 23 42 / 18%),
+    0 2px 4px -1px rgb(15 23 42 / 10%);
 }
 
 .calendar-shell .fc-timegrid-now-indicator-line {
   border-top-width: 2px;
+  border-top-color: #ef4444;
+  z-index: 4;
+}
+
+.calendar-shell .fc-timegrid-now-indicator-arrow {
+  border-color: #ef4444;
+  border-width: 5px 0 5px 6px;
+  border-bottom-color: transparent;
+  border-top-color: transparent;
+  margin-top: -5px;
 }
 
 .calendar-shell .fc-list {
@@ -239,19 +275,21 @@ html {
 }
 
 .calendar-shell .fc-timegrid-slot {
-  height: 2.6rem;
+  height: 2.75rem;
 }
 
 .calendar-shell .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
   align-items: center;
-  background: #1a73e8;
+  background: #2563eb;
   border-radius: 9999px;
   color: #ffffff;
   display: inline-flex;
-  height: 1.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  height: 1.65rem;
   justify-content: center;
   margin: 0.2rem;
-  width: 1.75rem;
+  width: 1.65rem;
 }
 
 .calendar-mini-shell .fc {
@@ -285,10 +323,10 @@ html {
 }
 
 .calendar-mini-shell .fc-col-header-cell-cushion {
-  color: rgb(51 65 85);
+  color: rgb(71 85 105);
   display: block;
   font-size: 0.68rem;
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1;
   padding: 0;
   text-decoration: none;
@@ -315,15 +353,16 @@ html {
 .calendar-mini-shell .fc-daygrid-day-number {
   align-items: center;
   border-radius: 9999px;
-  color: rgb(15 40 84);
+  color: rgb(30 41 59);
   display: inline-flex;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 600;
   height: 1.65rem;
   justify-content: center;
   padding: 0;
   text-decoration: none;
   width: 1.65rem;
+  transition: background-color 100ms ease;
 }
 
 .calendar-mini-shell .fc-daygrid-day-number:hover {
@@ -331,18 +370,20 @@ html {
 }
 
 .calendar-mini-shell .fc-day-other .fc-daygrid-day-number {
-  color: rgb(100 116 139);
-  opacity: 0.75;
+  color: rgb(148 163 184);
+  opacity: 0.6;
 }
 
 .calendar-mini-shell .fc-day-today .fc-daygrid-day-number {
-  background: rgb(219 234 254);
+  background: rgb(239 246 255);
   color: rgb(37 99 235);
+  font-weight: 700;
 }
 
 .calendar-mini-shell .is-selected-date .fc-daygrid-day-number {
-  background: rgb(37 99 235);
-  color: #ffffff;
+  background: rgb(37 99 235) !important;
+  color: #ffffff !important;
+  font-weight: 700;
 }
 
 .calendar-mini-shell .fc-daygrid-day-events,

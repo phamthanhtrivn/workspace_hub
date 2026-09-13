@@ -511,8 +511,8 @@ export class RecurrenceMutationService {
       color: dto.color === undefined ? event.color : dto.color,
       status: dto.status ?? event.status,
       visibility: dto.visibility ?? event.visibility,
-      sourceType: EventSourceType.USER,
-      sourceId: null,
+      sourceType: event.sourceType,
+      sourceId: event.sourceId,
       cancelledAt:
         dto.status === EventStatus.CANCELLED ? new Date() : event.cancelledAt,
     };

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { CALENDAR_MIN_EVENT_DURATION_MS } from "../types/calendar.constants";
 import {
+  EventSourceType,
   EventStatus,
   EventVisibility,
   RecurrenceScope,
@@ -27,6 +28,7 @@ export const calendarEventFormSchema = z
     status: z.nativeEnum(EventStatus),
     recurrenceScope: z.nativeEnum(RecurrenceScope),
     reminders: z.array(reminderSchema).max(5),
+    sourceType: z.nativeEnum(EventSourceType).optional(),
   })
   .superRefine((values, context) => {
     const start = new Date(values.startAt);

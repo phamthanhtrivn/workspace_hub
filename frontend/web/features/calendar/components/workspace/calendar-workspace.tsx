@@ -12,7 +12,9 @@ import { useCalendarWorkspace } from "../../hooks/use-calendar-workspace";
 import { useCalendarKeyboardShortcuts } from "../../hooks/use-calendar-keyboard-shortcuts";
 
 const EventDetailModal = dynamic(() =>
-  import("../modal/event-detail-modal").then((module) => module.EventDetailModal),
+  import("../modal/event-detail-modal").then(
+    (module) => module.EventDetailModal,
+  ),
 );
 const EventFormModal = dynamic(() =>
   import("../modal/event-form-modal").then((module) => module.EventFormModal),
@@ -22,17 +24,20 @@ const RecurrenceScopeModal = dynamic(() =>
     (module) => module.RecurrenceScopeModal,
   ),
 );
+const CreateCalendarModal = dynamic(() =>
+  import("../modal/create-calendar-modal").then(
+    (module) => module.CreateCalendarModal,
+  ),
+);
 
 export function CalendarWorkspace() {
   const intl = useAppIntl();
   const calendarRef = useRef<FullCalendar | null>(null);
   const calendar = useCalendarWorkspace(calendarRef);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const {
-    handleCalendarNavigate,
-    handleViewChange,
-    openCreateModal,
-  } = calendar;
+  const [createCalendarOpen, setCreateCalendarOpen] = useState(false);
+  const { handleCalendarNavigate, handleViewChange, openCreateModal } =
+    calendar;
 
   const createFromShortcut = useCallback(() => {
     openCreateModal();
@@ -48,7 +53,7 @@ export function CalendarWorkspace() {
   });
 
   return (
-    <section className="relative h-[calc(100dvh-7.5rem)] min-h-[680px] overflow-hidden bg-white">
+    <section className="relative h-[calc(100dvh-7.5rem)] min-h-[680px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
       {sidebarOpen && (
         <button
           type="button"
@@ -79,6 +84,10 @@ export function CalendarWorkspace() {
             }}
             onCreateEvent={() => {
               calendar.openCreateModal();
+              setSidebarOpen(false);
+            }}
+            onCreateCalendar={() => {
+              setCreateCalendarOpen(true);
               setSidebarOpen(false);
             }}
           />
@@ -120,11 +129,14 @@ export function CalendarWorkspace() {
 
       {(calendar.draft || calendar.editingEvent) && (
         <EventFormModal
-          key={calendar.editingEvent?.id || calendar.draft?.startAt.toISOString()}
+          key={
+            calendar.editingEvent?.id || calendar.draft?.startAt.toISOString()
+          }
           open
           calendars={calendar.calendars}
           initialDraft={calendar.draft}
           event={calendar.editingEvent}
+          tasksColor={calendar.tasksColor}
           onClose={calendar.closeForm}
           onSubmit={calendar.handleSubmitEvent}
           submitting={calendar.formSubmitting}
@@ -136,6 +148,7 @@ export function CalendarWorkspace() {
           key={calendar.detailEvent.id}
           open
           event={calendar.detailEvent}
+          tasksColor={calendar.tasksColor}
           onClose={calendar.closeDetail}
           onEdit={calendar.startEditingDetailEvent}
           onCancelEvent={calendar.handleCancelEvent}
@@ -149,6 +162,13 @@ export function CalendarWorkspace() {
           open
           onClose={calendar.cancelPendingEventMove}
           onSelect={calendar.confirmEventMove}
+        />
+      )}
+
+      {createCalendarOpen && (
+        <CreateCalendarModal
+          open
+          onClose={() => setCreateCalendarOpen(false)}
         />
       )}
     </section>

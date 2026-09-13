@@ -9,6 +9,7 @@ import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import PollMessage from "./poll-message";
 import NoteMessage from "./note-message";
+import MeetingCardMessage from "./meeting-card-message";
 import DocumentMessage from "./document-message";
 import { CHAT_MESSAGE_TYPES } from "../../types/document.constants";
 import MediaLightbox from "./media-lightbox";
@@ -183,6 +184,15 @@ const ChatMessage = React.memo(function ChatMessage({
         note={msg.note}
         onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
         onEditNote={(title, content) => onNoteEdit?.(msg.id, title, content)}
+      />
+    );
+  }
+
+  if (msg.type === "MEETING") {
+    return (
+      <MeetingCardMessage
+        message={msg}
+        onUserClick={(userId) => dispatch(setSelectedProfileUserId(userId))}
       />
     );
   }

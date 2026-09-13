@@ -20,14 +20,14 @@ function CalendarSelectionCheckbox({
     <button
       type="button"
       onClick={onToggle}
-      className="grid h-5 w-5 cursor-pointer place-items-center rounded border"
+      className="grid h-4.5 w-4.5 cursor-pointer place-items-center rounded-[5px] border transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
       style={{
         borderColor: calendar.color,
         backgroundColor: selected ? calendar.color : "#ffffff",
       }}
       aria-label={calendar.name}
     >
-      {selected && <Check className="h-3 w-3 text-white" />}
+      {selected && <Check className="h-3 w-3 stroke-[2.5] text-white" />}
     </button>
   );
 }
@@ -58,7 +58,7 @@ export function CalendarListItem({
   };
 
   return (
-    <div className="relative flex items-center gap-2 rounded-lg px-2 py-2 transition hover:bg-slate-50">
+    <div className="group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100/70">
       <CalendarSelectionCheckbox
         calendar={calendar}
         selected={selected}
@@ -69,7 +69,7 @@ export function CalendarListItem({
         <span className="shrink-0 text-sm leading-none">{calendar.icon}</span>
       )}
 
-      <span className="min-w-0 flex-1 truncate text-sm font-bold text-slate-700">
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none">
         {calendar.name}
       </span>
 
@@ -77,6 +77,7 @@ export function CalendarListItem({
         value={calendar.color}
         label={intl.formatMessage({ id: "calendar.color" })}
         pending={updateCalendar.isPending}
+        triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
         onChange={changeColor}
       />
     </div>

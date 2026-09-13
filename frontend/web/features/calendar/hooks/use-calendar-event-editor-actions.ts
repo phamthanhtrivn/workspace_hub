@@ -41,9 +41,17 @@ export function useCalendarEventEditorActions({
 
   const handleSelect = useCallback(
     (selection: DateSelectArg) => {
+      const isSingleClickSelection =
+        !selection.allDay &&
+        selection.end.getTime() - selection.start.getTime() <= 15 * 60 * 1000;
+
+      const endAt = isSingleClickSelection
+        ? createEventEndFromStart(selection.start)
+        : selection.end;
+
       openCreateModal({
         startAt: selection.start,
-        endAt: selection.end,
+        endAt,
         allDay: selection.allDay,
         calendarId: defaultCalendarId,
       });

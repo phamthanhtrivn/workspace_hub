@@ -2,7 +2,6 @@ import {
   IsBoolean,
   IsOptional,
   IsString,
-  IsUUID,
   IsNotEmpty,
   MaxLength,
   IsTimeZone,
@@ -23,10 +22,6 @@ export class CreateCalendarDto {
   @IsString()
   @MaxLength(500)
   description?: string;
-
-  @IsOptional()
-  @IsUUID()
-  projectId?: string;
 
   @IsOptional()
   @IsString()

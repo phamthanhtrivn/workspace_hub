@@ -18,6 +18,7 @@ export enum MeetingJoinFlowStep {
   JOINING = "joining",
   ROOM = "room",
   ERROR = "error",
+  ACCESS_DENIED = "access-denied",
 }
 
 export enum MeetingHistoryViewMode {
@@ -48,6 +49,9 @@ export interface CreateInstantMeetingPayload {
   password?: string;
   autoAdmit?: boolean;
   chatEnabled?: boolean;
+  title?: string;
+  channelId?: string;
+  conversationId?: string;
   deviceSettings?: {
     cameraEnabled: boolean;
     microphoneEnabled: boolean;

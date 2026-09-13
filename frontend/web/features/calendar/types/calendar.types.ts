@@ -213,6 +213,7 @@ export interface CalendarEventFormValues {
   documentIds?: string[];
   attendees?: CalendarEventAttendeePayload[];
   reminders: CalendarEventReminderPayload[];
+  sourceType?: EventSourceType;
 }
 
 export interface CreateCalendarEventPayload {
@@ -231,6 +232,7 @@ export interface CreateCalendarEventPayload {
   documentIds?: string[];
   attendees?: CalendarEventAttendeePayload[];
   reminders?: CalendarEventReminderPayload[];
+  sourceType?: EventSourceType;
 }
 
 export type UpdateCalendarEventPayload = Partial<CreateCalendarEventPayload> & {

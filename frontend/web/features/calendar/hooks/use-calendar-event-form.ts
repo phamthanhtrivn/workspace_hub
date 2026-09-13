@@ -35,7 +35,8 @@ export function useCalendarEventForm({
 }: UseCalendarEventFormInput) {
   const intl = useAppIntl();
   const defaultCalendar =
-    calendars.find((calendar) => calendar.isDefault) ?? calendars[0];
+    calendars.find((calendar) => !calendar.projectId && calendar.isDefault) ??
+    calendars.find((calendar) => !calendar.projectId);
   const [defaults] = useState(() =>
     createCalendarEventFormDefaults({
       calendarId: defaultCalendar?.id ?? "",
@@ -79,6 +80,7 @@ export function useCalendarEventForm({
       visibility: values.visibility,
       status: values.status,
       documentIds: defaults.documentIds,
+      sourceType: values.sourceType,
     });
   };
 

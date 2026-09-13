@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   formatBytes,
   formatDateLong,
+  getDocumentDisplaySize,
   getFileTypeDescription,
 } from "../../utils/documents.utils";
 import {
@@ -162,10 +163,14 @@ function DetailsPanel({
             <Layers size={16} className="text-slate-400" />
             <div className="flex flex-col">
               <span className="text-xs text-slate-400 font-medium">
-                {intl.formatMessage({ id: "documents.size" })}
+                {intl.formatMessage({
+                  id: isFolder
+                    ? "documents.folderContentsSize"
+                    : "documents.size",
+                })}
               </span>
               <span className="text-sm font-semibold text-slate-700">
-                {isFolder ? "--" : formatBytes(item.sizeBytes)}
+                {formatBytes(getDocumentDisplaySize(item))}
               </span>
             </div>
           </div>

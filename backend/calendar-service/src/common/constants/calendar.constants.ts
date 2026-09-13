@@ -39,7 +39,7 @@ export const CALENDAR_ERROR_MESSAGES = {
     'Recurrence supports daily, weekly, monthly, and yearly frequencies only',
   EXTERNAL_EVENT_READ_ONLY:
     'Task-synchronized events must be edited in the project',
-  PROJECT_ACCESS_DENIED: 'You do not have access to this project',
+  PROJECT_CALENDAR_READ_ONLY: 'Project task calendars are read-only',
   DOCUMENT_ACCESS_DENIED: 'You do not have access to one or more documents',
 } as const;
 

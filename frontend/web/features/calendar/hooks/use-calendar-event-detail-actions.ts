@@ -5,10 +5,13 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
+  EventSourceType,
+  EventStatus,
   RecurrenceScope,
 } from "../types/calendar.types";
 import {
   useCancelCalendarEvent,
+  useUpdateCalendarEvent,
   useUpdateCalendarEventResponse,
 } from "./use-calendar-queries";
 
@@ -25,6 +28,7 @@ export function useCalendarEventDetailActions({
 }: UseCalendarEventDetailActionsInput) {
   const intl = useAppIntl();
   const cancelEvent = useCancelCalendarEvent();
+  const updateEvent = useUpdateCalendarEvent();
   const updateResponse = useUpdateCalendarEventResponse();
 
   const handleEventClick = useCallback(
@@ -45,15 +49,47 @@ export function useCalendarEventDetailActions({
   const handleCancelEvent = useCallback(
     async (scope: RecurrenceScope) => {
       if (!detailEvent) return;
+      const targetEvent = detailEvent;
       try {
-        await cancelEvent.mutateAsync({ eventId: detailEvent.id, scope });
+        await cancelEvent.mutateAsync({ eventId: targetEvent.id, scope });
         setDetailEvent(null);
-        toast.success(intl.formatMessage({ id: "calendar.eventCancelled" }));
+        toast.success(
+          targetEvent.sourceType === EventSourceType.TASK
+            ? intl.locale === "vi"
+              ? `Đã xóa "${targetEvent.title}"`
+              : `Deleted "${targetEvent.title}"`
+            : intl.locale === "vi"
+              ? `Đã xóa "${targetEvent.title}"`
+              : `Deleted "${targetEvent.title}"`,
+          {
+            duration: 6000,
+            action: {
+              label: intl.locale === "vi" ? "Hoàn tác" : "Undo",
+              onClick: async () => {
+                try {
+                  await updateEvent.mutateAsync({
+                    eventId: targetEvent.id,
+                    payload: { status: EventStatus.CONFIRMED },
+                  });
+                  toast.success(
+                    intl.locale === "vi" ? "Đã hoàn tác" : "Restored",
+                  );
+                } catch {
+                  toast.error(
+                    intl.locale === "vi"
+                      ? "Không thể hoàn tác"
+                      : "Could not restore",
+                  );
+                }
+              },
+            },
+          },
+        );
       } catch {
         toast.error(intl.formatMessage({ id: "calendar.eventCancelFailed" }));
       }
     },
-    [cancelEvent, detailEvent, intl, setDetailEvent],
+    [cancelEvent, detailEvent, intl, setDetailEvent, updateEvent],
   );
 
   const handleRespond = useCallback(

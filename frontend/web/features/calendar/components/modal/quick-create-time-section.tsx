@@ -16,7 +16,7 @@ import {
 } from "../../utils/calendar-time-options";
 import { CalendarSelect } from "./calendar-select";
 
-export type QuickCreateKind = "event" | "task" | "appointment";
+export type QuickCreateKind = "event" | "task";
 
 export function QuickRow({
   icon,
@@ -99,20 +99,16 @@ export function QuickCreateTimeSection({
               triggerClassName="h-8 min-w-[6.6rem] bg-slate-200/80 px-2.5"
               popupClassName="min-w-[11.75rem]"
             />
-            {kind !== "appointment" && (
-              <>
-                <span className="text-sm text-slate-500">-</span>
-                <CalendarSelect
-                  value={endAt}
-                  options={endTimeOptions}
-                  ariaLabel={intl.formatMessage({ id: "calendar.end" })}
-                  onChange={onEndDateTimeChange}
-                  triggerLabel={selectedEndTimeLabel}
-                  triggerClassName="h-8 min-w-[6.6rem] bg-slate-200/80 px-2.5"
-                  popupClassName="min-w-[11.75rem]"
-                />
-              </>
-            )}
+            <span className="text-sm text-slate-500">-</span>
+            <CalendarSelect
+              value={endAt}
+              options={endTimeOptions}
+              ariaLabel={intl.formatMessage({ id: "calendar.end" })}
+              onChange={onEndDateTimeChange}
+              triggerLabel={selectedEndTimeLabel}
+              triggerClassName="h-8 min-w-[6.6rem] bg-slate-200/80 px-2.5"
+              popupClassName="min-w-[11.75rem]"
+            />
           </>
         )}
       </div>
@@ -138,21 +134,19 @@ export function QuickCreateTimeSection({
           </>
         )}
       </div>
-      {kind !== "appointment" && (
-        <div className="mt-1 px-1">
-          <CalendarSelect
-            value={recurrencePreset}
-            options={recurrenceOptions}
-            ariaLabel={intl.formatMessage({ id: "calendar.recurrence" })}
-            onChange={(value) =>
-              onRecurrenceChange(value as CalendarRecurrencePreset)
-            }
-            alignItemWithTrigger={false}
-            triggerClassName="h-9 min-w-[10.5rem] justify-between bg-slate-200/80 px-3 text-slate-600"
-            popupClassName="min-w-[15.5rem]"
-          />
-        </div>
-      )}
+      <div className="mt-1 px-1">
+        <CalendarSelect
+          value={recurrencePreset}
+          options={recurrenceOptions}
+          ariaLabel={intl.formatMessage({ id: "calendar.recurrence" })}
+          onChange={(value) =>
+            onRecurrenceChange(value as CalendarRecurrencePreset)
+          }
+          alignItemWithTrigger={false}
+          triggerClassName="h-9 min-w-[10.5rem] justify-between bg-slate-200/80 px-3 text-slate-600"
+          popupClassName="min-w-[15.5rem]"
+        />
+      </div>
     </QuickRow>
   );
 }

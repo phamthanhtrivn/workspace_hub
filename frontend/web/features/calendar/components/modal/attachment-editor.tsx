@@ -7,12 +7,12 @@ export function AttachmentEditor({ documentCount }: { documentCount: number }) {
   const [attachmentNames, setAttachmentNames] = useState<string[]>([]);
 
   return (
-    <div className="space-y-3 rounded-xl border border-slate-200 p-3">
-      <label className="inline-flex items-center gap-2 text-xs font-black uppercase text-slate-400">
-        <FileText className="h-4 w-4" />
+    <div className="space-y-2 rounded-xl border border-slate-200 bg-white p-3.5">
+      <label className="inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-slate-500">
+        <FileText className="h-3.5 w-3.5" />
         {intl.formatMessage({ id: "calendar.quick.addFile" })}
       </label>
-      <label className="block cursor-pointer rounded-lg border border-dashed border-slate-300 bg-white px-3 py-3 text-sm font-semibold text-slate-600 transition hover:border-blue-400 hover:bg-blue-50/50">
+      <label className="block cursor-pointer rounded-lg border border-dashed border-slate-200 bg-slate-50/50 px-3 py-2.5 text-xs font-medium text-slate-600 transition hover:border-blue-400 hover:bg-blue-50/50">
         <input
           type="file"
           multiple

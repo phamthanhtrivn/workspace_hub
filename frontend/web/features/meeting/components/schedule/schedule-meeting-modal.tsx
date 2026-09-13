@@ -207,6 +207,7 @@ function createDefaultScheduleValues(): ScheduleMeetingValues {
     inviteeIds: [],
     password: "",
     requirePassword: false,
+    hasExistingPassword: false,
     autoAdmit: false,
     chatEnabled: true,
     screenShareEnabled: true,
@@ -235,6 +236,7 @@ function createScheduleValuesFromMeeting(
       .map((participant) => participant.userId),
     password: "",
     requirePassword: meeting.requiresPassword,
+    hasExistingPassword: meeting.requiresPassword,
     autoAdmit: meeting.autoAdmit,
     chatEnabled: meeting.chatEnabled,
     screenShareEnabled: meeting.screenShareEnabled,
@@ -355,6 +357,12 @@ export function ScheduleMeetingModal({
   };
   const onSubmit = form.handleSubmit(
     async (formValues) => {
+      const normalizedPassword = formValues.password.trim();
+      const password = formValues.requirePassword
+        ? normalizedPassword || undefined
+        : formValues.hasExistingPassword
+          ? ""
+          : undefined;
       const payload = {
         title: formValues.title.trim(),
         scheduledStartAt: fromDateTimeLocal(formValues.scheduledStartAt),
@@ -362,9 +370,7 @@ export function ScheduleMeetingModal({
         recurrenceRule: null,
         description: formValues.description.trim() || null,
         inviteeIds: formValues.inviteeIds,
-        password: formValues.requirePassword
-          ? formValues.password.trim()
-          : undefined,
+        password,
         autoAdmit: formValues.autoAdmit,
         chatEnabled: formValues.chatEnabled,
         screenShareEnabled: formValues.screenShareEnabled,
@@ -593,37 +599,52 @@ export function ScheduleMeetingModal({
                   </span>
                 </label>
                 {values.requirePassword ? (
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      {...form.register("password")}
-                      placeholder={intl.formatMessage({
-                        id: "meeting.schedule.password",
-                      })}
-                      className="h-10 w-full rounded-lg border border-slate-200 px-3 pr-11 text-sm font-semibold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((current) => !current)}
-                      className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 cursor-pointer place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-[#0052CC]"
-                      aria-label={intl.formatMessage({
-                        id: showPassword
-                          ? "meeting.schedule.hidePassword"
-                          : "meeting.schedule.showPassword",
-                      })}
-                      title={intl.formatMessage({
-                        id: showPassword
-                          ? "meeting.schedule.hidePassword"
-                          : "meeting.schedule.showPassword",
-                      })}
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
-                    </button>
+                  <div className="space-y-1.5">
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        {...form.register("password")}
+                        placeholder={intl.formatMessage({
+                          id: "meeting.schedule.password",
+                        })}
+                        className="h-10 w-full rounded-lg border border-slate-200 px-3 pr-11 text-sm font-semibold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((current) => !current)}
+                        className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 cursor-pointer place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-[#0052CC]"
+                        aria-label={intl.formatMessage({
+                          id: showPassword
+                            ? "meeting.schedule.hidePassword"
+                            : "meeting.schedule.showPassword",
+                        })}
+                        title={intl.formatMessage({
+                          id: showPassword
+                            ? "meeting.schedule.hidePassword"
+                            : "meeting.schedule.showPassword",
+                        })}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {isEditing && values.hasExistingPassword ? (
+                      <p className="text-xs font-semibold leading-5 text-slate-500">
+                        {intl.formatMessage({
+                          id: "meeting.schedule.keepExistingPasswordHint",
+                        })}
+                      </p>
+                    ) : null}
                   </div>
+                ) : isEditing && values.hasExistingPassword ? (
+                  <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-700 ring-1 ring-amber-100">
+                    {intl.formatMessage({
+                      id: "meeting.schedule.removeExistingPasswordHint",
+                    })}
+                  </p>
                 ) : null}
                 <MeetingAutoAdmitToggle
                   checked={values.autoAdmit}

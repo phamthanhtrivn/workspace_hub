@@ -1,4 +1,4 @@
-import { CalendarEvent } from "../types/calendar.types";
+import { CalendarEvent, EventSourceType } from "../types/calendar.types";
 import { CALENDAR_MIN_EVENT_DURATION_MS } from "../types/calendar.constants";
 
 export function toDateTimeLocal(value: Date | string): string {
@@ -71,6 +71,7 @@ export function composeDateTimeLocal(date: string, time: string): string {
 
 export function addMinutesToDateTimeLocal(value: string, minutes: number): string {
   const date = new Date(value);
+
   if (Number.isNaN(date.getTime())) return value;
 
   date.setMinutes(date.getMinutes() + minutes);
@@ -112,15 +113,80 @@ export function formatCalendarEventRange(
 ): string {
   const start = new Date(event.startAt);
   const end = new Date(event.endAt);
-  const timeStyle = event.allDay ? undefined : "short";
+  const isVi = locale.toLowerCase().startsWith("vi");
 
-  return `${start.toLocaleString(locale, {
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return "";
+  }
+
+  const sameDay =
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth() &&
+    start.getDate() === end.getDate();
+
+  const isCurrentYear = start.getFullYear() === new Date().getFullYear();
+
+  if (sameDay) {
+    const datePart = start.toLocaleDateString(locale, {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      ...(isCurrentYear ? {} : { year: "numeric" }),
+    });
+
+    if (event.allDay) {
+      return datePart;
+    }
+
+    const timeStart = start.toLocaleTimeString(locale, {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: !isVi,
+    });
+    const timeEnd = end.toLocaleTimeString(locale, {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: !isVi,
+    });
+
+    return `${datePart} • ${timeStart} – ${timeEnd}`;
+  }
+
+  const startStr = start.toLocaleString(locale, {
     dateStyle: "medium",
-    timeStyle,
-  })} - ${end.toLocaleString(locale, {
+    ...(event.allDay ? {} : { timeStyle: "short" }),
+  });
+  const endStr = end.toLocaleString(locale, {
     dateStyle: "medium",
-    timeStyle,
-  })}`;
+    ...(event.allDay ? {} : { timeStyle: "short" }),
+  });
+
+  return `${startStr} – ${endStr}`;
+}
+
+export function formatReminderLabel(
+  minutesBefore: number,
+  locale: string,
+): string {
+  const isVi = locale.toLowerCase().startsWith("vi");
+  if (minutesBefore === 0) {
+    return isVi ? "Đúng giờ sự kiện" : "At time of event";
+  }
+  if (minutesBefore < 60) {
+    return isVi
+      ? `${minutesBefore} phút trước`
+      : `${minutesBefore} minutes before`;
+  }
+  if (minutesBefore < 1440) {
+    const hours = Math.floor(minutesBefore / 60);
+    return isVi
+      ? `${hours} giờ trước`
+      : `${hours} hour${hours > 1 ? "s" : ""} before`;
+  }
+  const days = Math.floor(minutesBefore / 1440);
+  return isVi
+    ? `${days} ngày trước`
+    : `${days} day${days > 1 ? "s" : ""} before`;
 }
 
 export function isSameDate(first?: Date | null, second?: Date | null) {

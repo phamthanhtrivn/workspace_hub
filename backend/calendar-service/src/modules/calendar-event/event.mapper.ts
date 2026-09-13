@@ -6,7 +6,7 @@ import { EventWithRelations } from './calendar-event.types';
 export class EventMapper {
   toPublicEvent<T extends EventWithRelations>(userId: string, event: T) {
     const canManage =
-      event.sourceType === EventSourceType.USER &&
+      (event.sourceType === EventSourceType.USER || !event.sourceId) &&
       (event.calendar.ownerUserId === userId || event.createdBy === userId);
     const canRespond = event.attendees.some(
       (attendee) => attendee.userId === userId,

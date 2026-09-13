@@ -31,6 +31,14 @@ enum MessageType {
   EVENT
   AI
   DOCUMENT
+  MEETING
+}
+
+enum MeetingMessageType {
+  TEXT
+  SYSTEM
+  AI
+  DOCUMENT
 }
 
 enum InvitationStatus {
@@ -196,6 +204,7 @@ model Channel {
   setting     ChannelSetting?
   members     ChannelMember[]
   messages    Message[]
+  meetings    Meeting[]
 
   @@index([spaceId])
   @@map("channels")
@@ -265,6 +274,9 @@ model Message {
   threadParent      Message?         @relation("ThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
   threadReplies     Message[]        @relation("ThreadReplies")
 
+  meetingId         String?          @map("meeting_id") @db.Uuid
+  meeting           Meeting?         @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+
   reactions         Reaction[]
   medias            Media[]
   note              Note?
@@ -287,6 +299,7 @@ model DirectConversation {
 
   participants DirectConversationParticipant[]
   messages     DirectMessage[]
+  meetings     Meeting[]
 
   @@map("direct_conversations")
 }
@@ -337,6 +350,9 @@ model DirectMessage {
   conversation     DirectConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   threadParent      DirectMessage?   @relation("DirectThreadReplies", fields: [threadParentId], references: [id], onDelete: Cascade)
   threadReplies     DirectMessage[]  @relation("DirectThreadReplies")
+
+  meetingId         String?          @map("meeting_id") @db.Uuid
+  meeting           Meeting?         @relation(fields: [meetingId], references: [id], onDelete: SetNull)
 
   reactions        DirectReaction[]
   medias           DirectMedia[]
@@ -533,6 +549,8 @@ model Meeting {
   status                   MeetingStatus
   createdBy                String                  @map("created_by") @db.Uuid
   hostId                   String                  @map("host_id") @db.Uuid
+  channelId                String?                 @map("channel_id") @db.Uuid
+  conversationId           String?                 @map("conversation_id") @db.Uuid
   scheduledStartAt         DateTime?               @map("scheduled_start_at")
   scheduledEndAt           DateTime?               @map("scheduled_end_at")
   startedAt                DateTime?               @map("started_at")
@@ -547,14 +565,20 @@ model Meeting {
   createdAt                DateTime                @default(now()) @map("created_at")
   updatedAt                DateTime                @updatedAt @map("updated_at")
 
-  participants     MeetingParticipant[]
+  channel                  Channel?                @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  conversation             DirectConversation?     @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  participants             MeetingParticipant[]
   participantViewPreferences MeetingParticipantViewPreference[]
-  messages         MeetingMessage[]
-  recordings       MeetingRecording[]
-  events           MeetingEvent[]
+  messages                 MeetingMessage[]
+  recordings               MeetingRecording[]
+  events                   MeetingEvent[]
+  chatMessages             Message[]
+  directMessages           DirectMessage[]
 
   @@index([createdBy])
   @@index([hostId])
+  @@index([channelId])
+  @@index([conversationId])
   @@index([status])
   @@index([scheduledStartAt])
   @@index([status, scheduledStartAt, createdBy])
@@ -616,7 +640,7 @@ model MeetingMessage {
   meetingId String      @map("meeting_id") @db.Uuid
   senderId  String      @map("sender_id") @db.Uuid
   content   String?
-  type      MessageType @default(TEXT)
+  type      MeetingMessageType @default(TEXT)
   edited    Boolean     @default(false)
   recalled  Boolean     @default(false)
   createdAt DateTime    @default(now()) @map("created_at")

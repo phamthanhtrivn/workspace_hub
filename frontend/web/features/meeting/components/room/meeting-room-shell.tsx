@@ -10,6 +10,7 @@ import {
   getAudioSetting,
   getVideoSetting,
 } from "../../utils/meeting-room.utils";
+import { MeetingAccessDenied } from "./meeting-access-denied";
 import { MeetingPreJoin } from "./meeting-prejoin";
 import { MeetingPasswordGate } from "./meeting-password-gate";
 import { MeetingRoomContent } from "./meeting-room-content";
@@ -66,6 +67,8 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
           onBack={goBackToMeetings}
         />
       );
+    case MeetingJoinFlowStep.ACCESS_DENIED:
+      return <MeetingAccessDenied onBack={goBackToMeetings} />;
     case MeetingJoinFlowStep.ERROR:
       return <MeetingRoomError onBack={goBackToMeetings} />;
     case MeetingJoinFlowStep.ROOM:

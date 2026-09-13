@@ -37,6 +37,19 @@ export class CreateInstantMeetingDto {
   @IsOptional()
   chatEnabled?: boolean;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  title?: string;
+
+  @IsOptional()
+  @IsString()
+  channelId?: string;
+
+  @IsOptional()
+  @IsString()
+  conversationId?: string;
+
   @ValidateNested()
   @Type(() => MeetingDeviceSettingsDto)
   @IsOptional()

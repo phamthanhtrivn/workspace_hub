@@ -1,4 +1,4 @@
-﻿const en = {
+const en = {
   "app.loading": "Loading...",
   "app.workspace": "Workspace",
   "app.workspaceHub": "WorkspaceHub",
@@ -215,6 +215,20 @@
   "chat.channelInfo": "Channel info",
   "chat.conversationInfo": "Conversation info",
   "chat.directMessage": "Direct message",
+  "chat.header.startMeeting": "Start meeting",
+  "chat.meeting.cardTitle": "Video Meeting",
+  "chat.meeting.liveStatus": "LIVE",
+  "chat.meeting.endedStatus": "ENDED",
+  "chat.meeting.joinNow": "Join",
+  "chat.meeting.openNewTab": "Open in new tab",
+  "chat.meeting.startedBy": "by {name}",
+  "chat.meeting.confirmTitle": "Start Video Meeting?",
+  "chat.meeting.confirmDescription":
+    "Are you sure you want to start a video meeting in this conversation? A meeting card will be automatically shared with the members.",
+  "chat.meeting.confirmDescriptionWithTarget":
+    "Are you sure you want to start a video meeting in {target}? A meeting card will be shared with the members.",
+  "chat.meeting.confirmStart": "Start Meeting",
+  "chat.meeting.confirmCancel": "Cancel",
   "chat.pinMessage": "Pin message",
   "chat.unpinMessage": "Unpin message",
   "chat.recallMessage": "Recall",
@@ -689,6 +703,10 @@
   "meeting.schedule.options": "Meeting options",
   "meeting.schedule.requirePassword": "Require password",
   "meeting.schedule.password": "Meeting password",
+  "meeting.schedule.keepExistingPasswordHint":
+    "Leave blank to keep the current password, or enter a new one to replace it.",
+  "meeting.schedule.removeExistingPasswordHint":
+    "The current password will be removed when you save changes.",
   "meeting.schedule.showPassword": "Show meeting password",
   "meeting.schedule.hidePassword": "Hide meeting password",
   "meeting.schedule.schedule": "Schedule",
@@ -786,6 +804,10 @@
     "The meeting may have ended, the link may be invalid, or approval may be required.",
   "meeting.room.alreadyEnded": "Meeting has ended",
   "meeting.room.cancelled": "Meeting has been cancelled",
+  "meeting.room.accessDeniedTitle": "Access Denied",
+  "meeting.room.accessDeniedDescription":
+    "This meeting is restricted to members of the direct message or channel.",
+  "meeting.room.backToChat": "Back to Chat",
   "meeting.room.backToMeetings": "Back to meetings",
   "meeting.room.statusConnected": "Connected",
   "meeting.room.statusConnecting": "Connecting",
@@ -981,6 +1003,7 @@
   "documents.modified": "Modified",
   "documents.size": "Size",
   "documents.sizeValue": "Size: {size}",
+  "documents.folderContentsSize": "Folder contents size",
   "documents.upload.preparing": "Preparing...",
   "documents.upload.uploading": "Uploading...",
   "documents.upload.processing": "Processing...",
@@ -1435,7 +1458,8 @@
   "calendar.quick.addGuests": "Add guests",
   "calendar.quick.addConference": "Add video conferencing",
   "calendar.quick.addLocation": "Add location",
-  "calendar.quick.deadline": "Add deadline",
+  "calendar.quick.deadline": "Deadline",
+  "calendar.quick.addDeadline": "Add deadline",
   "calendar.quick.myTasks": "My tasks",
   "calendar.quick.projectTasks": "Project tasks",
   "calendar.quick.duration": "Appointment duration",

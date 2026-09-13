@@ -49,17 +49,55 @@ export function createEventEndFromStart(startAt: Date): Date {
   return new Date(startAt.getTime() + CALENDAR_DEFAULT_EVENT_DURATION_MS);
 }
 
+export function isTaskCalendarEvent(event?: {
+  sourceType?: EventSourceType;
+  description?: string | null;
+  extendedProps?: Record<string, unknown>;
+} | null): boolean {
+  if (!event) return false;
+  if (event.sourceType === EventSourceType.TASK) return true;
+  if (event.extendedProps?.sourceType === EventSourceType.TASK) return true;
+  if (
+    typeof event.description === "string" &&
+    event.description.includes("[TASK]")
+  ) {
+    return true;
+  }
+  const extDesc = event.extendedProps?.description;
+  if (typeof extDesc === "string" && extDesc.includes("[TASK]")) {
+    return true;
+  }
+  return false;
+}
+
+export function cleanTaskDescription(
+  description: string | null | undefined,
+): string {
+  if (!description) return "";
+  return description
+    .replace(/^\[TASK\]\s*/, "")
+    .replace(/\n?\[TASK\]\s*/g, "")
+    .trim();
+}
+
 export function mapCalendarEventToFullCalendar(
   event: CalendarEvent,
   colorOverride?: string,
 ): EventInput {
+  const isTask = isTaskCalendarEvent(event);
+  const normalizedSourceType = isTask
+    ? EventSourceType.TASK
+    : event.sourceType;
   const calendarColor =
     colorOverride || event.calendar?.color || CALENDAR_DEFAULT_EVENT_COLOR;
   const eventColor = colorOverride || event.color || calendarColor;
   const allDay =
     event.allDay || isAllDayDateTimeRange(event.startAt, event.endAt);
-  const normalizedEvent =
-    allDay === event.allDay ? event : { ...event, allDay: true };
+  const normalizedEvent = {
+    ...event,
+    allDay: allDay === event.allDay ? event.allDay : true,
+    sourceType: normalizedSourceType,
+  };
 
   return {
     id: event.id,
@@ -73,9 +111,7 @@ export function mapCalendarEventToFullCalendar(
     borderColor: eventColor,
     textColor: "#ffffff",
     classNames: [
-      event.sourceType === EventSourceType.TASK
-        ? "calendar-task-event"
-        : "calendar-user-event",
+      isTask ? "calendar-task-event" : "calendar-user-event",
     ],
     editable: event.permissions?.canManage ?? false,
     durationEditable: event.permissions?.canManage ?? false,
@@ -89,7 +125,7 @@ export function mapCalendarEventToFullCalendar(
       status: event.status,
       location: event.location,
       description: event.description,
-      sourceType: event.sourceType,
+      sourceType: normalizedSourceType,
       calendarColor,
       eventColor,
       hasCustomEventColor: !colorOverride && Boolean(event.color),

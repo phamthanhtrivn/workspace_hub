@@ -165,7 +165,6 @@ describe('CalendarEventService', () => {
     };
     const resourceAccess = {
       assertDocumentAccess: jest.fn(),
-      assertProjectAccess: jest.fn(),
     };
 
     const accessPolicy = new EventAccessPolicy(prisma as any);

@@ -7,19 +7,8 @@ import { CALENDAR_ERROR_MESSAGES } from '../../common/constants/calendar.constan
 
 @Injectable()
 export class ResourceAccessService {
-  private readonly projectServiceUrl =
-    process.env.PROJECT_SERVICE_URL ?? 'http://project-service:8082';
   private readonly documentServiceUrl =
     process.env.DOCUMENT_SERVICE_URL ?? 'http://document-service:8085';
-
-  async assertProjectAccess(userId: string, projectId?: string | null) {
-    if (!projectId) return;
-    await this.assertAuthorized(
-      `${this.projectServiceUrl}/api/projects/${projectId}`,
-      { 'x-user-id': userId },
-      CALENDAR_ERROR_MESSAGES.PROJECT_ACCESS_DENIED,
-    );
-  }
 
   async assertDocumentAccess(
     userId: string,
