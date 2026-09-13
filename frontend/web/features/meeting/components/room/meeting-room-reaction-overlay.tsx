@@ -22,12 +22,22 @@ interface ReactionPosition {
   driftX: number;
 }
 
-function getReactionDrift(reactionId: string) {
-  const seed = reactionId
+const REACTION_RIGHT_INSET_PX = 72;
+const REACTION_RIGHT_LANE_WIDTH_PX = 44;
+
+function getReactionSeed(reactionId: string) {
+  return reactionId
     .split("")
     .reduce((total, character) => total + character.charCodeAt(0), 0);
+}
 
-  return (seed % 72) - 36;
+function getReactionRightLaneOffset(reactionId: string) {
+  return getReactionSeed(reactionId) % REACTION_RIGHT_LANE_WIDTH_PX;
+}
+
+function getReactionDrift(reactionId: string) {
+  const seed = getReactionSeed(reactionId);
+  return -8 - (seed % 36);
 }
 
 function FloatingMeetingReaction({
@@ -45,40 +55,18 @@ function FloatingMeetingReaction({
 
     const containerRect = container.getBoundingClientRect();
     const visibleHeight = container.clientHeight || containerRect.height;
-    const participantTile = document.querySelector<HTMLElement>(
-      `[data-meeting-participant-id="${reaction.userId}"]`,
-    );
-    const tileRect = participantTile?.getBoundingClientRect();
-    const fallbackLeft = containerRect.width / 2;
-    const fallbackTop = container.scrollTop + visibleHeight - 72;
-
-    if (
-      tileRect &&
-      tileRect.width > 0 &&
-      tileRect.height > 0 &&
-      tileRect.bottom >= containerRect.top &&
-      tileRect.top <= containerRect.bottom
-    ) {
-      setPosition({
-        left: tileRect.left - containerRect.left + tileRect.width / 2,
-        top:
-          container.scrollTop +
-          tileRect.top -
-          containerRect.top +
-          tileRect.height * 0.72,
-        travelY: visibleHeight * 0.75,
-        driftX: getReactionDrift(reaction.id),
-      });
-      return;
-    }
+    const rightLaneOffset = getReactionRightLaneOffset(reaction.id);
 
     setPosition({
-      left: fallbackLeft,
-      top: fallbackTop,
+      left: Math.max(
+        40,
+        containerRect.width - REACTION_RIGHT_INSET_PX - rightLaneOffset,
+      ),
+      top: container.scrollTop + visibleHeight - 72,
       travelY: visibleHeight * 0.75,
       driftX: getReactionDrift(reaction.id),
     });
-  }, [containerRef, reaction.id, reaction.userId]);
+  }, [containerRef, reaction.id]);
 
   const style = useMemo<CSSProperties>(
     () => ({
