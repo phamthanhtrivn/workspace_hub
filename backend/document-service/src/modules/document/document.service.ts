@@ -450,13 +450,16 @@ export class DocumentService {
         );
 
         let sizeBytes = Number(item.sizeBytes);
+        let containedSizeBytes: number | undefined;
         if (item.type === ItemType.FOLDER) {
-          sizeBytes = await this.getFolderSize(item.id);
+          containedSizeBytes = await this.getFolderContainedSize(item.id);
+          sizeBytes = containedSizeBytes;
         }
 
         return {
           ...item,
           sizeBytes,
+          ...(containedSizeBytes !== undefined ? { containedSizeBytes } : {}),
           isStarred: item.starredBy.length > 0,
           userRole,
         };
@@ -642,15 +645,20 @@ export class DocumentService {
    */
   private async getFolderDescendants(
     folderId: string,
+    options: { includeArchived?: boolean } = {},
   ): Promise<{ files: DocumentItem[]; folderIds: string[] }> {
     const files: DocumentItem[] = [];
     const folderIds: string[] = [folderId];
     const queue: string[] = [folderId];
+    const includeArchived = options.includeArchived ?? true;
 
     while (queue.length > 0) {
       const currentId = queue.shift()!;
       const children = await this.prisma.documentItem.findMany({
-        where: { parentFolderId: currentId },
+        where: {
+          parentFolderId: currentId,
+          ...(includeArchived ? {} : { isArchived: false }),
+        },
       });
 
       for (const child of children) {
@@ -667,10 +675,15 @@ export class DocumentService {
   }
 
   /**
-   * Helper to recursively sum the sizes of all files inside a folder.
+   * Helper to recursively sum displayable file sizes inside a folder.
    */
-  private async getFolderSize(folderId: string): Promise<number> {
-    const descendants = await this.getFolderDescendants(folderId);
+  private async getFolderContainedSize(
+    folderId: string,
+    options: { includeArchived?: boolean } = {},
+  ): Promise<number> {
+    const descendants = await this.getFolderDescendants(folderId, {
+      includeArchived: options.includeArchived ?? false,
+    });
     return descendants.files.reduce(
       (sum, file) => sum + Number(file.sizeBytes),
       0,
@@ -1114,6 +1127,7 @@ export class DocumentService {
       name: string;
       type: ItemType;
       sizeBytes: number;
+      containedSizeBytes?: number;
       mimeType: string | null;
       ownerEmail: string;
       createdAt: Date;
@@ -1135,12 +1149,20 @@ export class DocumentService {
       userEmail,
     );
 
+    let sizeBytes = Number(item.sizeBytes);
+    let containedSizeBytes: number | undefined;
+    if (item.type === ItemType.FOLDER) {
+      containedSizeBytes = await this.getFolderContainedSize(item.id);
+      sizeBytes = containedSizeBytes;
+    }
+
     return {
       item: {
         id: item.id,
         name: item.name,
         type: item.type,
-        sizeBytes: Number(item.sizeBytes),
+        sizeBytes,
+        ...(containedSizeBytes !== undefined ? { containedSizeBytes } : {}),
         mimeType: item.mimeType,
         ownerEmail: item.ownerEmail,
         createdAt: item.createdAt,
@@ -1452,12 +1474,15 @@ export class DocumentService {
     return Promise.all(
       children.map(async (item) => {
         let sizeBytes = Number(item.sizeBytes);
+        let containedSizeBytes: number | undefined;
         if (item.type === ItemType.FOLDER) {
-          sizeBytes = await this.getFolderSize(item.id);
+          containedSizeBytes = await this.getFolderContainedSize(item.id);
+          sizeBytes = containedSizeBytes;
         }
         return {
           ...item,
           sizeBytes,
+          ...(containedSizeBytes !== undefined ? { containedSizeBytes } : {}),
         };
       }),
     ) as any;
@@ -1472,6 +1497,7 @@ export class DocumentService {
     name: string;
     type: ItemType;
     sizeBytes: number;
+    containedSizeBytes?: number;
     mimeType: string | null;
     ownerEmail: string;
     ownerName: string | null;
@@ -1497,8 +1523,10 @@ export class DocumentService {
 
     // Get folder/file size
     let sizeBytes = Number(item.sizeBytes);
+    let containedSizeBytes: number | undefined;
     if (item.type === ItemType.FOLDER) {
-      sizeBytes = await this.getFolderSize(item.id);
+      containedSizeBytes = await this.getFolderContainedSize(item.id);
+      sizeBytes = containedSizeBytes;
     }
 
     // Enrich with owner profile info
@@ -1510,6 +1538,7 @@ export class DocumentService {
       name: item.name,
       type: item.type,
       sizeBytes,
+      ...(containedSizeBytes !== undefined ? { containedSizeBytes } : {}),
       mimeType: item.mimeType,
       ownerEmail: item.ownerEmail,
       ownerName,

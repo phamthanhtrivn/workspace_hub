@@ -998,6 +998,7 @@ const vi = {
   "documents.modified": "Đã sửa đổi",
   "documents.size": "Kích thước",
   "documents.sizeValue": "Kích thước: {size}",
+  "documents.folderContentsSize": "Dung lượng trong thư mục",
   "documents.upload.preparing": "Đang chuẩn bị...",
   "documents.upload.uploading": "Đang tải lên...",
   "documents.upload.processing": "Đang xử lý...",

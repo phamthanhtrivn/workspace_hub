@@ -9,7 +9,11 @@ import {
   DocumentViewType,
 } from "../../types/documents.enums";
 import ItemActionsMenu from "../explorer/item-actions-menu";
-import { formatBytes, formatDateShort } from "../../utils/documents.utils";
+import {
+  formatBytes,
+  formatDateShort,
+  getDocumentDisplaySize,
+} from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
 import { DocumentIcon } from "../common/document-icon";
 
@@ -127,7 +131,7 @@ export function ListViewRow({
         {formatDateShort(item.updatedAt)}
       </td>
       <td className="p-4 text-slate-500 font-medium hidden md:table-cell">
-        {formatBytes(item.sizeBytes)}
+        {formatBytes(getDocumentDisplaySize(item))}
       </td>
       <td className="p-4 text-right">
         <ItemActionsMenu
