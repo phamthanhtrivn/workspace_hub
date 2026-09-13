@@ -11,6 +11,7 @@ export const scheduleMeetingSchema = z
     inviteeIds: z.array(z.string()).max(100),
     password: z.string().max(128),
     requirePassword: z.boolean(),
+    hasExistingPassword: z.boolean(),
     autoAdmit: z.boolean(),
     chatEnabled: z.boolean(),
     screenShareEnabled: z.boolean(),
@@ -39,7 +40,11 @@ export const scheduleMeetingSchema = z
       });
     }
 
-    if (values.requirePassword && !values.password.trim()) {
+    if (
+      values.requirePassword &&
+      !values.hasExistingPassword &&
+      !values.password.trim()
+    ) {
       context.addIssue({
         code: "custom",
         message: "meeting.schedule.passwordRequired",

@@ -10,6 +10,7 @@ const validSchedule = {
   inviteeIds: [],
   password: "",
   requirePassword: false,
+  hasExistingPassword: false,
   autoAdmit: false,
   chatEnabled: true,
   screenShareEnabled: true,
@@ -43,10 +44,37 @@ describe("schedule meeting schema", () => {
     }
   });
 
-  it("requires a password when password protection is enabled", () => {
+  it("requires a password when password protection is enabled for a new meeting", () => {
     const result = scheduleMeetingSchema.safeParse({
       ...validSchedule,
       requirePassword: true,
+      password: "   ",
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.message).toBe(
+        "meeting.schedule.passwordRequired",
+      );
+    }
+  });
+
+  it("keeps an existing password when editing without a new password", () => {
+    const result = scheduleMeetingSchema.safeParse({
+      ...validSchedule,
+      requirePassword: true,
+      hasExistingPassword: true,
+      password: "   ",
+    });
+
+    expect(result.success).toBe(true);
+  });
+
+  it("requires a password when editing without an existing password", () => {
+    const result = scheduleMeetingSchema.safeParse({
+      ...validSchedule,
+      requirePassword: true,
+      hasExistingPassword: false,
       password: "   ",
     });
 

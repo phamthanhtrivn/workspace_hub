@@ -703,6 +703,10 @@ const en = {
   "meeting.schedule.options": "Meeting options",
   "meeting.schedule.requirePassword": "Require password",
   "meeting.schedule.password": "Meeting password",
+  "meeting.schedule.keepExistingPasswordHint":
+    "Leave blank to keep the current password, or enter a new one to replace it.",
+  "meeting.schedule.removeExistingPasswordHint":
+    "The current password will be removed when you save changes.",
   "meeting.schedule.showPassword": "Show meeting password",
   "meeting.schedule.hidePassword": "Hide meeting password",
   "meeting.schedule.schedule": "Schedule",
