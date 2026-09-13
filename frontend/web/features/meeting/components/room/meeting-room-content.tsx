@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConnectionState } from "@livekit/components-react";
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
@@ -8,12 +8,19 @@ import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting
 import { useMeetingChatNotificationPreference } from "@/features/meeting/hooks/useMeetingChatNotificationPreference";
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
 import { useMeetingParticipantViewPreferences } from "@/features/meeting/hooks/useMeetingParticipantViewPreferences";
+import { useMeetingHandStates } from "@/features/meeting/hooks/useMeetingHandStates";
+import { useMeetingRoomInteractions } from "@/features/meeting/hooks/useMeetingRoomInteractions";
 import { useMeetingRoomLifecycle } from "@/features/meeting/hooks/useMeetingRoomLifecycle";
 import { useMeetingScreenShare } from "@/features/meeting/hooks/useMeetingScreenShare";
+import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
+import { useAppSelector } from "@/store/store";
 import type {
+  MeetingParticipantResponse,
   MeetingParticipantRole,
   MeetingPreJoinSettings,
+  MeetingRoomReactionResponse,
 } from "../../types/meeting.types";
+import { MEETING_ROOM_REACTION_ANIMATION_MS } from "../../types/meeting.constants";
 import { MeetingRoomPanel } from "../../types/meeting.types";
 import {
   formatElapsedTime,
@@ -21,6 +28,7 @@ import {
 } from "../../utils/meeting-room.utils";
 import { MeetingRoomAudioRenderer } from "./meeting-room-audio-renderer";
 import { MeetingRoomFooter } from "./meeting-room-footer";
+import { MeetingRoomReactionOverlay } from "./meeting-room-reaction-overlay";
 import { MeetingRoomStage } from "./meeting-room-stage";
 import { MeetingRoomDesktopSidePanel } from "./side-panel/meeting-room-desktop-side-panel";
 import { MeetingRoomMobilePanelHeader } from "./side-panel/meeting-room-mobile-panel";
@@ -35,6 +43,7 @@ interface MeetingRoomContentProps {
   initialActiveScreenShareUserId: string | null;
   initialScreenShareStartedAt: string | null;
   initialChatMuted: boolean;
+  initialHandRaisedAt: string | null;
   settings: MeetingPreJoinSettings;
 }
 
@@ -48,12 +57,19 @@ export function MeetingRoomContent({
   initialActiveScreenShareUserId,
   initialScreenShareStartedAt,
   initialChatMuted,
+  initialHandRaisedAt,
   settings,
 }: MeetingRoomContentProps) {
   const intl = useAppIntl();
   const connectionState = useConnectionState();
+  const currentUserId = useAppSelector((state) => state.auth.userId);
+  const stageContainerRef = useRef<HTMLElement | null>(null);
+  const reactionTimeoutIdsRef = useRef<number[]>([]);
   const [activePanel, setActivePanel] = useState(MeetingRoomPanel.NONE);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [roomReactions, setRoomReactions] = useState<
+    MeetingRoomReactionResponse[]
+  >([]);
   const {
     mutedParticipantIds,
     pinnedParticipantId,
@@ -61,6 +77,15 @@ export function MeetingRoomContent({
     toggleParticipantAudioMute,
     toggleParticipantPin,
   } = useMeetingParticipantViewPreferences(joinToken);
+  const {
+    currentUserHandRaisedAt,
+    getParticipantHandRaisedAt,
+    applyParticipantHandState,
+  } = useMeetingHandStates({
+    joinToken,
+    currentUserId,
+    initialCurrentUserHandRaisedAt: initialHandRaisedAt,
+  });
   const {
     canGoNext,
     canGoPrevious,
@@ -94,15 +119,12 @@ export function MeetingRoomContent({
     initialAutoAdmit,
     initialChatEnabled,
   });
-  const {
-    chatMuted,
-    isChatNotificationPreferencePending,
-    setChatMuted,
-  } = useMeetingChatNotificationPreference({
-    meetingId,
-    joinToken,
-    initialChatMuted,
-  });
+  const { chatMuted, isChatNotificationPreferencePending, setChatMuted } =
+    useMeetingChatNotificationPreference({
+      meetingId,
+      joinToken,
+      initialChatMuted,
+    });
   const {
     screenShareEnabled,
     setScreenShareEnabled,
@@ -121,6 +143,45 @@ export function MeetingRoomContent({
     initialScreenShareStartedAt,
     activeScreenShareTrack,
   });
+  const addRoomReaction = useCallback(
+    (reaction: MeetingRoomReactionResponse) => {
+      if (reaction.meetingId !== meetingId) return;
+
+      setRoomReactions((current) => {
+        if (current.some((item) => item.id === reaction.id)) return current;
+
+        return [...current, reaction];
+      });
+
+      const timeoutId = window.setTimeout(() => {
+        setRoomReactions((current) =>
+          current.filter((item) => item.id !== reaction.id),
+        );
+      }, MEETING_ROOM_REACTION_ANIMATION_MS);
+      reactionTimeoutIdsRef.current.push(timeoutId);
+    },
+    [meetingId],
+  );
+  const handleParticipantUpdated = useCallback(
+    (participant: MeetingParticipantResponse) => {
+      if (participant.meetingId !== meetingId) return;
+
+      applyParticipantHandState(participant);
+    },
+    [applyParticipantHandState, meetingId],
+  );
+  const { isHandUpdatePending, isReactionPending, toggleHand, sendReaction } =
+    useMeetingRoomInteractions({
+      joinToken,
+      onHandUpdated: handleParticipantUpdated,
+      onRoomReactionSent: addRoomReaction,
+    });
+
+  useMeetingSocket({
+    meetingId,
+    onParticipantUpdated: handleParticipantUpdated,
+    onRoomReaction: addRoomReaction,
+  });
 
   useEffect(() => {
     const timerId = window.setInterval(() => {
@@ -129,6 +190,16 @@ export function MeetingRoomContent({
 
     return () => window.clearInterval(timerId);
   }, []);
+
+  useEffect(
+    () => () => {
+      reactionTimeoutIdsRef.current.forEach((timeoutId) => {
+        window.clearTimeout(timeoutId);
+      });
+      reactionTimeoutIdsRef.current = [];
+    },
+    [],
+  );
 
   const closePanel = () => setActivePanel(MeetingRoomPanel.NONE);
 
@@ -159,7 +230,14 @@ export function MeetingRoomContent({
       </header>
 
       <main className="flex min-h-0 flex-1">
-        <section className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden">
+        <section
+          ref={stageContainerRef}
+          className="relative min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-4 [-ms-overflow-style:none] [scrollbar-width:none] sm:px-6 [&::-webkit-scrollbar]:hidden"
+        >
+          <MeetingRoomReactionOverlay
+            containerRef={stageContainerRef}
+            reactions={roomReactions}
+          />
           <div className="flex min-h-full flex-col justify-start lg:justify-center">
             <MeetingRoomStage
               activeScreenShareTrack={activeScreenShareTrack}
@@ -168,6 +246,7 @@ export function MeetingRoomContent({
               participantTileFrameClassName={participantTileFrameClassName}
               mutedParticipantIds={mutedParticipantIds}
               pinnedParticipantId={pinnedParticipantId}
+              getParticipantHandRaisedAt={getParticipantHandRaisedAt}
               isParticipantViewPreferencePending={
                 isParticipantViewPreferencePending
               }
@@ -250,8 +329,13 @@ export function MeetingRoomContent({
         chatMuted={chatMuted}
         isLocalScreenSharing={isLocalSharing}
         isScreenSharePending={isScreenSharePending}
+        isHandRaised={Boolean(currentUserHandRaisedAt)}
+        isHandUpdatePending={isHandUpdatePending}
+        isReactionPending={isReactionPending}
         canStartScreenShare={canStartScreenShare}
         onToggleScreenShare={toggleScreenShare}
+        onToggleHand={toggleHand}
+        onSendReaction={sendReaction}
         onPanelChange={setActivePanel}
         onLeave={handleLeave}
         onEndForEveryone={handleEndForEveryone}

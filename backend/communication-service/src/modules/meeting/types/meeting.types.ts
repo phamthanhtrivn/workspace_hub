@@ -7,10 +7,12 @@ import type { ListMeetingHistoryDto } from '../dto/list-meeting-history.dto';
 import type { ListMeetingMessagesDto } from '../dto/list-meeting-messages.dto';
 import type { ListMeetingParticipantsDto } from '../dto/list-meeting-participants.dto';
 import type { MeetingMessageReactionDto } from '../dto/meeting-message-reaction.dto';
+import type { MeetingRoomReactionDto } from '../dto/meeting-room-reaction.dto';
 import type { ReadMeetingMessageDto } from '../dto/read-meeting-message.dto';
 import type { RequestMeetingJoinApprovalDto } from '../dto/request-meeting-join-approval.dto';
 import type { StartMeetingScreenShareDto } from '../dto/start-meeting-screen-share.dto';
 import type { UpdateMeetingChatNotificationPreferenceDto } from '../dto/update-meeting-chat-notification-preference.dto';
+import type { UpdateMeetingHandDto } from '../dto/update-meeting-hand.dto';
 import type { UpdateMeetingParticipantViewPreferenceDto } from '../dto/update-meeting-participant-view-preference.dto';
 import type { UpdateMeetingParticipantRoleDto } from '../dto/update-meeting-participant-role.dto';
 import type { UpdateMeetingSettingsDto } from '../dto/update-meeting-settings.dto';
@@ -134,6 +136,18 @@ export interface UpdateMeetingParticipantViewPreferenceParams extends TargetMeet
 
 export interface UpdateMeetingChatNotificationPreferenceParams extends MeetingModeratorParams {
   dto: UpdateMeetingChatNotificationPreferenceDto;
+}
+
+export interface UpdateOwnMeetingHandParams extends MeetingModeratorParams {
+  dto: UpdateMeetingHandDto;
+}
+
+export interface UpdateTargetMeetingHandParams extends TargetMeetingParticipantParams {
+  dto: UpdateMeetingHandDto;
+}
+
+export interface SendMeetingRoomReactionParams extends MeetingModeratorParams {
+  dto: MeetingRoomReactionDto;
 }
 
 export interface ListMeetingMessagesParams extends MeetingModeratorParams {

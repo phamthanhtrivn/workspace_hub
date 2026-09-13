@@ -10,6 +10,7 @@ interface MeetingRoomStageProps {
   participantTileFrameClassName: string;
   mutedParticipantIds: Set<string>;
   pinnedParticipantId: string | null;
+  getParticipantHandRaisedAt: (participantId: string) => string | null;
   isParticipantViewPreferencePending: (participantId: string) => boolean;
   onToggleParticipantAudioMute: (participantId: string) => void;
   onToggleParticipantPin: (participantId: string) => void;
@@ -22,6 +23,7 @@ export function MeetingRoomStage({
   participantTileFrameClassName,
   mutedParticipantIds,
   pinnedParticipantId,
+  getParticipantHandRaisedAt,
   isParticipantViewPreferencePending,
   onToggleParticipantAudioMute,
   onToggleParticipantPin,
@@ -38,8 +40,12 @@ export function MeetingRoomStage({
               activeScreenShareTrack.participant.identity,
             )}
             isPinnedForMe={
-              pinnedParticipantId === activeScreenShareTrack.participant.identity
+              pinnedParticipantId ===
+              activeScreenShareTrack.participant.identity
             }
+            handRaisedAt={getParticipantHandRaisedAt(
+              activeScreenShareTrack.participant.identity,
+            )}
             isPreferencePending={isParticipantViewPreferencePending(
               activeScreenShareTrack.participant.identity,
             )}
@@ -62,6 +68,9 @@ export function MeetingRoomStage({
                 isPinnedForMe={
                   pinnedParticipantId === trackRef.participant.identity
                 }
+                handRaisedAt={getParticipantHandRaisedAt(
+                  trackRef.participant.identity,
+                )}
                 isPreferencePending={isParticipantViewPreferencePending(
                   trackRef.participant.identity,
                 )}
@@ -88,7 +97,12 @@ export function MeetingRoomStage({
             isAudioMutedForMe={mutedParticipantIds.has(
               trackRef.participant.identity,
             )}
-            isPinnedForMe={pinnedParticipantId === trackRef.participant.identity}
+            isPinnedForMe={
+              pinnedParticipantId === trackRef.participant.identity
+            }
+            handRaisedAt={getParticipantHandRaisedAt(
+              trackRef.participant.identity,
+            )}
             isPreferencePending={isParticipantViewPreferencePending(
               trackRef.participant.identity,
             )}

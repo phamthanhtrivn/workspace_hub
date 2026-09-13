@@ -1,3 +1,5 @@
+import type { MeetingRoomReactionEmoji } from "./meeting.constants";
+
 export enum MeetingFlowStep {
   DASHBOARD = "dashboard",
   PREJOIN = "prejoin",
@@ -107,6 +109,7 @@ export interface InstantMeetingResponse {
     createdAt: string;
     participantRole: MeetingParticipantRole;
     chatMuted: boolean;
+    handRaisedAt: string | null;
   };
   livekit: {
     serverUrl: string;
@@ -114,7 +117,8 @@ export interface InstantMeetingResponse {
   };
 }
 
-export type MeetingJoinResponse = InstantMeetingResponse | MeetingAccessResponse;
+export type MeetingJoinResponse =
+  InstantMeetingResponse | MeetingAccessResponse;
 
 export interface MeetingAccessResponse {
   meetingId: string;
@@ -308,6 +312,7 @@ export interface MeetingParticipantResponse {
   leftAt?: string | null;
   lastReadMessageId?: string | null;
   lastReadAt?: string | null;
+  handRaisedAt?: string | null;
   updatedAt?: string;
   profile: MeetingParticipantProfile | null;
 }
@@ -483,6 +488,22 @@ export interface MeetingChatNotificationPreferenceResponse {
   joinToken: string;
   userId: string;
   chatMuted: boolean;
+}
+
+export interface UpdateMeetingHandPayload {
+  raised: boolean;
+}
+
+export interface MeetingRoomReactionPayload {
+  emoji: MeetingRoomReactionEmoji;
+}
+
+export interface MeetingRoomReactionResponse {
+  id: string;
+  meetingId: string;
+  userId: string;
+  emoji: MeetingRoomReactionEmoji;
+  createdAt: string;
 }
 
 export interface MeetingParticipantViewPreferenceResponse {

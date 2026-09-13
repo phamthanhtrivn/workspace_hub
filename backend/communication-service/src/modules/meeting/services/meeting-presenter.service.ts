@@ -28,6 +28,7 @@ export class MeetingPresenterService {
       leftAt?: Date | null;
       lastReadMessageId?: string | null;
       lastReadAt?: Date | null;
+      handRaisedAt?: Date | null;
       updatedAt: Date;
     },
   ) {
@@ -52,6 +53,7 @@ export class MeetingPresenterService {
     leftAt?: Date | null;
     lastReadMessageId?: string | null;
     lastReadAt?: Date | null;
+    handRaisedAt?: Date | null;
     updatedAt: Date;
     profile?: unknown;
   }) {
@@ -65,6 +67,7 @@ export class MeetingPresenterService {
       leftAt: participant.leftAt?.toISOString() ?? null,
       lastReadMessageId: participant.lastReadMessageId ?? null,
       lastReadAt: participant.lastReadAt?.toISOString() ?? null,
+      handRaisedAt: participant.handRaisedAt?.toISOString() ?? null,
       updatedAt: participant.updatedAt.toISOString(),
       profile: participant.profile ?? null,
     };
@@ -111,6 +114,7 @@ export class MeetingPresenterService {
       leftAt?: Date | null;
       lastReadMessageId?: string | null;
       lastReadAt?: Date | null;
+      handRaisedAt?: Date | null;
       updatedAt: Date;
       profile?: unknown;
     },
@@ -124,6 +128,7 @@ export class MeetingPresenterService {
       leftAt?: Date | null;
       lastReadMessageId?: string | null;
       lastReadAt?: Date | null;
+      handRaisedAt?: Date | null;
       updatedAt: Date;
       profile?: unknown;
     }>,
@@ -256,6 +261,7 @@ export class MeetingPresenterService {
     participantRole: MeetingRole,
     token: string,
     chatMuted = false,
+    handRaisedAt?: Date | null,
   ) {
     return {
       meeting: {
@@ -278,6 +284,7 @@ export class MeetingPresenterService {
         createdAt: meeting.createdAt.toISOString(),
         participantRole,
         chatMuted,
+        handRaisedAt: handRaisedAt?.toISOString() ?? null,
       },
       livekit: {
         serverUrl: this.liveKitService.getServerUrl(),

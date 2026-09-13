@@ -20,10 +20,12 @@ import { ListMeetingHistoryDto } from './dto/list-meeting-history.dto';
 import { ListMeetingMessagesDto } from './dto/list-meeting-messages.dto';
 import { ListMeetingParticipantsDto } from './dto/list-meeting-participants.dto';
 import { MeetingMessageReactionDto } from './dto/meeting-message-reaction.dto';
+import { MeetingRoomReactionDto } from './dto/meeting-room-reaction.dto';
 import { ReadMeetingMessageDto } from './dto/read-meeting-message.dto';
 import { RequestMeetingJoinApprovalDto } from './dto/request-meeting-join-approval.dto';
 import { StartMeetingScreenShareDto } from './dto/start-meeting-screen-share.dto';
 import { UpdateMeetingChatNotificationPreferenceDto } from './dto/update-meeting-chat-notification-preference.dto';
+import { UpdateMeetingHandDto } from './dto/update-meeting-hand.dto';
 import { UpdateMeetingParticipantViewPreferenceDto } from './dto/update-meeting-participant-view-preference.dto';
 import { UpdateMeetingParticipantRoleDto } from './dto/update-meeting-participant-role.dto';
 import { UpdateMeetingSettingsDto } from './dto/update-meeting-settings.dto';
@@ -574,6 +576,50 @@ export class MeetingController {
     };
   }
 
+  @Patch(':joinToken/hand')
+  async updateOwnHandState(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Body() updateMeetingHandDto: UpdateMeetingHandDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const participant = await this.meetingService.updateOwnHandState({
+      joinToken,
+      userId,
+      dto: updateMeetingHandDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_HAND_UPDATED,
+      data: participant,
+    };
+  }
+
+  @Post(':joinToken/reactions')
+  async sendRoomReaction(
+    @Param('joinToken') joinToken: string,
+    @Headers('x-user-id') userId: string,
+    @Body() reactionDto: MeetingRoomReactionDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const reaction = await this.meetingService.sendRoomReaction({
+      joinToken,
+      userId,
+      dto: reactionDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.ROOM_REACTION_SENT,
+      data: reaction,
+    };
+  }
+
   @Get(':joinToken/participants')
   async listParticipants(
     @Param('joinToken') joinToken: string,
@@ -722,6 +768,30 @@ export class MeetingController {
     return {
       message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_ROLE_UPDATED,
       data: result,
+    };
+  }
+
+  @Patch(':joinToken/participants/:targetUserId/hand')
+  async updateTargetHandState(
+    @Param('joinToken') joinToken: string,
+    @Param('targetUserId') targetUserId: string,
+    @Headers('x-user-id') userId: string,
+    @Body() updateMeetingHandDto: UpdateMeetingHandDto,
+  ) {
+    if (!userId) {
+      throw new BadRequestException(MEETING_ERROR_MESSAGES.MISSING_USER_ID);
+    }
+
+    const participant = await this.meetingService.updateTargetHandState({
+      joinToken,
+      userId,
+      targetUserId,
+      dto: updateMeetingHandDto,
+    });
+
+    return {
+      message: MEETING_SUCCESS_MESSAGES.PARTICIPANT_HAND_UPDATED,
+      data: participant,
     };
   }
 

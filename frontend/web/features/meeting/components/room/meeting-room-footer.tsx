@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   type LucideIcon,
+  Hand,
   LogOut,
   Mic,
   MicOff,
@@ -40,6 +41,8 @@ import {
   saveMeetingDeviceSettings,
 } from "../../utils/meeting-device-storage";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
+import { MeetingRoomReactionPicker } from "./meeting-room-reaction-picker";
+import type { MeetingRoomReactionEmoji } from "../../types/meeting.constants";
 
 interface MeetingRoomFooterProps {
   activePanel: MeetingRoomPanel;
@@ -50,9 +53,14 @@ interface MeetingRoomFooterProps {
   chatMuted: boolean;
   isLocalScreenSharing: boolean;
   isScreenSharePending: boolean;
+  isHandRaised: boolean;
+  isHandUpdatePending: boolean;
+  isReactionPending: boolean;
   canStartScreenShare: boolean;
   onPanelChange: (panel: MeetingRoomPanel) => void;
   onToggleScreenShare: () => void;
+  onToggleHand: (raised: boolean) => void;
+  onSendReaction: (emoji: MeetingRoomReactionEmoji) => void;
   onLeave: () => void;
   onEndForEveryone: () => void;
   isLeavePending?: boolean;
@@ -144,9 +152,14 @@ export function MeetingRoomFooter({
   chatMuted,
   isLocalScreenSharing,
   isScreenSharePending,
+  isHandRaised,
+  isHandUpdatePending,
+  isReactionPending,
   canStartScreenShare,
   onPanelChange,
   onToggleScreenShare,
+  onToggleHand,
+  onSendReaction,
   onLeave,
   onEndForEveryone,
   isLeavePending = false,
@@ -239,8 +252,7 @@ export function MeetingRoomFooter({
   );
   const togglePanel = useCallback(
     (panel: Exclude<MeetingRoomPanel, MeetingRoomPanel.NONE>) => {
-      const nextPanel =
-        activePanel === panel ? MeetingRoomPanel.NONE : panel;
+      const nextPanel = activePanel === panel ? MeetingRoomPanel.NONE : panel;
 
       if (nextPanel === MeetingRoomPanel.CHAT) {
         clearUnreadMessageCount();
@@ -281,8 +293,29 @@ export function MeetingRoomFooter({
           disabledIcon={VideoOff}
         />
 
+        <MeetingRoomControlButton
+          label={intl.formatMessage({
+            id: isHandRaised
+              ? "meeting.room.control.lowerHand"
+              : "meeting.room.control.raiseHand",
+          })}
+          icon={Hand}
+          active={isHandRaised}
+          disabled={isHandUpdatePending}
+          onClick={() => onToggleHand(!isHandRaised)}
+        />
+
+        <MeetingRoomReactionPicker
+          label={intl.formatMessage({ id: "meeting.room.control.reactions" })}
+          disabled={isReactionPending}
+          onSendReaction={onSendReaction}
+        />
+
         {meetingRoomControlItems.slice(2).map((control) => {
-          if (control.id === MeetingRoomPanel.ADMISSION && !canManageAdmission) {
+          if (
+            control.id === MeetingRoomPanel.ADMISSION &&
+            !canManageAdmission
+          ) {
             return null;
           }
 

@@ -26,6 +26,8 @@ import type {
   MeetingParticipantRole,
   MeetingParticipantViewPreferencesResponse,
   MeetingParticipantsResponse,
+  MeetingRoomReactionPayload,
+  MeetingRoomReactionResponse,
   MeetingSettingsResponse,
   MeetingAccessResponse,
   MeetingScreenShareStateResponse,
@@ -33,6 +35,7 @@ import type {
   CreateMeetingMessagePayload,
   EditMeetingMessagePayload,
   UpdateMeetingSettingsPayload,
+  UpdateMeetingHandPayload,
   UpcomingMeetingsResponse,
   UpdateScheduledMeetingPayload,
   UpdateMeetingParticipantViewPreferencePayload,
@@ -98,7 +101,10 @@ export const updateScheduledMeeting = async (
   joinToken: string,
   payload: UpdateScheduledMeetingPayload,
 ): Promise<ApiResponse<ScheduledMeetingResponse>> => {
-  const response = await api.patch(MEETING_API_PATHS.schedule(joinToken), payload);
+  const response = await api.patch(
+    MEETING_API_PATHS.schedule(joinToken),
+    payload,
+  );
   return normalizeApiResponse<ScheduledMeetingResponse>(response.data);
 };
 
@@ -112,15 +118,23 @@ export const cancelScheduledMeeting = async (
 export const acceptScheduledMeetingInvitation = async (
   joinToken: string,
 ): Promise<ApiResponse<ScheduledMeetingInvitationResponse>> => {
-  const response = await api.post(MEETING_API_PATHS.acceptInvitation(joinToken));
-  return normalizeApiResponse<ScheduledMeetingInvitationResponse>(response.data);
+  const response = await api.post(
+    MEETING_API_PATHS.acceptInvitation(joinToken),
+  );
+  return normalizeApiResponse<ScheduledMeetingInvitationResponse>(
+    response.data,
+  );
 };
 
 export const declineScheduledMeetingInvitation = async (
   joinToken: string,
 ): Promise<ApiResponse<ScheduledMeetingInvitationResponse>> => {
-  const response = await api.post(MEETING_API_PATHS.declineInvitation(joinToken));
-  return normalizeApiResponse<ScheduledMeetingInvitationResponse>(response.data);
+  const response = await api.post(
+    MEETING_API_PATHS.declineInvitation(joinToken),
+  );
+  return normalizeApiResponse<ScheduledMeetingInvitationResponse>(
+    response.data,
+  );
 };
 
 export const getMeetingAccess = async (
@@ -154,7 +168,10 @@ export const updateMeetingSettings = async (
   joinToken: string,
   payload: UpdateMeetingSettingsPayload,
 ): Promise<ApiResponse<MeetingSettingsResponse>> => {
-  const response = await api.patch(MEETING_API_PATHS.settings(joinToken), payload);
+  const response = await api.patch(
+    MEETING_API_PATHS.settings(joinToken),
+    payload,
+  );
   return normalizeApiResponse<MeetingSettingsResponse>(response.data);
 };
 
@@ -251,7 +268,9 @@ export const getMeetingMessages = async ({
 export const getMeetingUnreadMessageCount = async (
   joinToken: string,
 ): Promise<ApiResponse<MeetingUnreadMessageCountResponse>> => {
-  const response = await api.get(MEETING_API_PATHS.messageUnreadCount(joinToken));
+  const response = await api.get(
+    MEETING_API_PATHS.messageUnreadCount(joinToken),
+  );
   return normalizeApiResponse<MeetingUnreadMessageCountResponse>(response.data);
 };
 
@@ -289,7 +308,10 @@ export const sendMeetingMessage = async (
   joinToken: string,
   payload: CreateMeetingMessagePayload,
 ): Promise<ApiResponse<MeetingMessageResponse>> => {
-  const response = await api.post(MEETING_API_PATHS.messages(joinToken), payload);
+  const response = await api.post(
+    MEETING_API_PATHS.messages(joinToken),
+    payload,
+  );
   return normalizeApiResponse<MeetingMessageResponse>(response.data);
 };
 
@@ -360,6 +382,37 @@ export const updateMeetingChatNotificationPreference = async (
   return normalizeApiResponse<MeetingChatNotificationPreferenceResponse>(
     response.data,
   );
+};
+
+export const updateMeetingHandState = async (
+  joinToken: string,
+  payload: UpdateMeetingHandPayload,
+): Promise<ApiResponse<MeetingParticipantResponse>> => {
+  const response = await api.patch(MEETING_API_PATHS.hand(joinToken), payload);
+  return normalizeApiResponse<MeetingParticipantResponse>(response.data);
+};
+
+export const updateMeetingParticipantHandState = async (
+  joinToken: string,
+  userId: string,
+  payload: UpdateMeetingHandPayload,
+): Promise<ApiResponse<MeetingParticipantResponse>> => {
+  const response = await api.patch(
+    MEETING_API_PATHS.updateParticipantHand(joinToken, userId),
+    payload,
+  );
+  return normalizeApiResponse<MeetingParticipantResponse>(response.data);
+};
+
+export const sendMeetingRoomReaction = async (
+  joinToken: string,
+  payload: MeetingRoomReactionPayload,
+): Promise<ApiResponse<MeetingRoomReactionResponse>> => {
+  const response = await api.post(
+    MEETING_API_PATHS.roomReactions(joinToken),
+    payload,
+  );
+  return normalizeApiResponse<MeetingRoomReactionResponse>(response.data);
 };
 
 export const getMeetingParticipantViewPreferences = async (
@@ -446,13 +499,17 @@ export const declineMeetingJoinRequest = async (
 export const approveAllMeetingJoinRequests = async (
   joinToken: string,
 ): Promise<ApiResponse<{ count: number }>> => {
-  const response = await api.post(MEETING_API_PATHS.approveAllJoinRequests(joinToken));
+  const response = await api.post(
+    MEETING_API_PATHS.approveAllJoinRequests(joinToken),
+  );
   return normalizeApiResponse<{ count: number }>(response.data);
 };
 
 export const declineAllMeetingJoinRequests = async (
   joinToken: string,
 ): Promise<ApiResponse<{ count: number }>> => {
-  const response = await api.post(MEETING_API_PATHS.declineAllJoinRequests(joinToken));
+  const response = await api.post(
+    MEETING_API_PATHS.declineAllJoinRequests(joinToken),
+  );
   return normalizeApiResponse<{ count: number }>(response.data);
 };

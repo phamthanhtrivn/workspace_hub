@@ -39,6 +39,8 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/${encodeURIComponent(messageId)}/recall`,
   messageReactions: (joinToken: string, messageId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/${encodeURIComponent(messageId)}/reactions`,
+  roomReactions: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/reactions`,
   messageRead: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/messages/read`,
   screenShareStart: (joinToken: string) =>
@@ -57,8 +59,12 @@ export const MEETING_API_PATHS = {
     `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/remove`,
   updateParticipantRole: (joinToken: string, userId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/role`,
+  updateParticipantHand: (joinToken: string, userId: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/hand`,
   updateParticipantViewPreference: (joinToken: string, userId: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/participants/${encodeURIComponent(userId)}/view-preference`,
+  hand: (joinToken: string) =>
+    `/api/meetings/${encodeURIComponent(joinToken)}/hand`,
   leave: (joinToken: string) =>
     `/api/meetings/${encodeURIComponent(joinToken)}/leave`,
   end: (joinToken: string) =>
@@ -125,7 +131,7 @@ export const meetingDashboardNavItems = [
   {
     id: MeetingDashboardNavItemId.RECORDINGS,
     labelId: "meeting.dashboard.nav.recordings",
-  }
+  },
 ] as const;
 
 export const meetingDashboardActions = [
@@ -219,11 +225,24 @@ export const meetingActionToneClassByTone = {
   [MeetingDashboardTone.AMBER]: "bg-amber-500",
 } as const;
 
+export const MEETING_ROOM_REACTIONS = [
+  "\u{1F44D}",
+  "\u{2764}\u{FE0F}",
+  "\u{1F602}",
+  "\u{1F62E}",
+  "\u{1F44F}",
+  "\u{1F389}",
+] as const;
+
+export type MeetingRoomReactionEmoji = (typeof MEETING_ROOM_REACTIONS)[number];
+
+export const MEETING_ROOM_REACTION_ANIMATION_MS = 2600;
+
 export const MIN_VISIBLE_BADGE_COUNT = 1;
 export const MAX_BADGE_COUNT = 99;
 export const OVERFLOW_BADGE_LABEL = "99+";
 
-export const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"] 
+export const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
 
 export const MESSAGE_ACTION_WINDOW_MS = 24 * 60 * 60 * 1000;
 export const MIN_SCHEDULED_MEETING_DURATION_MS = 15 * 60 * 1000;
