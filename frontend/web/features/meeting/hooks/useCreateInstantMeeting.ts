@@ -10,6 +10,7 @@ import { meetingKeys } from "../types/meeting.query-keys";
 import { saveMeetingDeviceSettings } from "../utils/meeting-device-storage";
 
 interface UseCreateInstantMeetingOptions {
+  skipJoinPrejoinAfterCreate?: boolean;
   onCreating?: () => void;
   onCreated?: () => void;
   onError?: (error: unknown) => void;
@@ -41,6 +42,10 @@ export function useCreateInstantMeeting(options?: UseCreateInstantMeetingOptions
       }),
     onSuccess: (response) => {
       const joinToken = response.data.meeting.joinToken;
+      if (options?.skipJoinPrejoinAfterCreate) {
+        queryClient.setQueryData(meetingKeys.room(joinToken), response);
+      }
+
       const currentPath =
         typeof window !== "undefined"
           ? window.location.pathname + window.location.search
