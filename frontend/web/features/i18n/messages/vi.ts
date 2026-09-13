@@ -75,6 +75,19 @@ const vi = {
   "notifications.markAllRead": "Đánh dấu tất cả đã đọc",
   "notifications.all": "Tất cả",
   "notifications.unread": "Chưa đọc",
+  "notifications.read": "Đã đọc",
+  "notifications.filter.label": "Khoảng thời gian thông báo",
+  "notifications.filter.allTime": "Tất cả thời gian",
+  "notifications.filter.today": "Hôm nay",
+  "notifications.filter.last7Days": "7 ngày gần nhất",
+  "notifications.filter.last30Days": "30 ngày gần nhất",
+  "notifications.filter.thisMonth": "Tháng này",
+  "notifications.filter.customRange": "Khoảng tùy chọn",
+  "notifications.filter.fromDate": "Từ ngày",
+  "notifications.filter.toDate": "Đến ngày",
+  "notifications.filter.to": "đến",
+  "notifications.filter.invalidRange":
+    "Ngày bắt đầu phải trước ngày kết thúc.",
   "notifications.viewAll": "Xem tất cả thông báo",
   "notifications.emptyTitle": "Không có thông báo",
   "notifications.emptyDescription": "Bạn đã xem hết thông báo.",
@@ -82,9 +95,18 @@ const vi = {
   "notifications.deleteOne": "Xóa thông báo",
   "notifications.deleteCategory": "Xóa {category}",
   "notifications.deleteAll": "Xóa tất cả",
+  "notifications.deleteReadAll": "Xóa đã đọc",
+  "notifications.deleteReadCategory": "Xóa đã đọc {category}",
   "notifications.deleteOneConfirmTitle": "Xóa thông báo này?",
   "notifications.deleteOneConfirmText":
     "Thông báo này sẽ bị xóa khỏi danh sách của bạn.",
+  "notifications.deleteReadAllConfirmTitle": "Xóa thông báo đã đọc?",
+  "notifications.deleteReadAllConfirm":
+    "Xóa thông báo đã đọc trong khoảng thời gian này? Hành động này không thể hoàn tác.",
+  "notifications.deleteReadCategoryConfirmTitle":
+    "Xóa thông báo đã đọc trong danh mục?",
+  "notifications.deleteReadCategoryConfirm":
+    "Xóa thông báo đã đọc trong {category} cho khoảng thời gian này? Hành động này không thể hoàn tác.",
   "notifications.deleteCategoryConfirmTitle": "Xóa thông báo trong danh mục?",
   "notifications.deleteCategoryConfirm":
     "Xóa tất cả thông báo trong {category}? Hành động này không thể hoàn tác.",

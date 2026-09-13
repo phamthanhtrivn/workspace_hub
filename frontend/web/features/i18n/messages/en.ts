@@ -107,6 +107,18 @@ const en = {
   "notifications.markAllRead": "Mark all as read",
   "notifications.all": "All",
   "notifications.unread": "Unread",
+  "notifications.read": "Read",
+  "notifications.filter.label": "Notification time range",
+  "notifications.filter.allTime": "All time",
+  "notifications.filter.today": "Today",
+  "notifications.filter.last7Days": "Last 7 days",
+  "notifications.filter.last30Days": "Last 30 days",
+  "notifications.filter.thisMonth": "This month",
+  "notifications.filter.customRange": "Custom range",
+  "notifications.filter.fromDate": "From date",
+  "notifications.filter.toDate": "To date",
+  "notifications.filter.to": "to",
+  "notifications.filter.invalidRange": "Start date must be before end date.",
   "notifications.viewAll": "View all notifications",
   "notifications.emptyTitle": "No notifications",
   "notifications.emptyDescription": "You're all caught up.",
@@ -114,9 +126,18 @@ const en = {
   "notifications.deleteOne": "Delete notification",
   "notifications.deleteCategory": "Delete {category}",
   "notifications.deleteAll": "Delete all",
+  "notifications.deleteReadAll": "Delete read",
+  "notifications.deleteReadCategory": "Delete read {category}",
   "notifications.deleteOneConfirmTitle": "Delete this notification?",
   "notifications.deleteOneConfirmText":
     "This notification will be removed from your list.",
+  "notifications.deleteReadAllConfirmTitle": "Delete read notifications?",
+  "notifications.deleteReadAllConfirm":
+    "Delete read notifications in this time range? This cannot be undone.",
+  "notifications.deleteReadCategoryConfirmTitle":
+    "Delete read category notifications?",
+  "notifications.deleteReadCategoryConfirm":
+    "Delete read notifications in {category} for this time range? This cannot be undone.",
   "notifications.deleteCategoryConfirmTitle": "Delete category notifications?",
   "notifications.deleteCategoryConfirm":
     "Delete all notifications in {category}? This cannot be undone.",

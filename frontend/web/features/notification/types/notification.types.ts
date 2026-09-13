@@ -29,6 +29,26 @@ export type NotificationCategory =
   | "MEETING"
   | "DOCUMENT";
 
+export type NotificationReadFilter = "ALL" | "UNREAD" | "READ";
+
+export type NotificationTimeFilter =
+  | "ALL_TIME"
+  | "TODAY"
+  | "LAST_7_DAYS"
+  | "LAST_30_DAYS"
+  | "THIS_MONTH"
+  | "CUSTOM_RANGE";
+
+export type NotificationUnreadCountsByCategory = Record<
+  NotificationCategory,
+  number
+>;
+
+export interface NotificationDateRange {
+  fromDate?: string;
+  toDate?: string;
+}
+
 export interface InvitationMetadata {
   invitationId: string;
   spaceId: string;
@@ -101,6 +121,7 @@ export interface GetNotificationsResponse {
     totalPages: number;
     unreadCount: number;
     categoryUnreadCount?: number;
+    unreadCountsByCategory?: NotificationUnreadCountsByCategory;
   };
 }
 
@@ -110,5 +131,8 @@ export interface DeleteNotificationsResponse {
     deletedCount: number;
     unreadDeletedCount: number;
     category: NotificationCategory;
+    isRead?: boolean;
+    fromDate?: string;
+    toDate?: string;
   };
 }

@@ -26,6 +26,9 @@ import {
 interface NotificationsDeletedPayload {
   category: ReturnType<typeof getNotificationCategory>;
   deletedCount: number;
+  fromDate?: string;
+  isRead?: boolean;
+  toDate?: string;
   unreadDeletedCount: number;
 }
 

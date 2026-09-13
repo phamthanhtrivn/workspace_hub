@@ -5,7 +5,10 @@ import {
   deleteNotification,
   deleteNotifications,
 } from "../api/notification.api";
-import type { NotificationCategory } from "../types/notification.types";
+import type {
+  NotificationCategory,
+  NotificationDateRange,
+} from "../types/notification.types";
 import { useAppDispatch } from "@/store/store";
 import {
   deleteNotificationSuccess,
@@ -16,6 +19,12 @@ export const notificationKeys = {
   lists: () => [...notificationKeys.root, "list"] as const,
   unreadCount: () => [...notificationKeys.root, "unread-count"] as const,
 };
+
+interface DeleteNotificationsMutationPayload {
+  category?: NotificationCategory;
+  isRead?: boolean;
+  dateRange?: NotificationDateRange;
+}
 
 export function useNotificationActions({
   onNotificationsChanged,
@@ -39,8 +48,11 @@ export function useNotificationActions({
   });
 
   const deleteNotificationsMutation = useMutation({
-    mutationFn: (category?: NotificationCategory) =>
-      deleteNotifications(category ?? "ALL"),
+    mutationFn: (payload?: DeleteNotificationsMutationPayload) =>
+      deleteNotifications(payload?.category ?? "ALL", {
+        isRead: payload?.isRead,
+        dateRange: payload?.dateRange,
+      }),
     onSuccess: () => {
       invalidateNotificationQueries();
     },
