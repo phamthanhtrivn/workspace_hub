@@ -23,6 +23,7 @@ import { useMeetingSocket } from "./useMeetingSocket";
 import { useJoinMeetingRoom } from "./useJoinMeetingRoom";
 import { usePreJoinMeetingDevices } from "./usePreJoinMeetingDevices";
 import { useStartScheduledMeeting } from "./useScheduledMeetings";
+import { getCurrentMeetingExitPath } from "../utils/meeting-room-navigation.utils";
 import { needsMeetingPassword } from "../utils/meeting-room.utils";
 
 export function useMeetingRoomJoinFlow(joinToken: string) {
@@ -237,29 +238,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     startScheduledMeetingMutation.isPending,
   ]);
   const goBackToMeetings = useCallback(() => {
-    if (typeof window !== "undefined") {
-      const searchParams = new URLSearchParams(window.location.search);
-      const returnUrl = searchParams.get("returnUrl");
-      if (returnUrl) {
-        router.push(returnUrl);
-        return;
-      }
-
-      if (
-        document.referrer &&
-        document.referrer.startsWith(window.location.origin) &&
-        !document.referrer.includes("/meetings/")
-      ) {
-        router.back();
-        return;
-      }
-
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
-    }
-    router.push(MEETING_ROUTES.DASHBOARD);
+    router.replace(getCurrentMeetingExitPath());
   }, [router]);
   const joinMeeting = useCallback(() => {
     if (
