@@ -1,14 +1,13 @@
 "use client";
 
 import { CalendarClock } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingStatusTag } from "../common/meeting-status-tag";
 import type { MeetingHistoryItem } from "../../types/meeting.types";
 import { MeetingHistoryAvatarStack } from "./meeting-history-avatar-stack";
 import { MeetingJoinTokenCopyButton } from "./meeting-join-token-copy-button";
 import {
   formatMeetingHistoryStartTime,
-  getMeetingHistoryTitleId,
+  getMeetingHistoryTitle,
 } from "../../utils/meeting-history.utils";
 
 interface MeetingHistoryCardProps {
@@ -16,8 +15,6 @@ interface MeetingHistoryCardProps {
 }
 
 export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
-  const intl = useAppIntl();
-
   return (
     <article className="relative flex flex-col overflow-hidden rounded-lg border border-slate-200 bg-white p-4 text-[#172B4D] shadow-[0_18px_44px_rgba(15,40,84,0.08)] transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-[0_22px_56px_rgba(15,40,84,0.12)]">
       <span className="absolute inset-x-0 top-0 h-1 bg-[#0052CC]" />
@@ -27,7 +24,7 @@ export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
         </span>
         <div className="min-w-0 flex-1 pt-0.5">
           <p className="line-clamp-2 text-xl font-black leading-tight">
-            {intl.formatMessage({ id: getMeetingHistoryTitleId(meeting) })}
+            {getMeetingHistoryTitle(meeting)}
           </p>
         </div>
         <MeetingStatusTag status={meeting.status} />
@@ -37,7 +34,7 @@ export function MeetingHistoryCard({ meeting }: MeetingHistoryCardProps) {
         <div className="flex items-end justify-between gap-4">
           <div className="min-w-0 space-y-2">
             <p className="text-[13px] font-bold tabular-nums text-slate-600">
-            {formatMeetingHistoryStartTime(meeting.startedAt, intl)}
+              {formatMeetingHistoryStartTime(meeting.startedAt)}
             </p>
             <MeetingJoinTokenCopyButton joinToken={meeting.joinToken} />
           </div>

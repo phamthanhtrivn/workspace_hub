@@ -12,7 +12,6 @@ import EmojiPicker, { EmojiStyle, Theme } from "emoji-picker-react";
 import { Folder, Loader2, Paperclip, Send, Smile, X } from "lucide-react";
 import { toast } from "sonner";
 import MyFilesSelectModal from "@/features/chat/components/modals/shared/my-files-select-modal";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { formatFileSize } from "@/lib/file";
 import {
   getMeetingMediaPresignedUrls,
@@ -22,8 +21,11 @@ import type {
   MeetingMessageMediaPayload,
   MeetingMessageResponse,
 } from "../../../types/meeting.types";
+import { MeetingTextarea } from "../../ui/meeting-form-controls";
+import { MeetingIconButton } from "../../ui/meeting-icon-button";
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
+
 interface UploadingMeetingMedia extends MeetingMessageMediaPayload {
   id: string;
   file: File;
@@ -53,7 +55,6 @@ export const MeetingMessageInput = forwardRef<
   { meetingId, editingMessage, onSubmit, onCancelEdit },
   ref,
 ) {
-  const intl = useAppIntl();
   const [message, setMessage] = useState(editingMessage?.content ?? "");
   const [uploads, setUploads] = useState<UploadingMeetingMedia[]>([]);
   const [isEmojiOpen, setIsEmojiOpen] = useState(false);
@@ -128,7 +129,7 @@ export const MeetingMessageInput = forwardRef<
     async (files: File[]) => {
       const validFiles = files.filter((file) => file.size <= MAX_FILE_SIZE);
       if (validFiles.length !== files.length) {
-        toast.error(intl.formatMessage({ id: "meeting.chat.fileTooLarge" }));
+        toast.error("Some files are larger than 100 MB");
       }
       if (validFiles.length === 0) return;
 
@@ -183,10 +184,10 @@ export const MeetingMessageInput = forwardRef<
               : item,
           ),
         );
-        toast.error(intl.formatMessage({ id: "meeting.chat.failedUpload" }));
+        toast.error("Could not upload file");
       }
     },
-    [intl, meetingId],
+    [meetingId],
   );
 
   const handleSelectMyFiles = useCallback(
@@ -215,7 +216,7 @@ export const MeetingMessageInput = forwardRef<
 
   const handleSubmit = async () => {
     if (isUploading) {
-      toast.warning(intl.formatMessage({ id: "meeting.chat.waitForUpload" }));
+      toast.warning("Please wait for uploads to finish");
       return;
     }
 
@@ -257,17 +258,16 @@ export const MeetingMessageInput = forwardRef<
               {upload.status === "uploading" ? (
                 <Loader2 className="h-4 w-4 shrink-0 animate-spin text-sky-300" />
               ) : (
-                <button
-                  type="button"
+                <MeetingIconButton
+                  label="Remove upload"
+                  icon={X}
                   onClick={() =>
                     setUploads((current) =>
                       current.filter((item) => item.id !== upload.id),
                     )
                   }
-                  className="grid h-6 w-6 shrink-0 cursor-pointer place-items-center rounded-md hover:bg-white/10"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                  className="size-6 p-0 text-slate-300 hover:bg-white/10"
+                />
               )}
             </div>
           ))}
@@ -290,9 +290,7 @@ export const MeetingMessageInput = forwardRef<
             lazyLoadEmojis
             width="100%"
             height={340}
-            searchPlaceHolder={intl.formatMessage({
-              id: "meeting.chat.searchEmoji",
-            })}
+            searchPlaceHolder="Search emoji..."
             previewConfig={{ showPreview: false }}
           />
         </div>
@@ -314,15 +312,13 @@ export const MeetingMessageInput = forwardRef<
 
         {!editingMessage && (
           <div className="relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setIsAttachOptionsOpen((value) => !value)}
+            <MeetingIconButton
+              label="Attach options"
+              icon={Paperclip}
               disabled={isUploading}
-              className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-              title={intl.formatMessage({ id: "chat.attachOptions" })}
-            >
-              <Paperclip className="h-4 w-4" />
-            </button>
+              onClick={() => setIsAttachOptionsOpen((value) => !value)}
+              className="size-9 text-slate-300 hover:bg-white/10"
+            />
 
             {isAttachOptionsOpen && (
               <div className="absolute bottom-full left-0 z-[95] mb-2 flex min-w-40 flex-col gap-1 rounded-xl border border-white/10 bg-[#111827] p-2 shadow-2xl">
@@ -336,7 +332,7 @@ export const MeetingMessageInput = forwardRef<
                   className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Paperclip className="h-4 w-4 text-slate-400" />
-                  {intl.formatMessage({ id: "chat.files" })}
+                  Files
                 </button>
                 <button
                   type="button"
@@ -348,20 +344,20 @@ export const MeetingMessageInput = forwardRef<
                   className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Folder className="h-4 w-4 text-sky-300" />
-                  {intl.formatMessage({ id: "documents.nav.myFiles" })}
+                  My files
                 </button>
               </div>
             )}
           </div>
         )}
 
-        <textarea
+        <MeetingTextarea
           ref={textareaRef}
           value={message}
           onChange={(event) => setMessage(event.target.value)}
-          placeholder={intl.formatMessage({ id: "meeting.chat.placeholder" })}
+          placeholder="Message..."
           rows={1}
-          className="max-h-32 min-h-9 flex-1 resize-none bg-transparent px-1 py-2 text-sm font-semibold leading-5 text-slate-100 outline-none placeholder:text-slate-500"
+          className="max-h-32 min-h-9 flex-1 border-0 bg-transparent px-1 py-2 text-sm font-semibold leading-5 text-slate-100 shadow-none placeholder:text-slate-500 focus-visible:ring-0"
           onKeyDown={(event) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
@@ -373,18 +369,17 @@ export const MeetingMessageInput = forwardRef<
           }}
         />
 
-        <button
+        <MeetingIconButton
           ref={emojiButtonRef}
-          type="button"
+          label="Insert emoji"
+          icon={Smile}
           onClick={() => setIsEmojiOpen((value) => !value)}
-          className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg text-slate-300 transition hover:bg-white/10"
-          title={intl.formatMessage({ id: "meeting.chat.insertEmoji" })}
-        >
-          <Smile className="h-4 w-4" />
-        </button>
+          className="size-9 shrink-0 text-slate-300 hover:bg-white/10"
+        />
 
-        <button
-          type="button"
+        <MeetingIconButton
+          label="Send message"
+          icon={Send}
           onClick={() => void handleSubmit()}
           disabled={
             isUploading ||
@@ -393,11 +388,8 @@ export const MeetingMessageInput = forwardRef<
               : !message.trim() &&
                 uploads.every((upload) => upload.status !== "success"))
           }
-          className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-lg bg-sky-500 text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-slate-500"
-          title={intl.formatMessage({ id: "meeting.chat.send" })}
-        >
-          <Send className="h-4 w-4" />
-        </button>
+          className="size-9 shrink-0 bg-sky-500 text-white hover:bg-sky-400 disabled:bg-white/10 disabled:text-slate-500"
+        />
       </div>
 
       <MyFilesSelectModal

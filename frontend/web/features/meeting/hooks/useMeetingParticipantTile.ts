@@ -7,11 +7,10 @@ import {
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
 import { Mic, MicOff, Pin, PinOff, Volume2, VolumeX } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import type { MeetingIconDropdownItem } from "../components/common/meeting-icon-dropdown";
 import {
-  getRoleLabelId,
+  getRoleLabel,
   parseParticipantMetadata,
 } from "../utils/meeting-room.utils";
 
@@ -32,7 +31,6 @@ export function useMeetingParticipantTile({
   onToggleAudioMute,
   onTogglePin,
 }: UseMeetingParticipantTileParams) {
-  const intl = useAppIntl();
   const authUser = useAppSelector((state) => state.auth);
   const participant = trackRef.participant;
   const isSpeaking = useIsSpeaking(participant);
@@ -42,7 +40,7 @@ export function useMeetingParticipantTile({
     participant.name ||
     (isLocalUser ? authUser.fullName || authUser.email : null) ||
     participant.identity ||
-    intl.formatMessage({ id: "app.user" });
+    "User";
   const avatarUrl = isLocalUser
     ? authUser.avatarUrl || metadata.avatarUrl
     : metadata.avatarUrl;
@@ -50,13 +48,13 @@ export function useMeetingParticipantTile({
     isTrackReference(trackRef) &&
     Boolean(trackRef.publication.track) &&
     !trackRef.publication.isMuted;
-  const microphoneLabelId = participant.isMicrophoneEnabled
-    ? "meeting.room.control.microphoneOn"
-    : "meeting.room.control.microphoneOff";
-  const participantAudioLabelId = isAudioMutedForMe
-    ? "meeting.participants.mutedForMe"
-    : microphoneLabelId;
-  const roleLabelId = getRoleLabelId(metadata.role);
+  const microphoneLabel = participant.isMicrophoneEnabled
+    ? "Microphone on"
+    : "Microphone off";
+  const participantAudioLabel = isAudioMutedForMe
+    ? "Muted for me"
+    : microphoneLabel;
+  const roleLabel = getRoleLabel(metadata.role);
   const AudioStatusIcon = isAudioMutedForMe
     ? VolumeX
     : participant.isMicrophoneEnabled
@@ -67,26 +65,15 @@ export function useMeetingParticipantTile({
       ? "h-4 w-4 text-red-300"
       : "h-4 w-4";
   const shouldShowSpeakingHighlight = isSpeaking && !isAudioMutedForMe;
-  const pinnedLabel = intl.formatMessage({
-    id: "meeting.participants.pinned",
-  });
-  const actionMenuLabel = intl.formatMessage({
-    id: "meeting.participants.actions",
-  });
-  const participantAudioLabel = intl.formatMessage({
-    id: participantAudioLabelId,
-  });
+  const pinnedLabel = "Pinned";
+  const actionMenuLabel = "Participant actions";
   const actionItems = useMemo<MeetingIconDropdownItem[]>(() => {
     const items: MeetingIconDropdownItem[] = [];
 
     if (!isLocalUser && onTogglePin) {
       items.push({
         id: isPinnedForMe ? "unpin-participant" : "pin-participant",
-        label: intl.formatMessage({
-          id: isPinnedForMe
-            ? "meeting.participants.unpin"
-            : "meeting.participants.pin",
-        }),
+        label: isPinnedForMe ? "Unpin" : "Pin",
         icon: isPinnedForMe ? PinOff : Pin,
         disabled: isPreferencePending,
         onSelect: () => onTogglePin(participant.identity),
@@ -98,11 +85,7 @@ export function useMeetingParticipantTile({
         id: isAudioMutedForMe
           ? "unmute-participant-for-me"
           : "mute-participant-for-me",
-        label: intl.formatMessage({
-          id: isAudioMutedForMe
-            ? "meeting.participants.unmuteForMe"
-            : "meeting.participants.muteForMe",
-        }),
+        label: isAudioMutedForMe ? "Unmute for me" : "Mute for me",
         icon: isAudioMutedForMe ? Volume2 : VolumeX,
         disabled: isPreferencePending,
         onSelect: () => onToggleAudioMute(participant.identity),
@@ -111,7 +94,6 @@ export function useMeetingParticipantTile({
 
     return items;
   }, [
-    intl,
     isAudioMutedForMe,
     isLocalUser,
     isPinnedForMe,
@@ -132,7 +114,7 @@ export function useMeetingParticipantTile({
     participant,
     participantAudioLabel,
     pinnedLabel,
-    roleLabelId,
+    roleLabel,
     shouldShowSpeakingHighlight,
   };
 }

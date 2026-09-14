@@ -9,7 +9,6 @@ import {
   VideoOff,
   X,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { MeetingPreJoinMode } from "../../types/meeting.types";
 import type {
@@ -20,6 +19,8 @@ import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
 import { MeetingAutoAdmitToggle } from "../common/meeting-auto-admit-toggle";
 import { MeetingDeviceSelect } from "../common/meeting-device-select";
 import { MeetingParticipantChatToggle } from "../common/meeting-participant-chat-toggle";
+import { MeetingButton } from "../ui/meeting-form-controls";
+import { MeetingIconButton } from "../ui/meeting-icon-button";
 
 interface MeetingPreJoinProps {
   mode?: MeetingPreJoinMode;
@@ -48,7 +49,6 @@ export function MeetingPreJoin({
   onCancel,
   onStart,
 }: MeetingPreJoinProps) {
-  const intl = useAppIntl();
   const videoRef = useRef<HTMLVideoElement>(null);
   const isCreateMode = mode === MeetingPreJoinMode.CREATE;
 
@@ -94,21 +94,19 @@ export function MeetingPreJoin({
         <header className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3 sm:px-6">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-wide text-blue-200">
-              {intl.formatMessage({ id: "meeting.prejoin.eyebrow" })}
+              Instant meeting
             </p>
             <h2 className="truncate text-base font-black sm:text-lg">
-              {intl.formatMessage({ id: "meeting.prejoin.title" })}
+              Check your audio and video
             </h2>
           </div>
 
-          <button
-            type="button"
+          <MeetingIconButton
+            label="Close"
+            icon={X}
             onClick={onCancel}
-            aria-label={intl.formatMessage({ id: "app.close" })}
-            className="grid h-10 w-10 cursor-pointer place-items-center rounded-lg bg-white/8 text-slate-200 transition hover:bg-white/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-          >
-            <X className="h-5 w-5" />
-          </button>
+            className="bg-white/8 text-slate-200 hover:bg-white/14"
+          />
         </header>
 
         <main className="grid min-h-0 flex-1 gap-5 px-4 py-5 lg:grid-cols-[minmax(0,1fr)_390px] lg:px-6">
@@ -135,93 +133,74 @@ export function MeetingPreJoin({
                   </span>
                   <div>
                     <p className="text-lg font-black">
-                      {intl.formatMessage({
-                        id: settings.cameraEnabled
-                          ? "meeting.prejoin.previewWaiting"
-                          : "meeting.prejoin.cameraOff",
-                      })}
+                      {settings.cameraEnabled
+                        ? "Preparing your preview"
+                        : "Camera is off"}
                     </p>
                     <p className="mt-1 max-w-sm text-sm font-semibold leading-6 text-slate-300">
-                      {intl.formatMessage({
-                        id:
-                          permissionError ??
-                          "meeting.prejoin.previewDescription",
-                      })}
+                      {permissionError ??
+                        "Turn on your camera or microphone to test your setup before joining."}
                     </p>
                   </div>
                 </div>
               )}
 
               <div className="absolute left-4 top-4 rounded-md bg-black/45 px-3 py-1.5 text-xs font-black text-white backdrop-blur">
-                {intl.formatMessage({ id: "meeting.prejoin.localPreview" })}
+                Local preview
               </div>
             </div>
 
             <div className="flex shrink-0 flex-wrap items-center justify-center gap-3 border-t border-white/10 bg-[#0b1422] px-4 py-4">
-              <button
+              <MeetingButton
                 type="button"
+                tone={settings.microphoneEnabled ? "secondary" : "danger"}
+                controlSize="lg"
                 onClick={() =>
                   updateSettings({ microphoneEnabled: !settings.microphoneEnabled })
                 }
-                className={cn(
-                  "flex h-14 min-w-32 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                  settings.microphoneEnabled
-                    ? "bg-white text-[#172B4D] hover:bg-slate-100"
-                    : "bg-red-600 text-white hover:bg-red-500",
-                )}
+                className="min-w-32"
               >
                 {settings.microphoneEnabled ? (
                   <Mic className="h-5 w-5" />
                 ) : (
                   <MicOff className="h-5 w-5" />
                 )}
-                {intl.formatMessage({
-                  id: settings.microphoneEnabled
-                    ? "meeting.prejoin.micOn"
-                    : "meeting.prejoin.micOff",
-                })}
-              </button>
+                {settings.microphoneEnabled ? "Mic on" : "Mic off"}
+              </MeetingButton>
 
-              <button
+              <MeetingButton
                 type="button"
+                tone={settings.cameraEnabled ? "secondary" : "danger"}
+                controlSize="lg"
                 onClick={() =>
                   updateSettings({ cameraEnabled: !settings.cameraEnabled })
                 }
-                className={cn(
-                  "flex h-14 min-w-32 cursor-pointer items-center justify-center gap-2 rounded-lg px-4 text-sm font-black transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70",
-                  settings.cameraEnabled
-                    ? "bg-white text-[#172B4D] hover:bg-slate-100"
-                    : "bg-red-600 text-white hover:bg-red-500",
-                )}
+                className="min-w-32"
               >
                 {settings.cameraEnabled ? (
                   <Video className="h-5 w-5" />
                 ) : (
                   <VideoOff className="h-5 w-5" />
                 )}
-                {intl.formatMessage({
-                  id: settings.cameraEnabled
-                    ? "meeting.prejoin.cameraOn"
-                    : "meeting.prejoin.cameraOffShort",
-                })}
-              </button>
+                {settings.cameraEnabled ? "Camera on" : "Camera off"}
+              </MeetingButton>
             </div>
           </section>
 
           <aside className="flex flex-col gap-4 rounded-lg border border-white/10 bg-white p-4 text-[#172B4D] shadow-[0_24px_80px_rgba(0,0,0,0.18)]">
             <div>
               <h3 className="text-lg font-black">
-                {intl.formatMessage({ id: "meeting.prejoin.panelTitle" })}
+                Ready to start?
               </h3>
               <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
-                {intl.formatMessage({ id: "meeting.prejoin.panelDescription" })}
+                Choose your devices and room settings before entering.
               </p>
             </div>
 
             <div className="grid gap-3">
               <MeetingDeviceSelect
                 id="meeting-camera-device"
-                label={intl.formatMessage({ id: "meeting.prejoin.camera" })}
+                label="Camera"
                 value={settings.cameraDeviceId}
                 devices={cameras}
                 icon={Video}
@@ -229,7 +208,7 @@ export function MeetingPreJoin({
               />
               <MeetingDeviceSelect
                 id="meeting-microphone-device"
-                label={intl.formatMessage({ id: "meeting.prejoin.microphone" })}
+                label="Microphone"
                 value={settings.microphoneDeviceId}
                 devices={microphones}
                 icon={Mic}
@@ -257,25 +236,24 @@ export function MeetingPreJoin({
             ) : null}
 
             <div className="mt-auto flex flex-col gap-3 pt-2">
-              <button
+              <MeetingButton
                 type="button"
+                tone="primary"
+                controlSize="lg"
                 onClick={onStart}
-                className="relative flex h-12 w-full cursor-pointer items-center justify-center overflow-hidden rounded-lg bg-[#0052CC] px-5 text-sm font-black text-white shadow-[0_16px_34px_rgba(0,82,204,0.28)] transition hover:-translate-y-0.5 hover:bg-[#0747A6] hover:shadow-[0_20px_42px_rgba(0,82,204,0.34)] active:translate-y-0 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
+                className="w-full shadow-[0_16px_34px_rgba(0,82,204,0.28)] hover:-translate-y-0.5"
               >
-                <span className="absolute inset-x-0 top-0 h-px bg-white/45" />
-                {intl.formatMessage({
-                  id: isCreateMode
-                    ? "meeting.prejoin.startMeeting"
-                    : "meeting.prejoin.joinMeeting",
-                })}
-              </button>
-              <button
+                {isCreateMode ? "Start meeting" : "Join meeting"}
+              </MeetingButton>
+              <MeetingButton
                 type="button"
+                tone="outline"
+                controlSize="md"
                 onClick={onCancel}
-                className="flex h-11 w-full cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 shadow-[inset_0_-1px_0_rgba(15,23,42,0.05)] transition hover:border-slate-300 hover:bg-slate-50 hover:text-[#172B4D] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+                className="w-full"
               >
-                {intl.formatMessage({ id: "app.cancel" })}
-              </button>
+                Cancel
+              </MeetingButton>
             </div>
           </aside>
         </main>

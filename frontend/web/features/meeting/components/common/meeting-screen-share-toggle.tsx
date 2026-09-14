@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, MonitorUp } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { MeetingAutoAdmitToggleVariant } from "./meeting-auto-admit-toggle";
 
@@ -18,7 +17,6 @@ export function MeetingScreenShareToggle({
   onCheckedChange,
   variant = MeetingAutoAdmitToggleVariant.LIGHT,
 }: MeetingScreenShareToggleProps) {
-  const intl = useAppIntl();
   const isDark = variant === MeetingAutoAdmitToggleVariant.DARK;
 
   return (
@@ -64,9 +62,7 @@ export function MeetingScreenShareToggle({
               isDark ? "text-blue-200" : "text-[#0052CC]",
             )}
           />
-          {intl.formatMessage({
-            id: "meeting.room.settings.screenShareTitle",
-          })}
+          Allow screen sharing
         </span>
         <span
           className={cn(
@@ -74,9 +70,7 @@ export function MeetingScreenShareToggle({
             isDark ? "text-slate-400" : "text-slate-500",
           )}
         >
-          {intl.formatMessage({
-            id: "meeting.room.settings.screenShareDescription",
-          })}
+          Hosts and co-hosts can manage who shares their screen.
         </span>
       </span>
     </label>

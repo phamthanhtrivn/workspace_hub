@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConnectionState } from "@livekit/components-react";
 import { ChevronLeft, ChevronRight, Video } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
 import { useMeetingChatNotificationPreference } from "@/features/meeting/hooks/useMeetingChatNotificationPreference";
 import { useMeetingParticipantGrid } from "@/features/meeting/hooks/useMeetingParticipantGrid";
@@ -24,7 +23,7 @@ import { MEETING_ROOM_REACTION_ANIMATION_MS } from "../../types/meeting.constant
 import { MeetingRoomPanel } from "../../types/meeting.types";
 import {
   formatElapsedTime,
-  getRoomStatusLabelId,
+  getRoomStatusLabel,
 } from "../../utils/meeting-room.utils";
 import { MeetingRoomAudioRenderer } from "./meeting-room-audio-renderer";
 import { MeetingRoomFooter } from "./meeting-room-footer";
@@ -60,7 +59,6 @@ export function MeetingRoomContent({
   initialHandRaisedAt,
   settings,
 }: MeetingRoomContentProps) {
-  const intl = useAppIntl();
   const connectionState = useConnectionState();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const stageContainerRef = useRef<HTMLElement | null>(null);
@@ -212,16 +210,14 @@ export function MeetingRoomContent({
           </span>
           <div className="min-w-0">
             <h1 className="truncate text-sm font-black sm:text-base">
-              {intl.formatMessage({ id: "meeting.room.title" })}
+              Instant meeting
             </h1>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
           <span className="hidden rounded-md bg-emerald-500/12 px-3 py-1.5 text-xs font-black text-emerald-200 ring-1 ring-emerald-300/15 sm:inline-flex">
-            {intl.formatMessage({
-              id: getRoomStatusLabelId(connectionState),
-            })}
+            {getRoomStatusLabel(connectionState)}
           </span>
           <span className="rounded-md bg-white/8 px-3 py-1.5 text-xs font-black text-slate-100 ring-1 ring-white/10">
             {formatElapsedTime(elapsedSeconds)}
@@ -261,11 +257,11 @@ export function MeetingRoomContent({
                     disabled={!canGoPrevious}
                     onClick={goToPreviousParticipantPage}
                     className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
-                    aria-label={intl.formatMessage({ id: "app.previous" })}
+                    aria-label="Previous"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     <span className="hidden sm:inline">
-                      {intl.formatMessage({ id: "app.previous" })}
+                      Previous
                     </span>
                   </button>
 
@@ -278,10 +274,10 @@ export function MeetingRoomContent({
                     disabled={!canGoNext}
                     onClick={goToNextParticipantPage}
                     className="cursor-pointer inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-200 transition hover:bg-white/10 hover:text-white active:scale-95 disabled:cursor-not-allowed disabled:opacity-35 disabled:hover:bg-transparent disabled:hover:text-slate-200 sm:w-auto sm:gap-1.5 sm:px-2.5"
-                    aria-label={intl.formatMessage({ id: "app.next" })}
+                    aria-label="Next"
                   >
                     <span className="hidden sm:inline">
-                      {intl.formatMessage({ id: "app.next" })}
+                      Next
                     </span>
                     <ChevronRight className="h-4 w-4" />
                   </button>

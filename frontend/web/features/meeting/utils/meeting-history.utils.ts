@@ -1,22 +1,19 @@
-import type { IntlShape } from "react-intl";
 import type { MeetingHistoryItem } from "../types/meeting.types";
+import { getMeetingTypeLabel } from "./meeting-labels.utils";
 
-export function getMeetingHistoryTitleId(meeting: MeetingHistoryItem) {
-  return `meeting.history.type.${meeting.type}`;
+export function getMeetingHistoryTitle(meeting: MeetingHistoryItem) {
+  return getMeetingTypeLabel(meeting.type);
 }
 
-export function formatMeetingHistoryStartTime(
-  value: string | null,
-  intl: IntlShape,
-) {
-  if (!value) return intl.formatMessage({ id: "meeting.history.notStarted" });
+export function formatMeetingHistoryStartTime(value: string | null) {
+  if (!value) return "Not started";
 
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
-    return intl.formatMessage({ id: "meeting.history.notStarted" });
+    return "Not started";
   }
 
-  return new Intl.DateTimeFormat(intl.locale, {
+  return new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",

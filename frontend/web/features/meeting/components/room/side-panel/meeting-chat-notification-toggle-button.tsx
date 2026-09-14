@@ -1,7 +1,6 @@
 "use client";
 
 import { Bell, BellOff } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MeetingChatNotificationToggleButtonProps {
   muted: boolean;
@@ -16,8 +15,7 @@ export function MeetingChatNotificationToggleButton({
   onMutedChange,
   className,
 }: MeetingChatNotificationToggleButtonProps) {
-  const intl = useAppIntl();
-  const label = intl.formatMessage({ id: muted ? "chat.unmute" : "chat.mute" });
+  const label = muted ? "Unmute" : "Mute";
   const Icon = muted ? BellOff : Bell;
 
   return (

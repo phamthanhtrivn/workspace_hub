@@ -118,48 +118,48 @@ export enum MeetingDashboardTone {
 export const meetingDashboardNavItems = [
   {
     id: MeetingDashboardNavItemId.OVERVIEW,
-    labelId: "meeting.dashboard.nav.overview",
+    label: "Overview",
   },
   {
     id: MeetingDashboardNavItemId.UPCOMING,
-    labelId: "meeting.dashboard.nav.upcoming",
+    label: "Upcoming",
   },
   {
     id: MeetingDashboardNavItemId.PREVIOUS,
-    labelId: "meeting.dashboard.nav.previous",
+    label: "Previous",
   },
   {
     id: MeetingDashboardNavItemId.RECORDINGS,
-    labelId: "meeting.dashboard.nav.recordings",
+    label: "Recordings",
   },
 ] as const;
 
 export const meetingDashboardActions = [
   {
     id: MeetingDashboardActionId.NEW_MEETING,
-    titleId: "meeting.dashboard.action.newMeeting.title",
-    descriptionId: "meeting.dashboard.action.newMeeting.description",
+    title: "New meeting",
+    description: "Start an instant meeting",
     tone: MeetingDashboardTone.PRIMARY,
     enabled: true,
   },
   {
     id: MeetingDashboardActionId.JOIN_MEETING,
-    titleId: "meeting.dashboard.action.joinMeeting.title",
-    descriptionId: "meeting.dashboard.action.joinMeeting.description",
+    title: "Join meeting",
+    description: "Use an invitation link",
     tone: MeetingDashboardTone.BLUE,
     enabled: true,
   },
   {
     id: MeetingDashboardActionId.SCHEDULE_MEETING,
-    titleId: "meeting.dashboard.action.scheduleMeeting.title",
-    descriptionId: "meeting.dashboard.action.scheduleMeeting.description",
+    title: "Schedule meeting",
+    description: "Plan a meeting ahead",
     tone: MeetingDashboardTone.VIOLET,
     enabled: true,
   },
   {
     id: MeetingDashboardActionId.VIEW_RECORDINGS,
-    titleId: "meeting.dashboard.action.viewRecordings.title",
-    descriptionId: "meeting.dashboard.action.viewRecordings.description",
+    title: "View recordings",
+    description: "Browse saved sessions",
     tone: MeetingDashboardTone.AMBER,
     enabled: false,
   },
@@ -176,37 +176,37 @@ export const meetingNavIconById = {
 export const meetingRoomControlItems = [
   {
     id: "microphone",
-    labelId: "meeting.room.control.microphone",
+    label: "Microphone",
     icon: Mic,
   },
   {
     id: "camera",
-    labelId: "meeting.room.control.camera",
+    label: "Camera",
     icon: Video,
   },
   {
     id: MeetingRoomPanel.PARTICIPANTS,
-    labelId: "meeting.room.control.participants",
+    label: "People",
     icon: UsersRound,
   },
   {
     id: MeetingRoomPanel.CHAT,
-    labelId: "meeting.room.control.chat",
+    label: "Chat",
     icon: MessageSquareText,
   },
   {
     id: MeetingRoomPanel.ADMISSION,
-    labelId: "meeting.room.control.admission",
+    label: "Admission",
     icon: ShieldCheck,
   },
   {
     id: "screen-share",
-    labelId: "meeting.room.control.shareScreen",
+    label: "Share screen",
     icon: ScreenShare,
   },
   {
     id: MeetingRoomPanel.SETTINGS,
-    labelId: "meeting.room.control.settings",
+    label: "Settings",
     icon: Settings,
   },
 ] as const;

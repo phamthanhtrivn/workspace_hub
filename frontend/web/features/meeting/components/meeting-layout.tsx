@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingHero } from "./common/meeting-hero";
 import { MeetingActionTile } from "./common/meeting-action-tile";
 import { MeetingJoinLinkModal } from "./common/meeting-join-link-modal";
@@ -32,7 +31,6 @@ import { useUpcomingMeetings } from "../hooks/useScheduledMeetings";
 import { meetingKeys } from "../types/meeting.query-keys";
 
 export function MeetingLayout() {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const clock = useMeetingClock();
@@ -130,7 +128,11 @@ export function MeetingLayout() {
 
   useEffect(() => {
     if (searchParams.get("tab") === MeetingDashboardNavItemId.UPCOMING) {
-      setActiveNavItemId(MeetingDashboardNavItemId.UPCOMING);
+      const selectUpcomingTimer = window.setTimeout(() => {
+        setActiveNavItemId(MeetingDashboardNavItemId.UPCOMING);
+      }, 0);
+
+      return () => window.clearTimeout(selectUpcomingTimer);
     }
   }, [searchParams]);
 
@@ -161,16 +163,14 @@ export function MeetingLayout() {
 
               <section
                 className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
-                aria-label={intl.formatMessage({
-                  id: "meeting.dashboard.actionsLabel",
-                })}
+                aria-label="Meeting actions"
               >
                 {meetingDashboardActions.map((action) => (
                   <MeetingActionTile
                     key={action.id}
                     actionId={action.id}
-                    titleId={action.titleId}
-                    descriptionId={action.descriptionId}
+                    title={action.title}
+                    description={action.description}
                     tone={action.tone}
                     enabled={action.enabled}
                     onClick={() => handleActionClick(action.id)}
@@ -194,9 +194,7 @@ export function MeetingLayout() {
         open={isJoinLinkModalOpen}
         onClose={() => setIsJoinLinkModalOpen(false)}
         onOpenFailed={() => {
-          toast.error(
-            intl.formatMessage({ id: "meeting.joinModal.openFailed" }),
-          );
+          toast.error("Could not open this meeting link.");
         }}
       />
 

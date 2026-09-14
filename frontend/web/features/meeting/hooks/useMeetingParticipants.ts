@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   endMeeting,
   getMeetingParticipants,
@@ -42,7 +41,6 @@ export function useMeetingParticipants({
 }
 
 export function useMeetingParticipantActions(joinToken: string) {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const invalidateParticipants = () => {
     queryClient.invalidateQueries({
@@ -60,14 +58,10 @@ export function useMeetingParticipantActions(joinToken: string) {
     mutationFn: (userId: string) => removeMeetingParticipant(joinToken, userId),
     onSuccess: () => {
       invalidateParticipants();
-      toast.success(
-        intl.formatMessage({ id: "meeting.participants.removeSuccess" }),
-      );
+      toast.success("Participant removed from the meeting");
     },
     onError: () => {
-      toast.error(
-        intl.formatMessage({ id: "meeting.participants.removeFailed" }),
-      );
+      toast.error("Could not remove participant");
     },
   });
 
@@ -81,14 +75,10 @@ export function useMeetingParticipantActions(joinToken: string) {
     }) => updateMeetingParticipantRole(joinToken, userId, role),
     onSuccess: () => {
       invalidateParticipants();
-      toast.success(
-        intl.formatMessage({ id: "meeting.participants.roleUpdateSuccess" }),
-      );
+      toast.success("Participant role updated");
     },
     onError: () => {
-      toast.error(
-        intl.formatMessage({ id: "meeting.participants.roleUpdateFailed" }),
-      );
+      toast.error("Could not update participant role");
     },
   });
 
@@ -102,14 +92,10 @@ export function useMeetingParticipantActions(joinToken: string) {
       queryClient.invalidateQueries({
         queryKey: meetingKeys.room(joinToken),
       });
-      toast.success(
-        intl.formatMessage({ id: "meeting.participants.stopShareSuccess" }),
-      );
+      toast.success("Screen sharing stopped");
     },
     onError: () => {
-      toast.error(
-        intl.formatMessage({ id: "meeting.participants.stopShareFailed" }),
-      );
+      toast.error("Could not stop screen sharing");
     },
   });
 
@@ -120,9 +106,7 @@ export function useMeetingParticipantActions(joinToken: string) {
       invalidateParticipants();
     },
     onError: () => {
-      toast.error(
-        intl.formatMessage({ id: "meeting.participants.lowerHandFailed" }),
-      );
+      toast.error("Could not lower participant hand");
     },
   });
 
@@ -142,12 +126,10 @@ export function useLeaveMeeting(joinToken: string) {
 }
 
 export function useEndMeeting(joinToken: string) {
-  const intl = useAppIntl();
-
   return useMutation({
     mutationFn: () => endMeeting(joinToken),
     onError: () => {
-      toast.error(intl.formatMessage({ id: "meeting.room.endFailed" }));
+      toast.error("Could not end meeting");
     },
   });
 }

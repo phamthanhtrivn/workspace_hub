@@ -32,23 +32,23 @@ export function parseParticipantMetadata(
   }
 }
 
-export function getRoleLabelId(role?: MeetingParticipantRole | string) {
-  if (role === MEETING_ROLE.HOST) return "meeting.room.participant.host";
-  if (role === MEETING_ROLE.COHOST) return "meeting.room.participant.cohost";
+export function getRoleLabel(role?: MeetingParticipantRole | string) {
+  if (role === MEETING_ROLE.HOST) return "Host";
+  if (role === MEETING_ROLE.COHOST) return "Co-host";
 
   return null;
 }
 
-export function getRoomStatusLabelId(connectionState: ConnectionState) {
+export function getRoomStatusLabel(connectionState: ConnectionState) {
   if (connectionState === ConnectionState.Connected) {
-    return "meeting.room.statusConnected";
+    return "Connected";
   }
 
   if (connectionState === ConnectionState.Reconnecting) {
-    return "meeting.room.statusReconnecting";
+    return "Reconnecting";
   }
 
-  return "meeting.room.statusConnecting";
+  return "Connecting";
 }
 
 export function getAudioSetting(settings: MeetingPreJoinSettings) {
@@ -76,20 +76,20 @@ export function needsMeetingPassword(access?: MeetingAccessResponse | null) {
   );
 }
 
-export function getPanelTitleLabelId(activePanel: MeetingRoomPanel) {
+export function getPanelTitle(activePanel: MeetingRoomPanel) {
   if (activePanel === MeetingRoomPanel.PARTICIPANTS) {
-    return "meeting.room.panel.participants";
+    return "Participants";
   }
 
   if (activePanel === MeetingRoomPanel.CHAT) {
-    return "meeting.room.panel.chat";
+    return "Meeting chat";
   }
 
   if (activePanel === MeetingRoomPanel.ADMISSION) {
-    return "meeting.room.panel.admission";
+    return "Admission";
   }
 
-  return "meeting.room.panel.settings";
+  return "Room settings";
 }
 
 export function canManageMeetingAdmission(role?: string) {

@@ -1,8 +1,8 @@
 "use client";
 
 import { CalendarClock, Loader2, Play, UsersRound } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { MeetingAccessResponse } from "../../types/meeting.types";
+import { MeetingButton } from "../ui/meeting-form-controls";
 
 interface MeetingWaitingHostProps {
   access: MeetingAccessResponse;
@@ -11,18 +11,18 @@ interface MeetingWaitingHostProps {
   onStart: () => void;
 }
 
-function formatScheduledRange(access: MeetingAccessResponse, locale: string) {
+function formatScheduledRange(access: MeetingAccessResponse) {
   if (!access.scheduledStartAt || !access.scheduledEndAt) return "";
   const start = new Date(access.scheduledStartAt);
   const end = new Date(access.scheduledEndAt);
   if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return "";
 
-  return `${start.toLocaleDateString(locale, {
+  return `${start.toLocaleDateString("en-US", {
     dateStyle: "medium",
-  })} · ${start.toLocaleTimeString(locale, {
+  })} · ${start.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
-  })} - ${end.toLocaleTimeString(locale, {
+  })} - ${end.toLocaleTimeString("en-US", {
     hour: "2-digit",
     minute: "2-digit",
   })}`;
@@ -34,8 +34,6 @@ export function MeetingWaitingHost({
   onBack,
   onStart,
 }: MeetingWaitingHostProps) {
-  const intl = useAppIntl();
-
   return (
     <div className="fixed inset-0 z-[90] grid min-h-[100dvh] place-items-center bg-[#070b12] px-4 text-white">
       <div className="w-full max-w-md rounded-lg border border-white/10 bg-white/8 px-6 py-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
@@ -47,41 +45,43 @@ export function MeetingWaitingHost({
           )}
         </span>
         <h1 className="mt-4 text-lg font-black">
-          {intl.formatMessage({
-            id: access.canStart
-              ? "meeting.waitingForHost.hostTitle"
-              : "meeting.waitingForHost.title",
-          })}
+          {access.canStart
+            ? "Ready to start this meeting"
+            : "Waiting for the host to start this meeting"}
         </h1>
         <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
-          {access.title || intl.formatMessage({ id: "meeting.schedule.title" })}
+          {access.title || "Schedule a meeting"}
         </p>
         <p className="mt-3 inline-flex items-center justify-center gap-2 rounded-lg bg-white/8 px-3 py-2 text-sm font-bold text-slate-200">
           <CalendarClock className="h-4 w-4 text-blue-200" />
-          {formatScheduledRange(access, intl.locale)}
+          {formatScheduledRange(access)}
         </p>
         <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-center">
-          <button
+          <MeetingButton
             type="button"
+            tone="ghost"
+            controlSize="lg"
             onClick={onBack}
-            className="h-11 cursor-pointer rounded-lg px-5 text-sm font-black text-slate-200 hover:bg-white/10"
+            className="text-slate-200 hover:bg-white/10 hover:text-white"
           >
-            {intl.formatMessage({ id: "meeting.room.backToMeetings" })}
-          </button>
+            Back to meetings
+          </MeetingButton>
           {access.canStart ? (
-            <button
+            <MeetingButton
               type="button"
+              tone="secondary"
+              controlSize="lg"
               onClick={onStart}
               disabled={isStarting}
-              className="inline-flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-black text-[#172B4D] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="bg-white font-black text-[#172B4D] hover:bg-slate-100"
             >
               {isStarting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Play className="h-4 w-4" />
               )}
-              {intl.formatMessage({ id: "meeting.waitingForHost.start" })}
-            </button>
+              Start meeting
+            </MeetingButton>
           ) : null}
         </div>
       </div>

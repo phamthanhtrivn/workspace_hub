@@ -14,7 +14,6 @@ import type {
   MeetingMessageMediaPayload,
   MeetingMessageResponse,
 } from "../types/meeting.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 function getErrorMessage(error: unknown, fallback: string) {
   if (
@@ -42,8 +41,6 @@ export function useMeetingMessageActions({
   joinToken: string;
   appendMessage: (message: MeetingMessageResponse) => void;
 }) {
-  const intl = useAppIntl();
-
   const sendMessage = useCallback(
     async (content: string, medias?: MeetingMessageMediaPayload[]) => {
       try {
@@ -57,12 +54,12 @@ export function useMeetingMessageActions({
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "meeting.chat.failedSend" }),
+            "Could not send meeting message",
           ),
         );
       }
     },
-    [appendMessage, intl, joinToken],
+    [appendMessage, joinToken],
   );
 
   const editMessage = useCallback(
@@ -77,12 +74,12 @@ export function useMeetingMessageActions({
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "meeting.chat.failedEdit" }),
+            "Could not edit meeting message",
           ),
         );
       }
     },
-    [appendMessage, intl, joinToken],
+    [appendMessage, joinToken],
   );
 
   const recallMessage = useCallback(
@@ -95,12 +92,12 @@ export function useMeetingMessageActions({
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "meeting.chat.failedRecall" }),
+            "Could not recall meeting message",
           ),
         );
       }
     },
-    [appendMessage, intl, joinToken],
+    [appendMessage, joinToken],
   );
 
   const reactToMessage = useCallback(
@@ -116,12 +113,12 @@ export function useMeetingMessageActions({
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "meeting.chat.failedReact" }),
+            "Could not update reaction",
           ),
         );
       }
     },
-    [intl, joinToken],
+    [joinToken],
   );
 
   const markAsRead = useCallback(

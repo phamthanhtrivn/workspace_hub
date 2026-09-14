@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { Edit2, Trash2 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MeetingMessageOptionsMenuProps {
   isOpen: boolean;
@@ -23,7 +22,6 @@ export function MeetingMessageOptionsMenu({
   canEdit,
   canRecall,
 }: MeetingMessageOptionsMenuProps) {
-  const intl = useAppIntl();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -67,7 +65,7 @@ export function MeetingMessageOptionsMenu({
           className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-white/8"
         >
           <Edit2 className="h-4 w-4" />
-          <span>{intl.formatMessage({ id: "meeting.chat.editMessage" })}</span>
+          <span>Edit message</span>
         </button>
       )}
       {canRecall && (
@@ -80,7 +78,7 @@ export function MeetingMessageOptionsMenu({
           className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left text-red-300 transition hover:bg-red-500/10"
         >
           <Trash2 className="h-4 w-4" />
-          <span>{intl.formatMessage({ id: "meeting.chat.recallMessage" })}</span>
+          <span>Recall message</span>
         </button>
       )}
     </div>
