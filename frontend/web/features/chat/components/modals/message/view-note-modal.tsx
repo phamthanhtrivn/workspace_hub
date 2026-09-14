@@ -8,7 +8,6 @@ import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { NoteResponse } from "@/features/chat/types/chat.types";
 import NoteMessage from "../../message/note-message";
 import { editChannelNote } from "@/features/chat/api/chat.api";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ViewNoteModalProps {
   isOpen: boolean;
@@ -23,7 +22,6 @@ export default function ViewNoteModal({
   note,
   conversationId,
 }: ViewNoteModalProps) {
-  const intl = useAppIntl();
   const [mounted, setMounted] = useState(false);
   const dispatch = useAppDispatch();
 
@@ -38,7 +36,7 @@ export default function ViewNoteModal({
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
         <div className="flex justify-between items-center p-4 border-b border-gray-100">
           <h2 className="text-xl font-bold text-gray-800">
-            {intl.formatMessage({ id: "chat.noteDetails" })}
+            Note Details
           </h2>
           <button
             onClick={onClose}
@@ -64,3 +62,4 @@ export default function ViewNoteModal({
     document.body,
   );
 }
+

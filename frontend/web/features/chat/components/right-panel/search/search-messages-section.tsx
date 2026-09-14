@@ -18,7 +18,6 @@ import { useChatMemberProfiles } from "../../../hooks/useChatMemberProfiles";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatContextType } from "../../../types/chat.types";
 import { logApiError } from "@/lib/interceptors";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface SearchMessagesSectionProps {
   conversationId: string;
@@ -29,7 +28,6 @@ export default function SearchMessagesSection({
   conversationId,
   onBack,
 }: SearchMessagesSectionProps) {
-  const intl = useAppIntl();
   const [query, setQuery] = useState("");
   const [senderId, setSenderId] = useState("");
   const [results, setResults] = useState<any[]>([]);
@@ -63,10 +61,10 @@ export default function SearchMessagesSection({
       activeConversation?.members?.filter((m: any) => {
         const name =
           m.userId === currentUserId
-            ? intl.formatMessage({ id: "chat.you" }).toLowerCase()
+            ? "you"
             : (
                 memberProfiles?.[m.userId]?.fullName ||
-                intl.formatMessage({ id: "app.user" })
+                "User"
               ).toLowerCase();
         return name.includes(term);
       }) || []
@@ -75,14 +73,13 @@ export default function SearchMessagesSection({
     activeConversation?.members,
     memberProfiles,
     currentUserId,
-    intl,
     senderSearch,
   ]);
 
   const getSelectedSenderName = () => {
-    if (!senderId) return intl.formatMessage({ id: "chat.sender" });
-    if (senderId === currentUserId) return intl.formatMessage({ id: "chat.you" });
-    return memberProfiles?.[senderId]?.fullName || intl.formatMessage({ id: "app.user" });
+    if (!senderId) return "Sender";
+    if (senderId === currentUserId) return "You";
+    return memberProfiles?.[senderId]?.fullName || "User";
   };
 
   const handleSearch = async (e?: React.FormEvent) => {
@@ -122,7 +119,7 @@ export default function SearchMessagesSection({
           <ArrowLeft size={20} />
         </button>
         <h2 className="font-semibold text-gray-800">
-          {intl.formatMessage({ id: "chat.searchMessagesTitle" })}
+          Search Messages
         </h2>
       </div>
 
@@ -138,9 +135,7 @@ export default function SearchMessagesSection({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={intl.formatMessage({
-                id: "chat.searchByContentOrFileName",
-              })}
+              placeholder="Search by content or file name..."
               className="w-full pl-9 pr-3 py-2 text-sm bg-gray-100 border-transparent rounded-md focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-200 outline-none transition"
             />
           </form>
@@ -163,7 +158,7 @@ export default function SearchMessagesSection({
                   type="text"
                   value={senderSearch}
                   onChange={(e) => setSenderSearch(e.target.value)}
-                  placeholder={intl.formatMessage({ id: "chat.searchSender" })}
+                  placeholder="Search sender..."
                   className="w-full p-1.5 text-sm bg-white border border-gray-200 rounded-md outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100 transition"
                 />
               </div>
@@ -179,7 +174,7 @@ export default function SearchMessagesSection({
                     <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
                       <Users size={12} className="text-gray-500" />
                     </div>
-                    <span>{intl.formatMessage({ id: "chat.allSenders" })}</span>
+                    <span>All Senders</span>
                   </div>
                   {!senderId && <Check size={14} className="shrink-0" />}
                 </div>
@@ -189,9 +184,8 @@ export default function SearchMessagesSection({
                   const avatarUrl = profile?.avatarUrl;
                   const isMe = m.userId === currentUserId;
                   const name = isMe
-                    ? intl.formatMessage({ id: "chat.you" })
-                    : profile?.fullName ||
-                      intl.formatMessage({ id: "app.user" });
+                    ? "You"
+                    : profile?.fullName || "User";
 
                   return (
                     <div
@@ -224,7 +218,7 @@ export default function SearchMessagesSection({
                 })}
                 {filteredMembers.length === 0 && (
                   <div className="p-4 text-sm text-gray-500 text-center">
-                    {intl.formatMessage({ id: "chat.memberNotFound" })}
+                    No member found
                   </div>
                 )}
               </div>
@@ -237,7 +231,7 @@ export default function SearchMessagesSection({
       <div className="flex-1 overflow-y-auto p-2">
         {loading ? (
           <div className="p-4 text-center text-sm text-gray-500">
-            {intl.formatMessage({ id: "chat.searching" })}
+            Searching...
           </div>
         ) : results.length > 0 ? (
           <div className="flex flex-col gap-1">
@@ -254,7 +248,7 @@ export default function SearchMessagesSection({
           </div>
         ) : (
           <div className="p-8 text-center text-gray-500 text-sm">
-            {intl.formatMessage({ id: "chat.noResultsFound" })}
+            No results found.
           </div>
         )}
       </div>

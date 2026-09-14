@@ -9,7 +9,6 @@ import { chatKeys } from "@/features/chat/types/chat.constant";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DocumentItemType } from "@/features/documents/types/documents.enums";
 import { formatFileSize } from "@/features/project/components/ui/project-file-panel";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MyFilesSelectModalProps {
   isOpen: boolean;
@@ -38,7 +37,6 @@ export default function MyFilesSelectModal({
   tone = "light",
   onSelect,
 }: MyFilesSelectModalProps) {
-  const intl = useAppIntl();
   const isDarkTone = tone === "dark";
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [folderHistory, setFolderHistory] = useState<FolderHistoryItem[]>([
@@ -139,7 +137,7 @@ export default function MyFilesSelectModal({
               isDarkTone ? "text-slate-100" : "text-gray-800"
             }`}
           >
-            {intl.formatMessage({ id: "documents.selectFromMyFiles" })}
+            Select from My Files
           </h2>
           <button
             onClick={handleCloseModal}
@@ -189,7 +187,7 @@ export default function MyFilesSelectModal({
                 }`}
               >
                 {history.id === null
-                  ? intl.formatMessage({ id: "documents.nav.myFiles" })
+                  ? "My Files"
                   : history.name}
               </button>
             </React.Fragment>
@@ -204,7 +202,7 @@ export default function MyFilesSelectModal({
                 isDarkTone ? "text-slate-400" : "text-gray-400"
               }`}
             >
-              {intl.formatMessage({ id: "documents.loadingFiles" })}
+              Loading files...
             </div>
           ) : items.length === 0 ? (
             <div
@@ -216,7 +214,7 @@ export default function MyFilesSelectModal({
                 size={32}
                 className={isDarkTone ? "text-slate-600" : "text-gray-300"}
               />
-              <span>{intl.formatMessage({ id: "documents.folderEmpty" })}</span>
+              <span>This folder is empty</span>
             </div>
           ) : (
             items.map((item: DocumentItem) => {
@@ -342,7 +340,7 @@ export default function MyFilesSelectModal({
                 : "text-gray-500 hover:bg-gray-100"
             }`}
           >
-            {intl.formatMessage({ id: "app.cancel" })}
+            Cancel
           </button>
           <button
             type="button"
@@ -354,10 +352,7 @@ export default function MyFilesSelectModal({
                 : "bg-blue-600 hover:bg-blue-700"
             }`}
           >
-            {intl.formatMessage(
-              { id: "documents.attachSelected" },
-              { count: selectedFiles.size },
-            )}
+            {`Attach Selected (${selectedFiles.size})`}
           </button>
         </div>
       </div>
@@ -365,4 +360,5 @@ export default function MyFilesSelectModal({
     document.body,
   );
 }
+
 

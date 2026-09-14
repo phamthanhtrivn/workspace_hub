@@ -39,15 +39,14 @@ import {
   patchSpaceSettingInCaches,
 } from "../../utils/chat-cache";
 import { normalizeSpaceSetting } from "../../utils/space-setting-utils";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface UseSpaceSettingsParams {
   isOpen: boolean;
   space: SpaceResponse;
-  currentUserId: string | null;
+  currentUserId?: string | null;
   memberSearch: string;
   onClose: () => void;
-  onSpaceDeletedOrLeft: (spaceId: string) => void;
+  onSpaceDeletedOrLeft?: (spaceId: string) => void;
 }
 
 export function useSpaceSettings({
@@ -58,7 +57,6 @@ export function useSpaceSettings({
   onClose,
   onSpaceDeletedOrLeft,
 }: UseSpaceSettingsParams) {
-  const intl = useAppIntl();
   const [spaceName, setSpaceName] = useState(space.name);
   const queryClient = useQueryClient();
 
@@ -114,7 +112,7 @@ export function useSpaceSettings({
     allMembers.find((member) => member.userId === currentUserId) ||
     allRoleMembers.find((member) => member.userId === currentUserId);
   const isAdmin = isSpaceAdmin(currentMember);
-  const isLastAdmin = isLastSpaceAdmin(currentUserId, allRoleMembers);
+  const isLastAdmin = isLastSpaceAdmin(currentUserId || null, allRoleMembers);
   const isResolvingMembership =
     membersQuery.isLoading || roleMembersQuery.isLoading;
   const detail = detailsQuery.data || space;
@@ -139,14 +137,14 @@ export function useSpaceSettings({
   const updateSpaceMutation = useMutation({
     mutationFn: () => updateSpace(space.id, spaceName.trim()),
     onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "chat.spaceUpdated" }));
+      toast.success("Space updated successfully");
       invalidateSpaceData();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.updateSpaceFailed" }),
+          "Failed to update space",
         ),
       ),
   });
@@ -184,7 +182,7 @@ export function useSpaceSettings({
       return { previousSpaces, previousDetails };
     },
     onSuccess: (response) => {
-      toast.success(intl.formatMessage({ id: "chat.spacePermissionsUpdated" }));
+      toast.success("Space permissions updated");
       if (response.data) {
         patchSpaceSettingInCaches(queryClient, space.id, response.data);
       }
@@ -204,7 +202,7 @@ export function useSpaceSettings({
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.updatePermissionsFailed" }),
+          "Failed to update space permissions",
         ),
       );
     },
@@ -214,14 +212,14 @@ export function useSpaceSettings({
     mutationFn: (targetUserId: string) =>
       transferSpaceOwnership(space.id, targetUserId),
     onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "chat.spaceAdminTransferred" }));
+      toast.success("Space ownership transferred");
       invalidateSpaceData();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.transferAdminFailed" }),
+          "Failed to transfer space ownership",
         ),
       ),
   });
@@ -229,14 +227,14 @@ export function useSpaceSettings({
   const removeMemberMutation = useMutation({
     mutationFn: (memberId: string) => removeSpaceMember(space.id, memberId),
     onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "chat.memberRemoved" }));
+      toast.success("Member removed from space");
       invalidateSpaceData();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.removeMemberFailed" }),
+          "Failed to remove member",
         ),
       ),
   });
@@ -245,14 +243,14 @@ export function useSpaceSettings({
     mutationFn: ({ memberId, role }: { memberId: string; role: SpaceRole }) =>
       updateSpaceMemberRole(space.id, memberId, role),
     onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "chat.memberRoleUpdated" }));
+      toast.success("Member role updated");
       invalidateSpaceData();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.updateMemberRoleFailed" }),
+          "Failed to update member role",
         ),
       ),
   });
@@ -260,16 +258,16 @@ export function useSpaceSettings({
   const leaveSpaceMutation = useMutation({
     mutationFn: () => leaveSpace(space.id),
     onSuccess: async () => {
-      toast.success(intl.formatMessage({ id: "chat.leftSpace" }));
+      toast.success("Left space successfully");
       await cleanupRemovedSpaceCaches(queryClient, space.id);
-      onSpaceDeletedOrLeft(space.id);
+      onSpaceDeletedOrLeft?.(space.id);
       onClose();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.leaveSpaceFailed" }),
+          "Failed to leave space",
         ),
       ),
   });
@@ -277,16 +275,16 @@ export function useSpaceSettings({
   const deleteSpaceMutation = useMutation({
     mutationFn: () => deleteSpace(space.id),
     onSuccess: async () => {
-      toast.success(intl.formatMessage({ id: "chat.spaceDeleted" }));
+      toast.success("Space deleted successfully");
       await cleanupRemovedSpaceCaches(queryClient, space.id);
-      onSpaceDeletedOrLeft(space.id);
+      onSpaceDeletedOrLeft?.(space.id);
       onClose();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.deleteSpaceFailed" }),
+          "Failed to delete space",
         ),
       ),
   });
@@ -295,14 +293,14 @@ export function useSpaceSettings({
     mutationFn: (invitationId: string) =>
       cancelSpaceInvitation(space.id, invitationId),
     onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "chat.invitationCancelled" }));
+      toast.success("Invitation cancelled");
       invalidateSpaceData();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.cancelInvitationFailed" }),
+          "Failed to cancel invitation",
         ),
       ),
   });
@@ -311,29 +309,26 @@ export function useSpaceSettings({
     mutationFn: (invitationId: string) =>
       resendSpaceInvitation(space.id, invitationId),
     onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "chat.invitationResent" }));
+      toast.success("Invitation resent");
       invalidateSpaceData();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.resendInvitationFailed" }),
+          "Failed to resend invitation",
         ),
       ),
   });
 
   const confirmOwnershipTransfer = async (member: SpaceMemberListItem) => {
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.transferAdminTitle" }),
-      text: intl.formatMessage(
-        { id: "chat.transferAdminDescription" },
-        { name: getSpaceMemberName(member) },
-      ),
+      title: "Transfer Space Ownership",
+      text: `Are you sure you want to transfer space ownership to ${getSpaceMemberName(member)}?`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: intl.formatMessage({ id: "chat.transfer" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Transfer",
+      cancelButtonText: "Cancel",
     });
     if (result.isConfirmed) {
       transferOwnershipMutation.mutate(member.userId);
@@ -342,15 +337,12 @@ export function useSpaceSettings({
 
   const confirmRemoveMember = async (member: SpaceMemberListItem) => {
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.removeMemberTitle" }),
-      text: intl.formatMessage(
-        { id: "chat.removeMemberDescription" },
-        { name: getSpaceMemberName(member) },
-      ),
+      title: "Remove Member",
+      text: `Are you sure you want to remove ${getSpaceMemberName(member)} from this space?`,
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: intl.formatMessage({ id: "chat.remove" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Remove",
+      cancelButtonText: "Cancel",
       confirmButtonColor: "#dc2626",
     });
     if (result.isConfirmed) {
@@ -364,20 +356,17 @@ export function useSpaceSettings({
   ) => {
     const actionText =
       role === SpaceRole.ADMIN
-        ? intl.formatMessage({ id: "chat.promoteThisUserToAdmin" })
-        : intl.formatMessage({ id: "chat.demoteThisUserToMember" });
+        ? "promote this user to Admin"
+        : "demote this user to Member";
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.updateRoleTitle" }),
-      text: intl.formatMessage(
-        { id: "chat.updateRoleDescription" },
-        { action: actionText },
-      ),
+      title: "Update Member Role",
+      text: `Are you sure you want to ${actionText}?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#3085d6",
       cancelButtonColor: "#d33",
-      confirmButtonText: intl.formatMessage({ id: "app.yes" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Yes",
+      cancelButtonText: "Cancel",
     });
 
     if (result.isConfirmed) {
@@ -387,12 +376,12 @@ export function useSpaceSettings({
 
   const confirmCancelInvitation = async (invitationId: string) => {
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.cancelInvitationTitle" }),
-      text: intl.formatMessage({ id: "chat.cancelInvitationDescription" }),
+      title: "Cancel Invitation",
+      text: "Are you sure you want to cancel this pending invitation?",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: intl.formatMessage({ id: "chat.confirm" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Confirm",
+      cancelButtonText: "Cancel",
     });
     if (result.isConfirmed) {
       cancelInvitationMutation.mutate(invitationId);
@@ -401,12 +390,12 @@ export function useSpaceSettings({
 
   const confirmResendInvitation = async (invitationId: string) => {
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.resendInvitationTitle" }),
-      text: intl.formatMessage({ id: "chat.resendInvitationDescription" }),
+      title: "Resend Invitation",
+      text: "Do you want to resend this invitation email?",
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: intl.formatMessage({ id: "chat.resend" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Resend",
+      cancelButtonText: "Cancel",
     });
     if (result.isConfirmed) {
       resendInvitationMutation.mutate(invitationId);
@@ -415,12 +404,12 @@ export function useSpaceSettings({
 
   const confirmLeaveSpace = async () => {
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.leaveSpaceTitle" }),
-      text: intl.formatMessage({ id: "chat.leaveSpaceDescription" }),
+      title: "Leave Space",
+      text: "Are you sure you want to leave this space?",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: intl.formatMessage({ id: "chat.leave" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Leave",
+      cancelButtonText: "Cancel",
       confirmButtonColor: "#dc2626",
     });
     if (result.isConfirmed) {
@@ -430,20 +419,17 @@ export function useSpaceSettings({
 
   const confirmDeleteSpace = async () => {
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.deleteSpaceTitle" }),
+      title: "Delete Space",
       input: "text",
-      inputLabel: intl.formatMessage(
-        { id: "chat.deleteSpaceInputLabel" },
-        { name: space.name },
-      ),
+      inputLabel: `Type "${space.name}" to confirm space deletion`,
       inputValidator: (value) =>
         value === space.name
           ? null
-          : intl.formatMessage({ id: "chat.spaceNameDoesNotMatch" }),
+          : "Space name does not match",
       icon: "error",
       showCancelButton: true,
-      confirmButtonText: intl.formatMessage({ id: "app.delete" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
       confirmButtonColor: "#dc2626",
     });
     if (result.isConfirmed) {

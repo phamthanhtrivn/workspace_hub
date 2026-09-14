@@ -15,50 +15,28 @@ import { ChatQueryKey, ChatScope, chatKeys } from "../types/chat.constant";
 import { ChatMessageResponse } from "../types/chat.types";
 import { SendSocketMessageMedia } from "../types/chat-socket.types";
 import { useDirectMessageSocket } from "./socket/useDirectMessageSocket";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-
 type MessageDirection = "older" | "newer" | "around";
 
 interface SendDirectMessageParams {
   conversationId: string;
-  content: string;
-  medias?: SendSocketMessageMedia[];
+  content?: string;
+  medias?: any[];
   threadParentId?: string;
   mentions?: string[];
   onSent?: () => void;
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "response" in error &&
-    typeof error.response === "object" &&
-    error.response !== null &&
-    "data" in error.response &&
-    typeof error.response.data === "object" &&
-    error.response.data !== null &&
-    "message" in error.response.data &&
-    typeof error.response.data.message === "string"
-  ) {
+function getErrorMessage(error: any, fallback: string): string {
+  if (error?.response?.data?.message) {
     return error.response.data.message;
   }
-
+  if (error?.message) {
+    return error.message;
+  }
   return fallback;
 }
 
-function hasErrorMessage(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string" &&
-    error.message.length > 0
-  );
-}
-
 export function useDirectMessageActions() {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const {
     sendTyping: sendDirectSocketTyping,
@@ -116,13 +94,11 @@ export function useDirectMessageActions() {
         onSent?.();
         return sentMessage.data;
       } catch (error: unknown) {
-        if (!hasErrorMessage(error)) {
-          toast.error(intl.formatMessage({ id: "chat.failedSendMessage" }));
-        }
+        toast.error(getErrorMessage(error, "Failed to send message"));
         return null;
       }
     },
-    [intl, queryClient],
+    [queryClient],
   );
 
   const editMessage = useCallback(
@@ -137,13 +113,13 @@ export function useDirectMessageActions() {
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "chat.failedEditMessage" }),
+            "Failed to edit message",
           ),
         );
         return false;
       }
     },
-    [intl, queryClient],
+    [queryClient],
   );
 
   const recallMessage = useCallback(
@@ -157,12 +133,12 @@ export function useDirectMessageActions() {
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "chat.failedRecallMessage" }),
+            "Failed to recall message",
           ),
         );
       }
     },
-    [intl, queryClient],
+    [queryClient],
   );
 
   const togglePinMessage = useCallback(
@@ -193,12 +169,12 @@ export function useDirectMessageActions() {
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "chat.failedUpdatePin" }),
+            "Failed to update pin status",
           ),
         );
       }
     },
-    [intl, queryClient],
+    [queryClient],
   );
 
   const unpinMessage = useCallback(
@@ -221,12 +197,12 @@ export function useDirectMessageActions() {
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "chat.failedUnpinMessage" }),
+            "Failed to unpin message",
           ),
         );
       }
     },
-    [intl, queryClient],
+    [queryClient],
   );
 
   const reactToMessage = useCallback(
@@ -240,12 +216,12 @@ export function useDirectMessageActions() {
         toast.error(
           getErrorMessage(
             error,
-            intl.formatMessage({ id: "chat.failedReact" }),
+            "Failed to react to message",
           ),
         );
       }
     },
-    [intl, queryClient],
+    [queryClient],
   );
 
   const markAsRead = useCallback(

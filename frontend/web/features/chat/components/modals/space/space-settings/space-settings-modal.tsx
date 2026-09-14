@@ -16,7 +16,14 @@ import { SPACE_MEMBER_SEARCH_DEBOUNCE_MS } from "@/features/chat/types/chat.cons
 import { useSpaceSettings } from "@/features/chat/hooks/space/useSpaceSettings";
 import { SPACE_SETTINGS_TABS } from "@/features/chat/types/space-settings/space-settings.constants";
 import { useDebouncedValue } from "@/features/chat/hooks/useDebouncedValue";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
+const TAB_LABELS: Record<SpaceSettingsTab, string> = {
+  [SpaceSettingsTab.OVERVIEW]: "Overview",
+  [SpaceSettingsTab.MEMBERS]: "Members",
+  [SpaceSettingsTab.INVITATIONS]: "Invitations",
+  [SpaceSettingsTab.PERMISSIONS]: "Permissions",
+  [SpaceSettingsTab.DANGER]: "Danger Zone",
+};
 
 interface SpaceSettingsModalProps {
   isOpen: boolean;
@@ -33,7 +40,6 @@ export default function SpaceSettingsModal({
   currentUserId,
   onSpaceDeletedOrLeft,
 }: SpaceSettingsModalProps) {
-  const intl = useAppIntl();
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<SpaceSettingsTab>(
     SpaceSettingsTab.OVERVIEW,
@@ -96,7 +102,7 @@ export default function SpaceSettingsModal({
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="min-w-0">
             <h2 className="text-base font-bold text-slate-900 truncate">
-              {intl.formatMessage({ id: "chat.spaceSettings" })}
+              Space Settings
             </h2>
             <p className="text-xs text-slate-500 truncate">{space.name}</p>
           </div>
@@ -123,7 +129,7 @@ export default function SpaceSettingsModal({
                     : "text-slate-500 hover:bg-white hover:text-slate-800",
                 )}
               >
-                {intl.formatMessage({ id: tab.labelId })}
+                {TAB_LABELS[tab.id] || tab.id}
               </button>
             ))}
           </div>
@@ -214,15 +220,15 @@ export default function SpaceSettingsModal({
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <Settings size={14} />
             {settings.isAdmin
-              ? intl.formatMessage({ id: "chat.adminSettings" })
-              : intl.formatMessage({ id: "chat.memberSettings" })}
+              ? "Admin Settings"
+              : "Member Settings"}
           </div>
           <button
             type="button"
             onClick={onClose}
             className="px-4 py-2 rounded-xl bg-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-300 transition cursor-pointer"
           >
-            {intl.formatMessage({ id: "app.close" })}
+            Close
           </button>
         </div>
 
@@ -239,3 +245,4 @@ export default function SpaceSettingsModal({
     document.body,
   );
 }
+

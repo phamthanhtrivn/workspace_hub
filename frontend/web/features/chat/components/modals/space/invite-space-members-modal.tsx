@@ -11,7 +11,6 @@ import {
   inviteSpaceMembers,
   searchUserByEmail,
 } from "@/features/chat/api/chat.api";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface InviteSpaceMembersModalProps {
   isOpen: boolean;
@@ -26,7 +25,6 @@ export default function InviteSpaceMembersModal({
   spaceId,
   onInvited,
 }: InviteSpaceMembersModalProps) {
-  const intl = useAppIntl();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<UserSearchResponse[]>([]);
@@ -77,14 +75,13 @@ export default function InviteSpaceMembersModal({
       setResults(filtered);
 
       if (filtered.length === 0 && users.length > 0) {
-        setError(intl.formatMessage({ id: "chat.userAlreadySelected" }));
+        setError("Selected user is already added");
       } else if (filtered.length === 0) {
-        setError(intl.formatMessage({ id: "chat.userNotFound" }));
+        setError("User not found");
       }
     } catch (err: any) {
       setError(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "chat.searchUserError" }),
+        err.response?.data?.message || "Failed to search user",
       );
       setResults([]);
     } finally {
@@ -104,24 +101,23 @@ export default function InviteSpaceMembersModal({
 
   const handleInvite = async () => {
     if (selectedUsers.length === 0) {
-      toast.error(intl.formatMessage({ id: "chat.selectUserToInvite" }));
+      toast.error("Please select at least one user to invite");
       return;
     }
     if (!spaceId) {
-      toast.error(intl.formatMessage({ id: "chat.spaceInfoMissing" }));
+      toast.error("Space information missing");
       return;
     }
 
     setIsInviting(true);
     try {
       await inviteSpaceMembers(spaceId, selectedUsers);
-      toast.success(intl.formatMessage({ id: "chat.spaceInvitationSent" }));
+      toast.success("Space invitations sent successfully");
       onInvited?.();
       onClose();
     } catch (err: any) {
       toast.error(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "chat.inviteUsersError" }),
+        err.response?.data?.message || "Failed to send invitations",
       );
     } finally {
       setIsInviting(false);
@@ -136,7 +132,7 @@ export default function InviteSpaceMembersModal({
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
           <h2 className="text-lg font-bold text-gray-800">
-            {intl.formatMessage({ id: "chat.inviteMembersToSpace" })}
+            Invite Members to Space
           </h2>
           <button
             onClick={onClose}
@@ -179,7 +175,7 @@ export default function InviteSpaceMembersModal({
             />
             <input
               type="text"
-              placeholder={intl.formatMessage({ id: "chat.enterUserEmail" })}
+              placeholder="Enter user email to search..."
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white rounded-xl text-sm outline-none transition"
@@ -191,7 +187,7 @@ export default function InviteSpaceMembersModal({
             {loading ? (
               <div className="flex justify-center items-center py-6 text-gray-400 text-xs gap-1.5">
                 <Loader2 size={14} className="animate-spin text-blue-500" />
-                {intl.formatMessage({ id: "chat.searching" })}
+                Searching...
               </div>
             ) : results.length > 0 ? (
               results.map((user) => (
@@ -205,7 +201,7 @@ export default function InviteSpaceMembersModal({
                       {user.avatarUrl ? (
                         <Image
                           src={user.avatarUrl}
-                          alt={intl.formatMessage({ id: "profile.avatar" })}
+                          alt="Avatar"
                           width={28}
                           height={28}
                           className="rounded-full animate-fade-in object-cover"
@@ -231,7 +227,7 @@ export default function InviteSpaceMembersModal({
               </div>
             ) : (
               <div className="text-center py-8 text-xs text-gray-400">
-                {intl.formatMessage({ id: "chat.enterEmailToSearchMembers" })}
+                Enter an email address to search for workspace members.
               </div>
             )}
           </div>
@@ -245,7 +241,7 @@ export default function InviteSpaceMembersModal({
             disabled={isInviting}
             className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition cursor-pointer"
           >
-            {intl.formatMessage({ id: "app.cancel" })}
+            Cancel
           </button>
           <button
             onClick={handleInvite}
@@ -253,7 +249,7 @@ export default function InviteSpaceMembersModal({
             className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer"
           >
             {isInviting && <Loader2 size={16} className="animate-spin" />}
-            {intl.formatMessage({ id: "chat.sendInvitation" })}
+            Send Invitation
           </button>
         </div>
       </div>
@@ -261,3 +257,4 @@ export default function InviteSpaceMembersModal({
     document.body,
   );
 }
+

@@ -1,5 +1,4 @@
 import { SpaceResponse } from "@/features/chat/types/chat.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface OverviewTabProps {
   detail: SpaceResponse;
@@ -22,24 +21,22 @@ export function OverviewTab({
   onSpaceNameChange,
   onSave,
 }: OverviewTabProps) {
-  const intl = useAppIntl();
-
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-3 gap-3">
         <OverviewStat
-          label={intl.formatMessage({ id: "chat.members" })}
+          label="Members"
           value={isLoadingDetails ? "-" : (detail.memberCount ?? 0)}
         />
         <OverviewStat
-          label={intl.formatMessage({ id: "chat.channels" })}
+          label="Channels"
           value={isLoadingDetails ? "-" : (detail.channelCount ?? 0)}
         />
         <OverviewStat
-          label={intl.formatMessage({ id: "chat.created" })}
+          label="Created Date"
           value={
             detail.createdAt
-              ? new Date(detail.createdAt).toLocaleDateString(intl.locale)
+              ? new Date(detail.createdAt).toLocaleDateString("en-US")
               : "-"
           }
           compact
@@ -48,7 +45,7 @@ export function OverviewTab({
 
       <div className="space-y-2">
         <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-          {intl.formatMessage({ id: "chat.spaceName" })}
+          Space Name
         </label>
         <div className="flex gap-2">
           <input
@@ -70,9 +67,7 @@ export function OverviewTab({
               onClick={onSave}
               className="px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              {isSaving
-                ? intl.formatMessage({ id: "app.saving" })
-                : intl.formatMessage({ id: "app.save" })}
+              {isSaving ? "Saving..." : "Save"}
             </button>
           )}
         </div>
@@ -105,3 +100,4 @@ function OverviewStat({
     </div>
   );
 }
+

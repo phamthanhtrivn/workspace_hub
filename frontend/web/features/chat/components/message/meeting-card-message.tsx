@@ -8,8 +8,6 @@ import { useAppSelector } from "@/store/store";
 import { formatDateTime } from "@/lib/date";
 import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { MeetingResponse, ChatMessageResponse } from "../../types/chat.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-
 interface MeetingCardMessageProps {
   message: ChatMessageResponse;
   meeting?: MeetingResponse | null;
@@ -21,7 +19,6 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
   meeting: propMeeting,
   onUserClick,
 }: MeetingCardMessageProps) {
-  const intl = useAppIntl();
   const router = useRouter();
   const currentUser = useAppSelector((state) => state.auth);
   const memberProfiles = useChatMemberProfiles();
@@ -38,12 +35,11 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
     senderProfile?.fullName ||
     senderProfile?.email ||
     (isMe ? currentUser?.fullName || currentUser?.email : null) ||
-    intl.formatMessage({ id: "app.user" });
+    "User";
 
   const joinToken = meeting?.joinToken;
   const meetingTitle =
-    meeting?.title ||
-    intl.formatMessage({ id: "chat.meeting.cardTitle" });
+    meeting?.title || "Video Meeting";
   const isLive = meeting?.status === "LIVE" || (!meeting?.status && Boolean(message.meeting));
   const isEnded = meeting?.status === "ENDED";
   const startedAtFormatted = message.createdAt
@@ -52,7 +48,7 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
 
   const handleJoinInApp = () => {
     if (isEnded) {
-      toast.info(intl.formatMessage({ id: "meeting.room.alreadyEnded" }));
+      toast.info("This meeting has already ended.");
       return;
     }
 
@@ -70,7 +66,7 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
 
   const handleOpenNewTab = () => {
     if (isEnded) {
-      toast.info(intl.formatMessage({ id: "meeting.room.alreadyEnded" }));
+      toast.info("This meeting has already ended.");
       return;
     }
 
@@ -93,10 +89,7 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
                 {meetingTitle}
               </h3>
               <p className="text-xs text-slate-500 mt-0.5 font-medium truncate">
-                {intl.formatMessage(
-                  { id: "chat.meeting.startedBy" },
-                  { name: senderName },
-                )}{" "}
+                Started by {senderName}{" "}
                 {startedAtFormatted ? `• ${startedAtFormatted}` : ""}
               </p>
             </div>
@@ -107,11 +100,11 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
             {isLive ? (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                {intl.formatMessage({ id: "chat.meeting.liveStatus" })}
+                LIVE
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
-                {intl.formatMessage({ id: "chat.meeting.endedStatus" })}
+                ENDED
               </span>
             )}
           </div>
@@ -127,26 +120,26 @@ export const MeetingCardMessage = React.memo(function MeetingCardMessage({
               className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs md:text-sm transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Play size={15} className="fill-current" />
-              <span>{intl.formatMessage({ id: "chat.meeting.joinNow" })}</span>
+              <span>Join Now</span>
             </button>
 
             <button
               type="button"
               onClick={handleOpenNewTab}
               disabled={!joinToken}
-              title={intl.formatMessage({ id: "chat.meeting.openNewTab" })}
+              title="Open in new tab"
               className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200/80 font-medium text-xs transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <ExternalLink size={15} />
               <span className="hidden sm:inline">
-                {intl.formatMessage({ id: "chat.meeting.openNewTab" })}
+                Open in new tab
               </span>
             </button>
           </div>
         ) : (
           <div className="pt-2.5 border-t border-slate-100 text-center">
             <span className="text-xs font-semibold text-slate-500 py-1 inline-block">
-              {intl.formatMessage({ id: "meeting.room.alreadyEnded" })}
+              This meeting has ended
             </span>
           </div>
         )}

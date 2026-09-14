@@ -11,7 +11,6 @@ import { chatKeys } from "@/features/chat/types/chat.constant";
 import { useSpaceChannelsQuery } from "@/features/chat/hooks/useChatQueries";
 import { disbandChannel, joinChannel } from "@/features/chat/api/channel.api";
 import { removeChannelFromCaches } from "@/features/chat/utils/chat-cache";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface BrowseChannelsModalProps {
   isOpen: boolean;
@@ -32,7 +31,6 @@ export default function BrowseChannelsModal({
   onJoinSuccess,
   onDeleteSuccess,
 }: BrowseChannelsModalProps) {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
   const [mounted, setMounted] = useState(false);
@@ -79,8 +77,7 @@ export default function BrowseChannelsModal({
   const joinMutation = useMutation({
     mutationFn: (channelId: string) => joinChannel(channelId),
     onSuccess: (response, channelId) => {
-      toast.success(intl.formatMessage({ id: "chat.joinedChannel" }));
-      // Invalidate queries to refresh sidebar and modal lists
+      toast.success("Joined channel successfully");
       queryClient.invalidateQueries({ queryKey: chatKeys.channels(spaceId) });
 
       const joinedChannel =
@@ -94,8 +91,7 @@ export default function BrowseChannelsModal({
     },
     onError: (err: any) => {
       toast.error(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "chat.joinChannelFailed" }),
+        err.response?.data?.message || "Failed to join channel",
       );
     },
   });
@@ -103,7 +99,7 @@ export default function BrowseChannelsModal({
   const deleteMutation = useMutation({
     mutationFn: (channelId: string) => disbandChannel(channelId),
     onSuccess: (_response, channelId) => {
-      toast.success(intl.formatMessage({ id: "chat.channelDeleted" }));
+      toast.success("Channel deleted successfully");
       removeChannelFromCaches(queryClient, channelId);
       queryClient.invalidateQueries({ queryKey: chatKeys.channels(spaceId) });
       queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
@@ -112,22 +108,21 @@ export default function BrowseChannelsModal({
     },
     onError: (err: any) => {
       toast.error(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "chat.deleteChannelFailed" }),
+        err.response?.data?.message || "Failed to delete channel",
       );
     },
   });
 
   const handleDeleteChannel = async (channelId: string) => {
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.deleteChannelTitle" }),
-      text: intl.formatMessage({ id: "chat.deleteChannelDescription" }),
+      title: "Delete Channel",
+      text: "Are you sure you want to delete this channel? All messages and attachments will be lost.",
       icon: "error",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: intl.formatMessage({ id: "app.delete" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
     });
 
     if (result.isConfirmed) {
@@ -147,7 +142,7 @@ export default function BrowseChannelsModal({
           <div className="flex items-center gap-2">
             <Globe className="text-blue-500" size={20} />
             <h2 className="text-lg font-bold text-gray-800">
-              {intl.formatMessage({ id: "chat.browseChannels" })}
+              Browse Channels
             </h2>
           </div>
           <button
@@ -167,9 +162,7 @@ export default function BrowseChannelsModal({
             />
             <input
               type="text"
-              placeholder={intl.formatMessage({
-                id: "chat.searchChannelsByName",
-              })}
+              placeholder="Search channels by name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 rounded-xl text-sm outline-none transition duration-150 shadow-sm"
@@ -182,9 +175,7 @@ export default function BrowseChannelsModal({
           {isLoading ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 gap-2">
               <Loader2 className="animate-spin text-blue-500" size={24} />
-              <span className="text-xs">
-                {intl.formatMessage({ id: "chat.loadingChannels" })}
-              </span>
+              <span className="text-xs">Loading channels...</span>
             </div>
           ) : filteredChannels.length > 0 ? (
             filteredChannels.map((channel: any) => {
@@ -207,13 +198,10 @@ export default function BrowseChannelsModal({
                         {channel.name}
                       </p>
                       <p className="text-[11px] text-gray-400 mt-0.5">
-                        {intl.formatMessage(
-                          { id: "chat.membersCount" },
-                          { count: memberCount },
-                        )}
+                        {`${memberCount} members`}
                         {channel.isDefault && (
                           <span className="ml-2 px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[9px] font-bold">
-                            {intl.formatMessage({ id: "chat.default" })}
+                            Default
                           </span>
                         )}
                       </p>
@@ -224,7 +212,7 @@ export default function BrowseChannelsModal({
                     {isJoined ? (
                       <span className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg border border-emerald-100/50">
                         <Check size={14} />
-                        {intl.formatMessage({ id: "chat.joined" })}
+                        Joined
                       </span>
                     ) : (
                       <button
@@ -236,7 +224,7 @@ export default function BrowseChannelsModal({
                         joinMutation.variables === channel.id ? (
                           <Loader2 size={12} className="animate-spin" />
                         ) : null}
-                        {intl.formatMessage({ id: "chat.join" })}
+                        Join
                       </button>
                     )}
                     {(isSpaceAdmin ||
@@ -248,9 +236,7 @@ export default function BrowseChannelsModal({
                           onClick={() => handleDeleteChannel(channel.id)}
                           disabled={deleteMutation.isPending}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition"
-                          title={intl.formatMessage({
-                            id: "chat.deleteChannel",
-                          })}
+                          title="Delete Channel"
                         >
                           {deleteMutation.isPending &&
                           deleteMutation.variables === channel.id ? (
@@ -266,7 +252,7 @@ export default function BrowseChannelsModal({
             })
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 italic text-xs py-10">
-              {intl.formatMessage({ id: "chat.noChannelsFound" })}
+              No channels found
             </div>
           )}
         </div>
@@ -277,7 +263,7 @@ export default function BrowseChannelsModal({
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl transition cursor-pointer"
           >
-            {intl.formatMessage({ id: "app.close" })}
+            Close
           </button>
         </div>
       </div>
@@ -285,3 +271,4 @@ export default function BrowseChannelsModal({
     document.body,
   );
 }
+

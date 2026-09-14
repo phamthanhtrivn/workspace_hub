@@ -12,8 +12,6 @@ import {
   RotateCcw,
   Download,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-
 interface MediaItem {
   id: string;
   fileUrl: string;
@@ -32,7 +30,6 @@ export default function MediaLightbox({
   initialIndex,
   onClose,
 }: MediaLightboxProps) {
-  const intl = useAppIntl();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -158,7 +155,7 @@ export default function MediaLightbox({
           <button
             onClick={handleDownload}
             className="cursor-pointer p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition"
-            title={intl.formatMessage({ id: "documents.download" })}
+            title="Download"
           >
             <Download size={24} />
           </button>
@@ -168,7 +165,7 @@ export default function MediaLightbox({
               onClose();
             }}
             className="cursor-pointer p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition"
-            title={intl.formatMessage({ id: "app.close" })}
+            title="Close"
           >
             <X size={24} />
           </button>
@@ -249,7 +246,7 @@ export default function MediaLightbox({
           <button
             onClick={handleZoomOut}
             className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-            title={intl.formatMessage({ id: "chat.zoomOut" })}
+            title="Zoom Out"
           >
             <ZoomOut size={20} />
           </button>
@@ -259,7 +256,7 @@ export default function MediaLightbox({
           <button
             onClick={handleZoomIn}
             className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-            title={intl.formatMessage({ id: "chat.zoomIn" })}
+            title="Zoom In"
           >
             <ZoomIn size={20} />
           </button>
@@ -267,14 +264,14 @@ export default function MediaLightbox({
           <button
             onClick={handleRotate}
             className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-            title={intl.formatMessage({ id: "chat.rotate" })}
+            title="Rotate"
           >
             <RotateCcw size={18} style={{ transform: "scaleX(-1)" }} />
           </button>
           <button
             onClick={handleReset}
             className="cursor-pointer p-2 text-white/80 hover:text-white transition"
-            title={intl.formatMessage({ id: "chat.resetView" })}
+            title="Reset View"
           >
             <RotateCcw size={18} />
           </button>

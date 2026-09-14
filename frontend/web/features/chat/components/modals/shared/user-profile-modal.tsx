@@ -11,10 +11,8 @@ import {
   createDirectConversation,
   getPublicProfile,
 } from "@/features/chat/api/chat.api";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const UserProfileModal = React.memo(function UserProfileModal() {
-  const intl = useAppIntl();
   const dispatch = useAppDispatch();
   const selectedProfileUserId = useAppSelector(
     (state) => state.chat.selectedProfileUserId,
@@ -45,22 +43,18 @@ const UserProfileModal = React.memo(function UserProfileModal() {
         if (response?.success) {
           setUserProfile(response.data);
         } else {
-          toast.error(
-            intl.formatMessage({ id: "chat.failedLoadUserInformation" }),
-          );
+          toast.error("Failed to load user profile");
         }
       } catch (err) {
         console.error("Failed to load selected user profile:", err);
-        toast.error(
-          intl.formatMessage({ id: "chat.errorLoadingUserInformation" }),
-        );
+        toast.error("Error loading user profile");
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  }, [intl, selectedProfileUserId]);
+  }, [selectedProfileUserId]);
 
   if (!mounted || !selectedProfileUserId) return null;
 
@@ -97,14 +91,12 @@ const UserProfileModal = React.memo(function UserProfileModal() {
         handleClose();
       } else {
         toast.error(
-          response?.message ||
-            intl.formatMessage({ id: "chat.failedCreateChatRoom" }),
+          response?.message || "Failed to start direct conversation",
         );
       }
     } catch (err: any) {
       toast.error(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "chat.failedCreateChatRoom" }),
+        err.response?.data?.message || "Failed to start direct conversation",
       );
     }
   };
@@ -114,7 +106,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden max-h-[85vh] flex flex-col border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
           <h2 className="text-xl font-bold text-gray-800 tracking-tight">
-            {intl.formatMessage({ id: "chat.userProfile" })}
+            User Profile
           </h2>
           <button
             onClick={handleClose}
@@ -129,7 +121,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
             <div className="flex flex-col items-center justify-center py-10 gap-3">
               <div className="w-8 h-8 border-4 border-blue-100 border-t-blue-500 rounded-full animate-spin"></div>
               <p className="text-sm font-medium text-gray-500">
-                  {intl.formatMessage({ id: "chat.loadingProfile" })}
+                Loading profile...
               </p>
             </div>
           ) : (
@@ -138,7 +130,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                 {userProfile?.avatarUrl ? (
                   <img
                     src={userProfile.avatarUrl}
-                    alt={intl.formatMessage({ id: "chat.userAvatar" })}
+                    alt="User Avatar"
                     className="w-full h-full object-cover"
                   />
                 ) : (
@@ -146,32 +138,25 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                 )}
               </div>
               <h3 className="text-xl font-bold text-gray-800">
-                {userProfile?.fullName ||
-                  intl.formatMessage({ id: "chat.unknownUser" })}
+                {userProfile?.fullName || "Unknown User"}
               </h3>
               <p className="text-gray-500 text-sm mb-6">
-                {userProfile?.email ||
-                  intl.formatMessage({ id: "chat.profileDetailsUnavailable" })}
+                {userProfile?.email || "No email available"}
               </p>
 
               <div className="w-full bg-gray-50 rounded-xl p-4 flex flex-col gap-3 mb-6">
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <Phone size={18} className="text-gray-400" />
                   <span>
-                    {userProfile?.phoneNumber ||
-                      intl.formatMessage({ id: "chat.phoneNumberNotUpdated" })}
+                    {userProfile?.phoneNumber || "Phone number not provided"}
                   </span>
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-700">
                   <Calendar size={18} className="text-gray-400" />
                   <span>
                     {userProfile?.dob
-                      ? new Date(userProfile.dob).toLocaleDateString(
-                          intl.locale,
-                        )
-                      : intl.formatMessage({
-                          id: "chat.dateOfBirthNotUpdated",
-                        })}
+                      ? new Date(userProfile.dob).toLocaleDateString("en-US")
+                      : "Date of birth not provided"}
                   </span>
                 </div>
                 <div className="flex items-start gap-3 text-sm text-gray-700 mt-2 pt-2 border-t border-gray-200">
@@ -179,9 +164,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                   {userProfile?.bio ? (
                     <span className="italic">"{userProfile.bio}"</span>
                   ) : (
-                    <span>
-                      {intl.formatMessage({ id: "chat.bioNotUpdated" })}
-                    </span>
+                    <span>No bio provided</span>
                   )}
                 </div>
               </div>
@@ -191,7 +174,7 @@ const UserProfileModal = React.memo(function UserProfileModal() {
                   onClick={handleMessage}
                   className="cursor-pointer w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold py-3 rounded-xl shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
                 >
-                  {intl.formatMessage({ id: "chat.sendMessage" })}
+                  Send Message
                 </button>
               )}
             </div>
@@ -205,3 +188,4 @@ const UserProfileModal = React.memo(function UserProfileModal() {
 });
 
 export default UserProfileModal;
+

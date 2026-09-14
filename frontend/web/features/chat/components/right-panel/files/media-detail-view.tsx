@@ -22,20 +22,19 @@ import { logApiError } from "@/lib/interceptors";
 import { getDirectConversationMedia } from "@/features/chat/api/direct-message.api";
 import { getChannelMedia } from "@/features/chat/api/channel.api";
 import MediaLightbox from "../../message/media-lightbox";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const FILE_FILTERS = [
-  { value: undefined, labelId: "chat.fileFilter.all" },
-  { value: "image", labelId: "chat.fileFilter.images" },
-  { value: "video", labelId: "chat.fileFilter.videos" },
-  { value: "audio", labelId: "chat.fileFilter.audio" },
-  { value: "pdf", labelId: "chat.fileFilter.pdf" },
-  { value: "document", labelId: "chat.fileFilter.docs" },
-  { value: "spreadsheet", labelId: "chat.fileFilter.sheets" },
-  { value: "presentation", labelId: "chat.fileFilter.slides" },
-  { value: "archive", labelId: "chat.fileFilter.archives" },
-  { value: "code", labelId: "chat.fileFilter.code" },
-  { value: "other", labelId: "chat.fileFilter.other" },
+  { value: undefined, label: "All" },
+  { value: "image", label: "Images" },
+  { value: "video", label: "Videos" },
+  { value: "audio", label: "Audio" },
+  { value: "pdf", label: "PDFs" },
+  { value: "document", label: "Documents" },
+  { value: "spreadsheet", label: "Spreadsheets" },
+  { value: "presentation", label: "Presentations" },
+  { value: "archive", label: "Archives" },
+  { value: "code", label: "Code" },
+  { value: "other", label: "Other" },
 ] as const;
 
 type FileFilter = (typeof FILE_FILTERS)[number]["value"];
@@ -145,7 +144,6 @@ export default function MediaDetailView({
   isDirect = false,
   onBack,
 }: MediaDetailViewProps) {
-  const intl = useAppIntl();
   const [activeFilter, setActiveFilter] = useState<FileFilter>(undefined);
   const [lightboxIndex, setLightboxIndex] = useState<number>(-1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -253,7 +251,7 @@ export default function MediaDetailView({
           <ArrowLeft size={20} />
         </button>
         <h2 className="font-semibold text-gray-800">
-          {intl.formatMessage({ id: "chat.files" })}
+          Files
         </h2>
       </div>
 
@@ -267,14 +265,14 @@ export default function MediaDetailView({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={intl.formatMessage({ id: "chat.searchFilesByName" })}
+            placeholder="Search files by name..."
             className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
           />
         </div>
 
         <div>
           <label className="mb-1.5 block text-[11px] font-semibold text-gray-500">
-            {intl.formatMessage({ id: "documents.fileType" })}
+            File Type
           </label>
           <select
             value={activeFilter || ""}
@@ -284,8 +282,8 @@ export default function MediaDetailView({
             className="w-full cursor-pointer rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           >
             {FILE_FILTERS.map((filter) => (
-              <option key={filter.labelId} value={filter.value || ""}>
-                {intl.formatMessage({ id: filter.labelId })}
+              <option key={filter.label} value={filter.value || ""}>
+                {filter.label}
               </option>
             ))}
           </select>
@@ -295,11 +293,11 @@ export default function MediaDetailView({
       <div className="flex-1 overflow-y-auto p-3">
         {isLoading ? (
           <div className="text-center text-sm text-gray-400 py-4">
-            {intl.formatMessage({ id: "documents.loadingFiles" })}
+            Loading files...
           </div>
         ) : allItems.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-4">
-            {intl.formatMessage({ id: "chat.noFilesAvailable" })}
+            No files available
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -344,7 +342,7 @@ export default function MediaDetailView({
                     <span
                       onClick={(e) => handleDownload(e, item)}
                       className="rounded-md p-2 text-gray-400 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
-                      title={intl.formatMessage({ id: "documents.download" })}
+                      title="Download"
                     >
                       <Download size={16} />
                     </span>
@@ -358,7 +356,7 @@ export default function MediaDetailView({
             >
               {isFetchingNextPage && (
                 <span className="text-xs text-gray-400">
-                  {intl.formatMessage({ id: "chat.loadingMore" })}
+                  Loading more...
                 </span>
               )}
             </div>

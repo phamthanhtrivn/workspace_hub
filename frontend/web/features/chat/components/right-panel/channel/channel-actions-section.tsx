@@ -17,7 +17,6 @@ import {
 import { chatKeys } from "../../../types/chat.constant";
 import { ChannelResponse, SpaceRole } from "../../../types/chat.types";
 import { getErrorMessage } from "../../../types/space-settings/space-settings.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelActionsSectionProps {
   activeChannel: ChannelResponse;
@@ -30,7 +29,6 @@ export default function ChannelActionsSection({
   currentUserId,
   onClose,
 }: ChannelActionsSectionProps) {
-  const intl = useAppIntl();
   const dispatch = useAppDispatch();
   const queryClient = useQueryClient();
   const { data: spaceDetail } = useQuery({
@@ -52,8 +50,8 @@ export default function ChannelActionsSection({
     (isAdmin || (isCreator && allowMemberDeleteOwnChannel));
   const canLeaveChannel = !activeChannel.isDefault || !isAdmin;
   const actionLabel = activeChannel.isDefault
-    ? intl.formatMessage({ id: "chat.leaveSpace" })
-    : intl.formatMessage({ id: "chat.leaveChannel" });
+    ? "Leave Space"
+    : "Leave Channel";
 
   const invalidateChannelData = () => {
     queryClient.invalidateQueries({
@@ -79,8 +77,8 @@ export default function ChannelActionsSection({
     onSuccess: () => {
       toast.success(
         activeChannel.isDefault
-          ? intl.formatMessage({ id: "chat.leftSpace" })
-          : intl.formatMessage({ id: "chat.leftChannel" }),
+          ? "Left space successfully"
+          : "Left channel successfully",
       );
       resetChannelUi();
     },
@@ -88,7 +86,7 @@ export default function ChannelActionsSection({
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.leaveChannelFailed" }),
+          "Failed to leave channel",
         ),
       ),
   });
@@ -96,33 +94,30 @@ export default function ChannelActionsSection({
   const deleteMutation = useMutation({
     mutationFn: () => disbandChannel(activeChannel.id),
     onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "chat.channelDeleted" }));
+      toast.success("Channel deleted successfully");
       resetChannelUi();
     },
     onError: (error) =>
       toast.error(
         getErrorMessage(
           error,
-          intl.formatMessage({ id: "chat.deleteChannelFailed" }),
+          "Failed to delete channel",
         ),
       ),
   });
 
   const confirmLeaveChannel = async () => {
     const result = await Swal.fire({
-      title: intl.formatMessage(
-        { id: "chat.confirmActionTitle" },
-        { action: actionLabel },
-      ),
+      title: `${actionLabel}?`,
       text: activeChannel.isDefault
-        ? intl.formatMessage({ id: "chat.leaveDefaultChannelDescription" })
-        : intl.formatMessage({ id: "chat.leaveChannelDescription" }),
+        ? "Leaving the default channel will also remove you from this space."
+        : "Are you sure you want to leave this channel?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#3085d6",
       confirmButtonText: actionLabel,
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      cancelButtonText: "Cancel",
     });
 
     if (result.isConfirmed) {
@@ -132,14 +127,14 @@ export default function ChannelActionsSection({
 
   const confirmDeleteChannel = async () => {
     const result = await Swal.fire({
-      title: intl.formatMessage({ id: "chat.deleteChannelTitle" }),
-      text: intl.formatMessage({ id: "chat.deleteChannelDescription" }),
+      title: "Delete Channel",
+      text: "Are you sure you want to delete this channel? All messages and attachments in this channel will be permanently removed.",
       icon: "error",
       showCancelButton: true,
       confirmButtonColor: "#dc2626",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: intl.formatMessage({ id: "app.delete" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
     });
 
     if (result.isConfirmed) {
@@ -162,7 +157,7 @@ export default function ChannelActionsSection({
               className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <LogOut size={15} />
-              {intl.formatMessage({ id: "chat.leaveChannel" })}
+              Leave Channel
             </button>
           )}
           <button
@@ -172,7 +167,7 @@ export default function ChannelActionsSection({
             className="inline-flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Trash2 size={15} />
-            {intl.formatMessage({ id: "chat.deleteChannel" })}
+            Delete Channel
           </button>
         </div>
       ) : (

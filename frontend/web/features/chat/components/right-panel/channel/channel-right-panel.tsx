@@ -36,7 +36,6 @@ import { useActiveChat } from "../../../hooks/useChatQueries";
 import { logApiError } from "@/lib/interceptors";
 import { sortChannelsByPin } from "../../../utils/direct-conversation-utils";
 import MediaDetailView from "../files/media-detail-view";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelRightPanelProps {
   onClose: () => void;
@@ -47,7 +46,6 @@ export default function ChannelRightPanel({
   onClose,
   initialDetailView,
 }: ChannelRightPanelProps) {
-  const intl = useAppIntl();
   const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "pinned",
@@ -307,19 +305,17 @@ export default function ChannelRightPanel({
     );
   }
 
-  const displayName = activeChannel.name || intl.formatMessage({ id: "chat.channel" });
+  const displayName = activeChannel.name || "Channel";
   const displayAvatarUrl = activeChannel.avatarUrl;
-  const displayDescription = intl.formatMessage(
-    { id: "chat.membersCount" },
-    { count: activeChannel?.members?.length || 0 },
-  );
+  const memberCount = activeChannel?.members?.length || 0;
+  const displayDescription = `${memberCount} ${memberCount === 1 ? "member" : "members"}`;
 
   return (
     <div className="w-full h-full bg-white border-l border-gray-200 flex flex-col">
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="font-semibold text-gray-800">
-          {intl.formatMessage({ id: "chat.channelDetails" })}
+          Channel Details
         </h2>
         <button
           onClick={onClose}
@@ -348,9 +344,7 @@ export default function ChannelRightPanel({
                 />
               </div>
               <span className="text-xs font-medium">
-                {intl.formatMessage({
-                  id: isPinned ? "chat.unpin" : "chat.pin",
-                })}
+                {isPinned ? "Unpin" : "Pin"}
               </span>
             </button>
 
@@ -362,9 +356,7 @@ export default function ChannelRightPanel({
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">
-                {intl.formatMessage({
-                  id: isMuted ? "chat.unmute" : "chat.mute",
-                })}
+                {isMuted ? "Unmute" : "Mute"}
               </span>
             </button>
           </div>

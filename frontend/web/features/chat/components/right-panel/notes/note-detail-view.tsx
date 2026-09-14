@@ -4,7 +4,6 @@ import ViewNoteModal from "../../modals/message/view-note-modal";
 import { useNotes } from "../../../hooks/useNotes";
 import { formatDateTime } from "@/lib/date";
 import { NoteResponse } from "../../../types/chat.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface NoteDetailViewProps {
   conversationId: string;
@@ -15,7 +14,6 @@ export default function NoteDetailView({
   conversationId,
   onBack,
 }: NoteDetailViewProps) {
-  const intl = useAppIntl();
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
@@ -41,7 +39,7 @@ export default function NoteDetailView({
           <ArrowLeft size={20} />
         </button>
         <h2 className="font-semibold text-gray-800">
-          {intl.formatMessage({ id: "chat.notes" })}
+          Notes
         </h2>
       </div>
 
@@ -55,7 +53,7 @@ export default function NoteDetailView({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={intl.formatMessage({ id: "chat.searchNotes" })}
+            placeholder="Search notes..."
             className="w-full pl-9 pr-3 py-2 text-xs bg-gray-100 border border-transparent rounded-lg focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
           />
         </div>
@@ -69,8 +67,8 @@ export default function NoteDetailView({
         ) : notes.length === 0 ? (
           <div className="text-center text-sm text-gray-400 py-4">
             {searchQuery
-              ? intl.formatMessage({ id: "chat.noMatchingNotes" })
-              : intl.formatMessage({ id: "chat.noNotesAvailable" })}
+              ? "No matching notes found"
+              : "No notes available"}
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -86,8 +84,7 @@ export default function NoteDetailView({
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-amber-900 mb-1 truncate">
-                      {note.title ||
-                        intl.formatMessage({ id: "chat.untitledNote" })}{" "}
+                      {note.title || "Untitled Note"}{" "}
                       -{" "}
                       {formatDateTime(note.createdAt)}
                     </p>

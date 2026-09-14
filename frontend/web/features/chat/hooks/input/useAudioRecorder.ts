@@ -2,14 +2,11 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-
 interface UseAudioRecorderProps {
   onRecordComplete: (file: File) => void;
 }
 
 export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
-  const intl = useAppIntl();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -32,16 +29,12 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
 
   const startRecording = useCallback(async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error(
-        intl.formatMessage({ id: "chat.microphoneRecordingNotSupported" }),
-      );
+      toast.error("Microphone recording is not supported in this browser");
       return false;
     }
 
     if (typeof MediaRecorder === "undefined") {
-      toast.error(
-        intl.formatMessage({ id: "chat.voiceMessagesNotSupported" }),
-      );
+      toast.error("Voice messages are not supported in this browser");
       return false;
     }
 
@@ -94,10 +87,10 @@ export function useAudioRecorder({ onRecordComplete }: UseAudioRecorderProps) {
     } catch (err) {
       console.error("Error accessing microphone:", err);
       resetRecordingState();
-      toast.error(intl.formatMessage({ id: "chat.cannotAccessMicrophone" }));
+      toast.error("Cannot access microphone");
       return false;
     }
-  }, [intl, onRecordComplete, resetRecordingState]);
+  }, [onRecordComplete, resetRecordingState]);
 
   const stopRecording = useCallback(() => {
     const mediaRecorder = mediaRecorderRef.current;

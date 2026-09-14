@@ -1,6 +1,5 @@
 import { SpaceSettingResponse } from "@/features/chat/types/chat.types";
 import { normalizeSpaceSetting } from "@/features/chat/utils/space-setting-utils";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface PermissionsTabProps {
   isSaving: boolean;
@@ -17,7 +16,6 @@ export function PermissionsTab({
   onAllowMemberCreateChannelChange,
   onAllowMemberDeleteOwnChannelChange,
 }: PermissionsTabProps) {
-  const intl = useAppIntl();
   const normalized = normalizeSpaceSetting(setting);
   const allowMemberCreateChannel = normalized.allowMemberCreateChannel;
   const allowMemberDeleteOwnChannel = normalized.allowMemberDeleteOwnChannel;
@@ -26,17 +24,17 @@ export function PermissionsTab({
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-bold text-slate-900">
-          {intl.formatMessage({ id: "chat.channelPermissions" })}
+          Channel Permissions
         </h3>
         <p className="mt-1 text-xs text-slate-500">
-          {intl.formatMessage({ id: "chat.memberChannelPermissionsHelp" })}
+          Configure permissions for regular members within this space.
         </p>
       </div>
 
       <div className="space-y-3">
         <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
           <span className="text-sm font-semibold text-slate-800">
-            {intl.formatMessage({ id: "chat.allowMemberCreateChannel" })}
+            Allow members to create channels
           </span>
           <input
             type="checkbox"
@@ -51,7 +49,7 @@ export function PermissionsTab({
 
         <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-slate-100 bg-slate-50 p-4">
           <span className="text-sm font-semibold text-slate-800">
-            {intl.formatMessage({ id: "chat.allowMemberDeleteOwnChannel" })}
+            Allow members to delete channels they created
           </span>
           <input
             type="checkbox"
@@ -67,3 +65,4 @@ export function PermissionsTab({
     </div>
   );
 }
+

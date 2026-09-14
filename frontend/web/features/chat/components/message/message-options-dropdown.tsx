@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import { Edit2, Pin, Trash2 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MessageOptionsDropdownProps {
   isOpen: boolean;
@@ -27,7 +26,6 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
   canRecall = true,
   isPinned = false,
 }) => {
-  const intl = useAppIntl();
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,7 +76,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
           className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 cursor-pointer transition-colors"
         >
           <Edit2 size={16} />
-          <span>{intl.formatMessage({ id: "chat.editMessage" })}</span>
+          <span>Edit message</span>
         </button>
       )}
 
@@ -91,9 +89,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
       >
         <Pin size={16} />
         <span>
-          {intl.formatMessage({
-            id: isPinned ? "chat.unpinMessage" : "chat.pinMessage",
-          })}
+          {isPinned ? "Unpin message" : "Pin message"}
         </span>
       </button>
 
@@ -108,7 +104,7 @@ export const MessageOptionsDropdown: React.FC<MessageOptionsDropdownProps> = ({
             className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 flex items-center gap-2 cursor-pointer transition-colors"
           >
             <Trash2 size={16} />
-            <span>{intl.formatMessage({ id: "chat.recallMessage" })}</span>
+            <span>Recall message</span>
           </button>
         </>
       )}

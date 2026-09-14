@@ -32,7 +32,6 @@ import { ChatContextType } from "../../../types/chat.types";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { logApiError } from "@/lib/interceptors";
 import MediaDetailView from "../files/media-detail-view";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface DirectMessageRightPanelProps {
   onClose: () => void;
@@ -49,7 +48,6 @@ export default function DirectMessageRightPanel({
   onClose,
   initialDetailView,
 }: DirectMessageRightPanelProps) {
-  const intl = useAppIntl();
   const [isMuted, setIsMuted] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(
     "pinned",
@@ -181,7 +179,7 @@ export default function DirectMessageRightPanel({
     }
   };
 
-  let displayName = intl.formatMessage({ id: "chat.directMessage" });
+  let displayName = "Direct Message";
   let displayAvatarUrl = null;
   let displayDescription = "";
   let otherMemberId: string | null = null;
@@ -196,7 +194,7 @@ export default function DirectMessageRightPanel({
       profile?.fullName ||
       profile?.email ||
       otherMember.userId ||
-      intl.formatMessage({ id: "app.user" });
+      "User";
     displayAvatarUrl = profile?.avatarUrl || null;
     displayDescription = profile?.email || "";
   }
@@ -316,7 +314,7 @@ export default function DirectMessageRightPanel({
       {/* Header */}
       <div className="h-16 px-4 border-b border-gray-200 flex items-center justify-between">
         <h2 className="font-semibold text-gray-800">
-          {intl.formatMessage({ id: "documents.details" })}
+          Details
         </h2>
         <button
           onClick={onClose}
@@ -339,7 +337,7 @@ export default function DirectMessageRightPanel({
             {displayAvatarUrl ? (
               <Image
                 src={displayAvatarUrl}
-                alt={intl.formatMessage({ id: "profile.avatar" })}
+                alt="Avatar"
                 width={80}
                 height={80}
                 className="rounded-full"
@@ -363,9 +361,7 @@ export default function DirectMessageRightPanel({
                 />
               </div>
               <span className="text-xs font-medium">
-                {intl.formatMessage({
-                  id: isPinned ? "chat.unpin" : "chat.pin",
-                })}
+                {isPinned ? "Unpin" : "Pin"}
               </span>
             </button>
 
@@ -377,9 +373,7 @@ export default function DirectMessageRightPanel({
                 {isMuted ? <BellOff size={18} /> : <Bell size={18} />}
               </div>
               <span className="text-xs font-medium">
-                {intl.formatMessage({
-                  id: isMuted ? "chat.unmute" : "chat.mute",
-                })}
+                {isMuted ? "Unmute" : "Mute"}
               </span>
             </button>
           </div>

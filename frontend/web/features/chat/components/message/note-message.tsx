@@ -8,8 +8,6 @@ import { useChatMemberProfiles } from "../../hooks/useChatMemberProfiles";
 import { NoteResponse } from "../../types/chat.types";
 import { renderMessageContent } from "../../utils/message-formatter";
 import EditNoteModal from "../modals/message/edit-note-modal";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-
 interface NoteMessageProps {
   note: NoteResponse;
   onUserClick?: (userId: string) => void;
@@ -21,7 +19,6 @@ const NoteMessage = React.memo(function NoteMessage({
   onUserClick,
   onEditNote,
 }: NoteMessageProps) {
-  const intl = useAppIntl();
   const currentUser = useAppSelector((state) => state.auth);
   const memberProfiles = useChatMemberProfiles();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -29,7 +26,7 @@ const NoteMessage = React.memo(function NoteMessage({
   if (!note) {
     return (
       <div className="text-gray-500 italic p-4">
-        {intl.formatMessage({ id: "chat.noteUnavailable" })}
+        Note unavailable
       </div>
     );
   }
@@ -54,7 +51,7 @@ const NoteMessage = React.memo(function NoteMessage({
             </h3>
             <div className="flex items-center gap-2 text-xs text-amber-800/60 mt-1 font-medium">
               <span>
-                {intl.formatMessage({ id: "chat.by" })}{" "}
+                by{" "}
                 <span
                   className={`font-semibold text-amber-900 ${!isMe ? "cursor-pointer hover:underline" : ""}`}
                   onClick={() => {
@@ -62,10 +59,10 @@ const NoteMessage = React.memo(function NoteMessage({
                   }}
                 >
                   {isMe
-                    ? intl.formatMessage({ id: "chat.you" })
+                    ? "you"
                     : creatorProfile?.fullName ||
                       creatorProfile?.email ||
-                      intl.formatMessage({ id: "app.user" })}
+                      "User"}
                 </span>
               </span>
               <span>-</span>
@@ -84,7 +81,7 @@ const NoteMessage = React.memo(function NoteMessage({
             className="cursor-pointer w-full mt-4 py-2.5 flex items-center justify-center gap-2 text-xs font-bold text-amber-800 bg-amber-100/70 hover:bg-amber-200/80 rounded-xl transition-all duration-200"
           >
             <Edit2 size={14} />
-            {intl.formatMessage({ id: "chat.editNote" })}
+            Edit Note
           </button>
         )}
       </div>

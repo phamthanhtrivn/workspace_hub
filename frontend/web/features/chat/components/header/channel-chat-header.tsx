@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { getSpaceDetails } from "../../api/chat.api";
 import { chatKeys } from "../../types/chat.constant";
 import ChannelMembersModal from "../modals/channel/channel-members-modal";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
 
@@ -20,7 +19,6 @@ export default function ChannelChatHeader({
   onOpenSearch,
   onBack,
 }: ChannelChatHeaderProps) {
-  const intl = useAppIntl();
   const { activeChat: activeChannel } = useActiveChat();
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -38,7 +36,7 @@ export default function ChannelChatHeader({
   });
 
   const displayName =
-    activeChannel?.name || intl.formatMessage({ id: "chat.channel" });
+    activeChannel?.name || "Channel";
   const memberCount = activeChannel?.members?.length || 0;
   const isDefaultChannel =
     !!activeChannel && "isDefault" in activeChannel && activeChannel.isDefault;
@@ -47,7 +45,7 @@ export default function ChannelChatHeader({
     if (activeChannel?.id) {
       createMeeting({
         channelId: activeChannel.id,
-        title: `${intl.formatMessage({ id: "chat.meeting.cardTitle" })} - #${displayName}`,
+        title: `Meeting - #${displayName}`,
         cameraEnabled: true,
         microphoneEnabled: true,
         autoAdmin: true,
@@ -86,10 +84,7 @@ export default function ChannelChatHeader({
             onClick={() => setIsMembersModalOpen(true)}
             disabled={!activeChannel?.id}
             className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-gray-200 px-2 py-1 text-xs text-gray-600 transition hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label={intl.formatMessage(
-              { id: "chat.openChannelMembers" },
-              { count: memberCount },
-            )}
+            aria-label={`Members (${memberCount})`}
           >
             <span>
               <User className="w-3 h-3" />
@@ -103,7 +98,7 @@ export default function ChannelChatHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onOpenSearch}
-          title={intl.formatMessage({ id: "app.search" })}
+          title="Search"
         >
           <Search size={20} />
         </button>
@@ -111,7 +106,7 @@ export default function ChannelChatHeader({
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeChannel?.id}
-          title={intl.formatMessage({ id: "chat.header.startMeeting" })}
+          title="Start instant meeting"
         >
           <Video size={20} />
         </button>
@@ -119,7 +114,7 @@ export default function ChannelChatHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onToggleRightPanel}
-          title={intl.formatMessage({ id: "chat.channelInfo" })}
+          title="Channel info"
         >
           <Info size={20} />
         </button>
