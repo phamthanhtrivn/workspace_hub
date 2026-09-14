@@ -120,7 +120,7 @@ export function MeetingInvitationListItemRenderer({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-start gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/50 ${
+      className={`flex w-full cursor-pointer items-start gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/50 ${
         notification.isRead ? "bg-white" : "bg-blue-50/60"
       }`}
     >

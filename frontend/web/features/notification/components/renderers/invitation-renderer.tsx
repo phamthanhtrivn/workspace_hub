@@ -89,7 +89,7 @@ export const InvitationListItemRenderer: React.FC<{
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/45 ${
+      className={`group flex w-full cursor-pointer gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/45 ${
         !notification.isRead ? "bg-blue-50/60" : "bg-white"
       }`}
     >

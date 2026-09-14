@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Bell,
   CalendarDays,
   Check,
-  ChevronDown,
   FileText,
   FolderKanban,
   MessageCircle,
@@ -86,6 +85,21 @@ import {
   NOTIFICATION_TIME_FILTERS,
   toLocalDateInputValue,
 } from "@/features/notification/utils/notification-time-filter.utils";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { CustomDateRange } from "@/components/ui/custom/custom-date-range";
+import { CustomTag } from "@/components/ui/custom/custom-tag";
+import {
+  CustomTabs,
+  type CustomTabOption,
+} from "@/components/ui/custom/custom-tabs";
+import { SimplePagination } from "@/components/ui/custom/simple-pagination";
+import type { CustomSelectOption } from "@/components/ui/custom/custom-select";
 import { toast } from "sonner";
 import { useMeetingConfirmDialog } from "@/features/meeting/hooks/useMeetingConfirmDialog";
 import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
@@ -227,7 +241,6 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     useState<Notification | null>(null);
   const { confirm, alertDialogProps } = useMeetingConfirmDialog();
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const dateRange: NotificationDateRange = React.useMemo(
     () =>
       getNotificationDateRange(timeFilter, {
@@ -388,22 +401,6 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     };
   }, [fetchList, isOpen, page]);
 
-  // Click outside to close
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
-
   const handleMarkAllAsRead = async () => {
     try {
       await markAllAsRead();
@@ -544,189 +541,156 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const unreadTabCount = unreadCountsByCategory[category] ?? 0;
   const hasCategoryData = pagination.total > 0;
   const currentPage = Math.min(page, pagination.totalPages);
-  const canGoPrevious = currentPage > 1;
-  const canGoNext = currentPage < pagination.totalPages;
+  const timeFilterOptions = React.useMemo<
+    CustomSelectOption<NotificationTimeFilter>[]
+  >(
+    () =>
+      NOTIFICATION_TIME_FILTERS.map((item) => ({
+        value: item,
+        label: intl.formatMessage({ id: timeFilterMessageIds[item] }),
+        icon: <CalendarDays className="h-3.5 w-3.5" />,
+      })),
+    [intl],
+  );
+  const readTabOptions = React.useMemo<
+    CustomTabOption<NotificationReadFilter>[]
+  >(
+    () => [
+      {
+        value: "ALL",
+        label: intl.formatMessage({ id: "notifications.all" }),
+      },
+      {
+        value: "UNREAD",
+        label: intl.formatMessage({ id: "notifications.unread" }),
+        count: unreadTabCount,
+      },
+      {
+        value: "READ",
+        label: intl.formatMessage({ id: "notifications.read" }),
+      },
+    ],
+    [intl, unreadTabCount],
+  );
+  const handlePageChange = (nextPage: number) => {
+    setPage(Math.min(Math.max(1, nextPage), pagination.totalPages));
+  };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`relative flex z-100 h-11 w-11 items-center justify-center rounded-full border bg-white shadow-sm transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer ${
-          isOpen
-            ? "border-indigo-300 text-indigo-600 bg-indigo-50"
-            : "border-slate-200 text-slate-600 hover:bg-slate-50"
-        }`}
-        aria-label={intl.formatMessage({ id: "header.notifications" })}
-      >
-        <Bell size={22} className={isOpen ? "fill-indigo-100" : ""} />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white border-2 border-white shadow-sm">
-            {formatNotificationCount(unreadCount)}
-          </span>
-        )}
-      </button>
+    <div className="relative">
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className={`relative z-[80] h-11 w-11 rounded-full border bg-white shadow-sm transition focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 ${
+              isOpen
+                ? "border-blue-300 bg-blue-50 text-[var(--color-primary)]"
+                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+            aria-label={intl.formatMessage({ id: "header.notifications" })}
+          >
+            <Bell size={22} className={isOpen ? "fill-blue-100" : ""} />
+            {unreadCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[11px] font-bold text-white shadow-sm">
+                {formatNotificationCount(unreadCount)}
+              </span>
+            ) : null}
+          </Button>
+        </PopoverTrigger>
 
-      {isOpen && (
-        <div className="absolute right-[-48] z-90 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-            <h3 className="font-black text-slate-800 text-base">
+        <PopoverContent
+          align="end"
+          sideOffset={10}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="w-[min(calc(100vw-1.5rem),26rem)] overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-[0_20px_55px_rgba(15,23,42,0.18)] ring-1 ring-black/5"
+        >
+          <div className="flex items-center justify-between gap-3 bg-slate-50/80 px-4 py-3">
+            <h3 className="text-base font-black text-slate-800">
               {intl.formatMessage({ id: "notifications.title" })}
             </h3>
-            <div className="flex items-center justify-end gap-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full px-2 text-xs font-bold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-800"
-                >
-                  <Check size={14} />
-                  {intl.formatMessage({ id: "notifications.markAllRead" })}
-                </button>
-              )}
-            </div>
+            {unreadCount > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                className="h-7 rounded-full px-2 text-xs font-black text-[var(--color-primary)] hover:bg-blue-50 hover:text-[var(--color-primary-dark)]"
+              >
+                <Check size={14} />
+                {intl.formatMessage({ id: "notifications.markAllRead" })}
+              </Button>
+            ) : null}
           </div>
 
-          <div className="flex gap-2 overflow-x-auto border-b border-slate-100 px-3 py-2">
+          <Separator />
+
+          <div className="flex gap-2 overflow-x-auto px-3 py-2">
             {NOTIFICATION_CATEGORIES.map((item) => {
               const { label, Icon } = categoryConfig[item];
-              const isActive = category === item;
               const itemUnreadCount = unreadCountsByCategory[item] ?? 0;
 
               return (
-                <button
+                <CustomTag
                   key={item}
-                  type="button"
+                  label={label}
+                  icon={<Icon className="h-3.5 w-3.5" />}
+                  count={itemUnreadCount}
+                  selected={category === item}
                   onClick={() => handleCategoryChange(item)}
-                  className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-xs font-bold transition ${
-                    isActive
-                      ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/20"
-                      : "bg-slate-50 text-slate-500 ring-1 ring-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-100"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                  {itemUnreadCount > 0 ? (
-                    <span
-                      className={`ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-black tabular-nums ${
-                        isActive
-                          ? "bg-white/20 text-white"
-                          : "bg-slate-200 text-slate-600"
-                      }`}
-                    >
-                      {formatNotificationCount(itemUnreadCount)}
-                    </span>
-                  ) : null}
-                </button>
+                />
               );
             })}
           </div>
 
-          <div className="border-b border-slate-100 bg-muted/30 px-3 py-2.5">
-            <div className="relative">
-              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <select
-                value={timeFilter}
-                onChange={(event) =>
-                  handleTimeFilterChange(
-                    event.target.value as NotificationTimeFilter,
-                  )
-                }
-                aria-label={intl.formatMessage({
-                  id: "notifications.filter.label",
-                })}
-                className="h-9 w-full appearance-none rounded-md border border-border bg-popover pl-9 pr-9 text-sm font-semibold text-popover-foreground shadow-sm outline-none transition hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/40"
-              >
-                {NOTIFICATION_TIME_FILTERS.map((item) => (
-                  <option key={item} value={item}>
-                    {intl.formatMessage({ id: timeFilterMessageIds[item] })}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            </div>
-            {timeFilter === "CUSTOM_RANGE" ? (
-              <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                <input
-                  type="date"
-                  value={customFromDate}
-                  max={customToDate || undefined}
-                  onChange={(event) =>
-                    handleCustomFromDateChange(event.target.value)
-                  }
-                  aria-label={intl.formatMessage({
-                    id: "notifications.filter.fromDate",
-                  })}
-                  className="h-8 min-w-0 rounded-md border border-border bg-background px-2 text-xs font-semibold text-foreground outline-none transition focus-visible:ring-2 focus-visible:ring-ring/40"
-                />
-                <span className="text-xs font-bold text-muted-foreground">
-                  {intl.formatMessage({ id: "notifications.filter.to" })}
-                </span>
-                <input
-                  type="date"
-                  value={customToDate}
-                  min={customFromDate || undefined}
-                  onChange={(event) =>
-                    handleCustomToDateChange(event.target.value)
-                  }
-                  aria-label={intl.formatMessage({
-                    id: "notifications.filter.toDate",
-                  })}
-                  className="h-8 min-w-0 rounded-md border border-border bg-background px-2 text-xs font-semibold text-foreground outline-none transition focus-visible:ring-2 focus-visible:ring-ring/40"
-                />
-              </div>
-            ) : null}
-            {isCustomRangeInvalid ? (
-              <p className="mt-1.5 text-xs font-semibold text-destructive">
-                {intl.formatMessage({
-                  id: "notifications.filter.invalidRange",
-                })}
-              </p>
-            ) : null}
+          <Separator />
+
+          <div className="bg-slate-50/60 px-3 py-2.5">
+            <CustomDateRange
+              value={timeFilter}
+              options={timeFilterOptions}
+              fromDate={customFromDate}
+              toDate={customToDate}
+              invalid={isCustomRangeInvalid}
+              customRangeValue="CUSTOM_RANGE"
+              onFilterChange={handleTimeFilterChange}
+              onFromDateChange={handleCustomFromDateChange}
+              onToDateChange={handleCustomToDateChange}
+              ariaLabel={intl.formatMessage({
+                id: "notifications.filter.label",
+              })}
+              fromLabel={intl.formatMessage({
+                id: "notifications.filter.fromDate",
+              })}
+              toLabel={intl.formatMessage({
+                id: "notifications.filter.toDate",
+              })}
+              toText={intl.formatMessage({ id: "notifications.filter.to" })}
+              invalidMessage={intl.formatMessage({
+                id: "notifications.filter.invalidRange",
+              })}
+            />
           </div>
 
-          <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4">
-            <div className="flex shrink-0">
-              <button
-                onClick={() => handleTabChange("ALL")}
-                className={`py-2.5 px-2 text-sm font-bold border-b-2 transition cursor-pointer ${
-                  tab === "ALL"
-                    ? "border-indigo-600 text-indigo-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {intl.formatMessage({ id: "notifications.all" })}
-              </button>
-              <button
-                onClick={() => handleTabChange("UNREAD")}
-                className={`py-2.5 px-3 text-sm font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
-                  tab === "UNREAD"
-                    ? "border-indigo-600 text-indigo-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {intl.formatMessage({ id: "notifications.unread" })}
-                {unreadTabCount > 0 && (
-                  <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] ${tab === "UNREAD" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}
-                  >
-                    {formatNotificationCount(unreadTabCount)}
-                  </span>
-                )}
-              </button>
-              <button
-                onClick={() => handleTabChange("READ")}
-                className={`py-2.5 px-3 text-sm font-bold border-b-2 transition cursor-pointer ${
-                  tab === "READ"
-                    ? "border-indigo-600 text-indigo-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {intl.formatMessage({ id: "notifications.read" })}
-              </button>
-            </div>
-            <div className="flex min-w-0 items-center justify-end gap-1 overflow-x-auto py-2">
-              {tab === "READ" && hasCategoryData && (
-                <button
+          <Separator />
+
+          <div className="flex items-center justify-between gap-2 px-4">
+            <CustomTabs
+              value={tab}
+              options={readTabOptions}
+              onChange={handleTabChange}
+              ariaLabel={intl.formatMessage({
+                id: "notifications.filter.label",
+              })}
+              className="min-w-0 shrink-0"
+            />
+            <div className="flex min-w-0 items-center justify-end py-2">
+              {tab === "READ" && hasCategoryData ? (
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => void handleDeleteCategory(category)}
                   disabled={deleteNotificationsMutation.isPending}
                   aria-label={intl.formatMessage(
@@ -747,7 +711,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                     },
                     { category: categoryConfig[category].label },
                   )}
-                  className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-md bg-background px-2 text-xs font-bold text-muted-foreground ring-1 ring-border transition hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="h-8 min-w-0 shrink rounded-lg border-slate-200 bg-white px-2 text-xs font-black text-slate-500 hover:border-red-100 hover:bg-red-50 hover:text-red-600"
                 >
                   <Trash2 className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">
@@ -761,10 +725,12 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                       { category: categoryConfig[category].label },
                     )}
                   </span>
-                </button>
-              )}
+                </Button>
+              ) : null}
             </div>
           </div>
+
+          <Separator />
 
           <div className="max-h-[52vh] overflow-y-auto overscroll-contain">
             <NotificationList
@@ -772,54 +738,25 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
               onItemClick={handleItemClick}
               onDelete={
                 tab === "READ"
-                  ? (notificationId) => void handleDeleteNotification(notificationId)
+                  ? (notificationId) =>
+                      void handleDeleteNotification(notificationId)
                   : undefined
               }
               deletingNotificationId={deletingNotificationId}
               isLoading={loading}
             />
           </div>
-          <div className="flex items-center justify-end gap-1 border-t border-slate-100 bg-slate-50/70 px-3 py-2">
-            <button
-              type="button"
-              onClick={() => setPage(1)}
-              disabled={!canGoPrevious || loading}
-              className="h-7 rounded-md px-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              &lt;&lt;
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-              disabled={!canGoPrevious || loading}
-              className="h-7 rounded-md px-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              &lt;
-            </button>
-            <span className="mx-1 min-w-12 rounded-full bg-white px-2 py-1 text-center text-[11px] font-black text-slate-600 ring-1 ring-slate-200">
-              {currentPage}/{pagination.totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                setPage((value) => Math.min(pagination.totalPages, value + 1))
-              }
-              disabled={!canGoNext || loading}
-              className="h-7 rounded-md px-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              &gt;
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage(pagination.totalPages)}
-              disabled={!canGoNext || loading}
-              className="h-7 rounded-md px-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              &gt;&gt;
-            </button>
+
+          <div className="border-t border-slate-100 bg-slate-50/80 px-3 py-2">
+            <SimplePagination
+              page={currentPage}
+              totalPages={pagination.totalPages}
+              isLoading={loading}
+              onPageChange={handlePageChange}
+            />
           </div>
-        </div>
-      )}
+        </PopoverContent>
+      </Popover>
 
       {selectedNotification && (
         <NotificationDetailModal
