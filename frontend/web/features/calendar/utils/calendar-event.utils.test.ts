@@ -29,6 +29,7 @@ function createEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
     originalStartAt: null,
     sourceType: EventSourceType.USER,
     sourceId: null,
+    completedAt: null,
     exceptionDates: [],
     documentIds: [],
     cancelledAt: null,
@@ -68,6 +69,28 @@ describe("mapCalendarEventToFullCalendar", () => {
 
     expect(mapped.classNames).toContain("calendar-task-event");
     expect(mapped.extendedProps?.sourceType).toBe(EventSourceType.TASK);
+  });
+
+  it("marks completed tasks for the completed renderer", () => {
+    const completedAt = "2026-09-14T12:00:00.000Z";
+    const event = createEvent({
+      sourceType: EventSourceType.TASK,
+      completedAt,
+    });
+    const mapped = mapCalendarEventToFullCalendar(event);
+
+    expect(mapped.classNames).toContain("calendar-task-event-completed");
+    expect(mapped.extendedProps?.completedAt).toBe(completedAt);
+  });
+
+  it("does not apply completion styling to regular events", () => {
+    const event = createEvent({
+      sourceType: EventSourceType.USER,
+      completedAt: "2026-09-14T12:00:00.000Z",
+    });
+    const mapped = mapCalendarEventToFullCalendar(event);
+
+    expect(mapped.classNames).not.toContain("calendar-task-event-completed");
   });
 
   it("applies the selected task calendar color to task events", () => {

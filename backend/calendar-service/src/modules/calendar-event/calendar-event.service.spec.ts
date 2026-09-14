@@ -55,6 +55,7 @@ describe('CalendarEventService', () => {
     isRecurrenceOverride: false,
     sourceType: EventSourceType.USER,
     sourceId: null,
+    completedAt: null,
     cancelledAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -246,6 +247,53 @@ describe('CalendarEventService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('marks a calendar task as completed', async () => {
+    const { service, prisma } = createService();
+    prisma.calendarEvent.findUnique.mockResolvedValue({
+      ...event,
+      sourceType: EventSourceType.TASK,
+    });
+
+    await service.updateTaskCompletion(ownerId, eventId, true);
+
+    expect(prisma.calendarEvent.update).toHaveBeenCalledWith({
+      where: { id: eventId },
+      data: {
+        completedAt: expect.any(Date),
+        updatedBy: ownerId,
+        isRecurrenceOverride: undefined,
+      },
+    });
+  });
+
+  it('marks only the selected recurring task occurrence as incomplete', async () => {
+    const { service, prisma } = createService();
+    prisma.calendarEvent.findUnique.mockResolvedValue({
+      ...recurringFirstOccurrence(),
+      sourceType: EventSourceType.TASK,
+      completedAt: new Date('2026-09-14T12:00:00.000Z'),
+    });
+
+    await service.updateTaskCompletion(ownerId, eventId, false);
+
+    expect(prisma.calendarEvent.update).toHaveBeenCalledWith({
+      where: { id: eventId },
+      data: {
+        completedAt: null,
+        updatedBy: ownerId,
+        isRecurrenceOverride: true,
+      },
+    });
+  });
+
+  it('rejects completion updates for regular events', async () => {
+    const { service } = createService();
+
+    await expect(
+      service.updateTaskCompletion(ownerId, eventId, true),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('blocks users who are neither calendar owner nor attendee', async () => {
     const { service } = createService();
 
@@ -289,6 +337,7 @@ describe('CalendarEventService', () => {
       color: event.color,
       status: EventStatus.CONFIRMED,
       visibility: EventVisibility.DEFAULT,
+      sourceType: EventSourceType.USER,
       recurrenceRule: 'FREQ=DAILY;COUNT=10',
       timeZone: calendar.timeZone,
       recurrenceGeneratedUntil: new Date('2027-01-01T00:00:00.000Z'),

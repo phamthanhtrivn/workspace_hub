@@ -184,6 +184,31 @@ export class CalendarEventService {
     await this.recurrenceMutations.cancelEvent(userId, event, scope);
   }
 
+  async updateTaskCompletion(
+    userId: string,
+    eventId: string,
+    completed: boolean,
+  ) {
+    const event = await this.accessPolicy.findEventOrThrow(eventId);
+    this.accessPolicy.assertCanManageEvent(userId, event);
+    this.accessPolicy.assertUserManagedEvent(event);
+    if (event.sourceType !== EventSourceType.TASK) {
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.ONLY_TASKS_CAN_BE_COMPLETED,
+      );
+    }
+
+    await this.prisma.calendarEvent.update({
+      where: { id: event.id },
+      data: {
+        completedAt: completed ? new Date() : null,
+        updatedBy: userId,
+        isRecurrenceOverride: event.recurrenceSeries ? true : undefined,
+      },
+    });
+    return this.getEventById(userId, event.id);
+  }
+
   async updateResponse(
     userId: string,
     eventId: string,

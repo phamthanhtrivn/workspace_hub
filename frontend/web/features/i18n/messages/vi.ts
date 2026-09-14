@@ -73,7 +73,8 @@ const vi = {
   "auth.backToSignIn": "Quay lại đăng nhập",
   "auth.loginSubtitle": "Chào mừng trở lại. Đăng nhập để tiếp tục.",
   "auth.registerSubtitle": "Bắt đầu cách làm việc và học tập thông minh hơn.",
-  "auth.forgotSubtitle": "Đừng lo. Chúng tôi sẽ giúp bạn lấy lại quyền truy cập tài khoản.",
+  "auth.forgotSubtitle":
+    "Đừng lo. Chúng tôi sẽ giúp bạn lấy lại quyền truy cập tài khoản.",
   "auth.layoutDescription":
     "Quản lý công việc, tài liệu, học tập, lịch trình và trò chuyện trong một workspace rõ ràng hơn, thông minh hơn với AI.",
   "auth.orContinueWith": "hoặc tiếp tục với",
@@ -164,8 +165,7 @@ const vi = {
   "project.backlog.selectedTasks": "Đã chọn {count} task",
   "project.backlog.selectSprint": "Chọn Sprint...",
   "project.backlog.moveToSprint": "Đưa vào Sprint",
-  "project.backlog.bulkStatusAria":
-    "Trạng thái mới cho các task đã chọn",
+  "project.backlog.bulkStatusAria": "Trạng thái mới cho các task đã chọn",
   "project.backlog.changeStatus": "Đổi trạng thái",
   "project.common.retry": "Thử lại",
   "project.invitation.title": "Lời mời tham gia dự án",
@@ -181,10 +181,8 @@ const vi = {
   "project.invitation.declined": "Đã từ chối lời mời",
   "project.invitation.respondFailed":
     "Không thể phản hồi. Lời mời có thể đã hết hạn hoặc đã được xử lý.",
-  "project.task.readOnlyTerminal":
-    "Công việc đã kết thúc và chỉ có thể xem",
-  "project.task.editForbidden":
-    "Bạn không có quyền chỉnh sửa công việc này",
+  "project.task.readOnlyTerminal": "Công việc đã kết thúc và chỉ có thể xem",
+  "project.task.editForbidden": "Bạn không có quyền chỉnh sửa công việc này",
   "project.task.loading": "Đang tải công việc...",
   "project.task.loadFailed":
     "Không thể tải danh sách công việc. Vui lòng kiểm tra lại dịch vụ backend.",
@@ -204,7 +202,8 @@ const vi = {
   "project.members.view": "Xem thành viên",
   "project.members.more": "+{count} thành viên khác",
   "project.members.viewAll": "Xem tất cả",
-  "project.members.subtitle": "Quản lý danh sách thành viên, vai trò và phân quyền truy cập trong dự án.",
+  "project.members.subtitle":
+    "Quản lý danh sách thành viên, vai trò và phân quyền truy cập trong dự án.",
   "project.members.searchPlaceholder": "Tìm kiếm theo tên thành viên...",
   "project.members.total": "Tổng thành viên",
   "project.members.owners": "Quản trị viên",
@@ -356,7 +355,8 @@ const vi = {
   "project.calendar.weekday.sun": "CN",
   "project.files.addFile": "Thêm file",
   "project.files.allProjectFiles": "Tất cả file trong Project",
-  "project.files.addedFromSprints": "File được thêm từ các Sprint trong Project.",
+  "project.files.addedFromSprints":
+    "File được thêm từ các Sprint trong Project.",
   "project.files.addToProject": "Thêm file vào Project",
   "project.files.empty": "Project chưa có file",
   "project.files.emptyHelp": "Thêm file từ đây hoặc tại từng Sprint.",
@@ -382,14 +382,22 @@ const vi = {
   "calendar.customColor": "Màu tùy chỉnh",
   "calendar.preview": "Xem trước",
   "calendar.editEvent": "Chỉnh sửa sự kiện",
+  "calendar.editCalendar": "Chỉnh sửa lịch",
   "calendar.cancelEvent": "Hủy sự kiện",
   "calendar.today": "Hôm nay",
+  "calendar.moreEvents": "Xem thêm",
+  "calendar.view.year": "Năm",
   "calendar.view.month": "Tháng",
   "calendar.view.week": "Tuần",
   "calendar.view.day": "Ngày",
-  "calendar.view.list": "Danh sách",
+  "calendar.view.list": "Lịch biểu",
   "calendar.myCalendars": "Lịch của tôi",
   "calendar.tasks": "Công việc",
+  "calendar.task.markCompleted": "Đánh dấu hoàn thành",
+  "calendar.task.markIncomplete": "Đánh dấu chưa hoàn thành",
+  "calendar.task.markedCompleted": "Đã hoàn thành công việc",
+  "calendar.task.markedIncomplete": "Đã chuyển về chưa hoàn thành",
+  "calendar.task.completionFailed": "Không thể cập nhật trạng thái công việc",
   "calendar.projects": "Dự án",
   "calendar.noProjects": "Dự án sẽ hiển thị ở đây sau khi kết nối.",
   "calendar.calendarNamePlaceholder": "Tên lịch",
@@ -478,11 +486,15 @@ const vi = {
   "calendar.quick.addDescriptionAttachment": "Thêm mô tả hoặc tệp đính kèm",
   "calendar.quick.addDescription": "Thêm mô tả",
   "calendar.quick.addFile": "Thêm tệp",
-  "calendar.quick.eventSummary": "Bận · Hiển thị mặc định · Nhắc trước {reminder} phút",
+  "calendar.quick.eventSummary":
+    "Bận · Hiển thị mặc định · Nhắc trước {reminder} phút",
   "calendar.quick.uiOnly": "Giao diện đã sẵn sàng · Sẽ kết nối service sau",
-  "calendar.quick.taskUiOnly": "Giao diện công việc đã sẵn sàng; chưa kết nối Project Service",
-  "calendar.quick.appointmentUiOnly": "Giao diện lịch hẹn đã sẵn sàng; chưa kết nối dịch vụ đặt lịch",
-  "calendar.quick.conferenceUiOnly": "Cuộc họp video sẽ được kết nối ở giai đoạn sau",
+  "calendar.quick.taskUiOnly":
+    "Giao diện công việc đã sẵn sàng; chưa kết nối Project Service",
+  "calendar.quick.appointmentUiOnly":
+    "Giao diện lịch hẹn đã sẵn sàng; chưa kết nối dịch vụ đặt lịch",
+  "calendar.quick.conferenceUiOnly":
+    "Cuộc họp video sẽ được kết nối ở giai đoạn sau",
   "calendar.recurrence": "Lặp lại",
   "calendar.recurrence.none": "Không lặp lại",
   "calendar.recurrence.daily": "Hàng ngày",
@@ -546,7 +558,8 @@ const vi = {
   "project.gantt.next": "Tiếp",
   "project.gantt.filterPlaceholder": "Tìm công việc...",
   "project.gantt.scheduleTask": "Lên lịch",
-  "project.gantt.unscheduledHelp": "Các công việc chưa có ngày bắt đầu hoặc hạn chót sẽ hiển thị ở đây. Bấm vào công việc để thiết lập thời gian.",
+  "project.gantt.unscheduledHelp":
+    "Các công việc chưa có ngày bắt đầu hoặc hạn chót sẽ hiển thị ở đây. Bấm vào công việc để thiết lập thời gian.",
   "project.gantt.durationDays": "{days} ngày",
   "project.gantt.taskCount": "{count} công việc",
   "project.gantt.unscheduledDrawer": "Công việc chưa lên lịch",
@@ -558,30 +571,35 @@ const vi = {
   "project.invitation.expiry": "{email} · hết hạn {expiry}",
   "project.invitation.pending": "Đang chờ",
   "project.invitation.pendingBadge": "{count} đang chờ",
-  "project.invitation.pendingSummary": "{count, plural, =0 {Chưa có lời mời đang chờ} other {# lời mời đang chờ phản hồi}}",
+  "project.invitation.pendingSummary":
+    "{count, plural, =0 {Chưa có lời mời đang chờ} other {# lời mời đang chờ phản hồi}}",
   "project.invitation.pendingTitle": "Lời mời đang chờ ({count})",
   "project.invitation.resend": "Gửi lại",
   "project.invitation.resendFailed": "Không thể gửi lại lời mời",
   "project.invitation.resendFor": "Gửi lại lời mời cho {name}",
   "project.invitation.resent": "Đã gửi lại lời mời",
   "project.invitation.revoke": "Thu hồi",
-  "project.invitation.revokeConfirmText": "Người này sẽ không thể chấp nhận lời mời hiện tại nữa.",
+  "project.invitation.revokeConfirmText":
+    "Người này sẽ không thể chấp nhận lời mời hiện tại nữa.",
   "project.invitation.revokeConfirmTitle": "Thu hồi lời mời của {name}?",
   "project.invitation.revokeFailed": "Không thể thu hồi lời mời",
   "project.invitation.revokeFor": "Thu hồi lời mời của {name}",
   "project.invitation.revoked": "Đã thu hồi lời mời",
-  "project.invitation.searchDescription": "Tìm tài khoản theo tên hoặc email. Lời mời sẽ xuất hiện trong chuông thông báo của họ.",
+  "project.invitation.searchDescription":
+    "Tìm tài khoản theo tên hoặc email. Lời mời sẽ xuất hiện trong chuông thông báo của họ.",
   "project.invitation.send": "Gửi lời mời",
   "project.invitation.sendFailed": "Không thể gửi lời mời",
   "project.invitation.sending": "Đang gửi...",
   "project.invitation.sent": "Đã gửi lời mời vào dự án",
-  "project.invitation.sentContinue": "Đã gửi lời mời cho {name}. Bạn có thể tiếp tục mời người khác.",
+  "project.invitation.sentContinue":
+    "Đã gửi lời mời cho {name}. Bạn có thể tiếp tục mời người khác.",
   "project.label.attach": "Gắn nhãn",
   "project.label.color": "Màu nhãn",
   "project.label.count": "{count} nhãn",
   "project.label.delete": "Xóa {name}",
   "project.label.empty": "Dự án chưa có nhãn.",
-  "project.label.managementDescription": "Quản lý các nhãn dùng cho công việc trong dự án.",
+  "project.label.managementDescription":
+    "Quản lý các nhãn dùng cho công việc trong dự án.",
   "project.label.namePlaceholder": "Tên nhãn",
   "project.label.title": "Nhãn của dự án",
   "project.member.count": "Thành viên ({count})",
@@ -590,94 +608,128 @@ const vi = {
   "project.member.inviteShort": "Mời",
   "project.member.nameOrEmail": "Tên hoặc email",
   "project.member.remove": "Xóa thành viên",
-  "project.member.removeConfirmText": "Thành viên này sẽ mất quyền truy cập vào dự án.",
+  "project.member.removeConfirmText":
+    "Thành viên này sẽ mất quyền truy cập vào dự án.",
   "project.member.removeConfirmTitle": "Xóa {name} khỏi dự án?",
   "project.member.removeFailed": "Không thể xóa thành viên",
   "project.member.removeFor": "Xóa {name}",
   "project.member.removed": "Đã xóa thành viên",
-  "project.member.searchEmpty": "Không tìm thấy người dùng chưa tham gia dự án này.",
+  "project.member.searchEmpty":
+    "Không tìm thấy người dùng chưa tham gia dự án này.",
   "project.member.searchFailed": "Không thể tìm người dùng",
-  "project.member.searchHint": "Nhập ít nhất 2 ký tự để tìm người dùng. Thành viên hiện tại sẽ tự động được ẩn.",
+  "project.member.searchHint":
+    "Nhập ít nhất 2 ký tự để tìm người dùng. Thành viên hiện tại sẽ tự động được ẩn.",
   "project.member.searchPlaceholder": "Ví dụ: Nguyễn An hoặc an@example.com",
   "project.permission.createTask": "Tạo task mới",
-  "project.permission.createTaskDescription": "Tạo task và subtask trong backlog hoặc sprint đang lên kế hoạch.",
+  "project.permission.createTaskDescription":
+    "Tạo task và subtask trong backlog hoặc sprint đang lên kế hoạch.",
   "project.permission.editOwnTask": "Sửa toàn bộ task do thành viên tạo",
-  "project.permission.editOwnTaskDescription": "Đổi nội dung, người được giao và các thuộc tính của task do chính thành viên tạo.",
+  "project.permission.editOwnTaskDescription":
+    "Đổi nội dung, người được giao và các thuộc tính của task do chính thành viên tạo.",
   "project.permission.editOthersTask": "Sửa toàn bộ task do người khác tạo",
-  "project.permission.editOthersTaskDescription": "Áp dụng cả với task mà thành viên không phải người tạo hoặc người được giao.",
+  "project.permission.editOthersTaskDescription":
+    "Áp dụng cả với task mà thành viên không phải người tạo hoặc người được giao.",
   "project.permission.manageSprints": "Quản lý sprint",
-  "project.permission.manageSprintsDescription": "Tạo, đổi tên, bắt đầu hoặc kết thúc sprint và đưa task vào hoặc ra sprint.",
+  "project.permission.manageSprintsDescription":
+    "Tạo, đổi tên, bắt đầu hoặc kết thúc sprint và đưa task vào hoặc ra sprint.",
   "project.permission.manageMembers": "Quản lý thành viên",
-  "project.permission.manageMembersDescription": "Mời hoặc xóa thành viên. Không thể cấp quyền hay đổi quản trị viên.",
+  "project.permission.manageMembersDescription":
+    "Mời hoặc xóa thành viên. Không thể cấp quyền hay đổi quản trị viên.",
   "project.permission.manageLabels": "Quản lý nhãn",
-  "project.permission.manageLabelsDescription": "Cho phép tạo, cập nhật và xóa nhãn của dự án.",
+  "project.permission.manageLabelsDescription":
+    "Cho phép tạo, cập nhật và xóa nhãn của dự án.",
   "project.permission.manageFor": "Cấp quyền cho {name}",
-  "project.permission.ownerOnly": "Chỉ quản trị viên mới có thể thay đổi các quyền bổ sung này.",
+  "project.permission.ownerOnly":
+    "Chỉ quản trị viên mới có thể thay đổi các quyền bổ sung này.",
   "project.permission.save": "Lưu quyền",
   "project.permission.title": "Phân quyền cho {name}",
   "project.permission.alwaysAvailable": "Quyền luôn có khi là thành viên",
   "project.permission.alwaysAvailableHint": "Không cần bật các quyền bên dưới.",
   "project.permission.included": "Mặc định",
   "project.permission.baseAccess": "Xem và trao đổi",
-  "project.permission.baseAccessDescription": "Xem dự án, mở chi tiết và bình luận trên mọi task đang hoạt động.",
+  "project.permission.baseAccessDescription":
+    "Xem dự án, mở chi tiết và bình luận trên mọi task đang hoạt động.",
   "project.permission.assignedAccess": "Thao tác task được giao",
-  "project.permission.assignedAccessDescription": "Đổi trạng thái, sắp xếp trên bảng và quản lý checklist của task được giao.",
-  "project.permission.closedReadOnly": "Task đã hoàn thành hoặc đã hủy chỉ có thể xem.",
+  "project.permission.assignedAccessDescription":
+    "Đổi trạng thái, sắp xếp trên bảng và quản lý checklist của task được giao.",
+  "project.permission.closedReadOnly":
+    "Task đã hoàn thành hoặc đã hủy chỉ có thể xem.",
   "project.permission.additional": "Quyền bổ sung",
-  "project.permission.additionalDescription": "Bật theo trách nhiệm thực tế của thành viên.",
+  "project.permission.additionalDescription":
+    "Bật theo trách nhiệm thực tế của thành viên.",
   "project.permission.enabledCount": "Đã bật {count}/{total}",
   "project.permission.taskGroup": "Quyền với task",
-  "project.permission.taskGroupDescription": "Quyền tạo mới hoặc sửa toàn bộ nội dung task.",
+  "project.permission.taskGroupDescription":
+    "Quyền tạo mới hoặc sửa toàn bộ nội dung task.",
   "project.permission.managementGroup": "Quyền quản trị dự án",
-  "project.permission.managementGroupDescription": "Quyền quản lý cấu trúc và người tham gia dự án.",
-  "project.permission.creatorRule": "Quyền sửa task của mình hoặc của người khác được xác định theo người tạo task, không phải người được giao.",
+  "project.permission.managementGroupDescription":
+    "Quyền quản lý cấu trúc và người tham gia dự án.",
+  "project.permission.creatorRule":
+    "Quyền sửa task của mình hoặc của người khác được xác định theo người tạo task, không phải người được giao.",
   "project.permission.updateFailed": "Không thể cập nhật quyền",
   "project.permission.updated": "Đã cập nhật quyền thành viên",
   "project.role.owner": "Quản trị viên",
   "project.role.member": "Thành viên",
-  "project.settings.description": "Cập nhật thông tin, trạng thái và nhãn của dự án.",
+  "project.settings.description":
+    "Cập nhật thông tin, trạng thái và nhãn của dự án.",
   "project.settings.title": "Cài đặt dự án",
   "project.sprint.empty": "Chưa có sprint.",
-  "project.sprint.metricsDescription": "Số liệu của các công việc hiện thuộc mỗi sprint.",
-  "project.sprint.metricsSummary": "{done}/{total} hoàn thành · {cancelled} đã hủy · {open} đang mở",
+  "project.sprint.metricsDescription":
+    "Số liệu của các công việc hiện thuộc mỗi sprint.",
+  "project.sprint.metricsSummary":
+    "{done}/{total} hoàn thành · {cancelled} đã hủy · {open} đang mở",
   "project.sprint.metricsTitle": "Tiến độ hiện tại theo sprint",
   "project.sprint.progressFor": "Tiến độ {name}",
   "project.startDate": "Ngày bắt đầu",
   "project.status": "Trạng thái",
-  "project.summary.assignmentDescription": "Số lượng công việc theo người thực hiện.",
+  "project.summary.assignmentDescription":
+    "Số lượng công việc theo người thực hiện.",
   "project.summary.assignmentTitle": "Phân công công việc",
   "project.summary.completed": "Đã hoàn thành",
   "project.summary.created": "Đã tạo mới",
-  "project.summary.customizeDescription": "Theo dõi nhanh tiến độ, trạng thái và khối lượng công việc của dự án.",
-  "project.summary.customizeTitle": "Tùy chỉnh báo cáo theo không gian làm việc của bạn",
+  "project.summary.customizeDescription":
+    "Theo dõi nhanh tiến độ, trạng thái và khối lượng công việc của dự án.",
+  "project.summary.customizeTitle":
+    "Tùy chỉnh báo cáo theo không gian làm việc của bạn",
   "project.summary.dueSoon": "Sắp đến hạn",
-  "project.summary.generalDescription": "Theo dõi task và subtask trực tiếp, không sử dụng backlog hoặc sprint.",
-  "project.summary.generalPriorityDescription": "Phân bổ ưu tiên của task và subtask.",
+  "project.summary.generalDescription":
+    "Theo dõi task và subtask trực tiếp, không sử dụng backlog hoặc sprint.",
+  "project.summary.generalPriorityDescription":
+    "Phân bổ ưu tiên của task và subtask.",
   "project.summary.justUpdated": "Mới cập nhật",
   "project.summary.lastSevenDays": "trong 7 ngày gần nhất",
   "project.summary.needsScheduling": "công việc cần được lên lịch",
   "project.summary.noAssignedWork": "Chưa có công việc được phân công.",
   "project.summary.noUpcomingDeadlines": "Không có hạn chót sắp tới.",
   "project.summary.overdue": "Đã quá hạn",
-  "project.summary.priorityDescription": "Phân bổ mức độ ưu tiên của các công việc.",
+  "project.summary.priorityDescription":
+    "Phân bổ mức độ ưu tiên của các công việc.",
   "project.summary.priorityTitle": "Mức độ ưu tiên",
   "project.summary.recentActivity": "Hoạt động gần đây",
-  "project.summary.recentActivityDescription": "Những thay đổi gần đây trong dự án.",
-  "project.summary.recentTasksDescription": "Các công việc được cập nhật gần nhất.",
+  "project.summary.recentActivityDescription":
+    "Những thay đổi gần đây trong dự án.",
+  "project.summary.recentTasksDescription":
+    "Các công việc được cập nhật gần nhất.",
   "project.summary.sprintProgress": "Tiến độ sprint",
-  "project.summary.sprintProgressDescription": "Tiến độ hoàn thành của các công việc lớn.",
-  "project.summary.statusDescription": "Tổng quan trạng thái của các công việc trong dự án.",
+  "project.summary.sprintProgressDescription":
+    "Tiến độ hoàn thành của các công việc lớn.",
+  "project.summary.statusDescription":
+    "Tổng quan trạng thái của các công việc trong dự án.",
   "project.summary.statusTitle": "Tổng quan trạng thái",
   "project.summary.totalWorkItems": "Tổng số công việc",
-  "project.summary.unscheduledDescription": "Công việc chưa có ngày bắt đầu hoặc hạn hoàn thành.",
+  "project.summary.unscheduledDescription":
+    "Công việc chưa có ngày bắt đầu hoặc hạn hoàn thành.",
   "project.summary.unscheduledTitle": "Công việc chưa lên lịch",
   "project.summary.upcomingDeadlines": "Hạn chót sắp tới",
-  "project.summary.upcomingDeadlinesDescription": "Các công việc chưa hoàn thành trong 7 ngày tới.",
+  "project.summary.upcomingDeadlinesDescription":
+    "Các công việc chưa hoàn thành trong 7 ngày tới.",
   "project.summary.updated": "Đã cập nhật",
   "project.summary.workOverview": "Tổng quan công việc",
   "project.summary.workProgress": "Tiến độ công việc",
-  "project.summary.workProgressDescription": "Tỷ lệ hoàn thành trên toàn bộ task và subtask.",
-  "project.summary.workloadDescription": "Theo dõi khối lượng công việc theo người phụ trách.",
+  "project.summary.workProgressDescription":
+    "Tỷ lệ hoàn thành trên toàn bộ task và subtask.",
+  "project.summary.workloadDescription":
+    "Theo dõi khối lượng công việc theo người phụ trách.",
   "project.summary.workloadTitle": "Khối lượng công việc của nhóm",
   "project.task.addDescription": "Thêm mô tả...",
   "project.task.addSubtask": "Thêm subtask",
@@ -686,13 +738,16 @@ const vi = {
   "project.task.content": "Nội dung công việc",
   "project.task.createdAt": "Tạo: {date}",
   "project.task.dueDate": "Hạn hoàn thành",
-  "project.task.estimateInvalid": "Thời gian ước tính phải là số nguyên không âm",
+  "project.task.estimateInvalid":
+    "Thời gian ước tính phải là số nguyên không âm",
   "project.task.estimateMinutes": "Ước tính (phút)",
   "project.task.label": "Công việc",
   "project.task.noSubtasks": "Không có subtask.",
   "project.task.openEditForm": "Mở biểu mẫu sửa chi tiết",
-  "project.task.readOnly.cancelled": "Công việc đã hủy và đang ở chế độ chỉ đọc.",
-  "project.task.readOnly.completed": "Công việc đã hoàn thành và đang ở chế độ chỉ đọc.",
+  "project.task.readOnly.cancelled":
+    "Công việc đã hủy và đang ở chế độ chỉ đọc.",
+  "project.task.readOnly.completed":
+    "Công việc đã hoàn thành và đang ở chế độ chỉ đọc.",
   "project.task.readOnly.permission": "Bạn chỉ có quyền xem công việc này.",
   "project.task.reporter": "Người báo cáo",
   "project.task.subtasks": "Công việc con",
@@ -723,7 +778,8 @@ const vi = {
   "project.activity.action.allDay": "Đã thay đổi chế độ cả ngày",
   "project.activity.action.archived": "Đã thay đổi trạng thái lưu trữ",
   "project.activity.action.assigneeUserId": "Đã thay đổi người thực hiện",
-  "project.activity.action.autoCompleteSprint": "Đã thay đổi tự động hoàn thành sprint",
+  "project.activity.action.autoCompleteSprint":
+    "Đã thay đổi tự động hoàn thành sprint",
   "project.activity.action.changedField": "Đã thay đổi {field}",
   "project.activity.action.checklistCompleted": "Đã cập nhật mục checklist",
   "project.activity.action.checklistCreated": "Đã thêm mục checklist",
@@ -744,7 +800,8 @@ const vi = {
   "project.activity.action.status": "Đã thay đổi trạng thái",
   "project.activity.action.title": "Đã đổi tên công việc",
   "project.activity.checklistValue": "{title}: {state}",
-  "project.backlog.empty": "Backlog đang trống. Hãy tạo công việc hoặc hoàn thành sprint hiện tại.",
+  "project.backlog.empty":
+    "Backlog đang trống. Hãy tạo công việc hoặc hoàn thành sprint hiện tại.",
   "project.backlog.emptyShort": "Backlog đang trống.",
   "project.backlog.selectHint": "Chọn công việc để đưa vào sprint.",
   "project.backlog.taskReturned": "Đã đưa công việc về backlog",
@@ -764,7 +821,8 @@ const vi = {
   "project.comment.createFailed": "Không thể thêm bình luận",
   "project.comment.created": "Đã thêm bình luận",
   "project.comment.delete": "Xóa bình luận",
-  "project.comment.deleteConfirmText": "Nội dung bình luận sẽ không thể khôi phục.",
+  "project.comment.deleteConfirmText":
+    "Nội dung bình luận sẽ không thể khôi phục.",
   "project.comment.deleteConfirmTitle": "Xóa bình luận?",
   "project.comment.deleteFailed": "Không thể xóa bình luận",
   "project.comment.deleted": "Đã xóa bình luận",
@@ -804,7 +862,8 @@ const vi = {
   "project.task.attachmentsUiOnly": "Chỉ hiển thị trên giao diện",
   "project.task.chooseFiles": "Chọn hoặc kéo tệp vào đây",
   "project.group.delete": "Xóa nhóm",
-  "project.group.deleteConfirmText": "Các công việc bên trong sẽ được chuyển về backlog.",
+  "project.group.deleteConfirmText":
+    "Các công việc bên trong sẽ được chuyển về backlog.",
   "project.group.deleteConfirmTitle": "Xóa nhóm “{name}”?",
   "project.group.deleteFailed": "Không thể xóa sprint",
   "project.group.deleted": "Đã xóa sprint và chuyển công việc về backlog",
@@ -814,7 +873,8 @@ const vi = {
   "project.label.createFailed": "Không thể tạo nhãn",
   "project.label.created": "Đã tạo nhãn",
   "project.label.deleteAction": "Xóa nhãn",
-  "project.label.deleteConfirmText": "Các công việc đang sử dụng nhãn này sẽ bị bỏ nhãn.",
+  "project.label.deleteConfirmText":
+    "Các công việc đang sử dụng nhãn này sẽ bị bỏ nhãn.",
   "project.label.deleteConfirmTitle": "Xóa nhãn khỏi dự án?",
   "project.label.deleteFailed": "Không thể xóa nhãn",
   "project.label.deleted": "Đã xóa nhãn",
@@ -822,9 +882,11 @@ const vi = {
   "project.sprint.addTasksFailed": "Không thể đưa công việc vào sprint",
   "project.sprint.autoComplete": "Tự động hoàn thành sprint",
   "project.sprint.completeFailed": "Không thể hoàn thành sprint",
-  "project.sprint.completed": "Đã hoàn thành sprint; công việc chưa xong được đưa về backlog",
+  "project.sprint.completed":
+    "Đã hoàn thành sprint; công việc chưa xong được đưa về backlog",
   "project.sprint.create": "Tạo sprint",
-  "project.sprint.createDescription": "Tạo sprint trước, sau đó đưa công việc từ backlog vào.",
+  "project.sprint.createDescription":
+    "Tạo sprint trước, sau đó đưa công việc từ backlog vào.",
   "project.sprint.createFailed": "Không thể tạo sprint",
   "project.sprint.created": "Tạo sprint thành công",
   "project.sprint.createTask": "Tạo công việc trong sprint",
@@ -878,7 +940,8 @@ const vi = {
   "project.updateFailed": "Không thể cập nhật dự án",
   "project.updated": "Đã cập nhật dự án",
   "project.archiveAction": "Lưu trữ",
-  "project.archiveConfirmText": "Dự án sẽ không còn xuất hiện trong danh sách đang hoạt động.",
+  "project.archiveConfirmText":
+    "Dự án sẽ không còn xuất hiện trong danh sách đang hoạt động.",
   "project.archiveConfirmTitle": "Lưu trữ dự án?",
   "project.archiveFailed": "Không thể lưu trữ dự án",
 };

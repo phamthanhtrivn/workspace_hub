@@ -87,6 +87,7 @@ model RecurrenceSeries {
   color                    String?
   status                   EventStatus     @default(CONFIRMED)
   visibility               EventVisibility @default(DEFAULT)
+  sourceType               EventSourceType @default(USER) @map("source_type")
   recurrenceRule           String          @map("recurrence_rule")
   timeZone                 String          @map("time_zone")
   recurrenceGeneratedUntil DateTime?       @map("recurrence_generated_until") @db.Timestamptz(3)
@@ -125,6 +126,7 @@ model CalendarEvent {
   isRecurrenceOverride Boolean         @default(false) @map("is_recurrence_override")
   sourceType           EventSourceType @default(USER) @map("source_type")
   sourceId             String?         @map("source_id") @db.Uuid
+  completedAt          DateTime?       @map("completed_at") @db.Timestamptz(3)
   cancelledAt          DateTime?       @map("cancelled_at") @db.Timestamptz(3)
   createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)

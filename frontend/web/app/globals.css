@@ -251,6 +251,14 @@ html {
   transform: translateY(0.5px);
 }
 
+.calendar-shell .fc-daygrid-dot-event,
+.calendar-shell .fc-daygrid-dot-event:hover,
+.calendar-shell .fc-daygrid-dot-event:active {
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
 .calendar-shell .calendar-task-event {
   border-radius: 6px;
   box-shadow:
@@ -264,6 +272,14 @@ html {
 
 .calendar-shell .calendar-task-event-content {
   letter-spacing: 0.005em;
+}
+
+.calendar-shell .calendar-task-event-completed {
+  opacity: 0.48;
+}
+
+.calendar-shell .calendar-task-event-completed:hover {
+  opacity: 0.62;
 }
 
 .calendar-shell .fc-event-main {

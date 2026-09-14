@@ -109,6 +109,7 @@ export interface CalendarEvent {
   originalStartAt: string | null;
   sourceType: EventSourceType;
   sourceId: string | null;
+  completedAt: string | null;
   exceptionDates: string[];
   documentIds: string[];
   cancelledAt: string | null;

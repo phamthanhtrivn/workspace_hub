@@ -7,6 +7,7 @@ interface CalendarKeyboardShortcuts {
 }
 
 const CALENDAR_SHORTCUT_VIEWS: Record<string, string> = {
+  y: "listYear",
   m: "dayGridMonth",
   w: "timeGridWeek",
   d: "timeGridDay",

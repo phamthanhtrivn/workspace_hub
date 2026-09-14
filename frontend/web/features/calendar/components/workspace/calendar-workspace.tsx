@@ -122,6 +122,8 @@ export function CalendarWorkspace() {
               onDateClick={calendar.handleDateClick}
               onEventClick={calendar.handleEventClick}
               onEventMove={calendar.handleEventMove}
+              onTaskCompletionToggle={calendar.handleTaskCompletionQuickToggle}
+              taskCompletionBusy={calendar.taskCompletionBusy}
             />
           )}
         </div>
@@ -153,6 +155,7 @@ export function CalendarWorkspace() {
           onEdit={calendar.startEditingDetailEvent}
           onCancelEvent={calendar.handleCancelEvent}
           onRespond={calendar.handleRespond}
+          onTaskCompletionChange={calendar.handleTaskCompletionChange}
           busy={calendar.detailBusy}
         />
       )}

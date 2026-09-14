@@ -21,6 +21,7 @@ import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
 import { UpdateEventResponseDto } from './dto/update-event-response.dto';
 import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
 import { CancelCalendarEventDto } from './dto/cancel-calendar-event.dto';
+import { UpdateTaskCompletionDto } from './dto/update-task-completion.dto';
 
 @Controller('api/calendar/events')
 export class CalendarEventController {
@@ -96,6 +97,25 @@ export class CalendarEventController {
 
     return {
       message: CALENDAR_SUCCESS_MESSAGES.EVENT_UPDATED,
+      data: event,
+    };
+  }
+
+  @Patch(':eventId/completion')
+  async updateTaskCompletion(
+    @Headers('x-user-id') userId: string,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Body() dto: UpdateTaskCompletionDto,
+  ) {
+    this.validateUserId(userId);
+    const event = await this.calendarEventService.updateTaskCompletion(
+      userId,
+      eventId,
+      dto.completed,
+    );
+
+    return {
+      message: CALENDAR_SUCCESS_MESSAGES.TASK_COMPLETION_UPDATED,
       data: event,
     };
   }

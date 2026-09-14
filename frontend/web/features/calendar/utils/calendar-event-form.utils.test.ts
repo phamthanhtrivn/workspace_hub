@@ -29,6 +29,7 @@ const EVENT: CalendarEvent = {
   originalStartAt: null,
   sourceType: EventSourceType.USER,
   sourceId: null,
+  completedAt: null,
   exceptionDates: [],
   documentIds: ["document-1", "document-2"],
   cancelledAt: null,

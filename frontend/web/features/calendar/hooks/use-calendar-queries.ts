@@ -15,6 +15,7 @@ import {
   updateCalendar,
   updateCalendarEvent,
   updateCalendarEventResponse,
+  updateCalendarTaskCompletion,
 } from "../api/calendar.api";
 import {
   AttendeeResponseStatus,
@@ -128,6 +129,24 @@ export function useUpdateCalendarEvent() {
       void queryClient.invalidateQueries({
         queryKey: calendarKeys.event(variables.eventId),
       });
+    },
+  });
+}
+
+export function useUpdateCalendarTaskCompletion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      completed,
+    }: {
+      eventId: string;
+      completed: boolean;
+    }) => updateCalendarTaskCompletion(eventId, completed),
+    onSuccess: (event) => {
+      queryClient.setQueryData(calendarKeys.event(event.id), event);
+      void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
     },
   });
 }

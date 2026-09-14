@@ -26,6 +26,7 @@ import { useModalDialog } from "../../hooks/use-modal-dialog";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
+  EventSourceType,
   RecurrenceScope,
 } from "../../types/calendar.types";
 import {
@@ -41,6 +42,8 @@ export function EventDetailModal({
   onEdit,
   onCancelEvent,
   onRespond,
+  onTaskCompletionChange,
+  tasksColor,
   busy,
 }: {
   event: CalendarEvent | null;
@@ -49,6 +52,8 @@ export function EventDetailModal({
   onEdit: () => void;
   onCancelEvent: (scope: RecurrenceScope) => void;
   onRespond: (status: AttendeeResponseStatus) => void;
+  onTaskCompletionChange: () => void;
+  tasksColor?: string;
   busy?: boolean;
 }) {
   const intl = useAppIntl();
@@ -86,6 +91,8 @@ export function EventDetailModal({
     ) || [];
 
   const isRecurring = Boolean(event.recurrenceRule || event.recurrenceParentId);
+  const isTask = event.sourceType === EventSourceType.TASK;
+  const isCompletedTask = isTask && Boolean(event.completedAt);
 
   const handleDelete = () => {
     if (isRecurring) {
@@ -173,7 +180,11 @@ export function EventDetailModal({
     event.creatorProfile?.email ||
     (intl.locale === "vi" ? "Lịch của tôi" : "My Calendar");
 
-  const eventColor = event.color || event.calendar?.color || "#ea580c";
+  const eventColor =
+    (isTask ? tasksColor : undefined) ||
+    event.color ||
+    event.calendar?.color ||
+    "#ea580c";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
@@ -211,19 +222,21 @@ export function EventDetailModal({
             </>
           )}
 
-          <button
-            type="button"
-            onClick={handleEmailGuests}
-            aria-label={
-              intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"
-            }
-            title={
-              intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"
-            }
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-          >
-            <Mail className="h-4 w-4" />
-          </button>
+          {!isTask && (
+            <button
+              type="button"
+              onClick={handleEmailGuests}
+              aria-label={
+                intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"
+              }
+              title={
+                intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"
+              }
+              className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+            >
+              <Mail className="h-4 w-4" />
+            </button>
+          )}
 
           <div className="relative" ref={moreMenuRef}>
             <button
@@ -290,7 +303,9 @@ export function EventDetailModal({
             <div className="min-w-0 flex-1">
               <h2
                 id="calendar-event-detail-heading"
-                className="text-2xl font-normal leading-tight text-slate-900 break-words"
+                className={`text-2xl font-normal leading-tight text-slate-900 break-words ${
+                  isCompletedTask ? "line-through opacity-60" : ""
+                }`}
               >
                 {event.title}
               </h2>
@@ -461,6 +476,23 @@ export function EventDetailModal({
             </div>
           )}
         </div>
+
+        {isTask && event.permissions?.canManage && (
+          <div className="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
+            <button
+              type="button"
+              onClick={onTaskCompletionChange}
+              disabled={busy}
+              className="cursor-pointer rounded-full bg-blue-100 px-5 py-2.5 text-sm font-semibold text-blue-800 transition-colors hover:bg-blue-200 disabled:cursor-wait disabled:opacity-60"
+            >
+              {intl.formatMessage({
+                id: isCompletedTask
+                  ? "calendar.task.markIncomplete"
+                  : "calendar.task.markCompleted",
+              })}
+            </button>
+          </div>
+        )}
 
         {/* Recurrence Delete Confirmation Dialog */}
         {showDeleteScopeModal && (

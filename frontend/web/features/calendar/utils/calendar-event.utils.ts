@@ -112,6 +112,9 @@ export function mapCalendarEventToFullCalendar(
     textColor: "#ffffff",
     classNames: [
       isTask ? "calendar-task-event" : "calendar-user-event",
+      ...(isTask && event.completedAt
+        ? ["calendar-task-event-completed"]
+        : []),
     ],
     editable: event.permissions?.canManage ?? false,
     durationEditable: event.permissions?.canManage ?? false,
@@ -126,6 +129,7 @@ export function mapCalendarEventToFullCalendar(
       location: event.location,
       description: event.description,
       sourceType: normalizedSourceType,
+      completedAt: event.completedAt,
       calendarColor,
       eventColor,
       hasCustomEventColor: !colorOverride && Boolean(event.color),

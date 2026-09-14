@@ -39,6 +39,7 @@ export const CALENDAR_ERROR_MESSAGES = {
     'Recurrence supports daily, weekly, monthly, and yearly frequencies only',
   EXTERNAL_EVENT_READ_ONLY:
     'Task-synchronized events must be edited in the project',
+  ONLY_TASKS_CAN_BE_COMPLETED: 'Only calendar tasks can be completed',
   PROJECT_CALENDAR_READ_ONLY: 'Project task calendars are read-only',
   DOCUMENT_ACCESS_DENIED: 'You do not have access to one or more documents',
 } as const;
@@ -54,4 +55,5 @@ export const CALENDAR_SUCCESS_MESSAGES = {
   EVENT_UPDATED: 'Event updated successfully',
   EVENT_CANCELLED: 'Event cancelled successfully',
   EVENT_RESPONSE_UPDATED: 'Event response updated successfully',
+  TASK_COMPLETION_UPDATED: 'Task completion updated successfully',
 } as const;

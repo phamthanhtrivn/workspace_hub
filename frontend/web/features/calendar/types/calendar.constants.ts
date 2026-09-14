@@ -45,6 +45,7 @@ export const CALENDAR_ICON_CHOICES = [
 ] as const;
 
 export const CALENDAR_VIEW_OPTIONS = [
+  { value: "listYear", labelId: "calendar.view.year" },
   { value: "dayGridMonth", labelId: "calendar.view.month" },
   { value: "timeGridWeek", labelId: "calendar.view.week" },
   { value: "timeGridDay", labelId: "calendar.view.day" },

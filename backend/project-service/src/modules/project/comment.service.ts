@@ -12,7 +12,6 @@ import { ActivityService } from './activity.service';
 import { assertTaskEditable } from './task-edit.guard';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
 import { paginate, PaginationQueryDto } from '../../common/pagination';
-import { NotificationOutboxService } from './notification-outbox.service';
 
 @Injectable()
 export class CommentService {
@@ -20,7 +19,6 @@ export class CommentService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly activities: ActivityService,
-    private readonly notifications: NotificationOutboxService,
   ) {}
 
   async findAll(userId: string, taskId: string, query: PaginationQueryDto) {
@@ -63,31 +61,6 @@ export class CommentService {
         created.content,
         tx,
       );
-      const recipients = new Set([
-        task.createdBy,
-        task.reporterId,
-        ...task.assignees.map((assignee) => assignee.userId),
-      ]);
-      recipients.delete(userId);
-      for (const recipientId of recipients) {
-        await this.notifications.enqueueNotification(
-          {
-            recipientId,
-            senderId: userId,
-            type: 'PROJECT_TASK_UPDATED',
-            title: 'New task comment',
-            content: `A new comment was added to task "${task.title}".`,
-            link: `/projects/${task.projectId}`,
-            metadata: {
-              projectId: task.projectId,
-              taskId,
-              commentId: created.id,
-              event: 'TASK_COMMENTED',
-            },
-          },
-          tx,
-        );
-      }
       return created;
     });
     return toCommentResponse(comment);
@@ -172,7 +145,6 @@ export class CommentService {
   private async findTask(taskId: string) {
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, deletedAt: null },
-      include: { assignees: { select: { userId: true } } },
     });
     if (!task) throw new NotFoundException('Task not found');
     return task;

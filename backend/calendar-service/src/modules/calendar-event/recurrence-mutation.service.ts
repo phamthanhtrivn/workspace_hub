@@ -50,6 +50,7 @@ export class RecurrenceMutationService {
           color: dto.color ?? calendar.color,
           status: dto.status ?? EventStatus.CONFIRMED,
           visibility: dto.visibility ?? EventVisibility.DEFAULT,
+          sourceType: dto.sourceType ?? EventSourceType.USER,
           recurrenceRule: dto.recurrenceRule!,
           timeZone: calendar.timeZone,
         },
@@ -100,6 +101,7 @@ export class RecurrenceMutationService {
           color: dto.color === undefined ? event.color : dto.color,
           status: dto.status ?? event.status,
           visibility: dto.visibility ?? event.visibility,
+          sourceType: event.sourceType,
           recurrenceRule: dto.recurrenceRule!,
           timeZone: calendar.timeZone,
         },
@@ -456,6 +458,7 @@ export class RecurrenceMutationService {
           color: dto.color === undefined ? event.color : dto.color,
           status: dto.status ?? event.status,
           visibility: dto.visibility ?? event.visibility,
+          sourceType: series.sourceType,
           recurrenceRule: nextRule,
           timeZone: calendar.timeZone,
         },
@@ -513,6 +516,7 @@ export class RecurrenceMutationService {
       visibility: dto.visibility ?? event.visibility,
       sourceType: event.sourceType,
       sourceId: event.sourceId,
+      completedAt: event.completedAt,
       cancelledAt:
         dto.status === EventStatus.CANCELLED ? new Date() : event.cancelledAt,
     };

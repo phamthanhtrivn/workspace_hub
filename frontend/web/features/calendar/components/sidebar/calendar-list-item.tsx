@@ -6,6 +6,7 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useUpdateCalendar } from "../../hooks/use-calendar-queries";
 import { WorkspaceCalendar } from "../../types/calendar.types";
 import { CalendarColorPopover } from "./calendar-color-popover";
+import { CalendarEditPopover } from "./calendar-edit-popover";
 
 function CalendarSelectionCheckbox({
   calendar,
@@ -57,6 +58,41 @@ export function CalendarListItem({
     }
   };
 
+  const saveChanges = async ({
+    name,
+    icon,
+    color,
+  }: {
+    name: string;
+    icon: string | null;
+    color: string;
+  }) => {
+    if (!name) {
+      toast.error(intl.formatMessage({ id: "calendar.nameRequired" }));
+      return false;
+    }
+
+    if (
+      name === calendar.name &&
+      icon === calendar.icon &&
+      color === calendar.color
+    ) {
+      return true;
+    }
+
+    try {
+      await updateCalendar.mutateAsync({
+        calendarId: calendar.id,
+        payload: { name, icon, color },
+      });
+      toast.success(intl.formatMessage({ id: "calendar.calendarUpdated" }));
+      return true;
+    } catch {
+      toast.error(intl.formatMessage({ id: "calendar.calendarUpdateFailed" }));
+      return false;
+    }
+  };
+
   return (
     <div className="group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100/70">
       <CalendarSelectionCheckbox
@@ -73,13 +109,22 @@ export function CalendarListItem({
         {calendar.name}
       </span>
 
-      <CalendarColorPopover
-        value={calendar.color}
-        label={intl.formatMessage({ id: "calendar.color" })}
-        pending={updateCalendar.isPending}
-        triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-        onChange={changeColor}
-      />
+      {calendar.projectId ? (
+        <CalendarColorPopover
+          value={calendar.color}
+          label={intl.formatMessage({ id: "calendar.color" })}
+          pending={updateCalendar.isPending}
+          triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+          onChange={changeColor}
+        />
+      ) : (
+        <CalendarEditPopover
+          calendar={calendar}
+          pending={updateCalendar.isPending}
+          triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+          onSave={saveChanges}
+        />
+      )}
     </div>
   );
 }

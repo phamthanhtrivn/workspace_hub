@@ -12,6 +12,7 @@ import listPlugin from "@fullcalendar/list";
 import luxonPlugin from "@fullcalendar/luxon3";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import { Circle, CircleCheck } from "lucide-react";
 import { RefObject } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
@@ -20,7 +21,7 @@ import {
   CALENDAR_SLOT_MIN_TIME,
 } from "../../types/calendar.constants";
 import { CalendarEventMoveInfo } from "../../hooks/calendar-workspace.types";
-import { EventSourceType } from "../../types/calendar.types";
+import { CalendarEvent, EventSourceType } from "../../types/calendar.types";
 
 export function CalendarGrid({
   calendarRef,
@@ -32,6 +33,8 @@ export function CalendarGrid({
   onDateClick,
   onEventClick,
   onEventMove,
+  onTaskCompletionToggle,
+  taskCompletionBusy,
 }: {
   calendarRef: RefObject<FullCalendar | null>;
   events: EventInput[];
@@ -42,6 +45,8 @@ export function CalendarGrid({
   onDateClick: (date: Date, allDay: boolean) => void;
   onEventClick: (arg: EventClickArg) => void;
   onEventMove: (info: CalendarEventMoveInfo) => void;
+  onTaskCompletionToggle: (event: CalendarEvent) => void;
+  taskCompletionBusy: boolean;
 }) {
   const intl = useAppIntl();
 
@@ -72,7 +77,8 @@ export function CalendarGrid({
         selectMirror
         editable
         eventResizableFromStart
-        dayMaxEvents
+        dayMaxEvents={3}
+        moreLinkText={() => intl.formatMessage({ id: "calendar.moreEvents" })}
         expandRows
         navLinks
         slotDuration="00:30:00"
@@ -94,17 +100,52 @@ export function CalendarGrid({
           const calendarColor = String(
             arg.event.extendedProps.calendarColor || "#2563eb",
           );
+          const eventColor = arg.event.backgroundColor || calendarColor;
           const hasCustomEventColor = Boolean(
             arg.event.extendedProps.hasCustomEventColor,
           );
           const isTask =
             arg.event.extendedProps.sourceType === EventSourceType.TASK;
+          const isCompletedTask =
+            isTask && Boolean(arg.event.extendedProps.completedAt);
+          const taskEvent = arg.event.extendedProps.model as CalendarEvent;
+          const canToggleTask =
+            isTask && Boolean(taskEvent.permissions?.canManage);
+          const taskToggleLabel = intl.formatMessage({
+            id: isCompletedTask
+              ? "calendar.task.markIncomplete"
+              : "calendar.task.markCompleted",
+          });
+          const isMonthTimedEvent =
+            arg.view.type === "dayGridMonth" && !arg.event.allDay && !isTask;
+
+          if (isMonthTimedEvent) {
+            return (
+              <div
+                className="flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-slate-800"
+                title={`${arg.event.title}${arg.timeText ? `, ${arg.timeText}` : ""}`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: eventColor }}
+                />
+                <p className="min-w-0 truncate text-xs leading-5">
+                  {arg.timeText && (
+                    <span className="tabular-nums">{arg.timeText} </span>
+                  )}
+                  <span className="font-semibold">{arg.event.title}</span>
+                </p>
+              </div>
+            );
+          }
 
           return (
             <div
               className={`relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-white ${
                 isTask ? "calendar-task-event-content" : ""
               }`}
+              style={{ backgroundColor: eventColor }}
               title={`${arg.event.title}${arg.timeText ? `, ${arg.timeText}` : ""}`}
             >
               {hasCustomEventColor && !isTask && (
@@ -113,15 +154,74 @@ export function CalendarGrid({
                   style={{ backgroundColor: calendarColor }}
                 />
               )}
-              <div className={hasCustomEventColor && !isTask ? "pl-1" : ""}>
-                <p className="truncate text-xs font-semibold leading-[1.25]">
-                  {arg.event.title}
-                </p>
-                {!arg.event.allDay && (
-                  <p className="mt-0.5 truncate text-[11px] font-medium leading-[1.2] opacity-95 tabular-nums">
-                    {arg.timeText}
+              <div
+                className={`flex min-w-0 items-start gap-1 ${
+                  hasCustomEventColor && !isTask ? "pl-1" : ""
+                }`}
+              >
+                {canToggleTask ? (
+                  <span
+                    role="checkbox"
+                    aria-checked={isCompletedTask}
+                    aria-label={taskToggleLabel}
+                    aria-disabled={taskCompletionBusy}
+                    title={taskToggleLabel}
+                    tabIndex={taskCompletionBusy ? -1 : 0}
+                    data-task-completion-toggle
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (!taskCompletionBusy) {
+                        onTaskCompletionToggle(taskEvent);
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (!taskCompletionBusy) {
+                        onTaskCompletionToggle(taskEvent);
+                      }
+                    }}
+                    className={`group/task-toggle relative mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full outline-none ring-white/90 focus-visible:ring-2 ${
+                      taskCompletionBusy
+                        ? "cursor-wait opacity-70"
+                        : "cursor-pointer"
+                    }`}
+                  >
+                    {isCompletedTask ? (
+                      <CircleCheck className="h-3.5 w-3.5" />
+                    ) : (
+                      <>
+                        <Circle className="h-3.5 w-3.5 transition-opacity group-hover/task-toggle:opacity-0 group-focus-visible/task-toggle:opacity-0" />
+                        <CircleCheck className="absolute h-3.5 w-3.5 opacity-0 transition-opacity group-hover/task-toggle:opacity-100 group-focus-visible/task-toggle:opacity-100" />
+                      </>
+                    )}
+                  </span>
+                ) : isTask && isCompletedTask ? (
+                  <CircleCheck className="mt-px h-3.5 w-3.5 shrink-0" />
+                ) : isTask ? (
+                  <Circle className="mt-px h-3.5 w-3.5 shrink-0" />
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <p
+                    className={`truncate text-xs font-semibold leading-[1.25] ${
+                      isCompletedTask ? "line-through" : ""
+                    }`}
+                  >
+                    {arg.event.title}
                   </p>
-                )}
+                  {!arg.event.allDay && (
+                    <p
+                      className={`mt-0.5 truncate text-[11px] font-medium leading-[1.2] opacity-95 tabular-nums ${
+                        isCompletedTask ? "line-through" : ""
+                      }`}
+                    >
+                      {arg.timeText}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           );

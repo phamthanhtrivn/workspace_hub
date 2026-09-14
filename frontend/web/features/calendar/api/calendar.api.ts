@@ -107,6 +107,17 @@ export async function updateCalendarEvent(
   return unwrap(response);
 }
 
+export async function updateCalendarTaskCompletion(
+  eventId: string,
+  completed: boolean,
+): Promise<CalendarEvent> {
+  const response = await api.patch<ApiResponse<CalendarEvent>>(
+    `/api/calendar/events/${eventId}/completion`,
+    { completed },
+  );
+  return unwrap(response);
+}
+
 export async function cancelCalendarEvent(
   eventId: string,
   scope: RecurrenceScope = RecurrenceScope.THIS,
