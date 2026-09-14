@@ -4,15 +4,8 @@ import { CalendarClock, Clock3 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { formatTimeAgo } from "@/lib/date";
 import type { Notification } from "../../types/notification.types";
+import { getCalendarReminderTitle } from "../../utils/notification-display.utils";
 import { NotificationCategoryIcon } from "../notification-category-icon";
-
-function getEventTitle(notification: Notification): string {
-  return (
-    (notification.metadata?.eventTitle as string | undefined) ||
-    notification.title ||
-    "Calendar reminder"
-  );
-}
 
 export function CalendarReminderListItemRenderer({
   notification,
@@ -33,7 +26,7 @@ export function CalendarReminderListItemRenderer({
       <span className="min-w-0 flex-1">
         <span className="flex items-center justify-between gap-2">
           <span className="truncate text-sm font-black text-slate-900">
-            {getEventTitle(notification)}
+            {getCalendarReminderTitle(notification)}
           </span>
           <span className="shrink-0 text-[10px] font-semibold text-slate-400">
             {formatTimeAgo(new Date(notification.createdAt))}
@@ -70,7 +63,7 @@ export function CalendarReminderModalRenderer({
           Calendar reminder
         </p>
         <h3 className="mt-1 text-xl font-black text-slate-950">
-          {getEventTitle(notification)}
+          {getCalendarReminderTitle(notification)}
         </h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           {notification.content}

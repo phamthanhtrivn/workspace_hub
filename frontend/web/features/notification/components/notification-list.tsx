@@ -3,7 +3,6 @@
 import React from "react";
 import { Notification } from "../types/notification.types";
 import NotificationItem from "./notification-item";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BellOff } from "lucide-react";
 
@@ -22,8 +21,6 @@ const NotificationList = React.memo(function NotificationList({
   deletingNotificationId,
   isLoading,
 }: NotificationListProps) {
-  const intl = useAppIntl();
-
   if (isLoading && notifications.length === 0) {
     return (
       <div className="space-y-0">
@@ -40,9 +37,7 @@ const NotificationList = React.memo(function NotificationList({
             </div>
           </div>
         ))}
-        <p className="sr-only">
-          {intl.formatMessage({ id: "notifications.loading" })}
-        </p>
+        <p className="sr-only">Loading notifications...</p>
       </div>
     );
   }
@@ -53,9 +48,7 @@ const NotificationList = React.memo(function NotificationList({
         <div className="grid h-11 w-11 place-items-center rounded-full bg-slate-50 text-slate-400 ring-1 ring-slate-200">
           <BellOff className="h-5 w-5" />
         </div>
-        <p className="text-sm font-black text-slate-700">
-          {intl.formatMessage({ id: "notifications.emptyTitle" })}
-        </p>
+        <p className="text-sm font-black text-slate-700">No notifications</p>
       </div>
     );
   }
@@ -69,7 +62,7 @@ const NotificationList = React.memo(function NotificationList({
           onClick={onItemClick} 
           onDelete={onDelete}
           isDeleting={deletingNotificationId === notification.id}
-          deleteLabel={intl.formatMessage({ id: "notifications.deleteOne" })}
+          deleteLabel="Delete notification"
         />
       ))}
     </div>

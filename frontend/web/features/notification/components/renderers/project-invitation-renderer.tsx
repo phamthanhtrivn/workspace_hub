@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useQuery } from "@tanstack/react-query";
 import {
   CheckCircle2,
   Clock3,
@@ -17,22 +16,19 @@ import { formatTimeAgo } from "@/lib/date";
 import { useAppDispatch } from "@/store/store";
 import { setProjectInvitationStatus } from "@/store/notification/notification.slice";
 import { useRespondProjectInvitation } from "@/features/project/hooks/use-invitations";
-import { getUserProfiles } from "@/features/project/api/project.api";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useProjectInviterIdentity } from "../../hooks/use-project-inviter-identity";
+import { getNotificationApiErrorMessage } from "../../utils/notification-display.utils";
+import {
+  formatProjectInvitationExpiryDate,
+  getProjectColor,
+  getProjectInvitationMetadata,
+  getProjectInviterInitials,
+} from "../../utils/project-invitation.utils";
 import { NotificationCategoryIcon } from "../notification-category-icon";
 import type {
   Notification,
-  ProjectInvitationMetadata,
   ProjectInvitationNotificationStatus,
 } from "../../types/notification.types";
-
-const statusMessageIds: Record<ProjectInvitationNotificationStatus, string> = {
-  PENDING: "notification.projectInvitation.status.pending",
-  ACCEPTED: "notification.projectInvitation.status.accepted",
-  DECLINED: "notification.projectInvitation.status.declined",
-  CANCELLED: "notification.projectInvitation.status.cancelled",
-  EXPIRED: "notification.projectInvitation.status.expired",
-};
 
 const statusClasses: Record<ProjectInvitationNotificationStatus, string> = {
   PENDING: "bg-amber-50 text-amber-700 ring-amber-200",
@@ -42,54 +38,6 @@ const statusClasses: Record<ProjectInvitationNotificationStatus, string> = {
   EXPIRED: "bg-rose-50 text-rose-700 ring-rose-200",
 };
 
-function getMetadata(notification: Notification): ProjectInvitationMetadata {
-  return notification.metadata as unknown as ProjectInvitationMetadata;
-}
-
-function getErrorMessage(error: unknown, fallback: string): string {
-  if (typeof error === "object" && error !== null && "response" in error) {
-    const response = (error as { response?: { data?: { message?: unknown } } })
-      .response;
-    if (typeof response?.data?.message === "string")
-      return response.data.message;
-  }
-  return error instanceof Error ? error.message : fallback;
-}
-
-function getProjectColor(value?: string | null): string {
-  return typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)
-    ? value
-    : "#0052CC";
-}
-
-function getInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(-2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
-function useInviterIdentity(notification: Notification, fallbackName: string) {
-  const senderId = notification.senderId;
-  const profileQuery = useQuery({
-    queryKey: ["users", "profile", senderId],
-    queryFn: async () => {
-      const profiles = await getUserProfiles(senderId ? [senderId] : []);
-      return senderId ? profiles.get(senderId) : undefined;
-    },
-    enabled: Boolean(senderId && !notification.senderName),
-    staleTime: 5 * 60 * 1_000,
-  });
-
-  return {
-    name: notification.senderName || profileQuery.data?.fullName || fallbackName,
-    avatar:
-      notification.senderAvatar || profileQuery.data?.avatarUrl || undefined,
-  };
-}
-
 export function ProjectInvitationListItemRenderer({
   notification,
   onClick,
@@ -97,16 +45,10 @@ export function ProjectInvitationListItemRenderer({
   notification: Notification;
   onClick: () => void;
 }) {
-  const intl = useAppIntl();
-  const metadata = getMetadata(notification);
+  const metadata = getProjectInvitationMetadata(notification);
   const status = metadata.status || "PENDING";
-  const projectName =
-    metadata.projectName ||
-    intl.formatMessage({ id: "notification.projectInvitation.fallbackProject" });
-  const inviter = useInviterIdentity(
-    notification,
-    intl.formatMessage({ id: "notification.projectInvitation.fallbackInviter" }),
-  );
+  const projectName = metadata.projectName || "Untitled project";
+  const inviter = useProjectInviterIdentity(notification, "A project member");
   const inviterName = inviter.name;
   const projectColor = getProjectColor(metadata.projectColor);
 
@@ -143,16 +85,21 @@ export function ProjectInvitationListItemRenderer({
         </span>
 
         <span className="mt-0.5 block truncate text-xs font-semibold text-slate-500">
-          {intl.formatMessage(
-            { id: "notification.projectInvitation.invitedBy" },
-            { name: inviterName },
-          )}
+          {`Invited by ${inviterName}`}
         </span>
 
         <span
           className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${statusClasses[status]}`}
         >
-          {intl.formatMessage({ id: statusMessageIds[status] })}
+          {status === "PENDING"
+            ? "Awaiting response"
+            : status === "ACCEPTED"
+              ? "Accepted"
+              : status === "DECLINED"
+                ? "Declined"
+                : status === "CANCELLED"
+                  ? "Revoked"
+                  : "Expired"}
         </span>
       </span>
 
@@ -172,8 +119,7 @@ export function ProjectInvitationModalRenderer({
   onClose: () => void;
   onMarkAsRead: (id: string) => void;
 }) {
-  const intl = useAppIntl();
-  const metadata = getMetadata(notification);
+  const metadata = getProjectInvitationMetadata(notification);
   const router = useRouter();
   const dispatch = useAppDispatch();
   const respondMutation = useRespondProjectInvitation();
@@ -181,21 +127,14 @@ export function ProjectInvitationModalRenderer({
     metadata.status || "PENDING",
   );
   const [action, setAction] = useState<"accept" | "decline" | null>(null);
-  const projectName =
-    metadata.projectName ||
-    intl.formatMessage({ id: "notification.projectInvitation.fallbackProject" });
-  const inviter = useInviterIdentity(
-    notification,
-    intl.formatMessage({ id: "notification.projectInvitation.fallbackInviter" }),
-  );
+  const projectName = metadata.projectName || "Untitled project";
+  const inviter = useProjectInviterIdentity(notification, "A project member");
   const inviterName = inviter.name;
   const projectColor = getProjectColor(metadata.projectColor);
 
   const respond = async (nextAction: "accept" | "decline") => {
     if (!metadata.invitationId) {
-      toast.error(
-        intl.formatMessage({ id: "notification.projectInvitation.invalid" }),
-      );
+      toast.error("Invitation information is invalid");
       return;
     }
     setAction(nextAction);
@@ -214,18 +153,15 @@ export function ProjectInvitationModalRenderer({
       );
       onMarkAsRead(notification.id);
       toast.success(
-        intl.formatMessage({
-          id:
-            nextAction === "accept"
-              ? "project.invitation.accepted"
-              : "project.invitation.declined",
-        }),
+        nextAction === "accept"
+          ? "You joined the project"
+          : "Invitation declined",
       );
     } catch (error) {
       toast.error(
-        getErrorMessage(
+        getNotificationApiErrorMessage(
           error,
-          intl.formatMessage({ id: "project.invitation.respondFailed" }),
+          "Could not respond. The invitation may have expired or already been handled.",
         ),
       );
     } finally {
@@ -250,13 +186,13 @@ export function ProjectInvitationModalRenderer({
           </span>
           <div className="min-w-0 pt-0.5">
             <p className="text-[11px] font-black uppercase tracking-[0.14em] text-blue-700">
-              {intl.formatMessage({ id: "notification.projectInvitation.title" })}
+              Project invitation
             </p>
             <h3 className="mt-1 truncate text-xl font-black tracking-tight text-slate-950">
               {projectName}
             </h3>
             <p className="mt-1.5 text-sm leading-5 text-slate-600">
-              {intl.formatMessage({ id: "notification.projectInvitation.memberRole" })}
+              You were invited to join this project as a member.
             </p>
           </div>
         </div>
@@ -271,15 +207,15 @@ export function ProjectInvitationModalRenderer({
                 sizes="36px"
                 className="object-cover"
               />
-            ) : getInitials(inviterName) ? (
-              getInitials(inviterName)
+            ) : getProjectInviterInitials(inviterName) ? (
+              getProjectInviterInitials(inviterName)
             ) : (
               <UserRound className="h-4 w-4" />
             )}
           </span>
           <div className="min-w-0">
             <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              {intl.formatMessage({ id: "notification.projectInvitation.inviterLabel" })}
+              Invited by
             </p>
             <p className="truncate text-sm font-bold text-slate-800">
               {inviterName}
@@ -292,24 +228,21 @@ export function ProjectInvitationModalRenderer({
         <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
           <Clock3 className="h-4 w-4" />
           {metadata.expiresAt
-            ? intl.formatMessage(
-                { id: "project.invitation.expiresAt" },
-                {
-                  date: intl.formatDate(new Date(metadata.expiresAt), {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric",
-                  }),
-                },
-              )
-            : intl.formatMessage({
-                id: "notification.projectInvitation.noExpiry",
-              })}
+            ? `Expires: ${formatProjectInvitationExpiryDate(metadata.expiresAt)}`
+            : "No expiration date"}
         </span>
         <span
           className={`rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ${statusClasses[status]}`}
         >
-          {intl.formatMessage({ id: statusMessageIds[status] })}
+          {status === "PENDING"
+            ? "Awaiting response"
+            : status === "ACCEPTED"
+              ? "Accepted"
+              : status === "DECLINED"
+                ? "Declined"
+                : status === "CANCELLED"
+                  ? "Revoked"
+                  : "Expired"}
         </span>
       </div>
 
@@ -326,7 +259,7 @@ export function ProjectInvitationModalRenderer({
             ) : (
               <XCircle className="h-4 w-4" />
             )}
-            {intl.formatMessage({ id: "project.invitation.decline" })}
+            Decline
           </button>
           <button
             type="button"
@@ -339,7 +272,7 @@ export function ProjectInvitationModalRenderer({
             ) : (
               <CheckCircle2 className="h-4 w-4" />
             )}
-            {intl.formatMessage({ id: "project.invitation.accept" })}
+            Join
           </button>
         </div>
       ) : status === "ACCEPTED" ? (
@@ -352,7 +285,7 @@ export function ProjectInvitationModalRenderer({
           className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 text-sm font-bold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 active:translate-y-px"
         >
           <CheckCircle2 className="h-4 w-4" />
-          {intl.formatMessage({ id: "notification.projectInvitation.openProject" })}
+          Open project
         </button>
       ) : null}
 
@@ -361,7 +294,7 @@ export function ProjectInvitationModalRenderer({
         onClick={onClose}
         className="mt-3 w-full cursor-pointer rounded-xl py-2 text-xs font-bold text-slate-400 transition hover:bg-slate-50 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 active:translate-y-px"
       >
-        {intl.formatMessage({ id: "notification.projectInvitation.close" })}
+        Close
       </button>
     </div>
   );

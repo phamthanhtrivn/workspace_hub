@@ -1,4 +1,4 @@
-const en = {
+﻿const en = {
   "app.loading": "Loading...",
   "app.workspace": "Workspace",
   "app.workspaceHub": "WorkspaceHub",
@@ -65,7 +65,6 @@ const en = {
     "AI assistant for summaries, planning suggestions, work analysis, and faster learning workflows.",
 
   "header.searchWorkspace": "Search workspace...",
-  "header.notifications": "Notifications",
 
   "profile.openUserMenu": "Open user menu",
   "profile.workspaceUser": "Workspace user",
@@ -102,52 +101,6 @@ const en = {
   "settings.saveSettings": "Save settings",
   "settings.saveSuccess": "Settings saved successfully.",
   "settings.saveFailed": "Could not save settings.",
-
-  "notifications.title": "Notifications",
-  "notifications.markAllRead": "Mark all as read",
-  "notifications.all": "All",
-  "notifications.unread": "Unread",
-  "notifications.read": "Read",
-  "notifications.filter.label": "Notification time range",
-  "notifications.filter.allTime": "All time",
-  "notifications.filter.today": "Today",
-  "notifications.filter.last7Days": "Last 7 days",
-  "notifications.filter.last30Days": "Last 30 days",
-  "notifications.filter.thisMonth": "This month",
-  "notifications.filter.customRange": "Custom range",
-  "notifications.filter.fromDate": "From date",
-  "notifications.filter.toDate": "To date",
-  "notifications.filter.to": "to",
-  "notifications.filter.invalidRange": "Start date must be before end date.",
-  "notifications.viewAll": "View all notifications",
-  "notifications.emptyTitle": "No notifications",
-  "notifications.emptyDescription": "You're all caught up.",
-  "notifications.loading": "Loading notifications...",
-  "notifications.deleteOne": "Delete notification",
-  "notifications.deleteCategory": "Delete {category}",
-  "notifications.deleteAll": "Delete all",
-  "notifications.deleteReadAll": "Delete read",
-  "notifications.deleteReadCategory": "Delete read {category}",
-  "notifications.deleteOneConfirmTitle": "Delete this notification?",
-  "notifications.deleteOneConfirmText":
-    "This notification will be removed from your list.",
-  "notifications.deleteReadAllConfirmTitle": "Delete read notifications?",
-  "notifications.deleteReadAllConfirm":
-    "Delete read notifications in this time range? This cannot be undone.",
-  "notifications.deleteReadCategoryConfirmTitle":
-    "Delete read category notifications?",
-  "notifications.deleteReadCategoryConfirm":
-    "Delete read notifications in {category} for this time range? This cannot be undone.",
-  "notifications.deleteCategoryConfirmTitle": "Delete category notifications?",
-  "notifications.deleteCategoryConfirm":
-    "Delete all notifications in {category}? This cannot be undone.",
-  "notifications.deleteAllConfirmTitle": "Delete all notifications?",
-  "notifications.deleteAllConfirm":
-    "Delete all notifications? This cannot be undone.",
-  "notifications.deleteSuccess": "Notification deleted",
-  "notifications.deleteCategorySuccess": "Category notifications deleted",
-  "notifications.deleteAllSuccess": "All notifications deleted",
-  "notifications.deleteFailed": "Could not delete notifications",
 
   "auth.email": "Email",
   "auth.password": "Password",
@@ -1200,22 +1153,6 @@ const en = {
   "project.invitation.declined": "Invitation declined",
   "project.invitation.respondFailed":
     "Could not respond. The invitation may have expired or already been handled.",
-  "notification.projectInvitation.title": "Project invitation",
-  "notification.projectInvitation.invitedBy": "Invited by {name}",
-  "notification.projectInvitation.inviterLabel": "Invited by",
-  "notification.projectInvitation.memberRole":
-    "You were invited to join this project as a member.",
-  "notification.projectInvitation.noExpiry": "No expiration date",
-  "notification.projectInvitation.openProject": "Open project",
-  "notification.projectInvitation.close": "Close",
-  "notification.projectInvitation.invalid": "Invitation information is invalid",
-  "notification.projectInvitation.fallbackProject": "Untitled project",
-  "notification.projectInvitation.fallbackInviter": "A project member",
-  "notification.projectInvitation.status.pending": "Awaiting response",
-  "notification.projectInvitation.status.accepted": "Accepted",
-  "notification.projectInvitation.status.declined": "Declined",
-  "notification.projectInvitation.status.cancelled": "Revoked",
-  "notification.projectInvitation.status.expired": "Expired",
   "project.task.readOnlyTerminal":
     "This task is finished and is available as read-only",
   "project.task.editForbidden": "You do not have permission to edit this task",

@@ -44,7 +44,6 @@ import {
   waitForBackendReady,
 } from "@/lib/backend-readiness";
 import { logApiError } from "@/lib/interceptors";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 // Renderers
 import {
@@ -80,6 +79,10 @@ import {
   NOTIFICATION_CHANGED_EVENT,
   isNotificationInCategory,
 } from "@/features/notification/utils/notification-category.utils";
+import {
+  formatNotificationCount,
+  getReadFilterValue,
+} from "@/features/notification/utils/notification-display.utils";
 import {
   getNotificationDateRange,
   NOTIFICATION_TIME_FILTERS,
@@ -129,25 +132,6 @@ const categoryConfig: Record<
   MEETING: { label: "Meeting", Icon: Video },
   DOCUMENT: { label: "Document", Icon: FileText },
 };
-
-const timeFilterMessageIds: Record<NotificationTimeFilter, string> = {
-  ALL_TIME: "notifications.filter.allTime",
-  TODAY: "notifications.filter.today",
-  LAST_7_DAYS: "notifications.filter.last7Days",
-  LAST_30_DAYS: "notifications.filter.last30Days",
-  THIS_MONTH: "notifications.filter.thisMonth",
-  CUSTOM_RANGE: "notifications.filter.customRange",
-};
-
-function formatNotificationCount(count: number): string {
-  return count > 99 ? "99+" : String(count);
-}
-
-function getReadFilterValue(tab: NotificationReadFilter): boolean | undefined {
-  if (tab === "UNREAD") return false;
-  if (tab === "READ") return true;
-  return undefined;
-}
 
 // Initialize Registry
 let isRegistryInitialized = false;
@@ -206,7 +190,6 @@ if (!isRegistryInitialized) {
 }
 
 const NotificationDropdown = React.memo(function NotificationDropdown() {
-  const intl = useAppIntl();
   const dispatch = useAppDispatch();
   const {
     list: notifications,
@@ -455,16 +438,16 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       title,
       description: text,
       confirmLabel: confirmButtonText,
-      cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+      cancelLabel: "Cancel",
       variant: "danger",
     });
   };
 
   const handleDeleteNotification = async (notificationId: string) => {
     const confirmed = await confirmDelete({
-      title: intl.formatMessage({ id: "notifications.deleteOneConfirmTitle" }),
-      text: intl.formatMessage({ id: "notifications.deleteOneConfirmText" }),
-      confirmButtonText: intl.formatMessage({ id: "notifications.deleteOne" }),
+      title: "Delete this notification?",
+      text: "This notification will be removed from your list.",
+      confirmButtonText: "Delete notification",
     });
     if (!confirmed) return;
 
@@ -477,12 +460,10 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       } else if (isOpen) {
         void fetchList(nextPage);
       }
-      toast.success(
-        intl.formatMessage({ id: "notifications.deleteSuccess" }),
-      );
+      toast.success("Notification deleted");
     } catch (error) {
       logApiError(error, "Failed to delete notification");
-      toast.error(intl.formatMessage({ id: "notifications.deleteFailed" }));
+      toast.error("Could not delete notifications");
     }
   };
 
@@ -490,27 +471,15 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     const categoryLabel = categoryConfig[targetCategory].label;
     const isAll = targetCategory === "ALL";
     const confirmed = await confirmDelete({
-      title: intl.formatMessage({
-        id: isAll
-          ? "notifications.deleteReadAllConfirmTitle"
-          : "notifications.deleteReadCategoryConfirmTitle",
-      }),
-      text: intl.formatMessage(
-        {
-          id: isAll
-            ? "notifications.deleteReadAllConfirm"
-            : "notifications.deleteReadCategoryConfirm",
-        },
-        { category: categoryLabel },
-      ),
-      confirmButtonText: intl.formatMessage(
-        {
-          id: isAll
-            ? "notifications.deleteReadAll"
-            : "notifications.deleteReadCategory",
-        },
-        { category: categoryLabel },
-      ),
+      title: isAll
+        ? "Delete read notifications?"
+        : "Delete read category notifications?",
+      text: isAll
+        ? "Delete read notifications in this time range? This cannot be undone."
+        : `Delete read notifications in ${categoryLabel} for this time range? This cannot be undone.`,
+      confirmButtonText: isAll
+        ? "Delete read"
+        : `Delete read ${categoryLabel}`,
     });
     if (!confirmed) return;
 
@@ -523,15 +492,11 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       setPage(1);
       if (isOpen) void fetchList(1);
       toast.success(
-        intl.formatMessage({
-          id: isAll
-            ? "notifications.deleteAllSuccess"
-            : "notifications.deleteCategorySuccess",
-        }),
+        isAll ? "All notifications deleted" : "Category notifications deleted",
       );
     } catch (error) {
       logApiError(error, "Failed to delete notifications");
-      toast.error(intl.formatMessage({ id: "notifications.deleteFailed" }));
+      toast.error("Could not delete notifications");
     }
   };
 
@@ -547,10 +512,21 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     () =>
       NOTIFICATION_TIME_FILTERS.map((item) => ({
         value: item,
-        label: intl.formatMessage({ id: timeFilterMessageIds[item] }),
+        label:
+          item === "ALL_TIME"
+            ? "All time"
+            : item === "TODAY"
+              ? "Today"
+              : item === "LAST_7_DAYS"
+                ? "Last 7 days"
+                : item === "LAST_30_DAYS"
+                  ? "Last 30 days"
+                  : item === "THIS_MONTH"
+                    ? "This month"
+                    : "Custom range",
         icon: <CalendarDays className="h-3.5 w-3.5" />,
       })),
-    [intl],
+    [],
   );
   const readTabOptions = React.useMemo<
     CustomTabOption<NotificationReadFilter>[]
@@ -558,19 +534,19 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     () => [
       {
         value: "ALL",
-        label: intl.formatMessage({ id: "notifications.all" }),
+        label: "All",
       },
       {
         value: "UNREAD",
-        label: intl.formatMessage({ id: "notifications.unread" }),
+        label: "Unread",
         count: unreadTabCount,
       },
       {
         value: "READ",
-        label: intl.formatMessage({ id: "notifications.read" }),
+        label: "Read",
       },
     ],
-    [intl, unreadTabCount],
+    [unreadTabCount],
   );
   const handlePageChange = (nextPage: number) => {
     setPage(Math.min(Math.max(1, nextPage), pagination.totalPages));
@@ -589,7 +565,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                 ? "border-blue-300 bg-blue-50 text-[var(--color-primary)]"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
-            aria-label={intl.formatMessage({ id: "header.notifications" })}
+            aria-label="Notifications"
           >
             <Bell size={22} className={isOpen ? "fill-blue-100" : ""} />
             {unreadCount > 0 ? (
@@ -608,7 +584,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
         >
           <div className="flex items-center justify-between gap-3 bg-slate-50/80 px-4 py-3">
             <h3 className="text-base font-black text-slate-800">
-              {intl.formatMessage({ id: "notifications.title" })}
+              Notifications
             </h3>
             {unreadCount > 0 ? (
               <Button
@@ -619,7 +595,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                 className="h-7 rounded-full px-2 text-xs font-black text-[var(--color-primary)] hover:bg-blue-50 hover:text-[var(--color-primary-dark)]"
               >
                 <Check size={14} />
-                {intl.formatMessage({ id: "notifications.markAllRead" })}
+                Mark all as read
               </Button>
             ) : null}
           </div>
@@ -657,19 +633,11 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
               onFilterChange={handleTimeFilterChange}
               onFromDateChange={handleCustomFromDateChange}
               onToDateChange={handleCustomToDateChange}
-              ariaLabel={intl.formatMessage({
-                id: "notifications.filter.label",
-              })}
-              fromLabel={intl.formatMessage({
-                id: "notifications.filter.fromDate",
-              })}
-              toLabel={intl.formatMessage({
-                id: "notifications.filter.toDate",
-              })}
-              toText={intl.formatMessage({ id: "notifications.filter.to" })}
-              invalidMessage={intl.formatMessage({
-                id: "notifications.filter.invalidRange",
-              })}
+              ariaLabel="Notification time range"
+              fromLabel="From date"
+              toLabel="To date"
+              toText="to"
+              invalidMessage="Start date must be before end date."
             />
           </div>
 
@@ -680,9 +648,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
               value={tab}
               options={readTabOptions}
               onChange={handleTabChange}
-              ariaLabel={intl.formatMessage({
-                id: "notifications.filter.label",
-              })}
+              ariaLabel="Notification time range"
               className="min-w-0 shrink-0"
             />
             <div className="flex min-w-0 items-center justify-end py-2">
@@ -693,37 +659,23 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
                   size="sm"
                   onClick={() => void handleDeleteCategory(category)}
                   disabled={deleteNotificationsMutation.isPending}
-                  aria-label={intl.formatMessage(
-                    {
-                      id:
-                        category === "ALL"
-                          ? "notifications.deleteReadAll"
-                          : "notifications.deleteReadCategory",
-                    },
-                    { category: categoryConfig[category].label },
-                  )}
-                  title={intl.formatMessage(
-                    {
-                      id:
-                        category === "ALL"
-                          ? "notifications.deleteReadAll"
-                          : "notifications.deleteReadCategory",
-                    },
-                    { category: categoryConfig[category].label },
-                  )}
+                  aria-label={
+                    category === "ALL"
+                      ? "Delete read"
+                      : `Delete read ${categoryConfig[category].label}`
+                  }
+                  title={
+                    category === "ALL"
+                      ? "Delete read"
+                      : `Delete read ${categoryConfig[category].label}`
+                  }
                   className="h-8 min-w-0 shrink rounded-lg border-slate-200 bg-white px-2 text-xs font-black text-slate-500 hover:border-red-100 hover:bg-red-50 hover:text-red-600"
                 >
                   <Trash2 className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">
-                    {intl.formatMessage(
-                      {
-                        id:
-                          category === "ALL"
-                            ? "notifications.deleteReadAll"
-                            : "notifications.deleteReadCategory",
-                      },
-                      { category: categoryConfig[category].label },
-                    )}
+                    {category === "ALL"
+                      ? "Delete read"
+                      : `Delete read ${categoryConfig[category].label}`}
                   </span>
                 </Button>
               ) : null}
