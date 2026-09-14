@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { KeyRound, Loader2, ShieldAlert, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { OTP_RESEND_COOLDOWN_SEC } from "../types/settings.enums";
 import {
   useSendPasswordOtpMutation,
@@ -13,6 +13,7 @@ import {
 } from "../hooks/useUserSettingQueries";
 import { getUserSettingErrorMessage } from "../utils/user-setting-error";
 import PasswordInput from "./password-input";
+import { SettingInput } from "./ui/setting-form-controls";
 
 interface PasswordForm {
   currentPassword: string;
@@ -231,11 +232,11 @@ const PasswordTab = React.memo(function PasswordTab() {
             placeholder="Re-enter new password"
             error={pwErrors.confirmPassword}
           />
-          <button
+          <Button
             id="update-password-btn"
             onClick={handleUpdatePassword}
             disabled={updatePasswordMutation.isPending}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--color-primary)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--color-primary)] shadow-sm transition hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-70 cursor-pointer"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[var(--color-primary)] bg-white text-sm font-bold text-[var(--color-primary)] shadow-sm transition hover:bg-[var(--color-primary)] hover:text-white disabled:opacity-70 cursor-pointer"
           >
             {updatePasswordMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -245,7 +246,7 @@ const PasswordTab = React.memo(function PasswordTab() {
             {updatePasswordMutation.isPending
               ? "Updating..."
               : "Update password"}
-          </button>
+          </Button>
         </div>
       ) : (
         /* ── Branch B: Set first password (Google users — OTP required) ── */
@@ -258,8 +259,10 @@ const PasswordTab = React.memo(function PasswordTab() {
 
           {/* OTP trigger / countdown */}
           <div className="flex items-center gap-3">
-            <button
+            <Button
               id="send-otp-btn"
+              type="button"
+              variant="outline"
               onClick={handleSendOtp}
               disabled={sendOtpMutation.isPending || otpCooldown > 0}
               className="flex shrink-0 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] disabled:opacity-60 cursor-pointer"
@@ -272,7 +275,7 @@ const PasswordTab = React.memo(function PasswordTab() {
                 : otpSent
                   ? "Resend OTP"
                   : "Send OTP to email"}
-            </button>
+            </Button>
             {otpSent && (
               <p className="text-xs text-emerald-600 font-medium">
                 Code sent ✓
@@ -282,35 +285,21 @@ const PasswordTab = React.memo(function PasswordTab() {
 
           {/* OTP input — revealed after first send */}
           {otpSent && (
-            <div className="flex flex-col gap-1">
-              <label
-                htmlFor="otp-input"
-                className="text-sm font-bold text-slate-700"
-              >
-                One-time code
-              </label>
-              <input
-                id="otp-input"
-                type="text"
-                inputMode="numeric"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value.replace(/\D/g, ""));
-                  setPwErrors((er) => ({ ...er, otp: "" }));
-                }}
-                placeholder="6-digit code"
-                className={cn(
-                  "w-40 rounded-xl border bg-white px-3 py-2 text-center text-sm font-bold tracking-widest text-slate-800 outline-none focus:ring-2",
-                  pwErrors.otp
-                    ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                    : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20",
-                )}
-              />
-              {pwErrors.otp && (
-                <p className="text-xs text-red-500">{pwErrors.otp}</p>
-              )}
-            </div>
+            <SettingInput
+              id="otp-input"
+              label="One-time code"
+              type="text"
+              inputMode="numeric"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => {
+                setOtp(e.target.value.replace(/\D/g, ""));
+                setPwErrors((er) => ({ ...er, otp: "" }));
+              }}
+              placeholder="6-digit code"
+              error={pwErrors.otp}
+              className="w-40 text-center font-bold tracking-widest"
+            />
           )}
 
           <PasswordInput
@@ -330,11 +319,11 @@ const PasswordTab = React.memo(function PasswordTab() {
             error={pwErrors.confirmPassword}
           />
 
-          <button
+          <Button
             id="set-password-btn"
             onClick={handleSetFirstPassword}
             disabled={setFirstPasswordMutation.isPending || !otpSent}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-amber-600 disabled:opacity-60 cursor-pointer"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-amber-600 disabled:opacity-60 cursor-pointer"
           >
             {setFirstPasswordMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -344,7 +333,7 @@ const PasswordTab = React.memo(function PasswordTab() {
             {setFirstPasswordMutation.isPending
               ? "Setting password..."
               : "Set password"}
-          </button>
+          </Button>
         </div>
       )}
     </div>

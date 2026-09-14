@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { KeyRound, Settings, Shield, User, X } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import ProfileTab from "./profile-tab";
 import SettingsTab from "./settings-tab";
 import SessionsTab from "./sessions-tab";
@@ -9,7 +10,6 @@ import PasswordTab from "./password-tab";
 import { UserSettingTab } from "../types/settings.enums";
 import { useUserProfileQuery } from "../hooks/useUserSettingQueries";
 import { cn } from "@/lib/utils";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 type UserSettingsModalProps = {
   isOpen: boolean;
@@ -22,7 +22,6 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
   onClose,
   initialTab = UserSettingTab.PROFILE,
 }: UserSettingsModalProps) {
-  const intl = useAppIntl();
   const [activeTab, setActiveTab] = useState<UserSettingTab>(
     initialTab ?? UserSettingTab.PROFILE,
   );
@@ -35,20 +34,22 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
     }
   }, [isOpen, initialTab]);
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm transition-opacity">
-      <div className="flex h-full max-h-[550px] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200 md:flex-row">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent
+        showCloseButton={false}
+        className="flex h-[550px] max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border-none bg-white p-0 shadow-2xl md:flex-row"
+      >
+        <DialogTitle className="sr-only">User Settings</DialogTitle>
         <div className="w-full border-b border-slate-100 bg-slate-50 p-4 md:w-56 md:border-b-0 md:border-r">
           <div className="mb-6 flex items-center justify-between md:mb-8">
             <h2 className="text-lg font-black text-slate-800">
-              {intl.formatMessage({ id: "settings.title" })}
+              Settings
             </h2>
             <button
               onClick={onClose}
-              className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-600 md:hidden"
-              aria-label={intl.formatMessage({ id: "settings.close" })}
+              className="rounded-lg p-2 text-slate-400 hover:bg-slate-200 hover:text-slate-600 md:hidden cursor-pointer"
+              aria-label="Close"
             >
               <X className="h-5 w-5" />
             </button>
@@ -67,7 +68,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
             >
               <User className="h-5 w-5 md:h-4 md:w-4" />
               <span className="text-xs font-bold md:text-sm">
-                {intl.formatMessage({ id: "settings.account" })}
+                Account
               </span>
             </button>
             <button
@@ -82,7 +83,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
             >
               <Settings className="h-5 w-5 md:h-4 md:w-4" />
               <span className="text-xs font-bold md:text-sm">
-                {intl.formatMessage({ id: "settings.preferences" })}
+                Preferences
               </span>
             </button>
             <button
@@ -97,7 +98,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
             >
               <Shield className="h-5 w-5 md:h-4 md:w-4" />
               <span className="text-xs font-bold md:text-sm">
-                {intl.formatMessage({ id: "settings.security" })}
+                Security
               </span>
             </button>
             <button
@@ -117,7 +118,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
                 )}
               </span>
               <span className="text-xs font-bold md:text-sm">
-                {intl.formatMessage({ id: "settings.password" })}
+                Password
               </span>
             </button>
           </nav>
@@ -127,7 +128,7 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
           <button
             onClick={onClose}
             className="absolute right-6 top-6 hidden rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 md:block cursor-pointer"
-            aria-label={intl.formatMessage({ id: "settings.close" })}
+            aria-label="Close"
           >
             <X className="h-5 w-5" />
           </button>
@@ -139,8 +140,8 @@ const UserSettingsModal = React.memo(function UserSettingsModal({
             {activeTab === UserSettingTab.PASSWORD && <PasswordTab />}
           </div>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 });
 
