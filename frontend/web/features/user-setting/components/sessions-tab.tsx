@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { Loader2, LogOut, Monitor, Smartphone } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { UserDeviceKeyword } from "@/features/user-setting/types/settings.enums";
 import {
   useRevokeUserSessionMutation,
@@ -70,9 +72,9 @@ const SessionsTab = React.memo(function SessionsTab() {
                   <p className="text-sm font-bold text-slate-800 flex items-center gap-2">
                     {session.deviceName || "Unknown device"}
                     {session.currentSession && (
-                      <span className="rounded bg-green-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-green-700">
+                      <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-none font-bold uppercase text-[10px] px-1.5 py-0.5">
                         Current device
-                      </span>
+                      </Badge>
                     )}
                   </p>
                   <p className="text-xs font-semibold text-slate-500">
@@ -86,13 +88,15 @@ const SessionsTab = React.memo(function SessionsTab() {
               </div>
 
               {!session.currentSession && (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => setRevokingSessionId(session.id)}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-100 cursor-pointer"
+                  className="flex items-center justify-center gap-2 rounded-lg border-red-200 bg-red-50 text-xs font-bold text-red-600 hover:bg-red-100 hover:text-red-700 cursor-pointer"
                 >
                   <LogOut className="h-3 w-3" />
                   Sign out
-                </button>
+                </Button>
               )}
             </div>
           );

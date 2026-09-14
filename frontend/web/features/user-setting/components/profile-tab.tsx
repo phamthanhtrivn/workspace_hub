@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Camera, Loader2, Save, User } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
 import {
   useUpdateUserProfileMutation,
@@ -15,7 +16,7 @@ import {
   getUserSettingErrorMessage,
   getUserSettingValidationErrors,
 } from "../utils/user-setting-error";
-import { cn } from "@/lib/utils";
+import { SettingInput, SettingTextarea } from "./ui/setting-form-controls";
 
 const ProfileTab = React.memo(function ProfileTab() {
   const { email } = useAppSelector((state) => state.auth);
@@ -167,90 +168,47 @@ const ProfileTab = React.memo(function ProfileTab() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-bold text-slate-700">Full name</label>
-          <input
-            type="text"
-            value={profileForm.fullName || ""}
-            onChange={(e) => updateProfileField("fullName", e.target.value)}
-            className={cn(
-              `rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:ring-2 ${
-                errors.fullName
-                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                  : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
-              }`,
-            )}
-            placeholder="Enter your full name..."
-          />
-          {errors.fullName && (
-            <p className="text-xs text-red-500">{errors.fullName}</p>
-          )}
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-bold text-slate-700">
-            Phone number
-          </label>
-          <input
-            type="tel"
-            value={profileForm.phoneNumber || ""}
-            onChange={(e) => updateProfileField("phoneNumber", e.target.value)}
-            className={cn(
-              `rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:ring-2 ${
-                errors.phoneNumber
-                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                  : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
-              }`,
-            )}
-            placeholder="Enter your phone number..."
-          />
-          {errors.phoneNumber && (
-            <p className="text-xs text-red-500">{errors.phoneNumber}</p>
-          )}
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-bold text-slate-700">
-          Date of birth
-        </label>
-        <input
-          type="date"
-          value={profileForm.dob || ""}
-          onChange={(e) => updateProfileField("dob", e.target.value)}
-          className={cn(
-            `rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:ring-2 w-full sm:w-1/2 ${
-              errors.dob
-                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
-            }`,
-          )}
+        <SettingInput
+          label="Full name"
+          type="text"
+          value={profileForm.fullName || ""}
+          onChange={(e) => updateProfileField("fullName", e.target.value)}
+          placeholder="Enter your full name..."
+          error={errors.fullName}
         />
-        {errors.dob && <p className="text-xs text-red-500">{errors.dob}</p>}
-      </div>
 
-      <div className="flex flex-col gap-1">
-        <label className="text-sm font-bold text-slate-700">Bio</label>
-        <textarea
-          value={profileForm.bio || ""}
-          onChange={(e) => updateProfileField("bio", e.target.value)}
-          rows={3}
-          className={cn(
-            `rounded-xl border bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none focus:ring-2 resize-none ${
-              errors.bio
-                ? "border-red-500 focus:border-red-500 focus:ring-red-500/20"
-                : "border-slate-200 focus:border-[var(--color-primary)] focus:ring-[var(--color-primary)]/20"
-            }`,
-          )}
-          placeholder="Write a short introduction about yourself..."
+        <SettingInput
+          label="Phone number"
+          type="tel"
+          value={profileForm.phoneNumber || ""}
+          onChange={(e) => updateProfileField("phoneNumber", e.target.value)}
+          placeholder="Enter your phone number..."
+          error={errors.phoneNumber}
         />
-        {errors.bio && <p className="text-xs text-red-500">{errors.bio}</p>}
       </div>
 
-      <button
+      <SettingInput
+        label="Date of birth"
+        type="date"
+        value={profileForm.dob || ""}
+        onChange={(e) => updateProfileField("dob", e.target.value)}
+        error={errors.dob}
+        className="w-full sm:w-1/2"
+      />
+
+      <SettingTextarea
+        label="Bio"
+        value={profileForm.bio || ""}
+        onChange={(e) => updateProfileField("bio", e.target.value)}
+        rows={3}
+        placeholder="Write a short introduction about yourself..."
+        error={errors.bio}
+      />
+
+      <Button
         onClick={handleSaveProfile}
         disabled={updateProfileMutation.isPending}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-dark)] px-4 py-2.5 text-sm font-bold text-white shadow-md transition hover:bg-[var(--color-primary)] disabled:opacity-70 cursor-pointer"
+        className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-[var(--color-primary-dark)] text-sm font-bold text-white shadow-md transition hover:bg-[var(--color-primary)] disabled:opacity-70 cursor-pointer"
       >
         {updateProfileMutation.isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -258,7 +216,7 @@ const ProfileTab = React.memo(function ProfileTab() {
           <Save className="h-4 w-4" />
         )}
         {updateProfileMutation.isPending ? "Saving..." : "Save changes"}
-      </button>
+      </Button>
     </div>
   );
 });
