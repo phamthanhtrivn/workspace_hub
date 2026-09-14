@@ -43,19 +43,23 @@ export function useMeetingHandStates({
     const participants = participantHandStatesQuery.data?.data.items;
     if (!participants) return;
 
-    setHandRaisedAtByUserId((current) => {
-      const next = { ...current };
+    const syncTimer = window.setTimeout(() => {
+      setHandRaisedAtByUserId((current) => {
+        const next = { ...current };
 
-      participants.forEach((participant) => {
-        if (participant.handRaisedAt) {
-          next[participant.userId] = participant.handRaisedAt;
-        } else {
-          delete next[participant.userId];
-        }
+        participants.forEach((participant) => {
+          if (participant.handRaisedAt) {
+            next[participant.userId] = participant.handRaisedAt;
+          } else {
+            delete next[participant.userId];
+          }
+        });
+
+        return next;
       });
+    }, 0);
 
-      return next;
-    });
+    return () => window.clearTimeout(syncTimer);
   }, [participantHandStatesQuery.data]);
 
   const applyParticipantHandState = useCallback(

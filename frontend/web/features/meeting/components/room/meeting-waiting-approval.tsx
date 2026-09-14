@@ -1,12 +1,12 @@
 "use client";
 
 import { Loader2, ShieldCheck, XCircle } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   MeetingParticipantStatusValue,
   type MeetingParticipantStatus,
 } from "../../types/meeting.types";
 import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
+import { MeetingButton } from "../ui/meeting-form-controls";
 
 interface MeetingWaitingApprovalProps {
   status: MeetingParticipantStatus | null;
@@ -17,7 +17,6 @@ export function MeetingWaitingApproval({
   status,
   onBack,
 }: MeetingWaitingApprovalProps) {
-  const intl = useAppIntl();
   const isRejected = status === MeetingParticipantStatusValue.REJECTED;
 
   return (
@@ -32,32 +31,28 @@ export function MeetingWaitingApproval({
             )}
           </span>
           <h2 className="mt-5 text-xl font-black">
-            {intl.formatMessage({
-              id: isRejected
-                ? "meeting.waiting.rejectedTitle"
-                : "meeting.waiting.title",
-            })}
+            {isRejected ? "Request declined" : "Waiting for approval"}
           </h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
-            {intl.formatMessage({
-              id: isRejected
-                ? "meeting.waiting.rejectedDescription"
-                : "meeting.waiting.description",
-            })}
+            {isRejected
+              ? "A host declined your request to join this meeting."
+              : "A host or co-host needs to approve your request before you can enter this meeting."}
           </p>
           {!isRejected ? (
             <div className="mt-5 inline-flex items-center gap-2 rounded-md bg-white/8 px-3 py-2 text-xs font-black text-slate-200 ring-1 ring-white/10">
               <Loader2 className="h-4 w-4 animate-spin" />
-              {intl.formatMessage({ id: "meeting.waiting.pending" })}
+              Request sent
             </div>
           ) : null}
-          <button
+          <MeetingButton
             type="button"
+            tone="secondary"
+            controlSize="lg"
             onClick={onBack}
-            className="mt-6 flex h-11 w-full cursor-pointer items-center justify-center rounded-lg bg-white px-5 text-sm font-black text-[#172B4D] transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="mt-6 w-full bg-white font-black text-[#172B4D] hover:bg-slate-100"
           >
-            {intl.formatMessage({ id: "meeting.room.backToMeetings" })}
-          </button>
+            Back to meetings
+          </MeetingButton>
         </section>
       </div>
     </MeetingFullscreenPortal>

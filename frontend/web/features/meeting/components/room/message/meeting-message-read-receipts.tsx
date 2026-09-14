@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { MeetingParticipantProfile } from "../../../types/meeting.types";
 import { AvatarFallback } from "../../common/avatar-fallback";
 
@@ -16,7 +15,6 @@ export function MeetingMessageReadReceipts({
   currentUserId,
   profilesByUserId,
 }: MeetingMessageReadReceiptsProps) {
-  const intl = useAppIntl();
   const otherReaders = readBy.filter((userId) => userId !== currentUserId);
 
   if (otherReaders.length === 0) return null;
@@ -29,16 +27,13 @@ export function MeetingMessageReadReceipts({
           const readerName =
             readerProfile?.fullName ||
             readerProfile?.email ||
-            intl.formatMessage({ id: "app.user" });
+            "User";
 
           return (
             <div
               key={userId}
               className="relative h-4 w-4 cursor-pointer overflow-hidden rounded-full border-2 border-[#1f2937] bg-slate-700 shadow-sm transition-transform hover:z-10 hover:scale-105"
-              title={intl.formatMessage(
-                { id: "meeting.chat.readBy" },
-                { names: readerName },
-              )}
+              title={`Read by ${readerName}`}
             >
               {readerProfile?.avatarUrl ? (
                 <Image

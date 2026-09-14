@@ -1,6 +1,5 @@
 "use client";
 
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import {
   MeetingDashboardNavItemId,
@@ -24,15 +23,11 @@ export function MeetingSidebar({
   activeItemId,
   onItemSelect,
 }: MeetingSidebarProps) {
-  const intl = useAppIntl();
-
   return (
     <aside className="flex shrink-0 flex-col gap-5 border-b border-slate-200 bg-white/90 px-4 py-4 shadow-[0_12px_32px_rgba(15,40,84,0.06)] xl:w-80 xl:border-b-0 xl:border-r xl:py-6">
       <nav
         className="flex gap-2 overflow-x-auto xl:flex-col xl:overflow-visible"
-        aria-label={intl.formatMessage({
-          id: "meeting.dashboard.navLabel",
-        })}
+        aria-label="Meeting dashboard"
       >
         {meetingDashboardNavItems.map((item) => {
           const Icon = meetingNavIconById[item.id];
@@ -62,7 +57,7 @@ export function MeetingSidebar({
                 <Icon className="h-4 w-4" />
               </span>
               <span className="whitespace-nowrap">
-                {intl.formatMessage({ id: item.labelId })}
+                {item.label}
               </span>
             </button>
           );

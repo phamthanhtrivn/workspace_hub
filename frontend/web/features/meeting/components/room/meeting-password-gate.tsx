@@ -2,8 +2,8 @@
 
 import { FormEvent, useState } from "react";
 import { KeyRound, Loader2, LockKeyhole } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { MeetingFullscreenPortal } from "./meeting-fullscreen-overlay";
+import { MeetingButton, MeetingInput } from "../ui/meeting-form-controls";
 
 interface MeetingPasswordGateProps {
   meetingTitle?: string | null;
@@ -20,7 +20,6 @@ export function MeetingPasswordGate({
   onBack,
   onSubmit,
 }: MeetingPasswordGateProps) {
-  const intl = useAppIntl();
   const [password, setPassword] = useState("");
   const [localError, setLocalError] = useState<string | null>(null);
   const shownError = localError ?? errorMessage;
@@ -29,7 +28,7 @@ export function MeetingPasswordGate({
     event.preventDefault();
     const normalizedPassword = password.trim();
     if (!normalizedPassword) {
-      setLocalError(intl.formatMessage({ id: "meeting.password.required" }));
+      setLocalError("Enter the meeting password.");
       return;
     }
 
@@ -50,11 +49,10 @@ export function MeetingPasswordGate({
 
           <div className="mt-5 text-center">
             <h1 className="text-xl font-black">
-              {intl.formatMessage({ id: "meeting.password.title" })}
+              Enter meeting password
             </h1>
             <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
-              {meetingTitle ||
-                intl.formatMessage({ id: "meeting.schedule.title" })}
+              {meetingTitle || "Schedule a meeting"}
             </p>
           </div>
 
@@ -62,23 +60,22 @@ export function MeetingPasswordGate({
             htmlFor="meeting-room-password"
             className="mt-6 block text-xs font-black uppercase tracking-wide text-slate-300"
           >
-            {intl.formatMessage({ id: "meeting.password.label" })}
+            Password
           </label>
-          <div className="mt-2 flex h-12 items-center gap-2 rounded-lg border border-white/10 bg-white px-3 text-[#172B4D] shadow-sm focus-within:border-blue-300 focus-within:ring-2 focus-within:ring-blue-300/35">
-            <KeyRound className="h-5 w-5 shrink-0 text-slate-400" />
-            <input
+          <div className="mt-2">
+            <MeetingInput
               id="meeting-room-password"
               type="password"
               autoFocus
+              icon={KeyRound}
+              invalid={Boolean(shownError)}
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value);
                 setLocalError(null);
               }}
-              placeholder={intl.formatMessage({
-                id: "meeting.password.placeholder",
-              })}
-              className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-slate-400"
+              placeholder="Enter meeting password"
+              className="h-12 border-white/10 bg-white font-bold text-[#172B4D]"
             />
           </div>
 
@@ -86,26 +83,30 @@ export function MeetingPasswordGate({
             <p className="mt-2 text-sm font-bold text-red-200">{shownError}</p>
           ) : (
             <p className="mt-2 text-sm font-semibold leading-6 text-slate-400">
-              {intl.formatMessage({ id: "meeting.password.description" })}
+              This meeting requires a password before you can continue.
             </p>
           )}
 
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row">
-            <button
+            <MeetingButton
               type="button"
+              tone="ghost"
+              controlSize="lg"
               onClick={onBack}
-              className="h-11 flex-1 cursor-pointer rounded-lg px-5 text-sm font-black text-slate-200 transition hover:bg-white/10"
+              className="flex-1 text-slate-200 hover:bg-white/10 hover:text-white"
             >
-              {intl.formatMessage({ id: "meeting.room.backToMeetings" })}
-            </button>
-            <button
+              Back to meetings
+            </MeetingButton>
+            <MeetingButton
               type="submit"
+              tone="secondary"
+              controlSize="lg"
               disabled={isSubmitting}
-              className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg bg-white px-5 text-sm font-black text-[#172B4D] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex-1 bg-white font-black text-[#172B4D] hover:bg-slate-100"
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              {intl.formatMessage({ id: "meeting.password.continue" })}
-            </button>
+              Continue
+            </MeetingButton>
           </div>
         </form>
       </div>

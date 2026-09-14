@@ -1,7 +1,6 @@
 "use client";
 
 import { Clock3 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MeetingHeroProps {
   dateLabel: string;
@@ -16,8 +15,6 @@ export function MeetingHero({
   upcomingMeetingCount,
   onUpcomingClick,
 }: MeetingHeroProps) {
-  const intl = useAppIntl();
-
   return (
     <section className="relative min-h-[230px] overflow-hidden rounded-lg bg-[#172B4D] px-6 py-6 text-white shadow-[0_18px_48px_rgba(23,43,77,0.18)] sm:px-8">
       <div className="absolute inset-y-0 right-0 hidden w-1/2 bg-[radial-gradient(circle_at_70%_15%,rgba(255,255,255,0.24),transparent_28%),linear-gradient(135deg,rgba(0,82,204,0.25),rgba(255,171,0,0.16))] lg:block" />
@@ -32,16 +29,14 @@ export function MeetingHero({
         >
           <Clock3 className="h-4 w-4" />
           <span>
-            {intl.formatMessage(
-              { id: "meeting.dashboard.heroBadge" },
-              { count: upcomingMeetingCount },
-            )}
+            {upcomingMeetingCount} upcoming{" "}
+            {upcomingMeetingCount === 1 ? "meeting" : "meetings"}
           </span>
         </button>
 
         <div>
           <p className="text-sm font-bold text-blue-100">
-            {intl.formatMessage({ id: "meeting.dashboard.heroEyebrow" })}
+            Workspace meeting center
           </p>
           <h1 className="mt-2 text-5xl font-black leading-none tracking-normal sm:text-6xl">
             {timeLabel}

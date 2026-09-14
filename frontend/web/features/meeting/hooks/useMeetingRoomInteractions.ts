@@ -2,7 +2,6 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   sendMeetingRoomReaction,
   updateMeetingHandState,
@@ -22,7 +21,6 @@ export function useMeetingRoomInteractions({
   onHandUpdated: (participant: MeetingParticipantResponse) => void;
   onRoomReactionSent: (reaction: MeetingRoomReactionResponse) => void;
 }) {
-  const intl = useAppIntl();
   const updateHandMutation = useMutation({
     mutationFn: (raised: boolean) =>
       updateMeetingHandState(joinToken, { raised }),
@@ -30,7 +28,7 @@ export function useMeetingRoomInteractions({
       onHandUpdated(response.data);
     },
     onError: () => {
-      toast.error(intl.formatMessage({ id: "meeting.room.handUpdateFailed" }));
+      toast.error("Could not update hand state");
     },
   });
   const roomReactionMutation = useMutation({
@@ -40,9 +38,7 @@ export function useMeetingRoomInteractions({
       onRoomReactionSent(response.data);
     },
     onError: () => {
-      toast.error(
-        intl.formatMessage({ id: "meeting.room.reactionSendFailed" }),
-      );
+      toast.error("Could not send reaction");
     },
   });
 

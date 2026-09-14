@@ -1,8 +1,8 @@
 "use client";
 
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import type { MeetingStatus } from "../../types/meeting.types";
+import { getMeetingStatusLabel } from "../../utils/meeting-labels.utils";
 
 interface MeetingStatusTagProps {
   status: MeetingStatus;
@@ -20,8 +20,6 @@ export function MeetingStatusTag({
   status,
   className,
 }: MeetingStatusTagProps) {
-  const intl = useAppIntl();
-
   return (
     <span
       className={cn(
@@ -30,7 +28,7 @@ export function MeetingStatusTag({
         className,
       )}
     >
-      {intl.formatMessage({ id: `meeting.history.status.${status}` })}
+      {getMeetingStatusLabel(status)}
     </span>
   );
 }

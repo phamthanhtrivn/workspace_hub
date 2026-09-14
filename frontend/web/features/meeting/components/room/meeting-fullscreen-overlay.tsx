@@ -3,7 +3,6 @@
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, Video } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MeetingFullscreenPortalProps {
   children: ReactNode;
@@ -18,8 +17,6 @@ export function MeetingFullscreenPortal({
 }
 
 export function MeetingCreatingOverlay() {
-  const intl = useAppIntl();
-
   return (
     <MeetingFullscreenPortal>
       <div className="fixed inset-0 z-[100] grid min-h-[100dvh] place-items-center bg-[#07111f] px-4 text-white">
@@ -29,10 +26,10 @@ export function MeetingCreatingOverlay() {
             <Loader2 className="absolute -right-1 -top-1 h-6 w-6 animate-spin rounded-full bg-white p-1 text-[#0052CC]" />
           </span>
           <h2 className="mt-5 text-xl font-black">
-            {intl.formatMessage({ id: "meeting.creating.title" })}
+            Creating meeting room
           </h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-slate-300">
-            {intl.formatMessage({ id: "meeting.creating.description" })}
+            Preparing your room and device settings.
           </p>
         </div>
       </div>

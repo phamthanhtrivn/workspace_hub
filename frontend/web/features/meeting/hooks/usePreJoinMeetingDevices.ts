@@ -113,7 +113,9 @@ export function usePreJoinMeetingDevices({
       }
 
       if (!navigator.mediaDevices?.getUserMedia) {
-        setPermissionError("meeting.prejoin.deviceUnsupported");
+        setPermissionError(
+          "This browser does not support camera and microphone previews.",
+        );
         setIsPreviewLoading(false);
         return;
       }
@@ -152,7 +154,9 @@ export function usePreJoinMeetingDevices({
         await refreshDevices();
       } catch {
         if (isCurrent) {
-          setPermissionError("meeting.prejoin.devicePermissionError");
+          setPermissionError(
+            "Allow camera and microphone access to preview your devices.",
+          );
           setPreviewStream(null);
         }
       } finally {

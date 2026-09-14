@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { formatDividerTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import type {
@@ -42,8 +41,6 @@ export function MeetingMessageList({
   onRecall,
   onReadMessage,
 }: MeetingMessageListProps) {
-  const intl = useAppIntl();
-
   useEffect(() => {
     const newestMessage = messages[messages.length - 1];
     if (!newestMessage || newestMessage.senderId === currentUserId) return;
@@ -53,7 +50,7 @@ export function MeetingMessageList({
   if (isLoading) {
     return (
       <div className="grid flex-1 place-items-center text-sm font-bold text-slate-500">
-        {intl.formatMessage({ id: "app.loading" })}
+        Loading...
       </div>
     );
   }
@@ -61,7 +58,7 @@ export function MeetingMessageList({
   if (messages.length === 0) {
     return (
       <div className="grid flex-1 place-items-center px-6 text-center text-sm font-bold leading-6 text-slate-500 mt-6">
-        {intl.formatMessage({ id: "meeting.chat.empty" })}
+        No meeting messages yet. Say hello when you are ready.
       </div>
     );
   }
@@ -74,7 +71,7 @@ export function MeetingMessageList({
           className="grid h-8 place-items-center text-xs font-bold text-slate-500"
         >
           {isFetchingNextPage
-            ? intl.formatMessage({ id: "meeting.chat.loadingOlder" })
+            ? "Loading older messages..."
             : null}
         </div>
       )}

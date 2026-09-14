@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { MoreHorizontal, SmilePlus } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { formatDateTime } from "@/lib/date";
 import { cn } from "@/lib/utils";
 import type {
@@ -16,6 +15,7 @@ import { MeetingMessageOptionsMenu } from "./meeting-message-options-menu";
 import { MeetingMessageReadReceipts } from "./meeting-message-read-receipts";
 import { MeetingMessageReactions } from "./meeting-message-reactions";
 import { MESSAGE_ACTION_WINDOW_MS, QUICK_REACTIONS } from "@/features/meeting/types/meeting.constants";
+import { MeetingIconButton } from "../../ui/meeting-icon-button";
 
 interface MeetingMessageItemProps {
   message: MeetingMessageResponse;
@@ -42,14 +42,13 @@ export function MeetingMessageItem({
   onEdit,
   onRecall,
 }: MeetingMessageItemProps) {
-  const intl = useAppIntl();
   const [isReactionPickerOpen, setIsReactionPickerOpen] = useState(false);
   const [isOptionsOpen, setIsOptionsOpen] = useState(false);
   const [optionsRect, setOptionsRect] = useState<DOMRect | null>(null);
   const [currentTime] = useState(() => Date.now());
   const isMe = message.senderId === currentUserId;
   const senderName =
-    profile?.fullName || profile?.email || intl.formatMessage({ id: "meeting.chat.unknownUser" });
+    profile?.fullName || profile?.email || "User";
   const createdAtLabel = useMemo(
     () => formatDateTime(message.createdAt),
     [message.createdAt],
@@ -122,7 +121,7 @@ export function MeetingMessageItem({
 
         {message.recalled ? (
           <div className="rounded-2xl border border-white/10 bg-white/6 px-3 py-2 text-sm italic text-slate-500">
-            {intl.formatMessage({ id: "meeting.chat.messageRecalled" })}
+            Message recalled
           </div>
         ) : (
           <>
@@ -159,7 +158,7 @@ export function MeetingMessageItem({
         >
           {(!showSenderName || isMe) && <span>{createdAtLabel}</span>}
           {message.edited && (
-            <span>{intl.formatMessage({ id: "meeting.chat.edited" })}</span>
+            <span>Edited</span>
           )}
         </div>
 
@@ -179,14 +178,12 @@ export function MeetingMessageItem({
             )}
           >
             <div className="flex min-w-0 max-w-full items-center gap-1">
-              <button
-                type="button"
+              <MeetingIconButton
+                label="React"
+                icon={SmilePlus}
                 onClick={() => setIsReactionPickerOpen((value) => !value)}
-                className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#111827] text-slate-300 shadow-lg transition"
-                title={intl.formatMessage({ id: "meeting.chat.react" })}
-              >
-                <SmilePlus className="h-4 w-4" />
-              </button>
+                className="size-8 rounded-lg border border-white/10 bg-[#111827] text-slate-300 shadow-lg"
+              />
               {isReactionPickerOpen && (
                 <div
                   className={cn(
@@ -199,7 +196,7 @@ export function MeetingMessageItem({
                       key={emoji}
                       type="button"
                       onClick={() => handleQuickReaction(emoji)}
-                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-base transition"
+                      className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-base transition hover:bg-white/10"
                     >
                       {emoji}
                     </button>
@@ -209,17 +206,15 @@ export function MeetingMessageItem({
             </div>
 
             {(canEdit || canRecall) && (
-              <button
-                type="button"
+              <MeetingIconButton
+                label="More actions"
+                icon={MoreHorizontal}
                 onClick={(event) => {
                   setOptionsRect(event.currentTarget.getBoundingClientRect());
                   setIsOptionsOpen(true);
                 }}
-                className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg border border-white/10 bg-[#111827] text-slate-300 shadow-lg transition"
-                title={intl.formatMessage({ id: "meeting.chat.moreActions" })}
-              >
-                <MoreHorizontal className="h-4 w-4" />
-              </button>
+                className="size-8 rounded-lg border border-white/10 bg-[#111827] text-slate-300 shadow-lg"
+              />
             )}
           </div>
         )}

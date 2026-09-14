@@ -1,8 +1,7 @@
 "use client";
 
-import { Grid, List, Loader2, RotateCcw, VideoOff } from "lucide-react";
+import { Grid, List, RotateCcw, VideoOff } from "lucide-react";
 import { useState } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import {
   meetingHistoryPageSize,
@@ -11,23 +10,26 @@ import {
 import { MeetingHistoryViewMode } from "../../types/meeting.types";
 import { MeetingHistoryCard } from "./meeting-history-card";
 import { MeetingHistoryListRow } from "./meeting-history-list-row";
-import { MeetingHistoryPagination } from "./meeting-history-pagination";
+import { MeetingPagination } from "../common/meeting-pagination";
+import { MeetingEmptyState } from "../ui/meeting-empty-state";
+import { MeetingButton } from "../ui/meeting-form-controls";
+import { MeetingIconButton } from "../ui/meeting-icon-button";
+import { MeetingLoadingState } from "../ui/meeting-loading-state";
 
 const historyViewModeItems = [
   {
     id: MeetingHistoryViewMode.GRID,
-    labelId: "meeting.history.view.grid",
+    label: "Grid view",
     icon: Grid,
   },
   {
     id: MeetingHistoryViewMode.LIST,
-    labelId: "meeting.history.view.list",
+    label: "List view",
     icon: List,
   },
 ] as const;
 
 export function MeetingPreviousView() {
-  const intl = useAppIntl();
   const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState(MeetingHistoryViewMode.GRID);
   const historyQuery = useMeetingHistory({ page, enabled: true });
@@ -42,87 +44,68 @@ export function MeetingPreviousView() {
       <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl font-black text-[#172B4D]">
-            {intl.formatMessage({ id: "meeting.history.title" })}
+            Previous meetings
           </h1>
           <p className="mt-1 text-sm font-semibold text-slate-500">
-            {intl.formatMessage({ id: "meeting.history.description" })}
+            Review sessions you hosted or joined.
           </p>
         </div>
 
         <div
           className="flex w-fit rounded-lg border border-slate-200 bg-slate-100 p-1"
           role="tablist"
-          aria-label={intl.formatMessage({ id: "meeting.history.viewLabel" })}
+          aria-label="Meeting history layout"
         >
           {historyViewModeItems.map((item) => {
-            const Icon = item.icon;
             const isActive = item.id === viewMode;
 
             return (
-              <button
+              <MeetingIconButton
                 key={item.id}
-                type="button"
+                label={item.label}
+                icon={item.icon}
                 onClick={() => setViewMode(item.id)}
                 className={cn(
-                  "grid h-9 w-9 cursor-pointer place-items-center rounded-md transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]",
+                  "size-9",
                   isActive
-                    ? "bg-white text-[#0052CC] shadow-sm"
+                    ? "bg-white text-[#0052CC] shadow-sm hover:bg-white"
                     : "text-slate-500 hover:text-[#172B4D]",
                 )}
-                aria-label={intl.formatMessage({ id: item.labelId })}
-                aria-selected={isActive}
-                role="tab"
-                title={intl.formatMessage({ id: item.labelId })}
-              >
-                <Icon className="h-4 w-4" />
-              </button>
+              />
             );
           })}
         </div>
       </div>
 
       {isInitialLoading ? (
-        <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-slate-200 bg-white/70">
-          <div className="flex flex-col items-center text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#0052CC]" />
-            <p className="mt-3 text-sm font-black text-slate-600">
-              {intl.formatMessage({ id: "meeting.history.loading" })}
-            </p>
-          </div>
-        </div>
+        <MeetingLoadingState label="Loading meeting history..." />
       ) : historyQuery.isError ? (
         <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-red-200 bg-white/70 px-4">
           <div className="flex max-w-sm flex-col items-center text-center">
             <VideoOff className="h-9 w-9 text-red-500" />
             <p className="mt-3 text-sm font-black text-slate-700">
-              {intl.formatMessage({ id: "meeting.history.error" })}
+              Could not load meeting history.
             </p>
-            <button
+            <MeetingButton
               type="button"
               onClick={() => historyQuery.refetch()}
-              className="mt-4 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-[#0052CC] px-4 text-sm font-black text-white transition hover:bg-[#0C66E4]"
+              className="mt-4 cursor-pointer"
             >
               <RotateCcw className="h-4 w-4" />
-              {intl.formatMessage({ id: "app.tryAgain" })}
-            </button>
+              Try again
+            </MeetingButton>
           </div>
         </div>
       ) : meetings.length === 0 ? (
-        <div className="grid min-h-80 place-items-center rounded-lg border border-dashed border-slate-200 bg-white/70 px-4">
-          <div className="max-w-sm text-center">
-            <VideoOff className="mx-auto h-9 w-9 text-slate-400" />
-            <p className="mt-3 text-sm font-black text-slate-700">
-              {intl.formatMessage({ id: "meeting.history.emptyTitle" })}
-            </p>
-            <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-              {intl.formatMessage({ id: "meeting.history.emptyDescription" })}
-            </p>
-          </div>
-        </div>
+        <MeetingEmptyState
+          icon={VideoOff}
+          title="No meeting history yet"
+          description="Past meetings will show up here after sessions end."
+        />
       ) : (
         <div className="flex flex-col gap-5">
           {viewMode === MeetingHistoryViewMode.GRID ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {meetings.map((meeting) => (
                 <MeetingHistoryCard key={meeting.id} meeting={meeting} />
               ))}
@@ -135,7 +118,7 @@ export function MeetingPreviousView() {
             </div>
           )}
 
-          <MeetingHistoryPagination
+          <MeetingPagination
             page={page}
             limit={meetingHistoryPageSize}
             total={total}

@@ -10,7 +10,6 @@ import {
   X,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { AvatarFallback } from "@/features/meeting/components/common/avatar-fallback";
 import {
   useMeetingJoinRequestActions,
@@ -19,6 +18,8 @@ import {
 import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
 import { meetingKeys } from "@/features/meeting/types/meeting.query-keys";
 import type { MeetingJoinRequestUpdatedPayload } from "@/features/meeting/types/meeting-socket.types";
+import { MeetingButton, MeetingInput } from "@/features/meeting/components/ui/meeting-form-controls";
+import { MeetingIconButton } from "@/features/meeting/components/ui/meeting-icon-button";
 
 interface MeetingRoomAdmissionPanelProps {
   joinToken: string;
@@ -29,7 +30,6 @@ export function MeetingRoomAdmissionPanel({
   joinToken,
   meetingId,
 }: MeetingRoomAdmissionPanelProps) {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -65,39 +65,41 @@ export function MeetingRoomAdmissionPanel({
 
   return (
     <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-        <input
-          value={search}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-          placeholder={intl.formatMessage({ id: "meeting.admission.search" })}
-          className="h-10 w-full rounded-lg border border-white/10 bg-white/8 pl-9 pr-3 text-sm font-semibold text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-blue-300/50 focus:bg-white/10"
-        />
-      </div>
+      <MeetingInput
+        icon={Search}
+        value={search}
+        onChange={(event) => {
+          setSearch(event.target.value);
+          setPage(1);
+        }}
+        placeholder="Search by name or email..."
+        className="h-10 border-white/10 bg-white/8 text-slate-100 placeholder:text-slate-500 focus-visible:bg-white/10"
+      />
 
       {hasRequests ? (
         <div className="flex items-center gap-2">
-          <button
+          <MeetingButton
             type="button"
+            tone="primary"
+            controlSize="sm"
             disabled={actions.approveAll.isPending}
             onClick={() => actions.approveAll.mutate()}
-            className="flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-emerald-500 px-3 text-xs font-black text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1 bg-emerald-500 hover:bg-emerald-400"
           >
             <Check className="h-3.5 w-3.5" />
-            {intl.formatMessage({ id: "meeting.admission.acceptAll" })}
-          </button>
-          <button
+            Accept all
+          </MeetingButton>
+          <MeetingButton
             type="button"
+            tone="danger"
+            controlSize="sm"
             disabled={actions.declineAll.isPending}
             onClick={() => actions.declineAll.mutate()}
-            className="flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 text-xs font-black text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-1"
           >
             <X className="h-3.5 w-3.5" />
-            {intl.formatMessage({ id: "meeting.admission.declineAll" })}
-          </button>
+            Decline all
+          </MeetingButton>
         </div>
       ) : null}
 
@@ -105,11 +107,11 @@ export function MeetingRoomAdmissionPanel({
         {requestsQuery.isLoading ? (
           <div className="flex h-40 items-center justify-center text-sm font-bold text-slate-400">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {intl.formatMessage({ id: "meeting.admission.loading" })}
+            Loading requests...
           </div>
         ) : !hasRequests ? (
           <div className="rounded-lg bg-white/6 p-4 text-center text-sm font-semibold leading-6 text-slate-400 ring-1 ring-white/8">
-            {intl.formatMessage({ id: "meeting.admission.empty" })}
+            No pending requests.
           </div>
         ) : (
           items.map((request) => {
@@ -152,24 +154,28 @@ export function MeetingRoomAdmissionPanel({
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button
+                  <MeetingButton
                     type="button"
+                    tone="primary"
+                    controlSize="sm"
                     disabled={isBusy}
                     onClick={() => actions.approveOne.mutate(request.userId)}
-                    className="flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md bg-emerald-500 text-xs font-black text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="bg-emerald-500 hover:bg-emerald-400"
                   >
                     <Check className="h-3.5 w-3.5" />
-                    {intl.formatMessage({ id: "meeting.admission.accept" })}
-                  </button>
-                  <button
+                    Accept
+                  </MeetingButton>
+                  <MeetingButton
                     type="button"
+                    tone="ghost"
+                    controlSize="sm"
                     disabled={isBusy}
                     onClick={() => actions.declineOne.mutate(request.userId)}
-                    className="flex h-8 cursor-pointer items-center justify-center gap-1 rounded-md bg-white/10 text-xs font-black text-slate-200 transition hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                    className="bg-white/10 text-slate-200 hover:bg-red-500 hover:text-white"
                   >
                     <X className="h-3.5 w-3.5" />
-                    {intl.formatMessage({ id: "meeting.admission.decline" })}
-                  </button>
+                    Decline
+                  </MeetingButton>
                 </div>
               </article>
             );
@@ -179,29 +185,25 @@ export function MeetingRoomAdmissionPanel({
 
       {shouldShowPagination ? (
         <div className="mt-auto flex items-center justify-between gap-2 rounded-lg bg-white/6 px-2 py-2 text-xs font-black text-slate-300 ring-1 ring-white/8">
-          <button
-            type="button"
+          <MeetingIconButton
+            label="Previous"
+            icon={ChevronLeft}
             disabled={page <= 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
-            className="grid h-8 w-8 cursor-pointer place-items-center rounded-md transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label={intl.formatMessage({ id: "app.previous" })}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+            className="size-8 text-slate-300 hover:bg-white/10"
+          />
           <span>
             {page} / {totalPages}
           </span>
-          <button
-            type="button"
+          <MeetingIconButton
+            label="Next"
+            icon={ChevronRight}
             disabled={page >= totalPages}
             onClick={() =>
               setPage((current) => Math.min(totalPages, current + 1))
             }
-            className="grid h-8 w-8 cursor-pointer place-items-center rounded-md transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label={intl.formatMessage({ id: "app.next" })}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+            className="size-8 text-slate-300 hover:bg-white/10"
+          />
         </div>
       ) : null}
     </div>

@@ -39,6 +39,7 @@ export function MeetingRoomReactionPicker({
   onSendReaction,
 }: MeetingRoomReactionPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const isPickerOpen = isOpen && !disabled;
   const [pickerPosition, setPickerPosition] = useState<PickerPosition | null>(
     null,
   );
@@ -64,13 +65,13 @@ export function MeetingRoomReactionPicker({
   }, []);
 
   useLayoutEffect(() => {
-    if (!isOpen) return;
+    if (!isPickerOpen) return;
 
     updatePickerPosition();
-  }, [isOpen, updatePickerPosition]);
+  }, [isPickerOpen, updatePickerPosition]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isPickerOpen) return;
 
     const handlePointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
@@ -100,13 +101,7 @@ export function MeetingRoomReactionPicker({
       window.removeEventListener("resize", updatePickerPosition);
       window.removeEventListener("scroll", updatePickerPosition, true);
     };
-  }, [isOpen, updatePickerPosition]);
-
-  useEffect(() => {
-    if (disabled) {
-      setIsOpen(false);
-    }
-  }, [disabled]);
+  }, [isPickerOpen, updatePickerPosition]);
 
   return (
     <div className="relative shrink-0">
@@ -115,7 +110,7 @@ export function MeetingRoomReactionPicker({
         type="button"
         disabled={disabled}
         aria-label={label}
-        aria-expanded={isOpen}
+        aria-expanded={isPickerOpen}
         aria-haspopup="menu"
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
@@ -126,7 +121,7 @@ export function MeetingRoomReactionPicker({
         <span className="max-w-full truncate px-1">{label}</span>
       </button>
 
-      {isOpen && typeof document !== "undefined"
+      {isPickerOpen && typeof document !== "undefined"
         ? createPortal(
             <div
               ref={menuRef}

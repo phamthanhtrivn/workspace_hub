@@ -11,7 +11,6 @@ export function formatMeetingSummaryMinutes(totalMinutes: number) {
 
 export function formatMeetingSummaryLastMeetingAt(
   value: string | null,
-  locale: string,
   fallback: string,
 ) {
   if (!value) return fallback;
@@ -19,7 +18,7 @@ export function formatMeetingSummaryLastMeetingAt(
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return fallback;
 
-  return new Intl.DateTimeFormat(locale, {
+  return new Intl.DateTimeFormat("en-US", {
     day: "2-digit",
     month: "2-digit",
     hour: "2-digit",

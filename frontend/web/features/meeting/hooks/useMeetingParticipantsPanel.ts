@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import {
   useMeetingParticipantActions,
@@ -16,7 +15,7 @@ import {
 import {
   canManageMeetingAdmission,
   canRemoveMeetingParticipant,
-  getRoleLabelId,
+  getRoleLabel,
 } from "../utils/meeting-room.utils";
 
 interface UseMeetingParticipantsPanelParams {
@@ -32,7 +31,7 @@ export interface MeetingParticipantListItemState {
   displayName: string;
   email: string;
   avatarUrl?: string | null;
-  roleLabelId: string | null;
+  roleLabel: string | null;
   isSelf: boolean;
   canRemove: boolean;
   canManageRole: boolean;
@@ -55,7 +54,6 @@ export function useMeetingParticipantsPanel({
   participantRole,
   activeScreenShareUserId,
 }: UseMeetingParticipantsPanelParams) {
-  const intl = useAppIntl();
   const authUser = useAppSelector((state) => state.auth);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -115,7 +113,7 @@ export function useMeetingParticipantsPanel({
             displayName,
             email,
             avatarUrl,
-            roleLabelId: getRoleLabelId(participant.role),
+            roleLabel: getRoleLabel(participant.role),
             isSelf,
             canRemove: canRemoveMeetingParticipant({
               actorRole: participantRole,
@@ -156,12 +154,9 @@ export function useMeetingParticipantsPanel({
     async (participant: MeetingParticipantResponse) => {
       const displayName = getParticipantDisplayName(participant);
       const confirmed = await confirm({
-        title: intl.formatMessage(
-          { id: "meeting.participants.removeConfirm" },
-          { name: displayName },
-        ),
-        confirmLabel: intl.formatMessage({ id: "meeting.participants.remove" }),
-        cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+        title: `Remove ${displayName} from the meeting?`,
+        confirmLabel: "Remove",
+        cancelLabel: "Cancel",
         variant: "danger",
       });
 
@@ -169,7 +164,7 @@ export function useMeetingParticipantsPanel({
         actions.removeParticipant.mutate(participant.userId);
       }
     },
-    [actions.removeParticipant, confirm, intl],
+    [actions.removeParticipant, confirm],
   );
 
   const handleRoleChange = useCallback(
@@ -182,14 +177,9 @@ export function useMeetingParticipantsPanel({
       const confirmed =
         !isHostTransfer ||
         (await confirm({
-          title: intl.formatMessage(
-            { id: "meeting.participants.transferHostConfirm" },
-            { name: displayName },
-          ),
-          confirmLabel: intl.formatMessage({
-            id: "meeting.participants.makeHost",
-          }),
-          cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+          title: `Make ${displayName} the host? You will become a co-host.`,
+          confirmLabel: "Make host",
+          cancelLabel: "Cancel",
           variant: "warning",
         }));
 
@@ -197,7 +187,7 @@ export function useMeetingParticipantsPanel({
         actions.updateRole.mutate({ userId: participant.userId, role });
       }
     },
-    [actions.updateRole, confirm, intl],
+    [actions.updateRole, confirm],
   );
 
   const handleStopScreenShare = useCallback(

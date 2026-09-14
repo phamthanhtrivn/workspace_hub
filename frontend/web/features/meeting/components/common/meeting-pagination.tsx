@@ -1,11 +1,11 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
+import { MeetingButton } from "../ui/meeting-form-controls";
 import { getMeetingHistoryPageNumbers } from "../../utils/meeting-history.utils";
 
-interface MeetingHistoryPaginationProps {
+interface MeetingPaginationProps {
   page: number;
   limit: number;
   total: number;
@@ -13,14 +13,13 @@ interface MeetingHistoryPaginationProps {
   onPageChange: (page: number) => void;
 }
 
-export function MeetingHistoryPagination({
+export function MeetingPagination({
   page,
   limit,
   total,
   totalPages,
   onPageChange,
-}: MeetingHistoryPaginationProps) {
-  const intl = useAppIntl();
+}: MeetingPaginationProps) {
   const safePage = Math.min(Math.max(1, page), totalPages);
   const start = total === 0 ? 0 : (safePage - 1) * limit + 1;
   const end = Math.min(safePage * limit, total);
@@ -31,23 +30,22 @@ export function MeetingHistoryPagination({
   return (
     <div className="flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
       <span className="text-xs font-semibold text-slate-500">
-        {intl.formatMessage(
-          { id: "meeting.history.paginationSummary" },
-          { start, end, total },
-        )}
+        Showing {start}-{end} of {total}
       </span>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button
+        <MeetingButton
           type="button"
+          tone="outline"
+          controlSize="sm"
           disabled={safePage === 1}
           onClick={() => onPageChange(Math.max(1, safePage - 1))}
-          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label={intl.formatMessage({ id: "app.previous" })}
+          className="cursor-pointer"
+          aria-label="Previous"
         >
           <ChevronLeft className="h-4 w-4" />
-          {intl.formatMessage({ id: "app.previous" })}
-        </button>
+          Previous
+        </MeetingButton>
         {pageNumbers.map((pageNumber) =>
           typeof pageNumber === "number" ? (
             <button
@@ -74,16 +72,18 @@ export function MeetingHistoryPagination({
             </span>
           ),
         )}
-        <button
+        <MeetingButton
           type="button"
+          tone="outline"
+          controlSize="sm"
           disabled={safePage === totalPages}
           onClick={() => onPageChange(Math.min(totalPages, safePage + 1))}
-          className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-black text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          aria-label={intl.formatMessage({ id: "app.next" })}
+          className="cursor-pointer"
+          aria-label="Next"
         >
-          {intl.formatMessage({ id: "app.next" })}
+          Next
           <ChevronRight className="h-4 w-4" />
-        </button>
+        </MeetingButton>
       </div>
     </div>
   );
