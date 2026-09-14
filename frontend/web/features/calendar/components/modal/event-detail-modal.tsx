@@ -7,14 +7,12 @@ import {
   Check,
   Copy,
   ExternalLink,
-  List,
   Mail,
   MapPin,
   MoreVertical,
   Paperclip,
   Pencil,
   Printer,
-  Repeat,
   Trash2,
   Users,
   Video,
@@ -28,24 +26,17 @@ import { useModalDialog } from "../../hooks/use-modal-dialog";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
-  EventSourceType,
   RecurrenceScope,
 } from "../../types/calendar.types";
 import {
   formatCalendarEventRange,
   formatReminderLabel,
 } from "../../utils/calendar-date.utils";
-import {
-  cleanTaskDescription,
-  isTaskCalendarEvent,
-} from "../../utils/calendar-event.utils";
-import { formatRecurrenceRuleText } from "../../utils/calendar-recurrence.utils";
 import { EventAttendeeList } from "./event-attendee-list";
 
 export function EventDetailModal({
   event,
   open,
-  tasksColor,
   onClose,
   onEdit,
   onCancelEvent,
@@ -54,7 +45,6 @@ export function EventDetailModal({
 }: {
   event: CalendarEvent | null;
   open: boolean;
-  tasksColor?: string;
   onClose: () => void;
   onEdit: () => void;
   onCancelEvent: (scope: RecurrenceScope) => void;
@@ -96,13 +86,6 @@ export function EventDetailModal({
     ) || [];
 
   const isRecurring = Boolean(event.recurrenceRule || event.recurrenceParentId);
-  const recurrenceText = event.recurrenceRule
-    ? formatRecurrenceRuleText(event.recurrenceRule, intl.locale, event.startAt)
-    : event.recurrenceParentId
-      ? intl.locale === "vi"
-        ? "Sự kiện định kỳ"
-        : "Recurring event"
-      : null;
 
   const handleDelete = () => {
     if (isRecurring) {
@@ -119,10 +102,7 @@ export function EventDetailModal({
 
   const handleEmailGuests = () => {
     const emails = guestAttendees
-      .map(
-        (a) =>
-          a.profile?.email || resolvedProfiles[a.userId]?.email || null,
-      )
+      .map((a) => a.profile?.email || resolvedProfiles[a.userId]?.email || null)
       .filter(Boolean) as string[];
     if (emails.length > 0) {
       window.location.href = `mailto:${emails.join(",")}?subject=${encodeURIComponent(event.title)}`;
@@ -187,24 +167,13 @@ export function EventDetailModal({
         ? "30 phút trước"
         : "30 minutes before";
 
-  const isTask = isTaskCalendarEvent(event);
-
   const calendarName =
-    isTask
-      ? intl.formatMessage({ id: "calendar.quick.myTasks" })
-      : event.calendar?.name ||
-        event.creatorProfile?.fullName ||
-        event.creatorProfile?.email ||
-        (intl.locale === "vi" ? "Lịch của tôi" : "My Calendar");
+    event.calendar?.name ||
+    event.creatorProfile?.fullName ||
+    event.creatorProfile?.email ||
+    (intl.locale === "vi" ? "Lịch của tôi" : "My Calendar");
 
-  const eventColor =
-    isTask
-      ? tasksColor || "#f59e0b"
-      : event.color || event.calendar?.color || "#ea580c";
-
-  const displayDescription = isTask
-    ? cleanTaskDescription(event.description)
-    : event.description;
+  const eventColor = event.color || event.calendar?.color || "#ea580c";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
@@ -245,8 +214,12 @@ export function EventDetailModal({
           <button
             type="button"
             onClick={handleEmailGuests}
-            aria-label={intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"}
-            title={intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"}
+            aria-label={
+              intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"
+            }
+            title={
+              intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"
+            }
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
             <Mail className="h-4 w-4" />
@@ -256,7 +229,9 @@ export function EventDetailModal({
             <button
               type="button"
               onClick={() => setShowMoreMenu((prev) => !prev)}
-              aria-label={intl.locale === "vi" ? "Tùy chọn khác" : "More options"}
+              aria-label={
+                intl.locale === "vi" ? "Tùy chọn khác" : "More options"
+              }
               title={intl.locale === "vi" ? "Tùy chọn khác" : "More options"}
               className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
@@ -322,12 +297,6 @@ export function EventDetailModal({
               <p className="mt-1 text-sm font-normal text-slate-600">
                 {formatCalendarEventRange(event, intl.locale)}
               </p>
-              {recurrenceText && (
-                <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
-                  <Repeat className="h-3.5 w-3.5 shrink-0 text-slate-400" />
-                  <span>{recurrenceText}</span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -341,14 +310,10 @@ export function EventDetailModal({
             </div>
           </div>
 
-          {/* Row 3: Calendar Name (Calendar / List icon) */}
+          {/* Row 3: Calendar Name (Calendar icon) */}
           <div className="flex items-start gap-4">
             <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-              {isTask ? (
-                <List className="h-4 w-4 text-slate-500" />
-              ) : (
-                <Calendar className="h-4 w-4 text-slate-500" />
-              )}
+              <Calendar className="h-4 w-4 text-slate-500" />
             </div>
             <div className="min-w-0 flex-1 text-sm text-slate-700">
               {calendarName}
@@ -417,13 +382,13 @@ export function EventDetailModal({
           )}
 
           {/* Row 6: Description (if present) */}
-          {displayDescription && (
+          {event.description && (
             <div className="flex items-start gap-4">
               <div className="mt-0.5 flex w-5 shrink-0 justify-center">
                 <AlignLeft className="h-4 w-4 text-slate-500" />
               </div>
               <div className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-                {displayDescription}
+                {event.description}
               </div>
             </div>
           )}
@@ -497,15 +462,14 @@ export function EventDetailModal({
           )}
         </div>
 
-
         {/* Recurrence Delete Confirmation Dialog */}
         {showDeleteScopeModal && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/50 p-4">
+            <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
               <h3 className="text-base font-semibold text-slate-900">
                 {intl.locale === "vi"
-                  ? `Xóa sự kiện định kỳ "${event.title}"`
-                  : `Delete recurring event "${event.title}"`}
+                  ? "Xóa sự kiện định kỳ"
+                  : "Delete recurring event"}
               </h3>
               <p className="mt-1 text-xs text-slate-500">
                 {intl.locale === "vi"

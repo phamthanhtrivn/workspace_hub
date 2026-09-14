@@ -5,6 +5,7 @@ import GanttView from "../views/gantt-view";
 import GeneralSummaryView from "../views/general-summary-view";
 import ListView from "../views/list-view";
 import ProjectMembersPanel from "../members/project-members-panel";
+import ProjectMembersView from "../views/project-members-view";
 import SoftwareBacklogView, {
   type SprintCreateValues,
 } from "../views/software-backlog-view";
@@ -63,6 +64,7 @@ interface ProjectDetailContentProps {
   onEditGroup: (task: Task) => void;
   onDeleteGroup: (task: Task) => Promise<void>;
   onReorderTasks: (group: Task, orderedTasks: Task[]) => Promise<void>;
+  onViewChange?: (view: ProjectViewMode) => void;
 }
 
 export default function ProjectDetailContent(props: ProjectDetailContentProps) {
@@ -76,6 +78,9 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
       canInvite={permissions.canInviteMembers}
       canRemoveMembers={permissions.canManageMembers}
       canManagePermissions={permissions.canManagePermissions}
+      onViewAll={
+        props.onViewChange ? () => props.onViewChange?.("members") : undefined
+      }
     />
   );
 
@@ -168,12 +173,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           onAddSubtask={
             permissions.canCreateTask
               ? (task) =>
-                  props.openTaskForm(
-                    TaskStatus.TODO,
-                    undefined,
-                    false,
-                    task.id,
-                  )
+                  props.openTaskForm(TaskStatus.TODO, undefined, false, task.id)
               : undefined
           }
           onEditGroup={
@@ -207,6 +207,19 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           tasks={props.tasks}
           dependencies={props.dependencies}
           onTaskClick={props.onTaskSelect}
+        />
+      );
+    }
+    if (props.viewMode === "members") {
+      return (
+        <ProjectMembersView
+          projectId={props.projectId}
+          members={props.members}
+          tasks={props.tasks}
+          canInvite={permissions.canInviteMembers}
+          canRemoveMembers={permissions.canManageMembers}
+          canManagePermissions={permissions.canManagePermissions}
+          currentUserId={userId}
         />
       );
     }

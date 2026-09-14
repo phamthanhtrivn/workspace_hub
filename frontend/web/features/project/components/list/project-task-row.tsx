@@ -1,7 +1,7 @@
 "use client";
 
 import type { KeyboardEvent } from "react";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   type Task,
@@ -9,11 +9,7 @@ import {
 } from "@/features/project/types/project";
 import { TaskStatusBadge, LabelBadge } from "../ui/status-badge";
 import { Avatar } from "../ui/avatar-stack";
-import {
-  getIssueKey,
-  getIssueTypeDetails,
-  getPriorityIcon,
-} from "../ui/task-card";
+import { getIssueKey, getIssueIcon, getPriorityIcon } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
 import { TASK_PRIORITY_LABEL_IDS } from "@/features/project/constants/task.constants";
 
@@ -41,12 +37,11 @@ export default function ProjectTaskRow({
   onDrop,
   onTaskClick,
   onOpenChat,
-  onAddSubtask,
 }: ProjectTaskRowProps) {
   const intl = useAppIntl();
   const overdue = isOverdue(task.dueDate, task.status);
   const issueKey = getIssueKey(task);
-  const issueType = getIssueTypeDetails(task);
+  const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
   const isDraggable = reorderEnabled && !isTerminalTaskStatus(task.status);
 
@@ -77,8 +72,7 @@ export default function ProjectTaskRow({
       }}
       className="group flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-[7px] text-left transition-colors hover:bg-[#F4F5F7] cursor-pointer focus-visible:bg-[#DEEBFF] focus-visible:outline-none"
     >
-      {/* Type icon */}
-      <div className="shrink-0">{issueType.icon}</div>
+      <div className="shrink-0">{issueIcon}</div>
 
       {/* Key */}
       <span className="shrink-0 min-w-[70px] text-[11px] font-semibold uppercase tracking-wide text-slate-500 hover:text-[#0052CC]">
@@ -128,7 +122,9 @@ export default function ProjectTaskRow({
       {/* Priority */}
       <div
         className="flex w-8 shrink-0 justify-center"
-        title={intl.formatMessage({ id: TASK_PRIORITY_LABEL_IDS[task.priority] })}
+        title={intl.formatMessage({
+          id: TASK_PRIORITY_LABEL_IDS[task.priority],
+        })}
       >
         {priorityIcon}
       </div>
@@ -152,23 +148,6 @@ export default function ProjectTaskRow({
       </div>
 
       <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
-
-      {onAddSubtask && (
-        <button
-          type="button"
-          title={intl.formatMessage({ id: "project.task.createSubtask" })}
-          onClick={(event) => {
-            event.stopPropagation();
-            onAddSubtask();
-          }}
-          className="inline-flex shrink-0 items-center gap-1 rounded bg-blue-50 px-1.5 py-1 text-[11px] font-bold text-[#0052CC] transition hover:bg-[#DEEBFF]"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          <span className="hidden xl:inline">
-            {intl.formatMessage({ id: "project.task.subtask" })}
-          </span>
-        </button>
-      )}
     </div>
   );
 }

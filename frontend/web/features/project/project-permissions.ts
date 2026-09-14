@@ -37,8 +37,8 @@ export function getProjectPermissions(
 ): ProjectPermissions {
   const membership = members.find((member) => member.userId === currentUserId);
   const role =
-    project.ownerId === currentUserId ? ProjectRole.OWNER : membership?.role;
-  const canManageProject = role === ProjectRole.OWNER;
+    project.ownerId === currentUserId ? ProjectRole.ADMIN : membership?.role;
+  const canManageProject = role === ProjectRole.ADMIN;
   const isMember = Boolean(role);
   const canEditTask = (task: Pick<Task, "createdBy">) => {
     if (canManageProject) return true;

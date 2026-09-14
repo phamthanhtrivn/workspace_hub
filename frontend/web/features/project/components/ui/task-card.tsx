@@ -20,10 +20,7 @@ import {
   CheckSquare2,
 } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import {
-  TASK_PRIORITY_LABEL_IDS,
-  TASK_TYPE_LABEL_IDS,
-} from "@/features/project/constants/task.constants";
+import { TASK_PRIORITY_LABEL_IDS } from "@/features/project/constants/task.constants";
 
 function isOverdue(dueDate?: string): boolean {
   if (!dueDate) return false;
@@ -34,16 +31,8 @@ export function getIssueKey(task: Task): string {
   return `TASK-${task.taskNumber}`;
 }
 
-export function getIssueTypeDetails(task: Task): {
-  icon: React.ReactNode;
-  labelId: string;
-} {
-  return {
-    icon: (
-      <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />
-    ),
-    labelId: TASK_TYPE_LABEL_IDS[task.taskType],
-  };
+export function getIssueIcon(): React.ReactNode {
+  return <CheckSquare2 className="h-3.5 w-3.5 text-[#0052CC] fill-[#DEEBFF]" />;
 }
 
 export function getPriorityIcon(priority: TaskPriority): React.ReactNode {
@@ -76,7 +65,7 @@ export default function TaskCard({
   const checklistDone = task.checklists.filter((c) => c.completed).length;
   const overdue = isOverdue(task.dueDate) && !isTerminalTaskStatus(task.status);
   const issueKey = getIssueKey(task);
-  const issueType = getIssueTypeDetails(task);
+  const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
   const isDraggable = canDrag && !isTerminalTaskStatus(task.status);
 
@@ -172,7 +161,7 @@ export default function TaskCard({
       {/* Bottom row: Issue Key / Type & Priority / Assignees */}
       <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium select-none">
-          {issueType.icon}
+          {issueIcon}
           <span className="hover:underline font-semibold text-[11px] uppercase tracking-wide">
             {issueKey}
           </span>

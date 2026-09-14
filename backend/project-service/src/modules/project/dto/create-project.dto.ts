@@ -1,5 +1,5 @@
 import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ProjectTemplate, ProjectType, ProjectVisibility } from '../project.enums';
+import { ProjectVisibility } from '../project.enums';
 import { Trim } from '../../../common/trim.decorator';
 
 export class CreateProjectDto {
@@ -23,14 +23,6 @@ export class CreateProjectDto {
   @IsString()
   @MaxLength(2000)
   description?: string;
-
-  @IsOptional()
-  @IsEnum(ProjectType)
-  projectType?: ProjectType;
-
-  @IsOptional()
-  @IsEnum(ProjectTemplate)
-  template?: ProjectTemplate;
 
   @IsOptional()
   @IsEnum(ProjectVisibility)

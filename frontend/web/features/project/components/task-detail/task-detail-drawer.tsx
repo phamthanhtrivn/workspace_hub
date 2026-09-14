@@ -6,7 +6,7 @@ import {
 } from "@/features/project/types/project";
 import type { TaskDetailDrawerProps } from "@/features/project/types/task-detail-drawer.types";
 import { useTaskDetailDrawerState } from "@/features/project/hooks/use-task-detail-drawer-state";
-import { getIssueKey, getIssueTypeDetails } from "../ui/task-card";
+import { getIssueIcon, getIssueKey } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
 import TaskActivityPanel from "./task-activity-panel";
 import TaskChecklistSection from "./task-checklist-section";
@@ -15,6 +15,7 @@ import TaskStatusPicker from "./task-status-picker";
 import TaskLabelsPicker from "./task-labels-picker";
 import TaskDependenciesSection from "./task-dependencies-section";
 import TaskSubtasksSection from "./task-subtasks-section";
+import TaskAttachmentsSection from "./task-attachments-section";
 import TaskPropertiesPanel from "./task-properties-panel";
 import { FileText, History, LockKeyhole, Pencil, X } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
@@ -56,6 +57,7 @@ export default function TaskDetailDrawer({
     setTempDesc,
     handleDescSave,
     isReadOnly,
+    canChangeStatus,
     memberDisplayName,
     activities,
     isActivitiesLoading,
@@ -80,12 +82,12 @@ export default function TaskDetailDrawer({
     onCreateDependency,
     onDeleteDependency,
     canEditTask,
+    canContributeTask,
   });
 
   if (!task) return null;
 
   const issueKey = getIssueKey(task);
-  const issueType = getIssueTypeDetails(task);
   const isTaskClosed = isTerminalTaskStatus(task.status);
   const isCollaborationReadOnly = isTaskClosed || !canContributeTask;
   const areCommentsReadOnly = isTaskClosed || !canComment;
@@ -103,10 +105,7 @@ export default function TaskDetailDrawer({
         {/* ── Panel Header ── */}
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3">
           <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500">
-            {issueType.icon}
-            <span className="text-[10px] font-bold uppercase text-slate-400">
-              {intl.formatMessage({ id: issueType.labelId })}
-            </span>
+            {getIssueIcon()}
             <span className="font-semibold uppercase tracking-wide text-slate-700 hover:underline">
               {issueKey}
             </span>
@@ -128,7 +127,9 @@ export default function TaskDetailDrawer({
               onClick={onClose}
               className="grid h-7 w-7 place-items-center rounded text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
               title={intl.formatMessage({ id: "project.task.closeDetails" })}
-              aria-label={intl.formatMessage({ id: "project.task.closeDetails" })}
+              aria-label={intl.formatMessage({
+                id: "project.task.closeDetails",
+              })}
             >
               <X className="h-4.5 w-4.5" />
             </button>
@@ -178,7 +179,8 @@ export default function TaskDetailDrawer({
           </button>
         </div>
 
-        {isReadOnly && (
+        {(isTerminalTaskStatus(task.status) ||
+          (!canEditTask && !canContributeTask)) && (
           <div className="mx-5 mt-3 flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
             <LockKeyhole className="h-3.5 w-3.5 shrink-0" />
             {isTerminalTaskStatus(task.status)
@@ -223,7 +225,7 @@ export default function TaskDetailDrawer({
                     onClick={() => void handleTitleSave()}
                     className="rounded bg-[#0052CC] hover:bg-[#0747A6] px-2.5 py-1 text-xs font-semibold text-white transition"
                   >
-                  {intl.formatMessage({ id: "app.save" })}
+                    {intl.formatMessage({ id: "app.save" })}
                   </button>
                   <button
                     onClick={() => {
@@ -232,7 +234,7 @@ export default function TaskDetailDrawer({
                     }}
                     className="rounded bg-slate-100 hover:bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition"
                   >
-                  {intl.formatMessage({ id: "app.cancel" })}
+                    {intl.formatMessage({ id: "app.cancel" })}
                   </button>
                 </div>
               </div>
@@ -256,7 +258,7 @@ export default function TaskDetailDrawer({
             <TaskStatusPicker
               status={task.status}
               onChange={handleStatusChange}
-              disabled={isReadOnly}
+              disabled={!canChangeStatus}
             />
 
             <TaskLabelsPicker
@@ -291,7 +293,9 @@ export default function TaskDetailDrawer({
                   value={tempDesc}
                   onChange={(e) => setTempDesc(e.target.value)}
                   rows={4}
-                placeholder={intl.formatMessage({ id: "project.task.descriptionPlaceholder" })}
+                  placeholder={intl.formatMessage({
+                    id: "project.task.descriptionPlaceholder",
+                  })}
                   className="w-full rounded border border-[#0052CC] p-2.5 text-xs text-[#172B4D] outline-none"
                   autoFocus
                 />
@@ -300,7 +304,7 @@ export default function TaskDetailDrawer({
                     onClick={() => void handleDescSave()}
                     className="rounded bg-[#0052CC] hover:bg-[#0747A6] px-2.5 py-1 text-xs font-semibold text-white transition"
                   >
-                  {intl.formatMessage({ id: "app.save" })}
+                    {intl.formatMessage({ id: "app.save" })}
                   </button>
                   <button
                     onClick={() => {
@@ -309,7 +313,7 @@ export default function TaskDetailDrawer({
                     }}
                     className="rounded bg-slate-100 hover:bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 transition"
                   >
-                  {intl.formatMessage({ id: "app.cancel" })}
+                    {intl.formatMessage({ id: "app.cancel" })}
                   </button>
                 </div>
               </div>
@@ -324,8 +328,8 @@ export default function TaskDetailDrawer({
                   !task.description && "text-slate-400 font-medium italic",
                 ].join(" ")}
               >
-              {task.description ||
-                intl.formatMessage({ id: "project.task.addDescription" })}
+                {task.description ||
+                  intl.formatMessage({ id: "project.task.addDescription" })}
               </div>
             )}
           </div>
@@ -346,6 +350,12 @@ export default function TaskDetailDrawer({
             onCreate={onCreateChecklist}
             onUpdate={onUpdateChecklist}
             onDelete={onDeleteChecklist}
+          />
+
+          {/* Attachments Section */}
+          <TaskAttachmentsSection
+            task={task}
+            isReadOnly={isCollaborationReadOnly}
           />
 
           {/* Details Accordion / Properties Panel */}

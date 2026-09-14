@@ -69,7 +69,7 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
       })));
       await deps.updateTask({
         taskId: group.id,
-        payload: { archived: true, isParentTask: false },
+        payload: { archived: true },
       });
       deps.setSelectedTask(null);
       toast.success(message("project.group.deleted"));
@@ -90,12 +90,11 @@ export function createProjectGroupActions(deps: ProjectGroupActionDependencies) 
     }
   };
 
-  const createTaskInline = async (title: string, parentTaskId?: string, isParentTask = false) => {
+  const createTaskInline = async (title: string, parentTaskId?: string) => {
     try {
       await deps.createTask({
         title: title.trim(),
         ...(parentTaskId ? { parentTaskId } : {}),
-        ...(isParentTask ? { isParentTask: true } : {}),
       });
       toast.success(message("project.task.created"));
     } catch (error: unknown) {

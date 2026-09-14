@@ -8,7 +8,6 @@ import {
   ProjectRole,
   TaskStatus,
   TaskPriority,
-  TaskType,
 } from "@/features/project/types/project";
 
 // ─── Labels ───────────────────────────────────────────────────────────────────
@@ -156,11 +155,6 @@ function buildTask(
 ): Task {
   return {
     taskNumber: Number(overrides.id.replace(/\D/g, "")) || 1,
-    taskType: overrides.parentTaskId
-      ? TaskType.SUBTASK
-      : overrides.isParentTask
-        ? TaskType.EPIC
-        : TaskType.TASK,
     description: "",
     createdBy: "u-1",
     reporterId: "u-1",

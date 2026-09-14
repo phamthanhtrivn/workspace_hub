@@ -18,7 +18,12 @@ import {
 import { useProjectTaskActions } from "./hooks/use-project-task-actions";
 import { useProjectResourceActions } from "./hooks/use-project-resource-actions";
 import { useUpdateTask } from "./hooks/use-tasks";
-import { useAttachLabel, useDetachLabel, useUpdateLabel, useDeleteLabel } from "./hooks/use-labels";
+import {
+  useAttachLabel,
+  useDetachLabel,
+  useUpdateLabel,
+  useDeleteLabel,
+} from "./hooks/use-labels";
 import * as labelApi from "./api/label.api";
 import { createProjectGroupActions } from "./project-group-actions";
 import { getProjectPermissions } from "./project-permissions";
@@ -26,6 +31,7 @@ import {
   ProjectRole,
   ProjectType,
   SprintStatus,
+  TaskPriority,
   TaskStatus,
   type Task,
   type Project,
@@ -38,6 +44,12 @@ import CreateProjectDialog from "./components/dialogs/create-project-dialog";
 import TaskChatDialog from "./components/dialogs/task-chat-dialog";
 import SprintMetricsView from "./components/views/sprint-metrics-view";
 import { SprintCard } from "./components/backlog/sprint-card";
+import { TaskDurationSelect } from "./components/forms/task-duration-select";
+import ProjectDetailSidebar from "./components/layout/project-detail-sidebar";
+import { buildWeekTaskSegments } from "./components/views/calendar-view";
+import TaskPropertiesPanel from "./components/task-detail/task-properties-panel";
+import BoardView from "./components/views/board-view";
+import { formatTaskRelativeTime } from "./utils/task-relative-time";
 
 vi.mock("@/lib/axios", () => ({ api: {} }));
 vi.mock("sonner", () => ({
@@ -47,13 +59,206 @@ vi.mock("./project-alert", () => ({
   confirmProjectAction: vi.fn(async () => true),
 }));
 vi.mock("@/store/store", () => ({
-  useAppSelector: () => ({ userId: "user" }),
+  useAppSelector: () => ({
+    userId: "user",
+    fullName: "Test User",
+    avatarUrl: "https://cdn.example.com/avatar.png",
+  }),
 }));
-vi.mock("./components/ui/avatar-stack", () => ({ Avatar: () => null }));
+vi.mock("./components/ui/avatar-stack", () => ({
+  Avatar: ({ user }: { user: { displayName: string; avatarUrl?: string } }) => (
+    <span
+      aria-label={user.displayName}
+      data-avatar-url={user.avatarUrl || ""}
+    />
+  ),
+}));
 
 afterEach(() => {
   cleanup();
   vi.restoreAllMocks();
+});
+
+describe("TaskDurationSelect", () => {
+  it("offers quick duration presets and custom minutes", () => {
+    const onValueChange = vi.fn();
+    const view = render(
+      <TaskDurationSelect value="" onValueChange={onValueChange} />,
+    );
+
+    const select = screen.getByRole("combobox");
+    expect(screen.getByRole("option", { name: "30 min" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "60 min (1h)" })).toBeTruthy();
+    expect(screen.getByRole("option", { name: "360 min (6h)" })).toBeTruthy();
+
+    fireEvent.change(select, { target: { value: "120" } });
+    expect(onValueChange).toHaveBeenLastCalledWith("120");
+
+    view.rerender(
+      <TaskDurationSelect value="120" onValueChange={onValueChange} />,
+    );
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "custom" },
+    });
+    expect(screen.getByRole("spinbutton")).toBeTruthy();
+  });
+});
+
+describe("ProjectDetailSidebar members", () => {
+  it("shows five members inline and opens the members view", () => {
+    const onViewChange = vi.fn();
+    const members = Array.from({ length: 6 }, (_, index) => ({
+      id: `member-${index}`,
+      projectId: "p",
+      userId: `user-${index}`,
+      displayName: `Member ${index + 1}`,
+      role: index === 0 ? ProjectRole.ADMIN : ProjectRole.MEMBER,
+    })) as ProjectMember[];
+
+    render(
+      <ProjectDetailSidebar
+        project={
+          {
+            id: "p",
+            name: "Project",
+            projectType: ProjectType.GENERAL,
+          } as Project
+        }
+        members={members}
+        projectKey="PRJ"
+        viewMode="summary"
+        isCollapsed={false}
+        canOpenSettings={false}
+        onViewChange={onViewChange}
+        onToggle={vi.fn()}
+        onOpenSettings={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Member 1")).toBeTruthy();
+    expect(screen.queryByText("Member 6")).toBeNull();
+    fireEvent.click(screen.getByText("+1 more"));
+    expect(onViewChange).toHaveBeenCalledWith("members");
+    fireEvent.click(screen.getByText("View all"));
+    expect(onViewChange).toHaveBeenCalledWith("members");
+  });
+});
+
+describe("Calendar task ranges", () => {
+  it("renders a multi-day task as one segment spanning consecutive columns", () => {
+    const rangedTask = {
+      ...task("range"),
+      startDate: "2026-09-25T00:00:00.000Z",
+      dueDate: "2026-09-27T00:00:00.000Z",
+      allDay: true,
+    };
+    const days = [
+      "2026-09-21",
+      "2026-09-22",
+      "2026-09-23",
+      "2026-09-24",
+      "2026-09-25",
+      "2026-09-26",
+      "2026-09-27",
+    ].map((key) => ({
+      key,
+      tasks: key >= "2026-09-25" ? [rangedTask] : [],
+    }));
+
+    expect(buildWeekTaskSegments(days)).toEqual([
+      expect.objectContaining({
+        task: rangedTask,
+        startColumn: 4,
+        span: 3,
+        lane: 0,
+        showTitle: true,
+      }),
+    ]);
+  });
+});
+
+describe("Task assignee details", () => {
+  it("resolves the assignee name and avatar from project members", () => {
+    const assignedTask = {
+      ...task("assigned"),
+      priority: TaskPriority.MEDIUM,
+      estimatedMinutes: 0,
+      reporterId: "reporter",
+      allDay: false,
+      createdAt: "2026-09-13T00:00:00.000Z",
+      updatedAt: "2026-09-13T00:00:00.000Z",
+      assignees: [
+        {
+          id: "assignment",
+          taskId: "assigned",
+          userId: "member-user",
+          displayName: "",
+          assignedAt: "2026-09-13T00:00:00.000Z",
+        },
+      ],
+    };
+    const assignedMember = {
+      id: "member",
+      projectId: "p",
+      userId: "member-user",
+      displayName: "Assigned Person",
+      avatarUrl: "https://cdn.example.com/assigned.png",
+      role: ProjectRole.MEMBER,
+    } as ProjectMember;
+
+    render(
+      <TaskPropertiesPanel
+        task={assignedTask}
+        members={[assignedMember]}
+        isReadOnly
+        memberDisplayName={() => "Fallback"}
+        onAssigneeChange={vi.fn()}
+        onPriorityChange={vi.fn()}
+        onStartDateChange={vi.fn()}
+        onDueDateChange={vi.fn()}
+        onEstimateSave={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Assigned Person")).toBeTruthy();
+    expect(
+      screen.getByLabelText("Assigned Person").getAttribute("data-avatar-url"),
+    ).toBe("https://cdn.example.com/assigned.png");
+  });
+});
+
+describe("Project relative time", () => {
+  const now = new Date("2026-09-13T12:00:00.000Z").getTime();
+  const formatRelativeTime = (value: number, unit: string) =>
+    `${value}:${unit}`;
+  const formatDate = (value: Date) => value.toISOString().slice(0, 10);
+
+  it.each([
+    ["2026-09-13T11:30:00.000Z", "-30:minute"],
+    ["2026-09-13T10:00:00.000Z", "-2:hour"],
+    ["2026-08-24T12:00:00.000Z", "-20:day"],
+    ["2026-07-01T12:00:00.000Z", "2026-07-01"],
+  ])("formats %s with a readable unit", (value, expected) => {
+    expect(
+      formatTaskRelativeTime({
+        value,
+        now,
+        formatRelativeTime,
+        formatDate,
+      }),
+    ).toBe(expected);
+  });
+});
+
+describe("Board task creation", () => {
+  it("only offers task creation in the TODO column", () => {
+    const onAddTask = vi.fn();
+    render(<BoardView tasks={[]} onAddTask={onAddTask} />);
+
+    expect(screen.getAllByText("Add task")).toHaveLength(1);
+    fireEvent.click(screen.getByText("Add task"));
+    expect(onAddTask).toHaveBeenCalledWith(TaskStatus.TODO);
+  });
 });
 
 function setup() {
@@ -132,12 +337,18 @@ describe("Project production regressions", () => {
       createdAt: "2026-09-12T00:00:00.000Z",
       rank: "2000",
     };
-    const createChecklist = vi.spyOn(taskApi, "createChecklist").mockResolvedValue(created);
-    const updateChecklist = vi.spyOn(taskApi, "updateChecklist").mockResolvedValue({
-      ...selectedTask.checklists[0],
-      completed: true,
-    });
-    const deleteChecklist = vi.spyOn(taskApi, "deleteChecklist").mockResolvedValue(undefined);
+    const createChecklist = vi
+      .spyOn(taskApi, "createChecklist")
+      .mockResolvedValue(created);
+    const updateChecklist = vi
+      .spyOn(taskApi, "updateChecklist")
+      .mockResolvedValue({
+        ...selectedTask.checklists[0],
+        completed: true,
+      });
+    const deleteChecklist = vi
+      .spyOn(taskApi, "deleteChecklist")
+      .mockResolvedValue(undefined);
     const { wrapper } = setup();
     const { result } = renderHook(
       () =>
@@ -219,32 +430,16 @@ describe("Project production regressions", () => {
     expect(view.container.querySelector('[draggable="true"]')).not.toBeNull();
   });
 
-  it("exposes an accessible create-project form and submits its selected type", async () => {
+  it("exposes an accessible create-project form for a regular project", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
-    render(
-      <CreateProjectDialog
-        open
-        onClose={vi.fn()}
-        onSubmit={onSubmit}
-      />,
-    );
+    render(<CreateProjectDialog open onClose={vi.fn()} onSubmit={onSubmit} />);
 
     const dialog = screen.getByRole("dialog", {
       name: "Create new project",
     });
     expect(dialog.getAttribute("aria-modal")).toBe("true");
 
-    const generalProject = screen.getByRole("button", {
-      name: /General project/,
-    });
-    const softwareProject = screen.getByRole("button", {
-      name: /Software development/,
-    });
-    expect(generalProject.getAttribute("aria-pressed")).toBe("true");
-    expect(softwareProject.getAttribute("aria-pressed")).toBe("false");
-
-    fireEvent.click(softwareProject);
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: "Delivery platform" },
     });
@@ -254,7 +449,6 @@ describe("Project production regressions", () => {
       expect(onSubmit).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "Delivery platform",
-          projectType: ProjectType.SOFTWARE_DEVELOPMENT,
         }),
       ),
     );
@@ -332,25 +526,58 @@ describe("Project production regressions", () => {
     ).toBe(true);
   });
 
-  it.each(["attach", "detach", "update", "delete"] as const)("refreshes task and sprint projections after label %s", async (operation) => {
-    const { client, wrapper } = setup();
-    vi.spyOn(labelApi, "attachLabel").mockResolvedValue({ id: "label", name: "New", color: "#fff", projectId: "p" });
-    vi.spyOn(labelApi, "detachLabel").mockResolvedValue(undefined);
-    vi.spyOn(labelApi, "updateLabel").mockResolvedValue({ id: "label", name: "New", color: "#fff", projectId: "p" });
-    vi.spyOn(labelApi, "deleteLabel").mockResolvedValue(undefined);
-    const { result } = renderHook(() => ({
-      attach: useAttachLabel("p"), detach: useDetachLabel("p"),
-      update: useUpdateLabel("p"), delete: useDeleteLabel("p"),
-    }), { wrapper });
-    const keys = [["projects", "p", "tasks"], ["projects", "p", "sprints"], ["projects", "p", "labels"]];
-    keys.forEach((key) => client.setQueryData(key, []));
-    await act(async () => {
-      if (operation === "update") await result.current.update.mutateAsync({ labelId: "label", payload: { name: "New" } });
-      else if (operation === "delete") await result.current.delete.mutateAsync("label");
-      else await result.current[operation].mutateAsync({ taskId: "A", labelId: "label" });
-    });
-    keys.forEach((key) => expect(client.getQueryState(key)?.isInvalidated).toBe(true));
-  });
+  it.each(["attach", "detach", "update", "delete"] as const)(
+    "refreshes task and sprint projections after label %s",
+    async (operation) => {
+      const { client, wrapper } = setup();
+      vi.spyOn(labelApi, "attachLabel").mockResolvedValue({
+        id: "label",
+        name: "New",
+        color: "#fff",
+        projectId: "p",
+      });
+      vi.spyOn(labelApi, "detachLabel").mockResolvedValue(undefined);
+      vi.spyOn(labelApi, "updateLabel").mockResolvedValue({
+        id: "label",
+        name: "New",
+        color: "#fff",
+        projectId: "p",
+      });
+      vi.spyOn(labelApi, "deleteLabel").mockResolvedValue(undefined);
+      const { result } = renderHook(
+        () => ({
+          attach: useAttachLabel("p"),
+          detach: useDetachLabel("p"),
+          update: useUpdateLabel("p"),
+          delete: useDeleteLabel("p"),
+        }),
+        { wrapper },
+      );
+      const keys = [
+        ["projects", "p", "tasks"],
+        ["projects", "p", "sprints"],
+        ["projects", "p", "labels"],
+      ];
+      keys.forEach((key) => client.setQueryData(key, []));
+      await act(async () => {
+        if (operation === "update")
+          await result.current.update.mutateAsync({
+            labelId: "label",
+            payload: { name: "New" },
+          });
+        else if (operation === "delete")
+          await result.current.delete.mutateAsync("label");
+        else
+          await result.current[operation].mutateAsync({
+            taskId: "A",
+            labelId: "label",
+          });
+      });
+      keys.forEach((key) =>
+        expect(client.getQueryState(key)?.isInvalidated).toBe(true),
+      );
+    },
+  );
 
   it("creates a sprint task with one request and uses sortable ranks", async () => {
     const createTask = vi.fn().mockResolvedValue(task("A"));
@@ -417,6 +644,9 @@ describe("Project production regressions", () => {
       />,
       { wrapper },
     );
+    expect(
+      screen.getByLabelText("Test User").getAttribute("data-avatar-url"),
+    ).toBe("https://cdn.example.com/avatar.png");
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: "Message for A" },
     });

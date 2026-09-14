@@ -29,7 +29,11 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
   const dispatch = useAppDispatch();
   const logoutMutation = useLogoutMutation();
   const queryClient = useQueryClient();
-  const { email, fullName: authFullName, avatarUrl: authAvatarUrl } = useAppSelector((state) => state.auth);
+  const {
+    email,
+    fullName: authFullName,
+    avatarUrl: authAvatarUrl,
+  } = useAppSelector((state) => state.auth);
   const { data: profileResponse } = useUserProfileQuery();
 
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
@@ -103,7 +107,7 @@ const UserProfileDropdown = React.memo(function UserProfileDropdown({
       </button>
 
       {isUserDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-lg ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
+        <div className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-2xl border border-slate-100 bg-white p-2 shadow-lg ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
           <div className="px-3 py-2 border-b border-slate-100 mb-1">
             <p className="truncate text-sm font-bold text-slate-800">
               {fullName || intl.formatMessage({ id: "profile.workspaceUser" })}

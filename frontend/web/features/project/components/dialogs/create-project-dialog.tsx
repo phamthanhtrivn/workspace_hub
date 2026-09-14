@@ -1,14 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Code2, ListTodo, X } from "lucide-react";
-import { ProjectTemplate, ProjectType } from "@/features/project/types/project";
+import { X } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   PROJECT_COLOR_OPTIONS,
   PROJECT_ICON_OPTIONS,
 } from "@/features/project/constants/project-form.constants";
-import { PROJECT_TEMPLATE_OPTIONS } from "@/features/project/constants/project.constants";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -17,8 +15,6 @@ interface CreateProjectDialogProps {
     name: string;
     color: string;
     icon: string;
-    projectType: ProjectType;
-    template?: ProjectTemplate;
   }) => Promise<void>;
   isSubmitting?: boolean;
 }
@@ -37,8 +33,6 @@ export default function CreateProjectDialog({
   const [selectedIcon, setSelectedIcon] = useState<string>(
     PROJECT_ICON_OPTIONS[0],
   );
-  const [projectType, setProjectType] = useState(ProjectType.GENERAL);
-  const [template, setTemplate] = useState(ProjectTemplate.EMPTY);
 
   if (!open) return null;
 
@@ -49,8 +43,6 @@ export default function CreateProjectDialog({
       name: name.trim(),
       color: selectedColor,
       icon: selectedIcon,
-      projectType,
-      template,
     });
 
     setName("");
@@ -123,97 +115,6 @@ export default function CreateProjectDialog({
               autoFocus
               className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-[#172B4D] outline-none transition placeholder:font-normal placeholder:text-slate-400 hover:border-slate-400 focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/15"
             />
-          </div>
-
-          {/* Project Type */}
-          <fieldset>
-            <legend className="block text-xs font-bold uppercase tracking-wider text-[#42526E]">
-              {intl.formatMessage({ id: "project.type" })}
-            </legend>
-            <div className="mt-2 grid gap-3 sm:grid-cols-2">
-              {[
-                {
-                  type: ProjectType.GENERAL,
-                  titleId: "project.type.general",
-                  descriptionId: "project.type.generalDescription",
-                  Icon: ListTodo,
-                },
-                {
-                  type: ProjectType.SOFTWARE_DEVELOPMENT,
-                  titleId: "project.type.software",
-                  descriptionId: "project.type.softwareDescription",
-                  Icon: Code2,
-                },
-              ].map(({ type, titleId, descriptionId, Icon }) => {
-                const selected = projectType === type;
-
-                return (
-                  <button
-                    key={type}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setProjectType(type)}
-                    className={[
-                      "flex min-h-20 items-start gap-3 rounded-lg border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2",
-                      selected
-                        ? "border-[#0052CC] bg-[#E8F0FE] ring-1 ring-[#0052CC]/20"
-                        : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
-                    ].join(" ")}
-                  >
-                    <span
-                      className={[
-                        "grid h-9 w-9 shrink-0 place-items-center rounded-lg",
-                        selected
-                          ? "bg-[#0052CC] text-white"
-                          : "bg-slate-100 text-slate-600",
-                      ].join(" ")}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <span>
-                      <span className="block text-sm font-bold text-[#172B4D]">
-                        {intl.formatMessage({ id: titleId })}
-                      </span>
-                      <span className="mt-0.5 block text-xs leading-[1.125rem] text-[#42526E]">
-                        {intl.formatMessage({ id: descriptionId })}
-                      </span>
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          {/* Template */}
-          <div>
-            <label
-              htmlFor="project-template"
-              className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
-            >
-              {intl.formatMessage({ id: "project.template" })}
-            </label>
-            <select
-              id="project-template"
-              value={template}
-              onChange={(event) =>
-                setTemplate(event.target.value as ProjectTemplate)
-              }
-              className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-[#172B4D] outline-none transition hover:border-slate-400 focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/15"
-            >
-              {PROJECT_TEMPLATE_OPTIONS.filter(
-                (item) =>
-                  !("softwareOnly" in item) ||
-                  !item.softwareOnly ||
-                  projectType === ProjectType.SOFTWARE_DEVELOPMENT,
-              ).map((item) => (
-                <option key={item.value} value={item.value}>
-                  {intl.formatMessage({ id: item.labelId })}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1.5 text-xs leading-4 text-slate-500">
-              {intl.formatMessage({ id: "project.templateDescription" })}
-            </p>
           </div>
 
           {/* Icon Picker */}

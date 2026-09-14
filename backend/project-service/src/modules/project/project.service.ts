@@ -8,7 +8,6 @@ import {
   ProjectMemberStatus,
   ProjectRole,
   ProjectStatus,
-  ProjectTemplate,
   ProjectType,
   ProjectVisibility,
   TaskStatus,
@@ -18,7 +17,6 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse, toProjectResponse } from './project.mapper';
-import { ProjectTemplateService } from './project-template.service';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
 import { paginate, PaginationQueryDto } from '../../common/pagination';
 
@@ -27,7 +25,6 @@ export class ProjectService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
-    private readonly templates: ProjectTemplateService,
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
@@ -44,7 +41,7 @@ export class ProjectService {
           color: dto.color,
           icon: dto.icon,
           description: dto.description,
-          projectType: dto.projectType ?? ProjectType.GENERAL,
+          projectType: ProjectType.GENERAL,
           visibility: dto.visibility ?? ProjectVisibility.MEMBERS_ONLY,
           status: ProjectStatus.ACTIVE,
           ownerId: userId,
@@ -66,7 +63,7 @@ export class ProjectService {
             create: {
               id: crypto.randomUUID(),
               userId,
-              role: ProjectRole.OWNER,
+              role: ProjectRole.ADMIN,
               status: ProjectMemberStatus.ACTIVE,
               canCreateTask: true,
               canEditOwnTask: true,
@@ -80,13 +77,6 @@ export class ProjectService {
           },
         },
       });
-      await this.templates.initialize(
-        tx,
-        created.id,
-        userId,
-        dto.template ?? ProjectTemplate.EMPTY,
-        now,
-      );
       return created;
     });
 
@@ -179,7 +169,6 @@ export class ProjectService {
     if (dto.color !== undefined) data.color = dto.color;
     if (dto.icon !== undefined) data.icon = dto.icon;
     if (dto.description !== undefined) data.description = dto.description;
-    if (dto.projectType !== undefined) data.projectType = dto.projectType;
     if (dto.visibility !== undefined) data.visibility = dto.visibility;
     if (dto.startDate !== undefined)
       data.startDate = this.toDate(dto.startDate);

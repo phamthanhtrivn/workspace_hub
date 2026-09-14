@@ -30,12 +30,13 @@ import {
 } from "./communication/project-communication.port";
 import { HttpNotificationAdapter } from "./communication/http-notification.adapter";
 import { HttpUserDirectoryAdapter } from "./communication/http-user-directory.adapter";
-import { ProjectTemplateService } from "./project-template.service";
 import { TaskPolicyService } from "./task-policy.service";
 import { ProjectFileController } from "./project-file.controller";
 import { ProjectFileService } from "./project-file.service";
+import { SocketModule } from "../socket/socket.module";
 
 @Module({
+  imports: [SocketModule],
   controllers: [
     ProjectFileController,
     ProjectController,
@@ -68,7 +69,6 @@ import { ProjectFileService } from "./project-file.service";
     HttpJsonClient,
     { provide: USER_DIRECTORY, useClass: HttpUserDirectoryAdapter },
     { provide: NOTIFICATION_GATEWAY, useClass: HttpNotificationAdapter },
-    ProjectTemplateService,
     TaskPolicyService,
   ],
 })

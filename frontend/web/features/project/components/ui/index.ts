@@ -4,8 +4,6 @@ export { ProjectStatusBadge, TaskStatusBadge, TaskPriorityBadge, LabelBadge } fr
 export * from "./status-badge";
 export { StatusCircles } from "./status-circles";
 export * from "./status-circles";
-export { ProjectTypeBadge } from "./project-type-badge";
-export * from "./project-type-badge";
 export { default as TaskQuickFilters } from "./task-quick-filters";
 export * from "./task-quick-filters";
 export { default as TaskChatButton } from "./task-chat-button";

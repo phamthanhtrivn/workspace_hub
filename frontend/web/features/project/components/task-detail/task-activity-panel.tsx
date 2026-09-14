@@ -12,6 +12,7 @@ import {
   createTaskActivityPresenter,
 } from "@/features/project/task-activity-presenter";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { formatTaskRelativeTime } from "@/features/project/utils/task-relative-time";
 
 export default function TaskActivityPanel({
   activities,
@@ -128,16 +129,13 @@ export default function TaskActivityPanel({
                       })}
                       className="shrink-0 pt-0.5 text-[9px] font-semibold text-slate-400"
                     >
-                      {intl.formatRelativeTime(
-                        -Math.max(
-                          1,
-                          Math.floor(
-                            (now - new Date(activity.createdAt).getTime()) /
-                              60000,
-                          ),
-                        ),
-                        "minute",
-                      )}
+                      {formatTaskRelativeTime({
+                        value: activity.createdAt,
+                        now,
+                        formatRelativeTime: (value, unit) =>
+                          intl.formatRelativeTime(value, unit),
+                        formatDate: (value) => intl.formatDate(value),
+                      })}
                     </time>
                   </div>
                   {(oldValue || newValue) && (

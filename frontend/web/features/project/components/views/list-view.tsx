@@ -15,7 +15,7 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ListView({
   tasks,
-  projectType = ProjectType.SOFTWARE_DEVELOPMENT,
+  projectType = ProjectType.GENERAL,
   onTaskClick,
   onAddTaskInline,
   onAddSubtask,
@@ -31,7 +31,6 @@ export default function ListView({
   onAddTaskInline?: (
     title: string,
     parentTaskId?: string,
-    isParentTask?: boolean,
   ) => Promise<void>;
   onAddSubtask?: (task: Task) => void;
   onEditGroup?: (task: Task) => void;
@@ -78,7 +77,6 @@ export default function ListView({
     () =>
       rootTasks.filter(
         (t) =>
-          t.isParentTask ||
           childrenByParent.has(t.id) ||
           (t.childCount && t.childCount > 0),
       ),
@@ -248,7 +246,7 @@ export default function ListView({
             placeholder={intl.formatMessage({ id: "project.sprint.newNamePlaceholder" })}
             buttonLabel={intl.formatMessage({ id: "project.sprint.create" })}
               onSubmit={async (title) => {
-                await onAddTaskInline(title, undefined, true);
+                await onAddTaskInline(title);
                 setShowCreateSprintBar(false);
               }}
             />
@@ -291,7 +289,7 @@ export default function ListView({
           <TaskInlineCreator
           placeholder={intl.formatMessage({ id: "project.task.newNamePlaceholder" })}
           buttonLabel={intl.formatMessage({ id: "project.task.create" })}
-            onSubmit={(title) => onAddTaskInline(title, undefined, true)}
+            onSubmit={(title) => onAddTaskInline(title)}
           />
         </div>
       )}

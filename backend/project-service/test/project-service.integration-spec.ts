@@ -77,7 +77,7 @@ integration("Project Service database integration", () => {
           create: {
             id: crypto.randomUUID(),
             userId: ownerId,
-            role: ProjectRole.OWNER,
+            role: ProjectRole.ADMIN,
             status: ProjectMemberStatus.ACTIVE,
             joinedAt: now,
             updatedAt: now,

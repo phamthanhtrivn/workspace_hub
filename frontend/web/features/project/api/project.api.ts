@@ -3,7 +3,6 @@ import {
   ProjectRole,
   ProjectStatus,
   ProjectType,
-  ProjectTemplate,
   type Project,
   type ProjectMember,
   type ProjectSetting,
@@ -62,8 +61,6 @@ export interface CreateProjectPayload {
   name: string;
   color: string;
   icon: string;
-  projectType: ProjectType;
-  template?: ProjectTemplate;
 }
 
 export interface UpdateProjectPayload {
@@ -71,7 +68,6 @@ export interface UpdateProjectPayload {
   color?: string;
   icon?: string;
   status?: ProjectStatus;
-  projectType?: ProjectType;
   description?: string;
   startDate?: string | null;
   dueDate?: string | null;
@@ -96,7 +92,7 @@ function normalizeProject(project: ProjectApiModel): Project {
     description: project.description || "",
     ownerId: project.ownerId,
     status: project.status,
-    projectType: project.projectType || ProjectType.GENERAL,
+    projectType: ProjectType.GENERAL,
     startDate: project.startDate || undefined,
     dueDate: project.dueDate || undefined,
     archived: project.archived,
@@ -162,7 +158,7 @@ export async function getProjects(): Promise<Project[]> {
         displayName:
           profilesById.get(project.ownerId)?.fullName?.trim() || project.ownerId,
         avatarUrl: profilesById.get(project.ownerId)?.avatarUrl || undefined,
-        role: ProjectRole.OWNER,
+        role: ProjectRole.ADMIN,
         canCreateTask: true,
         canEditOwnTask: true,
         canEditOthersTask: true,

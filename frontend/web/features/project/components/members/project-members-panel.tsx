@@ -16,19 +16,25 @@ import {
   useRemoveProjectMember,
   useUpdateProjectMemberPermissions,
 } from "@/features/project/hooks/use-project-members";
-import type { ProjectMemberPermissions } from "@/features/project/types/project";
-import { Crown, Settings2, Trash2, User, UserPlus } from "lucide-react";
+import {
+  ChevronRight,
+  Settings2,
+  Star,
+  Trash2,
+  User,
+  UserPlus,
+} from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const ROLE_CONFIG: Record<
   ProjectRole,
   { labelId: string; color: string; bg: string; icon: React.ElementType }
 > = {
-  [ProjectRole.OWNER]: {
+  [ProjectRole.ADMIN]: {
     labelId: "project.role.owner",
     color: "text-amber-600",
     bg: "bg-amber-50",
-    icon: Crown,
+    icon: Star,
   },
   [ProjectRole.MEMBER]: {
     labelId: "project.role.member",
@@ -44,12 +50,14 @@ export default function ProjectMembersPanel({
   canInvite = false,
   canRemoveMembers = false,
   canManagePermissions = false,
+  onViewAll,
 }: {
   projectId: string;
   members: ProjectMember[];
   canInvite?: boolean;
   canRemoveMembers?: boolean;
   canManagePermissions?: boolean;
+  onViewAll?: () => void;
 }) {
   const intl = useAppIntl();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
@@ -65,7 +73,7 @@ export default function ProjectMembersPanel({
   const pendingInvitations = pendingInvitationsQuery.data ?? [];
 
   const sorted = [...members].sort((a, b) => {
-    const order = { OWNER: 0, MEMBER: 1 };
+    const order = { ADMIN: 0, MEMBER: 1 };
     return order[a.role] - order[b.role];
   });
 
@@ -174,7 +182,7 @@ export default function ProjectMembersPanel({
                   {intl.formatMessage({ id: roleCfg.labelId })}
                 </span>
               </div>
-              {member.role !== ProjectRole.OWNER && (
+              {member.role !== ProjectRole.ADMIN && (
                 <div className="flex shrink-0 items-center">
                   {canManagePermissions && (
                     <button
@@ -222,6 +230,16 @@ export default function ProjectMembersPanel({
         projectId={projectId}
         invitations={pendingInvitations}
       />
+      {onViewAll && (
+        <button
+          type="button"
+          onClick={onViewAll}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
+        >
+          <span>{intl.formatMessage({ id: "project.members.viewAll" })}</span>
+          <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+        </button>
+      )}
       {canInvite && (
         <InviteMemberDialog
           key={showInviteDialog ? "invite-open" : "invite-closed"}

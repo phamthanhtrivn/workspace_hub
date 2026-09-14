@@ -72,6 +72,7 @@ export default function BoardView({
       {COLUMNS.map((col) => {
         const columnTasks = getTasksByStatus(tasks, col.status);
         const columnLabel = intl.formatMessage({ id: col.labelId });
+        const canCreateInColumn = col.status === TaskStatus.TODO;
 
         return (
           <div
@@ -102,7 +103,7 @@ export default function BoardView({
                   {columnTasks.length}
                 </span>
               </div>
-              {col.status !== TaskStatus.CANCELLED && (
+              {canCreateInColumn && (
                 <button
                   type="button"
                   onClick={() => onAddTask?.(col.status)}
@@ -134,7 +135,7 @@ export default function BoardView({
                   <span>
                     {intl.formatMessage({ id: "project.task.empty" })}
                   </span>
-                  {onAddTask && col.status !== TaskStatus.CANCELLED && (
+                  {onAddTask && canCreateInColumn && (
                     <button
                       type="button"
                       onClick={() => onAddTask(col.status)}
@@ -151,7 +152,7 @@ export default function BoardView({
             {/* Inline quick create button at bottom (if tasks exist) */}
             {columnTasks.length > 0 &&
               onAddTask &&
-              col.status !== TaskStatus.CANCELLED && (
+              canCreateInColumn && (
                 <button
                   type="button"
                   onClick={() => onAddTask(col.status)}

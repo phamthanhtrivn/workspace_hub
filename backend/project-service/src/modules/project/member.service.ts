@@ -92,7 +92,7 @@ export class MemberService {
     if (!member || member.status !== ProjectMemberStatus.ACTIVE) {
       throw new NotFoundException("Project member not found");
     }
-    if (member.role === ProjectRole.OWNER) {
+    if (member.role === ProjectRole.ADMIN) {
       throw new ConflictException(
         "Project owner permissions cannot be changed",
       );
@@ -128,7 +128,7 @@ export class MemberService {
     if (!member || member.status !== ProjectMemberStatus.ACTIVE) {
       throw new NotFoundException("Project member not found");
     }
-    if (member.role === ProjectRole.OWNER) {
+    if (member.role === ProjectRole.ADMIN) {
       throw new ConflictException("Project owner cannot be removed");
     }
 

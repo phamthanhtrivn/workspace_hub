@@ -11,6 +11,7 @@ import { NotificationOutboxService } from './notification-outbox.service';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { UpdateSprintDto } from './dto/update-sprint.dto';
+import { CreateTaskDto } from './dto/create-task.dto';
 import { normalizeTaskRank } from './task-rank';
 import { ProjectFileService } from './project-file.service';
 import { ClientKafka } from '@nestjs/microservices';
@@ -39,13 +40,15 @@ describe('Project production regressions', () => {
         create: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...current, ...data })),
         update: jest.fn().mockImplementation(({ data }) => Promise.resolve({ ...current, ...data })),
       },
+      projectMember: { findUnique: jest.fn().mockResolvedValue({ status: 'ACTIVE' }) },
     };
     const prisma = { ...tx, $transaction: jest.fn(async (fn) => fn(tx)) } as unknown as PrismaService;
     const kafka = { emit: jest.fn().mockImplementation(() => { throw new Error('Kafka offline'); }) } as unknown as ClientKafka;
     const calendar = new TaskCalendarEventService(prisma, kafka);
+    const notifications = { enqueueNotification: jest.fn() } as unknown as NotificationOutboxService;
     const service = new TaskService(prisma, access, { record: jest.fn(), recordMany: jest.fn() } as unknown as ActivityService,
-      {} as NotificationOutboxService, calendar);
-    return { current, tx, prisma, kafka, service };
+      notifications, calendar);
+    return { current, tx, prisma, kafka, notifications, service };
   }
 
   it('commits task and calendar outbox together without contacting Kafka', async () => {
@@ -89,6 +92,28 @@ describe('Project production regressions', () => {
     });
 
     expect(access.requireCanManageSprints).not.toHaveBeenCalled();
+  });
+
+  it('persists an initial assignee when creating a task', async () => {
+    const { service, tx, notifications } = setupTask();
+    const assigneeUserId = crypto.randomUUID();
+
+    await service.create(userId, projectId, {
+      title: 'Assigned task',
+      assigneeUserId,
+    });
+
+    expect(tx.task.create).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        assignees: { create: expect.objectContaining({ userId: assigneeUserId }) },
+      }),
+    }));
+    expect(notifications.enqueueNotification).toHaveBeenCalled();
+  });
+
+  it('accepts assigneeUserId in the create-task API contract', async () => {
+    const dto = plainToInstance(CreateTaskDto, { title: 'Assigned', assigneeUserId: crypto.randomUUID() });
+    await expect(validate(dto, { whitelist: true, forbidNonWhitelisted: true })).resolves.toHaveLength(0);
   });
 
   it('uses assignee progress permission only for status and rank updates', async () => {

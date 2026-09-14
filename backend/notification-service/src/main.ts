@@ -37,6 +37,12 @@ async function bootstrap() {
       client: {
         clientId: KAFKA_CLIENTS.NOTIFICATION_SERVICE.CLIENT_ID,
         brokers: [kafkaBroker],
+        connectionTimeout: 10_000,
+        requestTimeout: 30_000,
+        retry: {
+          initialRetryTime: 300,
+          retries: 8,
+        },
       },
       consumer: {
         groupId: KAFKA_CLIENTS.NOTIFICATION_SERVICE.GROUP_ID,

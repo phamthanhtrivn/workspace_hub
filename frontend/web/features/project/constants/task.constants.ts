@@ -1,4 +1,4 @@
-import { TaskPriority, TaskStatus, TaskType } from "../types/project";
+import { TaskPriority, TaskStatus } from "../types/project";
 
 export const TASK_STATUS_OPTIONS = [
   { value: TaskStatus.TODO, labelId: "project.task.status.todo" },
@@ -44,22 +44,6 @@ export const TASK_PRIORITY_SELECT_OPTIONS = TASK_PRIORITY_OPTIONS;
 
 export const TASK_DRAWER_PRIORITY_OPTIONS = TASK_PRIORITY_OPTIONS;
 
-export const TASK_TYPE_LABEL_IDS: Record<TaskType, string> = {
-  [TaskType.TASK]: "project.task.type.task",
-  [TaskType.BUG]: "project.task.type.bug",
-  [TaskType.STORY]: "project.task.type.story",
-  [TaskType.EPIC]: "project.task.type.epic",
-  [TaskType.SUBTASK]: "project.task.type.subtask",
-};
-
-export const TASK_TYPE_SELECT_OPTIONS = [
-  { value: TaskType.TASK, labelId: "project.task.type.task" },
-  { value: TaskType.BUG, labelId: "project.task.type.bug" },
-  { value: TaskType.STORY, labelId: "project.task.type.story" },
-  { value: TaskType.EPIC, labelId: "project.task.type.epic" },
-  { value: TaskType.SUBTASK, labelId: "project.task.type.subtask" },
-] as const;
-
 export const TASK_FILTER_LABELS = {
   STATUS_ALL: "project.task.status",
   PRIORITY_ALL: "project.task.priority",
@@ -89,8 +73,9 @@ export const TASK_PRIORITY_CHART_CONFIG = [
 ] as const;
 
 export const GANTT_STATUS_LEGEND = [
-  { status: TaskStatus.TODO, labelId: "project.task.status.todo", color: "bg-slate-400" },
-  { status: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress", color: "bg-blue-600" },
+  { status: TaskStatus.TODO, labelId: "project.task.status.todo", color: "bg-slate-500" },
+  { status: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress", color: "bg-[#0052CC]" },
+  { status: TaskStatus.IN_REVIEW, labelId: "project.task.status.inReview", color: "bg-amber-500" },
   { status: TaskStatus.DONE, labelId: "project.task.status.done", color: "bg-emerald-500" },
 ] as const;
 

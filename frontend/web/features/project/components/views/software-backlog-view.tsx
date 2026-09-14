@@ -82,7 +82,6 @@ export default function SoftwareBacklogView({
     bulkStatus,
     setBulkStatus,
     showCreateSprint,
-    setShowCreateSprint,
     editingSprint,
     dragOverTarget,
     setDragOverTarget,
@@ -99,6 +98,7 @@ export default function SoftwareBacklogView({
     handleBulkStatus,
     handleSprintSubmit,
     openCreateSprint,
+    closeSprintForm,
     openEditSprint,
     handleDragStart,
     handleSprintDragOver,
@@ -321,10 +321,7 @@ export default function SoftwareBacklogView({
       <SprintFormModal
         isOpen={showCreateSprint}
         editingSprint={editingSprint}
-        onClose={() => {
-          setShowCreateSprint(false);
-          openCreateSprint();
-        }}
+        onClose={closeSprintForm}
         onSubmit={handleSprintSubmit}
         isBusy={isBusy}
       />

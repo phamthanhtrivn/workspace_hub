@@ -12,13 +12,6 @@ export enum ProjectType {
   SOFTWARE_DEVELOPMENT = "SOFTWARE_DEVELOPMENT",
 }
 
-export enum ProjectTemplate {
-  EMPTY = "EMPTY",
-  SOFTWARE_SCRUM = "SOFTWARE_SCRUM",
-  MARKETING_CAMPAIGN = "MARKETING_CAMPAIGN",
-  EVENT_PLAN = "EVENT_PLAN",
-}
-
 export enum SprintStatus {
   PLANNED = "PLANNED",
   ACTIVE = "ACTIVE",
@@ -26,7 +19,7 @@ export enum SprintStatus {
 }
 
 export enum ProjectRole {
-  OWNER = "OWNER",
+  ADMIN = "ADMIN",
   MEMBER = "MEMBER",
 }
 
@@ -148,14 +141,6 @@ export interface TaskActivity {
   createdAt: string;
 }
 
-export enum TaskType {
-  TASK = "TASK",
-  BUG = "BUG",
-  STORY = "STORY",
-  EPIC = "EPIC",
-  SUBTASK = "SUBTASK",
-}
-
 export interface TaskAssignee {
   id: string;
   taskId: string;
@@ -187,10 +172,8 @@ export interface Task {
   id: string;
   projectId: string;
   taskNumber: number;
-  taskType: TaskType;
   parentTaskId?: string;
   childCount?: number;
-  isParentTask?: boolean;
   autoCompleteSprint?: boolean;
   sprintId?: string;
   title: string;

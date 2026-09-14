@@ -4,7 +4,6 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
 import { ProjectStatus, ProjectType, ProjectVisibility } from './project.enums';
 import { ProjectService } from './project.service';
-import { ProjectTemplateService } from './project-template.service';
 
 describe('ProjectService date updates', () => {
   it('uses the creation time as the default project start date', async () => {
@@ -24,7 +23,6 @@ describe('ProjectService date updates', () => {
     const service = new ProjectService(
       { $transaction: transaction } as unknown as PrismaService,
       {} as ProjectAccessService,
-      { initialize: jest.fn() } as unknown as ProjectTemplateService,
     );
 
     try {
@@ -66,7 +64,6 @@ describe('ProjectService date updates', () => {
       {
         requireOwner: jest.fn().mockResolvedValue(current),
       } as unknown as ProjectAccessService,
-      {} as ProjectTemplateService,
     );
 
     await service.update(ownerId, projectId, {
@@ -105,7 +102,6 @@ describe('ProjectService date updates', () => {
       {
         requireOwner: jest.fn().mockResolvedValue(current),
       } as unknown as ProjectAccessService,
-      {} as ProjectTemplateService,
     );
 
     await expect(

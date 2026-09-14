@@ -33,7 +33,13 @@ export default function TaskSubtasksSection({
       <div className="flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
           <ListTree className="h-3.5 w-3.5" />
-          <span>{intl.formatMessage({ id: "project.task.subtasks" })}</span>
+          <span>
+            {intl.formatMessage({
+              id: task.parentTaskId
+                ? "project.task.parentTask"
+                : "project.task.subtasks",
+            })}
+          </span>
         </h3>
         {onCreateSubtask && !task.parentTaskId && !isReadOnly && (
           <button
@@ -48,18 +54,16 @@ export default function TaskSubtasksSection({
       </div>
 
       {parentTask && (
-        <div className="mb-1.5 flex items-center justify-between rounded border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-xs">
-          <span className="text-[9px] font-bold uppercase text-slate-400">
-            {intl.formatMessage({ id: "project.task.parent" })}:
-          </span>
-          <button
-            type="button"
-            onClick={() => onTaskClick?.(parentTask)}
-            className="max-w-[200px] truncate text-right font-bold text-[#0052CC] hover:underline"
-          >
+        <button
+          type="button"
+          onClick={() => onTaskClick?.(parentTask)}
+          className="mb-1.5 flex w-full items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-left text-xs transition hover:border-slate-300 hover:bg-slate-100"
+        >
+          <span className="min-w-0 truncate font-bold text-[#0052CC]">
             {parentTask.title}
-          </button>
-        </div>
+          </span>
+          <TaskStatusBadge status={parentTask.status} compact />
+        </button>
       )}
 
       {childTasks.length > 0 ? (

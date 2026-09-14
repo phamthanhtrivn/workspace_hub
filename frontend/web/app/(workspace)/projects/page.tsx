@@ -12,7 +12,6 @@ import {
 import CreateProjectDialog from "@/features/project/components/dialogs/create-project-dialog";
 import {
   ProjectStatusBadge,
-  ProjectTypeBadge,
   Avatar,
 } from "@/features/project/components/ui";
 import {
@@ -165,9 +164,6 @@ export default function ProjectsPage() {
                   {intl.formatMessage({ id: "project.list.column.key" })}
                 </th>
                 <th className="px-6 py-3 font-semibold">
-                  {intl.formatMessage({ id: "project.list.column.type" })}
-                </th>
-                <th className="px-6 py-3 font-semibold">
                   {intl.formatMessage({ id: "project.list.column.owner" })}
                 </th>
                 <th className="px-6 py-3 font-semibold">
@@ -217,7 +213,7 @@ export default function ProjectsPage() {
                           </span>
                           <span className="text-xs text-slate-500 font-medium">
                             {intl.formatMessage({
-                              id: "project.list.teamManagedSoftware",
+                              id: "project.list.teamManaged",
                             })}
                           </span>
                         </div>
@@ -225,9 +221,6 @@ export default function ProjectsPage() {
                     </td>
                     <td className="px-6 py-3.5 font-medium text-slate-700">
                       {projectKey}
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <ProjectTypeBadge type={project.projectType} compact />
                     </td>
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-2">

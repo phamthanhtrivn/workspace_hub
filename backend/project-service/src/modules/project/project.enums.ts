@@ -10,20 +10,13 @@ export enum ProjectType {
   SOFTWARE_DEVELOPMENT = 'SOFTWARE_DEVELOPMENT',
 }
 
-export enum ProjectTemplate {
-  EMPTY = 'EMPTY',
-  SOFTWARE_SCRUM = 'SOFTWARE_SCRUM',
-  MARKETING_CAMPAIGN = 'MARKETING_CAMPAIGN',
-  EVENT_PLAN = 'EVENT_PLAN',
-}
-
 export enum ProjectVisibility {
   PRIVATE = 'PRIVATE',
   MEMBERS_ONLY = 'MEMBERS_ONLY',
 }
 
 export enum ProjectRole {
-  OWNER = 'OWNER',
+  ADMIN = 'ADMIN',
   MEMBER = 'MEMBER',
 }
 
@@ -56,14 +49,6 @@ export enum TaskPriority {
   MEDIUM = 'MEDIUM',
   HIGH = 'HIGH',
   URGENT = 'URGENT',
-}
-
-export enum TaskType {
-  TASK = 'TASK',
-  BUG = 'BUG',
-  STORY = 'STORY',
-  EPIC = 'EPIC',
-  SUBTASK = 'SUBTASK',
 }
 
 export enum InvitationStatus {
