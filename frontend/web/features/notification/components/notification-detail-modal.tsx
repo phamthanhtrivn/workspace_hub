@@ -35,13 +35,16 @@ const NotificationDetailModal = React.memo(function NotificationDetailModal({
     }
   }, [notification, dispatch]);
 
-  const handleMarkAsRead = useCallback((id: string) => {
-    if (!notification.isRead) {
-      markAsRead(id)
-        .then(() => dispatch(markReadSuccess(id)))
-        .catch(console.error);
-    }
-  }, [notification.isRead, dispatch]);
+  const handleMarkAsRead = useCallback(
+    (id: string) => {
+      if (!notification.isRead) {
+        markAsRead(id)
+          .then(() => dispatch(markReadSuccess(id)))
+          .catch(console.error);
+      }
+    },
+    [notification.isRead, dispatch],
+  );
 
   const renderer = getNotificationRenderer(notification.type);
   const ModalContent = renderer ? renderer.modalRenderer : DefaultModalRenderer;

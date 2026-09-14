@@ -20,6 +20,7 @@ import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
 import { UpdateEventResponseDto } from './dto/update-event-response.dto';
 import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
+import { GetCalendarTasksQueryDto } from './dto/get-calendar-tasks-query.dto';
 import { CancelCalendarEventDto } from './dto/cancel-calendar-event.dto';
 import { UpdateTaskCompletionDto } from './dto/update-task-completion.dto';
 
@@ -56,6 +57,26 @@ export class CalendarEventController {
 
     return {
       message: CALENDAR_SUCCESS_MESSAGES.EVENTS_LISTED,
+      data: result.items,
+      pagination: {
+        totalItems: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: Math.ceil(result.total / result.limit),
+      },
+    };
+  }
+
+  @Get('tasks')
+  async getTasks(
+    @Headers('x-user-id') userId: string,
+    @Query() query: GetCalendarTasksQueryDto,
+  ) {
+    this.validateUserId(userId);
+    const result = await this.calendarEventService.getTasks(userId, query);
+
+    return {
+      message: CALENDAR_SUCCESS_MESSAGES.TASKS_LISTED,
       data: result.items,
       pagination: {
         totalItems: result.total,

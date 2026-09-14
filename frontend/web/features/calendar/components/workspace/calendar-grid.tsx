@@ -70,7 +70,7 @@ export function CalendarGrid({
         headerToolbar={false}
         locale={intl.locale}
         timeZone={timeZone}
-        firstDay={0}
+        firstDay={1}
         height="100%"
         nowIndicator
         selectable

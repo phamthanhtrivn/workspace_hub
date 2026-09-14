@@ -8,11 +8,13 @@ export function TasksCalendarListItem({
   selected,
   color,
   onToggle,
+  onOpenDrawer,
   onColorChange,
 }: {
   selected: boolean;
   color: string;
   onToggle: () => void;
+  onOpenDrawer?: () => void;
   onColorChange: (color: string) => void;
 }) {
   const intl = useAppIntl();
@@ -34,10 +36,18 @@ export function TasksCalendarListItem({
         {selected && <Check className="h-3 w-3 stroke-[2.5] text-white" />}
       </button>
 
-      <ListTodo className="h-4 w-4 shrink-0" style={{ color }} />
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none">
-        {label}
-      </span>
+      <button
+        type="button"
+        onClick={onOpenDrawer}
+        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 text-left focus-visible:outline-none"
+        title={intl.formatMessage({ id: "calendar.tasks.openDrawer" })}
+      >
+        <ListTodo className="h-4 w-4 shrink-0" style={{ color }} />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none group-hover:text-slate-900">
+          {label}
+        </span>
+      </button>
+
       <CalendarColorPopover
         value={color}
         label={intl.formatMessage({ id: "calendar.color" })}

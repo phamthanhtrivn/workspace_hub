@@ -5,13 +5,13 @@ import {
   Bell,
   CalendarDays,
   ChevronDown,
+  ListTodo,
   Paperclip,
   Target,
   X,
 } from "lucide-react";
 import { FormEventHandler, useRef, useState } from "react";
 import { useWatch } from "react-hook-form";
-import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarEventFormController } from "../../hooks/use-calendar-event-form";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
@@ -72,7 +72,9 @@ export function QuickCreateModal({
   // Expand "More options" downwards
   const [showMoreOptions, setShowMoreOptions] = useState<boolean>(() => {
     if (!event) return false;
-    const hasMultipleReminders = Boolean(event.reminders && event.reminders.length > 1);
+    const hasMultipleReminders = Boolean(
+      event.reminders && event.reminders.length > 1,
+    );
     const hasDocs = Boolean(event.documentIds && event.documentIds.length > 0);
     return hasMultipleReminders || hasDocs;
   });
@@ -89,7 +91,9 @@ export function QuickCreateModal({
   });
   const [deadlineTime, setDeadlineTime] = useState<string>(() => {
     const desc = event?.description || "";
-    const match = desc.match(/\[(?:Hạn chót|Deadline):\s*\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2})/i);
+    const match = desc.match(
+      /\[(?:Hạn chót|Deadline):\s*\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2})/i,
+    );
     return match ? match[1] : "";
   });
 
@@ -140,7 +144,10 @@ export function QuickCreateModal({
               className="text-sm font-semibold text-slate-800"
             >
               {intl.formatMessage({
-                id: kind === "task" ? "calendar.quick.task" : "calendar.editEvent",
+                id:
+                  kind === "task"
+                    ? "calendar.quick.task"
+                    : "calendar.editEvent",
               })}
             </h2>
           ) : (
@@ -289,42 +296,63 @@ export function QuickCreateModal({
             </QuickRow>
 
             {/* Calendar Selector */}
-            <QuickRow icon={<CalendarDays className="h-5 w-5" />}>
-              <div className="rounded-xl px-2.5 py-2 hover:bg-slate-200/50">
-                <div className="flex items-center gap-2">
-                  <select
-                    {...register("calendarId")}
-                    aria-label={intl.formatMessage({ id: "nav.calendar" })}
-                    className="min-w-0 max-w-full cursor-pointer border-0 bg-transparent text-sm font-medium text-slate-700 outline-none"
-                  >
-                    {calendars.map((cal) => (
-                      <option key={cal.id} value={cal.id}>
-                        {cal.name}
-                      </option>
-                    ))}
-                  </select>
-                  <span
-                    className="h-3.5 w-3.5 shrink-0 rounded-full"
-                    style={{
-                      backgroundColor:
-                        kind === "task"
-                          ? tasksColor || "#f59e0b"
-                          : selectedCalendar?.color || "#2563eb",
-                    }}
+            {kind === "task" ? (
+              <QuickRow
+                icon={
+                  <ListTodo
+                    className="h-5 w-5"
+                    style={{ color: tasksColor || "#f59e0b" }}
                   />
+                }
+              >
+                <div className="rounded-xl px-2.5 py-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: tasksColor || "#f59e0b" }}
+                    />
+                    <span className="text-sm font-semibold text-slate-700">
+                      {intl.formatMessage({ id: "calendar.tasks" })}
+                    </span>
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {intl.locale === "vi"
+                      ? "Lịch cá nhân · Danh sách công việc"
+                      : "Personal calendar · Tasks list"}
+                  </p>
                 </div>
-                <p className="mt-0.5 truncate text-xs text-slate-500">
-                  {kind === "task"
-                    ? intl.locale === "vi"
-                      ? "Lịch cá nhân · Việc cần làm"
-                      : "Personal calendar · Tasks"
-                    : intl.formatMessage(
-                        { id: "calendar.quick.eventSummary" },
-                        { reminder: reminders?.[0]?.minutesBefore ?? 10 },
-                      )}
-                </p>
-              </div>
-            </QuickRow>
+              </QuickRow>
+            ) : (
+              <QuickRow icon={<CalendarDays className="h-5 w-5" />}>
+                <div className="rounded-xl px-2.5 py-2 hover:bg-slate-200/50">
+                  <div className="flex items-center gap-2">
+                    <select
+                      {...register("calendarId")}
+                      aria-label={intl.formatMessage({ id: "nav.calendar" })}
+                      className="min-w-0 max-w-full cursor-pointer border-0 bg-transparent text-sm font-medium text-slate-700 outline-none"
+                    >
+                      {calendars.map((cal) => (
+                        <option key={cal.id} value={cal.id}>
+                          {cal.name}
+                        </option>
+                      ))}
+                    </select>
+                    <span
+                      className="h-3.5 w-3.5 shrink-0 rounded-full"
+                      style={{
+                        backgroundColor: selectedCalendar?.color || "#2563eb",
+                      }}
+                    />
+                  </div>
+                  <p className="mt-0.5 truncate text-xs text-slate-500">
+                    {intl.formatMessage(
+                      { id: "calendar.quick.eventSummary" },
+                      { reminder: reminders?.[0]?.minutesBefore ?? 10 },
+                    )}
+                  </p>
+                </div>
+              </QuickRow>
+            )}
 
             {/* EXPANDABLE SECTION (Tùy chọn khác) */}
             {showMoreOptions && (

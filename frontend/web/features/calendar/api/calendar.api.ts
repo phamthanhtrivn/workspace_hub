@@ -77,6 +77,46 @@ export async function getCalendarEvents(
   return events;
 }
 
+export async function getCalendarTasks(
+  params?: { page?: number; limit?: number },
+): Promise<{ items: CalendarEvent[]; pagination?: ApiPagination }> {
+  try {
+    const response = await api.get<ApiResponse<CalendarEvent[]>>(
+      "/api/calendar/events/tasks",
+      { params },
+    );
+    return {
+      items: unwrap(response) || [],
+      pagination: response.data?.pagination,
+    };
+  } catch {
+    return { items: [] };
+  }
+}
+
+export async function getAllCalendarTasks(): Promise<CalendarEvent[]> {
+  try {
+    const tasks: CalendarEvent[] = [];
+    const limit = 200;
+    let page = 1;
+    let pagination: ApiPagination | undefined;
+
+    do {
+      const response = await api.get<ApiResponse<CalendarEvent[]>>(
+        "/api/calendar/events/tasks",
+        { params: { page, limit } },
+      );
+      tasks.push(...(unwrap(response) || []));
+      pagination = response.data?.pagination;
+      page += 1;
+    } while (pagination && page <= pagination.totalPages);
+
+    return tasks;
+  } catch {
+    return [];
+  }
+}
+
 export async function getCalendarEvent(
   eventId: string,
 ): Promise<CalendarEvent> {

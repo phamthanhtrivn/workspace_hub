@@ -34,6 +34,7 @@ export function useCalendarWorkspace(
     ...visibility,
     ...actions,
     calendars,
+    events,
     displayTimeZone: defaultCalendar?.timeZone || "Asia/Ho_Chi_Minh",
     hasError: calendarsQuery.isError || eventsQuery.isError,
     isPreparingDefaultCalendar:

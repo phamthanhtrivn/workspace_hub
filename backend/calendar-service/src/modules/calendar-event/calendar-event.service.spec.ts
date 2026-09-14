@@ -259,6 +259,7 @@ describe('CalendarEventService', () => {
     expect(prisma.calendarEvent.update).toHaveBeenCalledWith({
       where: { id: eventId },
       data: {
+        sourceType: EventSourceType.TASK,
         completedAt: expect.any(Date),
         updatedBy: ownerId,
         isRecurrenceOverride: undefined,
@@ -279,6 +280,7 @@ describe('CalendarEventService', () => {
     expect(prisma.calendarEvent.update).toHaveBeenCalledWith({
       where: { id: eventId },
       data: {
+        sourceType: EventSourceType.TASK,
         completedAt: null,
         updatedBy: ownerId,
         isRecurrenceOverride: true,
@@ -398,5 +400,46 @@ describe('CalendarEventService', () => {
         isRecurrenceOverride: true,
       }),
     });
+  });
+
+  it('retrieves only personal, uncancelled tasks with pagination', async () => {
+    const { service, prisma } = createService();
+    const taskEvent = {
+      ...event,
+      sourceType: EventSourceType.TASK,
+      completedAt: null,
+    };
+    prisma.calendarEvent.findMany.mockResolvedValue([taskEvent]);
+    prisma.calendarEvent.count.mockResolvedValue(1);
+
+    const result = await service.getTasks(ownerId, { page: 1, limit: 10 });
+
+    expect(prisma.calendarEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: { not: EventStatus.CANCELLED },
+          OR: [
+            { sourceType: EventSourceType.TASK },
+            { description: { contains: '[TASK]' } },
+          ],
+          AND: [
+            {
+              OR: [
+                { calendar: { ownerUserId: ownerId } },
+                { createdBy: ownerId },
+                { attendees: { some: { userId: ownerId } } },
+              ],
+            },
+          ],
+        },
+        skip: 0,
+        take: 10,
+        orderBy: { startAt: 'asc' },
+      }),
+    );
+    expect(result.items).toHaveLength(1);
+    expect(result.total).toBe(1);
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
   });
 });

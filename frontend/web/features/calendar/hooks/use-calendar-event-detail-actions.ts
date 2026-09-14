@@ -15,6 +15,7 @@ import {
   useUpdateCalendarEventResponse,
   useUpdateCalendarTaskCompletion,
 } from "./use-calendar-queries";
+import { isTaskCalendarEvent } from "../utils/calendar-event.utils";
 
 interface UseCalendarEventDetailActionsInput {
   detailEvent: CalendarEvent | null;
@@ -44,6 +45,11 @@ export function useCalendarEventDetailActions({
       }
       setDetailEvent(arg.event.extendedProps.model as CalendarEvent);
     },
+    [setDetailEvent],
+  );
+
+  const openDetail = useCallback(
+    (event: CalendarEvent) => setDetailEvent(event),
     [setDetailEvent],
   );
 
@@ -120,7 +126,7 @@ export function useCalendarEventDetailActions({
   const updateTaskCompletionForEvent = useCallback(
     async (event: CalendarEvent) => {
       if (
-        event.sourceType !== EventSourceType.TASK ||
+        !isTaskCalendarEvent(event) ||
         updateTaskCompletion.isPending
       ) {
         return;
@@ -167,6 +173,7 @@ export function useCalendarEventDetailActions({
     handleRespond,
     handleTaskCompletionChange,
     handleTaskCompletionQuickToggle: updateTaskCompletionForEvent,
+    openDetail,
     startEditingDetailEvent,
     taskCompletionBusy: updateTaskCompletion.isPending,
   };

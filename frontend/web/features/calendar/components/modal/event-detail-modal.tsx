@@ -7,6 +7,7 @@ import {
   Check,
   Copy,
   ExternalLink,
+  ListTodo,
   Mail,
   MapPin,
   MoreVertical,
@@ -26,13 +27,16 @@ import { useModalDialog } from "../../hooks/use-modal-dialog";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
-  EventSourceType,
   RecurrenceScope,
 } from "../../types/calendar.types";
 import {
   formatCalendarEventRange,
   formatReminderLabel,
 } from "../../utils/calendar-date.utils";
+import {
+  cleanTaskDescription,
+  isTaskCalendarEvent,
+} from "../../utils/calendar-event.utils";
 import { EventAttendeeList } from "./event-attendee-list";
 
 export function EventDetailModal({
@@ -91,7 +95,7 @@ export function EventDetailModal({
     ) || [];
 
   const isRecurring = Boolean(event.recurrenceRule || event.recurrenceParentId);
-  const isTask = event.sourceType === EventSourceType.TASK;
+  const isTask = isTaskCalendarEvent(event);
   const isCompletedTask = isTask && Boolean(event.completedAt);
 
   const handleDelete = () => {
@@ -185,6 +189,8 @@ export function EventDetailModal({
     event.color ||
     event.calendar?.color ||
     "#ea580c";
+
+  const cleanedDescription = cleanTaskDescription(event.description);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
@@ -325,13 +331,22 @@ export function EventDetailModal({
             </div>
           </div>
 
-          {/* Row 3: Calendar Name (Calendar icon) */}
+          {/* Row 3: Calendar / Tasks Name */}
           <div className="flex items-start gap-4">
             <div className="mt-0.5 flex w-5 shrink-0 justify-center">
-              <Calendar className="h-4 w-4 text-slate-500" />
+              {isTask ? (
+                <ListTodo
+                  className="h-4 w-4"
+                  style={{ color: tasksColor || "#f59e0b" }}
+                />
+              ) : (
+                <Calendar className="h-4 w-4 text-slate-500" />
+              )}
             </div>
             <div className="min-w-0 flex-1 text-sm text-slate-700">
-              {calendarName}
+              {isTask
+                ? intl.formatMessage({ id: "calendar.tasks" })
+                : calendarName}
             </div>
           </div>
 
@@ -397,13 +412,13 @@ export function EventDetailModal({
           )}
 
           {/* Row 6: Description (if present) */}
-          {event.description && (
+          {cleanedDescription && (
             <div className="flex items-start gap-4">
               <div className="mt-0.5 flex w-5 shrink-0 justify-center">
                 <AlignLeft className="h-4 w-4 text-slate-500" />
               </div>
               <div className="min-w-0 flex-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-                {event.description}
+                {cleanedDescription}
               </div>
             </div>
           )}

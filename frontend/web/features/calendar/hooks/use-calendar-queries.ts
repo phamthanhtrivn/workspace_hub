@@ -9,6 +9,7 @@ import {
   createCalendar,
   createCalendarEvent,
   deleteCalendar,
+  getAllCalendarTasks,
   getCalendarEvent,
   getCalendarEvents,
   getCalendars,
@@ -30,6 +31,7 @@ import {
 export const calendarKeys = {
   all: ["calendar"] as const,
   calendars: ["calendar", "calendars"] as const,
+  tasks: ["calendar", "tasks"] as const,
   events: (filters: CalendarEventFilters) =>
     ["calendar", "events", filters] as const,
   event: (eventId: string) => ["calendar", "events", eventId] as const,
@@ -87,6 +89,15 @@ export function useCalendarEvents(filters: CalendarEventFilters) {
     queryKey: calendarKeys.events(filters),
     queryFn: () => getCalendarEvents(filters),
     enabled: Boolean(filters.startAt && filters.endAt),
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+}
+
+export function useCalendarTasks() {
+  return useQuery({
+    queryKey: calendarKeys.tasks,
+    queryFn: getAllCalendarTasks,
     placeholderData: keepPreviousData,
     staleTime: 30_000,
   });

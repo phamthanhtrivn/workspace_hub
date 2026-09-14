@@ -56,4 +56,5 @@ export const CALENDAR_SUCCESS_MESSAGES = {
   EVENT_CANCELLED: 'Event cancelled successfully',
   EVENT_RESPONSE_UPDATED: 'Event response updated successfully',
   TASK_COMPLETION_UPDATED: 'Task completion updated successfully',
+  TASKS_LISTED: 'Calendar tasks retrieved successfully',
 } as const;
