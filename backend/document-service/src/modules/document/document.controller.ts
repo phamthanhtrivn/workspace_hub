@@ -108,7 +108,7 @@ export class DocumentController {
     const isStarredOnly = starred === 'true';
     const isArchived = archived === 'true';
     const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 8;
+    const limitNum = limit ? parseInt(limit, 10) : 12;
 
     const result = await this.documentService.getItems(userId, userEmail, {
       folderId,
@@ -146,7 +146,7 @@ export class DocumentController {
   ) {
     this.validateUserHeaders(userId, userEmail);
     const pageNum = page ? parseInt(page, 10) : 1;
-    const limitNum = limit ? parseInt(limit, 10) : 8;
+    const limitNum = limit ? parseInt(limit, 10) : 12;
 
     const result = await this.documentService.getItems(userId, userEmail, {
       isSharedOnly: true,

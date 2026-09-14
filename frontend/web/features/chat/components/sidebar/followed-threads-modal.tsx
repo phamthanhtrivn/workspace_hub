@@ -25,7 +25,6 @@ import {
   chatKeys,
   MAX_UNREAD_COUNT,
 } from "../../types/chat.constant";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 const EMPTY_THREADS: FollowedThreadResponse[] = [];
 
@@ -72,7 +71,6 @@ export default function FollowedThreadsModal({
   onClose,
   onSelectThread,
 }: FollowedThreadsModalProps) {
-  const intl = useAppIntl();
   const [searchQuery, setSearchQuery] = useState("");
   const {
     data = EMPTY_THREADS,
@@ -119,12 +117,12 @@ export default function FollowedThreadsModal({
 
       return `${chatName} ${senderName} ${getThreadPreview(
         thread,
-        intl.formatMessage({ id: "chat.attachment" }),
+        "[Attachment]",
       )}`
         .toLowerCase()
         .includes(trimmedQuery);
     });
-  }, [data, intl, searchQuery]);
+  }, [data, searchQuery]);
 
   const handleSelectThread = (thread: FollowedThreadResponse) => {
     onSelectThread(thread);
@@ -149,17 +147,17 @@ export default function FollowedThreadsModal({
             </span>
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-slate-900 truncate">
-                {intl.formatMessage({ id: "chat.threads" })}
+                Followed Threads
               </h2>
               <p className="text-xs text-slate-500">
-                {intl.formatMessage({ id: "chat.followedThreadDiscussions" })}
+                Threads you are participating in or following
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
             className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition cursor-pointer"
-            title={intl.formatMessage({ id: "app.close" })}
+            title="Close"
           >
             <X size={20} />
           </button>
@@ -174,9 +172,7 @@ export default function FollowedThreadsModal({
             <input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder={intl.formatMessage({
-                id: "chat.searchFollowedThreads",
-              })}
+              placeholder="Search followed threads..."
               className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl outline-none transition"
             />
           </div>
@@ -187,19 +183,19 @@ export default function FollowedThreadsModal({
             <div className="h-48 flex flex-col items-center justify-center gap-3 text-slate-500">
               <Loader2 size={24} className="animate-spin text-blue-500" />
               <p className="text-sm font-medium">
-                {intl.formatMessage({ id: "chat.loadingThreads" })}
+                Loading threads...
               </p>
             </div>
           ) : isError ? (
             <div className="h-48 flex flex-col items-center justify-center gap-3 text-center px-6">
               <p className="text-sm font-semibold text-slate-700">
-                {intl.formatMessage({ id: "chat.failedLoadFollowedThreads" })}
+                Failed to load followed threads
               </p>
               <button
                 onClick={() => refetch()}
                 className="px-4 py-2 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-xl transition cursor-pointer"
               >
-                {intl.formatMessage({ id: "app.tryAgain" })}
+                Try Again
               </button>
             </div>
           ) : filteredThreads.length > 0 ? (
@@ -249,23 +245,17 @@ export default function FollowedThreadsModal({
                     <span className="text-xs text-slate-600 line-clamp-2 break-words">
                       {getThreadPreview(
                         thread,
-                        intl.formatMessage({ id: "chat.attachment" }),
+                        "[Attachment]",
                       )}
                     </span>
                     <span className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100/50 mt-1 shrink-0">
                       <span className="flex items-center gap-1 text-blue-600 font-bold">
                         <MessageSquare size={11} />
-                        {intl.formatMessage(
-                          { id: "chat.repliesCount" },
-                          { count: thread.replyCount },
-                        )}
+                        {`${thread.replyCount} replies`}
                       </span>
                       {lastReplyTime && (
                         <span>
-                          {intl.formatMessage(
-                            { id: "chat.lastReplyAt" },
-                            { time: lastReplyTime },
-                          )}
+                          {`Last reply: ${lastReplyTime}`}
                         </span>
                       )}
                     </span>
@@ -276,10 +266,10 @@ export default function FollowedThreadsModal({
           ) : (
             <div className="h-48 flex flex-col items-center justify-center text-center px-6">
               <p className="text-sm font-semibold text-slate-700">
-                {intl.formatMessage({ id: "chat.noFollowedThreads" })}
+                No followed threads found
               </p>
               <p className="text-xs text-slate-400 mt-1">
-                {intl.formatMessage({ id: "chat.followThreadHint" })}
+                Reply to a message thread to automatically follow it.
               </p>
             </div>
           )}
@@ -289,3 +279,4 @@ export default function FollowedThreadsModal({
     document.body,
   );
 }
+

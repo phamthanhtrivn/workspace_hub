@@ -50,6 +50,16 @@ export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
   "DOCUMENT",
 ];
 
+export type NotificationUnreadCountsByCategory = Record<
+  NotificationCategory,
+  number
+>;
+
+export interface NotificationDateRange {
+  fromDate?: Date;
+  toDate?: Date;
+}
+
 export function isNotificationCategory(
   value: string | undefined,
 ): value is NotificationCategory {

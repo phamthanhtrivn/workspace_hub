@@ -33,8 +33,7 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
     preJoinProps,
     passwordGateProps,
     goBackToMeetings,
-  } =
-    useMeetingRoomJoinFlow(joinToken);
+  } = useMeetingRoomJoinFlow(joinToken);
 
   switch (flowStep) {
     case MeetingJoinFlowStep.CHECKING:
@@ -42,10 +41,7 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
       return <MeetingRoomLoading joinToken={joinToken} />;
     case MeetingJoinFlowStep.PREJOIN:
       return (
-        <MeetingPreJoin
-          mode={MeetingPreJoinMode.JOIN}
-          {...preJoinProps}
-        />
+        <MeetingPreJoin mode={MeetingPreJoinMode.JOIN} {...preJoinProps} />
       );
     case MeetingJoinFlowStep.PASSWORD:
       return <MeetingPasswordGate {...passwordGateProps} />;
@@ -96,6 +92,7 @@ export function MeetingRoomShell({ joinToken }: MeetingRoomShellProps) {
             }
             initialScreenShareStartedAt={room.meeting.screenShareStartedAt}
             initialChatMuted={room.meeting.chatMuted}
+            initialHandRaisedAt={room.meeting.handRaisedAt}
             settings={settings}
           />
         </LiveKitRoom>

@@ -7,7 +7,6 @@ import {
 } from "@livekit/components-react";
 import { RoomEvent, Track, type LocalTrackPublication } from "livekit-client";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import {
   startMeetingScreenShare,
@@ -74,7 +73,6 @@ export function useMeetingScreenShare({
   initialScreenShareStartedAt,
   activeScreenShareTrack,
 }: UseMeetingScreenShareParams) {
-  const intl = useAppIntl();
   const room = useRoomContext();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const { confirm, alertDialogProps } = useMeetingConfirmDialog();
@@ -111,10 +109,10 @@ export function useMeetingScreenShare({
       displayName:
         participant.name ||
         participant.identity ||
-        intl.formatMessage({ id: "app.user" }),
+        "User",
       role: getKnownMeetingRole(metadata.role),
     };
-  }, [activeScreenShareTrack, activeScreenShareUserId, intl]);
+  }, [activeScreenShareTrack, activeScreenShareUserId]);
   const canInterruptActiveScreenShare =
     Boolean(activeScreenShareUserId) &&
     activeScreenShareUserId !== currentUserId &&
@@ -167,12 +165,12 @@ export function useMeetingScreenShare({
 
         if (payload.stoppedBy && payload.stoppedBy !== currentUserId) {
           toast.info(
-            intl.formatMessage({ id: "meeting.room.screenShare.stoppedByHost" }),
+            "The host stopped your screen share",
           );
         }
       }
     },
-    [currentUserId, intl, meetingId, stopLocalScreenShare],
+    [currentUserId, meetingId, stopLocalScreenShare],
   );
 
   const handleStatusUpdated = useCallback(
@@ -219,9 +217,7 @@ export function useMeetingScreenShare({
     if (!currentUserId) return;
 
     if (!isModerator && !screenShareEnabled) {
-      toast.error(
-        intl.formatMessage({ id: "meeting.room.screenShare.disabled" }),
-      );
+      toast.error("Screen sharing is disabled");
       return;
     }
 
@@ -244,13 +240,11 @@ export function useMeetingScreenShare({
       if (shouldReleaseBackendState) {
         await stopMeetingScreenShare(joinToken).catch(() => undefined);
       }
-      toast.error(
-        intl.formatMessage({ id: "meeting.room.screenShare.startFailed" }),
-      );
+      toast.error("Could not start screen sharing");
     } finally {
       setIsScreenSharePending(false);
     }
-  }, [currentUserId, intl, isModerator, joinToken, room, screenShareEnabled]);
+  }, [currentUserId, isModerator, joinToken, room, screenShareEnabled]);
 
   const stopScreenShare = useCallback(async () => {
     setIsScreenSharePending(true);
@@ -261,13 +255,11 @@ export function useMeetingScreenShare({
       setActiveScreenShareUserId(null);
       setScreenShareStartedAt(null);
     } catch {
-      toast.error(
-        intl.formatMessage({ id: "meeting.room.screenShare.stopFailed" }),
-      );
+      toast.error("Could not stop screen sharing");
     } finally {
       setIsScreenSharePending(false);
     }
-  }, [intl, joinToken, stopLocalScreenShare]);
+  }, [joinToken, stopLocalScreenShare]);
 
   const toggleScreenShare = useCallback(() => {
     if (isLocalSharing) {
@@ -281,34 +273,23 @@ export function useMeetingScreenShare({
     ) {
       if (!canInterruptActiveScreenShare) {
         const activeRole = activeScreenShareParticipant?.role;
-        const messageId =
+        const message =
           activeRole === MEETING_ROLE.HOST
-            ? "meeting.room.screenShare.hostIsSharing"
+            ? "The host is sharing their screen"
             : activeRole === MEETING_ROLE.COHOST
-              ? "meeting.room.screenShare.cohostIsSharing"
-              : "meeting.room.screenShare.alreadyActive";
+              ? "A co-host is sharing their screen"
+              : "Someone is already sharing their screen";
 
-        toast.error(intl.formatMessage({ id: messageId }));
+        toast.error(message);
         return;
       }
 
       void (async () => {
         const confirmed = await confirm({
-          title: intl.formatMessage({
-            id: "meeting.room.screenShare.replaceConfirmTitle",
-          }),
-          description: intl.formatMessage(
-            { id: "meeting.room.screenShare.replaceConfirmDescription" },
-            {
-              name:
-                activeScreenShareParticipant?.displayName ||
-                intl.formatMessage({ id: "app.user" }),
-            },
-          ),
-          confirmLabel: intl.formatMessage({
-            id: "meeting.room.screenShare.replaceConfirmAction",
-          }),
-          cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+          title: "Replace current screen share?",
+          description: `${activeScreenShareParticipant?.displayName || "User"} is already sharing. Your screen share will replace theirs.`,
+          confirmLabel: "Share instead",
+          cancelLabel: "Cancel",
           variant: "warning",
         });
 
@@ -326,7 +307,6 @@ export function useMeetingScreenShare({
     canInterruptActiveScreenShare,
     confirm,
     currentUserId,
-    intl,
     isLocalSharing,
     startScreenShare,
     stopScreenShare,

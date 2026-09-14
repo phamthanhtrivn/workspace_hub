@@ -20,6 +20,8 @@ import type {
   MeetingModeratorParams,
   TargetMeetingParticipantParams,
   UpdateMeetingChatNotificationPreferenceParams,
+  UpdateOwnMeetingHandParams,
+  UpdateTargetMeetingHandParams,
   UpdateMeetingParticipantViewPreferenceParams,
   UpdateMeetingParticipantRoleParams,
 } from '../types/meeting.types';
@@ -66,7 +68,11 @@ export class MeetingParticipantService {
       this.prisma.meetingParticipant.count({ where }),
       this.prisma.meetingParticipant.findMany({
         where,
-        orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+        orderBy: [
+          { handRaisedAt: { sort: 'asc', nulls: 'last' } },
+          { role: 'asc' },
+          { joinedAt: 'asc' },
+        ],
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -113,6 +119,7 @@ export class MeetingParticipantService {
         status: MeetingParticipantStatus.LEFT,
         leftAt: now,
         lastSeenAt: now,
+        handRaisedAt: null,
       },
     });
 
@@ -197,6 +204,7 @@ export class MeetingParticipantService {
         status: MeetingParticipantStatus.REMOVED,
         leftAt: now,
         lastSeenAt: now,
+        handRaisedAt: null,
       },
     });
 
@@ -362,6 +370,81 @@ export class MeetingParticipantService {
     this.meetingRealtimeService.emitUserEvent(
       userId,
       MeetingEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED,
+      payload,
+    );
+
+    return payload;
+  }
+
+  async updateOwnHandState({
+    joinToken,
+    userId,
+    dto,
+  }: UpdateOwnMeetingHandParams) {
+    const { meeting, participant } =
+      await this.meetingPolicyService.assertJoinedMeetingParticipant({
+        joinToken,
+        userId,
+      });
+
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
+      where: { id: participant.id },
+      data: {
+        handRaisedAt: dto.raised ? new Date() : null,
+      },
+    });
+
+    const payload =
+      await this.meetingPresenterService.toMeetingParticipantSocketPayload(
+        meeting.id,
+        updatedParticipant,
+      );
+    this.meetingRealtimeService.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
+      payload,
+    );
+
+    return payload;
+  }
+
+  async updateTargetHandState({
+    joinToken,
+    userId,
+    targetUserId,
+    dto,
+  }: UpdateTargetMeetingHandParams) {
+    if (dto.raised) {
+      throw new BadRequestException(
+        MEETING_ERROR_MESSAGES.PARTICIPANT_HAND_LOWER_ONLY,
+      );
+    }
+
+    const { meeting } = await this.meetingPolicyService.assertMeetingModerator({
+      joinToken,
+      userId,
+    });
+    const targetParticipant =
+      await this.meetingPolicyService.getJoinedTargetParticipant({
+        meetingId: meeting.id,
+        targetUserId,
+      });
+
+    const updatedParticipant = await this.prisma.meetingParticipant.update({
+      where: { id: targetParticipant.id },
+      data: {
+        handRaisedAt: null,
+      },
+    });
+
+    const payload =
+      await this.meetingPresenterService.toMeetingParticipantSocketPayload(
+        meeting.id,
+        updatedParticipant,
+      );
+    this.meetingRealtimeService.emitMeetingEvent(
+      meeting.id,
+      MeetingEvent.PARTICIPANT_UPDATED,
       payload,
     );
 

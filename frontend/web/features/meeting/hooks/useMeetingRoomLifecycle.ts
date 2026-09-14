@@ -5,7 +5,6 @@ import { useRoomContext } from "@livekit/components-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import {
   useEndMeeting,
@@ -14,7 +13,7 @@ import {
 import { useMeetingConfirmDialog } from "./useMeetingConfirmDialog";
 import { useMeetingRealtimeCache } from "./useMeetingRealtimeCache";
 import { useMeetingSocket } from "./useMeetingSocket";
-import { MEETING_ROUTES, MEETING_STATUS } from "../types/meeting.constants";
+import { MEETING_STATUS } from "../types/meeting.constants";
 import { meetingKeys } from "../types/meeting.query-keys";
 import type {
   MeetingEndedPayload,
@@ -29,6 +28,7 @@ import {
   MEETING_ROLE,
   type MeetingParticipantRole,
 } from "../types/meeting.types";
+import { getCurrentMeetingExitPath } from "../utils/meeting-room-navigation.utils";
 
 interface UseMeetingRoomLifecycleParams {
   meetingId: string;
@@ -45,7 +45,6 @@ export function useMeetingRoomLifecycle({
   initialAutoAdmit,
   initialChatEnabled,
 }: UseMeetingRoomLifecycleParams) {
-  const intl = useAppIntl();
   const router = useRouter();
   const queryClient = useQueryClient();
   const authUser = useAppSelector((state) => state.auth);
@@ -107,29 +106,7 @@ export function useMeetingRoomLifecycle({
 
   const leaveRoom = useCallback(() => {
     room.disconnect();
-    if (typeof window !== "undefined") {
-      const searchParams = new URLSearchParams(window.location.search);
-      const returnUrl = searchParams.get("returnUrl");
-      if (returnUrl) {
-        router.push(returnUrl);
-        return;
-      }
-
-      if (
-        document.referrer &&
-        document.referrer.startsWith(window.location.origin) &&
-        !document.referrer.includes("/meetings/")
-      ) {
-        router.back();
-        return;
-      }
-
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
-    }
-    router.push(MEETING_ROUTES.DASHBOARD);
+    router.replace(getCurrentMeetingExitPath());
   }, [room, router]);
 
   const handleStatusUpdated = useCallback(
@@ -157,7 +134,7 @@ export function useMeetingRoomLifecycle({
       if (payload.meetingId !== meetingId) return;
 
       if (payload.endedBy !== authUser.userId) {
-        toast.info(intl.formatMessage({ id: "meeting.room.endedByHost" }));
+        toast.info("The host ended the meeting");
       }
 
       clearMeetingRoomQueries();
@@ -166,7 +143,6 @@ export function useMeetingRoomLifecycle({
     [
       authUser.userId,
       clearMeetingRoomQueries,
-      intl,
       leaveRoom,
       meetingId,
     ],
@@ -231,7 +207,7 @@ export function useMeetingRoomLifecycle({
       if (payload.meetingId !== meetingId) return;
 
       if (payload.userId === authUser.userId) {
-        toast.info(intl.formatMessage({ id: "meeting.room.removedByHost" }));
+        toast.info("You were removed from the meeting");
         clearMeetingRoomQueries();
         leaveRoom();
         return;
@@ -243,7 +219,6 @@ export function useMeetingRoomLifecycle({
     [
       authUser.userId,
       clearMeetingRoomQueries,
-      intl,
       invalidateMeetingRoomState,
       leaveRoom,
       meetingId,
@@ -258,7 +233,7 @@ export function useMeetingRoomLifecycle({
       if (payload.targetUserId === authUser.userId) {
         setCurrentParticipantRole(MEETING_ROLE.HOST);
         patchCurrentUserRole(MEETING_ROLE.HOST);
-        toast.success(intl.formatMessage({ id: "meeting.room.youAreHost" }));
+        toast.success("You are now the host");
       }
 
       if (payload.previousHostId === authUser.userId) {
@@ -270,7 +245,6 @@ export function useMeetingRoomLifecycle({
     },
     [
       authUser.userId,
-      intl,
       invalidateMeetingRoomState,
       meetingId,
       patchCurrentUserRole,
@@ -295,16 +269,16 @@ export function useMeetingRoomLifecycle({
         leaveRoom();
       },
       onError: () => {
-        toast.error(intl.formatMessage({ id: "meeting.room.leaveFailed" }));
+        toast.error("Could not save leave action");
       },
     });
-  }, [clearMeetingRoomQueries, intl, leaveMeetingMutation, leaveRoom]);
+  }, [clearMeetingRoomQueries, leaveMeetingMutation, leaveRoom]);
 
   const handleEndForEveryone = useCallback(async () => {
     const confirmed = await confirm({
-      title: intl.formatMessage({ id: "meeting.room.endConfirm" }),
-      confirmLabel: intl.formatMessage({ id: "meeting.room.control.end" }),
-      cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+      title: "End this meeting for everyone?",
+      confirmLabel: "End",
+      cancelLabel: "Cancel",
       variant: "danger",
     });
 
@@ -312,12 +286,12 @@ export function useMeetingRoomLifecycle({
 
     endMeetingMutation.mutate(undefined, {
       onSuccess: () => {
-        toast.success(intl.formatMessage({ id: "meeting.room.endSuccess" }));
+        toast.success("Meeting ended");
         clearMeetingRoomQueries();
         leaveRoom();
       },
     });
-  }, [clearMeetingRoomQueries, confirm, endMeetingMutation, intl, leaveRoom]);
+  }, [clearMeetingRoomQueries, confirm, endMeetingMutation, leaveRoom]);
 
   return {
     autoAdmit,

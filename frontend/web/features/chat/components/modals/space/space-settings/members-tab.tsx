@@ -6,7 +6,6 @@ import {
   SpaceRole,
 } from "@/features/chat/types/chat.types";
 import { getSpaceMemberName } from "@/features/chat/types/space-settings/space-settings.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface MembersTabProps {
   currentUserId: string | null;
@@ -35,8 +34,6 @@ export function MembersTab({
   onUpdateRole,
   spaceCreatorId,
 }: MembersTabProps) {
-  const intl = useAppIntl();
-
   return (
     <div className="space-y-4">
       <div className="relative">
@@ -48,7 +45,7 @@ export function MembersTab({
           type="text"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
-          placeholder={intl.formatMessage({ id: "chat.searchMembers" })}
+          placeholder="Search members..."
           className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:bg-white"
         />
       </div>
@@ -56,11 +53,11 @@ export function MembersTab({
       <div className="space-y-1">
         {isLoading ? (
           <div className="py-8 text-center text-xs text-slate-400">
-            {intl.formatMessage({ id: "chat.loadingMembers" })}
+            Loading members...
           </div>
         ) : members.length === 0 ? (
           <div className="py-8 text-center text-xs text-slate-400">
-            {intl.formatMessage({ id: "chat.noMembers" })}
+            No members found
           </div>
         ) : (
           members.map((member) => (
@@ -101,7 +98,6 @@ function MemberRow({
   onUpdateRole?: (member: SpaceMemberListItem, role: SpaceRole) => void;
   spaceCreatorId?: string | null;
 }) {
-  const intl = useAppIntl();
   const name = getSpaceMemberName(member);
   const isMe = member.userId === currentUserId;
   const isCreator = member.userId === spaceCreatorId;
@@ -132,14 +128,14 @@ function MemberRow({
           {isCreator ? (
             <span
               className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
-              title={intl.formatMessage({ id: "chat.role.owner" })}
+              title="Owner"
             >
               <FaKey size={8} />
             </span>
           ) : member.role === SpaceRole.ADMIN ? (
             <span
               className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
-              title={intl.formatMessage({ id: "chat.role.admin" })}
+              title="Admin"
             >
               <FaKey size={8} />
             </span>
@@ -148,15 +144,15 @@ function MemberRow({
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2">
             <p className="truncate text-sm font-semibold text-slate-800">
-              {isMe ? intl.formatMessage({ id: "chat.you" }) : name}
+              {isMe ? "You" : name}
             </p>
             {isCreator ? (
               <span className="shrink-0 rounded-md border border-amber-100 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
-                {intl.formatMessage({ id: "chat.adminOwner" })}
+                Owner
               </span>
             ) : member.role === SpaceRole.ADMIN ? (
               <span className="shrink-0 rounded-md border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
-                {intl.formatMessage({ id: "chat.role.admin" })}
+                Admin
               </span>
             ) : null}
           </div>
@@ -173,7 +169,7 @@ function MemberRow({
               {member.role === SpaceRole.MEMBER && (
                 <button
                   type="button"
-                  title={intl.formatMessage({ id: "chat.promoteToAdmin" })}
+                  title="Promote to Admin"
                   disabled={disabled}
                   onClick={() => onUpdateRole?.(member, SpaceRole.ADMIN)}
                   className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 disabled:opacity-50 cursor-pointer transition-colors"
@@ -184,7 +180,7 @@ function MemberRow({
               {member.role === SpaceRole.ADMIN && (
                 <button
                   type="button"
-                  title={intl.formatMessage({ id: "chat.demoteToMember" })}
+                  title="Demote to Member"
                   disabled={disabled}
                   onClick={() => onUpdateRole?.(member, SpaceRole.MEMBER)}
                   className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-50 disabled:opacity-50 cursor-pointer transition-colors"
@@ -194,7 +190,7 @@ function MemberRow({
               )}
               <button
                 type="button"
-                title={intl.formatMessage({ id: "chat.transferAdmin" })}
+                title="Transfer Ownership"
                 disabled={disabled}
                 onClick={() => onTransferOwnership?.(member)}
                 className="p-2 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 disabled:opacity-50 cursor-pointer transition-colors"
@@ -206,7 +202,7 @@ function MemberRow({
           {canCurrentUserRemove && (
             <button
               type="button"
-              title={intl.formatMessage({ id: "chat.removeFromSpace" })}
+              title="Remove from Space"
               disabled={disabled}
               onClick={() => onRemove(member)}
               className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 cursor-pointer transition-colors"
@@ -219,3 +215,4 @@ function MemberRow({
     </div>
   );
 }
+

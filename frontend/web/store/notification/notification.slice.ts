@@ -133,24 +133,44 @@ const notificationSlice = createSlice({
         deletedCount: number;
         unreadDeletedCount: number;
         category: NotificationCategory;
+        isRead?: boolean;
+        fromDate?: string;
+        toDate?: string;
       }>,
     ) => {
-      const { category, deletedCount, unreadDeletedCount } = action.payload;
+      const { category, deletedCount, fromDate, isRead, toDate, unreadDeletedCount } =
+        action.payload;
       state.unreadCount = Math.max(0, state.unreadCount - unreadDeletedCount);
-      if (category === "ALL") {
+      if (category === "ALL" && isRead === undefined && !fromDate && !toDate) {
         state.list = [];
         state.total = 0;
         state.unreadCount = 0;
         return;
       }
 
-      const affectsCurrentList = state.list.some(
-        (notification) => getNotificationCategory(notification) === category,
-      );
+      const shouldRemoveNotification = (notification: Notification) => {
+        const notificationCategory = getNotificationCategory(notification);
+        if (category !== "ALL" && notificationCategory !== category) {
+          return false;
+        }
+        if (isRead !== undefined && notification.isRead !== isRead) {
+          return false;
+        }
+        const createdAt = new Date(notification.createdAt).getTime();
+        if (fromDate && createdAt < new Date(fromDate).getTime()) {
+          return false;
+        }
+        if (toDate && createdAt > new Date(toDate).getTime()) {
+          return false;
+        }
+        return true;
+      };
+
+      const affectsCurrentList = state.list.some(shouldRemoveNotification);
       if (!affectsCurrentList) return;
 
       state.list = state.list.filter(
-        (notification) => getNotificationCategory(notification) !== category,
+        (notification) => !shouldRemoveNotification(notification),
       );
       state.total = Math.max(0, state.total - deletedCount);
     },

@@ -26,18 +26,11 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAppDispatch } from "@/store/store";
 import { setActiveSpaceId } from "@/store/chat/chat-slice";
+import {
+  getNotificationApiErrorMessage,
+  getSpaceInvitationInitials,
+} from "../../utils/notification-display.utils";
 import { NotificationCategoryIcon } from "../notification-category-icon";
-
-function getInitials(name?: string | null) {
-  const source = name?.trim() || "Workspace";
-  const parts = source.split(/\s+/).filter(Boolean);
-
-  if (parts.length >= 2) {
-    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-  }
-
-  return source.slice(0, 2).toUpperCase();
-}
 
 function SenderAvatar({
   notification,
@@ -61,21 +54,10 @@ function SenderAvatar({
           className="object-cover"
         />
       ) : (
-        <span>{getInitials(notification.senderName)}</span>
+        <span>{getSpaceInvitationInitials(notification.senderName)}</span>
       )}
     </div>
   );
-}
-
-function getActionErrorMessage(error: unknown): string {
-  if (typeof error === "object" && error !== null && "response" in error) {
-    const response = (error as { response?: { data?: { message?: unknown } } })
-      .response;
-    if (typeof response?.data?.message === "string") {
-      return response.data.message;
-    }
-  }
-  return "Action failed";
 }
 
 export const InvitationListItemRenderer: React.FC<{
@@ -89,7 +71,7 @@ export const InvitationListItemRenderer: React.FC<{
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/45 ${
+      className={`group flex w-full cursor-pointer gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/45 ${
         !notification.isRead ? "bg-blue-50/60" : "bg-white"
       }`}
     >
@@ -200,7 +182,7 @@ export const InvitationModalRenderer: React.FC<{
         router.push("/chat");
       }
     } catch (error) {
-      toast.error(getActionErrorMessage(error));
+      toast.error(getNotificationApiErrorMessage(error, "Action failed"));
     } finally {
       setIsProcessing(false);
     }

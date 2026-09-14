@@ -26,23 +26,16 @@ import { SendSocketMessageMedia } from "../../types/chat-socket.types";
 import { ChatScope, chatKeys } from "../../types/chat.constant";
 import { MessageType, ReactionAction } from "../../types/chat.enums";
 import { useDirectMessageActions } from "../useDirectMessageActions";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
-export interface UseChatMessageActionsParams {
-  conversationId: string | undefined;
-  activeChatType: ChatContextType | null | undefined;
+interface UseChatMessageActionsParams {
+  conversationId?: string;
+  activeChatType?: ChatContextType | null;
   isDirectConversation: boolean;
   jumpTargetId: string | null;
   appendRealtimeMessage: (message: ChatMessageResponse) => void;
   scrollToBottom: () => void;
 }
 
-/**
- * Tổng hợp tất cả hành động người dùng có thể thực hiện trên tin nhắn:
- * gửi, sửa, thu hồi, ghim, react, tạo poll/note, vote poll, v.v.
- *
- * Giữ nguyên toàn bộ logic từ chat-area.tsx — chỉ di chuyển vào hook riêng.
- */
 export function useChatMessageActions({
   conversationId,
   activeChatType,
@@ -51,7 +44,6 @@ export function useChatMessageActions({
   appendRealtimeMessage,
   scrollToBottom,
 }: UseChatMessageActionsParams) {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const {
     editMessage: editDirectChatMessage,
@@ -62,7 +54,7 @@ export function useChatMessageActions({
   } = useDirectMessageActions();
 
   const getErrorMessage = useCallback(
-    (error: unknown, fallbackId: string) => {
+    (error: unknown, fallbackMessage: string) => {
       if (
         typeof error === "object" &&
         error !== null &&
@@ -78,9 +70,9 @@ export function useChatMessageActions({
         return error.response.data.message;
       }
 
-      return intl.formatMessage({ id: fallbackId });
+      return fallbackMessage;
     },
-    [intl],
+    [],
   );
 
   // ─── Send / Edit ───────────────────────────────────────────────────────────
@@ -119,7 +111,7 @@ export function useChatMessageActions({
           });
           onEditDone?.();
         } catch (error: unknown) {
-          toast.error(getErrorMessage(error, "chat.failedEditMessage"));
+          toast.error(getErrorMessage(error, "Failed to edit message"));
         }
         return;
       }
@@ -152,7 +144,7 @@ export function useChatMessageActions({
           appendRealtimeMessage(response.data);
         }
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedSendMessage"));
+        toast.error(getErrorMessage(error, "Failed to send message"));
       }
     },
     [
@@ -211,7 +203,7 @@ export function useChatMessageActions({
           queryKey: chatKeys.messages(activeChatType, conversationId, jumpTargetId),
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedRecallMessage"));
+        toast.error(getErrorMessage(error, "Failed to recall message"));
       }
     },
     [
@@ -248,7 +240,7 @@ export function useChatMessageActions({
           queryKey: chatKeys.pinnedMessagesDetail(ChatScope.CHANNEL, conversationId),
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedUpdatePin"));
+        toast.error(getErrorMessage(error, "Failed to update pin status"));
       }
     },
     [
@@ -276,7 +268,7 @@ export function useChatMessageActions({
       try {
         await reactChannelMessage(messageId, emoji, action);
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedReact"));
+        toast.error(getErrorMessage(error, "Failed to react to message"));
       }
     },
     [
@@ -302,7 +294,7 @@ export function useChatMessageActions({
           appendRealtimeMessage(response.data);
         }
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedSendMessage"));
+        toast.error(getErrorMessage(error, "Failed to send poll"));
       }
     },
     [appendRealtimeMessage, conversationId, getErrorMessage],
@@ -314,7 +306,7 @@ export function useChatMessageActions({
       try {
         await voteChannelPoll(conversationId, messageId, pollOptionId);
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedUpdatePoll"));
+        toast.error(getErrorMessage(error, "Failed to vote in poll"));
       }
     },
     [conversationId, getErrorMessage],
@@ -326,7 +318,7 @@ export function useChatMessageActions({
       try {
         await addChannelPollOption(conversationId, messageId, text);
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedUpdatePoll"));
+        toast.error(getErrorMessage(error, "Failed to add poll option"));
       }
     },
     [conversationId, getErrorMessage],
@@ -351,7 +343,7 @@ export function useChatMessageActions({
           isLocked,
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedUpdatePoll"));
+        toast.error(getErrorMessage(error, "Failed to edit poll"));
       }
     },
     [conversationId, getErrorMessage],
@@ -372,7 +364,7 @@ export function useChatMessageActions({
           appendRealtimeMessage(response.data);
         }
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedSendMessage"));
+        toast.error(getErrorMessage(error, "Failed to send note"));
       }
     },
     [appendRealtimeMessage, conversationId, getErrorMessage],
@@ -387,7 +379,7 @@ export function useChatMessageActions({
           content,
         });
       } catch (error: unknown) {
-        toast.error(getErrorMessage(error, "chat.failedUpdateNote"));
+        toast.error(getErrorMessage(error, "Failed to edit note"));
       }
     },
     [conversationId, getErrorMessage],

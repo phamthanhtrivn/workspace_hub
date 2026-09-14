@@ -1,28 +1,20 @@
 "use client";
 
 import { ChevronDown } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface JumpToRecentBannerProps {
-  /** Khi true: đang xem lịch sử cũ — hiện text "Jump to Recent" */
+  /** When true: viewing old history — shows text "Jump to Recent" */
   isViewingHistory: boolean;
   onAction: () => void;
 }
 
 /**
- * Banner nổi ở cuối chat area.
- *
- * - Khi `isViewingHistory = true`: người dùng đang xem tin nhắn cũ → action là jump to recent.
- * - Khi `isViewingHistory = false`: người dùng chỉ scroll lên → action là scroll xuống cuối.
- *
- * Gộp cả hai trường hợp vào một component để tránh duplicate logic hiển thị.
+ * Floating banner at bottom/top of chat area.
  */
 export default function JumpToRecentBanner({
   isViewingHistory,
   onAction,
 }: JumpToRecentBannerProps) {
-  const intl = useAppIntl();
-
   return (
     <div className="absolute top-15 left-1/2 -translate-x-1/2 z-20">
       <button
@@ -31,15 +23,15 @@ export default function JumpToRecentBanner({
       >
         {isViewingHistory ? (
           <>
-            <span>{intl.formatMessage({ id: "chat.viewingOlderMessages" })}</span>
+            <span>Viewing older messages</span>
             <span className="bg-blue-500 hover:bg-blue-600 px-2 py-0.5 rounded-full text-[10px] transition-colors">
-              {intl.formatMessage({ id: "chat.jumpToRecent" })}
+              Jump to Recent
             </span>
           </>
         ) : (
           <>
             <ChevronDown size={14} />
-            <span>{intl.formatMessage({ id: "chat.scrollToLatest" })}</span>
+            <span>Scroll to Latest</span>
           </>
         )}
       </button>

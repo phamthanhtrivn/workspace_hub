@@ -4,7 +4,6 @@ import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/store/store";
 import { setSelectedProfileUserId } from "@/store/chat/chat-slice";
 import { useActiveChat } from "../../hooks/useChatQueries";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useCreateInstantMeeting } from "@/features/meeting/hooks/useCreateInstantMeeting";
 import StartMeetingConfirmModal from "../modals/start-meeting-confirm-modal";
 
@@ -19,7 +18,6 @@ export default function DirectConversationHeader({
   onOpenSearch,
   onBack,
 }: DirectConversationHeaderProps) {
-  const intl = useAppIntl();
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dispatch = useAppDispatch();
@@ -36,14 +34,14 @@ export default function DirectConversationHeader({
     profile?.fullName ||
     profile?.email ||
     otherMemberId ||
-    intl.formatMessage({ id: "app.user" });
+    "User";
   const displayAvatarUrl = profile?.avatarUrl || null;
 
   const handleStartMeeting = () => {
     if (activeConversation?.id) {
       createMeeting({
         conversationId: activeConversation.id,
-        title: `${intl.formatMessage({ id: "chat.meeting.cardTitle" })} - ${displayName}`,
+        title: `Meeting - ${displayName}`,
         cameraEnabled: true,
         microphoneEnabled: true,
         autoAdmin: true,
@@ -80,7 +78,7 @@ export default function DirectConversationHeader({
             ) : displayAvatarUrl ? (
               <Image
                 src={displayAvatarUrl}
-                alt={intl.formatMessage({ id: "profile.avatar" })}
+                alt="Avatar"
                 width={40}
                 height={40}
                 className="rounded-full"
@@ -103,7 +101,7 @@ export default function DirectConversationHeader({
                 {displayName}
               </h2>
               <p className="text-xs text-gray-500">
-                {intl.formatMessage({ id: "chat.directMessage" })}
+                Direct Message
               </p>
             </>
           )}
@@ -114,7 +112,7 @@ export default function DirectConversationHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onOpenSearch}
-          title={intl.formatMessage({ id: "app.search" })}
+          title="Search"
         >
           <Search size={20} />
         </button>
@@ -122,7 +120,7 @@ export default function DirectConversationHeader({
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition disabled:opacity-50"
           onClick={() => setIsConfirmModalOpen(true)}
           disabled={isCreating || !activeConversation?.id}
-          title={intl.formatMessage({ id: "chat.header.startMeeting" })}
+          title="Start instant meeting"
         >
           <Video size={20} />
         </button>
@@ -130,7 +128,7 @@ export default function DirectConversationHeader({
         <button
           className="cursor-pointer p-2 hover:bg-gray-100 hover:text-blue-600 rounded-full transition"
           onClick={onToggleRightPanel}
-          title={intl.formatMessage({ id: "chat.conversationInfo" })}
+          title="Conversation info"
         >
           <Info size={20} />
         </button>

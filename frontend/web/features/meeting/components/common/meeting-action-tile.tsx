@@ -1,13 +1,17 @@
 "use client";
 
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
-import { meetingActionIconById, meetingActionToneClassByTone, MeetingDashboardActionId, MeetingDashboardTone } from "../../types/meeting.constants";
+import {
+  meetingActionIconById,
+  meetingActionToneClassByTone,
+  MeetingDashboardActionId,
+  MeetingDashboardTone,
+} from "../../types/meeting.constants";
 
 interface MeetingActionTileProps {
   actionId: MeetingDashboardActionId;
-  titleId: string;
-  descriptionId: string;
+  title: string;
+  description: string;
   tone: MeetingDashboardTone;
   enabled: boolean;
   onClick?: () => void;
@@ -15,13 +19,12 @@ interface MeetingActionTileProps {
 
 export function MeetingActionTile({
   actionId,
-  titleId,
-  descriptionId,
+  title,
+  description,
   tone,
   enabled,
   onClick,
 }: MeetingActionTileProps) {
-  const intl = useAppIntl();
   const Icon = meetingActionIconById[actionId];
   const toneClass = meetingActionToneClassByTone[tone];
 
@@ -44,14 +47,14 @@ export function MeetingActionTile({
 
       <span className="space-y-2">
         <span className="block text-xl font-black leading-tight">
-          {intl.formatMessage({ id: titleId })}
+          {title}
         </span>
         <span className="block text-sm font-semibold leading-5 text-white/85">
-          {intl.formatMessage({ id: descriptionId })}
+          {description}
         </span>
         {!enabled ? (
           <span className="inline-flex rounded-md bg-white/20 px-2 py-1 text-xs font-black text-white">
-            {intl.formatMessage({ id: "meeting.comingSoon" })}
+            Soon
           </span>
         ) : null}
       </span>

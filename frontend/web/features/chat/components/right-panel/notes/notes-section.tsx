@@ -6,7 +6,6 @@ import { useState } from "react";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { NoteResponse } from "../../../types/chat.types";
 import SeeAllButton from "../see-all-button";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface NotesSectionProps {
   isExpanded: boolean;
@@ -19,7 +18,6 @@ export default function NotesSection({
   onToggle,
   onSeeAll,
 }: NotesSectionProps) {
-  const intl = useAppIntl();
   const { activeChat: activeConversation } = useActiveChat();
 
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -39,7 +37,7 @@ export default function NotesSection({
       >
         <div className="flex items-center gap-3 text-gray-800 font-medium text-sm">
           <FileText size={18} className="text-gray-500" />
-          {intl.formatMessage({ id: "chat.notes" })}
+          Notes
         </div>
         {isExpanded ? (
           <ChevronDown size={16} className="text-gray-400" />
@@ -55,7 +53,7 @@ export default function NotesSection({
             </div>
           ) : notes.length === 0 ? (
             <p className="text-xs text-gray-400 text-center py-2">
-              {intl.formatMessage({ id: "chat.noNotesYet" })}
+              No notes yet
             </p>
           ) : (
             <>
@@ -67,8 +65,7 @@ export default function NotesSection({
                     className="p-3 bg-amber-50 border border-amber-100 rounded-lg cursor-pointer hover:bg-amber-100 transition-colors"
                   >
                     <p className="text-xs font-semibold text-amber-900 mb-1 truncate">
-                      {note.title ||
-                        intl.formatMessage({ id: "chat.untitledNote" })}{" "}
+                      {note.title || "Untitled Note"}{" "}
                       -{" "}
                       {formatDateTime(note.createdAt)}
                     </p>
@@ -80,7 +77,7 @@ export default function NotesSection({
               </div>
               {hasMore && (
                 <SeeAllButton onClick={onSeeAll}>
-                  {intl.formatMessage({ id: "chat.seeAll" })}
+                  See all
                 </SeeAllButton>
               )}
             </>

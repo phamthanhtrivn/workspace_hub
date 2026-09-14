@@ -1,5 +1,4 @@
 import { LogOut, Trash2 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface DangerZoneTabProps {
   isAdmin: boolean;
@@ -22,8 +21,6 @@ export function DangerZoneTab({
   onDelete,
   onLeave,
 }: DangerZoneTabProps) {
-  const intl = useAppIntl();
-
   if (isResolvingMembership) {
     return (
       <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
@@ -39,20 +36,18 @@ export function DangerZoneTab({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm font-bold text-red-700">
-              {intl.formatMessage({ id: "chat.leaveSpace" })}
+              Leave Space
             </p>
             <p className="mt-1 text-xs text-red-500">
-              {intl.formatMessage({ id: "chat.leaveSpaceDescription" })}
+              You will lose access to all channels and messages in this space.
             </p>
             {isOwner ? (
               <p className="mt-2 text-xs font-semibold text-red-700">
-                {intl.formatMessage({
-                  id: "chat.transferOwnershipBeforeLeaving",
-                })}
+                You must transfer ownership to another member before leaving this space.
               </p>
             ) : isLastAdmin ? (
               <p className="mt-2 text-xs font-semibold text-red-700">
-                {intl.formatMessage({ id: "chat.lastAdminHelp" })}
+                You are the last admin in this space. Promote another member to admin before leaving.
               </p>
             ) : null}
           </div>
@@ -63,7 +58,7 @@ export function DangerZoneTab({
             className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             <LogOut size={15} />
-            {intl.formatMessage({ id: "chat.leave" })}
+            Leave
           </button>
         </div>
       </div>
@@ -73,10 +68,10 @@ export function DangerZoneTab({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm font-bold text-red-700">
-                {intl.formatMessage({ id: "chat.deleteSpace" })}
+                Delete Space
               </p>
               <p className="mt-1 text-xs text-slate-500">
-                {intl.formatMessage({ id: "chat.deleteSpaceDescription" })}
+                Permanently delete this space and all its channels, messages, and files. This action cannot be undone.
               </p>
             </div>
             <button
@@ -86,7 +81,7 @@ export function DangerZoneTab({
               className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50 cursor-pointer"
             >
               <Trash2 size={15} />
-              {intl.formatMessage({ id: "app.delete" })}
+              Delete
             </button>
           </div>
         </div>
@@ -94,3 +89,4 @@ export function DangerZoneTab({
     </div>
   );
 }
+

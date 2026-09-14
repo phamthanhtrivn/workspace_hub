@@ -3,7 +3,6 @@
 import { Check, Hash } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { copyTextFallback } from "../../utils/meeting-history.utils";
 
@@ -18,7 +17,6 @@ export function MeetingJoinTokenCopyButton({
   className,
   iconClassName,
 }: MeetingJoinTokenCopyButtonProps) {
-  const intl = useAppIntl();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -30,21 +28,14 @@ export function MeetingJoinTokenCopyButton({
       }
 
       setCopied(true);
-      toast.success(
-        intl.formatMessage({ id: "meeting.history.joinTokenCopied" }),
-      );
+      toast.success("Join token copied");
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      toast.error(
-        intl.formatMessage({ id: "meeting.history.joinTokenCopyFailed" }),
-      );
+      toast.error("Could not copy join token");
     }
   };
 
-  const copyLabel = intl.formatMessage(
-    { id: "meeting.history.copyJoinToken" },
-    { joinToken },
-  );
+  const copyLabel = `Copy join token ${joinToken}`;
 
   return (
     <button

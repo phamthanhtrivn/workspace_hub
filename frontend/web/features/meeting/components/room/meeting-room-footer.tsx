@@ -4,6 +4,7 @@ import { useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   type LucideIcon,
+  Hand,
   LogOut,
   Mic,
   MicOff,
@@ -14,7 +15,6 @@ import {
 } from "lucide-react";
 import { useTrackToggle } from "@livekit/components-react";
 import { Track } from "livekit-client";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useMeetingJoinRequestCount } from "@/features/meeting/hooks/useMeetingAdmission";
 import { useMeetingUnreadMessageCount } from "@/features/meeting/hooks/useMeetingMessages";
 import { useMeetingSocket } from "@/features/meeting/hooks/useMeetingSocket";
@@ -40,6 +40,8 @@ import {
   saveMeetingDeviceSettings,
 } from "../../utils/meeting-device-storage";
 import { MeetingRoomControlButton } from "../common/meeting-room-control-button";
+import { MeetingRoomReactionPicker } from "./meeting-room-reaction-picker";
+import type { MeetingRoomReactionEmoji } from "../../types/meeting.constants";
 
 interface MeetingRoomFooterProps {
   activePanel: MeetingRoomPanel;
@@ -50,9 +52,14 @@ interface MeetingRoomFooterProps {
   chatMuted: boolean;
   isLocalScreenSharing: boolean;
   isScreenSharePending: boolean;
+  isHandRaised: boolean;
+  isHandUpdatePending: boolean;
+  isReactionPending: boolean;
   canStartScreenShare: boolean;
   onPanelChange: (panel: MeetingRoomPanel) => void;
   onToggleScreenShare: () => void;
+  onToggleHand: (raised: boolean) => void;
+  onSendReaction: (emoji: MeetingRoomReactionEmoji) => void;
   onLeave: () => void;
   onEndForEveryone: () => void;
   isLeavePending?: boolean;
@@ -73,19 +80,18 @@ function isMeetingRoomPanelControl(
 function MeetingMediaToggleButton({
   source,
   settings,
-  enabledLabelId,
-  disabledLabelId,
+  enabledLabel,
+  disabledLabel,
   enabledIcon,
   disabledIcon,
 }: {
   source: Track.Source.Camera | Track.Source.Microphone;
   settings: MeetingPreJoinSettings;
-  enabledLabelId: string;
-  disabledLabelId: string;
+  enabledLabel: string;
+  disabledLabel: string;
   enabledIcon: LucideIcon;
   disabledIcon: LucideIcon;
 }) {
-  const intl = useAppIntl();
   const selectedDeviceId =
     source === Track.Source.Camera
       ? settings.cameraDeviceId
@@ -124,9 +130,7 @@ function MeetingMediaToggleButton({
 
   return (
     <MeetingRoomControlButton
-      label={intl.formatMessage({
-        id: enabled ? enabledLabelId : disabledLabelId,
-      })}
+      label={enabled ? enabledLabel : disabledLabel}
       icon={enabled ? enabledIcon : disabledIcon}
       active={enabled}
       disabled={pending}
@@ -144,15 +148,19 @@ export function MeetingRoomFooter({
   chatMuted,
   isLocalScreenSharing,
   isScreenSharePending,
+  isHandRaised,
+  isHandUpdatePending,
+  isReactionPending,
   canStartScreenShare,
   onPanelChange,
   onToggleScreenShare,
+  onToggleHand,
+  onSendReaction,
   onLeave,
   onEndForEveryone,
   isLeavePending = false,
   isEndPending = false,
 }: MeetingRoomFooterProps) {
-  const intl = useAppIntl();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const queryClient = useQueryClient();
   const canManageAdmission = canManageMeetingAdmission(participantRole);
@@ -239,8 +247,7 @@ export function MeetingRoomFooter({
   );
   const togglePanel = useCallback(
     (panel: Exclude<MeetingRoomPanel, MeetingRoomPanel.NONE>) => {
-      const nextPanel =
-        activePanel === panel ? MeetingRoomPanel.NONE : panel;
+      const nextPanel = activePanel === panel ? MeetingRoomPanel.NONE : panel;
 
       if (nextPanel === MeetingRoomPanel.CHAT) {
         clearUnreadMessageCount();
@@ -267,22 +274,39 @@ export function MeetingRoomFooter({
         <MeetingMediaToggleButton
           source={Track.Source.Microphone}
           settings={settings}
-          enabledLabelId="meeting.room.control.mute"
-          disabledLabelId="meeting.room.control.unmute"
+          enabledLabel="Mute"
+          disabledLabel="Unmute"
           enabledIcon={Mic}
           disabledIcon={MicOff}
         />
         <MeetingMediaToggleButton
           source={Track.Source.Camera}
           settings={settings}
-          enabledLabelId="meeting.room.control.stopVideo"
-          disabledLabelId="meeting.room.control.startVideo"
+          enabledLabel="Stop video"
+          disabledLabel="Start video"
           enabledIcon={Video}
           disabledIcon={VideoOff}
         />
 
+        <MeetingRoomControlButton
+          label={isHandRaised ? "Lower hand" : "Raise hand"}
+          icon={Hand}
+          active={isHandRaised}
+          disabled={isHandUpdatePending}
+          onClick={() => onToggleHand(!isHandRaised)}
+        />
+
+        <MeetingRoomReactionPicker
+          label="React"
+          disabled={isReactionPending}
+          onSendReaction={onSendReaction}
+        />
+
         {meetingRoomControlItems.slice(2).map((control) => {
-          if (control.id === MeetingRoomPanel.ADMISSION && !canManageAdmission) {
+          if (
+            control.id === MeetingRoomPanel.ADMISSION &&
+            !canManageAdmission
+          ) {
             return null;
           }
 
@@ -290,11 +314,7 @@ export function MeetingRoomFooter({
             return (
               <MeetingRoomControlButton
                 key={control.id}
-                label={intl.formatMessage({
-                  id: isLocalScreenSharing
-                    ? "meeting.room.control.stopShareScreen"
-                    : control.labelId,
-                })}
+                label={isLocalScreenSharing ? "Stop sharing" : control.label}
                 icon={isLocalScreenSharing ? ScreenShareOff : control.icon}
                 active={isLocalScreenSharing}
                 disabled={
@@ -312,7 +332,7 @@ export function MeetingRoomFooter({
           return (
             <MeetingRoomControlButton
               key={control.id}
-              label={intl.formatMessage({ id: control.labelId })}
+              label={control.label}
               icon={control.icon}
               active={isActive}
               disabled={!isPanelControl}
@@ -334,7 +354,7 @@ export function MeetingRoomFooter({
 
         {participantRole === MEETING_ROLE.HOST && (
           <MeetingRoomControlButton
-            label={intl.formatMessage({ id: "meeting.room.control.end" })}
+            label="End"
             icon={PhoneOff}
             danger
             disabled={isEndPending}
@@ -343,7 +363,7 @@ export function MeetingRoomFooter({
         )}
 
         <MeetingRoomControlButton
-          label={intl.formatMessage({ id: "meeting.room.control.leave" })}
+          label="Leave"
           icon={LogOut}
           danger
           disabled={isLeavePending}

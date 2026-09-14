@@ -61,6 +61,7 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
         let message = 'Success';
         let data = res;
         let pagination = undefined;
+        let meta = undefined;
 
         if (
           res &&
@@ -73,6 +74,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
           if ('pagination' in res) {
             pagination = res.pagination;
           }
+          if ('meta' in res) {
+            meta = res.meta;
+          }
         }
 
         const responseObj: any = {
@@ -83,6 +87,9 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, Response<T>> {
           timestamp: new Date().toISOString(),
         };
 
+        if (meta) {
+          responseObj.meta = serializeBigInt(meta);
+        }
         if (pagination) {
           responseObj.pagination = serializeBigInt(pagination);
         }

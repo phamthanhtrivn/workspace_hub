@@ -3,9 +3,9 @@ import { MIN_SCHEDULED_MEETING_DURATION_MS } from "../types/meeting.constants";
 
 export const scheduleMeetingSchema = z
   .object({
-    title: z.string().trim().min(1, "meeting.schedule.titleRequired").max(200),
-    scheduledStartAt: z.string().min(1, "meeting.schedule.timeRequired"),
-    scheduledEndAt: z.string().min(1, "meeting.schedule.timeRequired"),
+    title: z.string().trim().min(1, "Enter a meeting title.").max(200),
+    scheduledStartAt: z.string().min(1, "Choose a meeting time."),
+    scheduledEndAt: z.string().min(1, "Choose a meeting time."),
     recurrenceRule: z.string().nullable(),
     description: z.string().max(2_000),
     inviteeIds: z.array(z.string()).max(100),
@@ -27,7 +27,7 @@ export const scheduleMeetingSchema = z
     ) {
       context.addIssue({
         code: "custom",
-        message: "meeting.schedule.invalidRange",
+        message: "End time must be after start time.",
         path: ["scheduledEndAt"],
       });
     }
@@ -35,7 +35,7 @@ export const scheduleMeetingSchema = z
     if (start <= new Date()) {
       context.addIssue({
         code: "custom",
-        message: "meeting.schedule.futureRequired",
+        message: "Choose a future start time.",
         path: ["scheduledStartAt"],
       });
     }
@@ -47,7 +47,7 @@ export const scheduleMeetingSchema = z
     ) {
       context.addIssue({
         code: "custom",
-        message: "meeting.schedule.passwordRequired",
+        message: "Enter a password for this meeting.",
         path: ["password"],
       });
     }

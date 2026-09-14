@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import {
   useMeetingParticipantActions,
@@ -16,7 +15,7 @@ import {
 import {
   canManageMeetingAdmission,
   canRemoveMeetingParticipant,
-  getRoleLabelId,
+  getRoleLabel,
 } from "../utils/meeting-room.utils";
 
 interface UseMeetingParticipantsPanelParams {
@@ -32,13 +31,14 @@ export interface MeetingParticipantListItemState {
   displayName: string;
   email: string;
   avatarUrl?: string | null;
-  roleLabelId: string | null;
+  roleLabel: string | null;
   isSelf: boolean;
   canRemove: boolean;
   canManageRole: boolean;
   canPromoteToCohost: boolean;
   canDemoteToParticipant: boolean;
   canStopScreenShare: boolean;
+  canLowerHand: boolean;
 }
 
 function getParticipantDisplayName(participant: MeetingParticipantResponse) {
@@ -54,7 +54,6 @@ export function useMeetingParticipantsPanel({
   participantRole,
   activeScreenShareUserId,
 }: UseMeetingParticipantsPanelParams) {
-  const intl = useAppIntl();
   const authUser = useAppSelector((state) => state.auth);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -74,50 +73,67 @@ export function useMeetingParticipantsPanel({
   const isBusy =
     actions.removeParticipant.isPending ||
     actions.updateRole.isPending ||
-    actions.stopParticipantScreenShare.isPending;
+    actions.stopParticipantScreenShare.isPending ||
+    actions.lowerParticipantHand.isPending;
 
   const participants = useMemo<MeetingParticipantListItemState[]>(
     () =>
-      participantItems.map((participant) => {
-        const isSelf = participant.userId === authUser.userId;
-        const displayName = isSelf
-          ? authUser.fullName ||
-            authUser.email ||
-            getParticipantDisplayName(participant)
-          : getParticipantDisplayName(participant);
-        const avatarUrl = isSelf
-          ? authUser.avatarUrl || participant.profile?.avatarUrl
-          : participant.profile?.avatarUrl;
-        const email = isSelf
-          ? authUser.email || participant.profile?.email || participant.userId
-          : participant.profile?.email || participant.userId;
-        const canManageRole =
-          participantRole === MEETING_ROLE.HOST &&
-          !isSelf &&
-          participant.role !== MEETING_ROLE.HOST;
+      [...participantItems]
+        .sort((first, second) => {
+          if (Boolean(first.handRaisedAt) !== Boolean(second.handRaisedAt)) {
+            return first.handRaisedAt ? -1 : 1;
+          }
 
-        return {
-          participant,
-          displayName,
-          email,
-          avatarUrl,
-          roleLabelId: getRoleLabelId(participant.role),
-          isSelf,
-          canRemove: canRemoveMeetingParticipant({
-            actorRole: participantRole,
-            targetRole: participant.role,
+          if (first.handRaisedAt && second.handRaisedAt) {
+            return first.handRaisedAt.localeCompare(second.handRaisedAt);
+          }
+
+          return 0;
+        })
+        .map((participant) => {
+          const isSelf = participant.userId === authUser.userId;
+          const displayName = isSelf
+            ? authUser.fullName ||
+              authUser.email ||
+              getParticipantDisplayName(participant)
+            : getParticipantDisplayName(participant);
+          const avatarUrl = isSelf
+            ? authUser.avatarUrl || participant.profile?.avatarUrl
+            : participant.profile?.avatarUrl;
+          const email = isSelf
+            ? authUser.email || participant.profile?.email || participant.userId
+            : participant.profile?.email || participant.userId;
+          const canManageRole =
+            participantRole === MEETING_ROLE.HOST &&
+            !isSelf &&
+            participant.role !== MEETING_ROLE.HOST;
+
+          return {
+            participant,
+            displayName,
+            email,
+            avatarUrl,
+            roleLabel: getRoleLabel(participant.role),
             isSelf,
-          }),
-          canManageRole,
-          canPromoteToCohost:
-            canManageRole && participant.role === MEETING_ROLE.PARTICIPANT,
-          canDemoteToParticipant:
-            canManageRole && participant.role === MEETING_ROLE.COHOST,
-          canStopScreenShare:
-            canManageMeetingAdmission(participantRole) &&
-            activeScreenShareUserId === participant.userId,
-        };
-      }),
+            canRemove: canRemoveMeetingParticipant({
+              actorRole: participantRole,
+              targetRole: participant.role,
+              isSelf,
+            }),
+            canManageRole,
+            canPromoteToCohost:
+              canManageRole && participant.role === MEETING_ROLE.PARTICIPANT,
+            canDemoteToParticipant:
+              canManageRole && participant.role === MEETING_ROLE.COHOST,
+            canStopScreenShare:
+              canManageMeetingAdmission(participantRole) &&
+              activeScreenShareUserId === participant.userId,
+            canLowerHand:
+              canManageMeetingAdmission(participantRole) &&
+              !isSelf &&
+              Boolean(participant.handRaisedAt),
+          };
+        }),
     [
       authUser.avatarUrl,
       authUser.email,
@@ -138,12 +154,9 @@ export function useMeetingParticipantsPanel({
     async (participant: MeetingParticipantResponse) => {
       const displayName = getParticipantDisplayName(participant);
       const confirmed = await confirm({
-        title: intl.formatMessage(
-          { id: "meeting.participants.removeConfirm" },
-          { name: displayName },
-        ),
-        confirmLabel: intl.formatMessage({ id: "meeting.participants.remove" }),
-        cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+        title: `Remove ${displayName} from the meeting?`,
+        confirmLabel: "Remove",
+        cancelLabel: "Cancel",
         variant: "danger",
       });
 
@@ -151,7 +164,7 @@ export function useMeetingParticipantsPanel({
         actions.removeParticipant.mutate(participant.userId);
       }
     },
-    [actions.removeParticipant, confirm, intl],
+    [actions.removeParticipant, confirm],
   );
 
   const handleRoleChange = useCallback(
@@ -164,14 +177,9 @@ export function useMeetingParticipantsPanel({
       const confirmed =
         !isHostTransfer ||
         (await confirm({
-          title: intl.formatMessage(
-            { id: "meeting.participants.transferHostConfirm" },
-            { name: displayName },
-          ),
-          confirmLabel: intl.formatMessage({
-            id: "meeting.participants.makeHost",
-          }),
-          cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+          title: `Make ${displayName} the host? You will become a co-host.`,
+          confirmLabel: "Make host",
+          cancelLabel: "Cancel",
           variant: "warning",
         }));
 
@@ -179,7 +187,7 @@ export function useMeetingParticipantsPanel({
         actions.updateRole.mutate({ userId: participant.userId, role });
       }
     },
-    [actions.updateRole, confirm, intl],
+    [actions.updateRole, confirm],
   );
 
   const handleStopScreenShare = useCallback(
@@ -187,6 +195,13 @@ export function useMeetingParticipantsPanel({
       actions.stopParticipantScreenShare.mutate(participant.userId);
     },
     [actions.stopParticipantScreenShare],
+  );
+
+  const handleLowerHand = useCallback(
+    (participant: MeetingParticipantResponse) => {
+      actions.lowerParticipantHand.mutate(participant.userId);
+    },
+    [actions.lowerParticipantHand],
   );
 
   return {
@@ -203,6 +218,7 @@ export function useMeetingParticipantsPanel({
     handleRemove,
     handleRoleChange,
     handleStopScreenShare,
+    handleLowerHand,
     alertDialogProps,
   };
 }

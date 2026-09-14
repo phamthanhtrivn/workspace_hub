@@ -18,6 +18,7 @@ import { MeetingMessageService } from './services/meeting-message.service';
 import { MeetingPolicyService } from './services/meeting-policy.service';
 import { MeetingPresenterService } from './services/meeting-presenter.service';
 import { MeetingRealtimeService } from './services/meeting-realtime.service';
+import { MeetingRoomReactionService } from './services/meeting-room-reaction.service';
 import { MeetingRoomService } from './services/meeting-room.service';
 import { MeetingScreenShareService } from './services/meeting-screen-share.service';
 
@@ -42,6 +43,7 @@ import { MeetingScreenShareService } from './services/meeting-screen-share.servi
     MeetingPolicyService,
     MeetingPresenterService,
     MeetingRealtimeService,
+    MeetingRoomReactionService,
     MeetingScreenShareService,
     MeetingScheduleService,
     MeetingSchedulePublisher,

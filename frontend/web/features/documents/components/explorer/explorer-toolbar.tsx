@@ -1,147 +1,157 @@
+"use client";
+
 import React, { useState, useRef } from "react";
 import { Grid, List, ChevronDown, FolderPlus, UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DocumentViewType } from "../../types/documents.enums";
 import { ViewLayout, DocumentSortBy } from "../../types/documents.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import {
+  DocumentsSearchInput,
+  DocumentsSelect,
+} from "../ui/documents-form-controls";
+import { Button } from "@/components/ui/button";
 
 interface ExplorerToolbarProps {
   searchQuery: string;
-  setSearchQuery: (query: string) => void;
+  onSearchQueryChange: (query: string) => void;
   viewLayout: ViewLayout;
-  setViewLayout: (layout: ViewLayout) => void;
+  onViewLayoutChange: (layout: ViewLayout) => void;
   activeView: DocumentViewType;
   onCreateFolder: () => void;
-  onUploadFile?: (file: File) => void;
+  onUploadFile?: (files: FileList | File[] | File) => void;
   sortBy: DocumentSortBy;
-  setSortBy: (sortBy: DocumentSortBy) => void;
-  inputRef?: React.RefObject<HTMLInputElement | null>;
+  onSortByChange: (sortBy: DocumentSortBy) => void;
 }
 
-function ExplorerToolbar({
+export function ExplorerToolbar({
   searchQuery,
-  setSearchQuery,
+  onSearchQueryChange,
   viewLayout,
-  setViewLayout,
+  onViewLayoutChange,
   activeView,
   onCreateFolder,
   onUploadFile,
   sortBy,
-  setSortBy,
-  inputRef,
+  onSortByChange,
 }: ExplorerToolbarProps) {
-  const intl = useAppIntl();
   const [isNewMenuOpen, setIsNewMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const sortOptions = [
+    {
+      value: DocumentSortBy.LATEST,
+      label: "Latest",
+    },
+    {
+      value: DocumentSortBy.OLDEST,
+      label: "Oldest",
+    },
+  ];
+
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 p-6 bg-white/50 backdrop-blur-md z-10">
-      <div className="flex items-center gap-3 flex-1 min-w-[200px] max-w-md">
-        <input
-          ref={inputRef}
-          type="text"
-          placeholder={intl.formatMessage({
-            id: "documents.searchPlaceholder",
-          })}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-sm focus:border-[var(--color-primary)] focus:bg-white focus:outline-hidden transition-all placeholder:text-slate-400 font-semibold text-slate-700"
-        />
-      </div>
+    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      {/* Search Input */}
+      <DocumentsSearchInput
+        value={searchQuery}
+        onChange={onSearchQueryChange}
+        placeholder="Search documents, folders (Ctrl+K)..."
+        className="max-w-md"
+      />
 
       <div className="flex items-center gap-3">
         {/* Sort Select */}
-        <select
+        <DocumentsSelect
           value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as DocumentSortBy)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-500 focus:outline-hidden cursor-pointer hover:border-slate-300 transition-colors"
-        >
-          <option value={DocumentSortBy.LATEST}>
-            {intl.formatMessage({ id: "documents.sort.latest" })}
-          </option>
-          <option value={DocumentSortBy.OLDEST}>
-            {intl.formatMessage({ id: "documents.sort.oldest" })}
-          </option>
-        </select>
+          options={sortOptions}
+          onChange={onSortByChange}
+        />
 
-        {/* View Layout Switcher */}
-        <div className="flex bg-slate-100 rounded-xl p-1 border border-slate-200/50">
+        {/* View Switcher */}
+        <div className="flex items-center rounded-md border border-slate-200/80 bg-slate-100 p-1">
           <button
-            onClick={() => setViewLayout(ViewLayout.GRID)}
+            type="button"
+            onClick={() => onViewLayoutChange(ViewLayout.GRID)}
             className={cn(
-              "p-1.5 rounded-lg cursor-pointer transition-all",
+              "grid h-7 w-7 place-items-center rounded-md text-xs font-bold transition cursor-pointer",
               viewLayout === ViewLayout.GRID
-                ? "bg-white text-[var(--color-primary)] shadow-xs"
-                : "text-slate-400 hover:text-slate-700",
+                ? "bg-white text-[#0052CC] shadow-xs border border-slate-200/80"
+                : "text-slate-400 hover:text-slate-700"
             )}
+            title="Grid View"
           >
-            <Grid size={16} />
+            <Grid className="h-4 w-4" />
           </button>
           <button
-            onClick={() => setViewLayout(ViewLayout.LIST)}
+            type="button"
+            onClick={() => onViewLayoutChange(ViewLayout.LIST)}
             className={cn(
-              "p-1.5 rounded-lg cursor-pointer transition-all",
+              "grid h-7 w-7 place-items-center rounded-md text-xs font-bold transition cursor-pointer",
               viewLayout === ViewLayout.LIST
-                ? "bg-white text-[var(--color-primary)] shadow-xs"
-                : "text-slate-400 hover:text-slate-700",
+                ? "bg-white text-[#0052CC] shadow-xs border border-slate-200/80"
+                : "text-slate-400 hover:text-slate-700"
             )}
+            title="List View"
           >
-            <List size={16} />
+            <List className="h-4 w-4" />
           </button>
         </div>
 
-        {/* [+ New] Dropdown menu */}
-        {activeView === DocumentViewType.MY_FILES && (
+        {/* Create/Upload Dropdown */}
+        {activeView === DocumentViewType.MY_FILES ? (
           <div className="relative">
-            <button
-              onClick={() => setIsNewMenuOpen(!isNewMenuOpen)}
-              className="flex items-center gap-2 rounded-2xl bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)] text-white px-5 py-2.5 text-sm font-bold shadow-md shadow-blue-500/10 hover:shadow-lg transition-all cursor-pointer"
+            <Button
+              type="button"
+              onClick={() => setIsNewMenuOpen((prev) => !prev)}
+              className="h-10 gap-2 rounded-md bg-[#0052CC] hover:bg-[#0043A8] text-white px-4 text-sm font-bold shadow-[0_8px_20px_rgba(0,82,204,0.22)] transition cursor-pointer"
             >
-              <span>{intl.formatMessage({ id: "documents.new" })}</span>
-              <ChevronDown size={14} />
-            </button>
+              <span>+ New</span>
+              <ChevronDown className="h-4 w-4" />
+            </Button>
 
-            {isNewMenuOpen && (
+            {isNewMenuOpen ? (
               <>
                 <div
-                  className="fixed inset-0 z-20"
+                  className="fixed inset-0 z-30"
                   onClick={() => setIsNewMenuOpen(false)}
                 />
-                <div className="absolute right-0 mt-2 w-48 rounded-2xl bg-white border border-slate-100 shadow-xl py-2 z-30 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="absolute right-0 mt-2 z-40 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in slide-in-from-top-1 duration-150">
                   <button
+                    type="button"
                     onClick={() => {
                       setIsNewMenuOpen(false);
                       onCreateFolder();
                     }}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors text-left cursor-pointer"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer"
                   >
-                    <FolderPlus className="text-amber-500" size={16} />
-                    <span>{intl.formatMessage({ id: "documents.newFolder" })}</span>
+                    <FolderPlus className="h-4 w-4 text-amber-500" />
+                    <span>New folder</span>
                   </button>
-
                   <button
+                    type="button"
                     onClick={() => {
                       setIsNewMenuOpen(false);
                       fileInputRef.current?.click();
                     }}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50 transition-colors text-left border-t border-slate-50 cursor-pointer"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition cursor-pointer border-t border-slate-100 mt-1 pt-2"
                   >
-                    <UploadCloud className="text-blue-500" size={16} />
-                    <span>{intl.formatMessage({ id: "documents.uploadFile" })}</span>
+                    <UploadCloud className="h-4 w-4 text-blue-500" />
+                    <span>Upload file</span>
                   </button>
                 </div>
               </>
-            )}
+            ) : null}
           </div>
-        )}
+        ) : null}
       </div>
 
+      {/* Hidden File Input */}
       <input
         type="file"
         ref={fileInputRef}
+        multiple
         onChange={(e) => {
-          if (e.target.files && e.target.files[0]) {
-            onUploadFile?.(e.target.files[0]);
+          if (e.target.files && e.target.files.length > 0) {
+            onUploadFile?.(e.target.files);
             e.target.value = "";
           }
         }}

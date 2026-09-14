@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MeetingAdmissionService } from './services/meeting-admission.service';
 import { MeetingHistoryService } from './services/meeting-history.service';
 import { MeetingParticipantService } from './services/meeting-participant.service';
+import { MeetingRoomReactionService } from './services/meeting-room-reaction.service';
 import { MeetingRoomService } from './services/meeting-room.service';
 import { MeetingScreenShareService } from './services/meeting-screen-share.service';
 import { MeetingScheduleService } from './services/meeting-schedule.service';
@@ -21,12 +22,15 @@ import type {
   MeetingModeratorParams,
   RespondScheduledMeetingInvitationParams,
   ResolveJoinRequestParams,
+  SendMeetingRoomReactionParams,
   StartMeetingScreenShareParams,
   StartScheduledMeetingParams,
   StopMeetingScreenShareParams,
   StopTargetMeetingScreenShareParams,
   TargetMeetingParticipantParams,
   UpdateMeetingChatNotificationPreferenceParams,
+  UpdateOwnMeetingHandParams,
+  UpdateTargetMeetingHandParams,
   UpdateMeetingParticipantViewPreferenceParams,
   UpdateMeetingParticipantRoleParams,
   UpdateMeetingSettingsParams,
@@ -42,6 +46,7 @@ export class MeetingService {
     private readonly meetingHistoryService: MeetingHistoryService,
     private readonly meetingScreenShareService: MeetingScreenShareService,
     private readonly meetingScheduleService: MeetingScheduleService,
+    private readonly meetingRoomReactionService: MeetingRoomReactionService,
   ) {}
 
   createInstantMeeting(params: CreateInstantMeetingParams) {
@@ -85,7 +90,9 @@ export class MeetingService {
   declineScheduledMeetingInvitation(
     params: RespondScheduledMeetingInvitationParams,
   ) {
-    return this.meetingScheduleService.declineScheduledMeetingInvitation(params);
+    return this.meetingScheduleService.declineScheduledMeetingInvitation(
+      params,
+    );
   }
 
   listMeetingHistory(params: ListMeetingHistoryParams) {
@@ -146,6 +153,18 @@ export class MeetingService {
     return this.meetingParticipantService.updateChatNotificationPreference(
       params,
     );
+  }
+
+  updateOwnHandState(params: UpdateOwnMeetingHandParams) {
+    return this.meetingParticipantService.updateOwnHandState(params);
+  }
+
+  updateTargetHandState(params: UpdateTargetMeetingHandParams) {
+    return this.meetingParticipantService.updateTargetHandState(params);
+  }
+
+  sendRoomReaction(params: SendMeetingRoomReactionParams) {
+    return this.meetingRoomReactionService.sendReaction(params);
   }
 
   updateParticipantViewPreference(

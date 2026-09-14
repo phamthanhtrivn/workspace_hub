@@ -2,7 +2,6 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   approveAllMeetingJoinRequests,
   approveMeetingJoinRequest,
@@ -61,7 +60,6 @@ export function useMeetingJoinRequestCount({
 }
 
 export function useUpdateMeetingSettings(joinToken: string) {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -74,31 +72,30 @@ export function useUpdateMeetingSettings(joinToken: string) {
       queryClient.invalidateQueries({
         queryKey: meetingKeys.room(joinToken),
       });
-      const messageId =
+      const message =
         payload.screenShareEnabled !== undefined
-          ? "meeting.room.settings.screenShareUpdated"
+          ? "Screen share settings updated"
           : payload.chatEnabled === undefined
-            ? "meeting.room.settings.autoAdmitUpdated"
-            : "meeting.room.settings.participantChatUpdated";
+            ? "Room admission settings updated"
+            : "Participant chat settings updated";
 
-      toast.success(intl.formatMessage({ id: messageId }));
+      toast.success(message);
       return response;
     },
     onError: (_error, payload) => {
-      const messageId =
+      const message =
         payload.screenShareEnabled !== undefined
-          ? "meeting.room.settings.screenShareUpdateFailed"
+          ? "Could not update screen share settings"
           : payload.chatEnabled === undefined
-            ? "meeting.room.settings.autoAdmitUpdateFailed"
-            : "meeting.room.settings.participantChatUpdateFailed";
+            ? "Could not update room admission settings"
+            : "Could not update participant chat settings";
 
-      toast.error(intl.formatMessage({ id: messageId }));
+      toast.error(message);
     },
   });
 }
 
 export function useMeetingJoinRequestActions(joinToken: string) {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const invalidateRequests = () => {
     queryClient.invalidateQueries({
@@ -113,44 +110,40 @@ export function useMeetingJoinRequestActions(joinToken: string) {
     mutationFn: (userId: string) => approveMeetingJoinRequest(joinToken, userId),
     onSuccess: () => {
       invalidateRequests();
-      toast.success(intl.formatMessage({ id: "meeting.admission.approved" }));
+      toast.success("Request approved");
     },
     onError: () => {
-      toast.error(intl.formatMessage({ id: "meeting.admission.approveFailed" }));
+      toast.error("Could not approve request");
     },
   });
   const declineOne = useMutation({
     mutationFn: (userId: string) => declineMeetingJoinRequest(joinToken, userId),
     onSuccess: () => {
       invalidateRequests();
-      toast.success(intl.formatMessage({ id: "meeting.admission.declined" }));
+      toast.success("Request declined");
     },
     onError: () => {
-      toast.error(intl.formatMessage({ id: "meeting.admission.declineFailed" }));
+      toast.error("Could not decline request");
     },
   });
   const approveAll = useMutation({
     mutationFn: () => approveAllMeetingJoinRequests(joinToken),
     onSuccess: () => {
       invalidateRequests();
-      toast.success(intl.formatMessage({ id: "meeting.admission.approvedAll" }));
+      toast.success("All requests approved");
     },
     onError: () => {
-      toast.error(
-        intl.formatMessage({ id: "meeting.admission.approveAllFailed" }),
-      );
+      toast.error("Could not approve all requests");
     },
   });
   const declineAll = useMutation({
     mutationFn: () => declineAllMeetingJoinRequests(joinToken),
     onSuccess: () => {
       invalidateRequests();
-      toast.success(intl.formatMessage({ id: "meeting.admission.declinedAll" }));
+      toast.success("All requests declined");
     },
     onError: () => {
-      toast.error(
-        intl.formatMessage({ id: "meeting.admission.declineAllFailed" }),
-      );
+      toast.error("Could not decline all requests");
     },
   });
 

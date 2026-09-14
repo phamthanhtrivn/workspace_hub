@@ -6,6 +6,7 @@ import type {
   MeetingMessageResponse,
   MeetingParticipantResponse,
   MeetingParticipantStatus,
+  MeetingRoomReactionResponse,
   MeetingScreenShareStateResponse,
 } from "./meeting.types";
 
@@ -27,6 +28,7 @@ export enum MeetingSocketEvent {
   CHAT_NOTIFICATION_PREFERENCE_UPDATED = "meeting:chat_notification_preference_updated",
   SCREEN_SHARE_STARTED = "meeting:screen_share_started",
   SCREEN_SHARE_STOPPED = "meeting:screen_share_stopped",
+  ROOM_REACTION = "meeting:room_reaction",
 }
 
 export interface MeetingStatusUpdatedPayload {
@@ -44,8 +46,7 @@ export interface MeetingStatusUpdatedPayload {
   startedAt?: string;
 }
 
-export interface MeetingJoinRequestUpdatedPayload
-  extends MeetingJoinRequestStatusResponse {
+export interface MeetingJoinRequestUpdatedPayload extends MeetingJoinRequestStatusResponse {
   meetingId: string;
   userId: string;
   status: MeetingParticipantStatus;
@@ -72,6 +73,7 @@ export type MeetingChatNotificationPreferenceUpdatedPayload =
   MeetingChatNotificationPreferenceResponse;
 export type MeetingScreenShareStartedPayload = MeetingScreenShareStateResponse;
 export type MeetingScreenShareStoppedPayload = MeetingScreenShareStateResponse;
+export type MeetingRoomReactionPayload = MeetingRoomReactionResponse;
 
 export interface MeetingMessageReadPayload {
   meetingId: string;
@@ -109,8 +111,12 @@ export interface ServerToClientMeetingEvents {
     payload: MeetingJoinRequestUpdatedPayload,
   ) => void;
   [MeetingSocketEvent.MESSAGE_SENT]: (payload: MeetingMessageResponse) => void;
-  [MeetingSocketEvent.MESSAGE_UPDATED]: (payload: MeetingMessageResponse) => void;
-  [MeetingSocketEvent.MESSAGE_READ]: (payload: MeetingMessageReadPayload) => void;
+  [MeetingSocketEvent.MESSAGE_UPDATED]: (
+    payload: MeetingMessageResponse,
+  ) => void;
+  [MeetingSocketEvent.MESSAGE_READ]: (
+    payload: MeetingMessageReadPayload,
+  ) => void;
   [MeetingSocketEvent.CHAT_NOTIFICATION_PREFERENCE_UPDATED]: (
     payload: MeetingChatNotificationPreferenceUpdatedPayload,
   ) => void;
@@ -119,6 +125,9 @@ export interface ServerToClientMeetingEvents {
   ) => void;
   [MeetingSocketEvent.SCREEN_SHARE_STOPPED]: (
     payload: MeetingScreenShareStoppedPayload,
+  ) => void;
+  [MeetingSocketEvent.ROOM_REACTION]: (
+    payload: MeetingRoomReactionPayload,
   ) => void;
 }
 

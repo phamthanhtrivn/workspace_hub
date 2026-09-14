@@ -9,10 +9,8 @@ import { useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import UserProfileModal from "./modals/shared/user-profile-modal";
 import { useChatSocket } from "../hooks/socket/useChatSocket";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ChatLayout() {
-  const intl = useAppIntl();
   useChatSocket();
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
@@ -69,10 +67,10 @@ export default function ChatLayout() {
               <MessageCircle size={48} className="text-blue-500" />
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-2">
-              {intl.formatMessage({ id: "chat.welcomeTitle" })}
+              Welcome to Workspace Hub Chat
             </h2>
             <p className="text-gray-500 max-w-md text-center mb-6">
-              {intl.formatMessage({ id: "chat.welcomeDescription" })}
+              Select a channel or direct message from the sidebar to start communicating with your team.
             </p>
           </div>
         )}

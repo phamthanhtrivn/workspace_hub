@@ -9,7 +9,6 @@ import {
   PollVoteResponse,
   UserProfileSnapshotResponse,
 } from "@/features/chat/types/chat.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface PollVotersModalProps {
   isOpen: boolean;
@@ -52,7 +51,6 @@ export default function PollVotersModal({
   poll,
   onUserClick,
 }: PollVotersModalProps) {
-  const intl = useAppIntl();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -85,20 +83,17 @@ export default function PollVotersModal({
         <div className="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-gray-100 bg-white/85 px-6 py-4 backdrop-blur-md">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-gray-800">
-              {intl.formatMessage({ id: "chat.pollVoterDetails" })}
+              Poll Results & Voters
             </h2>
             <p className="mt-0.5 text-xs font-semibold text-gray-400">
-              {intl.formatMessage(
-                { id: "chat.voterCount" },
-                { count: totalUniqueVoters },
-              )}
+              {`${totalUniqueVoters} total voters`}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="cursor-pointer rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            aria-label={intl.formatMessage({ id: "chat.closePollVoters" })}
+            aria-label="Close poll voters"
           >
             <X size={20} />
           </button>
@@ -116,23 +111,20 @@ export default function PollVotersModal({
                     {section.optionText}
                   </h3>
                   <span className="shrink-0 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-extrabold text-blue-700">
-                    {intl.formatMessage(
-                      { id: "chat.voteCount" },
-                      { count: section.voters.length },
-                    )}
+                    {`${section.voters.length} votes`}
                   </span>
                 </div>
 
                 {section.voters.length === 0 ? (
                   <p className="mt-3 text-sm font-medium text-gray-400">
-                    {intl.formatMessage({ id: "chat.noVotesYet" })}
+                    No votes yet for this option
                   </p>
                 ) : (
                   <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {section.voters.map((voter) => {
                       const displayName = getVoterName(
                         voter,
-                        intl.formatMessage({ id: "app.user" }),
+                        "User",
                       );
                       const canOpenProfile = Boolean(onUserClick);
 
@@ -172,3 +164,4 @@ export default function PollVotersModal({
     document.body,
   );
 }
+

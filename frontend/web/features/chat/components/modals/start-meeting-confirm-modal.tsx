@@ -3,7 +3,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { Video, Loader2 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface StartMeetingConfirmModalProps {
   isOpen: boolean;
@@ -20,7 +19,6 @@ export function StartMeetingConfirmModal({
   onConfirm,
   targetName,
 }: StartMeetingConfirmModalProps) {
-  const intl = useAppIntl();
   const portalRoot = typeof document === "undefined" ? null : document.body;
 
   if (!isOpen || !portalRoot) return null;
@@ -43,15 +41,12 @@ export function StartMeetingConfirmModal({
           </div>
           <div className="min-w-0 flex-1 pt-0.5">
             <h3 className="text-base font-bold text-slate-900 leading-snug">
-              {intl.formatMessage({ id: "chat.meeting.confirmTitle" })}
+              Start Video Meeting
             </h3>
             <p className="mt-1.5 text-xs md:text-sm font-medium leading-relaxed text-slate-600">
               {targetName
-                ? intl.formatMessage(
-                    { id: "chat.meeting.confirmDescriptionWithTarget" },
-                    { target: targetName },
-                  )
-                : intl.formatMessage({ id: "chat.meeting.confirmDescription" })}
+                ? `Are you sure you want to start a meeting with ${targetName}?`
+                : "Are you sure you want to start a video meeting?"}
             </p>
           </div>
         </div>
@@ -63,7 +58,7 @@ export function StartMeetingConfirmModal({
             onClick={onClose}
             className="cursor-pointer rounded-xl bg-slate-100 px-4 py-2.5 text-xs md:text-sm font-semibold text-slate-700 hover:bg-slate-200 active:bg-slate-300 transition focus-visible:outline-none disabled:opacity-50"
           >
-            {intl.formatMessage({ id: "chat.meeting.confirmCancel" })}
+            Cancel
           </button>
           <button
             type="button"
@@ -76,9 +71,7 @@ export function StartMeetingConfirmModal({
             ) : (
               <Video className="h-4 w-4" />
             )}
-            <span>
-              {intl.formatMessage({ id: "chat.meeting.confirmStart" })}
-            </span>
+            <span>Start Meeting</span>
           </button>
         </div>
       </div>
@@ -88,3 +81,4 @@ export function StartMeetingConfirmModal({
 }
 
 export default StartMeetingConfirmModal;
+

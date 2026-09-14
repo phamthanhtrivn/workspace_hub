@@ -16,7 +16,6 @@ import { formatDateTime } from "@/lib/date";
 import { useActiveChat } from "../../../hooks/useChatQueries";
 import { ChatScope, chatKeys } from "../../../types/chat.constant";
 import { logApiError } from "@/lib/interceptors";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ThreadsListViewProps {
   conversationId: string;
@@ -29,7 +28,6 @@ export default function ThreadsListView({
   isDirect = false,
   onClose,
 }: ThreadsListViewProps) {
-  const intl = useAppIntl();
   const dispatch = useAppDispatch();
   const { activeChat: activeConversation } = useActiveChat();
   const currentUserId = useAppSelector((state) => state.auth.userId);
@@ -46,14 +44,14 @@ export default function ThreadsListView({
           id: member.userId,
           label:
             member.userId === currentUserId
-              ? intl.formatMessage({ id: "chat.you" })
+              ? "You"
               : profile?.fullName ||
                 member.fullName ||
-                intl.formatMessage({ id: "app.user" }),
+                "User",
         };
       })
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [activeConversation?.members, currentUserId, intl, isDirect, memberProfiles]);
+      .sort((a: { label: string }, b: { label: string }) => a.label.localeCompare(b.label));
+  }, [activeConversation?.members, currentUserId, isDirect, memberProfiles]);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } =
     useInfiniteQuery({
@@ -119,7 +117,7 @@ export default function ThreadsListView({
         <div className="flex items-center gap-2">
           <MessageCircle size={18} className="text-blue-500" />
           <h3 className="font-bold text-slate-800 text-sm">
-            {intl.formatMessage({ id: "chat.threads" })}
+            Threads
           </h3>
         </div>
         <button
@@ -134,15 +132,15 @@ export default function ThreadsListView({
         <div className="px-4 py-3 border-b border-slate-100 shrink-0">
           <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 mb-1.5">
             <Filter size={13} />
-            {intl.formatMessage({ id: "chat.sender" })}
+            Sender
           </label>
           <select
             value={senderId}
             onChange={(event) => setSenderId(event.target.value)}
-            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
           >
             <option value="">
-              {intl.formatMessage({ id: "chat.allSenders" })}
+              All Senders
             </option>
             {senderOptions.map((sender) => (
               <option key={sender.id} value={sender.id}>
@@ -157,13 +155,13 @@ export default function ThreadsListView({
       <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2">
         {isLoading ? (
           <div className="text-center py-8 text-xs text-slate-400 italic">
-            {intl.formatMessage({ id: "chat.loadingThreads" })}
+            Loading threads...
           </div>
         ) : threads.length > 0 ? (
           threads.map((msg: any) => {
             const sender = msg.senderProfile || memberProfiles[msg.senderId];
             const senderName =
-              sender?.fullName || intl.formatMessage({ id: "app.user" });
+              sender?.fullName || "User";
             const avatarUrl = sender?.avatarUrl;
 
             let lastReplyTimeStr = "";
@@ -183,7 +181,7 @@ export default function ThreadsListView({
                     {avatarUrl ? (
                       <Image
                         src={avatarUrl}
-                        alt={intl.formatMessage({ id: "profile.avatar" })}
+                        alt="Avatar"
                         width={24}
                         height={24}
                         className="rounded-full"
@@ -199,24 +197,18 @@ export default function ThreadsListView({
 
                 {/* Message body snippet */}
                 <p className="text-xs text-slate-600 line-clamp-2 break-words">
-                  {msg.content || intl.formatMessage({ id: "chat.attachment" })}
+                  {msg.content || "Attachment"}
                 </p>
 
                 {/* Footer status */}
                 <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold pt-1 border-t border-slate-100/50 mt-1 shrink-0">
                   <span className="flex items-center gap-1 text-blue-600 font-bold">
                     <MessageSquare size={12} />
-                    {intl.formatMessage(
-                      { id: "chat.repliesCount" },
-                      { count: msg.threadReplyCount },
-                    )}
+                    {`${msg.threadReplyCount} ${msg.threadReplyCount === 1 ? "reply" : "replies"}`}
                   </span>
                   {lastReplyTimeStr && (
                     <span>
-                      {intl.formatMessage(
-                        { id: "chat.lastReplyAt" },
-                        { time: lastReplyTimeStr },
-                      )}
+                      Last reply {lastReplyTimeStr}
                     </span>
                   )}
                 </div>
@@ -227,17 +219,17 @@ export default function ThreadsListView({
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center text-slate-400">
             <MessageSquare size={32} className="text-slate-300 mb-2" />
             <p className="text-xs">
-              {intl.formatMessage({ id: "chat.noThreadsInChannelYet" })}
+              No threads in this conversation yet.
             </p>
             <p className="text-[10px] text-slate-400 max-w-[180px] mt-1">
-              {intl.formatMessage({ id: "chat.replyToStartThread" })}
+              Reply to a message to start a discussion thread.
             </p>
           </div>
         )}
         <div ref={loadMoreRef} className="h-8 flex items-center justify-center">
           {isFetchingNextPage && (
             <span className="text-xs text-slate-400">
-              {intl.formatMessage({ id: "chat.loadingMore" })}
+              Loading more...
             </span>
           )}
         </div>

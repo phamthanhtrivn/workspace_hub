@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { ApiResponse } from "@/features/chat/types/chat.types";
 import {
   getMeetingParticipantViewPreferences,
@@ -78,7 +77,6 @@ function applyOptimisticPreferenceUpdate(
 }
 
 export function useMeetingParticipantViewPreferences(joinToken: string) {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
   const queryKey = meetingKeys.participantViewPreferences(joinToken);
   const preferencesQuery = useQuery({
@@ -131,11 +129,7 @@ export function useMeetingParticipantViewPreferences(joinToken: string) {
         queryClient.setQueryData(queryKey, context.previousPreferences);
       }
 
-      toast.error(
-        intl.formatMessage({
-          id: "meeting.participants.preferenceUpdateFailed",
-        }),
-      );
+      toast.error("Could not update participant view preference");
     },
     onSuccess: (response) => {
       queryClient.setQueryData(queryKey, response);

@@ -5,8 +5,7 @@ import {
   isTrackReference,
   type TrackReferenceOrPlaceholder,
 } from "@livekit/components-react";
-import { MonitorUp, Pin } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Hand, MonitorUp, Pin } from "lucide-react";
 import { useMeetingParticipantTile } from "@/features/meeting/hooks/useMeetingParticipantTile";
 import { cn } from "@/lib/utils";
 import { AvatarFallback } from "../common/avatar-fallback";
@@ -18,6 +17,7 @@ interface MeetingParticipantTileProps {
   isScreenShare?: boolean;
   isAudioMutedForMe?: boolean;
   isPinnedForMe?: boolean;
+  handRaisedAt?: string | null;
   isPreferencePending?: boolean;
   onToggleAudioMute?: (participantId: string) => void;
   onTogglePin?: (participantId: string) => void;
@@ -29,11 +29,11 @@ export function MeetingParticipantTile({
   isScreenShare = false,
   isAudioMutedForMe = false,
   isPinnedForMe = false,
+  handRaisedAt = null,
   isPreferencePending = false,
   onToggleAudioMute,
   onTogglePin,
 }: MeetingParticipantTileProps) {
-  const intl = useAppIntl();
   const {
     actionItems,
     actionMenuLabel,
@@ -44,7 +44,7 @@ export function MeetingParticipantTile({
     hasVideo,
     participantAudioLabel,
     pinnedLabel,
-    roleLabelId,
+    roleLabel,
     shouldShowSpeakingHighlight,
   } = useMeetingParticipantTile({
     trackRef,
@@ -57,6 +57,7 @@ export function MeetingParticipantTile({
 
   return (
     <article
+      data-meeting-participant-id={trackRef.participant.identity}
       className={cn(
         "relative flex min-h-[220px] overflow-hidden rounded-lg border border-white/10 bg-[#121a28] shadow-[0_18px_48px_rgba(0,0,0,0.24)] transition-[border-color,box-shadow] duration-200",
         shouldShowSpeakingHighlight
@@ -73,6 +74,16 @@ export function MeetingParticipantTile({
           title={pinnedLabel}
         >
           <Pin className="h-4 w-4" />
+        </span>
+      ) : null}
+
+      {handRaisedAt ? (
+        <span
+          className="absolute left-3 top-12 z-10 grid h-8 w-8 place-items-center rounded-md bg-amber-400/95 text-slate-950 shadow-[0_10px_28px_rgba(251,191,36,0.28)] ring-1 ring-amber-100/70 backdrop-blur"
+          aria-label="Hand raised"
+          title="Hand raised"
+        >
+          <Hand className="h-4 w-4" />
         </span>
       ) : null}
 
@@ -112,15 +123,15 @@ export function MeetingParticipantTile({
       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-2">
         <div className="min-w-0 rounded-md bg-black/45 px-3 py-2 backdrop-blur">
           <p className="truncate text-sm font-black">{displayName}</p>
-          {roleLabelId ? (
+          {roleLabel ? (
             <p className="text-xs font-semibold text-slate-300">
-              {intl.formatMessage({ id: roleLabelId })}
+              {roleLabel}
             </p>
           ) : null}
           {isScreenShare ? (
             <p className="mt-0.5 flex items-center gap-1 text-xs font-semibold text-emerald-200">
               <MonitorUp className="h-3.5 w-3.5" />
-              {intl.formatMessage({ id: "meeting.room.screenShare.sharing" })}
+              Sharing screen
             </p>
           ) : null}
         </div>

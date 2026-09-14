@@ -1,7 +1,13 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
-import { createPortal } from "react-dom";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export type MeetingAlertDialogVariant = "danger" | "warning";
 
@@ -31,49 +37,30 @@ export function MeetingAlertDialog({
   onConfirm,
   onCancel,
 }: MeetingAlertDialogProps) {
-  const portalRoot = typeof document === "undefined" ? null : document.body;
-
-  if (!open || !portalRoot) return null;
-
-  return createPortal(
-    <div
-      role="alertdialog"
-      aria-modal="true"
-      aria-labelledby="meeting-alert-dialog-title"
-      aria-describedby={
-        description ? "meeting-alert-dialog-description" : undefined
-      }
-      className="fixed inset-0 z-[140] grid place-items-center bg-black/65 px-4 backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onCancel();
-        }
-      }}
-    >
-      <div className="w-full max-w-sm rounded-xl border border-white/10 bg-[#0d1420] p-4 text-white shadow-2xl">
+  return (
+    <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
+      <AlertDialogContent
+        role="alertdialog"
+        className="max-w-sm border-white/10 bg-[#0d1420] p-4 text-white"
+        showCloseButton={false}
+      >
         <div className="flex items-start gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-red-500/12 text-red-200 ring-1 ring-red-300/15">
             <AlertTriangle className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <h2
-              id="meeting-alert-dialog-title"
-              className="text-sm font-black leading-6 text-slate-50"
-            >
+            <AlertDialogTitle className="text-sm font-black leading-6 text-slate-50">
               {title}
-            </h2>
+            </AlertDialogTitle>
             {description ? (
-              <p
-                id="meeting-alert-dialog-description"
-                className="mt-1 text-sm font-semibold leading-6 text-slate-400"
-              >
+              <AlertDialogDescription className="mt-1 text-sm font-semibold leading-6 text-slate-400">
                 {description}
-              </p>
+              </AlertDialogDescription>
             ) : null}
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-2">
+        <AlertDialogFooter className="mt-5 grid grid-cols-2 gap-2 border-t-0 p-0">
           <button
             type="button"
             onClick={onCancel}
@@ -88,10 +75,8 @@ export function MeetingAlertDialog({
           >
             {confirmLabel}
           </button>
-        </div>
-      </div>
-    </div>
-    ,
-    portalRoot,
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

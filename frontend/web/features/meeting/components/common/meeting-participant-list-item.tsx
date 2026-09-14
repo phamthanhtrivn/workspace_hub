@@ -2,6 +2,7 @@
 
 import {
   Crown,
+  Hand,
   Pin,
   PinOff,
   ScreenShareOff,
@@ -11,7 +12,6 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { MeetingParticipantListItemState } from "@/features/meeting/hooks/useMeetingParticipantsPanel";
 import {
   MEETING_ROLE,
@@ -36,6 +36,7 @@ interface MeetingParticipantListItemProps {
     role: MeetingParticipantRole,
   ) => void;
   onStopScreenShare: (participant: MeetingParticipantResponse) => void;
+  onLowerHand: (participant: MeetingParticipantResponse) => void;
   onToggleAudioMute: (participantId: string) => void;
   onTogglePin: (participantId: string) => void;
 }
@@ -49,20 +50,16 @@ export function MeetingParticipantListItem({
   onRemove,
   onRoleChange,
   onStopScreenShare,
+  onLowerHand,
   onToggleAudioMute,
   onTogglePin,
 }: MeetingParticipantListItemProps) {
-  const intl = useAppIntl();
   const actionItems: MeetingIconDropdownItem[] = [];
 
   if (!item.isSelf) {
     actionItems.push({
       id: isPinnedForMe ? "unpin-participant" : "pin-participant",
-      label: intl.formatMessage({
-        id: isPinnedForMe
-          ? "meeting.participants.unpin"
-          : "meeting.participants.pin",
-      }),
+      label: isPinnedForMe ? "Unpin" : "Pin",
       icon: isPinnedForMe ? PinOff : Pin,
       disabled: isPreferencePending,
       onSelect: () => onTogglePin(item.participant.userId),
@@ -71,11 +68,7 @@ export function MeetingParticipantListItem({
       id: isAudioMutedForMe
         ? "unmute-participant-for-me"
         : "mute-participant-for-me",
-      label: intl.formatMessage({
-        id: isAudioMutedForMe
-          ? "meeting.participants.unmuteForMe"
-          : "meeting.participants.muteForMe",
-      }),
+      label: isAudioMutedForMe ? "Unmute for me" : "Mute for me",
       icon: isAudioMutedForMe ? Volume2 : VolumeX,
       disabled: isPreferencePending,
       onSelect: () => onToggleAudioMute(item.participant.userId),
@@ -85,7 +78,7 @@ export function MeetingParticipantListItem({
   if (item.canPromoteToCohost) {
     actionItems.push({
       id: "make-cohost",
-      label: intl.formatMessage({ id: "meeting.participants.makeCohost" }),
+      label: "Make co-host",
       icon: ShieldCheck,
       disabled: isBusy,
       onSelect: () => onRoleChange(item.participant, MEETING_ROLE.COHOST),
@@ -95,9 +88,7 @@ export function MeetingParticipantListItem({
   if (item.canDemoteToParticipant) {
     actionItems.push({
       id: "make-participant",
-      label: intl.formatMessage({
-        id: "meeting.participants.makeParticipant",
-      }),
+      label: "Make participant",
       icon: ShieldOff,
       disabled: isBusy,
       onSelect: () => onRoleChange(item.participant, MEETING_ROLE.PARTICIPANT),
@@ -107,7 +98,7 @@ export function MeetingParticipantListItem({
   if (item.canManageRole) {
     actionItems.push({
       id: "make-host",
-      label: intl.formatMessage({ id: "meeting.participants.makeHost" }),
+      label: "Make host",
       icon: Crown,
       disabled: isBusy,
       onSelect: () => onRoleChange(item.participant, MEETING_ROLE.HOST),
@@ -117,9 +108,7 @@ export function MeetingParticipantListItem({
   if (item.canStopScreenShare) {
     actionItems.push({
       id: "stop-screen-share",
-      label: intl.formatMessage({
-        id: "meeting.participants.stopScreenShare",
-      }),
+      label: "Stop screen share",
       icon: ScreenShareOff,
       disabled: isBusy,
       danger: true,
@@ -127,10 +116,20 @@ export function MeetingParticipantListItem({
     });
   }
 
+  if (item.canLowerHand) {
+    actionItems.push({
+      id: "lower-hand",
+      label: "Lower hand",
+      icon: Hand,
+      disabled: isBusy,
+      onSelect: () => onLowerHand(item.participant),
+    });
+  }
+
   if (item.canRemove) {
     actionItems.push({
       id: "remove",
-      label: intl.formatMessage({ id: "meeting.participants.remove" }),
+      label: "Remove",
       icon: UserMinus,
       disabled: isBusy,
       danger: true,
@@ -161,9 +160,18 @@ export function MeetingParticipantListItem({
             <span className="block truncate text-sm font-black">
               {item.displayName}
             </span>
+            {item.participant.handRaisedAt ? (
+              <span
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-amber-300 text-slate-950"
+                aria-label="Hand raised"
+                title="Hand raised"
+              >
+                <Hand className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
             {item.isSelf ? (
               <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-black uppercase text-slate-300">
-                {intl.formatMessage({ id: "meeting.room.participant.you" })}
+                You
               </span>
             ) : null}
           </span>
@@ -172,14 +180,14 @@ export function MeetingParticipantListItem({
           </span>
         </span>
 
-        {item.roleLabelId ? (
+        {item.roleLabel ? (
           <span className="shrink-0 rounded-md bg-blue-500/14 px-2 py-1 text-[11px] font-black text-blue-100 ring-1 ring-blue-200/15">
-            {intl.formatMessage({ id: item.roleLabelId })}
+            {item.roleLabel}
           </span>
         ) : null}
 
         <MeetingIconDropdown
-          label={intl.formatMessage({ id: "meeting.participants.actions" })}
+          label="Participant actions"
           items={actionItems}
         />
       </div>

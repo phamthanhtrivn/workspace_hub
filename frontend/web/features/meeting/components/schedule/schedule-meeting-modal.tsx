@@ -13,16 +13,30 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { searchUserByEmail } from "@/features/chat/api/chat.api";
 import type { UserSearchResponse } from "@/features/chat/types/chat.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAppSelector } from "@/store/store";
 import { MeetingAutoAdmitToggle } from "../common/meeting-auto-admit-toggle";
 import { MeetingParticipantChatToggle } from "../common/meeting-participant-chat-toggle";
 import { MeetingScreenShareToggle } from "../common/meeting-screen-share-toggle";
+import {
+  MeetingButton,
+  MeetingInput,
+  MeetingSelect,
+  MeetingTextarea,
+} from "../ui/meeting-form-controls";
+import { MeetingIconButton } from "../ui/meeting-icon-button";
 import {
   useCreateScheduledMeeting,
   useUpdateScheduledMeeting,
@@ -116,31 +130,25 @@ function addMinutesToDateTimeLocal(value: string, minutes: number): string {
   return toDateTimeLocal(date);
 }
 
-function formatTime(date: Date, locale: string): string {
-  return new Intl.DateTimeFormat(locale, {
+function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
 }
 
-function formatDuration(minutes: number, locale: string): string {
-  const vietnamese = locale.toLowerCase().startsWith("vi");
-  if (minutes < 60) return `${minutes} ${vietnamese ? "phút" : "mins"}`;
+function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes} mins`;
 
   const hours = minutes / 60;
-  const formattedHours = new Intl.NumberFormat(locale, {
+  const formattedHours = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: 1,
   }).format(hours);
 
-  return vietnamese
-    ? `${formattedHours} giờ`
-    : `${formattedHours} ${hours === 1 ? "hr" : "hrs"}`;
+  return `${formattedHours} ${hours === 1 ? "hr" : "hrs"}`;
 }
 
-function createStartTimeOptions(
-  locale: string,
-  currentTime?: string,
-): MeetingTimeOption[] {
+function createStartTimeOptions(currentTime?: string): MeetingTimeOption[] {
   const values = Array.from(
     { length: MINUTES_PER_DAY / QUARTER_HOUR_MINUTES },
     (_, index) => index * QUARTER_HOUR_MINUTES,
@@ -160,7 +168,7 @@ function createStartTimeOptions(
       value: `${String(date.getHours()).padStart(2, "0")}:${String(
         date.getMinutes(),
       ).padStart(2, "0")}`,
-      label: formatTime(date, locale),
+      label: formatTime(date),
     };
   });
 }
@@ -168,7 +176,6 @@ function createStartTimeOptions(
 function createEndTimeOptions(
   startAt: string,
   currentEndAt: string,
-  locale: string,
 ): MeetingTimeOption[] {
   const start = new Date(startAt);
   const currentEnd = new Date(currentEndAt);
@@ -187,7 +194,7 @@ function createEndTimeOptions(
     const end = new Date(start.getTime() + minutes * 60_000);
     return {
       value: toDateTimeLocal(end),
-      label: `${formatTime(end, locale)} (${formatDuration(minutes, locale)})`,
+      label: `${formatTime(end)} (${formatDuration(minutes)})`,
     };
   });
 }
@@ -259,7 +266,6 @@ export function ScheduleMeetingModal({
   meeting,
   onClose,
 }: ScheduleMeetingModalProps) {
-  const intl = useAppIntl();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const createMeeting = useCreateScheduledMeeting();
   const updateMeeting = useUpdateScheduledMeeting(meeting?.joinToken ?? "");
@@ -274,7 +280,7 @@ export function ScheduleMeetingModal({
     resolver: zodResolver(scheduleMeetingSchema),
     defaultValues: createDefaultScheduleValues(),
   });
-  const values = form.watch();
+  const values = useWatch({ control: form.control }) as ScheduleMeetingValues;
   const selectedUserIds = useMemo(
     () => new Set(values.inviteeIds),
     [values.inviteeIds],
@@ -282,19 +288,17 @@ export function ScheduleMeetingModal({
   const startTimeOptions = useMemo(
     () =>
       createStartTimeOptions(
-        intl.locale,
         getTimeInputValue(values.scheduledStartAt),
       ),
-    [intl.locale, values.scheduledStartAt],
+    [values.scheduledStartAt],
   );
   const endTimeOptions = useMemo(
     () =>
       createEndTimeOptions(
         values.scheduledStartAt,
         values.scheduledEndAt,
-        intl.locale,
       ),
-    [intl.locale, values.scheduledEndAt, values.scheduledStartAt],
+    [values.scheduledEndAt, values.scheduledStartAt],
   );
   const isSubmitting = isEditing ? updateMeeting.isPending : createMeeting.isPending;
 
@@ -304,14 +308,17 @@ export function ScheduleMeetingModal({
     form.reset(
       meeting ? createScheduleValuesFromMeeting(meeting) : createDefaultScheduleValues(),
     );
-    setSelectedUsers(
-      meeting
+    const nextSelectedUsers = meeting
         ? meeting.participants
             .filter((participant) => participant.userId !== meeting.hostUserId)
             .map(participantToUserSearch)
-        : [],
-    );
-    setInviteeQuery("");
+        : [];
+    const resetTimer = window.setTimeout(() => {
+      setSelectedUsers(nextSelectedUsers);
+      setInviteeQuery("");
+    }, 0);
+
+    return () => window.clearTimeout(resetTimer);
   }, [form, meeting, open]);
   if (!open) return null;
 
@@ -378,10 +385,10 @@ export function ScheduleMeetingModal({
 
       if (meeting) {
         await updateMeeting.mutateAsync(payload);
-        toast.success(intl.formatMessage({ id: "meeting.schedule.updated" }));
+        toast.success("Meeting updated");
       } else {
         await createMeeting.mutateAsync(payload);
-        toast.success(intl.formatMessage({ id: "meeting.schedule.created" }));
+        toast.success("Meeting scheduled");
       }
       form.reset(createDefaultScheduleValues());
       setSelectedUsers([]);
@@ -394,53 +401,46 @@ export function ScheduleMeetingModal({
         errors.scheduledStartAt?.message ||
         errors.password?.message ||
         errors.title?.message ||
-        "meeting.schedule.invalid";
-      toast.error(
-        intl.formatMessage({
-          id: typeof message === "string" ? message : "meeting.schedule.invalid",
-        }),
-      );
+        "Check the meeting details and try again.";
+      toast.error(typeof message === "string" ? message : "Check the meeting details and try again.");
     },
   );
 
   return (
-    <div className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/45 px-3 py-6">
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent
+        className="max-w-2xl overflow-y-auto p-0 text-[#172B4D]"
+        showCloseButton={false}
+      >
       <form
         onSubmit={onSubmit}
-        className="max-h-[92dvh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white text-[#172B4D] shadow-[0_28px_90px_rgba(15,23,42,0.28)]"
+        className="max-h-[92dvh] overflow-y-auto"
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-lg font-black">
-            {intl.formatMessage({
-              id: isEditing ? "meeting.schedule.editTitle" : "meeting.schedule.title",
-            })}
-          </h2>
-          <button
-            type="button"
+        <DialogHeader className="flex flex-row items-center justify-between border-b border-slate-200 px-5 py-4">
+          <DialogTitle className="text-lg font-black">
+            {isEditing ? "Edit meeting" : "Schedule a meeting"}
+          </DialogTitle>
+          <MeetingIconButton
+            label="Close"
+            icon={X}
             onClick={onClose}
-            className="grid h-9 w-9 cursor-pointer place-items-center rounded-md text-slate-500 hover:bg-slate-100"
-            aria-label={intl.formatMessage({ id: "app.close" })}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+          />
+        </DialogHeader>
 
         <div className="space-y-5 px-5 py-5">
-          <input
+          <MeetingInput
             {...form.register("title")}
             autoFocus
-            placeholder={intl.formatMessage({
-              id: "meeting.schedule.meetingTitle",
-            })}
+            placeholder="Meeting title"
             className="h-12 w-full border-0 border-b border-slate-200 px-0 text-xl font-black outline-none placeholder:text-slate-400 focus:border-[#0052CC]"
           />
 
           <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr]">
             <label className="space-y-1.5">
               <span className="text-xs font-black uppercase text-slate-400">
-                {intl.formatMessage({ id: "meeting.schedule.date" })}
+                Date
               </span>
-              <input
+              <MeetingInput
                 type="date"
                 value={getDateInputValue(values.scheduledStartAt)}
                 onChange={(event) => updateStartDate(event.target.value)}
@@ -449,57 +449,45 @@ export function ScheduleMeetingModal({
             </label>
             <label className="space-y-1.5">
               <span className="text-xs font-black uppercase text-slate-400">
-                {intl.formatMessage({ id: "meeting.schedule.start" })}
+                Start time
               </span>
-              <select
+              <MeetingSelect
                 value={getTimeInputValue(values.scheduledStartAt)}
-                aria-label={intl.formatMessage({ id: "meeting.schedule.start" })}
-                onChange={(event) => updateStartTime(event.target.value)}
-                className="h-10 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
-              >
-                {startTimeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                ariaLabel="Start time"
+                onChange={updateStartTime}
+                options={startTimeOptions}
+                triggerClassName="h-10 rounded-lg border-slate-200"
+              />
             </label>
             <label className="space-y-1.5">
               <span className="text-xs font-black uppercase text-slate-400">
-                {intl.formatMessage({ id: "meeting.schedule.end" })}
+                End time
               </span>
-              <select
+              <MeetingSelect
                 value={values.scheduledEndAt}
-                aria-label={intl.formatMessage({ id: "meeting.schedule.end" })}
-                onChange={(event) =>
-                  form.setValue("scheduledEndAt", event.target.value, {
+                ariaLabel="End time"
+                onChange={(nextValue) =>
+                  form.setValue("scheduledEndAt", nextValue, {
                     shouldDirty: true,
                     shouldValidate: true,
                   })
                 }
-                className="h-10 w-full cursor-pointer rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
-              >
-                {endTimeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                options={endTimeOptions}
+                triggerClassName="h-10 rounded-lg border-slate-200"
+              />
             </label>
           </div>
 
           <section className="space-y-2">
             <label className="text-xs font-black uppercase text-slate-400">
-              {intl.formatMessage({ id: "meeting.schedule.invitePeople" })}
+              Invite people
             </label>
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-              <input
+              <MeetingInput
                 value={inviteeQuery}
                 onChange={(event) => setInviteeQuery(event.target.value)}
-                placeholder={intl.formatMessage({
-                  id: "meeting.schedule.searchPeople",
-                })}
+                placeholder="Search people..."
                 className="h-10 w-full rounded-lg border border-slate-200 pl-9 pr-3 text-sm font-semibold outline-none placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
               />
             </div>
@@ -507,11 +495,11 @@ export function ScheduleMeetingModal({
               <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200">
                 {isFetching ? (
                   <div className="px-3 py-3 text-sm font-semibold text-slate-400">
-                    {intl.formatMessage({ id: "chat.searching" })}
+                    Searching...
                   </div>
                 ) : inviteeResults.length === 0 ? (
                   <div className="px-3 py-3 text-sm font-semibold text-slate-400">
-                    {intl.formatMessage({ id: "chat.noResults" })}
+                    No results
                   </div>
                 ) : (
                   inviteeResults
@@ -553,7 +541,7 @@ export function ScheduleMeetingModal({
                       type="button"
                       onClick={() => removeInvitee(user.id)}
                       className="cursor-pointer text-slate-400 hover:text-slate-700"
-                      aria-label={intl.formatMessage({ id: "app.delete" })}
+                      aria-label="Delete"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -563,12 +551,10 @@ export function ScheduleMeetingModal({
             ) : null}
           </section>
 
-          <textarea
+          <MeetingTextarea
             {...form.register("description")}
             rows={3}
-            placeholder={intl.formatMessage({
-              id: "meeting.schedule.description",
-            })}
+            placeholder="Description"
             className="w-full resize-none rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold outline-none placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
           />
 
@@ -578,72 +564,53 @@ export function ScheduleMeetingModal({
               onClick={() => setOptionsOpen((current) => !current)}
               className="flex w-full cursor-pointer items-center justify-between rounded-lg px-1 py-2 text-sm font-black text-slate-600"
             >
-              {intl.formatMessage({ id: "meeting.schedule.options" })}
+              Meeting options
               <ChevronDown
                 className={`h-4 w-4 transition ${optionsOpen ? "rotate-180" : ""}`}
               />
             </button>
             {optionsOpen ? (
               <div className="space-y-3">
-                <label className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
-                  <input
-                    type="checkbox"
-                    {...form.register("requirePassword")}
-                    className="h-4 w-4"
+                <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 p-3">
+                  <Checkbox
+                    checked={values.requirePassword}
+                    onCheckedChange={(checked) =>
+                      form.setValue("requirePassword", checked, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
                   />
                   <Lock className="h-4 w-4 text-[#0052CC]" />
                   <span className="text-sm font-black">
-                    {intl.formatMessage({
-                      id: "meeting.schedule.requirePassword",
-                    })}
+                    Require password
                   </span>
-                </label>
+                </div>
                 {values.requirePassword ? (
                   <div className="space-y-1.5">
                     <div className="relative">
-                      <input
+                      <MeetingInput
                         type={showPassword ? "text" : "password"}
                         {...form.register("password")}
-                        placeholder={intl.formatMessage({
-                          id: "meeting.schedule.password",
-                        })}
+                        placeholder="Meeting password"
                         className="h-10 w-full rounded-lg border border-slate-200 px-3 pr-11 text-sm font-semibold outline-none focus:border-[#0052CC] focus:ring-4 focus:ring-blue-100"
                       />
-                      <button
-                        type="button"
+                      <MeetingIconButton
+                        label={showPassword ? "Hide meeting password" : "Show meeting password"}
+                        icon={showPassword ? EyeOff : Eye}
                         onClick={() => setShowPassword((current) => !current)}
-                        className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 cursor-pointer place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-[#0052CC]"
-                        aria-label={intl.formatMessage({
-                          id: showPassword
-                            ? "meeting.schedule.hidePassword"
-                            : "meeting.schedule.showPassword",
-                        })}
-                        title={intl.formatMessage({
-                          id: showPassword
-                            ? "meeting.schedule.hidePassword"
-                            : "meeting.schedule.showPassword",
-                        })}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
+                        className="absolute right-1.5 top-1/2 -translate-y-1/2"
+                      />
                     </div>
                     {isEditing && values.hasExistingPassword ? (
                       <p className="text-xs font-semibold leading-5 text-slate-500">
-                        {intl.formatMessage({
-                          id: "meeting.schedule.keepExistingPasswordHint",
-                        })}
+                        Leave this blank to keep the current meeting password.
                       </p>
                     ) : null}
                   </div>
                 ) : isEditing && values.hasExistingPassword ? (
                   <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-700 ring-1 ring-amber-100">
-                    {intl.formatMessage({
-                      id: "meeting.schedule.removeExistingPasswordHint",
-                    })}
+                    The current password will be removed when you save.
                   </p>
                 ) : null}
                 <MeetingAutoAdmitToggle
@@ -671,27 +638,27 @@ export function ScheduleMeetingModal({
           </section>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
-          <button
+        <DialogFooter>
+          <MeetingButton
             type="button"
+            tone="ghost"
             onClick={onClose}
-            className="h-10 cursor-pointer rounded-lg px-4 text-sm font-black text-slate-600 hover:bg-slate-100"
+            className="cursor-pointer"
           >
-            {intl.formatMessage({ id: "app.cancel" })}
-          </button>
-          <button
+            Cancel
+          </MeetingButton>
+          <MeetingButton
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg bg-[#0052CC] px-4 text-sm font-black text-white shadow-sm hover:bg-[#0C66E4] disabled:cursor-not-allowed disabled:opacity-60"
+            className="cursor-pointer"
           >
             {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {intl.formatMessage({
-              id: isEditing ? "meeting.schedule.update" : "meeting.schedule.schedule",
-            })}
-          </button>
-        </div>
+            {isEditing ? "Update" : "Schedule"}
+          </MeetingButton>
+        </DialogFooter>
       </form>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -722,3 +689,5 @@ function Avatar({
     </span>
   );
 }
+
+

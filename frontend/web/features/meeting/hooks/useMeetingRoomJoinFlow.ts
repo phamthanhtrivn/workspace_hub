@@ -5,7 +5,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { ApiResponse } from "@/features/chat/types/chat.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { getMeetingAccess, requestMeetingJoinApproval } from "../api/meeting.api";
 import { meetingKeys } from "../types/meeting.query-keys";
 import { MEETING_ROUTES, MEETING_STATUS } from "../types/meeting.constants";
@@ -23,10 +22,10 @@ import { useMeetingSocket } from "./useMeetingSocket";
 import { useJoinMeetingRoom } from "./useJoinMeetingRoom";
 import { usePreJoinMeetingDevices } from "./usePreJoinMeetingDevices";
 import { useStartScheduledMeeting } from "./useScheduledMeetings";
+import { getCurrentMeetingExitPath } from "../utils/meeting-room-navigation.utils";
 import { needsMeetingPassword } from "../utils/meeting-room.utils";
 
 export function useMeetingRoomJoinFlow(joinToken: string) {
-  const intl = useAppIntl();
   const router = useRouter();
   const queryClient = useQueryClient();
   const handledUnavailableMeetingRef = useRef(false);
@@ -40,12 +39,9 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
 
     handledUnavailableMeetingRef.current = true;
     toast.info(
-      intl.formatMessage({
-        id:
-          status === MEETING_STATUS.CANCELLED
-            ? "meeting.room.cancelled"
-            : "meeting.room.alreadyEnded",
-      }),
+      status === MEETING_STATUS.CANCELLED
+        ? "Meeting has been cancelled"
+        : "Meeting has ended",
     );
     queryClient.removeQueries({
       queryKey: meetingKeys.access(joinToken),
@@ -54,7 +50,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       queryKey: meetingKeys.room(joinToken),
     });
     router.replace(MEETING_ROUTES.DASHBOARD);
-  }, [intl, joinToken, queryClient, router]);
+  }, [joinToken, queryClient, router]);
   const cachedRoom = queryClient.getQueryData<ApiResponse<InstantMeetingResponse>>(
     meetingKeys.room(joinToken),
   );
@@ -81,9 +77,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       onJoinError: () => {
         if (!shouldAskForPassword && !isPasswordStepOpen) return;
 
-        setPasswordError(
-          intl.formatMessage({ id: "meeting.password.incorrect" }),
-        );
+        setPasswordError("Incorrect meeting password.");
         setIsPasswordStepOpen(true);
       },
     });
@@ -113,7 +107,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       if (!shouldAskForPassword && !isPasswordStepOpen) return;
 
       setPasswordError(
-        intl.formatMessage({ id: "meeting.password.incorrect" }),
+        "Incorrect meeting password.",
       );
       setIsPasswordStepOpen(true);
     },
@@ -237,29 +231,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     startScheduledMeetingMutation.isPending,
   ]);
   const goBackToMeetings = useCallback(() => {
-    if (typeof window !== "undefined") {
-      const searchParams = new URLSearchParams(window.location.search);
-      const returnUrl = searchParams.get("returnUrl");
-      if (returnUrl) {
-        router.push(returnUrl);
-        return;
-      }
-
-      if (
-        document.referrer &&
-        document.referrer.startsWith(window.location.origin) &&
-        !document.referrer.includes("/meetings/")
-      ) {
-        router.back();
-        return;
-      }
-
-      if (window.history.length > 1) {
-        router.back();
-        return;
-      }
-    }
-    router.push(MEETING_ROUTES.DASHBOARD);
+    router.replace(getCurrentMeetingExitPath());
   }, [router]);
   const joinMeeting = useCallback(() => {
     if (
@@ -296,8 +268,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     );
   }, [
     canJoinWithoutApproval,
-    access?.canStart,
-    access?.status,
+    access,
     handleMeetingUnavailable,
     joinRoom,
     meetingPassword,
@@ -311,7 +282,7 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
       const normalizedPassword = password.trim();
       if (!normalizedPassword) {
         setPasswordError(
-          intl.formatMessage({ id: "meeting.password.required" }),
+          "Enter the meeting password.",
         );
         return;
       }
@@ -328,7 +299,6 @@ export function useMeetingRoomJoinFlow(joinToken: string) {
     },
     [
       canJoinWithoutApproval,
-      intl,
       joinRoom,
       preJoinDevices.settings,
       requestApprovalMutation,

@@ -3,6 +3,7 @@ import {
   DeleteNotificationsResponse,
   GetNotificationsResponse,
   NotificationCategory,
+  NotificationDateRange,
 } from "../types/notification.types";
 
 export const getNotifications = async (
@@ -10,6 +11,7 @@ export const getNotifications = async (
   limit = 10,
   isRead?: boolean,
   category: NotificationCategory = "ALL",
+  dateRange: NotificationDateRange = {},
 ): Promise<GetNotificationsResponse> => {
   const params: Record<string, string | number | boolean> = { page, limit };
   if (isRead !== undefined) {
@@ -17,6 +19,12 @@ export const getNotifications = async (
   }
   if (category !== "ALL") {
     params.category = category;
+  }
+  if (dateRange.fromDate) {
+    params.fromDate = dateRange.fromDate;
+  }
+  if (dateRange.toDate) {
+    params.toDate = dateRange.toDate;
   }
   const response = await api.get("/api/notifications", { params });
   return response.data;
@@ -44,9 +52,24 @@ export const deleteNotification = async (id: string): Promise<unknown> => {
 
 export const deleteNotifications = async (
   category: NotificationCategory = "ALL",
+  options: {
+    isRead?: boolean;
+    dateRange?: NotificationDateRange;
+  } = {},
 ): Promise<DeleteNotificationsResponse> => {
-  const params =
-    category === "ALL" ? undefined : ({ category } satisfies { category: string });
+  const params: Record<string, string | boolean> = {};
+  if (category !== "ALL") {
+    params.category = category;
+  }
+  if (options.isRead !== undefined) {
+    params.isRead = options.isRead;
+  }
+  if (options.dateRange?.fromDate) {
+    params.fromDate = options.dateRange.fromDate;
+  }
+  if (options.dateRange?.toDate) {
+    params.toDate = options.dateRange.toDate;
+  }
   const response = await api.delete("/api/notifications", { params });
   return response.data;
 };

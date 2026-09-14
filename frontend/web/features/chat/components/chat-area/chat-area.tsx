@@ -64,7 +64,6 @@ import MessageList from "../message/message-list";
 import EditingBanner from "./editing-banner";
 import JumpToRecentBanner from "./jump-to-recent-banner";
 import { RenderableChatMessage } from "../message/chat-message.types";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 type ChatInputRef = ChannelChatInputRef | DirectMessageInputRef;
 
@@ -91,7 +90,6 @@ export default function ChatArea({
   onOpenSearch,
   onBack,
 }: ChatAreaProps) {
-  const intl = useAppIntl();
   const {
     activeChat: activeConversation,
     activeChatType,
@@ -622,14 +620,12 @@ export default function ChatArea({
               queryClient.invalidateQueries({
                 queryKey: [ChatQueryKey.DIRECT_CONVERSATIONS],
               });
-              toast.success(
-                intl.formatMessage({ id: "chat.noLongerInThisSpace" }),
-              );
+              toast.success("You are no longer in this space");
             } else {
               queryClient.invalidateQueries({
                 queryKey: chatKeys.allChannels(),
               });
-              toast.success(intl.formatMessage({ id: "chat.leftChannel" }));
+              toast.success("Left channel successfully");
             }
           } else {
             queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
@@ -687,8 +683,8 @@ export default function ChatArea({
           });
           toast.info(
             data.leftSpace
-              ? intl.formatMessage({ id: "chat.spaceDisbandedByAdmin" })
-              : intl.formatMessage({ id: "chat.channelDisbandedByAdmin" }),
+              ? "Space has been disbanded"
+              : "Channel has been disbanded",
           );
         }
       };
@@ -753,7 +749,6 @@ export default function ChatArea({
     jumpTargetId,
     updateMessageInState,
     handleTypingEvent,
-    intl,
     setNewSocketMessages,
     setReadReceipts,
   ]);
@@ -802,7 +797,6 @@ export default function ChatArea({
           spaceCreatorId={spaceDetail?.createdBy}
           conversationMembers={activeConversation?.members}
           onReact={(messageId, emoji, action) => {
-            // action từ ChatMessage là 'add'|'remove', map sang ReactionAction cho handler
             const reactionAction =
               action === "add" ? ReactionAction.ADD : ReactionAction.REMOVE;
             void handleReactMessage(messageId, emoji, reactionAction);
@@ -861,9 +855,7 @@ export default function ChatArea({
           ref={chatInputRef}
           onSendMessage={handleSendMessageWithMedia}
           onTypingChange={handleTypingChange}
-          placeholder={intl.formatMessage({
-            id: "chat.messageDirectConversation",
-          })}
+          placeholder="Type a message..."
           autoFocusOnConversationChange={!activeThreadRootMessageId}
         />
       ) : (

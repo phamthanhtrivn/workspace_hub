@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Bell,
   CalendarDays,
@@ -25,9 +25,15 @@ import {
 } from "@/features/notification/api/notification.api";
 import { useNotificationActions } from "@/features/notification/hooks/use-notification-actions";
 import {
-  NotificationCategory,
-  Notification,
   NotificationType,
+} from "@/features/notification/types/notification.types";
+import type {
+  NotificationCategory,
+  NotificationDateRange,
+  Notification,
+  NotificationReadFilter,
+  NotificationTimeFilter,
+  NotificationUnreadCountsByCategory,
 } from "@/features/notification/types/notification.types";
 
 import NotificationList from "@/features/notification/components/notification-list";
@@ -38,7 +44,6 @@ import {
   waitForBackendReady,
 } from "@/lib/backend-readiness";
 import { logApiError } from "@/lib/interceptors";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 // Renderers
 import {
@@ -74,11 +79,44 @@ import {
   NOTIFICATION_CHANGED_EVENT,
   isNotificationInCategory,
 } from "@/features/notification/utils/notification-category.utils";
+import {
+  formatNotificationCount,
+  getReadFilterValue,
+} from "@/features/notification/utils/notification-display.utils";
+import {
+  getNotificationDateRange,
+  NOTIFICATION_TIME_FILTERS,
+  toLocalDateInputValue,
+} from "@/features/notification/utils/notification-time-filter.utils";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
+import { CustomDateRange } from "@/components/ui/custom/custom-date-range";
+import { CustomTag } from "@/components/ui/custom/custom-tag";
+import {
+  CustomTabs,
+  type CustomTabOption,
+} from "@/components/ui/custom/custom-tabs";
+import { SimplePagination } from "@/components/ui/custom/simple-pagination";
+import type { CustomSelectOption } from "@/components/ui/custom/custom-select";
 import { toast } from "sonner";
 import { useMeetingConfirmDialog } from "@/features/meeting/hooks/useMeetingConfirmDialog";
 import { MeetingAlertDialog } from "@/features/meeting/components/common/meeting-alert-dialog";
 
 const PAGE_SIZE = 10;
+
+const EMPTY_UNREAD_COUNTS_BY_CATEGORY: NotificationUnreadCountsByCategory = {
+  ALL: 0,
+  PROJECT: 0,
+  CHAT: 0,
+  CALENDAR: 0,
+  MEETING: 0,
+  DOCUMENT: 0,
+};
 
 const categoryConfig: Record<
   NotificationCategory,
@@ -152,7 +190,6 @@ if (!isRegistryInitialized) {
 }
 
 const NotificationDropdown = React.memo(function NotificationDropdown() {
-  const intl = useAppIntl();
   const dispatch = useAppDispatch();
   const {
     list: notifications,
@@ -162,8 +199,16 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const { accessToken } = useAppSelector((state) => state.auth);
 
   const [isOpen, setIsOpen] = useState(false);
-  const [tab, setTab] = useState<"ALL" | "UNREAD">("ALL");
+  const [tab, setTab] = useState<NotificationReadFilter>("ALL");
   const [category, setCategory] = useState<NotificationCategory>("ALL");
+  const [timeFilter, setTimeFilter] =
+    useState<NotificationTimeFilter>("ALL_TIME");
+  const [customFromDate, setCustomFromDate] = useState(() =>
+    toLocalDateInputValue(new Date()),
+  );
+  const [customToDate, setCustomToDate] = useState(() =>
+    toLocalDateInputValue(new Date()),
+  );
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -171,12 +216,27 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     totalPages: 1,
     categoryUnreadCount: 0,
   });
-  const [globalNotificationTotal, setGlobalNotificationTotal] = useState(0);
+  const [unreadCountsByCategory, setUnreadCountsByCategory] =
+    useState<NotificationUnreadCountsByCategory>(
+      EMPTY_UNREAD_COUNTS_BY_CATEGORY,
+    );
   const [selectedNotification, setSelectedNotification] =
     useState<Notification | null>(null);
   const { confirm, alertDialogProps } = useMeetingConfirmDialog();
 
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dateRange: NotificationDateRange = React.useMemo(
+    () =>
+      getNotificationDateRange(timeFilter, {
+        customFromDate,
+        customToDate,
+      }),
+    [customFromDate, customToDate, timeFilter],
+  );
+  const isCustomRangeInvalid =
+    timeFilter === "CUSTOM_RANGE" &&
+    Boolean(customFromDate) &&
+    Boolean(customToDate) &&
+    customFromDate > customToDate;
 
   useEffect(() => {
     let isCancelled = false;
@@ -220,33 +280,63 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   const fetchList = React.useCallback(
     async (nextPage = page) => {
       if (!accessToken) return;
+      if (isCustomRangeInvalid) {
+        dispatch(setLoading(false));
+        dispatch(
+          setNotifications({
+            list: [],
+            total: 0,
+            unreadCount,
+          }),
+        );
+        setPagination({
+          page: 1,
+          total: 0,
+          totalPages: 1,
+          categoryUnreadCount: 0,
+        });
+        setUnreadCountsByCategory(EMPTY_UNREAD_COUNTS_BY_CATEGORY);
+        return;
+      }
       try {
         dispatch(setLoading(true));
-        const res = await getNotifications(
-          nextPage,
-          PAGE_SIZE,
-          tab === "UNREAD" ? false : undefined,
-          category,
-        );
-        if (category === "ALL") {
-          setGlobalNotificationTotal(res.pagination.total);
-        } else {
-          const globalRes = await getNotifications(1, 1, undefined, "ALL");
-          setGlobalNotificationTotal(globalRes.pagination.total);
-        }
+        const hasDateFilter = Boolean(dateRange.fromDate || dateRange.toDate);
+        const [res, globalUnreadRes] = await Promise.all([
+          getNotifications(
+            nextPage,
+            PAGE_SIZE,
+            getReadFilterValue(tab),
+            category,
+            dateRange,
+          ),
+          hasDateFilter ? getUnreadCount() : Promise.resolve(null),
+        ]);
+        const fallbackUnreadCounts: NotificationUnreadCountsByCategory = {
+          ...EMPTY_UNREAD_COUNTS_BY_CATEGORY,
+          ALL: res.pagination.unreadCount,
+          [category]:
+            res.pagination.categoryUnreadCount ?? res.pagination.unreadCount,
+        };
+        const nextUnreadCounts =
+          res.pagination.unreadCountsByCategory ?? fallbackUnreadCounts;
+        const nextGlobalUnreadCount =
+          globalUnreadRes?.data.unreadCount ?? res.pagination.unreadCount;
         dispatch(
           setNotifications({
             list: res.data,
             total: res.pagination.total,
-            unreadCount: res.pagination.unreadCount,
+            unreadCount: nextGlobalUnreadCount,
           }),
         );
+        setUnreadCountsByCategory(nextUnreadCounts);
         setPagination({
           page: res.pagination.page,
           total: res.pagination.total,
           totalPages: res.pagination.totalPages,
           categoryUnreadCount:
-            res.pagination.categoryUnreadCount ?? res.pagination.unreadCount,
+            res.pagination.categoryUnreadCount ??
+            nextUnreadCounts[category] ??
+            res.pagination.unreadCount,
         });
       } catch (error) {
         logApiError(error, "Failed to fetch notifications");
@@ -254,7 +344,16 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
         dispatch(setLoading(false));
       }
     },
-    [accessToken, category, dispatch, page, tab],
+    [
+      accessToken,
+      category,
+      dateRange,
+      dispatch,
+      isCustomRangeInvalid,
+      page,
+      tab,
+      unreadCount,
+    ],
   );
   const {
     deleteNotificationMutation,
@@ -269,17 +368,8 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
   useEffect(() => {
     if (!isOpen) return;
 
-    const handleNotificationChanged = (event: Event) => {
-      const detail = (event as CustomEvent<{ category?: NotificationCategory }>)
-        .detail;
-      if (
-        !detail?.category ||
-        detail.category === "ALL" ||
-        category === "ALL" ||
-        detail.category === category
-      ) {
-        void fetchList(page);
-      }
+    const handleNotificationChanged = () => {
+      void fetchList(page);
     };
 
     window.addEventListener(
@@ -292,23 +382,7 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
         handleNotificationChanged,
       );
     };
-  }, [category, fetchList, isOpen, page]);
-
-  // Click outside to close
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+  }, [fetchList, isOpen, page]);
 
   const handleMarkAllAsRead = async () => {
     try {
@@ -326,8 +400,23 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     setPage(1);
   };
 
-  const handleTabChange = (nextTab: "ALL" | "UNREAD") => {
+  const handleTabChange = (nextTab: NotificationReadFilter) => {
     setTab(nextTab);
+    setPage(1);
+  };
+
+  const handleTimeFilterChange = (nextFilter: NotificationTimeFilter) => {
+    setTimeFilter(nextFilter);
+    setPage(1);
+  };
+
+  const handleCustomFromDateChange = (value: string) => {
+    setCustomFromDate(value);
+    setPage(1);
+  };
+
+  const handleCustomToDateChange = (value: string) => {
+    setCustomToDate(value);
     setPage(1);
   };
 
@@ -349,16 +438,16 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       title,
       description: text,
       confirmLabel: confirmButtonText,
-      cancelLabel: intl.formatMessage({ id: "app.cancel" }),
+      cancelLabel: "Cancel",
       variant: "danger",
     });
   };
 
   const handleDeleteNotification = async (notificationId: string) => {
     const confirmed = await confirmDelete({
-      title: intl.formatMessage({ id: "notifications.deleteOneConfirmTitle" }),
-      text: intl.formatMessage({ id: "notifications.deleteOneConfirmText" }),
-      confirmButtonText: intl.formatMessage({ id: "notifications.deleteOne" }),
+      title: "Delete this notification?",
+      text: "This notification will be removed from your list.",
+      confirmButtonText: "Delete notification",
     });
     if (!confirmed) return;
 
@@ -371,10 +460,10 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
       } else if (isOpen) {
         void fetchList(nextPage);
       }
-      toast.success(intl.formatMessage({ id: "notifications.deleteSuccess" }));
+      toast.success("Notification deleted");
     } catch (error) {
       logApiError(error, "Failed to delete notification");
-      toast.error(intl.formatMessage({ id: "notifications.deleteFailed" }));
+      toast.error("Could not delete notifications");
     }
   };
 
@@ -382,232 +471,244 @@ const NotificationDropdown = React.memo(function NotificationDropdown() {
     const categoryLabel = categoryConfig[targetCategory].label;
     const isAll = targetCategory === "ALL";
     const confirmed = await confirmDelete({
-      title: intl.formatMessage({
-        id: isAll
-          ? "notifications.deleteAllConfirmTitle"
-          : "notifications.deleteCategoryConfirmTitle",
-      }),
-      text: intl.formatMessage(
-        {
-          id: isAll
-            ? "notifications.deleteAllConfirm"
-            : "notifications.deleteCategoryConfirm",
-        },
-        { category: categoryLabel },
-      ),
-      confirmButtonText: intl.formatMessage(
-        {
-          id: isAll
-            ? "notifications.deleteAll"
-            : "notifications.deleteCategory",
-        },
-        { category: categoryLabel },
-      ),
+      title: isAll
+        ? "Delete read notifications?"
+        : "Delete read category notifications?",
+      text: isAll
+        ? "Delete read notifications in this time range? This cannot be undone."
+        : `Delete read notifications in ${categoryLabel} for this time range? This cannot be undone.`,
+      confirmButtonText: isAll
+        ? "Delete read"
+        : `Delete read ${categoryLabel}`,
     });
     if (!confirmed) return;
 
     try {
-      await deleteNotificationsMutation.mutateAsync(targetCategory);
+      await deleteNotificationsMutation.mutateAsync({
+        category: targetCategory,
+        isRead: true,
+        dateRange,
+      });
       setPage(1);
       if (isOpen) void fetchList(1);
       toast.success(
-        intl.formatMessage({
-          id: isAll
-            ? "notifications.deleteAllSuccess"
-            : "notifications.deleteCategorySuccess",
-        }),
+        isAll ? "All notifications deleted" : "Category notifications deleted",
       );
     } catch (error) {
       logApiError(error, "Failed to delete notifications");
-      toast.error(intl.formatMessage({ id: "notifications.deleteFailed" }));
+      toast.error("Could not delete notifications");
     }
   };
 
   const visibleNotifications = notifications.filter((notification) =>
     isNotificationInCategory(notification, category),
   );
-  const unreadTabCount =
-    category === "ALL" ? unreadCount : pagination.categoryUnreadCount;
+  const unreadTabCount = unreadCountsByCategory[category] ?? 0;
   const hasCategoryData = pagination.total > 0;
-  const hasGlobalData = globalNotificationTotal > 0;
   const currentPage = Math.min(page, pagination.totalPages);
-  const canGoPrevious = currentPage > 1;
-  const canGoNext = currentPage < pagination.totalPages;
+  const timeFilterOptions = React.useMemo<
+    CustomSelectOption<NotificationTimeFilter>[]
+  >(
+    () =>
+      NOTIFICATION_TIME_FILTERS.map((item) => ({
+        value: item,
+        label:
+          item === "ALL_TIME"
+            ? "All time"
+            : item === "TODAY"
+              ? "Today"
+              : item === "LAST_7_DAYS"
+                ? "Last 7 days"
+                : item === "LAST_30_DAYS"
+                  ? "Last 30 days"
+                  : item === "THIS_MONTH"
+                    ? "This month"
+                    : "Custom range",
+        icon: <CalendarDays className="h-3.5 w-3.5" />,
+      })),
+    [],
+  );
+  const readTabOptions = React.useMemo<
+    CustomTabOption<NotificationReadFilter>[]
+  >(
+    () => [
+      {
+        value: "ALL",
+        label: "All",
+      },
+      {
+        value: "UNREAD",
+        label: "Unread",
+        count: unreadTabCount,
+      },
+      {
+        value: "READ",
+        label: "Read",
+      },
+    ],
+    [unreadTabCount],
+  );
+  const handlePageChange = (nextPage: number) => {
+    setPage(Math.min(Math.max(1, nextPage), pagination.totalPages));
+  };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`relative flex z-10 h-11 w-11 items-center justify-center rounded-full border bg-white shadow-sm transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 cursor-pointer ${
-          isOpen
-            ? "border-indigo-300 text-indigo-600 bg-indigo-50"
-            : "border-slate-200 text-slate-600 hover:bg-slate-50"
-        }`}
-        aria-label={intl.formatMessage({ id: "header.notifications" })}
-      >
-        <Bell size={22} className={isOpen ? "fill-indigo-100" : ""} />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[11px] font-bold text-white border-2 border-white shadow-sm">
-            {unreadCount > 99 ? "99+" : unreadCount}
-          </span>
-        )}
-      </button>
+    <div className="relative">
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className={`relative z-[80] h-11 w-11 rounded-full border bg-white shadow-sm transition focus-visible:ring-4 focus-visible:ring-[var(--color-secondary)]/20 ${
+              isOpen
+                ? "border-blue-300 bg-blue-50 text-[var(--color-primary)]"
+                : "border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+            aria-label="Notifications"
+          >
+            <Bell size={22} className={isOpen ? "fill-blue-100" : ""} />
+            {unreadCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 px-1.5 text-[11px] font-bold text-white shadow-sm">
+                {formatNotificationCount(unreadCount)}
+              </span>
+            ) : null}
+          </Button>
+        </PopoverTrigger>
 
-      {isOpen && (
-        <div className="absolute right-0 sm:-right-12 z-50 mt-2 w-80 sm:w-96 origin-top-right rounded-2xl border border-slate-100 bg-white shadow-2xl ring-1 ring-black/5 focus:outline-none animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/50 rounded-t-2xl">
-            <h3 className="font-black text-slate-800 text-base">
-              {intl.formatMessage({ id: "notifications.title" })}
+        <PopoverContent
+          align="end"
+          sideOffset={10}
+          onOpenAutoFocus={(event) => event.preventDefault()}
+          className="w-[min(calc(100vw-1.5rem),26rem)] overflow-hidden rounded-2xl border-slate-200 bg-white p-0 shadow-[0_20px_55px_rgba(15,23,42,0.18)] ring-1 ring-black/5"
+        >
+          <div className="flex items-center justify-between gap-3 bg-slate-50/80 px-4 py-3">
+            <h3 className="text-base font-black text-slate-800">
+              Notifications
             </h3>
-            <div className="flex items-center justify-end gap-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full px-2 text-xs font-bold text-indigo-600 transition hover:bg-indigo-50 hover:text-indigo-800"
-                >
-                  <Check size={14} />
-                  {intl.formatMessage({ id: "notifications.markAllRead" })}
-                </button>
-              )}
-              {hasGlobalData && (
-                <button
-                  type="button"
-                  onClick={() => void handleDeleteCategory("ALL")}
-                  disabled={deleteNotificationsMutation.isPending}
-                  className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-full px-2 text-xs font-bold text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  {intl.formatMessage({ id: "notifications.deleteAll" })}
-                </button>
-              )}
-            </div>
+            {unreadCount > 0 ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleMarkAllAsRead}
+                className="h-7 rounded-full px-2 text-xs font-black text-[var(--color-primary)] hover:bg-blue-50 hover:text-[var(--color-primary-dark)]"
+              >
+                <Check size={14} />
+                Mark all as read
+              </Button>
+            ) : null}
           </div>
 
-          <div className="flex gap-2 overflow-x-auto border-b border-slate-100 px-3 py-2">
+          <Separator />
+
+          <div className="flex gap-2 overflow-x-auto px-3 py-2">
             {NOTIFICATION_CATEGORIES.map((item) => {
               const { label, Icon } = categoryConfig[item];
-              const isActive = category === item;
+              const itemUnreadCount = unreadCountsByCategory[item] ?? 0;
 
               return (
-                <button
+                <CustomTag
                   key={item}
-                  type="button"
+                  label={label}
+                  icon={<Icon className="h-3.5 w-3.5" />}
+                  count={itemUnreadCount}
+                  selected={category === item}
                   onClick={() => handleCategoryChange(item)}
-                  className={`inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-xs font-bold transition ${
-                    isActive
-                      ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/20"
-                      : "bg-slate-50 text-slate-500 ring-1 ring-slate-200 hover:bg-indigo-50 hover:text-indigo-700 hover:ring-indigo-100"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  {label}
-                </button>
+                />
               );
             })}
           </div>
 
-          <div className="flex items-center justify-between gap-2 border-b border-slate-100 px-4">
-            <div className="flex shrink-0">
-              <button
-                onClick={() => handleTabChange("ALL")}
-                className={`py-2.5 px-2 text-sm font-bold border-b-2 transition cursor-pointer ${
-                  tab === "ALL"
-                    ? "border-indigo-600 text-indigo-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {intl.formatMessage({ id: "notifications.all" })}
-              </button>
-              <button
-                onClick={() => handleTabChange("UNREAD")}
-                className={`py-2.5 px-3 text-sm font-bold border-b-2 transition flex items-center gap-1.5 cursor-pointer ${
-                  tab === "UNREAD"
-                    ? "border-indigo-600 text-indigo-600"
-                    : "border-transparent text-slate-500 hover:text-slate-700"
-                }`}
-              >
-                {intl.formatMessage({ id: "notifications.unread" })}
-                {unreadTabCount > 0 && (
-                  <span
-                    className={`px-1.5 py-0.5 rounded-full text-[10px] ${tab === "UNREAD" ? "bg-indigo-100 text-indigo-700" : "bg-slate-100 text-slate-600"}`}
-                  >
-                    {unreadTabCount > 99 ? "99+" : unreadTabCount}
-                  </span>
-                )}
-              </button>
-            </div>
-            <div className="flex min-w-0 items-center justify-end gap-1 overflow-x-auto py-2">
-              {category !== "ALL" && hasCategoryData && (
-                <button
+          <Separator />
+
+          <div className="bg-slate-50/60 px-3 py-2.5">
+            <CustomDateRange
+              value={timeFilter}
+              options={timeFilterOptions}
+              fromDate={customFromDate}
+              toDate={customToDate}
+              invalid={isCustomRangeInvalid}
+              customRangeValue="CUSTOM_RANGE"
+              onFilterChange={handleTimeFilterChange}
+              onFromDateChange={handleCustomFromDateChange}
+              onToDateChange={handleCustomToDateChange}
+              ariaLabel="Notification time range"
+              fromLabel="From date"
+              toLabel="To date"
+              toText="to"
+              invalidMessage="Start date must be before end date."
+            />
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between gap-2 px-4">
+            <CustomTabs
+              value={tab}
+              options={readTabOptions}
+              onChange={handleTabChange}
+              ariaLabel="Notification time range"
+              className="min-w-0 shrink-0"
+            />
+            <div className="flex min-w-0 items-center justify-end py-2">
+              {tab === "READ" && hasCategoryData ? (
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => void handleDeleteCategory(category)}
                   disabled={deleteNotificationsMutation.isPending}
-                  className="inline-flex h-7 max-w-32 shrink-0 cursor-pointer items-center gap-1 rounded-full bg-slate-50 px-2 text-[10px] font-black text-slate-500 ring-1 ring-slate-200 transition hover:bg-rose-50 hover:text-rose-600 hover:ring-rose-100 disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label={
+                    category === "ALL"
+                      ? "Delete read"
+                      : `Delete read ${categoryConfig[category].label}`
+                  }
+                  title={
+                    category === "ALL"
+                      ? "Delete read"
+                      : `Delete read ${categoryConfig[category].label}`
+                  }
+                  className="h-8 min-w-0 shrink rounded-lg border-slate-200 bg-white px-2 text-xs font-black text-slate-500 hover:border-red-100 hover:bg-red-50 hover:text-red-600"
                 >
                   <Trash2 className="h-3.5 w-3.5 shrink-0" />
                   <span className="truncate">
-                    {intl.formatMessage(
-                      { id: "notifications.deleteCategory" },
-                      { category: categoryConfig[category].label },
-                    )}
+                    {category === "ALL"
+                      ? "Delete read"
+                      : `Delete read ${categoryConfig[category].label}`}
                   </span>
-                </button>
-              )}
+                </Button>
+              ) : null}
             </div>
           </div>
+
+          <Separator />
 
           <div className="max-h-[52vh] overflow-y-auto overscroll-contain">
             <NotificationList
               notifications={visibleNotifications}
               onItemClick={handleItemClick}
-              onDelete={(notificationId) =>
-                void handleDeleteNotification(notificationId)
+              onDelete={
+                tab === "READ"
+                  ? (notificationId) =>
+                      void handleDeleteNotification(notificationId)
+                  : undefined
               }
               deletingNotificationId={deletingNotificationId}
               isLoading={loading}
             />
           </div>
-          <div className="flex items-center justify-end gap-1 border-t border-slate-100 bg-slate-50/70 px-3 py-2">
-            <button
-              type="button"
-              onClick={() => setPage(1)}
-              disabled={!canGoPrevious || loading}
-              className="h-7 rounded-md px-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              &lt;&lt;
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-              disabled={!canGoPrevious || loading}
-              className="h-7 rounded-md px-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              &lt;
-            </button>
-            <span className="mx-1 min-w-12 rounded-full bg-white px-2 py-1 text-center text-[11px] font-black text-slate-600 ring-1 ring-slate-200">
-              {currentPage}/{pagination.totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() =>
-                setPage((value) => Math.min(pagination.totalPages, value + 1))
-              }
-              disabled={!canGoNext || loading}
-              className="h-7 rounded-md px-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              &gt;
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage(pagination.totalPages)}
-              disabled={!canGoNext || loading}
-              className="h-7 rounded-md px-2 text-xs font-black text-indigo-600 transition hover:bg-indigo-50 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent"
-            >
-              &gt;&gt;
-            </button>
+
+          <div className="border-t border-slate-100 bg-slate-50/80 px-3 py-2">
+            <SimplePagination
+              page={currentPage}
+              totalPages={pagination.totalPages}
+              isLoading={loading}
+              onPageChange={handlePageChange}
+            />
           </div>
-        </div>
-      )}
+        </PopoverContent>
+      </Popover>
 
       {selectedNotification && (
         <NotificationDetailModal

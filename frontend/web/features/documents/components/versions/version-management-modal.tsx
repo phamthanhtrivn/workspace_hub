@@ -1,11 +1,10 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useEffect } from "react";
-import { createPortal } from "react-dom";
+import React, { useState, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { DocumentItem } from "../../types/documents.types";
-import { X, History } from "lucide-react";
+import { History } from "lucide-react";
 import {
   DocumentItemType,
   UploadState,
@@ -15,10 +14,16 @@ import { ORIGINAL_VERSION_ID } from "../../types/documents.constants";
 import { toast } from "sonner";
 import { VersionUploader } from "./version-uploader";
 import { VersionHistoryTable } from "./version-history-table";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface VersionManagementModalProps {
-  isOpen: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   item: DocumentItem | null;
   onPreviewVersion: (item: DocumentItem, versionId: string) => void;
@@ -26,7 +31,8 @@ interface VersionManagementModalProps {
   onVersionUploaded?: () => void;
 }
 
-function VersionManagementModal({
+export function VersionManagementModal({
+  open,
   isOpen,
   onClose,
   item,
@@ -34,18 +40,12 @@ function VersionManagementModal({
   isPublic = false,
   onVersionUploaded,
 }: VersionManagementModalProps) {
-  const intl = useAppIntl();
+  const isModalOpen = open ?? isOpen ?? false;
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadingFileName, setUploadingFileName] = useState("");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
 
   const { data: versions = [], isLoading } = useQuery({
     queryKey: ["document-versions", item?.id],
@@ -55,7 +55,7 @@ function VersionManagementModal({
         ? documentsApi.getPublicVersions(item.id)
         : documentsApi.getVersions(item.id);
     },
-    enabled: isOpen && !!item && item.type !== DocumentItemType.FOLDER,
+    enabled: isModalOpen && !!item && item.type !== DocumentItemType.FOLDER,
   });
 
   const handleDownload = useCallback(
@@ -65,28 +65,24 @@ function VersionManagementModal({
         const downloadUrl = isPublic
           ? await documentsApi.getPublicDownloadUrl(
               item.id,
-              versionId === ORIGINAL_VERSION_ID ? undefined : versionId,
+              versionId === ORIGINAL_VERSION_ID ? undefined : versionId
             )
           : await documentsApi.getDownloadUrl(
               item.id,
-              versionId === ORIGINAL_VERSION_ID ? undefined : versionId,
+              versionId === ORIGINAL_VERSION_ID ? undefined : versionId
             );
         const link = document.createElement("a");
         link.href = downloadUrl;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        toast.success(
-          intl.formatMessage({ id: "documents.versionDownloadStarted" }),
-        );
+        toast.success("Version download started.");
       } catch (err) {
         console.error("Failed to download version", err);
-        toast.error(
-          intl.formatMessage({ id: "documents.versionDownloadLinkFailed" }),
-        );
+        toast.error("Could not generate download link for this version.");
       }
     },
-    [item, isPublic, intl],
+    [item, isPublic]
   );
 
   const uploadVersionMutation = useMutation({
@@ -104,7 +100,7 @@ function VersionManagementModal({
         return documentsApi.uploadNewPublicVersion(
           item!.id,
           file,
-          progressCallback,
+          progressCallback
         );
       } else {
         return documentsApi.uploadNewVersion(item!.id, file, progressCallback);
@@ -112,11 +108,8 @@ function VersionManagementModal({
     },
     onSuccess: () => {
       setUploadState(UploadState.SUCCESS);
-      toast.success(
-        intl.formatMessage({ id: "documents.newVersionUploaded" }),
-      );
+      toast.success("New version uploaded successfully!");
 
-      // Invalidate queries to refresh lists and quota
       void queryClient.invalidateQueries({
         queryKey: ["document-versions", item!.id],
       });
@@ -139,7 +132,7 @@ function VersionManagementModal({
       const errMsg =
         err.response?.data?.message ||
         err.message ||
-        intl.formatMessage({ id: "documents.uploadNewVersionFailed" });
+        "Failed to upload new version.";
       toast.error(errMsg);
       setTimeout(() => {
         setUploadState(UploadState.IDLE);
@@ -153,45 +146,34 @@ function VersionManagementModal({
       if (!file || !item) return;
       uploadVersionMutation.mutate({ file });
     },
-    [item, uploadVersionMutation],
+    [item, uploadVersionMutation]
   );
 
   const triggerFileSelect = useCallback(() => {
     fileInputRef.current?.click();
   }, []);
 
-  if (!isOpen || !item || !mounted) return null;
+  if (!isModalOpen || !item) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="flex w-full max-w-2xl flex-col rounded-3xl bg-white shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-50 p-6 bg-white shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-              <History size={20} />
-            </div>
-            <div>
-              <h3 className="text-base font-black text-slate-800 leading-tight">
-                {intl.formatMessage({ id: "documents.versionManagement" })}
-              </h3>
-              <p className="text-xs text-slate-400 font-bold mt-0.5 truncate max-w-lg">
-                {item.name}
-              </p>
-            </div>
+  return (
+    <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="max-w-2xl border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl">
+        <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+            <History className="h-5 w-5" />
           </div>
-          <button
-            onClick={onClose}
-            className="cursor-pointer rounded-xl p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors border border-slate-100"
-          >
-            <X size={16} />
-          </button>
-        </div>
+          <div className="min-w-0 flex-1">
+            <DialogTitle className="text-base font-black text-slate-800">
+              Version management
+            </DialogTitle>
+            <p className="mt-0.5 truncate text-xs text-slate-400 font-bold max-w-md">
+              {item.name}
+            </p>
+          </div>
+        </DialogHeader>
 
-        {/* Modal Body */}
-        <div className="p-6 overflow-y-auto max-h-[60vh] flex-1 bg-white">
-          {/* Upload New Version Widget */}
-          {item.userRole !== DocumentRole.VIEWER && (
+        <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+          {item.userRole !== DocumentRole.VIEWER ? (
             <VersionUploader
               uploadState={uploadState}
               uploadProgress={uploadProgress}
@@ -200,9 +182,8 @@ function VersionManagementModal({
               onFileChange={handleFileChange}
               onTriggerFileSelect={triggerFileSelect}
             />
-          )}
+          ) : null}
 
-          {/* Versions Table */}
           <VersionHistoryTable
             versions={versions}
             isLoading={isLoading}
@@ -211,9 +192,8 @@ function VersionManagementModal({
             onDownload={handleDownload}
           />
         </div>
-      </div>
-    </div>,
-    document.body,
+      </DialogContent>
+    </Dialog>
   );
 }
 

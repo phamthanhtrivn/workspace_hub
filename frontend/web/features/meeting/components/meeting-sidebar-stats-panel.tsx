@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Video,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { useMeetingHistorySummary } from "../hooks/useMeetingHistory";
 import {
@@ -108,14 +107,12 @@ function MeetingSidebarStatsRow({
 }
 
 export function MeetingSidebarStatsPanel() {
-  const intl = useAppIntl();
   const summaryQuery = useMeetingHistorySummary();
   const summary = summaryQuery.data?.data ?? zeroSummary;
   const isEmpty = !summaryQuery.isLoading && summary.totalMeetings === 0;
   const lastMeetingLabel = formatMeetingSummaryLastMeetingAt(
     summary.lastMeetingAt,
-    intl.locale,
-    intl.formatMessage({ id: "meeting.stats.never" }),
+    "Never",
   );
 
   return (
@@ -126,7 +123,7 @@ export function MeetingSidebarStatsPanel() {
         </div>
       ) : summaryQuery.isError ? (
         <div className="m-3 rounded-md border border-dashed border-red-200 bg-red-50 px-3 py-4 text-sm font-bold text-red-600">
-          {intl.formatMessage({ id: "meeting.stats.error" })}
+          Could not load meeting stats.
         </div>
       ) : (
         <div>
@@ -134,7 +131,7 @@ export function MeetingSidebarStatsPanel() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-xs font-black text-blue-100">
-                  {intl.formatMessage({ id: "meeting.stats.title" })}
+                  Meeting stats
                 </p>
                 <p className="mt-3 text-4xl font-black leading-none">
                   {summary.totalMeetings}
@@ -147,11 +144,10 @@ export function MeetingSidebarStatsPanel() {
 
             <p className="mt-3 text-xs font-bold leading-5 text-blue-100">
               {isEmpty
-                ? intl.formatMessage({ id: "meeting.stats.empty" })
-                : intl.formatMessage(
-                    { id: "meeting.stats.totalMeetings" },
-                    { count: summary.totalMeetings },
-                  )}
+                ? "Your meeting stats will appear here."
+                : `${summary.totalMeetings} total ${
+                    summary.totalMeetings === 1 ? "meeting" : "meetings"
+                  }`}
             </p>
           </div>
 
@@ -159,19 +155,19 @@ export function MeetingSidebarStatsPanel() {
             <div className="grid grid-cols-3 gap-1.5">
               <MeetingSidebarMetric
                 icon={Radio}
-                label={intl.formatMessage({ id: "meeting.stats.live" })}
+                label="Live"
                 value={summary.liveMeetings}
                 tone="emerald"
               />
               <MeetingSidebarMetric
                 icon={Video}
-                label={intl.formatMessage({ id: "meeting.stats.ended" })}
+                label="Ended"
                 value={summary.endedMeetings}
                 tone="slate"
               />
               <MeetingSidebarMetric
                 icon={ShieldCheck}
-                label={intl.formatMessage({ id: "meeting.stats.hosted" })}
+                label="Hosted"
                 value={summary.hostedMeetings}
                 tone="blue"
               />
@@ -180,12 +176,12 @@ export function MeetingSidebarStatsPanel() {
             <div className="divide-y divide-slate-100 rounded-md border border-slate-200 bg-white shadow-[0_8px_18px_rgba(15,40,84,0.04)]">
               <MeetingSidebarStatsRow
                 icon={Clock3}
-                label={intl.formatMessage({ id: "meeting.stats.totalTime" })}
+                label="Total time"
                 value={formatMeetingSummaryMinutes(summary.totalMinutes)}
               />
               <MeetingSidebarStatsRow
                 icon={CalendarDays}
-                label={intl.formatMessage({ id: "meeting.stats.lastMeeting" })}
+                label="Last meeting"
                 value={lastMeetingLabel}
               />
             </div>

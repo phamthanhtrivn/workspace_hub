@@ -6,7 +6,6 @@ import {
 } from "@/features/chat/types/chat.types";
 import { User } from "lucide-react";
 import { FaKey } from "react-icons/fa";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ChannelMemberRowProps {
   member: ChannelMemberListItem;
@@ -32,8 +31,7 @@ export default function ChannelMemberRow({
   onOpenProfile,
   spaceCreatorId,
 }: ChannelMemberRowProps) {
-  const intl = useAppIntl();
-  const unknownUser = intl.formatMessage({ id: "chat.unknownUser" });
+  const unknownUser = "Unknown User";
   const displayName = getDisplayName(member, unknownUser);
   const isAdmin = member.role === SpaceRole.ADMIN;
   const isCreator = member.userId === spaceCreatorId;
@@ -59,14 +57,14 @@ export default function ChannelMemberRow({
         {isCreator ? (
           <span
             className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-amber-500 border border-white text-white shadow-sm"
-            title={intl.formatMessage({ id: "chat.role.owner" })}
+            title="Owner"
           >
             <FaKey size={8} />
           </span>
         ) : isAdmin ? (
           <span
             className="absolute -bottom-0.5 -right-0.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-slate-400 border border-white text-white shadow-sm"
-            title={intl.formatMessage({ id: "chat.role.admin" })}
+            title="Admin"
           >
             <FaKey size={8} />
           </span>
@@ -80,7 +78,7 @@ export default function ChannelMemberRow({
           </span>
           {isAdmin ? (
             <span className="shrink-0 rounded-full border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold uppercase leading-none text-blue-600">
-              {intl.formatMessage({ id: "chat.role.admin" })}
+              Admin
             </span>
           ) : null}
         </span>
@@ -91,3 +89,4 @@ export default function ChannelMemberRow({
     </button>
   );
 }
+
