@@ -17,6 +17,12 @@ export const PROJECT_KAFKA_CLIENT = 'PROJECT_KAFKA_CLIENT';
               .split(',')
               .map((broker) => broker.trim())
               .filter(Boolean),
+            connectionTimeout: 10_000,
+            requestTimeout: 30_000,
+            retry: {
+              initialRetryTime: 300,
+              retries: 8,
+            },
           },
           producerOnlyMode: true,
         },

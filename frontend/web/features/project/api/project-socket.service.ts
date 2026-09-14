@@ -54,7 +54,7 @@ class ProjectSocketService {
     this.token = token;
     this.socket = io(apiUrl.replace(/\/api$/, ''), {
       path: '/project.io',
-      transports: ['websocket'],
+      transports: ['websocket', 'polling'],
       auth: { token },
       query: { token },
     });

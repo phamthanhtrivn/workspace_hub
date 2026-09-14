@@ -20,20 +20,25 @@ function createSocket(): Socket {
 
 describe('ProjectGateway', () => {
   const tokens = { verify: jest.fn().mockReturnValue(USER_ID) } as unknown as AccessTokenVerifier;
-  const prisma = { project: { findFirst: jest.fn() } } as unknown as PrismaService;
+  const prisma = { project: { findFirst: jest.fn(), findMany: jest.fn() } } as unknown as PrismaService;
   const events = { bindServer: jest.fn() } as unknown as SocketEventEmitter;
   const rooms = new SocketRoomService();
   const gateway = new ProjectGateway(tokens, prisma, events, rooms);
 
   beforeEach(() => jest.clearAllMocks());
 
-  it('authenticates a connection and joins its private user room', () => {
+  it('authenticates a connection and automatically joins every accessible project room', async () => {
     const client = createSocket();
-    gateway.handleConnection(client);
+    jest.mocked(prisma.project.findMany).mockResolvedValueOnce([{ id: PROJECT_ID }] as never);
+
+    await gateway.handleConnection(client);
 
     expect(tokens.verify).toHaveBeenCalledWith('valid-token');
     expect(client.data.userId).toBe(USER_ID);
-    expect(client.join).toHaveBeenCalledWith(`project:user:${USER_ID}`);
+    expect(client.join).toHaveBeenCalledWith([
+      `project:user:${USER_ID}`,
+      `project:${PROJECT_ID}`,
+    ]);
   });
 
   it('joins a project room only after membership is verified', async () => {

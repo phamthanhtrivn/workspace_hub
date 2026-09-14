@@ -63,7 +63,7 @@ export class ProjectService {
             create: {
               id: crypto.randomUUID(),
               userId,
-              role: ProjectRole.OWNER,
+              role: ProjectRole.ADMIN,
               status: ProjectMemberStatus.ACTIVE,
               canCreateTask: true,
               canEditOwnTask: true,

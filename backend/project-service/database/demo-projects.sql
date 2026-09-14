@@ -62,7 +62,7 @@ BEGIN
     VALUES (gen_random_uuid(), project_id, TRUE, TRUE, TRUE, TRUE);
 
     INSERT INTO project_members (id, project_id, user_id, role, status, joined_at, updated_at, version)
-    VALUES (gen_random_uuid(), project_id, owner_id, 'OWNER', 'ACTIVE', created_at, created_at, 0);
+    VALUES (gen_random_uuid(), project_id, owner_id, 'ADMIN', 'ACTIVE', created_at, created_at, 0);
 
     INSERT INTO task_labels (id, project_id, name, color)
     VALUES (gen_random_uuid(), project_id, 'Ưu tiên', '#DC2626'),

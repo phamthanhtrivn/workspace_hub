@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import {
   Paperclip,
   Plus,
@@ -54,6 +54,16 @@ interface TaskAttachmentsSectionProps {
   isReadOnly?: boolean;
 }
 
+function loadAttachments(storageKey: string): TaskLocalAttachment[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const stored = localStorage.getItem(storageKey);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
 export default function TaskAttachmentsSection({
   task,
   isReadOnly = false,
@@ -63,18 +73,9 @@ export default function TaskAttachmentsSection({
   const [isDragOver, setIsDragOver] = useState(false);
 
   const storageKey = `task_attachments_ui_${task.id}`;
-  const [attachments, setAttachments] = useState<TaskLocalAttachment[]>([]);
-
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        setAttachments(JSON.parse(stored));
-      }
-    } catch {
-      // ignore
-    }
-  }, [storageKey]);
+  const [attachments, setAttachments] = useState<TaskLocalAttachment[]>(() =>
+    loadAttachments(storageKey),
+  );
 
   const saveAttachments = (items: TaskLocalAttachment[]) => {
     setAttachments(items);

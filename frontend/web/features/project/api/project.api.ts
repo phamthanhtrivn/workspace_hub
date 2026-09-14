@@ -158,7 +158,7 @@ export async function getProjects(): Promise<Project[]> {
         displayName:
           profilesById.get(project.ownerId)?.fullName?.trim() || project.ownerId,
         avatarUrl: profilesById.get(project.ownerId)?.avatarUrl || undefined,
-        role: ProjectRole.OWNER,
+        role: ProjectRole.ADMIN,
         canCreateTask: true,
         canEditOwnTask: true,
         canEditOthersTask: true,

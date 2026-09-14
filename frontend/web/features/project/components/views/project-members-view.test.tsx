@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import ProjectMembersView from "./project-members-view";
 import {
   ProjectRole,
+  TaskPriority,
+  TaskStatus,
   type ProjectMember,
   type Task,
 } from "../../types/project";
@@ -43,7 +45,7 @@ const mockMembers: ProjectMember[] = [
     projectId: "project-1",
     userId: "user-owner",
     displayName: "Việt Nhân Trần",
-    role: ProjectRole.OWNER,
+    role: ProjectRole.ADMIN,
     canCreateTask: true,
     canEditOwnTask: true,
     canEditOthersTask: true,
@@ -74,8 +76,8 @@ const mockTasks: Task[] = [
     projectId: "project-1",
     taskNumber: 1,
     title: "Setup API",
-    status: "IN_PROGRESS" as any,
-    priority: "HIGH" as any,
+    status: TaskStatus.IN_PROGRESS,
+    priority: TaskPriority.HIGH,
     assignees: [{ userId: "user-dev", displayName: "asd" }],
     labels: [],
     checklistTotal: 0,
@@ -103,7 +105,7 @@ describe("ProjectMembersView", () => {
     expect(screen.getByText("Việt Nhân Trần")).toBeTruthy();
     expect(screen.getByText("asd")).toBeTruthy();
     expect(screen.getByText("Total Members")).toBeTruthy();
-    expect(screen.getByText("Owners & Admins")).toBeTruthy();
+    expect(screen.getByText("Administrators")).toBeTruthy();
 
     // You badge on current user
     expect(screen.getByText("You")).toBeTruthy();

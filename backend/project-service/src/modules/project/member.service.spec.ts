@@ -75,7 +75,7 @@ describe("MemberService.updatePermissions", () => {
 
   it("does not allow changing owner permissions", async () => {
     findUnique.mockResolvedValue({
-      role: ProjectRole.OWNER,
+      role: ProjectRole.ADMIN,
       status: ProjectMemberStatus.ACTIVE,
     });
 

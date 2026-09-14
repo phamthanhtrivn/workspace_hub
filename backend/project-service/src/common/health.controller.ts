@@ -11,9 +11,13 @@ type DependencyCheck = {
 
 const SERVICE_NAME = 'project-service';
 const KAFKA_DEFAULT_BROKER = 'localhost:9092';
+const KAFKA_HEALTH_CACHE_MS = 30_000;
 
 @Controller()
 export class HealthController {
+  private kafkaCheck?: { result: DependencyCheck; expiresAt: number };
+  private kafkaCheckInFlight?: Promise<DependencyCheck>;
+
   constructor(private readonly prisma: PrismaService) {}
 
   @Public()
@@ -57,6 +61,25 @@ export class HealthController {
   }
 
   private async checkKafka(): Promise<DependencyCheck> {
+    if (this.kafkaCheck && this.kafkaCheck.expiresAt > Date.now()) {
+      return this.kafkaCheck.result;
+    }
+    if (this.kafkaCheckInFlight) return this.kafkaCheckInFlight;
+
+    this.kafkaCheckInFlight = this.performKafkaCheck();
+    try {
+      const result = await this.kafkaCheckInFlight;
+      this.kafkaCheck = {
+        result,
+        expiresAt: Date.now() + (result.status === 'ok' ? KAFKA_HEALTH_CACHE_MS : 5_000),
+      };
+      return result;
+    } finally {
+      this.kafkaCheckInFlight = undefined;
+    }
+  }
+
+  private async performKafkaCheck(): Promise<DependencyCheck> {
     const brokers = (process.env.KAFKA_BROKER ?? KAFKA_DEFAULT_BROKER)
       .split(',')
       .map((broker) => broker.trim())
@@ -64,9 +87,9 @@ export class HealthController {
     const kafka = new Kafka({
       clientId: `${SERVICE_NAME}-health`,
       brokers,
-      connectionTimeout: 3_000,
-      requestTimeout: 3_000,
-      retry: { retries: 0 },
+      connectionTimeout: 5_000,
+      requestTimeout: 10_000,
+      retry: { retries: 1 },
     });
     const admin = kafka.admin();
 

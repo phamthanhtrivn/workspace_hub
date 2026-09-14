@@ -112,7 +112,7 @@ describe("ProjectDetailSidebar members", () => {
       projectId: "p",
       userId: `user-${index}`,
       displayName: `Member ${index + 1}`,
-      role: index === 0 ? ProjectRole.OWNER : ProjectRole.MEMBER,
+      role: index === 0 ? ProjectRole.ADMIN : ProjectRole.MEMBER,
     })) as ProjectMember[];
 
     render(

@@ -7,7 +7,6 @@ import {
   type TaskDependency,
 } from "@/features/project/types/project";
 import { taskDateKey } from "@/features/project/utils/task-dates";
-import { TASK_STATUS_COLORS } from "@/features/project/constants/task.constants";
 
 export type GanttZoomMode = "day" | "week" | "month";
 

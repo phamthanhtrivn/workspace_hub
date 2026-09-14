@@ -177,7 +177,7 @@ export default function ProjectDetailSidebar({
                   <span className="block text-[10px] text-slate-400">
                     {intl.formatMessage({
                       id:
-                        member.role === ProjectRole.OWNER
+                        member.role === ProjectRole.ADMIN
                           ? "project.role.owner"
                           : "project.role.member",
                     })}

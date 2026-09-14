@@ -19,7 +19,7 @@ export enum SprintStatus {
 }
 
 export enum ProjectRole {
-  OWNER = "OWNER",
+  ADMIN = "ADMIN",
   MEMBER = "MEMBER",
 }
 

@@ -27,11 +27,24 @@ export class ProjectGateway implements OnGatewayInit, OnGatewayConnection {
     this.events.bindServer(server);
   }
 
-  handleConnection(client: Socket): void {
+  async handleConnection(client: Socket): Promise<void> {
     try {
       const userId = this.tokens.verify(this.readToken(client));
       client.data.userId = userId;
-      void client.join(this.rooms.user(userId));
+      const projects = await this.prisma.project.findMany({
+        where: {
+          archived: false,
+          OR: [
+            { ownerId: userId },
+            { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
+          ],
+        },
+        select: { id: true },
+      });
+      await client.join([
+        this.rooms.user(userId),
+        ...projects.map((project) => this.rooms.project(project.id)),
+      ]);
     } catch {
       client.disconnect(true);
     }

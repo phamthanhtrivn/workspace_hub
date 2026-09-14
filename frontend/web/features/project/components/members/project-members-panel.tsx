@@ -30,7 +30,7 @@ const ROLE_CONFIG: Record<
   ProjectRole,
   { labelId: string; color: string; bg: string; icon: React.ElementType }
 > = {
-  [ProjectRole.OWNER]: {
+  [ProjectRole.ADMIN]: {
     labelId: "project.role.owner",
     color: "text-amber-600",
     bg: "bg-amber-50",
@@ -73,7 +73,7 @@ export default function ProjectMembersPanel({
   const pendingInvitations = pendingInvitationsQuery.data ?? [];
 
   const sorted = [...members].sort((a, b) => {
-    const order = { OWNER: 0, MEMBER: 1 };
+    const order = { ADMIN: 0, MEMBER: 1 };
     return order[a.role] - order[b.role];
   });
 
@@ -182,7 +182,7 @@ export default function ProjectMembersPanel({
                   {intl.formatMessage({ id: roleCfg.labelId })}
                 </span>
               </div>
-              {member.role !== ProjectRole.OWNER && (
+              {member.role !== ProjectRole.ADMIN && (
                 <div className="flex shrink-0 items-center">
                   {canManagePermissions && (
                     <button

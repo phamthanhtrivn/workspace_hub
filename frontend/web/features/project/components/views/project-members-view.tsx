@@ -42,7 +42,7 @@ interface ProjectMembersViewProps {
   onInviteClick?: () => void;
 }
 
-type RoleFilterTab = "ALL" | "OWNER" | "MEMBER" | "PENDING";
+type RoleFilterTab = "ALL" | "ADMIN" | "MEMBER" | "PENDING";
 
 export default function ProjectMembersView({
   projectId,
@@ -52,7 +52,6 @@ export default function ProjectMembersView({
   canRemoveMembers = false,
   canManagePermissions = false,
   currentUserId,
-  onInviteClick,
 }: ProjectMembersViewProps) {
   const intl = useAppIntl();
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,7 +82,7 @@ export default function ProjectMembersView({
   }, [tasks]);
 
   const ownerCount = useMemo(
-    () => members.filter((m) => m.role === ProjectRole.OWNER).length,
+    () => members.filter((m) => m.role === ProjectRole.ADMIN).length,
     [members],
   );
 
@@ -97,7 +96,7 @@ export default function ProjectMembersView({
     return members
       .filter((member) => {
         // Tab filter
-        if (activeTab === "OWNER" && member.role !== ProjectRole.OWNER)
+        if (activeTab === "ADMIN" && member.role !== ProjectRole.ADMIN)
           return false;
         if (activeTab === "MEMBER" && member.role !== ProjectRole.MEMBER)
           return false;
@@ -110,18 +109,10 @@ export default function ProjectMembersView({
         return true;
       })
       .sort((a, b) => {
-        const order = { OWNER: 0, MEMBER: 1 };
+        const order = { ADMIN: 0, MEMBER: 1 };
         return order[a.role] - order[b.role];
       });
   }, [members, activeTab, searchQuery]);
-
-  const handleOpenInvite = () => {
-    if (onInviteClick) {
-      onInviteClick();
-    } else {
-      setShowInviteDialog(true);
-    }
-  };
 
   const handleRemoveMember = async (member: ProjectMember) => {
     const confirmed = await confirmProjectAction({
@@ -271,9 +262,9 @@ export default function ProjectMembersView({
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("OWNER")}
+              onClick={() => setActiveTab("ADMIN")}
               className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
-                activeTab === "OWNER"
+                activeTab === "ADMIN"
                   ? "bg-white text-slate-800 shadow-sm"
                   : "text-slate-500 hover:text-slate-900"
               }`}
@@ -380,7 +371,7 @@ export default function ProjectMembersView({
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {filteredMembers.map((member) => {
-                    const isOwner = member.role === ProjectRole.OWNER;
+                    const isOwner = member.role === ProjectRole.ADMIN;
                     const isCurrent = member.userId === currentUserId;
                     const assignedCount = tasksByMember.get(member.userId) ?? 0;
 
