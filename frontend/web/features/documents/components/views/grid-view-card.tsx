@@ -6,9 +6,10 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { DocumentItem } from "../../types/documents.types";
 import { DocumentItemType, DocumentViewType } from "../../types/documents.enums";
 import ItemActionsMenu from "../explorer/item-actions-menu";
-import { cn } from "@/lib/utils";
 import { DocumentIcon } from "../common/document-icon";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { DocumentsCard } from "../ui/documents-card";
+import { DocumentsStatusBadge } from "../ui/documents-status-badge";
+import { formatBytes } from "../../utils/documents.utils";
 
 export interface GridViewCardProps {
   item: DocumentItem;
@@ -18,19 +19,18 @@ export interface GridViewCardProps {
   activeView: DocumentViewType;
   activeMenuId: string | null;
   setActiveMenuId: (id: string | null) => void;
-  onRename: (id: string, name: string) => void;
+  onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (id: string, isStarred: boolean) => void;
-  onArchive: (id: string, archive: boolean) => void;
-  onViewDetails: (id: string) => void;
-  onDeletePermanently: (id: string) => void;
+  onToggleStar: (item: DocumentItem) => void;
+  onMoveToTrash: (item: DocumentItem) => void;
+  onRestore: (item: DocumentItem) => void;
+  onViewDetails: (item: DocumentItem) => void;
+  onDeletePermanently: (item: DocumentItem) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
-  onDownloadFolder?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
-  formatBytes: (bytes: number) => string;
 }
 
 export function GridViewCard({
@@ -44,18 +44,16 @@ export function GridViewCard({
   onRename,
   onMove,
   onToggleStar,
-  onArchive,
+  onMoveToTrash,
+  onRestore,
   onViewDetails,
   onDeletePermanently,
   onPreview,
   onDownload,
   onManageVersions,
   onShare,
-  onDownloadFolder,
   onShareToChat,
-  formatBytes,
 }: GridViewCardProps) {
-  const intl = useAppIntl();
   const isFolder = item.type === DocumentItemType.FOLDER;
   const isSelected = item.id === selectedItemId;
 
@@ -88,81 +86,72 @@ export function GridViewCard({
     : undefined;
 
   return (
-    <div
-      ref={setCombinedRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect(item.id);
-      }}
-      onDoubleClick={(e) => {
-        e.stopPropagation();
-        if (isFolder) {
-          onFolderClick(item);
-        } else {
-          onPreview?.(item);
-        }
-      }}
-      className={cn(
-        "group relative flex flex-col p-4 rounded-2xl border transition-all cursor-pointer select-none duration-300",
-        isSelected
-          ? "bg-blue-50/50 border-blue-200 ring-2 ring-blue-500/10 shadow-xs"
-          : isFolder
-            ? "border-slate-100 hover:border-amber-200 hover:bg-amber-50/5"
-            : "border-slate-100 hover:border-blue-100 hover:bg-blue-50/5",
-        isOver && "border-2 border-dashed border-blue-400 bg-blue-50/20 scale-102",
-      )}
-    >
-      {/* Item Icon & Options */}
-      <div className="flex items-start justify-between mb-3">
-        <DocumentIcon
-          item={item}
-          iconSize={22}
-          isSelected={isSelected}
-          className="p-3 rounded-xl transition-all duration-300"
-        />
+    <div ref={setCombinedRef} style={style} {...attributes} {...listeners}>
+      <DocumentsCard
+        selected={isSelected}
+        isDraggingOver={isOver}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect(item.id);
+        }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          if (isFolder) {
+            onFolderClick(item);
+          } else {
+            onPreview?.(item);
+          }
+        }}
+        className="group flex flex-col justify-between h-40 select-none cursor-pointer border-slate-100 hover:border-amber-200/80 hover:bg-amber-50/10"
+      >
+        {/* Header Icon & Menu */}
+        <div className="flex items-start justify-between">
+          <DocumentIcon
+            item={item}
+            iconSize={22}
+            isSelected={isSelected}
+            className="p-3 rounded-xl transition-all duration-300"
+          />
 
-        {/* Item Actions Dropdown */}
-        <ItemActionsMenu
-          item={item}
-          activeView={activeView}
-          activeMenuId={activeMenuId}
-          setActiveMenuId={setActiveMenuId}
-          onRename={() => onRename(item.id, item.name)}
-          onMove={() => onMove(item.id)}
-          onToggleStar={() => onToggleStar(item.id, item.isStarred)}
-          onArchive={(archive: boolean) => onArchive(item.id, archive)}
-          onViewDetails={() => onViewDetails(item.id)}
-          onDeletePermanently={() => onDeletePermanently(item.id)}
-          onPreview={() => onPreview?.(item)}
-          onDownload={() => onDownload?.(item)}
-          onDownloadFolder={() => onDownloadFolder?.(item)}
-          onManageVersions={() => onManageVersions?.(item)}
-          onShare={() => onShare?.(item)}
-          onShareToChat={() => onShareToChat?.(item)}
-        />
-      </div>
-
-      {/* Item Info */}
-      <div className="flex-1 min-w-0">
-        <span className="block font-bold text-sm text-slate-700 truncate group-hover:text-slate-900">
-          {item.name}
-        </span>
-        <span className="block text-xs text-slate-400 font-semibold mt-1">
-          {isFolder
-            ? intl.formatMessage({ id: "documents.folder" })
-            : formatBytes(item.sizeBytes)}
-        </span>
-      </div>
-
-      {/* Starred indicator */}
-      {item.isStarred && (
-        <div className="absolute bottom-4 right-4 text-amber-400">
-          <Star size={15} className="fill-amber-400" />
+          <ItemActionsMenu
+            item={item}
+            activeView={activeView}
+            activeMenuId={activeMenuId}
+            setActiveMenuId={setActiveMenuId}
+            onRename={() => onRename(item)}
+            onMove={() => onMove(item.id)}
+            onToggleStar={() => onToggleStar(item)}
+            onArchive={(archive) => (archive ? onMoveToTrash(item) : onRestore(item))}
+            onViewDetails={() => onViewDetails(item)}
+            onDeletePermanently={() => onDeletePermanently(item)}
+            onPreview={() => onPreview?.(item)}
+            onDownload={() => onDownload?.(item)}
+            onManageVersions={() => onManageVersions?.(item)}
+            onShare={() => onShare?.(item)}
+            onShareToChat={() => onShareToChat?.(item)}
+          />
         </div>
-      )}
+
+        {/* Info Body */}
+        <div className="min-w-0 mt-3 flex-1">
+          <h4 className="truncate font-bold text-sm text-slate-700 group-hover:text-slate-900 transition-colors">
+            {item.name}
+          </h4>
+          <p className="mt-1 text-xs text-slate-400 font-semibold">
+            {isFolder ? "Folder" : formatBytes(item.sizeBytes)}
+          </p>
+        </div>
+
+        {/* Footer Indicators */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+          <DocumentsStatusBadge type="itemType" itemType={item.type} />
+          {item.isStarred ? (
+            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
+          ) : null}
+        </div>
+      </DocumentsCard>
     </div>
   );
 }
+
+export default React.memo(GridViewCard);

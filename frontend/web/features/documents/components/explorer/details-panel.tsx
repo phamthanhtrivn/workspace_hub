@@ -2,10 +2,7 @@
 
 import React from "react";
 import { DocumentItem } from "../../types/documents.types";
-import {
-  DocumentItemType,
-} from "../../types/documents.enums";
-import { cn } from "@/lib/utils";
+import { DocumentItemType } from "../../types/documents.enums";
 import {
   formatBytes,
   formatDateLong,
@@ -14,181 +11,149 @@ import {
 } from "../../utils/documents.utils";
 import {
   X,
-  FileText,
   User,
   Calendar,
   Layers,
-  Sparkles,
-  Bot,
-  Star,
   Download,
-  Trash2,
-  CornerUpLeft,
-  Move,
   Edit3,
   Share2,
+  History,
 } from "lucide-react";
 import { DocumentIcon } from "../common/document-icon";
-import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { DocumentsIconButton } from "../ui/documents-icon-button";
+import { DocumentsStatusBadge } from "../ui/documents-status-badge";
 
 interface DetailsPanelProps {
   item: DocumentItem | null;
   onClose: () => void;
-  onRename: () => void;
-  onMove: () => void;
-  onToggleStar: () => void;
-  onArchive: (archive: boolean) => void;
+  onRename?: () => void;
+  onMove?: () => void;
+  onToggleStar?: () => void;
+  onArchive?: (archive: boolean) => void;
   onShare?: () => void;
+  onDownload?: () => void;
+  onManageVersions?: () => void;
 }
 
-function DetailsPanel({
+export function DetailsPanel({
   item,
   onClose,
   onRename,
-  onMove,
-  onToggleStar,
-  onArchive,
   onShare,
+  onDownload,
+  onManageVersions,
 }: DetailsPanelProps) {
-  const intl = useAppIntl();
-
   if (!item) return null;
 
-  const isFolder = item.type === DocumentItemType.FOLDER;
+  const isFolder = item.type === DocumentItemType.FOLDER || (item.type as any) === "FOLDER";
 
   return (
-    <div className="w-80 shrink-0 border-l border-slate-100 bg-white flex flex-col h-full animate-in slide-in-from-right duration-200">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 p-5">
-        <h3 className="text-sm font-black uppercase tracking-wider text-slate-800">
-          {intl.formatMessage({ id: "documents.resourceDetails" })}
-        </h3>
-        <button
-          onClick={onClose}
-          className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors cursor-pointer"
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      {/* Body details */}
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-        {/* Preview Frame */}
-        <div className="flex flex-col items-center justify-center p-8 bg-slate-50 rounded-2xl border border-slate-100/50">
-          <DocumentIcon
-            item={item}
-            iconSize={44}
-            className="p-5 rounded-2xl mb-3 shadow-xs"
+    <div className="w-80 shrink-0 border-l border-slate-100 bg-white p-6 text-slate-700 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right-4 duration-300">
+      <div>
+        {/* Panel Header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+          <h3 className="text-sm font-black text-slate-800">
+            Details
+          </h3>
+          <DocumentsIconButton
+            icon={X}
+            label="Close"
+            onClick={onClose}
+            size="icon-sm"
           />
-          <span className="font-bold text-sm text-slate-800 text-center break-all w-full line-clamp-2">
-            {item.name}
-          </span>
-          <span className="text-xs text-slate-400 font-semibold mt-1 max-w-[200px]">
-            {item.type === DocumentItemType.FOLDER
-              ? intl.formatMessage({ id: "documents.folder" })
-              : getFileTypeDescription(item.mimeType, item.name)}
-          </span>
         </div>
 
-        {/* AI Assistants Widget */}
-        {!isFolder && (
-          <div className="flex flex-col gap-2 rounded-2xl bg-blue-50/50 border border-blue-100/30 p-4">
-            <div className="flex items-center gap-2 text-[var(--color-primary)] mb-1">
-              <Sparkles size={16} className="animate-pulse" />
-              <span className="text-xs font-black uppercase tracking-wider">
-                {intl.formatMessage({ id: "documents.integratedAiAssistant" })}
-              </span>
-            </div>
+        {/* Thumbnail / Large Icon */}
+        <div className="my-6 flex flex-col items-center justify-center rounded-3xl border border-slate-100 bg-slate-50/50 p-6 text-center shadow-xs">
+          <DocumentIcon item={item} iconSize={40} className="p-4 rounded-2xl bg-white shadow-xs border border-slate-100" />
+          <h4 className="mt-4 text-xs font-bold text-slate-800 max-w-[200px] truncate">
+            {item.name}
+          </h4>
+          <p className="mt-1 text-[11px] font-semibold text-slate-400">
+            {getFileTypeDescription(item.mimeType, item.name)}
+          </p>
+        </div>
 
-            <button
-              onClick={() =>
-                toast.info(
-                  intl.formatMessage({ id: "documents.aiSummarizing" }),
-                )
-              }
-              className="flex items-center justify-center gap-2 w-full rounded-xl bg-white hover:bg-slate-50 text-[var(--color-primary)] border border-blue-200/50 px-3 py-2 text-xs font-bold shadow-xs transition-all cursor-pointer"
-            >
-              <Bot size={14} />
-              <span>
-                {intl.formatMessage({ id: "documents.summarizeWithAi" })}
-              </span>
-            </button>
-
-            <button
-              onClick={() =>
-                toast.info(
-                  intl.formatMessage({ id: "documents.aiQaInitializing" }),
-                )
-              }
-              className="flex items-center justify-center gap-2 w-full rounded-xl bg-white hover:bg-slate-50 text-[var(--color-primary)] border border-blue-200/50 px-3 py-2 text-xs font-bold shadow-xs transition-all cursor-pointer"
-            >
-              <FileText size={14} />
-              <span>{intl.formatMessage({ id: "documents.qaOnDocument" })}</span>
-            </button>
-          </div>
-        )}
+        {/* Action Buttons */}
+        <div className="grid grid-cols-4 gap-2 py-3 border-y border-slate-100">
+          {onDownload && !isFolder ? (
+            <DocumentsIconButton
+              icon={Download}
+              label="Download"
+              onClick={onDownload}
+            />
+          ) : null}
+          {onShare ? (
+            <DocumentsIconButton
+              icon={Share2}
+              label="Share"
+              onClick={onShare}
+            />
+          ) : null}
+          {onRename ? (
+            <DocumentsIconButton
+              icon={Edit3}
+              label="Rename"
+              onClick={onRename}
+            />
+          ) : null}
+          {onManageVersions && !isFolder ? (
+            <DocumentsIconButton
+              icon={History}
+              label="Versions"
+              onClick={onManageVersions}
+            />
+          ) : null}
+        </div>
 
         {/* Metadata Properties */}
-        <div className="flex flex-col gap-4">
-          <h4 className="text-xs font-black uppercase tracking-wider text-slate-400">
-            {intl.formatMessage({ id: "documents.properties" })}
-          </h4>
+        <div className="mt-6 space-y-4 text-xs">
+          <h5 className="font-black text-slate-400 uppercase tracking-wider text-[10px]">
+            Properties
+          </h5>
 
           <div className="flex items-center gap-3">
-            <User size={16} className="text-slate-400" />
-            <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-medium">
-                {intl.formatMessage({ id: "documents.owner" })}
-              </span>
-              <span className="text-sm font-semibold text-slate-700 truncate max-w-[200px]">
-                {item.ownerEmail}
-              </span>
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-400 border border-slate-100">
+              <User className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold text-slate-400">Owner</p>
+              <p className="font-bold text-slate-700 truncate">
+                {item.ownerEmail || "Me"}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Calendar size={16} className="text-slate-400" />
-            <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-medium">
-                {intl.formatMessage({ id: "documents.uploadedDate" })}
-              </span>
-              <span className="text-sm font-semibold text-slate-700">
-                {formatDateLong(item.createdAt)}
-              </span>
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-400 border border-slate-100">
+              <Calendar className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold text-slate-400">Last Modified</p>
+              <p className="font-bold text-slate-700">
+                {formatDateLong(item.updatedAt)}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <Layers size={16} className="text-slate-400" />
-            <div className="flex flex-col">
-              <span className="text-xs text-slate-400 font-medium">
-                {intl.formatMessage({
-                  id: isFolder
-                    ? "documents.folderContentsSize"
-                    : "documents.size",
-                })}
-              </span>
-              <span className="text-sm font-semibold text-slate-700">
-                {formatBytes(getDocumentDisplaySize(item))}
-              </span>
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-slate-50 text-slate-400 border border-slate-100">
+              <Layers className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold text-slate-400">Size</p>
+              <p className="font-bold text-slate-700">
+                {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
+              </p>
             </div>
           </div>
-
-          {!isFolder && (
-            <div className="flex items-center gap-3">
-              <FileText size={16} className="text-slate-400" />
-              <div className="flex flex-col">
-                <span className="text-xs text-slate-400 font-medium">
-                  {intl.formatMessage({ id: "documents.fileFormat" })}
-                </span>
-                <span className="text-sm font-semibold text-slate-700">
-                  {getFileTypeDescription(item.mimeType, item.name)}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
+      </div>
+
+      {/* Footer Role Status */}
+      <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+        <span className="text-xs text-slate-500 font-bold">Access Permission</span>
+        <DocumentsStatusBadge type="role" role={item.userRole} />
       </div>
     </div>
   );

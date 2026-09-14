@@ -1,31 +1,36 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { X, Send, MessageSquare, Users, Loader2 } from "lucide-react";
+import React from "react";
+import { Send, Users, MessageSquare } from "lucide-react";
 import { DocumentItem } from "../../types/documents.types";
 import { ShareTabType } from "../../types/documents.enums";
 import { useShareToChat } from "../../hooks/useShareToChat";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { DocumentsConfirmDialog } from "../ui/documents-confirm-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ShareToChatModalProps {
-  isOpen: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   item: DocumentItem | null;
 }
 
-export default function ShareToChatModal({
+export function ShareToChatModal({
+  open,
   isOpen,
   onClose,
   item,
 }: ShareToChatModalProps) {
-  const intl = useAppIntl();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
+  const isModalOpen = open ?? isOpen ?? false;
 
   const {
     activeTab,
@@ -41,186 +46,185 @@ export default function ShareToChatModal({
     channels,
     directConversations,
     handleShare,
+    executeShare,
+    isPermissionConfirmOpen,
+    setIsPermissionConfirmOpen,
+    pendingUnauthorizedEmails,
     currentUserId,
   } = useShareToChat({
     item,
     onSuccess: onClose,
   });
 
-  if (!isOpen || !item || !mounted) return null;
+  if (!isModalOpen || !item) return null;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-      <div className="flex w-full max-w-md flex-col rounded-3xl bg-white shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-50 p-6 bg-white shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-violet-50 text-violet-600 rounded-xl">
-              <Send size={20} />
+  const spaceOptions =
+    spaces?.map((space) => ({
+      value: space.id,
+      label: space.name,
+    })) || [];
+
+  const channelOptions = [
+    { value: "", label: "Select channel..." },
+    ...channels.map((ch) => ({
+      value: ch.id,
+      label: `# ${ch.name}`,
+    })),
+  ];
+
+  const dmOptions = [
+    { value: "", label: "Select conversation..." },
+    ...directConversations.map((conv) => {
+      const otherMember = conv.members?.find((m) => m.userId !== currentUserId);
+      const name =
+        otherMember?.profile?.fullName ||
+        otherMember?.nickname ||
+        "Direct Message";
+      return { value: conv.id, label: name };
+    }),
+  ];
+
+  return (
+    <>
+      <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}>
+        <DialogContent
+          className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl"
+          showCloseButton={!isSubmitting}
+        >
+          <DialogHeader className="flex flex-row items-center gap-3 space-y-0 text-left">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-purple-50 text-purple-600 ring-1 ring-purple-100">
+              <Send className="h-5 w-5" />
             </div>
-            <div>
-              <h3 className="text-base font-black text-slate-800 leading-tight">
-                {intl.formatMessage({ id: "documents.shareToChat" })}
-              </h3>
-              <p className="text-xs text-slate-400 font-bold mt-0.5 truncate max-w-[280px]">
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="text-base font-black text-slate-800">
+                Share to chat
+              </DialogTitle>
+              <p className="mt-0.5 truncate text-xs text-slate-400 font-bold">
                 {item.name}
               </p>
             </div>
+          </DialogHeader>
+
+          {/* Navigation Tabs */}
+          <div className="mt-3 flex items-center border-b border-slate-100 gap-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab(ShareTabType.CHANNEL)}
+              className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
+                activeTab === ShareTabType.CHANNEL
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              <span>Channels</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab(ShareTabType.DM)}
+              className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
+                activeTab === ShareTabType.DM
+                  ? "border-purple-600 text-purple-600"
+                  : "border-transparent text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>Direct messages</span>
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="cursor-pointer rounded-xl p-2 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition-colors border border-slate-100"
-          >
-            <X size={16} />
-          </button>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-slate-100 px-6 pt-2 bg-slate-50/50">
-          <button
-            onClick={() => setActiveTab(ShareTabType.CHANNEL)}
-            className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition-all cursor-pointer mr-6 ${
-              activeTab === ShareTabType.CHANNEL
-                ? "border-violet-600 text-violet-600"
-                : "border-transparent text-slate-400 hover:text-slate-600"
-            }`}
-          >
-            <Users size={16} />
-            <span>{intl.formatMessage({ id: "chat.channels" })}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab(ShareTabType.DM)}
-            className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition-all cursor-pointer ${
-              activeTab === ShareTabType.DM
-                ? "border-violet-600 text-violet-600"
-                : "border-transparent text-slate-400 hover:text-slate-600"
-            }`}
-          >
-            <MessageSquare size={16} />
-            <span>{intl.formatMessage({ id: "chat.directMessages" })}</span>
-          </button>
-        </div>
-
-        {/* Body */}
-        <div className="p-6 bg-white space-y-4">
-          {activeTab === ShareTabType.CHANNEL ? (
-            <>
-              {/* Space Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                  {intl.formatMessage({ id: "chat.space" })}
-                </label>
-                <select
-                  value={selectedSpaceId}
-                  onChange={(e) => setSelectedSpaceId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-100 p-3 text-sm font-semibold bg-slate-50 focus:outline-none focus:border-violet-500 cursor-pointer"
-                >
-                  {spaces?.map((space) => (
-                    <option key={space.id} value={space.id}>
-                      {space.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Channel Selection */}
-              <div className="space-y-2">
-                <label className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                  {intl.formatMessage({ id: "chat.channel" })}
-                </label>
-                <select
-                  value={selectedChatId}
-                  onChange={(e) => setSelectedChatId(e.target.value)}
-                  className="w-full rounded-xl border border-slate-100 p-3 text-sm font-semibold bg-slate-50 focus:outline-none focus:border-violet-500 cursor-pointer"
-                >
-                  <option value="">
-                    {intl.formatMessage({ id: "documents.chooseChannel" })}
-                  </option>
-                  {channels.map((channel) => (
-                    <option key={channel.id} value={channel.id}>
-                      # {channel.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
-          ) : (
-            /* DM Selection */
-            <div className="space-y-2">
-              <label className="text-xs font-black text-slate-400 uppercase tracking-wider">
-                {intl.formatMessage({ id: "documents.recipient" })}
-              </label>
-              <select
-                value={selectedChatId}
-                onChange={(e) => setSelectedChatId(e.target.value)}
-                className="w-full rounded-xl border border-slate-100 p-3 text-sm font-semibold bg-slate-50 focus:outline-none focus:border-violet-500 cursor-pointer"
-              >
-                <option value="">
-                  {intl.formatMessage({ id: "documents.chooseConversation" })}
-                </option>
-                {directConversations.map((conv) => {
-                  const otherMember = conv.members?.find(
-                    (m) => m.userId !== currentUserId,
-                  );
-                  const displayName =
-                    otherMember?.profile?.fullName ||
-                    otherMember?.nickname ||
-                    intl.formatMessage({ id: "chat.directConversation" });
-                  return (
-                    <option key={conv.id} value={conv.id}>
-                      {displayName}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          )}
-
-          {/* Intro message */}
-          <div className="space-y-2">
-            <label className="text-xs font-black text-slate-400 uppercase tracking-wider">
-              {intl.formatMessage({ id: "documents.introMessageOptional" })}
-            </label>
-            <textarea
-              value={introMessage}
-              onChange={(e) => setIntroMessage(e.target.value)}
-              placeholder={intl.formatMessage({
-                id: "documents.shareMessagePlaceholder",
-              })}
-              className="w-full rounded-2xl border border-slate-100 p-3 text-sm font-semibold focus:outline-none focus:border-violet-500 bg-slate-50/50 min-h-[80px] resize-none"
-            />
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-3 border-t border-slate-50 p-6 bg-slate-50/50 shrink-0">
-          <button
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="cursor-pointer rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
-          >
-            {intl.formatMessage({ id: "app.cancel" })}
-          </button>
-          <button
-            onClick={handleShare}
-            disabled={isSubmitting || !selectedChatId}
-            className="flex items-center gap-2 cursor-pointer rounded-xl bg-violet-600 hover:bg-violet-700 px-5 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? (
+          <div className="mt-4 space-y-4">
+            {activeTab === ShareTabType.CHANNEL ? (
               <>
-                <Loader2 size={16} className="animate-spin" />
-                <span>{intl.formatMessage({ id: "documents.sharing" })}</span>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                    Space
+                  </label>
+                  <CustomSelect
+                    value={selectedSpaceId}
+                    options={spaceOptions}
+                    onChange={setSelectedSpaceId}
+                    ariaLabel="Select Space"
+                    className="h-10 rounded-xl border border-slate-100 bg-slate-50 text-sm font-semibold text-slate-700"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                    Channel
+                  </label>
+                  <CustomSelect
+                    value={selectedChatId}
+                    options={channelOptions}
+                    onChange={setSelectedChatId}
+                    ariaLabel="Select Channel"
+                    className="h-10 rounded-xl border border-slate-100 bg-slate-50 text-sm font-semibold text-slate-700"
+                  />
+                </div>
               </>
             ) : (
-              <>
-                <Send size={16} />
-                <span>{intl.formatMessage({ id: "documents.share" })}</span>
-              </>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                  Recipient
+                </label>
+                <CustomSelect
+                  value={selectedChatId}
+                  options={dmOptions}
+                  onChange={setSelectedChatId}
+                  ariaLabel="Select Recipient"
+                  className="h-10 rounded-xl border border-slate-100 bg-slate-50 text-sm font-semibold text-slate-700"
+                />
+              </div>
             )}
-          </button>
-        </div>
-      </div>
-    </div>,
-    document.body,
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                Message (optional)
+              </label>
+              <Textarea
+                value={introMessage}
+                onChange={(e) => setIntroMessage(e.target.value)}
+                placeholder="Add a message..."
+                className="min-h-[80px] rounded-2xl border border-slate-100 bg-slate-50/50 p-3 text-sm font-semibold text-slate-700 focus:outline-hidden focus:border-purple-500"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="mt-5 flex items-center justify-end gap-3 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={isSubmitting}
+              onClick={onClose}
+              className="h-10 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-bold text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={isSubmitting || !selectedChatId}
+              onClick={handleShare}
+              className="h-10 rounded-2xl bg-purple-600 hover:bg-purple-700 px-5 text-sm font-bold text-white shadow-md shadow-purple-500/10 disabled:opacity-50"
+            >
+              {isSubmitting ? "Sharing..." : "Share"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Permission Grant Confirm Dialog */}
+      <DocumentsConfirmDialog
+        open={isPermissionConfirmOpen}
+        title="Permissions required"
+        description={`Some members (${pendingUnauthorizedEmails.length}) do not have view access to this file. Grant view permission to them?`}
+        confirmLabel="Grant access and share"
+        cancelLabel="Share only"
+        variant="warning"
+        isLoading={isSubmitting}
+        onConfirm={() => executeShare(true)}
+        onCancel={() => executeShare(false)}
+      />
+    </>
   );
 }
+
+export default ShareToChatModal;

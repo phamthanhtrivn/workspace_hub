@@ -7,7 +7,7 @@ import {
   DocumentViewType,
   DocumentRole,
 } from "../../types/documents.enums";
-import { cn } from "@/lib/utils";
+import { DocumentsIconButton } from "../ui/documents-icon-button";
 import { MoreVertical } from "lucide-react";
 import {
   FaEye,
@@ -24,7 +24,6 @@ import {
   FaTrash,
   FaPaperPlane,
 } from "react-icons/fa";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ItemActionsMenuProps {
   item: DocumentItem;
@@ -45,7 +44,7 @@ interface ItemActionsMenuProps {
   onShareToChat?: () => void;
 }
 
-function ItemActionsMenu({
+export function ItemActionsMenu({
   item,
   activeView,
   activeMenuId,
@@ -63,11 +62,11 @@ function ItemActionsMenu({
   onDownloadFolder,
   onShareToChat,
 }: ItemActionsMenuProps) {
-  const intl = useAppIntl();
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.OWNER;
   const isOwner = userRole === DocumentRole.OWNER;
   const isEditor = userRole === DocumentRole.EDITOR;
+  const isFolder = item.type === DocumentItemType.FOLDER;
 
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -88,224 +87,221 @@ function ItemActionsMenu({
 
   return (
     <div className="relative" ref={menuRef}>
-      <button
+      <DocumentsIconButton
+        icon={MoreVertical}
+        label="Actions"
+        showTooltip={false}
+        size="icon-sm"
         onClick={(e) => {
           e.stopPropagation();
           setActiveMenuId(isOpen ? null : item.id);
         }}
-        className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
-      >
-        <MoreVertical size={16} />
-      </button>
+      />
 
-      {/* Floating Actions Menu */}
-      {isOpen && (
-        <div className="absolute right-0 z-120 mt-1.5 w-48 rounded-2xl bg-white border border-slate-100 shadow-xl py-2 animate-in fade-in slide-in-from-top-1 duration-150 font-semibold text-slate-700">
+      {isOpen ? (
+        <div className="absolute right-0 z-50 mt-1.5 w-48 rounded-2xl border border-slate-100 bg-white p-2 shadow-xl text-xs font-bold text-slate-700 animate-in fade-in slide-in-from-top-1 duration-150">
           {activeView !== DocumentViewType.TRASH ? (
             <>
-              {item.type !== DocumentItemType.FOLDER && onPreview && (
+              {!isFolder && onPreview ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onPreview();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-[var(--color-primary)] font-bold"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[#0052CC] hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <FaEye
-                    className="text-[var(--color-primary)] shrink-0"
-                    size={14}
-                  />
-                  <span>{intl.formatMessage({ id: "documents.preview" })}</span>
+                  <FaEye className="h-3.5 w-3.5" />
+                  <span>Preview</span>
                 </button>
-              )}
+              ) : null}
 
-              {item.type !== DocumentItemType.FOLDER && onDownload && (
+              {!isFolder && onDownload ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onDownload();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <FaDownload className="text-emerald-500 shrink-0" size={14} />
-                  <span>{intl.formatMessage({ id: "documents.download" })}</span>
+                  <FaDownload className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Download</span>
                 </button>
-              )}
+              ) : null}
 
-              {item.type === DocumentItemType.FOLDER && onDownloadFolder && (
+              {isFolder && onDownloadFolder ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onDownloadFolder();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <FaDownload className="text-emerald-500 shrink-0" size={14} />
-                  <span>{intl.formatMessage({ id: "documents.downloadZip" })}</span>
+                  <FaDownload className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Download ZIP</span>
                 </button>
-              )}
+              ) : null}
 
-              {item.type !== DocumentItemType.FOLDER && onManageVersions && (
+              {!isFolder && onManageVersions ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onManageVersions();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <FaHistory className="text-indigo-500 shrink-0" size={14} />
-                  <span>
-                    {intl.formatMessage({ id: "documents.manageVersions" })}
-                  </span>
+                  <FaHistory className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Manage versions</span>
                 </button>
-              )}
+              ) : null}
 
-              {(isOwner || isEditor) && onShare && (
+              {(isOwner || isEditor) && onShare ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onShare();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-blue-600 hover:text-blue-700"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-blue-600 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <FaShareAlt className="text-blue-500 shrink-0" size={14} />
-                  <span>{intl.formatMessage({ id: "documents.share" })}</span>
+                  <FaShareAlt className="h-3.5 w-3.5 text-blue-500" />
+                  <span>Share</span>
                 </button>
-              )}
+              ) : null}
 
-              {isOwner && onShareToChat && (
+              {isOwner && onShareToChat ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onShareToChat();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left text-violet-600 hover:text-violet-700"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-violet-600 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <FaPaperPlane className="text-violet-500 shrink-0" size={12} />
-                  <span>{intl.formatMessage({ id: "documents.shareToChat" })}</span>
+                  <FaPaperPlane className="h-3.5 w-3.5 text-violet-500" />
+                  <span>Share to chat</span>
                 </button>
-              )}
+              ) : null}
 
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveMenuId(null);
                   onViewDetails?.();
                 }}
-                className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
               >
-                <FaInfoCircle className="text-slate-500 shrink-0" size={14} />
-                <span>{intl.formatMessage({ id: "documents.details" })}</span>
+                <FaInfoCircle className="h-3.5 w-3.5 text-slate-400" />
+                <span>Details</span>
               </button>
 
-              {(isOwner || isEditor) && (
+              {isOwner || isEditor ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onRename();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <FaEdit className="text-amber-500 shrink-0" size={14} />
-                  <span>{intl.formatMessage({ id: "documents.rename" })}</span>
+                  <FaEdit className="h-3.5 w-3.5 text-amber-500" />
+                  <span>Rename</span>
                 </button>
-              )}
+              ) : null}
 
-              {isOwner && (
+              {isOwner ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onMove();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
                 >
-                  <FaFolderOpen className="text-teal-500 shrink-0" size={14} />
-                  <span>{intl.formatMessage({ id: "documents.move" })}</span>
+                  <FaFolderOpen className="h-3.5 w-3.5 text-teal-500" />
+                  <span>Move</span>
                 </button>
-              )}
+              ) : null}
 
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setActiveMenuId(null);
                   onToggleStar();
                 }}
-                className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm hover:bg-slate-50 transition-colors text-left"
+                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
               >
                 {item.isStarred ? (
-                  <FaStar
-                    className="text-amber-400 fill-amber-400 shrink-0"
-                    size={14}
-                  />
+                  <FaStar className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
                 ) : (
-                  <FaRegStar className="text-amber-400 shrink-0" size={14} />
+                  <FaRegStar className="h-3.5 w-3.5 text-amber-400" />
                 )}
-                <span>
-                  {intl.formatMessage({
-                    id: item.isStarred
-                      ? "documents.unstar"
-                      : "documents.star",
-                  })}
-                </span>
+                <span>{item.isStarred ? "Unstar" : "Star"}</span>
               </button>
 
-              {isOwner && (
+              {isOwner ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onArchive(true);
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-red-600 hover:bg-red-50/50 transition cursor-pointer border-t border-slate-50 mt-1 pt-2"
                 >
-                  <FaTrashAlt className="text-red-500 shrink-0" size={14} />
-                  <span>{intl.formatMessage({ id: "documents.moveToTrash" })}</span>
+                  <FaTrashAlt className="h-3.5 w-3.5 text-red-500" />
+                  <span>Move to trash</span>
                 </button>
-              )}
+              ) : null}
             </>
           ) : (
             <>
-              {isOwner && (
+              {isOwner ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onArchive(false);
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-green-600 hover:bg-green-50/50 transition-colors text-left"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-green-600 hover:bg-green-50/50 transition cursor-pointer"
                 >
-                  <FaUndo className="text-green-600 shrink-0" size={13} />
-                  <span>{intl.formatMessage({ id: "documents.restore" })}</span>
+                  <FaUndo className="h-3.5 w-3.5 text-green-600" />
+                  <span>Restore</span>
                 </button>
-              )}
+              ) : null}
 
-              {isOwner && onDeletePermanently && (
+              {isOwner && onDeletePermanently ? (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveMenuId(null);
                     onDeletePermanently();
                   }}
-                  className="cursor-pointer flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50/50 transition-colors text-left border-t border-slate-50"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-red-600 hover:bg-red-50/50 transition cursor-pointer border-t border-slate-50 mt-1 pt-2"
                 >
-                  <FaTrash className="text-rose-600 shrink-0" size={14} />
-                  <span>
-                    {intl.formatMessage({ id: "documents.deletePermanently" })}
-                  </span>
+                  <FaTrash className="h-3.5 w-3.5 text-rose-600" />
+                  <span>Delete permanently</span>
                 </button>
-              )}
+              ) : null}
             </>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

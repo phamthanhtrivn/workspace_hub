@@ -4,68 +4,58 @@ import React from "react";
 import { DocumentItem } from "../../types/documents.types";
 import { DocumentViewType } from "../../types/documents.enums";
 import { ListViewRow } from "./list-view-row";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ListViewProps {
   items: DocumentItem[];
   selectedItemId: string | null;
-  onSelect: (id: string | null) => void;
-  onFolderClick: (item: DocumentItem) => void;
-  activeView: DocumentViewType;
+  onSelectItem: (id: string | null) => void;
+  onOpenItem: (item: DocumentItem) => void;
   activeMenuId: string | null;
   setActiveMenuId: (id: string | null) => void;
-  onRename: (id: string, name: string) => void;
+  onOpenDetails: (item: DocumentItem) => void;
+  onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (id: string, isStarred: boolean) => void;
-  onArchive: (id: string, archive: boolean) => void;
-  onViewDetails: (id: string) => void;
-  onDeletePermanently: (id: string) => void;
+  onToggleStar: (item: DocumentItem) => void;
+  onMoveToTrash: (item: DocumentItem) => void;
+  onRestore: (item: DocumentItem) => void;
+  onDeletePermanently: (item: DocumentItem) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
-  onDownloadFolder?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
 }
 
 function ListView({
   items,
   selectedItemId,
-  onSelect,
-  onFolderClick,
-  activeView,
+  onSelectItem,
+  onOpenItem,
   activeMenuId,
   setActiveMenuId,
+  onOpenDetails,
   onRename,
   onMove,
   onToggleStar,
-  onArchive,
-  onViewDetails,
+  onMoveToTrash,
+  onRestore,
   onDeletePermanently,
   onPreview,
   onDownload,
   onManageVersions,
   onShare,
-  onDownloadFolder,
   onShareToChat,
 }: ListViewProps) {
-  const intl = useAppIntl();
-
   return (
-    <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
+    <div className="w-full border border-slate-100 rounded-2xl overflow-hidden bg-white animate-in fade-in duration-200 shadow-xs">
       <table className="w-full border-collapse text-left text-sm text-slate-700">
         <thead className="bg-slate-50 border-b border-slate-100 text-slate-400 font-black text-xs uppercase tracking-wider">
           <tr>
-            <th className="p-4 rounded-tl-2xl">
-              {intl.formatMessage({ id: "documents.name" })}
-            </th>
-            <th className="p-4 hidden sm:table-cell">
-              {intl.formatMessage({ id: "documents.modified" })}
-            </th>
-            <th className="p-4 hidden md:table-cell">
-              {intl.formatMessage({ id: "documents.size" })}
-            </th>
-            <th className="p-4 w-10 rounded-tr-2xl"></th>
+            <th className="p-4">Name</th>
+            <th className="p-4 hidden sm:table-cell">Type</th>
+            <th className="p-4 hidden md:table-cell">Modified</th>
+            <th className="p-4 hidden lg:table-cell">Size</th>
+            <th className="p-4 w-10 text-right"></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -74,22 +64,22 @@ function ListView({
               key={item.id}
               item={item}
               selectedItemId={selectedItemId}
-              onSelect={onSelect}
-              onFolderClick={onFolderClick}
-              activeView={activeView}
+              onSelect={onSelectItem}
+              onFolderClick={onOpenItem}
+              activeView={DocumentViewType.MY_FILES}
               activeMenuId={activeMenuId}
               setActiveMenuId={setActiveMenuId}
               onRename={onRename}
               onMove={onMove}
               onToggleStar={onToggleStar}
-              onArchive={onArchive}
-              onViewDetails={onViewDetails}
+              onMoveToTrash={onMoveToTrash}
+              onRestore={onRestore}
+              onViewDetails={onOpenDetails}
               onDeletePermanently={onDeletePermanently}
               onPreview={onPreview}
               onDownload={onDownload}
               onManageVersions={onManageVersions}
               onShare={onShare}
-              onDownloadFolder={onDownloadFolder}
               onShareToChat={onShareToChat}
             />
           ))}

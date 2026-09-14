@@ -34,10 +34,7 @@ interface UpcomingMeetingCardProps {
   onEdit?: (meeting: UpcomingMeetingItem) => void;
 }
 
-function formatMeetingRange(
-  startAt: string | null,
-  endAt: string | null,
-) {
+function formatMeetingRange(startAt: string | null, endAt: string | null) {
   if (!startAt || !endAt) return "";
   const start = new Date(startAt);
   const end = new Date(endAt);
@@ -116,7 +113,7 @@ export function UpcomingMeetingCard({
     <>
       <article
         data-meeting-join-token={meeting.joinToken}
-        className={`flex min-h-52 flex-col justify-between rounded-lg border bg-white p-4 shadow-sm transition ${
+        className={`flex min-h-48 flex-col justify-between rounded-lg border bg-white p-4 shadow-sm transition ${
           isHighlighted
             ? "border-blue-300 ring-4 ring-blue-100"
             : "border-slate-200"
@@ -159,7 +156,7 @@ export function UpcomingMeetingCard({
           </div>
         </div>
 
-        <div className="mt-5 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <MeetingButton
             type="button"
             disabled={!canStart && !canJoin}

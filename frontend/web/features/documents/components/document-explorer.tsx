@@ -1,52 +1,40 @@
 "use client";
 
-import React, {
-  useState,
-  useCallback,
-  useMemo,
-  useEffect,
-  useRef,
-} from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import React, { useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { DndContext } from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
-import {
-  DocumentItem,
-  ViewLayout,
-  DocumentSortBy,
-} from "../types/documents.types";
-import {
-  DocumentItemType,
-  DocumentViewType,
-  UploadState,
-  NavigationLabel,
-} from "../types/documents.enums";
-import { DND_ROOT_ID } from "../types/documents.constants";
-import { Folder, UploadCloud } from "lucide-react";
-import { toast } from "sonner";
-import Swal from "sweetalert2";
-import FolderPickerModal from "./common/folder-picker-modal";
-import ShimmerLoader from "./common/shimmer-loader";
+import { DocumentItem } from "../types/documents.types";
+import { DocumentViewType } from "../types/documents.enums";
+
+// UI Building Blocks
+import { DocumentsConfirmDialog } from "./ui/documents-confirm-dialog";
+import { DocumentsInputModal } from "./ui/documents-input-modal";
+import { DocumentsEmptyState } from "./ui/documents-empty-state";
+import { DocumentsLoadingState } from "./ui/documents-loading-state";
+import { DocumentsPagination } from "./ui/documents-pagination";
+
+// Explorer & Modal Sub-components
 import DetailsPanel from "./explorer/details-panel";
 import ExplorerToolbar from "./explorer/explorer-toolbar";
-import UploadProgress from "./common/upload-progress";
 import ExplorerBreadcrumbs from "./explorer/explorer-breadcrumbs";
+import UploadProgress from "./common/upload-progress";
+import FolderPickerModal from "./common/folder-picker-modal";
 import GridView from "./views/grid-view";
 import ListView from "./views/list-view";
 import FilePreviewModal from "./preview/file-preview-modal";
 import VersionManagementModal from "./versions/version-management-modal";
 import ShareModal from "./sharing/share-modal";
 import ShareToChatModal from "./sharing/share-to-chat-modal";
+
+// Custom Hooks & Utils
+import { useDocumentExplorerState } from "../hooks/useDocumentExplorerState";
+import { useDocumentActions } from "../hooks/useDocumentActions";
+import { useDocumentUpload } from "../hooks/useDocumentUpload";
+import { useDocumentDragAndDrop } from "../hooks/useDocumentDragAndDrop";
+import { useDocumentModals } from "../hooks/useDocumentModals";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
-import { cn } from "@/lib/utils";
-import { useDownloadQueue } from "./download/download-queue-provider";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { UploadCloud, FolderPlus, Edit3 } from "lucide-react";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -58,802 +46,432 @@ interface DocumentExplorerProps {
   >;
 }
 
-function DocumentExplorer({
+export function DocumentExplorer({
   currentFolderId,
   onNavigate,
   activeView,
   path,
   setPath,
 }: DocumentExplorerProps) {
-  const intl = useAppIntl();
-  const queryClient = useQueryClient();
-  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
-  const [viewLayout, setViewLayout] = useState<ViewLayout>(ViewLayout.GRID);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [activeDetailsItemId, setActiveDetailsItemId] = useState<string | null>(
-    null,
-  );
-  const [sortBy, setSortBy] = useState<DocumentSortBy>(DocumentSortBy.LATEST);
-  const [currentPage, setCurrentPage] = useState(1);
+  // 1. Explorer State Hook
+  const {
+    activeMenuId,
+    setActiveMenuId,
+    viewLayout,
+    setViewLayout,
+    selectedItemId,
+    setSelectedItemId,
+    activeDetailsItemId,
+    setActiveDetailsItemId,
+    sortBy,
+    setSortBy,
+    currentPage,
+    setCurrentPage,
+    searchQuery,
+    setSearchQuery,
+    handleNavigate,
+  } = useDocumentExplorerState({
+    initialFolderId: currentFolderId,
+    onNavigate,
+  });
 
-  // Modals state
-  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
-  const [movingItemId, setMovingItemId] = useState<string | null>(null);
-  const [previewItem, setPreviewItem] = useState<DocumentItem | null>(null);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isVersionModalOpen, setIsVersionModalOpen] = useState(false);
-  const [versioningItem, setVersioningItem] = useState<DocumentItem | null>(
-    null,
-  );
-  const [previewVersionId, setPreviewVersionId] = useState<string>("");
-  const [sharingItem, setSharingItem] = useState<DocumentItem | null>(null);
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [shareToChatItem, setShareToChatItem] = useState<DocumentItem | null>(null);
-  const [isShareToChatOpen, setIsShareToChatOpen] = useState(false);
+  // 2. Modals Hook
+  const {
+    isCreateFolderOpen,
+    openCreateFolder,
+    closeCreateFolder,
+    isRenameOpen,
+    renamingItem,
+    openRename,
+    closeRename,
+    isTrashConfirmOpen,
+    trashingItem,
+    openTrashConfirm,
+    closeTrashConfirm,
+    isDeleteConfirmOpen,
+    deletingItem,
+    openDeleteConfirm,
+    closeDeleteConfirm,
+    isMoveModalOpen,
+    movingItemId,
+    openMoveModal,
+    closeMoveModal,
+    previewItem,
+    previewVersionId,
+    isPreviewOpen,
+    openPreview,
+    closePreview,
+    isVersionModalOpen,
+    versioningItem,
+    openVersionModal,
+    closeVersionModal,
+    sharingItem,
+    isShareModalOpen,
+    openShareModal,
+    closeShareModal,
+    shareToChatItem,
+    isShareToChatOpen,
+    openShareToChatModal,
+    closeShareToChatModal,
+  } = useDocumentModals();
 
-  // Uploading state
-  const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadingFileName, setUploadingFileName] = useState("");
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const dragCounter = useRef(0);
+  // 3. Document Actions Hook
+  const {
+    createFolder,
+    isCreatingFolder,
+    renameResource,
+    isRenaming,
+    moveResource,
+    toggleStar,
+    moveToTrash,
+    isTrashing,
+    restoreFromTrash,
+    deletePermanently,
+    isDeletingPermanently,
+    downloadItem,
+  } = useDocumentActions({ currentFolderId });
 
-  // Focus Search Input with Ref
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-  // Filter out directories/files based on simple search
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+  // 4. File Upload Hook
+  const {
+    uploadState,
+    uploadProgress,
+    uploadingFileName,
+    isDraggingOver,
+    uploadFile,
+  } = useDocumentUpload({ currentFolderId });
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-      setCurrentPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
+  // 5. Drag and Drop Hook
+  const { sensors, handleDragEnd } = useDocumentDragAndDrop({
+    onMoveItem: (itemId, targetFolderId) =>
+      moveResource({ id: itemId, targetFolderId }),
+  });
 
-  // Fetch items based on current context
-  const { data: documentsData, isLoading } = useQuery({
-    queryKey: [
-      "documents",
-      currentFolderId,
-      activeView,
-      currentPage,
-      sortBy,
-      debouncedSearchQuery,
-    ],
+  // Query Main Document List
+  const { data: documentResponse, isLoading, isFetching } = useQuery({
+    queryKey: ["documents", activeView, currentFolderId, sortBy, searchQuery, currentPage],
     queryFn: () => {
-      const fetchParams = {
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-        sortBy,
-        search: debouncedSearchQuery,
-      };
-
-      if (activeView === DocumentViewType.SHARED && !currentFolderId) {
-        return documentsApi.getSharedDocuments(fetchParams);
+      if (activeView === DocumentViewType.SHARED) {
+        return documentsApi.getSharedDocuments({
+          page: currentPage,
+          limit: ITEMS_PER_PAGE,
+          sortBy,
+          search: searchQuery || undefined,
+        });
       }
       return documentsApi.getDocuments({
-        ...fetchParams,
         folderId: currentFolderId || undefined,
-        starred:
-          activeView === DocumentViewType.STARRED && !currentFolderId
-            ? true
-            : undefined,
-        archived:
-          activeView === DocumentViewType.TRASH && !currentFolderId
-            ? true
-            : undefined,
+        starred: activeView === DocumentViewType.STARRED ? true : undefined,
+        archived: activeView === DocumentViewType.TRASH ? true : undefined,
+        sortBy,
+        search: searchQuery || undefined,
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
       });
     },
   });
 
-  const items = documentsData?.data || [];
-  const totalItems = documentsData?.meta?.totalItems || 0;
-  const totalPages = documentsData?.meta?.totalPages || 0;
-  const safeCurrentPage = Math.min(
-    Math.max(1, currentPage),
-    Math.max(1, totalPages),
+  const items = useMemo(() => documentResponse?.data || [], [documentResponse]);
+  const meta = documentResponse?.meta;
+  const totalPages = meta?.totalPages || 1;
+  const totalItems = meta?.totalItems || items.length;
+
+  const activeDetailsItem = useMemo(
+    () => items.find((i: DocumentItem) => i.id === activeDetailsItemId) || null,
+    [items, activeDetailsItemId]
   );
 
-  const activeDetailsItem = useMemo(() => {
-    return items.find((item) => item.id === activeDetailsItemId) || null;
-  }, [items, activeDetailsItemId]);
-
-  const movingItem = useMemo(() => {
-    return items.find((item) => item.id === movingItemId) || null;
-  }, [items, movingItemId]);
-
-  const initialFolderIdForMove = movingItem?.parentFolderId || null;
-  const initialPathForMove = useMemo(() => {
-    if (!movingItem) return undefined;
-    if (movingItem.parentFolderId === currentFolderId) {
-      return path;
-    }
-    if (movingItem.parentFolderId) {
-      return [
-        { id: null, name: NavigationLabel.ROOT },
-        { id: movingItem.parentFolderId, name: NavigationLabel.CURRENT_FOLDER },
-      ];
-    }
-    return [{ id: null, name: NavigationLabel.ROOT }];
-  }, [movingItem, currentFolderId, path]);
-
-  // Mutations
-  const createFolderMutation = useMutation({
-    mutationFn: documentsApi.createFolder,
-    onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "documents.folderCreated" }));
-      void queryClient.invalidateQueries({ queryKey: ["documents"] });
-    },
-    onError: (err: any) => {
-      toast.error(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "documents.createFolderFailed" }),
-      );
-    },
-  });
-
-  const renameMutation = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) =>
-      documentsApi.renameItem(id, name),
-    onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "documents.renamed" }));
-      void queryClient.invalidateQueries({ queryKey: ["documents"] });
-    },
-    onError: (err: any) => {
-      toast.error(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "documents.renameFailed" }),
-      );
-    },
-  });
-
-  const moveMutation = useMutation({
-    mutationFn: ({ id, destId }: { id: string; destId: string | null }) =>
-      documentsApi.moveItem(id, destId),
-    onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "documents.moved" }));
-      setIsMoveModalOpen(false);
-      setSelectedItemId(null);
-      void queryClient.invalidateQueries({ queryKey: ["documents"] });
-    },
-    onError: (err: any) => {
-      toast.error(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "documents.moveFailed" }),
-      );
-    },
-  });
-
-  const starMutation = useMutation({
-    mutationFn: ({ id, star }: { id: string; star: boolean }) =>
-      star ? documentsApi.starItem(id) : documentsApi.unStarItem(id),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["documents"] });
-    },
-  });
-
-  const archiveMutation = useMutation({
-    mutationFn: ({ id, archive }: { id: string; archive: boolean }) =>
-      archive ? documentsApi.archiveItem(id) : documentsApi.restoreItem(id),
-    onSuccess: (data, variables) => {
-      toast.success(
-        intl.formatMessage({
-          id: variables.archive
-            ? "documents.movedToTrash"
-            : "documents.restored",
-        }),
-      );
-      setSelectedItemId(null);
-      void queryClient.invalidateQueries({ queryKey: ["documents"] });
-      void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
-    },
-  });
-
-  const deletePermanentlyMutation = useMutation({
-    mutationFn: (id: string) => documentsApi.deleteItemPermanently(id),
-    onSuccess: () => {
-      toast.success(intl.formatMessage({ id: "documents.deletedPermanently" }));
-      setSelectedItemId(null);
-      void queryClient.invalidateQueries({ queryKey: ["documents"] });
-      void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
-    },
-    onError: (err: any) => {
-      toast.error(
-        err.response?.data?.message ||
-          intl.formatMessage({ id: "documents.deletePermanentlyFailed" }),
-      );
-    },
-  });
-
-  // Handle uploading file to S3
-  const handleUploadFile = useCallback(
-    async (file: File) => {
-      try {
-        setUploadingFileName(file.name);
-        setUploadState(UploadState.INITIATING);
-        setUploadProgress(0);
-
-        // Upload file directly using the unified API upload client method
-        await documentsApi.uploadFile(
-          file,
-          currentFolderId,
-          (percent, state) => {
-            setUploadState(state);
-            setUploadProgress(percent);
-          },
-        );
-
-        setUploadState(UploadState.SUCCESS);
-        toast.success(
-          intl.formatMessage(
-            { id: "documents.uploadSuccess" },
-            { name: file.name },
-          ),
-        );
-
-        void queryClient.invalidateQueries({ queryKey: ["documents"] });
-        void queryClient.invalidateQueries({ queryKey: ["document-quota"] });
-
-        setTimeout(() => {
-          setUploadState(UploadState.IDLE);
-          setUploadingFileName("");
-          setUploadProgress(0);
-        }, 2000);
-      } catch (err: any) {
-        console.error(err);
-        setUploadState(UploadState.ERROR);
-        const errMsg =
-          err.response?.data?.message ||
-          err.message ||
-          intl.formatMessage({ id: "documents.uploadFailed" });
-        toast.error(errMsg);
-        setTimeout(() => {
-          setUploadState(UploadState.IDLE);
-        }, 3000);
-      }
-    },
-    [currentFolderId, intl, queryClient],
-  );
-
-  const handleDragEnter = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current++;
-    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
-      setIsDraggingOver(true);
-    }
-  }, []);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current--;
-    if (dragCounter.current === 0) {
-      setIsDraggingOver(false);
-    }
-  }, []);
-
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
-
-  const handleDrop = useCallback(
-    async (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDraggingOver(false);
-      dragCounter.current = 0;
-
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const files = Array.from(e.dataTransfer.files);
-        for (const file of files) {
-          await handleUploadFile(file);
-        }
-        e.dataTransfer.clearData();
-      }
-    },
-    [handleUploadFile],
-  );
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    }),
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over) return;
-
-      const draggedId = active.id as string;
-      const targetFolderId =
-        over.id === DND_ROOT_ID ? null : (over.id as string);
-
-      if (draggedId !== targetFolderId) {
-        moveMutation.mutate({ id: draggedId, destId: targetFolderId });
-      }
-    },
-    [moveMutation],
-  );
-
-  // Folder creation trigger
-  const handleCreateFolder = useCallback(() => {
-    void Swal.fire({
-      title: intl.formatMessage({ id: "documents.newFolder" }),
-      input: "text",
-      inputPlaceholder: intl.formatMessage({
-        id: "documents.folderNamePlaceholder",
-      }),
-      showCancelButton: true,
-      confirmButtonText: intl.formatMessage({ id: "app.create" }),
-      cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
-      confirmButtonColor: "var(--color-primary, #3b82f6)",
-      inputValidator: (value) => {
-        if (!value) {
-          return intl.formatMessage({ id: "documents.folderNameRequired" });
-        }
-        return null;
-      },
-    }).then((result) => {
-      if (result.isConfirmed && result.value) {
-        createFolderMutation.mutate({
-          name: result.value as string,
-          parentFolderId: currentFolderId || undefined,
-        });
-      }
-    });
-  }, [createFolderMutation, currentFolderId, intl]);
-
-  // Rename trigger
-  const handleRename = useCallback(
-    (id: string, currentName: string) => {
-      void Swal.fire({
-        title: intl.formatMessage({ id: "documents.renameResource" }),
-        input: "text",
-        inputValue: currentName,
-        showCancelButton: true,
-        confirmButtonText: intl.formatMessage({ id: "app.save" }),
-        cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
-        confirmButtonColor: "var(--color-primary, #3b82f6)",
-        inputValidator: (value) => {
-          if (!value) {
-            return intl.formatMessage({ id: "documents.nameRequired" });
-          }
-          return null;
-        },
-      }).then((result) => {
-        if (result.isConfirmed && result.value) {
-          renameMutation.mutate({ id, name: result.value as string });
-        }
-      });
-    },
-    [intl, renameMutation],
-  );
-
-  // Move trigger
-  const handleOpenMoveModal = useCallback((id: string) => {
-    setMovingItemId(id);
-    setIsMoveModalOpen(true);
-  }, []);
-
-  // Star toggle
-  const handleToggleStar = useCallback(
-    (id: string, isStarred: boolean) => {
-      starMutation.mutate({ id, star: !isStarred });
-    },
-    [starMutation],
-  );
-
-  // Soft delete / Restore
-  const handleArchive = useCallback(
-    (id: string, archive: boolean) => {
-      if (archive) {
-        void Swal.fire({
-          title: intl.formatMessage({ id: "documents.moveToTrashTitle" }),
-          text: intl.formatMessage({ id: "documents.moveToTrashDescription" }),
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonText: intl.formatMessage({ id: "app.yes" }),
-          cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
-          confirmButtonColor: "#ef4444",
-        }).then((result) => {
-          if (result.isConfirmed) {
-            archiveMutation.mutate({ id, archive: true });
-          }
-        });
-      } else {
-        archiveMutation.mutate({ id, archive: false });
-      }
-    },
-    [archiveMutation, intl],
-  );
-
-  // Navigation handlers
+  // Folder click navigation
   const handleFolderClick = useCallback(
     (folder: DocumentItem) => {
-      onNavigate(folder.id, folder.name);
-      setSelectedItemId(null);
-      setActiveDetailsItemId(null);
-      setCurrentPage(1);
+      handleNavigate(folder.id, folder.name);
+      setPath((prev) => [...prev, { id: folder.id, name: folder.name }]);
     },
-    [onNavigate],
+    [handleNavigate, setPath]
   );
 
+  // Breadcrumb navigation click
   const handleBreadcrumbClick = useCallback(
     (index: number) => {
-      const p = path[index];
+      const target = path[index];
       setPath(path.slice(0, index + 1));
-      onNavigate(p.id);
-      setSelectedItemId(null);
-      setActiveDetailsItemId(null);
-      setCurrentPage(1);
+      handleNavigate(target.id, target.name);
     },
-    [path, setPath, onNavigate],
+    [path, setPath, handleNavigate]
   );
 
-  const handleViewDetails = useCallback((id: string) => {
-    setActiveDetailsItemId(id);
-    setSelectedItemId(id);
-  }, []);
+  // Input Modal Confirmations
+  const handleConfirmCreateFolder = async (name: string) => {
+    await createFolder(name);
+    closeCreateFolder();
+  };
 
-  const handleBackToParent = useCallback(() => {
-    if (path.length > 1) {
-      handleBreadcrumbClick(path.length - 2);
+  const handleConfirmRename = async (newName: string) => {
+    if (renamingItem) {
+      await renameResource({ id: renamingItem.id, name: newName });
+      closeRename();
     }
-  }, [path.length, handleBreadcrumbClick]);
+  };
 
-  const handleSearchChange = useCallback((query: string) => {
-    setSearchQuery(query);
-    setCurrentPage(1);
-  }, []);
-
-  const handleSortChange = useCallback((sort: DocumentSortBy) => {
-    setSortBy(sort);
-    setCurrentPage(1);
-  }, []);
-
-  const handlePreview = useCallback((item: DocumentItem) => {
-    setPreviewItem(item);
-    setPreviewVersionId("");
-    setIsPreviewOpen(true);
-  }, []);
-
-  const handleManageVersions = useCallback((item: DocumentItem) => {
-    setVersioningItem(item);
-    setIsVersionModalOpen(true);
-  }, []);
-
-  const handleShare = useCallback((item: DocumentItem) => {
-    setSharingItem(item);
-    setIsShareModalOpen(true);
-  }, []);
-
-  const handleShareToChat = useCallback((item: DocumentItem) => {
-    setShareToChatItem(item);
-    setIsShareToChatOpen(true);
-  }, []);
-
-  const handleDownload = useCallback(async (item: DocumentItem) => {
-    try {
-      const downloadUrl = await documentsApi.getDownloadUrl(item.id);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (err) {
-      console.error("Failed to generate download URL", err);
-      toast.error(intl.formatMessage({ id: "documents.downloadLinkFailed" }));
+  // Alert Dialog Confirmations
+  const handleConfirmMoveToTrash = async () => {
+    if (trashingItem) {
+      await moveToTrash(trashingItem.id);
+      closeTrashConfirm();
     }
-  }, [intl]);
+  };
 
-  const { enqueueDownload } = useDownloadQueue();
-
-  const handleDownloadFolder = useCallback(
-    (item: DocumentItem) => {
-      enqueueDownload(item.id, item.name);
-    },
-    [enqueueDownload],
-  );
-
-  const handleDeletePermanently = useCallback(
-    (id: string) => {
-      Swal.fire({
-        title: intl.formatMessage({ id: "documents.deletePermanentlyTitle" }),
-        text: intl.formatMessage({
-          id: "documents.deletePermanentlyDescription",
-        }),
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: intl.formatMessage({ id: "app.delete" }),
-        cancelButtonText: intl.formatMessage({ id: "app.cancel" }),
-      }).then((result) => {
-        if (result.isConfirmed) {
-          deletePermanentlyMutation.mutate(id);
-        }
-      });
-    },
-    [deletePermanentlyMutation, intl],
-  );
+  const handleConfirmDeletePermanently = async () => {
+    if (deletingItem) {
+      await deletePermanently(deletingItem.id);
+      closeDeleteConfirm();
+    }
+  };
 
   return (
-    <div className="flex-1 flex min-w-0 bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden h-[calc(100vh-140px)]">
-      {/* Main Explorer Panel */}
-      <div className="flex-1 flex flex-col min-w-0 h-full">
-        {/* Search, Action, View Layout Header */}
-        <ExplorerToolbar
-          searchQuery={searchQuery}
-          setSearchQuery={handleSearchChange}
-          viewLayout={viewLayout}
-          setViewLayout={setViewLayout}
-          activeView={
-            currentFolderId && activeView !== DocumentViewType.TRASH
-              ? DocumentViewType.MY_FILES
-              : activeView
-          }
-          onCreateFolder={handleCreateFolder}
-          onUploadFile={handleUploadFile}
-          sortBy={sortBy}
-          setSortBy={handleSortChange}
-          inputRef={searchInputRef}
-        />
+    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <div className="relative flex flex-1 flex-col h-full overflow-hidden bg-white text-slate-800">
+        {/* Full Window Dropzone Overlay */}
+        {isDraggingOver ? (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-blue-500/10 backdrop-blur-xs border-2 border-dashed border-blue-400">
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-blue-50 text-blue-600 ring-1 ring-blue-200">
+              <UploadCloud className="h-8 w-8 animate-bounce" />
+            </div>
+            <p className="mt-4 text-base font-bold text-slate-800">
+              Drop files here to upload
+            </p>
+          </div>
+        ) : null}
 
-        {/* Path Breadcrumbs */}
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+        {/* Explorer Header Toolbar */}
+        <div className="flex flex-col gap-3 border-b border-slate-100 bg-white/60 p-6 backdrop-blur-md">
           <ExplorerBreadcrumbs
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
-            onBackToParent={handleBackToParent}
           />
+          <ExplorerToolbar
+            activeView={activeView}
+            viewLayout={viewLayout}
+            onViewLayoutChange={setViewLayout}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            onCreateFolder={openCreateFolder}
+            onUploadFile={uploadFile}
+          />
+        </div>
 
-          {/* Explorer Content */}
-          <div
-            className="flex-1 overflow-y-auto p-6 relative"
-            onClick={() => setSelectedItemId(null)}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          >
-            {isDraggingOver && (
-              <div className="absolute inset-0 bg-blue-50/80 backdrop-blur-xs border-2 border-dashed border-blue-500 rounded-3xl m-4 flex flex-col items-center justify-center z-50 pointer-events-none animate-in fade-in duration-200">
-                <UploadCloud
-                  className="text-blue-500 animate-bounce mb-2"
-                  size={48}
-                />
-                <p className="text-sm font-black text-blue-600">
-                  {intl.formatMessage({ id: "documents.dropFilesToUpload" })}
-                </p>
-              </div>
-            )}
+        {/* Main Content Area */}
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-y-auto p-6">
             {isLoading ? (
-              <ShimmerLoader />
+              <DocumentsLoadingState view={viewLayout === "GRID" ? "grid" : "list"} />
             ) : items.length === 0 ? (
-              <div className="flex h-full flex-col items-center justify-center text-slate-400 py-20 animate-in fade-in duration-300">
-                <Folder size={64} className="text-slate-200 mb-4" />
-                <span className="text-base font-semibold text-slate-700">
-                  {intl.formatMessage({ id: "documents.folderEmpty" })}
-                </span>
-                <span className="text-xs text-slate-400 font-semibold mt-1">
-                  {intl.formatMessage({ id: "documents.noFilesOrFolders" })}
-                </span>
-              </div>
-            ) : viewLayout === ViewLayout.GRID ? (
+              <DocumentsEmptyState
+                title={
+                  searchQuery
+                    ? "No items found"
+                    : activeView === DocumentViewType.TRASH
+                    ? "Trash is empty"
+                    : activeView === DocumentViewType.STARRED
+                    ? "No starred items"
+                    : "This folder is empty"
+                }
+                description={
+                  searchQuery
+                    ? `No matching resources found for "${searchQuery}"`
+                    : "Upload files or create new folders to get started"
+                }
+              />
+            ) : viewLayout === "GRID" ? (
               <GridView
                 items={items}
                 selectedItemId={selectedItemId}
-                onSelect={setSelectedItemId}
-                onFolderClick={handleFolderClick}
-                activeView={activeView}
+                onSelectItem={setSelectedItemId}
+                onOpenItem={(item) =>
+                  item.type === "FOLDER" ? handleFolderClick(item) : openPreview(item)
+                }
                 activeMenuId={activeMenuId}
                 setActiveMenuId={setActiveMenuId}
-                onRename={handleRename}
-                onMove={handleOpenMoveModal}
-                onToggleStar={handleToggleStar}
-                onArchive={handleArchive}
-                onViewDetails={handleViewDetails}
-                onDeletePermanently={handleDeletePermanently}
-                onPreview={handlePreview}
-                onDownload={handleDownload}
-                onDownloadFolder={handleDownloadFolder}
-                onManageVersions={handleManageVersions}
-                onShare={handleShare}
-                onShareToChat={handleShareToChat}
+                onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
+                onRename={openRename}
+                onMove={openMoveModal}
+                onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
+                onMoveToTrash={openTrashConfirm}
+                onRestore={(item) => restoreFromTrash(item.id)}
+                onDeletePermanently={openDeleteConfirm}
+                onDownload={downloadItem}
+                onManageVersions={openVersionModal}
+                onShare={openShareModal}
+                onShareToChat={openShareToChatModal}
               />
             ) : (
               <ListView
                 items={items}
                 selectedItemId={selectedItemId}
-                onSelect={setSelectedItemId}
-                onFolderClick={handleFolderClick}
-                activeView={activeView}
+                onSelectItem={setSelectedItemId}
+                onOpenItem={(item) =>
+                  item.type === "FOLDER" ? handleFolderClick(item) : openPreview(item)
+                }
                 activeMenuId={activeMenuId}
                 setActiveMenuId={setActiveMenuId}
-                onRename={handleRename}
-                onMove={handleOpenMoveModal}
-                onToggleStar={handleToggleStar}
-                onArchive={handleArchive}
-                onViewDetails={handleViewDetails}
-                onDeletePermanently={handleDeletePermanently}
-                onPreview={handlePreview}
-                onDownload={handleDownload}
-                onDownloadFolder={handleDownloadFolder}
-                onManageVersions={handleManageVersions}
-                onShare={handleShare}
-                onShareToChat={handleShareToChat}
+                onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
+                onRename={openRename}
+                onMove={openMoveModal}
+                onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
+                onMoveToTrash={openTrashConfirm}
+                onRestore={(item) => restoreFromTrash(item.id)}
+                onDeletePermanently={openDeleteConfirm}
+                onDownload={downloadItem}
+                onManageVersions={openVersionModal}
+                onShare={openShareModal}
+                onShareToChat={openShareToChatModal}
               />
             )}
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t border-slate-100 pt-6 mt-6">
-                <span className="text-xs font-semibold text-slate-400">
-                  {intl.formatMessage(
-                    { id: "documents.paginationSummary" },
-                    {
-                      start: (safeCurrentPage - 1) * ITEMS_PER_PAGE + 1,
-                      end: Math.min(
-                        safeCurrentPage * ITEMS_PER_PAGE,
-                        totalItems,
-                      ),
-                      total: totalItems,
-                    },
-                  )}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={safeCurrentPage === 1}
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.max(1, prev - 1))
-                    }
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {intl.formatMessage({ id: "app.previous" })}
-                  </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={cn(
-                          "rounded-xl px-3 py-1.5 text-xs font-black transition-all cursor-pointer",
-                          page === safeCurrentPage
-                            ? "bg-[var(--color-primary)] text-white shadow-md shadow-blue-500/10"
-                            : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-                        )}
-                      >
-                        {page}
-                      </button>
-                    ),
-                  )}
-                  <button
-                    disabled={safeCurrentPage === totalPages}
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                    }
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {intl.formatMessage({ id: "app.next" })}
-                  </button>
-                </div>
+            {/* Pagination Footer */}
+            {meta && totalPages > 1 ? (
+              <div className="mt-6">
+                <DocumentsPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  isLoading={isFetching}
+                  onPageChange={setCurrentPage}
+                />
               </div>
-            )}
+            ) : null}
           </div>
-        </DndContext>
+
+          {/* Details Side Panel */}
+          {activeDetailsItem ? (
+            <DetailsPanel
+              item={activeDetailsItem}
+              onClose={() => setActiveDetailsItemId(null)}
+              onRename={() => openRename(activeDetailsItem)}
+              onShare={() => openShareModal(activeDetailsItem)}
+              onDownload={() => downloadItem(activeDetailsItem)}
+              onManageVersions={() => openVersionModal(activeDetailsItem)}
+            />
+          ) : null}
+        </div>
+
+        {/* Floating Upload Queue Widget */}
+        <UploadProgress
+          uploadState={uploadState}
+          uploadProgress={uploadProgress}
+          uploadingFileName={uploadingFileName}
+        />
+
+        {/* Shadcn Input Modal: Create Folder */}
+        <DocumentsInputModal
+          open={isCreateFolderOpen}
+          title="New folder"
+          placeholder="Enter folder name..."
+          confirmLabel="Create"
+          cancelLabel="Cancel"
+          icon={FolderPlus}
+          isLoading={isCreatingFolder}
+          errorMessage="Folder name is required"
+          onConfirm={handleConfirmCreateFolder}
+          onCancel={closeCreateFolder}
+        />
+
+        {/* Shadcn Input Modal: Rename Resource */}
+        <DocumentsInputModal
+          open={isRenameOpen}
+          title="Rename item"
+          defaultValue={renamingItem?.name || ""}
+          confirmLabel="Save"
+          cancelLabel="Cancel"
+          icon={Edit3}
+          isLoading={isRenaming}
+          errorMessage="Name is required"
+          onConfirm={handleConfirmRename}
+          onCancel={closeRename}
+        />
+
+        {/* Shadcn Alert Dialog: Move to Trash */}
+        <DocumentsConfirmDialog
+          open={isTrashConfirmOpen}
+          title="Move to trash?"
+          description="Are you sure you want to move this item to trash? You can restore it later."
+          confirmLabel="Move to trash"
+          cancelLabel="Cancel"
+          variant="warning"
+          isLoading={isTrashing}
+          onConfirm={handleConfirmMoveToTrash}
+          onCancel={closeTrashConfirm}
+        />
+
+        {/* Shadcn Alert Dialog: Delete Permanently */}
+        <DocumentsConfirmDialog
+          open={isDeleteConfirmOpen}
+          title="Delete permanently?"
+          description="This action cannot be undone. This item will be permanently deleted."
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="danger"
+          isLoading={isDeletingPermanently}
+          onConfirm={handleConfirmDeletePermanently}
+          onCancel={closeDeleteConfirm}
+        />
+
+        {/* Folder Picker Move Modal */}
+        {isMoveModalOpen && movingItemId ? (
+          <FolderPickerModal
+            open={isMoveModalOpen}
+            movingItemId={movingItemId}
+            onClose={closeMoveModal}
+            onSelectFolder={(targetFolderId) =>
+              moveResource({ id: movingItemId, targetFolderId })
+            }
+          />
+        ) : null}
+
+        {/* File Preview Modal */}
+        {isPreviewOpen && previewItem ? (
+          <FilePreviewModal
+            open={isPreviewOpen}
+            item={previewItem}
+            versionId={previewVersionId}
+            onClose={closePreview}
+            onDownload={downloadItem}
+            onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
+          />
+        ) : null}
+
+        {/* Version Management Modal */}
+        {isVersionModalOpen && versioningItem ? (
+          <VersionManagementModal
+            open={isVersionModalOpen}
+            item={versioningItem}
+            onClose={closeVersionModal}
+            onPreviewVersion={(item, versionId) => openPreview(item, versionId)}
+          />
+        ) : null}
+
+        {/* Share Modal */}
+        {isShareModalOpen && sharingItem ? (
+          <ShareModal
+            open={isShareModalOpen}
+            item={sharingItem}
+            onClose={closeShareModal}
+          />
+        ) : null}
+
+        {/* Share to Chat Modal */}
+        {isShareToChatOpen && shareToChatItem ? (
+          <ShareToChatModal
+            open={isShareToChatOpen}
+            item={shareToChatItem}
+            onClose={closeShareToChatModal}
+          />
+        ) : null}
       </div>
-
-      {/* Slide-in Details Panel */}
-      {activeDetailsItem && (
-        <DetailsPanel
-          item={activeDetailsItem}
-          onClose={() => setActiveDetailsItemId(null)}
-          onRename={() =>
-            handleRename(activeDetailsItem.id, activeDetailsItem.name)
-          }
-          onMove={() => handleOpenMoveModal(activeDetailsItem.id)}
-          onToggleStar={() =>
-            handleToggleStar(activeDetailsItem.id, activeDetailsItem.isStarred)
-          }
-          onArchive={(archive: boolean) =>
-            handleArchive(activeDetailsItem.id, archive)
-          }
-          onShare={() => handleShare(activeDetailsItem)}
-        />
-      )}
-
-      {/* Moving Item Modal */}
-      {isMoveModalOpen && movingItemId && (
-        <FolderPickerModal
-          isOpen={isMoveModalOpen}
-          onClose={() => setIsMoveModalOpen(false)}
-          currentItemId={movingItemId}
-          initialFolderId={initialFolderIdForMove}
-          initialPath={initialPathForMove}
-          onSelect={(destId: string | null) =>
-            moveMutation.mutate({ id: movingItemId, destId })
-          }
-        />
-      )}
-
-      {/* Floating Upload Progress Box */}
-      <UploadProgress
-        uploadState={uploadState}
-        uploadProgress={uploadProgress}
-        uploadingFileName={uploadingFileName}
-      />
-
-      {/* File Preview Modal */}
-      <FilePreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => {
-          setIsPreviewOpen(false);
-          setPreviewItem(null);
-          setPreviewVersionId("");
-        }}
-        item={previewItem}
-        versionId={previewVersionId || undefined}
-      />
-
-      {/* Version Management Modal */}
-      {isVersionModalOpen && versioningItem && (
-        <VersionManagementModal
-          isOpen={isVersionModalOpen}
-          onClose={() => {
-            setIsVersionModalOpen(false);
-            setVersioningItem(null);
-          }}
-          item={versioningItem}
-          onPreviewVersion={(item: DocumentItem, versionId: string) => {
-            setPreviewItem(item);
-            setPreviewVersionId(versionId);
-            setIsPreviewOpen(true);
-          }}
-        />
-      )}
-
-      {/* Share Modal */}
-      {isShareModalOpen && sharingItem && (
-        <ShareModal
-          isOpen={isShareModalOpen}
-          onClose={() => {
-            setIsShareModalOpen(false);
-            setSharingItem(null);
-          }}
-          item={sharingItem}
-        />
-      )}
-
-      {/* Share To Chat Modal */}
-      {isShareToChatOpen && shareToChatItem && (
-        <ShareToChatModal
-          isOpen={isShareToChatOpen}
-          onClose={() => {
-            setIsShareToChatOpen(false);
-            setShareToChatItem(null);
-          }}
-          item={shareToChatItem}
-        />
-      )}
-    </div>
+    </DndContext>
   );
 }
 
-export default React.memo(DocumentExplorer);
+export default DocumentExplorer;

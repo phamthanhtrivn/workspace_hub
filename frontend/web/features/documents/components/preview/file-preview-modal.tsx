@@ -8,23 +8,34 @@ import { PreviewFileType } from "../../types/documents.enums";
 import { getPreviewFileType, formatBytes } from "../../utils/documents.utils";
 import { MAX_TEXT_PREVIEW_SIZE } from "../../types/documents.constants";
 import { PreviewContent, PreviewIcon } from "./preview-content";
-import { X, Download } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Download } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { DocumentsIconButton } from "../ui/documents-icon-button";
 
 interface FilePreviewModalProps {
-  isOpen: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   item: DocumentItem | null;
   versionId?: string;
+  onDownload?: (item: DocumentItem) => void;
+  onOpenDetails?: (item: DocumentItem) => void;
 }
 
-function FilePreviewModal({
+export function FilePreviewModal({
+  open,
   isOpen,
   onClose,
   item,
   versionId,
+  onDownload,
 }: FilePreviewModalProps) {
-  const intl = useAppIntl();
+  const isModalOpen = open ?? isOpen ?? false;
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loadingText, setLoadingText] = useState(false);
 
@@ -38,8 +49,8 @@ function FilePreviewModal({
       item
         ? documentsApi.getPreviewUrl(item.id, versionId)
         : Promise.reject("No item"),
-    enabled: isOpen && !!item && item.type !== "FOLDER",
-    staleTime: 5 * 60 * 1000, // 5 mins cache
+    enabled: isModalOpen && !!item && item.type !== "FOLDER",
+    staleTime: 5 * 60 * 1000,
   });
 
   const previewType = useMemo(() => {
@@ -49,9 +60,8 @@ function FilePreviewModal({
 
   const isText = previewType === PreviewFileType.TEXT;
 
-  // Fetch text file content directly from S3 temporary URL
   useEffect(() => {
-    if (isOpen && isText && previewUrl) {
+    if (isModalOpen && isText && previewUrl) {
       setLoadingText(true);
       setTextContent(null);
       fetch(previewUrl)
@@ -63,7 +73,7 @@ function FilePreviewModal({
           if (text.length > MAX_TEXT_PREVIEW_SIZE) {
             setTextContent(
               text.slice(0, MAX_TEXT_PREVIEW_SIZE) +
-                "\n\n... [Content too long, please download to view full file] ...",
+                "\n\n... [Content too long, please download to view full file] ..."
             );
           } else {
             setTextContent(text);
@@ -79,14 +89,18 @@ function FilePreviewModal({
     } else {
       setTextContent(null);
     }
-  }, [isOpen, isText, previewUrl]);
+  }, [isModalOpen, isText, previewUrl]);
 
   const handleDownload = useCallback(async () => {
+    if (onDownload && item) {
+      onDownload(item);
+      return;
+    }
     if (item) {
       try {
         const downloadUrl = await documentsApi.getDownloadUrl(
           item.id,
-          versionId,
+          versionId
         );
         const link = document.createElement("a");
         link.href = downloadUrl;
@@ -97,63 +111,37 @@ function FilePreviewModal({
         console.error("Failed to generate download URL", err);
       }
     }
-  }, [item, versionId]);
+  }, [item, versionId, onDownload]);
 
-  if (!isOpen || !item) return null;
-
-  const isImageOrVideo =
-    previewType === PreviewFileType.IMAGE ||
-    previewType === PreviewFileType.VIDEO;
+  if (!isModalOpen || !item) return null;
 
   return (
-    <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div
-        className={
-          isImageOrVideo
-            ? "bg-white rounded-3xl w-full flex flex-col shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200 max-w-3xl"
-            : "bg-white rounded-3xl w-full flex flex-col shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200 max-w-4xl"
-        }
-      >
-        {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4.5 border-b border-slate-50 bg-white shrink-0">
+    <Dialog open={isModalOpen} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="max-w-4xl border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl">
+        <DialogHeader className="flex flex-row items-center justify-between space-y-0 text-left pr-6">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="p-2 bg-slate-50 rounded-xl shrink-0">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-slate-50 text-blue-600 border border-slate-100">
               <PreviewIcon previewType={previewType} />
             </div>
             <div className="min-w-0">
-              <h3 className="text-sm font-black text-slate-800 truncate max-w-lg leading-tight">
+              <DialogTitle className="text-base font-black text-slate-800 truncate max-w-lg">
                 {item.name}
-              </h3>
-              <p className="text-[10px] font-bold text-slate-400 mt-0.5 leading-none">
-                {intl.formatMessage(
-                  { id: "documents.sizeValue" },
-                  { size: formatBytes(item.sizeBytes) },
-                )}
+              </DialogTitle>
+              <p className="mt-0.5 text-xs text-slate-400 font-bold">
+                {formatBytes(item.sizeBytes)}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {previewUrl && (
-              <button
-                onClick={handleDownload}
-                title={intl.formatMessage({ id: "documents.download" })}
-                className="p-2.5 text-slate-500 hover:text-slate-800 hover:bg-slate-50 rounded-xl transition-all cursor-pointer border border-slate-100"
-              >
-                <Download size={16} />
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              title={intl.formatMessage({ id: "app.close" })}
-              className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-50 rounded-xl transition-all cursor-pointer border border-slate-100"
-            >
-              <X size={16} />
-            </button>
-          </div>
-        </div>
+          {previewUrl ? (
+            <DocumentsIconButton
+              icon={Download}
+              label="Download"
+              onClick={handleDownload}
+            />
+          ) : null}
+        </DialogHeader>
 
-        {/* Modal Body Container */}
-        <div className="p-6 overflow-auto max-h-[78vh] flex-1 bg-white">
+        <div className="mt-4 max-h-[75vh] overflow-auto rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
           <PreviewContent
             item={item}
             previewType={previewType}
@@ -165,8 +153,8 @@ function FilePreviewModal({
             handleDownload={handleDownload}
           />
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

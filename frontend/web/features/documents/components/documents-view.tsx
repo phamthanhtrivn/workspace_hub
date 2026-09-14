@@ -2,24 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import DocumentExplorer from "./document-explorer";
-import QuotaWidget from "./common/quota-widget";
-import { Folder, Share2, Star, Trash2 } from "lucide-react";
+import { DocumentsSidebar } from "./explorer/documents-sidebar";
 import { DocumentViewType, NavigationLabel } from "../types/documents.enums";
-import { cn } from "@/lib/utils";
 import { DownloadQueueProvider } from "./download/download-queue-provider";
 import { useSearchParams } from "next/navigation";
 import { DOCUMENT_QUERY_PARAMS } from "../types/documents.constants";
 import { documentsApi } from "../api/documents.api";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 function DocumentsView() {
-  const intl = useAppIntl();
   const [activeView, setActiveView] = useState<DocumentViewType>(
     DocumentViewType.MY_FILES,
   );
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
 
-  // Breadcrumb path state
   const [path, setPath] = useState<{ id: string | null; name: string }[]>([
     { id: null, name: NavigationLabel.ROOT },
   ]);
@@ -75,7 +70,6 @@ function DocumentsView() {
     viewContext?: DocumentViewType,
   ) => {
     setCurrentFolderId(folderId);
-
     const activeV = viewContext !== undefined ? viewContext : activeView;
 
     if (folderId === null) {
@@ -89,7 +83,6 @@ function DocumentsView() {
               : NavigationLabel.ROOT;
       setPath([{ id: null, name: rootLabel }]);
     } else if (folderName) {
-      // Navigate deeper
       const exists = path.some((p) => p.id === folderId);
       if (!exists) {
         setPath([...path, { id: folderId, name: folderName }]);
@@ -99,117 +92,31 @@ function DocumentsView() {
 
   const handleViewChange = (view: DocumentViewType) => {
     setActiveView(view);
-    // Reset to root directory when switching main tabs
     handleNavigate(null, undefined, view);
   };
 
   return (
     <DownloadQueueProvider>
-    <div className="flex flex-col gap-6 p-6 h-[calc(100vh-100px)] min-h-0">
-      {/* Main Grid: Sidebar + Explorer */}
-      <div className="flex-1 flex gap-6 min-h-0">
+      <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-[#f5f9fb] text-[#172B4D] xl:flex-row">
         {/* Navigation Sidebar */}
-        <div className="w-70 shrink-0 flex flex-col justify-between hidden md:flex">
-          <div className="flex flex-col gap-1">
-            <button
-              onClick={() => handleViewChange(DocumentViewType.MY_FILES)}
-              className={cn(
-                "flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all cursor-pointer group",
-                activeView === DocumentViewType.MY_FILES
-                  ? "bg-blue-50 text-[var(--color-primary)]"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800",
-              )}
-            >
-              <Folder
-                size={18}
-                className={cn(
-                  "transition-all duration-300",
-                  activeView === DocumentViewType.MY_FILES
-                    ? "text-blue-600 fill-blue-500/20 scale-110"
-                    : "text-slate-400 group-hover:text-slate-600",
-                )}
-              />
-              <span>{intl.formatMessage({ id: "documents.nav.myFiles" })}</span>
-            </button>
-
-            <button
-              onClick={() => handleViewChange(DocumentViewType.SHARED)}
-              className={cn(
-                "flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all cursor-pointer group",
-                activeView === DocumentViewType.SHARED
-                  ? "bg-blue-50 text-[var(--color-primary)]"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800",
-              )}
-            >
-              <Share2
-                size={18}
-                className={cn(
-                  "transition-all duration-300",
-                  activeView === DocumentViewType.SHARED
-                    ? "text-blue-600 fill-blue-600/20 scale-110"
-                    : "text-slate-400 group-hover:text-slate-600",
-                )}
-              />
-              <span>{intl.formatMessage({ id: "documents.nav.shared" })}</span>
-            </button>
-
-            <button
-              onClick={() => handleViewChange(DocumentViewType.STARRED)}
-              className={cn(
-                "flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all cursor-pointer group",
-                activeView === DocumentViewType.STARRED
-                  ? "bg-blue-50 text-[var(--color-primary)]"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800",
-              )}
-            >
-              <Star
-                size={18}
-                className={cn(
-                  "transition-all duration-300",
-                  activeView === DocumentViewType.STARRED
-                    ? "text-amber-500 fill-amber-400 scale-110"
-                    : "text-slate-400 group-hover:text-slate-600",
-                )}
-              />
-              <span>{intl.formatMessage({ id: "documents.nav.starred" })}</span>
-            </button>
-
-            <button
-              onClick={() => handleViewChange(DocumentViewType.TRASH)}
-              className={cn(
-                "flex items-center gap-3 w-full rounded-2xl px-4 py-3 text-sm font-bold transition-all cursor-pointer group",
-                activeView === DocumentViewType.TRASH
-                  ? "bg-red-50 text-red-600"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-800",
-              )}
-            >
-              <Trash2
-                size={18}
-                className={cn(
-                  "transition-all duration-300",
-                  activeView === DocumentViewType.TRASH
-                    ? "text-red-500 fill-red-500/20 scale-110"
-                    : "text-slate-400 group-hover:text-slate-600",
-                )}
-              />
-              <span>{intl.formatMessage({ id: "documents.nav.trash" })}</span>
-            </button>
-          </div>
-
-          {/* Quota Space Status Indicator */}
-          <QuotaWidget />
-        </div>
-
-        {/* Explorer Content */}
-        <DocumentExplorer
-          currentFolderId={currentFolderId}
-          onNavigate={handleNavigate}
+        <DocumentsSidebar
           activeView={activeView}
-          path={path}
-          setPath={setPath}
+          onViewChange={handleViewChange}
         />
+
+        {/* Document Explorer Main Canvas */}
+        <section className="flex min-w-0 flex-1 flex-col overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
+          <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 rounded-lg border border-slate-100 bg-white p-6 shadow-xs min-h-0 overflow-hidden">
+            <DocumentExplorer
+              currentFolderId={currentFolderId}
+              onNavigate={handleNavigate}
+              activeView={activeView}
+              path={path}
+              setPath={setPath}
+            />
+          </div>
+        </section>
       </div>
-    </div>
     </DownloadQueueProvider>
   );
 }
