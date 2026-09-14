@@ -9,7 +9,6 @@ import { documentsApi } from "../../api/documents.api";
 import { searchUserByEmail } from "@/features/chat/api/chat.api";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import { ShareSuggestionsDropdown } from "./share-suggestions-dropdown";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ShareModalFormProps {
   documentItemId: string;
@@ -20,7 +19,6 @@ export function ShareModalForm({
   documentItemId,
   onShareAdded,
 }: ShareModalFormProps) {
-  const intl = useAppIntl();
   const [emailInput, setEmailInput] = useState("");
   const [permissionInput, setPermissionInput] = useState<SharePermission>(
     SharePermission.VIEWER,
@@ -100,10 +98,8 @@ export function ShareModalForm({
       email: string;
       permission: SharePermission;
     }) => {
-      // Validate if the email exists in the system
       let userExists = false;
 
-      // 1. Check local search results first
       const matchedLocal = searchResults.find(
         (u) => u.email.toLowerCase() === email.toLowerCase(),
       );
@@ -111,7 +107,6 @@ export function ShareModalForm({
       if (matchedLocal) {
         userExists = true;
       } else {
-        // 2. Perform a single check calling searchUserByEmail to see if exact match exists
         const searchRes = await searchUserByEmail(email);
         if (searchRes?.success && Array.isArray(searchRes.data)) {
           const hasExactMatch = searchRes.data.some(
@@ -125,20 +120,13 @@ export function ShareModalForm({
       }
 
       if (!userExists) {
-        throw new Error(
-          intl.formatMessage({ id: "documents.userEmailNotFound" }),
-        );
+        throw new Error("User email not found in workspace");
       }
 
       return documentsApi.addShare(documentItemId, email, permission);
     },
     onSuccess: (_, variables) => {
-      toast.success(
-        intl.formatMessage(
-          { id: "documents.sharedAccessWith" },
-          { email: variables.email },
-        ),
-      );
+      toast.success(`Shared access with ${variables.email}`);
       setEmailInput("");
       setSearchResults([]);
       queryClient.invalidateQueries({
@@ -151,7 +139,7 @@ export function ShareModalForm({
       const errMsg =
         err.response?.data?.message ||
         err.message ||
-        intl.formatMessage({ id: "documents.shareAccessFailed" });
+        "Failed to share access";
       toast.error(errMsg);
     },
   });
@@ -173,7 +161,7 @@ export function ShareModalForm({
   return (
     <form onSubmit={handleAddShare} className="space-y-2">
       <label className="text-xs font-black text-slate-400 uppercase tracking-wider block">
-        {intl.formatMessage({ id: "documents.shareWithOthers" })}
+        Share with others
       </label>
       <div className="flex items-center gap-2">
         <div ref={containerRef} className="relative flex-1">
@@ -190,9 +178,7 @@ export function ShareModalForm({
           )}
           <input
             type="text"
-            placeholder={intl.formatMessage({
-              id: "documents.enterEmailAddress",
-            })}
+            placeholder="Enter email address..."
             required
             value={emailInput}
             onChange={(e) => setEmailInput(e.target.value)}
@@ -204,7 +190,6 @@ export function ShareModalForm({
             className="w-full bg-slate-50/50 border border-slate-100 hover:border-slate-200 focus:border-blue-500 rounded-2xl py-2.5 pl-10 pr-4 text-xs font-bold text-slate-700 outline-hidden transition-all placeholder:text-slate-400"
           />
 
-          {/* Autocomplete Suggestions Dropdown (YouTube style) */}
           <ShareSuggestionsDropdown
             show={showSuggestions}
             results={searchResults}
@@ -218,12 +203,8 @@ export function ShareModalForm({
           }
           className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl py-2.5 px-3 text-xs font-black text-slate-700 outline-hidden transition-all cursor-pointer"
         >
-          <option value={SharePermission.VIEWER}>
-            {intl.formatMessage({ id: "documents.permission.viewer" })}
-          </option>
-          <option value={SharePermission.EDITOR}>
-            {intl.formatMessage({ id: "documents.permission.editor" })}
-          </option>
+          <option value={SharePermission.VIEWER}>Can view</option>
+          <option value={SharePermission.EDITOR}>Can edit</option>
         </select>
         <button
           type="submit"

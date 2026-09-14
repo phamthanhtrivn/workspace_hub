@@ -3,7 +3,6 @@
 import React from "react";
 import { UploadCloud, Loader2, CheckCircle2 } from "lucide-react";
 import { UploadState } from "../../types/documents.enums";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface VersionUploaderProps {
   uploadState: UploadState;
@@ -22,15 +21,14 @@ export function VersionUploader({
   onFileChange,
   onTriggerFileSelect,
 }: VersionUploaderProps) {
-  const intl = useAppIntl();
-  const uploadStatusMessageIds: Partial<Record<UploadState, string>> = {
-    [UploadState.INITIATING]: "documents.upload.initiating",
-    [UploadState.UPLOADING]: "documents.uploadingToStorage",
-    [UploadState.CONFIRMING]: "documents.confirmingNewVersion",
-    [UploadState.SUCCESS]: "documents.versionUploadedSuccessfully",
-    [UploadState.ERROR]: "documents.uploadErrorOccurred",
+  const uploadStatusMessages: Partial<Record<UploadState, string>> = {
+    [UploadState.INITIATING]: "Initiating upload...",
+    [UploadState.UPLOADING]: "Uploading to storage...",
+    [UploadState.CONFIRMING]: "Confirming new version...",
+    [UploadState.SUCCESS]: "Version uploaded successfully!",
+    [UploadState.ERROR]: "An upload error occurred",
   };
-  const statusMessageId = uploadStatusMessageIds[uploadState];
+  const statusMessage = uploadStatusMessages[uploadState];
 
   return (
     <div className="mb-6">
@@ -49,10 +47,10 @@ export function VersionUploader({
             <UploadCloud size={24} />
           </div>
           <span className="text-sm font-black text-slate-700">
-            {intl.formatMessage({ id: "documents.uploadNewVersion" })}
+            Upload new version
           </span>
           <span className="text-xs text-slate-400 font-bold mt-1">
-            {intl.formatMessage({ id: "documents.oldVersionsKeptSafely" })}
+            Old versions will be kept safely in history
           </span>
         </div>
       ) : (
@@ -85,7 +83,7 @@ export function VersionUploader({
             />
           </div>
           <p className="text-[10px] text-slate-400 font-bold mt-2">
-            {statusMessageId ? intl.formatMessage({ id: statusMessageId }) : null}
+            {statusMessage}
           </p>
         </div>
       )}

@@ -14,11 +14,9 @@ import {
   AlertCircle,
   FolderArchive,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { documentsApi } from "@/features/documents/api/documents.api";
 import { DownloadStatus } from "@/features/documents/types/documents.enums";
 import { FaAngleDown, FaAngleUp } from "react-icons/fa";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,7 +25,7 @@ export interface DownloadTask {
   folderName: string;
   documentId: string;
   status: DownloadStatus;
-  progress: number; // 0-100, -1 = indeterminate
+  progress: number;
   error?: string;
 }
 
@@ -56,7 +54,6 @@ export function DownloadQueueProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const intl = useAppIntl();
   const [tasks, setTasks] = useState<DownloadTask[]>([]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const taskIdRef = useRef(0);
@@ -106,7 +103,6 @@ export function DownloadQueueProvider({
       downloadPromise
         .then(() => {
           updateTask(taskId, { status: DownloadStatus.DONE, progress: 100 });
-          // Auto-remove done tasks after 4s
           setTimeout(() => {
             setTasks((prev) => prev.filter((t) => t.id !== taskId));
           }, 4000);
@@ -152,7 +148,7 @@ export function DownloadQueueProvider({
     <DownloadQueueContext.Provider value={{ enqueueDownload }}>
       {children}
 
-      {/* ── Fixed Bottom Bar (Google Drive style) ── */}
+      {/* ── Fixed Bottom Bar ── */}
       <div className="fixed bottom-4 right-4 z-50 w-80 rounded-2xl bg-slate-800 shadow-2xl shadow-black/30 border border-slate-700/50 overflow-hidden animate-in slide-in-from-bottom-4 duration-500">
         {/* Header */}
         <div
@@ -163,11 +159,8 @@ export function DownloadQueueProvider({
             <Download size={15} className="text-blue-400 shrink-0" />
             <span className="text-sm font-bold text-white">
               {activeCount > 0
-                ? intl.formatMessage(
-                    { id: "documents.downloadingItems" },
-                    { count: activeCount },
-                  )
-                : intl.formatMessage({ id: "documents.downloadCompleted" })}
+                ? `Downloading ${activeCount} item${activeCount > 1 ? "s" : ""}...`
+                : "Download completed"}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -183,7 +176,7 @@ export function DownloadQueueProvider({
                 }}
                 className="text-[10px] font-bold text-slate-400 hover:text-slate-200 px-2 py-0.5 rounded hover:bg-slate-700 transition-colors cursor-pointer"
               >
-                {intl.formatMessage({ id: "documents.clearAll" })}
+                Clear all
               </button>
             )}
             <button
@@ -224,7 +217,6 @@ function DownloadTaskRow({
   task: DownloadTask;
   onRemove: (id: string) => void;
 }) {
-  const intl = useAppIntl();
   const isIndeterminate = task.progress === -1;
 
   return (
@@ -247,7 +239,7 @@ function DownloadTaskRow({
             task.status === DownloadStatus.ERROR) && (
             <button
               onClick={() => onRemove(task.id)}
-              aria-label={intl.formatMessage({ id: "documents.removeDownload" })}
+              aria-label="Remove download"
               className="text-slate-500 hover:text-slate-300 transition-colors"
             >
               <X size={13} />

@@ -4,10 +4,8 @@ import { documentsApi } from "../../api/documents.api";
 import { HardDrive, Loader2 } from "lucide-react";
 import { calculateQuotaStats } from "../../utils/documents.utils";
 import { cn } from "@/lib/utils";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 function QuotaWidget() {
-  const intl = useAppIntl();
   const { data: quota, isLoading } = useQuery({
     queryKey: ["document-quota"],
     queryFn: documentsApi.getQuota,
@@ -35,7 +33,7 @@ function QuotaWidget() {
       <div className="flex items-center gap-2 text-slate-600 mb-2">
         <HardDrive size={18} className="text-slate-400" />
         <span className="text-xs font-semibold uppercase tracking-wider">
-          {intl.formatMessage({ id: "documents.storageUsed" })}
+          STORAGE USED
         </span>
       </div>
 
@@ -47,7 +45,7 @@ function QuotaWidget() {
               ? "bg-red-500"
               : percentage > 75
                 ? "bg-amber-500"
-                : "bg-[var(--color-primary)]",
+                : "bg-[#0052CC]",
           )}
           style={{ width: `${percentage}%` }}
         />
@@ -55,10 +53,7 @@ function QuotaWidget() {
 
       <div className="flex justify-between text-xs font-semibold text-slate-500">
         <span>
-          {intl.formatMessage(
-            { id: "documents.storageUsage" },
-            { used: usedMB, max: maxGB },
-          )}
+          {usedMB} MB of {maxGB} GB
         </span>
         <span>{percentage.toFixed(1)}%</span>
       </div>

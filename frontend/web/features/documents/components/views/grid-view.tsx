@@ -8,71 +8,64 @@ import { GridViewCard } from "./grid-view-card";
 interface GridViewProps {
   items: DocumentItem[];
   selectedItemId: string | null;
-  onSelect: (id: string | null) => void;
-  onFolderClick: (item: DocumentItem) => void;
-  activeView: DocumentViewType;
+  onSelectItem: (id: string | null) => void;
+  onOpenItem: (item: DocumentItem) => void;
   activeMenuId: string | null;
   setActiveMenuId: (id: string | null) => void;
-  onRename: (id: string, name: string) => void;
+  onOpenDetails: (item: DocumentItem) => void;
+  onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (id: string, isStarred: boolean) => void;
-  onArchive: (id: string, archive: boolean) => void;
-  onViewDetails: (id: string) => void;
-  onDeletePermanently: (id: string) => void;
+  onToggleStar: (item: DocumentItem) => void;
+  onMoveToTrash: (item: DocumentItem) => void;
+  onRestore: (item: DocumentItem) => void;
+  onDeletePermanently: (item: DocumentItem) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
+  onDownloadFolder?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
-  onDownloadFolder?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
 }
 
 function GridView({
   items,
   selectedItemId,
-  onSelect,
-  onFolderClick,
-  activeView,
+  onSelectItem,
+  onOpenItem,
   activeMenuId,
   setActiveMenuId,
+  onOpenDetails,
   onRename,
   onMove,
   onToggleStar,
-  onArchive,
-  onViewDetails,
+  onMoveToTrash,
+  onRestore,
   onDeletePermanently,
   onPreview,
   onDownload,
+  onDownloadFolder,
   onManageVersions,
   onShare,
-  onDownloadFolder,
   onShareToChat,
 }: GridViewProps) {
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return "0 B";
-    const k = 1024;
-    const sizes = ["B", "KB", "MB", "GB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
-  };
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in duration-200">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in duration-200">
       {items.map((item) => (
         <GridViewCard
           key={item.id}
           item={item}
           selectedItemId={selectedItemId}
-          onSelect={onSelect}
-          onFolderClick={onFolderClick}
-          activeView={activeView}
+          onSelect={onSelectItem}
+          onFolderClick={onOpenItem}
+          activeView={DocumentViewType.MY_FILES}
           activeMenuId={activeMenuId}
           setActiveMenuId={setActiveMenuId}
           onRename={onRename}
           onMove={onMove}
           onToggleStar={onToggleStar}
-          onArchive={onArchive}
-          onViewDetails={onViewDetails}
+          onMoveToTrash={onMoveToTrash}
+          onRestore={onRestore}
+          onViewDetails={onOpenDetails}
           onDeletePermanently={onDeletePermanently}
           onPreview={onPreview}
           onDownload={onDownload}
@@ -80,7 +73,6 @@ function GridView({
           onManageVersions={onManageVersions}
           onShare={onShare}
           onShareToChat={onShareToChat}
-          formatBytes={formatBytes}
         />
       ))}
     </div>

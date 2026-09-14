@@ -4,97 +4,83 @@ import React from "react";
 import { DocumentItem } from "../../types/documents.types";
 import { DocumentViewType } from "../../types/documents.enums";
 import { ListViewRow } from "./list-view-row";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ListViewProps {
   items: DocumentItem[];
   selectedItemId: string | null;
-  onSelect: (id: string | null) => void;
-  onFolderClick: (item: DocumentItem) => void;
-  activeView: DocumentViewType;
+  onSelectItem: (id: string | null) => void;
+  onOpenItem: (item: DocumentItem) => void;
   activeMenuId: string | null;
   setActiveMenuId: (id: string | null) => void;
-  onRename: (id: string, name: string) => void;
+  onOpenDetails: (item: DocumentItem) => void;
+  onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (id: string, isStarred: boolean) => void;
-  onArchive: (id: string, archive: boolean) => void;
-  onViewDetails: (id: string) => void;
-  onDeletePermanently: (id: string) => void;
+  onToggleStar: (item: DocumentItem) => void;
+  onMoveToTrash: (item: DocumentItem) => void;
+  onRestore: (item: DocumentItem) => void;
+  onDeletePermanently: (item: DocumentItem) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
+  onDownloadFolder?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
-  onDownloadFolder?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
 }
 
 function ListView({
   items,
   selectedItemId,
-  onSelect,
-  onFolderClick,
-  activeView,
+  onSelectItem,
+  onOpenItem,
   activeMenuId,
   setActiveMenuId,
+  onOpenDetails,
   onRename,
   onMove,
   onToggleStar,
-  onArchive,
-  onViewDetails,
+  onMoveToTrash,
+  onRestore,
   onDeletePermanently,
   onPreview,
   onDownload,
+  onDownloadFolder,
   onManageVersions,
   onShare,
-  onDownloadFolder,
   onShareToChat,
 }: ListViewProps) {
-  const intl = useAppIntl();
-
   return (
-    <div className="w-full border border-slate-100 rounded-2xl overflow-visible bg-white animate-in fade-in duration-200">
-      <table className="w-full border-collapse text-left text-sm text-slate-700">
-        <thead className="bg-slate-50 border-b border-slate-100 text-slate-400 font-black text-xs uppercase tracking-wider">
-          <tr>
-            <th className="p-4 rounded-tl-2xl">
-              {intl.formatMessage({ id: "documents.name" })}
-            </th>
-            <th className="p-4 hidden sm:table-cell">
-              {intl.formatMessage({ id: "documents.modified" })}
-            </th>
-            <th className="p-4 hidden md:table-cell">
-              {intl.formatMessage({ id: "documents.size" })}
-            </th>
-            <th className="p-4 w-10 rounded-tr-2xl"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {items.map((item) => (
-            <ListViewRow
-              key={item.id}
-              item={item}
-              selectedItemId={selectedItemId}
-              onSelect={onSelect}
-              onFolderClick={onFolderClick}
-              activeView={activeView}
-              activeMenuId={activeMenuId}
-              setActiveMenuId={setActiveMenuId}
-              onRename={onRename}
-              onMove={onMove}
-              onToggleStar={onToggleStar}
-              onArchive={onArchive}
-              onViewDetails={onViewDetails}
-              onDeletePermanently={onDeletePermanently}
-              onPreview={onPreview}
-              onDownload={onDownload}
-              onManageVersions={onManageVersions}
-              onShare={onShare}
-              onDownloadFolder={onDownloadFolder}
-              onShareToChat={onShareToChat}
-            />
-          ))}
-        </tbody>
-      </table>
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs animate-in fade-in duration-200">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <table className="w-full border-collapse text-left text-sm text-slate-700">
+          <tbody className="divide-y divide-slate-100">
+            {items.map((item) => (
+              <ListViewRow
+                key={item.id}
+                item={item}
+                selectedItemId={selectedItemId}
+                onSelect={onSelectItem}
+                onFolderClick={onOpenItem}
+                activeView={DocumentViewType.MY_FILES}
+                activeMenuId={activeMenuId}
+                setActiveMenuId={setActiveMenuId}
+                onRename={onRename}
+                onMove={onMove}
+                onToggleStar={onToggleStar}
+                onMoveToTrash={onMoveToTrash}
+                onRestore={onRestore}
+                onViewDetails={onOpenDetails}
+                onDeletePermanently={onDeletePermanently}
+                onPreview={onPreview}
+                onDownload={onDownload}
+                onDownloadFolder={onDownloadFolder}
+                onManageVersions={onManageVersions}
+                onShare={onShare}
+                onShareToChat={onShareToChat}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
