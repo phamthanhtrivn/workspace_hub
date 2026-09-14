@@ -105,8 +105,8 @@ function DocumentsView() {
         />
 
         {/* Document Explorer Main Canvas */}
-        <section className="flex min-w-0 flex-1 flex-col overflow-y-auto px-4 py-5 sm:px-6 lg:px-8">
-          <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 rounded-lg border border-slate-100 bg-white p-6 shadow-xs min-h-0 overflow-hidden">
+        <section className="flex min-w-0 flex-1 flex-col min-h-0 h-full overflow-hidden px-4 py-5 sm:px-6 lg:px-8">
+          <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col min-h-0 h-full rounded-lg border border-slate-100 bg-white p-6 shadow-xs overflow-hidden">
             <DocumentExplorer
               currentFolderId={currentFolderId}
               onNavigate={handleNavigate}

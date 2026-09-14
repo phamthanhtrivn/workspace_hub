@@ -49,45 +49,38 @@ function ListView({
   onShareToChat,
 }: ListViewProps) {
   return (
-    <div className="w-full border border-slate-100 rounded-2xl overflow-hidden bg-white animate-in fade-in duration-200 shadow-xs">
-      <table className="w-full border-collapse text-left text-sm text-slate-700">
-        <thead className="bg-slate-50 border-b border-slate-100 text-slate-400 font-black text-xs uppercase tracking-wider">
-          <tr>
-            <th className="p-4">Name</th>
-            <th className="p-4 hidden sm:table-cell">Type</th>
-            <th className="p-4 hidden md:table-cell">Modified</th>
-            <th className="p-4 hidden lg:table-cell">Size</th>
-            <th className="p-4 w-10 text-right"></th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {items.map((item) => (
-            <ListViewRow
-              key={item.id}
-              item={item}
-              selectedItemId={selectedItemId}
-              onSelect={onSelectItem}
-              onFolderClick={onOpenItem}
-              activeView={DocumentViewType.MY_FILES}
-              activeMenuId={activeMenuId}
-              setActiveMenuId={setActiveMenuId}
-              onRename={onRename}
-              onMove={onMove}
-              onToggleStar={onToggleStar}
-              onMoveToTrash={onMoveToTrash}
-              onRestore={onRestore}
-              onViewDetails={onOpenDetails}
-              onDeletePermanently={onDeletePermanently}
-              onPreview={onPreview}
-              onDownload={onDownload}
-              onDownloadFolder={onDownloadFolder}
-              onManageVersions={onManageVersions}
-              onShare={onShare}
-              onShareToChat={onShareToChat}
-            />
-          ))}
-        </tbody>
-      </table>
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs animate-in fade-in duration-200">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <table className="w-full border-collapse text-left text-sm text-slate-700">
+          <tbody className="divide-y divide-slate-100">
+            {items.map((item) => (
+              <ListViewRow
+                key={item.id}
+                item={item}
+                selectedItemId={selectedItemId}
+                onSelect={onSelectItem}
+                onFolderClick={onOpenItem}
+                activeView={DocumentViewType.MY_FILES}
+                activeMenuId={activeMenuId}
+                setActiveMenuId={setActiveMenuId}
+                onRename={onRename}
+                onMove={onMove}
+                onToggleStar={onToggleStar}
+                onMoveToTrash={onMoveToTrash}
+                onRestore={onRestore}
+                onViewDetails={onOpenDetails}
+                onDeletePermanently={onDeletePermanently}
+                onPreview={onPreview}
+                onDownload={onDownload}
+                onDownloadFolder={onDownloadFolder}
+                onManageVersions={onManageVersions}
+                onShare={onShare}
+                onShareToChat={onShareToChat}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ViewLayout, DocumentSortBy } from "../types/documents.types";
 import { DocumentViewType } from "../types/documents.enums";
 
@@ -12,12 +12,14 @@ export interface PathItem {
 export interface UseDocumentExplorerStateOptions {
   initialFolderId?: string | null;
   initialPath?: PathItem[];
+  activeView?: DocumentViewType;
   onNavigate?: (folderId: string | null, folderName?: string) => void;
 }
 
 export function useDocumentExplorerState({
   initialFolderId = null,
   initialPath = [{ id: null, name: "My Files" }],
+  activeView,
   onNavigate,
 }: UseDocumentExplorerStateOptions = {}) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -27,6 +29,12 @@ export function useDocumentExplorerState({
   const [sortBy, setSortBy] = useState<DocumentSortBy>(DocumentSortBy.LATEST);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setCurrentPage(1);
+    setSelectedItemId(null);
+    setActiveMenuId(null);
+  }, [activeView, initialFolderId]);
 
   const handleNavigate = useCallback(
     (folderId: string | null, folderName?: string) => {

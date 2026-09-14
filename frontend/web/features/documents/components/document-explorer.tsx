@@ -72,6 +72,7 @@ export function DocumentExplorer({
     handleNavigate,
   } = useDocumentExplorerState({
     initialFolderId: currentFolderId,
+    activeView,
     onNavigate,
   });
 
@@ -147,8 +148,19 @@ export function DocumentExplorer({
   });
 
   // Query Main Document List
-  const { data: documentResponse, isLoading, isFetching } = useQuery({
-    queryKey: ["documents", activeView, currentFolderId, sortBy, searchQuery, currentPage],
+  const {
+    data: documentResponse,
+    isLoading,
+    isFetching,
+  } = useQuery({
+    queryKey: [
+      "documents",
+      activeView,
+      currentFolderId,
+      sortBy,
+      searchQuery,
+      currentPage,
+    ],
     queryFn: () => {
       if (activeView === DocumentViewType.SHARED) {
         return documentsApi.getSharedDocuments({
@@ -171,13 +183,25 @@ export function DocumentExplorer({
   });
 
   const items = useMemo(() => documentResponse?.data || [], [documentResponse]);
-  const meta = documentResponse?.meta;
+  const meta = useMemo(() => {
+    if (documentResponse?.meta) return documentResponse.meta;
+    if (items.length > 0) {
+      return {
+        totalItems: items.length,
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        totalPages: Math.ceil(items.length / ITEMS_PER_PAGE),
+      };
+    }
+    return undefined;
+  }, [documentResponse, items.length, currentPage]);
+
   const totalPages = meta?.totalPages || 1;
   const totalItems = meta?.totalItems || items.length;
 
   const activeDetailsItem = useMemo(
     () => items.find((i: DocumentItem) => i.id === activeDetailsItemId) || null,
-    [items, activeDetailsItemId]
+    [items, activeDetailsItemId],
   );
 
   // Folder click navigation
@@ -186,7 +210,7 @@ export function DocumentExplorer({
       handleNavigate(folder.id, folder.name);
       setPath((prev) => [...prev, { id: folder.id, name: folder.name }]);
     },
-    [handleNavigate, setPath]
+    [handleNavigate, setPath],
   );
 
   // Breadcrumb navigation click
@@ -196,7 +220,7 @@ export function DocumentExplorer({
       setPath(path.slice(0, index + 1));
       handleNavigate(target.id, target.name);
     },
-    [path, setPath, handleNavigate]
+    [path, setPath, handleNavigate],
   );
 
   // Input Modal Confirmations
@@ -229,7 +253,7 @@ export function DocumentExplorer({
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-      <div className="relative flex flex-1 flex-col h-full overflow-hidden bg-white text-slate-800">
+      <div className="relative flex flex-1 flex-col min-h-0 h-full overflow-hidden bg-white text-slate-800">
         {/* Full Window Dropzone Overlay */}
         {isDraggingOver ? (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-blue-500/10 backdrop-blur-xs border-2 border-dashed border-blue-400">
@@ -243,7 +267,7 @@ export function DocumentExplorer({
         ) : null}
 
         {/* Explorer Header Toolbar */}
-        <div className="relative z-20 flex flex-col gap-3 border-b border-slate-100 bg-white/60 p-6 backdrop-blur-md">
+        <div className="relative z-20 shrink-0 flex flex-col gap-3 bg-white/60 p-6 backdrop-blur-md">
           <ExplorerBreadcrumbs
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
@@ -262,80 +286,93 @@ export function DocumentExplorer({
         </div>
 
         {/* Main Content Area */}
-        <div className="flex flex-1 overflow-hidden">
-          <div className="flex flex-1 flex-col overflow-y-auto p-6">
-            {isLoading ? (
-              <DocumentsLoadingState view={viewLayout === "GRID" ? "grid" : "list"} />
-            ) : items.length === 0 ? (
-              <DocumentsEmptyState
-                title={
-                  searchQuery
-                    ? "No items found"
-                    : activeView === DocumentViewType.TRASH
-                    ? "Trash is empty"
-                    : activeView === DocumentViewType.STARRED
-                    ? "No starred items"
-                    : "This folder is empty"
-                }
-                description={
-                  searchQuery
-                    ? `No matching resources found for "${searchQuery}"`
-                    : "Upload files or create new folders to get started"
-                }
-              />
-            ) : viewLayout === "GRID" ? (
-              <GridView
-                items={items}
-                selectedItemId={selectedItemId}
-                onSelectItem={setSelectedItemId}
-                onOpenItem={(item) =>
-                  item.type === "FOLDER" ? handleFolderClick(item) : openPreview(item)
-                }
-                activeMenuId={activeMenuId}
-                setActiveMenuId={setActiveMenuId}
-                onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
-                onRename={openRename}
-                onMove={openMoveModal}
-                onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
-                onMoveToTrash={openTrashConfirm}
-                onRestore={(item) => restoreFromTrash(item.id)}
-                onDeletePermanently={openDeleteConfirm}
-                onPreview={openPreview}
-                onDownload={downloadItem}
-                onDownloadFolder={downloadItem}
-                onManageVersions={openVersionModal}
-                onShare={openShareModal}
-                onShareToChat={openShareToChatModal}
-              />
-            ) : (
-              <ListView
-                items={items}
-                selectedItemId={selectedItemId}
-                onSelectItem={setSelectedItemId}
-                onOpenItem={(item) =>
-                  item.type === "FOLDER" ? handleFolderClick(item) : openPreview(item)
-                }
-                activeMenuId={activeMenuId}
-                setActiveMenuId={setActiveMenuId}
-                onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
-                onRename={openRename}
-                onMove={openMoveModal}
-                onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
-                onMoveToTrash={openTrashConfirm}
-                onRestore={(item) => restoreFromTrash(item.id)}
-                onDeletePermanently={openDeleteConfirm}
-                onPreview={openPreview}
-                onDownload={downloadItem}
-                onDownloadFolder={downloadItem}
-                onManageVersions={openVersionModal}
-                onShare={openShareModal}
-                onShareToChat={openShareToChatModal}
-              />
-            )}
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+            {/* Items View Area */}
+            <div className="flex flex-1 flex-col min-h-0 overflow-hidden px-6 mb-6">
+              {isLoading ? (
+                <DocumentsLoadingState
+                  view={viewLayout === "GRID" ? "grid" : "list"}
+                />
+              ) : items.length === 0 ? (
+                <DocumentsEmptyState
+                  title={
+                    searchQuery
+                      ? "No items found"
+                      : activeView === DocumentViewType.TRASH
+                        ? "Trash is empty"
+                        : activeView === DocumentViewType.STARRED
+                          ? "No starred items"
+                          : "This folder is empty"
+                  }
+                  description={
+                    searchQuery
+                      ? `No matching resources found for "${searchQuery}"`
+                      : "Upload files or create new folders to get started"
+                  }
+                />
+              ) : viewLayout === "GRID" ? (
+                <div className="flex-1 min-h-0 overflow-y-auto">
+                  <GridView
+                    items={items}
+                    selectedItemId={selectedItemId}
+                    onSelectItem={setSelectedItemId}
+                    onOpenItem={(item) =>
+                      item.type === "FOLDER"
+                        ? handleFolderClick(item)
+                        : openPreview(item)
+                    }
+                    activeMenuId={activeMenuId}
+                    setActiveMenuId={setActiveMenuId}
+                    onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
+                    onRename={openRename}
+                    onMove={openMoveModal}
+                    onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
+                    onMoveToTrash={openTrashConfirm}
+                    onRestore={(item) => restoreFromTrash(item.id)}
+                    onDeletePermanently={openDeleteConfirm}
+                    onPreview={openPreview}
+                    onDownload={downloadItem}
+                    onDownloadFolder={downloadItem}
+                    onManageVersions={openVersionModal}
+                    onShare={openShareModal}
+                    onShareToChat={openShareToChatModal}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
+                  <ListView
+                    items={items}
+                    selectedItemId={selectedItemId}
+                    onSelectItem={setSelectedItemId}
+                    onOpenItem={(item) =>
+                      item.type === "FOLDER"
+                        ? handleFolderClick(item)
+                        : openPreview(item)
+                    }
+                    activeMenuId={activeMenuId}
+                    setActiveMenuId={setActiveMenuId}
+                    onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
+                    onRename={openRename}
+                    onMove={openMoveModal}
+                    onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
+                    onMoveToTrash={openTrashConfirm}
+                    onRestore={(item) => restoreFromTrash(item.id)}
+                    onDeletePermanently={openDeleteConfirm}
+                    onPreview={openPreview}
+                    onDownload={downloadItem}
+                    onDownloadFolder={downloadItem}
+                    onManageVersions={openVersionModal}
+                    onShare={openShareModal}
+                    onShareToChat={openShareToChatModal}
+                  />
+                </div>
+              )}
+            </div>
 
-            {/* Pagination Footer */}
-            {meta && totalPages > 1 ? (
-              <div className="mt-6">
+            {/* Fixed Pagination Footer (Outside Scrollable Grid/List Area) */}
+            {items.length > 0 ? (
+              <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-3">
                 <DocumentsPagination
                   currentPage={currentPage}
                   totalPages={totalPages}
@@ -343,6 +380,7 @@ export function DocumentExplorer({
                   itemsPerPage={ITEMS_PER_PAGE}
                   isLoading={isFetching}
                   onPageChange={setCurrentPage}
+                  className="border-t-0 pt-0"
                 />
               </div>
             ) : null}

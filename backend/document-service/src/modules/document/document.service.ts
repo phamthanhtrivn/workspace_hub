@@ -422,7 +422,7 @@ export class DocumentService {
 
     // 4. Pagination
     const page = options.page || 1;
-    const limit = options.limit || 8;
+    const limit = options.limit || 12;
     const skip = (page - 1) * limit;
 
     const [items, totalCount] = await Promise.all([

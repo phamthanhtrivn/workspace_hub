@@ -39,7 +39,7 @@ export const documentsApi = {
     });
     return {
       data: response.data.data,
-      meta: response.data.meta,
+      meta: response.data.meta || response.data.pagination,
     };
   },
 
@@ -59,7 +59,7 @@ export const documentsApi = {
     });
     return {
       data: response.data.data,
-      meta: response.data.meta,
+      meta: response.data.meta || response.data.pagination,
     };
   },
 
