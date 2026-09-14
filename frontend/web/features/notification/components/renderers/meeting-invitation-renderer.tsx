@@ -15,9 +15,16 @@ import { useRespondMeetingInvitation } from "@/features/meeting/hooks/useSchedul
 import { useAppDispatch } from "@/store/store";
 import { setMeetingInvitationStatus } from "@/store/notification/notification.slice";
 import { formatTimeAgo } from "@/lib/date";
+import { getNotificationApiErrorMessage } from "../../utils/notification-display.utils";
+import {
+  formatMeetingRange,
+  getMeetingActionLabel,
+  getMeetingHref,
+  getMeetingInvitationMetadata,
+  getMeetingStatus,
+} from "../../utils/meeting-invitation.utils";
 import { NotificationCategoryIcon } from "../notification-category-icon";
 import type {
-  MeetingInvitationMetadata,
   MeetingInvitationNotificationStatus,
   Notification,
 } from "../../types/notification.types";
@@ -37,72 +44,6 @@ const statusClasses: Record<MeetingInvitationNotificationStatus, string> = {
   CANCELLED: "bg-rose-50 text-rose-700 ring-rose-200",
 };
 
-function getMetadata(notification: Notification): MeetingInvitationMetadata {
-  return notification.metadata as unknown as MeetingInvitationMetadata;
-}
-
-function getMeetingStatus(
-  notification: Notification,
-): MeetingInvitationNotificationStatus {
-  const metadata = getMetadata(notification);
-  if (metadata.status) return metadata.status;
-  return notification.type === NotificationType.MEETING_CANCELLED
-    ? "CANCELLED"
-    : "PENDING";
-}
-
-function getActionLabel(notification: Notification): string {
-  if (notification.type === NotificationType.MEETING_UPDATED) {
-    return "updated this meeting";
-  }
-  if (notification.type === NotificationType.MEETING_CANCELLED) {
-    return "cancelled this meeting";
-  }
-  if (notification.type === NotificationType.MEETING_INVITATION_DECLINED) {
-    return "declined this invitation";
-  }
-  return "invited you";
-}
-
-function formatMeetingRange(
-  startAt: string | null | undefined,
-  endAt: string | null | undefined,
-) {
-  if (!startAt || !endAt) return "Time not set";
-  const start = new Date(startAt);
-  const end = new Date(endAt);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
-    return "Time not set";
-  }
-
-  return `${start.toLocaleDateString(undefined, {
-    dateStyle: "medium",
-  })}, ${start.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  })} - ${end.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-  })}`;
-}
-
-function getErrorMessage(error: unknown): string {
-  if (typeof error === "object" && error !== null && "response" in error) {
-    const response = (error as { response?: { data?: { message?: unknown } } })
-      .response;
-    if (typeof response?.data?.message === "string") {
-      return response.data.message;
-    }
-  }
-  return error instanceof Error
-    ? error.message
-    : "Could not process meeting invitation";
-}
-
-function getMeetingHref(joinToken: string) {
-  return `/meetings?tab=upcoming&meeting=${encodeURIComponent(joinToken)}`;
-}
-
 export function MeetingInvitationListItemRenderer({
   notification,
   onClick,
@@ -110,7 +51,7 @@ export function MeetingInvitationListItemRenderer({
   notification: Notification;
   onClick: () => void;
 }) {
-  const metadata = getMetadata(notification);
+  const metadata = getMeetingInvitationMetadata(notification);
   const status = getMeetingStatus(notification);
   const senderName = notification.senderName || "Someone";
   const shouldShowStatus =
@@ -120,7 +61,7 @@ export function MeetingInvitationListItemRenderer({
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-start gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/50 ${
+      className={`flex w-full cursor-pointer items-start gap-3 border-b border-slate-100 p-3 text-left transition last:border-0 hover:bg-blue-50/50 ${
         notification.isRead ? "bg-white" : "bg-blue-50/60"
       }`}
     >
@@ -135,7 +76,7 @@ export function MeetingInvitationListItemRenderer({
           </span>
         </span>
         <span className="mt-0.5 block truncate text-xs font-semibold text-slate-600">
-          {senderName} {getActionLabel(notification)}
+          {senderName} {getMeetingActionLabel(notification)}
         </span>
         <span className="mt-0.5 block truncate text-xs font-medium text-slate-500">
           {formatMeetingRange(metadata.scheduledStartAt, metadata.scheduledEndAt)}
@@ -164,7 +105,7 @@ export function MeetingInvitationModalRenderer({
   onClose: () => void;
   onMarkAsRead: (id: string) => void;
 }) {
-  const metadata = getMetadata(notification);
+  const metadata = getMeetingInvitationMetadata(notification);
   const router = useRouter();
   const dispatch = useAppDispatch();
   const respondMutation = useRespondMeetingInvitation();
@@ -218,7 +159,12 @@ export function MeetingInvitationModalRenderer({
         toast.success("Meeting invitation declined");
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      toast.error(
+        getNotificationApiErrorMessage(
+          error,
+          "Could not process meeting invitation",
+        ),
+      );
     } finally {
       setAction(null);
     }
@@ -237,7 +183,7 @@ export function MeetingInvitationModalRenderer({
           {metadata.title || notification.title}
         </h3>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          {senderName} {getActionLabel(notification)}.
+          {senderName} {getMeetingActionLabel(notification)}.
         </p>
       </div>
 

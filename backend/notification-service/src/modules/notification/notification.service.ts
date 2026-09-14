@@ -6,8 +6,11 @@ import { NotificationGateway } from "./notification.gateway";
 import { PushService } from "./push.service";
 import { Notification, Prisma, PushSubscription } from "@prisma/client";
 import {
+  NOTIFICATION_CATEGORIES,
+  NotificationDateRange,
   getNotificationCategoryWhere,
   NotificationCategory,
+  NotificationUnreadCountsByCategory,
   NotificationWhereInput,
   PushNotificationPayload,
 } from "./types/notification.types";
@@ -68,15 +71,21 @@ export class NotificationService {
     limit = 10,
     isRead?: boolean,
     category: NotificationCategory = "ALL",
+    dateRange: NotificationDateRange = {},
   ): Promise<{
     list: Notification[];
     total: number;
     unreadCount: number;
     categoryUnreadCount: number;
+    unreadCountsByCategory: NotificationUnreadCountsByCategory;
   }> {
     const baseWhere: NotificationWhereInput = {
       recipientId,
     };
+    const createdAt = this.getCreatedAtWhere(dateRange);
+    if (createdAt) {
+      baseWhere.createdAt = createdAt;
+    }
     const categoryWhere = getNotificationCategoryWhere(category);
     const where: NotificationWhereInput = {
       AND: [baseWhere, categoryWhere],
@@ -84,14 +93,18 @@ export class NotificationService {
     if (isRead !== undefined) {
       where.isRead = isRead;
     }
-    const categoryUnreadWhere: NotificationWhereInput = {
-      AND: [baseWhere, categoryWhere],
-      isRead: false,
-    };
-
     const skip = (page - 1) * limit;
 
-    const [list, total, unreadCount, categoryUnreadCount] = await Promise.all([
+    const unreadCountQueries = NOTIFICATION_CATEGORIES.map((item) =>
+      this.prisma.notification.count({
+        where: {
+          AND: [baseWhere, getNotificationCategoryWhere(item)],
+          isRead: false,
+        },
+      }),
+    );
+
+    const [list, total, ...unreadCounts] = await Promise.all([
       this.prisma.notification.findMany({
         where,
         orderBy: { createdAt: "desc" },
@@ -99,18 +112,26 @@ export class NotificationService {
         take: limit,
       }),
       this.prisma.notification.count({ where }),
-      this.prisma.notification.count({
-        where: {
-          recipientId,
-          isRead: false,
-        },
-      }),
-      this.prisma.notification.count({
-        where: categoryUnreadWhere,
-      }),
+      ...unreadCountQueries,
     ]);
 
-    return { list, total, unreadCount, categoryUnreadCount };
+    const unreadCountsByCategory = NOTIFICATION_CATEGORIES.reduce(
+      (counts, item, index) => {
+        counts[item] = unreadCounts[index] ?? 0;
+        return counts;
+      },
+      {} as NotificationUnreadCountsByCategory,
+    );
+    const unreadCount = unreadCountsByCategory.ALL;
+    const categoryUnreadCount = unreadCountsByCategory[category] ?? unreadCount;
+
+    return {
+      list,
+      total,
+      unreadCount,
+      categoryUnreadCount,
+      unreadCountsByCategory,
+    };
   }
 
   async getUnreadCount(recipientId: string): Promise<number> {
@@ -250,14 +271,29 @@ export class NotificationService {
   async deleteNotifications(
     recipientId: string,
     category: NotificationCategory = "ALL",
+    options: {
+      isRead?: boolean;
+      dateRange?: NotificationDateRange;
+    } = {},
   ): Promise<{
     deletedCount: number;
     unreadDeletedCount: number;
     category: NotificationCategory;
+    isRead?: boolean;
+    fromDate?: string;
+    toDate?: string;
   }> {
+    const baseWhere: NotificationWhereInput = { recipientId };
+    const createdAt = this.getCreatedAtWhere(options.dateRange ?? {});
+    if (createdAt) {
+      baseWhere.createdAt = createdAt;
+    }
     const where: NotificationWhereInput = {
-      AND: [{ recipientId }, getNotificationCategoryWhere(category)],
+      AND: [baseWhere, getNotificationCategoryWhere(category)],
     };
+    if (options.isRead !== undefined) {
+      where.isRead = options.isRead;
+    }
     const unreadWhere: NotificationWhereInput = {
       AND: [where, { isRead: false }],
     };
@@ -270,6 +306,9 @@ export class NotificationService {
       deletedCount: deleteResult.count,
       unreadDeletedCount,
       category,
+      isRead: options.isRead,
+      fromDate: options.dateRange?.fromDate?.toISOString(),
+      toDate: options.dateRange?.toDate?.toISOString(),
     };
 
     this.notificationGateway.server
@@ -277,6 +316,19 @@ export class NotificationService {
       .emit("notifications_deleted", payload);
 
     return payload;
+  }
+
+  private getCreatedAtWhere(
+    dateRange: NotificationDateRange,
+  ): Prisma.DateTimeFilter | undefined {
+    const createdAt: Prisma.DateTimeFilter = {};
+    if (dateRange.fromDate) {
+      createdAt.gte = dateRange.fromDate;
+    }
+    if (dateRange.toDate) {
+      createdAt.lte = dateRange.toDate;
+    }
+    return Object.keys(createdAt).length > 0 ? createdAt : undefined;
   }
 
   async saveSubscription(

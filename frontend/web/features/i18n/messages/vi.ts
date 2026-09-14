@@ -35,8 +35,6 @@ const vi = {
   "nav.generalSettings": "Cài đặt chung",
 
   "header.searchWorkspace": "Tìm kiếm trong workspace...",
-  "header.notifications": "Thông báo",
-
   "profile.openUserMenu": "Mở menu người dùng",
   "profile.workspaceUser": "Người dùng Workspace",
   "profile.emailFallback": "email@example.com",
@@ -70,31 +68,6 @@ const vi = {
   "settings.saveSettings": "Lưu cài đặt",
   "settings.saveSuccess": "Đã lưu cài đặt.",
   "settings.saveFailed": "Không thể lưu cài đặt.",
-
-  "notifications.title": "Thông báo",
-  "notifications.markAllRead": "Đánh dấu tất cả đã đọc",
-  "notifications.all": "Tất cả",
-  "notifications.unread": "Chưa đọc",
-  "notifications.viewAll": "Xem tất cả thông báo",
-  "notifications.emptyTitle": "Không có thông báo",
-  "notifications.emptyDescription": "Bạn đã xem hết thông báo.",
-  "notifications.loading": "Đang tải thông báo...",
-  "notifications.deleteOne": "Xóa thông báo",
-  "notifications.deleteCategory": "Xóa {category}",
-  "notifications.deleteAll": "Xóa tất cả",
-  "notifications.deleteOneConfirmTitle": "Xóa thông báo này?",
-  "notifications.deleteOneConfirmText":
-    "Thông báo này sẽ bị xóa khỏi danh sách của bạn.",
-  "notifications.deleteCategoryConfirmTitle": "Xóa thông báo trong danh mục?",
-  "notifications.deleteCategoryConfirm":
-    "Xóa tất cả thông báo trong {category}? Hành động này không thể hoàn tác.",
-  "notifications.deleteAllConfirmTitle": "Xóa tất cả thông báo?",
-  "notifications.deleteAllConfirm":
-    "Xóa tất cả thông báo? Hành động này không thể hoàn tác.",
-  "notifications.deleteSuccess": "Đã xóa thông báo",
-  "notifications.deleteCategorySuccess": "Đã xóa thông báo trong danh mục",
-  "notifications.deleteAllSuccess": "Đã xóa tất cả thông báo",
-  "notifications.deleteFailed": "Không thể xóa thông báo",
 
   "auth.email": "Email",
   "auth.password": "Mật khẩu",
@@ -1173,22 +1146,6 @@ const vi = {
   "project.invitation.declined": "Đã từ chối lời mời",
   "project.invitation.respondFailed":
     "Không thể phản hồi. Lời mời có thể đã hết hạn hoặc đã được xử lý.",
-  "notification.projectInvitation.title": "Lời mời tham gia dự án",
-  "notification.projectInvitation.invitedBy": "Được mời bởi {name}",
-  "notification.projectInvitation.inviterLabel": "Người mời",
-  "notification.projectInvitation.memberRole":
-    "Bạn được mời tham gia dự án này với vai trò thành viên.",
-  "notification.projectInvitation.noExpiry": "Không có thời hạn",
-  "notification.projectInvitation.openProject": "Mở dự án",
-  "notification.projectInvitation.close": "Đóng",
-  "notification.projectInvitation.invalid": "Thông tin lời mời không hợp lệ",
-  "notification.projectInvitation.fallbackProject": "Dự án chưa đặt tên",
-  "notification.projectInvitation.fallbackInviter": "Một thành viên dự án",
-  "notification.projectInvitation.status.pending": "Đang chờ phản hồi",
-  "notification.projectInvitation.status.accepted": "Đã chấp nhận",
-  "notification.projectInvitation.status.declined": "Đã từ chối",
-  "notification.projectInvitation.status.cancelled": "Đã thu hồi",
-  "notification.projectInvitation.status.expired": "Đã hết hạn",
   "project.task.readOnlyTerminal":
     "Công việc đã kết thúc và chỉ có thể xem",
   "project.task.editForbidden":

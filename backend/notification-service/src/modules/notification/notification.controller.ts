@@ -24,6 +24,9 @@ import { SaveSubscriptionDto } from "./dtos/save-subscription.dto";
 import { ResolveProjectInvitationDto } from "./dtos/resolve-project-invitation.dto";
 import {
   isNotificationCategory,
+} from "./types/notification.types";
+import type {
+  NotificationDateRange,
   NotificationCategory,
 } from "./types/notification.types";
 
@@ -101,6 +104,8 @@ export class NotificationController {
     @Query("limit") limit?: string,
     @Query("isRead") isReadStr?: string,
     @Query("category") categoryStr?: string,
+    @Query("fromDate") fromDateStr?: string,
+    @Query("toDate") toDateStr?: string,
   ) {
     if (!userId) {
       throw new BadRequestException("Missing User Context Header");
@@ -120,6 +125,7 @@ export class NotificationController {
     let isRead: boolean | undefined = undefined;
     if (isReadStr === "true") isRead = true;
     if (isReadStr === "false") isRead = false;
+    const dateRange = this.parseDateRange(fromDateStr, toDateStr);
 
     const result = await this.notificationService.getNotifications(
       userId,
@@ -127,6 +133,7 @@ export class NotificationController {
       limitNum,
       isRead,
       category,
+      dateRange,
     );
     const totalPages = Math.max(1, Math.ceil(result.total / limitNum));
 
@@ -140,6 +147,7 @@ export class NotificationController {
         totalPages,
         unreadCount: result.unreadCount,
         categoryUnreadCount: result.categoryUnreadCount,
+        unreadCountsByCategory: result.unreadCountsByCategory,
       },
     };
   }
@@ -198,6 +206,9 @@ export class NotificationController {
   async deleteNotifications(
     @Headers("x-user-id") userId: string,
     @Query("category") categoryStr?: string,
+    @Query("isRead") isReadStr?: string,
+    @Query("fromDate") fromDateStr?: string,
+    @Query("toDate") toDateStr?: string,
   ) {
     if (!userId) {
       throw new BadRequestException("Missing User Context Header");
@@ -206,15 +217,46 @@ export class NotificationController {
     const category: NotificationCategory = isNotificationCategory(categoryStr)
       ? categoryStr
       : "ALL";
+    let isRead: boolean | undefined = undefined;
+    if (isReadStr === "true") isRead = true;
+    if (isReadStr === "false") isRead = false;
+    const dateRange = this.parseDateRange(fromDateStr, toDateStr);
     const result = await this.notificationService.deleteNotifications(
       userId,
       category,
+      { isRead, dateRange },
     );
 
     return {
       message: "Notifications deleted successfully",
       data: result,
     };
+  }
+
+  private parseDateRange(
+    fromDateStr?: string,
+    toDateStr?: string,
+  ): NotificationDateRange {
+    const fromDate = this.parseDateQuery("fromDate", fromDateStr);
+    const toDate = this.parseDateQuery("toDate", toDateStr);
+
+    if (fromDate && toDate && fromDate.getTime() > toDate.getTime()) {
+      throw new BadRequestException("fromDate must be before toDate");
+    }
+
+    return { fromDate, toDate };
+  }
+
+  private parseDateQuery(
+    fieldName: "fromDate" | "toDate",
+    value?: string,
+  ): Date | undefined {
+    if (!value) return undefined;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException(`${fieldName} must be a valid ISO date`);
+    }
+    return date;
   }
 
   @Delete(":id")
