@@ -32,6 +32,7 @@ export interface ListViewRowProps {
   onDeletePermanently: (item: DocumentItem) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
+  onDownloadFolder?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
@@ -54,12 +55,14 @@ export function ListViewRow({
   onDeletePermanently,
   onPreview,
   onDownload,
+  onDownloadFolder,
   onManageVersions,
   onShare,
   onShareToChat,
 }: ListViewRowProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
   const isSelected = item.id === selectedItemId;
+  const isMenuOpen = activeMenuId === item.id;
 
   const {
     attributes,
@@ -81,13 +84,16 @@ export function ListViewRow({
     setDroppableRef(node);
   };
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        opacity: isDragging ? 0.3 : undefined,
-        zIndex: isDragging ? 50 : undefined,
-      }
-    : undefined;
+  const style = {
+    ...(transform
+      ? {
+          transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+          opacity: isDragging ? 0.3 : undefined,
+        }
+      : {}),
+    zIndex: isDragging ? 50 : isMenuOpen ? 30 : undefined,
+    position: (isDragging || isMenuOpen) ? ("relative" as const) : undefined,
+  };
 
   return (
     <tr
@@ -145,6 +151,7 @@ export function ListViewRow({
           onDeletePermanently={() => onDeletePermanently(item)}
           onPreview={() => onPreview?.(item)}
           onDownload={() => onDownload?.(item)}
+          onDownloadFolder={() => onDownloadFolder?.(item)}
           onManageVersions={() => onManageVersions?.(item)}
           onShare={() => onShare?.(item)}
           onShareToChat={() => onShareToChat?.(item)}

@@ -76,10 +76,10 @@ export function DetailsPanel({
 
         {/* Action Buttons */}
         <div className="grid grid-cols-4 gap-2 py-3 border-y border-slate-100">
-          {onDownload && !isFolder ? (
+          {onDownload ? (
             <DocumentsIconButton
               icon={Download}
-              label="Download"
+              label={isFolder ? "ZIP" : "Download"}
               onClick={onDownload}
             />
           ) : null}

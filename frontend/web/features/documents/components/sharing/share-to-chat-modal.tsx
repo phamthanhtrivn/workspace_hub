@@ -145,7 +145,7 @@ export function ShareToChatModal({
                     options={spaceOptions}
                     onChange={setSelectedSpaceId}
                     ariaLabel="Select Space"
-                    className="h-10 rounded-xl border border-slate-100 bg-slate-50 text-sm font-semibold text-slate-700"
+                    triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -157,7 +157,7 @@ export function ShareToChatModal({
                     options={channelOptions}
                     onChange={setSelectedChatId}
                     ariaLabel="Select Channel"
-                    className="h-10 rounded-xl border border-slate-100 bg-slate-50 text-sm font-semibold text-slate-700"
+                    triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                   />
                 </div>
               </>
@@ -171,7 +171,7 @@ export function ShareToChatModal({
                   options={dmOptions}
                   onChange={setSelectedChatId}
                   ariaLabel="Select Recipient"
-                  className="h-10 rounded-xl border border-slate-100 bg-slate-50 text-sm font-semibold text-slate-700"
+                  triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                 />
               </div>
             )}

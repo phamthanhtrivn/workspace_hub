@@ -243,7 +243,7 @@ export function DocumentExplorer({
         ) : null}
 
         {/* Explorer Header Toolbar */}
-        <div className="flex flex-col gap-3 border-b border-slate-100 bg-white/60 p-6 backdrop-blur-md">
+        <div className="relative z-20 flex flex-col gap-3 border-b border-slate-100 bg-white/60 p-6 backdrop-blur-md">
           <ExplorerBreadcrumbs
             path={path}
             onBreadcrumbClick={handleBreadcrumbClick}
@@ -300,7 +300,9 @@ export function DocumentExplorer({
                 onMoveToTrash={openTrashConfirm}
                 onRestore={(item) => restoreFromTrash(item.id)}
                 onDeletePermanently={openDeleteConfirm}
+                onPreview={openPreview}
                 onDownload={downloadItem}
+                onDownloadFolder={downloadItem}
                 onManageVersions={openVersionModal}
                 onShare={openShareModal}
                 onShareToChat={openShareToChatModal}
@@ -322,7 +324,9 @@ export function DocumentExplorer({
                 onMoveToTrash={openTrashConfirm}
                 onRestore={(item) => restoreFromTrash(item.id)}
                 onDeletePermanently={openDeleteConfirm}
+                onPreview={openPreview}
                 onDownload={downloadItem}
+                onDownloadFolder={downloadItem}
                 onManageVersions={openVersionModal}
                 onShare={openShareModal}
                 onShareToChat={openShareToChatModal}

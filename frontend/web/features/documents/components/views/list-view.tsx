@@ -21,6 +21,7 @@ interface ListViewProps {
   onDeletePermanently: (item: DocumentItem) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
+  onDownloadFolder?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
@@ -42,6 +43,7 @@ function ListView({
   onDeletePermanently,
   onPreview,
   onDownload,
+  onDownloadFolder,
   onManageVersions,
   onShare,
   onShareToChat,
@@ -78,6 +80,7 @@ function ListView({
               onDeletePermanently={onDeletePermanently}
               onPreview={onPreview}
               onDownload={onDownload}
+              onDownloadFolder={onDownloadFolder}
               onManageVersions={onManageVersions}
               onShare={onShare}
               onShareToChat={onShareToChat}

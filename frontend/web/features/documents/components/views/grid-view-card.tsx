@@ -28,6 +28,7 @@ export interface GridViewCardProps {
   onDeletePermanently: (item: DocumentItem) => void;
   onPreview?: (item: DocumentItem) => void;
   onDownload?: (item: DocumentItem) => void;
+  onDownloadFolder?: (item: DocumentItem) => void;
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
@@ -50,12 +51,14 @@ export function GridViewCard({
   onDeletePermanently,
   onPreview,
   onDownload,
+  onDownloadFolder,
   onManageVersions,
   onShare,
   onShareToChat,
 }: GridViewCardProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
   const isSelected = item.id === selectedItemId;
+  const isMenuOpen = activeMenuId === item.id;
 
   const {
     attributes,
@@ -77,13 +80,16 @@ export function GridViewCard({
     setDroppableRef(node);
   };
 
-  const style = transform
-    ? {
-        transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-        opacity: isDragging ? 0.3 : undefined,
-        zIndex: isDragging ? 50 : undefined,
-      }
-    : undefined;
+  const style = {
+    ...(transform
+      ? {
+          transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
+          opacity: isDragging ? 0.3 : undefined,
+        }
+      : {}),
+    zIndex: isDragging ? 50 : isMenuOpen ? 30 : undefined,
+    position: (isDragging || isMenuOpen) ? ("relative" as const) : undefined,
+  };
 
   return (
     <div ref={setCombinedRef} style={style} {...attributes} {...listeners}>
@@ -126,6 +132,7 @@ export function GridViewCard({
             onDeletePermanently={() => onDeletePermanently(item)}
             onPreview={() => onPreview?.(item)}
             onDownload={() => onDownload?.(item)}
+            onDownloadFolder={() => onDownloadFolder?.(item)}
             onManageVersions={() => onManageVersions?.(item)}
             onShare={() => onShare?.(item)}
             onShareToChat={() => onShareToChat?.(item)}

@@ -67,7 +67,10 @@ export function DocumentsSelect<T extends string = string>({
       options={options}
       onChange={onChange}
       ariaLabel={ariaLabel}
-      className={cn("h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-bold text-slate-500 hover:border-slate-300 transition-colors", className)}
+      triggerClassName={cn(
+        "h-10 rounded-md border border-slate-200/80 bg-white px-3.5 text-xs font-bold text-slate-700 hover:border-slate-300 transition-colors shadow-2xs cursor-pointer min-w-[110px]",
+        className
+      )}
     />
   );
 }
