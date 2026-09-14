@@ -17,7 +17,7 @@ import type {
   UpdateScheduledMeetingPayload,
 } from "../types/meeting.types";
 
-export const upcomingMeetingsPageSize = 10;
+export const upcomingMeetingsPageSize = 9;
 
 export function useUpcomingMeetings({
   page = 1,

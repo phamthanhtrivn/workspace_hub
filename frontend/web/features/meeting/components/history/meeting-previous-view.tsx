@@ -11,7 +11,7 @@ import {
 import { MeetingHistoryViewMode } from "../../types/meeting.types";
 import { MeetingHistoryCard } from "./meeting-history-card";
 import { MeetingHistoryListRow } from "./meeting-history-list-row";
-import { MeetingHistoryPagination } from "./meeting-history-pagination";
+import { MeetingPagination } from "../common/meeting-pagination";
 
 const historyViewModeItems = [
   {
@@ -122,7 +122,7 @@ export function MeetingPreviousView() {
       ) : (
         <div className="flex flex-col gap-5">
           {viewMode === MeetingHistoryViewMode.GRID ? (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {meetings.map((meeting) => (
                 <MeetingHistoryCard key={meeting.id} meeting={meeting} />
               ))}
@@ -135,7 +135,7 @@ export function MeetingPreviousView() {
             </div>
           )}
 
-          <MeetingHistoryPagination
+          <MeetingPagination
             page={page}
             limit={meetingHistoryPageSize}
             total={total}

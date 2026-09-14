@@ -5,7 +5,7 @@ import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { getMeetingHistoryPageNumbers } from "../../utils/meeting-history.utils";
 
-interface MeetingHistoryPaginationProps {
+interface MeetingPaginationProps {
   page: number;
   limit: number;
   total: number;
@@ -13,13 +13,13 @@ interface MeetingHistoryPaginationProps {
   onPageChange: (page: number) => void;
 }
 
-export function MeetingHistoryPagination({
+export function MeetingPagination({
   page,
   limit,
   total,
   totalPages,
   onPageChange,
-}: MeetingHistoryPaginationProps) {
+}: MeetingPaginationProps) {
   const intl = useAppIntl();
   const safePage = Math.min(Math.max(1, page), totalPages);
   const start = total === 0 ? 0 : (safePage - 1) * limit + 1;

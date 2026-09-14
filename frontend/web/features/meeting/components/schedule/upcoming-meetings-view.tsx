@@ -9,7 +9,7 @@ import {
 } from "../../hooks/useScheduledMeetings";
 import type { UpcomingMeetingItem } from "../../types/meeting.types";
 import { UpcomingMeetingCard } from "./upcoming-meeting-card";
-import { MeetingHistoryPagination } from "../history/meeting-history-pagination";
+import { MeetingPagination } from "../common/meeting-pagination";
 
 const MEETING_HIGHLIGHT_DURATION_MS = 4_000;
 
@@ -35,18 +35,24 @@ export function UpcomingMeetingsView({
   const isInitialLoading = upcomingQuery.isLoading && !upcoming;
 
   useEffect(() => {
-    if (!highlightJoinToken) {
-      setActiveHighlightJoinToken(null);
-      return;
-    }
+    let clearHighlightTimeoutId: number | undefined;
+    const activateHighlightTimeoutId = window.setTimeout(() => {
+      setActiveHighlightJoinToken(highlightJoinToken ?? null);
 
-    setActiveHighlightJoinToken(highlightJoinToken);
-    const timeoutId = window.setTimeout(
-      () => setActiveHighlightJoinToken(null),
-      MEETING_HIGHLIGHT_DURATION_MS,
-    );
+      if (highlightJoinToken) {
+        clearHighlightTimeoutId = window.setTimeout(
+          () => setActiveHighlightJoinToken(null),
+          MEETING_HIGHLIGHT_DURATION_MS,
+        );
+      }
+    }, 0);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      window.clearTimeout(activateHighlightTimeoutId);
+      if (clearHighlightTimeoutId) {
+        window.clearTimeout(clearHighlightTimeoutId);
+      }
+    };
   }, [highlightJoinToken]);
 
   useEffect(() => {
@@ -138,7 +144,7 @@ export function UpcomingMeetingsView({
               />
             ))}
           </div>
-          <MeetingHistoryPagination
+          <MeetingPagination
             page={page}
             limit={upcomingMeetingsPageSize}
             total={upcoming?.total ?? 0}
