@@ -63,16 +63,26 @@ describe("calendar-tasks.utils", () => {
       const overdueTask = makeMockTask({
         id: "t-overdue",
         title: "Overdue Task",
-        startAt: "2026-09-12T09:00:00.000Z",
+        startAt: "2026-09-11T09:00:00.000Z",
+      });
+      const expiredOverdueTask = makeMockTask({
+        id: "t-expired-overdue",
+        title: "Expired Overdue Task",
+        startAt: "2026-09-10T09:00:00.000Z",
       });
       const todayTask = makeMockTask({
         id: "t-today",
         title: "Today Task",
         startAt: "2026-09-14T15:00:00.000Z",
       });
-      const upcomingTask = makeMockTask({
+      const tomorrowTask = makeMockTask({
         id: "t-upcoming",
         title: "Upcoming Task",
+        startAt: "2026-09-15T10:00:00.000Z",
+      });
+      const laterTask = makeMockTask({
+        id: "t-later",
+        title: "Later Task",
         startAt: "2026-09-16T10:00:00.000Z",
       });
       const completedTask = makeMockTask({
@@ -83,18 +93,31 @@ describe("calendar-tasks.utils", () => {
       });
 
       const grouped = groupCalendarTasks(
-        [todayTask, overdueTask, completedTask, upcomingTask],
+        [
+          todayTask,
+          overdueTask,
+          expiredOverdueTask,
+          completedTask,
+          tomorrowTask,
+          laterTask,
+        ],
         refDate,
       );
 
       expect(grouped.overdue).toHaveLength(1);
       expect(grouped.overdue[0].id).toBe("t-overdue");
+      expect(
+        grouped.overdue.some((task) => task.id === "t-expired-overdue"),
+      ).toBe(false);
 
       expect(grouped.today).toHaveLength(1);
       expect(grouped.today[0].id).toBe("t-today");
 
       expect(grouped.upcoming).toHaveLength(1);
       expect(grouped.upcoming[0].id).toBe("t-upcoming");
+      expect(grouped.upcoming.some((task) => task.id === "t-later")).toBe(
+        false,
+      );
 
       expect(grouped.completed).toHaveLength(1);
       expect(grouped.completed[0].id).toBe("t-completed");

@@ -56,9 +56,6 @@ export function CalendarTasksDrawer({
   );
   const displayedTasks =
     activeTab === "personal" ? personalTasks : projectTasks;
-  const pendingCount = displayedTasks.filter(
-    (task) => !task.completedAt,
-  ).length;
 
   useEffect(() => {
     if (!open) return;
@@ -76,17 +73,14 @@ export function CalendarTasksDrawer({
     {
       value: "personal",
       label: intl.formatMessage({ id: "calendar.quick.myTasks" }),
-      count: personalTasks.length,
     },
     {
       value: "project",
       label: intl.formatMessage({ id: "calendar.quick.projectTasks" }),
-      count: projectTasks.length,
     },
   ] satisfies Array<{
     value: TasksDrawerTab;
     label: string;
-    count: number;
   }>;
 
   return (
@@ -114,11 +108,6 @@ export function CalendarTasksDrawer({
             <h2 className="truncate text-sm font-semibold text-slate-800">
               {intl.formatMessage({ id: "calendar.tasks" })}
             </h2>
-            {pendingCount > 0 && (
-              <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
-                {pendingCount}
-              </span>
-            )}
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
@@ -179,14 +168,11 @@ export function CalendarTasksDrawer({
               )}
             >
               <span className="truncate">{tab.label}</span>
-              <span className="shrink-0 text-[10px] tabular-nums text-slate-400">
-                {tab.count}
-              </span>
             </button>
           ))}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {loading ? (
             <div className="flex h-32 items-center justify-center">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />

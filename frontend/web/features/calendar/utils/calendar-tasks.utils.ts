@@ -22,10 +22,28 @@ export function groupCalendarTasks(
     0,
     0,
   );
+  const startOfOverdueWindow = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate() - 3,
+    0,
+    0,
+    0,
+    0,
+  );
   const endOfToday = new Date(
     referenceDate.getFullYear(),
     referenceDate.getMonth(),
     referenceDate.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+  const endOfTomorrow = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate() + 1,
     23,
     59,
     59,
@@ -40,10 +58,15 @@ export function groupCalendarTasks(
 
     const taskDate = new Date(task.startAt);
     if (taskDate.getTime() < startOfToday.getTime()) {
-      overdue.push(task);
-    } else if (taskDate.getTime() <= endOfToday.getTime()) {
+      if (taskDate.getTime() >= startOfOverdueWindow.getTime()) {
+        overdue.push(task);
+      }
+      continue;
+    }
+
+    if (taskDate.getTime() <= endOfToday.getTime()) {
       today.push(task);
-    } else {
+    } else if (taskDate.getTime() <= endOfTomorrow.getTime()) {
       upcoming.push(task);
     }
   }

@@ -40,7 +40,7 @@ export function CalendarSidebar({
   const intl = useAppIntl();
 
   return (
-    <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-slate-200 bg-white">
+    <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-slate-200 bg-white [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="px-4 pb-2 pt-4">
         <button
           type="button"

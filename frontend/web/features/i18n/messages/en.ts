@@ -498,7 +498,7 @@ const en = {
   "calendar.quick.addDescription": "Add description",
   "calendar.quick.addFile": "Add file",
   "calendar.quick.eventSummary":
-    "Busy · Default visibility · Notify {reminder} minutes before",
+    "Notify {reminder} minutes before",
   "calendar.quick.uiOnly":
     "Interface ready · Service connection will be added later",
   "calendar.quick.taskUiOnly":

@@ -2,8 +2,17 @@ import { Bell, Plus, Trash2 } from "lucide-react";
 import { Control, UseFormRegister, useFieldArray } from "react-hook-form";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
-import { CALENDAR_REMINDER_OPTIONS } from "../../types/calendar.constants";
 import { ReminderMethod } from "../../types/calendar.types";
+
+const REMINDER_PRESETS = [
+  { value: 1, vi: "1 phút", en: "1 min" },
+  { value: 5, vi: "5 phút", en: "5 min" },
+  { value: 10, vi: "10 phút", en: "10 min" },
+  { value: 15, vi: "15 phút", en: "15 min" },
+  { value: 30, vi: "30 phút", en: "30 min" },
+  { value: 60, vi: "1 giờ", en: "1 hour" },
+  { value: 120, vi: "2 giờ", en: "2 hours" },
+] as const;
 
 export function ReminderEditor({
   control,
@@ -54,20 +63,21 @@ export function ReminderEditor({
             ))}
           </select>
           <div className="relative">
-            <input
-              type="number"
-              min={0}
-              max={43_200}
-              list="calendar-reminder-minutes"
+            <select
               aria-label={intl.formatMessage({ id: "calendar.reminders" })}
               {...register(`reminders.${index}.minutesBefore`, {
                 valueAsNumber: true,
               })}
-              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 pr-9 text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-            />
-            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400">
-              min
-            </span>
+              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            >
+              {REMINDER_PRESETS.map((preset) => (
+                <option key={preset.value} value={preset.value}>
+                  {intl.locale.toLowerCase().startsWith("vi")
+                    ? preset.vi
+                    : preset.en}
+                </option>
+              ))}
+            </select>
           </div>
           <button
             type="button"
@@ -79,13 +89,6 @@ export function ReminderEditor({
           </button>
         </div>
       ))}
-      <datalist id="calendar-reminder-minutes">
-        {CALENDAR_REMINDER_OPTIONS.filter(
-          (option) => option.value !== "custom",
-        ).map((option) => (
-          <option key={option.value} value={option.value} />
-        ))}
-      </datalist>
     </div>
   );
 }

@@ -504,7 +504,7 @@ const vi = {
   "calendar.quick.addDescription": "Thêm mô tả",
   "calendar.quick.addFile": "Thêm tệp",
   "calendar.quick.eventSummary":
-    "Bận · Hiển thị mặc định · Nhắc trước {reminder} phút",
+    "Nhắc trước {reminder} phút",
   "calendar.quick.uiOnly": "Giao diện đã sẵn sàng · Sẽ kết nối service sau",
   "calendar.quick.taskUiOnly":
     "Giao diện công việc đã sẵn sàng; chưa kết nối Project Service",
