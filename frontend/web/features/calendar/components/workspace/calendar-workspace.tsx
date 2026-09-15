@@ -2,14 +2,18 @@
 
 import FullCalendar from "@fullcalendar/react";
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarSidebar } from "../sidebar/calendar-sidebar";
 import { CalendarToolbar } from "../toolbar/calendar-toolbar";
 import { CalendarGrid } from "./calendar-grid";
+import { CalendarTasksDrawer } from "../drawer/calendar-tasks-drawer";
 import { useCalendarWorkspace } from "../../hooks/use-calendar-workspace";
 import { useCalendarKeyboardShortcuts } from "../../hooks/use-calendar-keyboard-shortcuts";
+import { useCalendarTasks } from "../../hooks/use-calendar-queries";
+import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
+import { CalendarEvent, EventStatus } from "../../types/calendar.types";
 
 const EventDetailModal = dynamic(() =>
   import("../modal/event-detail-modal").then(
@@ -34,7 +38,9 @@ export function CalendarWorkspace() {
   const intl = useAppIntl();
   const calendarRef = useRef<FullCalendar | null>(null);
   const calendar = useCalendarWorkspace(calendarRef);
+  const tasksQuery = useCalendarTasks();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
   const [createCalendarOpen, setCreateCalendarOpen] = useState(false);
   const { handleCalendarNavigate, handleViewChange, openCreateModal } =
     calendar;
@@ -51,6 +57,41 @@ export function CalendarWorkspace() {
     onToday: navigateTodayFromShortcut,
     onViewChange: handleViewChange,
   });
+
+  const handleOpenTasksDrawer = useCallback(() => {
+    setTasksDrawerOpen(true);
+  }, []);
+
+  const handleCloseTasksDrawer = useCallback(() => {
+    setTasksDrawerOpen(false);
+  }, []);
+
+  const calendarEvents = calendar.events;
+  const tasksData = tasksQuery.data;
+
+  // Merge tasks from dedicated query + visible calendar events (guarantees tasks on the calendar grid are NEVER missing)
+  const allTasks = useMemo(() => {
+    const taskMap = new Map<string, CalendarEvent>();
+
+    // 1. Tasks from dedicated paginated task query (across all dates)
+    if (Array.isArray(tasksData)) {
+      for (const t of tasksData) {
+        if (isTaskCalendarEvent(t) && t.status !== EventStatus.CANCELLED) {
+          taskMap.set(t.id, t);
+        }
+      }
+    }
+
+    // 2. Tasks from current workspace calendar events (guarantees tasks visible on grid are never missing)
+    const workspaceEvents = Array.isArray(calendarEvents) ? calendarEvents : [];
+    for (const e of workspaceEvents) {
+      if (isTaskCalendarEvent(e) && e.status !== EventStatus.CANCELLED) {
+        taskMap.set(e.id, e);
+      }
+    }
+
+    return Array.from(taskMap.values());
+  }, [tasksData, calendarEvents]);
 
   return (
     <section className="relative h-[calc(100dvh-7.5rem)] min-h-[680px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
@@ -77,6 +118,7 @@ export function CalendarWorkspace() {
             tasksColor={calendar.tasksColor}
             onToggleCalendar={calendar.toggleCalendar}
             onToggleTasks={calendar.toggleTasks}
+            onOpenTasksDrawer={handleOpenTasksDrawer}
             onTasksColorChange={calendar.changeTasksColor}
             onSelectDate={(date) => {
               calendar.handleMiniCalendarDateSelect(date);
@@ -122,10 +164,26 @@ export function CalendarWorkspace() {
               onDateClick={calendar.handleDateClick}
               onEventClick={calendar.handleEventClick}
               onEventMove={calendar.handleEventMove}
+              onTaskCompletionToggle={calendar.handleTaskCompletionQuickToggle}
+              taskCompletionBusy={calendar.taskCompletionBusy}
             />
           )}
         </div>
       </div>
+
+      <CalendarTasksDrawer
+        open={tasksDrawerOpen}
+        tasks={allTasks}
+        color={calendar.tasksColor}
+        loading={tasksQuery.isLoading && allTasks.length === 0}
+        error={tasksQuery.isError}
+        showCompleted={calendar.showCompletedTasks}
+        onToggleShowCompleted={calendar.toggleShowCompletedTasks}
+        onClose={handleCloseTasksDrawer}
+        onRetry={() => void tasksQuery.refetch()}
+        onToggleTask={calendar.handleTaskCompletionQuickToggle}
+        onSelectTask={(task) => calendar.openDetail(task)}
+      />
 
       {(calendar.draft || calendar.editingEvent) && (
         <EventFormModal
@@ -153,6 +211,7 @@ export function CalendarWorkspace() {
           onEdit={calendar.startEditingDetailEvent}
           onCancelEvent={calendar.handleCancelEvent}
           onRespond={calendar.handleRespond}
+          onTaskCompletionChange={calendar.handleTaskCompletionChange}
           busy={calendar.detailBusy}
         />
       )}

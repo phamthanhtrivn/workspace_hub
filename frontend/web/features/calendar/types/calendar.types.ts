@@ -109,6 +109,7 @@ export interface CalendarEvent {
   originalStartAt: string | null;
   sourceType: EventSourceType;
   sourceId: string | null;
+  completedAt: string | null;
   exceptionDates: string[];
   documentIds: string[];
   cancelledAt: string | null;
@@ -195,6 +196,16 @@ export interface CalendarEventDraft {
   endAt: Date;
   allDay?: boolean;
   calendarId?: string;
+  sourceType?: EventSourceType;
+}
+
+export type CalendarTaskGroup = "overdue" | "today" | "upcoming" | "completed";
+
+export interface CalendarGroupedTasks {
+  overdue: CalendarEvent[];
+  today: CalendarEvent[];
+  upcoming: CalendarEvent[];
+  completed: CalendarEvent[];
 }
 
 export interface CalendarEventFormValues {

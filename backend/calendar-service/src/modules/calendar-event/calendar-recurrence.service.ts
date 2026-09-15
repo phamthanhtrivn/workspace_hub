@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import {
   AttendeeResponseStatus,
-  EventSourceType,
   EventStatus,
   Prisma,
   ReminderDeliveryStatus,
@@ -269,7 +268,7 @@ export class CalendarRecurrenceService {
             visibility: root.visibility,
             originalStartAt: occurrenceStart,
             isRecurrenceOverride: false,
-            sourceType: EventSourceType.USER,
+            sourceType: root.sourceType,
           },
         });
 

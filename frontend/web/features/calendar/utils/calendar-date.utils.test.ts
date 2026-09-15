@@ -32,6 +32,7 @@ function createMockEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent 
     originalStartAt: null,
     sourceType: EventSourceType.USER,
     sourceId: null,
+    completedAt: null,
     exceptionDates: [],
     documentIds: [],
     cancelledAt: null,

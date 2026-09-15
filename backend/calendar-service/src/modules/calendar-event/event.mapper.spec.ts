@@ -37,4 +37,30 @@ describe('EventMapper', () => {
       }),
     );
   });
+
+  it('marks project tasks as read-only', () => {
+    const mapper = new EventMapper();
+    const event = {
+      id: 'event-id',
+      createdBy: 'owner',
+      sourceType: EventSourceType.TASK,
+      sourceId: null,
+      status: EventStatus.CONFIRMED,
+      visibility: EventVisibility.DEFAULT,
+      calendar: {
+        ownerUserId: 'owner',
+        projectId: 'project-id',
+        timeZone: 'Asia/Ho_Chi_Minh',
+      },
+      attendees: [],
+      documents: [],
+      recurrenceSeries: null,
+    } as never;
+
+    expect(mapper.toPublicEvent('owner', event)).toEqual(
+      expect.objectContaining({
+        permissions: { canManage: false, canRespond: false },
+      }),
+    );
+  });
 });

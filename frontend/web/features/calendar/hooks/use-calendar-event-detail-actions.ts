@@ -13,7 +13,9 @@ import {
   useCancelCalendarEvent,
   useUpdateCalendarEvent,
   useUpdateCalendarEventResponse,
+  useUpdateCalendarTaskCompletion,
 } from "./use-calendar-queries";
+import { isTaskCalendarEvent } from "../utils/calendar-event.utils";
 
 interface UseCalendarEventDetailActionsInput {
   detailEvent: CalendarEvent | null;
@@ -30,11 +32,24 @@ export function useCalendarEventDetailActions({
   const cancelEvent = useCancelCalendarEvent();
   const updateEvent = useUpdateCalendarEvent();
   const updateResponse = useUpdateCalendarEventResponse();
+  const updateTaskCompletion = useUpdateCalendarTaskCompletion();
 
   const handleEventClick = useCallback(
     (arg: EventClickArg) => {
+      const target = arg.jsEvent.target;
+      if (
+        target instanceof Element &&
+        target.closest("[data-task-completion-toggle]")
+      ) {
+        return;
+      }
       setDetailEvent(arg.event.extendedProps.model as CalendarEvent);
     },
+    [setDetailEvent],
+  );
+
+  const openDetail = useCallback(
+    (event: CalendarEvent) => setDetailEvent(event),
     [setDetailEvent],
   );
 
@@ -108,12 +123,58 @@ export function useCalendarEventDetailActions({
     [detailEvent, intl, updateResponse],
   );
 
+  const updateTaskCompletionForEvent = useCallback(
+    async (event: CalendarEvent) => {
+      if (
+        !isTaskCalendarEvent(event) ||
+        updateTaskCompletion.isPending
+      ) {
+        return;
+      }
+
+      const completed = !event.completedAt;
+      try {
+        const updatedEvent = await updateTaskCompletion.mutateAsync({
+          eventId: event.id,
+          completed,
+        });
+        if (detailEvent?.id === updatedEvent.id) {
+          setDetailEvent(updatedEvent);
+        }
+        toast.success(
+          intl.formatMessage({
+            id: completed
+              ? "calendar.task.markedCompleted"
+              : "calendar.task.markedIncomplete",
+          }),
+        );
+      } catch {
+        toast.error(
+          intl.formatMessage({ id: "calendar.task.completionFailed" }),
+        );
+      }
+    },
+    [detailEvent, intl, setDetailEvent, updateTaskCompletion],
+  );
+
+  const handleTaskCompletionChange = useCallback(async () => {
+    if (!detailEvent) return;
+    await updateTaskCompletionForEvent(detailEvent);
+  }, [detailEvent, updateTaskCompletionForEvent]);
+
   return {
     closeDetail,
-    detailBusy: cancelEvent.isPending || updateResponse.isPending,
+    detailBusy:
+      cancelEvent.isPending ||
+      updateResponse.isPending ||
+      updateTaskCompletion.isPending,
     handleCancelEvent,
     handleEventClick,
     handleRespond,
+    handleTaskCompletionChange,
+    handleTaskCompletionQuickToggle: updateTaskCompletionForEvent,
+    openDetail,
     startEditingDetailEvent,
+    taskCompletionBusy: updateTaskCompletion.isPending,
   };
 }

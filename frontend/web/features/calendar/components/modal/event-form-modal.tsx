@@ -9,6 +9,7 @@ import {
   EventSourceType,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
+import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
 import { CustomRecurrenceModal } from "./custom-recurrence-modal";
 import { QuickCreateKind, QuickCreateModal } from "./quick-create-modal";
 
@@ -40,7 +41,10 @@ export function EventFormModal({
     onSubmit,
   });
   const [quickCreateKind, setQuickCreateKind] = useState<QuickCreateKind>(
-    event?.sourceType === EventSourceType.TASK ? "task" : "event",
+    isTaskCalendarEvent(event) ||
+      initialDraft?.sourceType === EventSourceType.TASK
+      ? "task"
+      : "event",
   );
 
   if (!open) return null;

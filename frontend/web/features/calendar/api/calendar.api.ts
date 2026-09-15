@@ -77,6 +77,38 @@ export async function getCalendarEvents(
   return events;
 }
 
+export async function getCalendarTasks(
+  params?: { page?: number; limit?: number },
+): Promise<{ items: CalendarEvent[]; pagination?: ApiPagination }> {
+  const response = await api.get<ApiResponse<CalendarEvent[]>>(
+    "/api/calendar/events/tasks",
+    { params },
+  );
+  return {
+    items: unwrap(response) || [],
+    pagination: response.data?.pagination,
+  };
+}
+
+export async function getAllCalendarTasks(): Promise<CalendarEvent[]> {
+  const tasks: CalendarEvent[] = [];
+  const limit = 200;
+  let page = 1;
+  let pagination: ApiPagination | undefined;
+
+  do {
+    const response = await api.get<ApiResponse<CalendarEvent[]>>(
+      "/api/calendar/events/tasks",
+      { params: { page, limit } },
+    );
+    tasks.push(...(unwrap(response) || []));
+    pagination = response.data?.pagination;
+    page += 1;
+  } while (pagination && page <= pagination.totalPages);
+
+  return tasks;
+}
+
 export async function getCalendarEvent(
   eventId: string,
 ): Promise<CalendarEvent> {
@@ -103,6 +135,17 @@ export async function updateCalendarEvent(
   const response = await api.patch<ApiResponse<CalendarEvent>>(
     `/api/calendar/events/${eventId}`,
     payload,
+  );
+  return unwrap(response);
+}
+
+export async function updateCalendarTaskCompletion(
+  eventId: string,
+  completed: boolean,
+): Promise<CalendarEvent> {
+  const response = await api.patch<ApiResponse<CalendarEvent>>(
+    `/api/calendar/events/${eventId}/completion`,
+    { completed },
   );
   return unwrap(response);
 }

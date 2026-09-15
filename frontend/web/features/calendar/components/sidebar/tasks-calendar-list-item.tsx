@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ListTodo } from "lucide-react";
+import { Check, ChevronRight, ListTodo } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarColorPopover } from "./calendar-color-popover";
 
@@ -8,11 +8,13 @@ export function TasksCalendarListItem({
   selected,
   color,
   onToggle,
+  onOpenDrawer,
   onColorChange,
 }: {
   selected: boolean;
   color: string;
   onToggle: () => void;
+  onOpenDrawer?: () => void;
   onColorChange: (color: string) => void;
 }) {
   const intl = useAppIntl();
@@ -34,10 +36,21 @@ export function TasksCalendarListItem({
         {selected && <Check className="h-3 w-3 stroke-[2.5] text-white" />}
       </button>
 
-      <ListTodo className="h-4 w-4 shrink-0" style={{ color }} />
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none">
-        {label}
-      </span>
+      <button
+        type="button"
+        onClick={onOpenDrawer}
+        className="group/task-trigger -my-1 flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-md py-1 pr-1 text-left transition-colors hover:bg-slate-100 focus-visible:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+        title={intl.formatMessage({ id: "calendar.tasks.openDrawer" })}
+      >
+        <ListTodo className="h-4 w-4 shrink-0" style={{ color }} />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none group-hover:text-slate-900">
+          {label}
+        </span>
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 transition group-hover/task-trigger:translate-x-0.5 group-hover/task-trigger:bg-blue-100 group-hover/task-trigger:text-blue-700 group-focus-visible/task-trigger:bg-blue-100 group-focus-visible/task-trigger:text-blue-700">
+          <ChevronRight className="h-4 w-4 stroke-[2.5]" />
+        </span>
+      </button>
+
       <CalendarColorPopover
         value={color}
         label={intl.formatMessage({ id: "calendar.color" })}

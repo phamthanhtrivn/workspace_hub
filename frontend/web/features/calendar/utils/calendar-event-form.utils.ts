@@ -91,7 +91,7 @@ export function createCalendarEventFormDefaults({
           minutesBefore,
           method,
         })) ?? [{ minutesBefore: 10, method: ReminderMethod.ALERT }],
-      sourceType: event?.sourceType ?? EventSourceType.USER,
+      sourceType: event?.sourceType ?? draft?.sourceType ?? EventSourceType.USER,
     },
   };
 }

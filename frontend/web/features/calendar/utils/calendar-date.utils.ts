@@ -1,4 +1,4 @@
-import { CalendarEvent, EventSourceType } from "../types/calendar.types";
+import { CalendarEvent } from "../types/calendar.types";
 import { CALENDAR_MIN_EVENT_DURATION_MS } from "../types/calendar.constants";
 
 export function toDateTimeLocal(value: Date | string): string {

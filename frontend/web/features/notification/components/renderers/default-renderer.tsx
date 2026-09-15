@@ -16,7 +16,10 @@ export const DefaultListItemRenderer: React.FC<{
       onClick={onClick}
       className={`flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer transition border-b border-slate-100 last:border-0 ${!notification.isRead ? "bg-blue-50/50" : ""}`}
     >
-      <NotificationCategoryIcon notification={notification} className="h-10 w-10" />
+      <NotificationCategoryIcon
+        notification={notification}
+        className="h-10 w-10"
+      />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-slate-800 line-clamp-2">
           {notification.title}

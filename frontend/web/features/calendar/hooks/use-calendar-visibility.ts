@@ -2,11 +2,11 @@ import { EventInput } from "@fullcalendar/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   CALENDAR_DEFAULT_TASK_COLOR,
+  CALENDAR_SHOW_COMPLETED_STORAGE_KEY,
   CALENDAR_TASK_COLOR_STORAGE_KEY,
 } from "../types/calendar.constants";
 import {
   CalendarEvent,
-  EventSourceType,
   EventStatus,
   WorkspaceCalendar,
 } from "../types/calendar.types";
@@ -25,6 +25,17 @@ export function useCalendarVisibility(
     useState<Set<string> | null>(null);
   const [tasksVisible, setTasksVisible] = useState(true);
   const [tasksColor, setTasksColor] = useState(CALENDAR_DEFAULT_TASK_COLOR);
+  const [showCompletedTasks, setShowCompletedTasks] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const stored = window.localStorage.getItem(
+        CALENDAR_SHOW_COMPLETED_STORAGE_KEY,
+      );
+      return stored !== null ? stored === "true" : true;
+    } catch {
+      return true;
+    }
+  });
 
   useEffect(() => {
     let storedColor: string | null = null;
@@ -70,11 +81,14 @@ export function useCalendarVisibility(
 
     return events
       .filter((event) => event.status !== EventStatus.CANCELLED)
-      .filter((event) =>
-        isTaskCalendarEvent(event)
-          ? tasksVisible
-          : visibleIds.has(event.calendarId),
-      )
+      .filter((event) => {
+        if (isTaskCalendarEvent(event)) {
+          if (!tasksVisible) return false;
+          if (!showCompletedTasks && event.completedAt) return false;
+          return true;
+        }
+        return visibleIds.has(event.calendarId);
+      })
       .map((event) =>
         mapCalendarEventToFullCalendar(
           event,
@@ -87,6 +101,7 @@ export function useCalendarVisibility(
     calendars,
     effectiveSelectedCalendarIds,
     events,
+    showCompletedTasks,
     tasksColor,
     tasksVisible,
   ]);
@@ -117,13 +132,30 @@ export function useCalendarVisibility(
     setTasksVisible((current) => !current);
   }, []);
 
+  const toggleShowCompletedTasks = useCallback(() => {
+    setShowCompletedTasks((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(
+          CALENDAR_SHOW_COMPLETED_STORAGE_KEY,
+          String(next),
+        );
+      } catch {
+        // The visual preference remains active for this session.
+      }
+      return next;
+    });
+  }, []);
+
   return {
     changeTasksColor,
     fullCalendarEvents,
     selectedCalendarIds: effectiveSelectedCalendarIds,
+    showCompletedTasks,
     tasksColor,
     tasksVisible,
     toggleCalendar,
+    toggleShowCompletedTasks,
     toggleTasks,
   };
 }

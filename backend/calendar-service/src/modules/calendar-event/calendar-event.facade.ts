@@ -25,6 +25,7 @@ import {
 import { CalendarRecurrenceService } from './calendar-recurrence.service';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
+import { GetCalendarTasksQueryDto } from './dto/get-calendar-tasks-query.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
 import { EventAccessPolicy } from './event-access.policy';
 import { EventMapper } from './event.mapper';
@@ -132,6 +133,44 @@ export class CalendarEventService {
     };
   }
 
+  async getTasks(userId: string, filters: GetCalendarTasksQueryDto) {
+    const where: Prisma.CalendarEventWhereInput = {
+      status: { not: EventStatus.CANCELLED },
+      OR: [
+        { sourceType: EventSourceType.TASK },
+        { description: { contains: '[TASK]' } },
+      ],
+      AND: [
+        {
+          OR: [
+            { calendar: { ownerUserId: userId } },
+            { createdBy: userId },
+            { attendees: { some: { userId } } },
+          ],
+        },
+      ],
+    };
+    const skip = (filters.page - 1) * filters.limit;
+    const [events, total] = await Promise.all([
+      this.prisma.calendarEvent.findMany({
+        where,
+        include: eventWithRelationsInclude,
+        orderBy: { startAt: 'asc' },
+        skip,
+        take: filters.limit,
+      }),
+      this.prisma.calendarEvent.count({ where }),
+    ]);
+    const enriched = await this.userProfiles.attachProfilesToEvents(events);
+
+    return {
+      items: enriched.map((event) => this.mapper.toPublicEvent(userId, event)),
+      total,
+      page: filters.page,
+      limit: filters.limit,
+    };
+  }
+
   async getEventById(userId: string, eventId: string) {
     const event = await this.accessPolicy.findEventOrThrow(eventId);
     this.accessPolicy.assertCanViewEvent(userId, event);
@@ -182,6 +221,37 @@ export class CalendarEventService {
     this.accessPolicy.assertCanManageEvent(userId, event);
     this.accessPolicy.assertUserManagedEvent(event);
     await this.recurrenceMutations.cancelEvent(userId, event, scope);
+  }
+
+  async updateTaskCompletion(
+    userId: string,
+    eventId: string,
+    completed: boolean,
+  ) {
+    const event = await this.accessPolicy.findEventOrThrow(eventId);
+    this.accessPolicy.assertCanManageEvent(userId, event);
+    this.accessPolicy.assertPersonalCalendar(event.calendar);
+    this.accessPolicy.assertUserManagedEvent(event);
+    const isTask =
+      event.sourceType === EventSourceType.TASK ||
+      (typeof event.description === 'string' &&
+        event.description.includes('[TASK]'));
+    if (!isTask) {
+      throw new BadRequestException(
+        CALENDAR_ERROR_MESSAGES.ONLY_TASKS_CAN_BE_COMPLETED,
+      );
+    }
+
+    await this.prisma.calendarEvent.update({
+      where: { id: event.id },
+      data: {
+        sourceType: EventSourceType.TASK,
+        completedAt: completed ? new Date() : null,
+        updatedBy: userId,
+        isRecurrenceOverride: event.recurrenceSeries ? true : undefined,
+      },
+    });
+    return this.getEventById(userId, event.id);
   }
 
   async updateResponse(

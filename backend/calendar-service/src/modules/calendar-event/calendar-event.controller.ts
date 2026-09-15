@@ -20,7 +20,9 @@ import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';
 import { UpdateCalendarEventDto } from './dto/update-calendar-event.dto';
 import { UpdateEventResponseDto } from './dto/update-event-response.dto';
 import { GetCalendarEventsQueryDto } from './dto/get-calendar-events-query.dto';
+import { GetCalendarTasksQueryDto } from './dto/get-calendar-tasks-query.dto';
 import { CancelCalendarEventDto } from './dto/cancel-calendar-event.dto';
+import { UpdateTaskCompletionDto } from './dto/update-task-completion.dto';
 
 @Controller('api/calendar/events')
 export class CalendarEventController {
@@ -65,6 +67,26 @@ export class CalendarEventController {
     };
   }
 
+  @Get('tasks')
+  async getTasks(
+    @Headers('x-user-id') userId: string,
+    @Query() query: GetCalendarTasksQueryDto,
+  ) {
+    this.validateUserId(userId);
+    const result = await this.calendarEventService.getTasks(userId, query);
+
+    return {
+      message: CALENDAR_SUCCESS_MESSAGES.TASKS_LISTED,
+      data: result.items,
+      pagination: {
+        totalItems: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: Math.ceil(result.total / result.limit),
+      },
+    };
+  }
+
   @Get(':eventId')
   async getEvent(
     @Headers('x-user-id') userId: string,
@@ -96,6 +118,25 @@ export class CalendarEventController {
 
     return {
       message: CALENDAR_SUCCESS_MESSAGES.EVENT_UPDATED,
+      data: event,
+    };
+  }
+
+  @Patch(':eventId/completion')
+  async updateTaskCompletion(
+    @Headers('x-user-id') userId: string,
+    @Param('eventId', new ParseUUIDPipe()) eventId: string,
+    @Body() dto: UpdateTaskCompletionDto,
+  ) {
+    this.validateUserId(userId);
+    const event = await this.calendarEventService.updateTaskCompletion(
+      userId,
+      eventId,
+      dto.completed,
+    );
+
+    return {
+      message: CALENDAR_SUCCESS_MESSAGES.TASK_COMPLETION_UPDATED,
       data: event,
     };
   }

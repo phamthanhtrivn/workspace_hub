@@ -1,6 +1,7 @@
 export const CALENDAR_DEFAULT_EVENT_COLOR = "#2563eb";
 export const CALENDAR_DEFAULT_TASK_COLOR = "#4285f4";
 export const CALENDAR_TASK_COLOR_STORAGE_KEY = "calendar.taskColor";
+export const CALENDAR_SHOW_COMPLETED_STORAGE_KEY = "calendar.showCompletedTasks";
 export const CALENDAR_DEFAULT_NAME = "Personal";
 export const CALENDAR_DEFAULT_ICON = "📅";
 export const CALENDAR_DEFAULT_EVENT_DURATION_MS = 60 * 60 * 1000;
@@ -45,6 +46,7 @@ export const CALENDAR_ICON_CHOICES = [
 ] as const;
 
 export const CALENDAR_VIEW_OPTIONS = [
+  { value: "listYear", labelId: "calendar.view.year" },
   { value: "dayGridMonth", labelId: "calendar.view.month" },
   { value: "timeGridWeek", labelId: "calendar.view.week" },
   { value: "timeGridDay", labelId: "calendar.view.day" },

@@ -55,6 +55,7 @@ describe('CalendarEventService', () => {
     isRecurrenceOverride: false,
     sourceType: EventSourceType.USER,
     sourceId: null,
+    completedAt: null,
     cancelledAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -246,6 +247,86 @@ describe('CalendarEventService', () => {
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
+  it('marks a calendar task as completed', async () => {
+    const { service, prisma } = createService();
+    prisma.calendarEvent.findUnique.mockResolvedValue({
+      ...event,
+      sourceType: EventSourceType.TASK,
+    });
+
+    await service.updateTaskCompletion(ownerId, eventId, true);
+
+    expect(prisma.calendarEvent.update).toHaveBeenCalledWith({
+      where: { id: eventId },
+      data: {
+        sourceType: EventSourceType.TASK,
+        completedAt: expect.any(Date),
+        updatedBy: ownerId,
+        isRecurrenceOverride: undefined,
+      },
+    });
+  });
+
+  it('marks only the selected recurring task occurrence as incomplete', async () => {
+    const { service, prisma } = createService();
+    prisma.calendarEvent.findUnique.mockResolvedValue({
+      ...recurringFirstOccurrence(),
+      sourceType: EventSourceType.TASK,
+      completedAt: new Date('2026-09-14T12:00:00.000Z'),
+    });
+
+    await service.updateTaskCompletion(ownerId, eventId, false);
+
+    expect(prisma.calendarEvent.update).toHaveBeenCalledWith({
+      where: { id: eventId },
+      data: {
+        sourceType: EventSourceType.TASK,
+        completedAt: null,
+        updatedBy: ownerId,
+        isRecurrenceOverride: true,
+      },
+    });
+  });
+
+  it('rejects completion updates for project tasks', async () => {
+    const { service, prisma } = createService();
+    prisma.calendarEvent.findUnique.mockResolvedValue({
+      ...event,
+      sourceType: EventSourceType.TASK,
+      calendar: {
+        ...calendar,
+        projectId: '88888888-8888-8888-8888-888888888888',
+      },
+    });
+
+    await expect(
+      service.updateTaskCompletion(ownerId, eventId, true),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.calendarEvent.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects completion updates for synchronized tasks', async () => {
+    const { service, prisma } = createService();
+    prisma.calendarEvent.findUnique.mockResolvedValue({
+      ...event,
+      sourceType: EventSourceType.TASK,
+      sourceId: '99999999-9999-9999-9999-999999999999',
+    });
+
+    await expect(
+      service.updateTaskCompletion(ownerId, eventId, true),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.calendarEvent.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects completion updates for regular events', async () => {
+    const { service } = createService();
+
+    await expect(
+      service.updateTaskCompletion(ownerId, eventId, true),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
   it('blocks users who are neither calendar owner nor attendee', async () => {
     const { service } = createService();
 
@@ -289,6 +370,7 @@ describe('CalendarEventService', () => {
       color: event.color,
       status: EventStatus.CONFIRMED,
       visibility: EventVisibility.DEFAULT,
+      sourceType: EventSourceType.USER,
       recurrenceRule: 'FREQ=DAILY;COUNT=10',
       timeZone: calendar.timeZone,
       recurrenceGeneratedUntil: new Date('2027-01-01T00:00:00.000Z'),
@@ -349,5 +431,46 @@ describe('CalendarEventService', () => {
         isRecurrenceOverride: true,
       }),
     });
+  });
+
+  it('retrieves only personal, uncancelled tasks with pagination', async () => {
+    const { service, prisma } = createService();
+    const taskEvent = {
+      ...event,
+      sourceType: EventSourceType.TASK,
+      completedAt: null,
+    };
+    prisma.calendarEvent.findMany.mockResolvedValue([taskEvent]);
+    prisma.calendarEvent.count.mockResolvedValue(1);
+
+    const result = await service.getTasks(ownerId, { page: 1, limit: 10 });
+
+    expect(prisma.calendarEvent.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          status: { not: EventStatus.CANCELLED },
+          OR: [
+            { sourceType: EventSourceType.TASK },
+            { description: { contains: '[TASK]' } },
+          ],
+          AND: [
+            {
+              OR: [
+                { calendar: { ownerUserId: ownerId } },
+                { createdBy: ownerId },
+                { attendees: { some: { userId: ownerId } } },
+              ],
+            },
+          ],
+        },
+        skip: 0,
+        take: 10,
+        orderBy: { startAt: 'asc' },
+      }),
+    );
+    expect(result.items).toHaveLength(1);
+    expect(result.total).toBe(1);
+    expect(result.page).toBe(1);
+    expect(result.limit).toBe(10);
   });
 });

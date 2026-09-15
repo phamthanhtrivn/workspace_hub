@@ -28,10 +28,12 @@ export function useCalendarView(calendarRef: RefObject<FullCalendar | null>) {
 
   const handleViewChange = useCallback(
     (view: string) => {
-      calendarApi?.changeView(view);
-      setActiveView(view);
+      const api = calendarApi ?? calendarRef.current?.getApi();
+      if (!api) return;
+
+      api.changeView(view);
     },
-    [calendarApi],
+    [calendarApi, calendarRef],
   );
 
   const handleCalendarNavigate = useCallback(

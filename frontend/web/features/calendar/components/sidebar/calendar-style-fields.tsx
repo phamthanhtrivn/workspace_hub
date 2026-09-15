@@ -11,21 +11,26 @@ import { cn } from "@/lib/utils";
 export function CalendarIconPicker({
   value,
   onChange,
+  compact = false,
 }: {
   value: string | null;
   onChange: (icon: string | null) => void;
+  compact?: boolean;
 }) {
   const intl = useAppIntl();
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div
+      className={compact ? "flex flex-wrap gap-1.5" : "flex flex-wrap gap-2"}
+    >
       <button
         type="button"
         onClick={() => {
           onChange(null);
         }}
         className={cn(
-          "grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-sm transition-all active:scale-95",
+          "grid cursor-pointer place-items-center rounded-lg text-sm transition-all active:scale-95",
+          compact ? "h-8 w-8" : "h-9 w-9",
           value === null
             ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/30 ring-offset-1"
             : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600",
@@ -43,7 +48,8 @@ export function CalendarIconPicker({
             onChange(icon);
           }}
           className={cn(
-            "grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-base transition-all active:scale-95",
+            "grid cursor-pointer place-items-center rounded-lg text-base transition-all active:scale-95",
+            compact ? "h-8 w-8" : "h-9 w-9",
             value === icon
               ? "bg-blue-50 text-blue-600 shadow-xs ring-2 ring-blue-600 ring-offset-1"
               : "bg-slate-100 hover:bg-slate-200/80",
@@ -60,17 +66,19 @@ export function CalendarIconPicker({
 export function CalendarColorPicker({
   value,
   showCustomColor,
+  compact = false,
   onChange,
   onShowCustomColor,
 }: {
   value: string;
   showCustomColor: boolean;
+  compact?: boolean;
   onChange: (color: string) => void;
   onShowCustomColor: (show: boolean) => void;
 }) {
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-6 gap-2">
+      <div className={`grid gap-2 ${compact ? "grid-cols-5" : "grid-cols-6"}`}>
         {CALENDAR_COLOR_CHOICES.map((choice) => (
           <button
             key={choice}

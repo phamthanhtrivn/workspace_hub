@@ -9,12 +9,14 @@ import {
   createCalendar,
   createCalendarEvent,
   deleteCalendar,
+  getAllCalendarTasks,
   getCalendarEvent,
   getCalendarEvents,
   getCalendars,
   updateCalendar,
   updateCalendarEvent,
   updateCalendarEventResponse,
+  updateCalendarTaskCompletion,
 } from "../api/calendar.api";
 import {
   AttendeeResponseStatus,
@@ -29,6 +31,7 @@ import {
 export const calendarKeys = {
   all: ["calendar"] as const,
   calendars: ["calendar", "calendars"] as const,
+  tasks: ["calendar", "tasks"] as const,
   events: (filters: CalendarEventFilters) =>
     ["calendar", "events", filters] as const,
   event: (eventId: string) => ["calendar", "events", eventId] as const,
@@ -91,6 +94,15 @@ export function useCalendarEvents(filters: CalendarEventFilters) {
   });
 }
 
+export function useCalendarTasks() {
+  return useQuery({
+    queryKey: calendarKeys.tasks,
+    queryFn: getAllCalendarTasks,
+    placeholderData: keepPreviousData,
+    staleTime: 30_000,
+  });
+}
+
 export function useCalendarEvent(eventId?: string | null) {
   return useQuery({
     queryKey: calendarKeys.event(eventId || ""),
@@ -128,6 +140,24 @@ export function useUpdateCalendarEvent() {
       void queryClient.invalidateQueries({
         queryKey: calendarKeys.event(variables.eventId),
       });
+    },
+  });
+}
+
+export function useUpdateCalendarTaskCompletion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      eventId,
+      completed,
+    }: {
+      eventId: string;
+      completed: boolean;
+    }) => updateCalendarTaskCompletion(eventId, completed),
+    onSuccess: (event) => {
+      queryClient.setQueryData(calendarKeys.event(event.id), event);
+      void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
     },
   });
 }
