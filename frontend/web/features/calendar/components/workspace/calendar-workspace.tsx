@@ -13,11 +13,7 @@ import { useCalendarWorkspace } from "../../hooks/use-calendar-workspace";
 import { useCalendarKeyboardShortcuts } from "../../hooks/use-calendar-keyboard-shortcuts";
 import { useCalendarTasks } from "../../hooks/use-calendar-queries";
 import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
-import {
-  CalendarEvent,
-  EventSourceType,
-  EventStatus,
-} from "../../types/calendar.types";
+import { CalendarEvent, EventStatus } from "../../types/calendar.types";
 
 const EventDetailModal = dynamic(() =>
   import("../modal/event-detail-modal").then(
@@ -69,20 +65,6 @@ export function CalendarWorkspace() {
   const handleCloseTasksDrawer = useCallback(() => {
     setTasksDrawerOpen(false);
   }, []);
-
-  const handleAddTaskFromDrawer = useCallback(() => {
-    const defaultCal =
-      calendar.calendars.find((c) => !c.projectId && c.isDefault) ??
-      calendar.calendars.find((c) => !c.projectId);
-    const now = new Date();
-    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-    calendar.openCreateModal({
-      startAt: now,
-      endAt: oneHourLater,
-      calendarId: defaultCal?.id,
-      sourceType: EventSourceType.TASK,
-    });
-  }, [calendar]);
 
   const calendarEvents = calendar.events;
   const tasksData = tasksQuery.data;
@@ -194,10 +176,11 @@ export function CalendarWorkspace() {
         tasks={allTasks}
         color={calendar.tasksColor}
         loading={tasksQuery.isLoading && allTasks.length === 0}
+        error={tasksQuery.isError}
         showCompleted={calendar.showCompletedTasks}
         onToggleShowCompleted={calendar.toggleShowCompletedTasks}
         onClose={handleCloseTasksDrawer}
-        onAddTask={handleAddTaskFromDrawer}
+        onRetry={() => void tasksQuery.refetch()}
         onToggleTask={calendar.handleTaskCompletionQuickToggle}
         onSelectTask={(task) => calendar.openDetail(task)}
       />

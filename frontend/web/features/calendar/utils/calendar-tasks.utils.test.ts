@@ -4,10 +4,12 @@ import {
   EventSourceType,
   EventStatus,
   EventVisibility,
+  WorkspaceCalendar,
 } from "../types/calendar.types";
 import {
   formatTaskDueDate,
   groupCalendarTasks,
+  isProjectCalendarTask,
 } from "./calendar-tasks.utils";
 
 function makeMockTask(overrides: Partial<CalendarEvent>): CalendarEvent {
@@ -43,6 +45,18 @@ function makeMockTask(overrides: Partial<CalendarEvent>): CalendarEvent {
 
 describe("calendar-tasks.utils", () => {
   const refDate = new Date("2026-09-14T12:00:00.000Z");
+
+  it("distinguishes project tasks from personal calendar tasks", () => {
+    const personalTask = makeMockTask({
+      calendar: { projectId: null } as WorkspaceCalendar,
+    });
+    const projectTask = makeMockTask({
+      calendar: { projectId: "project-1" } as WorkspaceCalendar,
+    });
+
+    expect(isProjectCalendarTask(personalTask)).toBe(false);
+    expect(isProjectCalendarTask(projectTask)).toBe(true);
+  });
 
   describe("groupCalendarTasks", () => {
     it("groups tasks into overdue, today, upcoming, and completed", () => {
@@ -137,4 +151,3 @@ describe("calendar-tasks.utils", () => {
     });
   });
 });
-

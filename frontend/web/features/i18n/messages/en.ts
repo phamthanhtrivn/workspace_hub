@@ -398,6 +398,10 @@ const en = {
   "calendar.tasks.allDoneDescription": "No pending tasks in your list",
   "calendar.tasks.noTasks": "No tasks yet",
   "calendar.tasks.noTasksDescription": "All your personal tasks will appear here",
+  "calendar.tasks.noProjectTasks": "No project tasks yet",
+  "calendar.tasks.noProjectTasksDescription":
+    "Tasks synchronized from your projects will appear here",
+  "calendar.tasks.loadFailed": "Could not load tasks",
   "calendar.tasks.openDrawer": "Open tasks panel",
   "calendar.task.markCompleted": "Mark completed",
   "calendar.task.markIncomplete": "Mark incomplete",

@@ -1,5 +1,9 @@
 import { CalendarEvent, CalendarGroupedTasks } from "../types/calendar.types";
 
+export function isProjectCalendarTask(task: CalendarEvent): boolean {
+  return Boolean(task.calendar?.projectId);
+}
+
 export function groupCalendarTasks(
   tasks: CalendarEvent[],
   referenceDate: Date = new Date(),
@@ -132,4 +136,3 @@ export function formatTaskDueDate(
 
   return `${datePrefix}, ${timeStr}`;
 }
-

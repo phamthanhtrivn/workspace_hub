@@ -288,6 +288,37 @@ describe('CalendarEventService', () => {
     });
   });
 
+  it('rejects completion updates for project tasks', async () => {
+    const { service, prisma } = createService();
+    prisma.calendarEvent.findUnique.mockResolvedValue({
+      ...event,
+      sourceType: EventSourceType.TASK,
+      calendar: {
+        ...calendar,
+        projectId: '88888888-8888-8888-8888-888888888888',
+      },
+    });
+
+    await expect(
+      service.updateTaskCompletion(ownerId, eventId, true),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.calendarEvent.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects completion updates for synchronized tasks', async () => {
+    const { service, prisma } = createService();
+    prisma.calendarEvent.findUnique.mockResolvedValue({
+      ...event,
+      sourceType: EventSourceType.TASK,
+      sourceId: '99999999-9999-9999-9999-999999999999',
+    });
+
+    await expect(
+      service.updateTaskCompletion(ownerId, eventId, true),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.calendarEvent.update).not.toHaveBeenCalled();
+  });
+
   it('rejects completion updates for regular events', async () => {
     const { service } = createService();
 

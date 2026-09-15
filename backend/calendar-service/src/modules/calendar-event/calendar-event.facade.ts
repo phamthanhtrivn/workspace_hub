@@ -230,10 +230,12 @@ export class CalendarEventService {
   ) {
     const event = await this.accessPolicy.findEventOrThrow(eventId);
     this.accessPolicy.assertCanManageEvent(userId, event);
+    this.accessPolicy.assertPersonalCalendar(event.calendar);
+    this.accessPolicy.assertUserManagedEvent(event);
     const isTask =
       event.sourceType === EventSourceType.TASK ||
-      (typeof event.description === "string" &&
-        event.description.includes("[TASK]"));
+      (typeof event.description === 'string' &&
+        event.description.includes('[TASK]'));
     if (!isTask) {
       throw new BadRequestException(
         CALENDAR_ERROR_MESSAGES.ONLY_TASKS_CAN_BE_COMPLETED,

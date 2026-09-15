@@ -405,6 +405,10 @@ const vi = {
   "calendar.tasks.allDoneDescription": "Không còn việc nào tồn đọng trong danh sách",
   "calendar.tasks.noTasks": "Chưa có công việc nào",
   "calendar.tasks.noTasksDescription": "Tất cả công việc cá nhân của bạn sẽ xuất hiện ở đây",
+  "calendar.tasks.noProjectTasks": "Chưa có công việc dự án",
+  "calendar.tasks.noProjectTasksDescription":
+    "Công việc được đồng bộ từ các dự án sẽ xuất hiện ở đây",
+  "calendar.tasks.loadFailed": "Không thể tải danh sách công việc",
   "calendar.tasks.openDrawer": "Mở danh sách công việc",
   "calendar.task.markCompleted": "Đánh dấu hoàn thành",
   "calendar.task.markIncomplete": "Đánh dấu chưa hoàn thành",
