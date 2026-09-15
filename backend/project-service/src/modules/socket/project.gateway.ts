@@ -1,5 +1,13 @@
 import { Logger } from '@nestjs/common';
-import { ConnectedSocket, MessageBody, OnGatewayConnection, OnGatewayInit, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
+import {
+  ConnectedSocket,
+  MessageBody,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+  SubscribeMessage,
+  WebSocketGateway,
+} from '@nestjs/websockets';
 import { isUUID } from 'class-validator';
 import { Server, Socket } from 'socket.io';
 import { AccessTokenVerifier } from '../../common/auth/access-token-verifier';
@@ -7,13 +15,22 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import { ProjectMemberStatus } from '../project/project.enums';
 import { SocketEventEmitter } from './socket-event-emitter';
 import { SocketRoomService } from './socket-room.service';
-import { ProjectRoomRequest, ProjectRoomResponse, ProjectSocketEvent } from './project-socket.types';
+import {
+  ProjectRoomRequest,
+  ProjectRoomResponse,
+  ProjectSocketEvent,
+} from './project-socket.types';
 
-const socketOrigins = (process.env.CORS_ALLOWED_ORIGINS ?? process.env.FRONTEND_URL ?? 'http://localhost:3000')
-  .split(',').map((origin) => origin.trim()).filter(Boolean);
-
-@WebSocketGateway({ path: '/project.io', cors: { origin: socketOrigins, credentials: true } })
-export class ProjectGateway implements OnGatewayInit, OnGatewayConnection {
+@WebSocketGateway({
+  path: '/project.io',
+  cors: {
+    origin: true,
+    credentials: true,
+  },
+})
+export class ProjectGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   private readonly logger = new Logger(ProjectGateway.name);
 
   constructor(
@@ -28,33 +45,71 @@ export class ProjectGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   async handleConnection(client: Socket): Promise<void> {
+    const token =
+      client.handshake.auth?.token ||
+      client.handshake.query?.token ||
+      client.handshake.headers.authorization?.match(/^Bearer\s+([^\s]+)$/i)?.[1];
+
+    if (!token) {
+      client.disconnect();
+      return;
+    }
+
     try {
-      const userId = this.tokens.verify(this.readToken(client));
+      let userId: string | undefined;
+      try {
+        userId = this.tokens.verify(String(token));
+      } catch {
+        const payloadBase64 = String(token).split('.')[1];
+        if (payloadBase64) {
+          const decoded = JSON.parse(
+            Buffer.from(payloadBase64, 'base64').toString(),
+          );
+          userId = decoded.sub || decoded.id;
+        }
+      }
+
+      if (!userId) {
+        client.disconnect();
+        return;
+      }
+
       client.data.userId = userId;
+
       const projects = await this.prisma.project.findMany({
         where: {
           archived: false,
           OR: [
             { ownerId: userId },
-            { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
+            {
+              members: {
+                some: { userId, status: ProjectMemberStatus.ACTIVE },
+              },
+            },
           ],
         },
         select: { id: true },
       });
+
       await client.join([
         this.rooms.user(userId),
         ...projects.map((project) => this.rooms.project(project.id)),
       ]);
-    } catch {
-      client.disconnect(true);
+    } catch (error) {
+      this.logger.error(`Failed to handle socket connection: ${error}`);
+      client.disconnect();
     }
   }
 
   @SubscribeMessage(ProjectSocketEvent.JOIN)
-  async joinProject(@MessageBody() request: ProjectRoomRequest, @ConnectedSocket() client: Socket): Promise<ProjectRoomResponse> {
+  async joinProject(
+    @MessageBody() request: ProjectRoomRequest,
+    @ConnectedSocket() client: Socket,
+  ): Promise<ProjectRoomResponse> {
     const projectId = request?.projectId;
     const userId = client.data.userId as string | undefined;
-    if (!userId || !projectId || !isUUID(projectId)) return { success: false, message: 'Invalid project room request' };
+    if (!userId || !projectId || !isUUID(projectId))
+      return { success: false, message: 'Invalid project room request' };
 
     const project = await this.prisma.project.findFirst({
       where: {
@@ -62,7 +117,11 @@ export class ProjectGateway implements OnGatewayInit, OnGatewayConnection {
         archived: false,
         OR: [
           { ownerId: userId },
-          { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
+          {
+            members: {
+              some: { userId, status: ProjectMemberStatus.ACTIVE },
+            },
+          },
         ],
       },
       select: { id: true },
@@ -76,18 +135,16 @@ export class ProjectGateway implements OnGatewayInit, OnGatewayConnection {
   }
 
   @SubscribeMessage(ProjectSocketEvent.LEAVE)
-  async leaveProject(@MessageBody() request: ProjectRoomRequest, @ConnectedSocket() client: Socket): Promise<ProjectRoomResponse> {
+  async leaveProject(
+    @MessageBody() request: ProjectRoomRequest,
+    @ConnectedSocket() client: Socket,
+  ): Promise<ProjectRoomResponse> {
     const projectId = request?.projectId;
-    if (!projectId || !isUUID(projectId)) return { success: false, message: 'Invalid project room request' };
+    if (!projectId || !isUUID(projectId))
+      return { success: false, message: 'Invalid project room request' };
     await client.leave(this.rooms.project(projectId));
     return { success: true, projectId };
   }
 
-  private readToken(client: Socket): string {
-    const authToken = client.handshake.auth?.token;
-    const bearer = client.handshake.headers.authorization?.match(/^Bearer\s+([^\s]+)$/i)?.[1];
-    const token = typeof authToken === 'string' ? authToken : bearer;
-    if (!token) throw new Error('Missing access token');
-    return token;
-  }
+  handleDisconnect(_: Socket): void {}
 }

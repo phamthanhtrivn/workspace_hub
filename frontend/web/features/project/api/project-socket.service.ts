@@ -37,27 +37,33 @@ export type ProjectSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 class ProjectSocketService {
   private socket: ProjectSocket | null = null;
-  private token: string | null = null;
+  private currentToken: string | null = null;
   private joinedProjectIds = new Set<string>();
   private desiredProjectIds = new Set<string>();
 
   connect(token: string): ProjectSocket {
-    if (this.socket && this.token === token) {
+    if (this.socket && this.currentToken === token) {
       if (!this.socket.connected && !this.socket.active) {
         this.socket.connect();
       }
       return this.socket;
     }
-    this.disconnect();
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    this.token = token;
-    this.socket = io(apiUrl.replace(/\/api$/, ''), {
+    if (this.socket) {
+      this.disconnect();
+    }
+
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL!;
+    const baseUrl = apiUrl.replace(/\/api$/, '');
+
+    this.currentToken = token;
+    this.socket = io(baseUrl, {
       path: '/project.io',
-      transports: ['websocket', 'polling'],
-      auth: { token },
-      query: { token },
-    });
+      transports: ['websocket'],
+      auth: {
+        token,
+      },
+    }) as ProjectSocket;
 
     this.socket.on('connect', () => {
       this.joinedProjectIds.clear();
@@ -67,9 +73,9 @@ class ProjectSocketService {
       }
     });
 
-    this.socket.on('connect_error', (error) => {
-      console.warn(`[ProjectSocket] Connection error: ${error.message}`);
-    });
+    if (!this.socket.connected && !this.socket.active) {
+      this.socket.connect();
+    }
 
     return this.socket;
   }
@@ -115,9 +121,11 @@ class ProjectSocketService {
   }
 
   disconnect(): void {
-    this.socket?.disconnect();
-    this.socket = null;
-    this.token = null;
+    if (this.socket) {
+      this.socket.disconnect();
+      this.socket = null;
+    }
+    this.currentToken = null;
     this.joinedProjectIds.clear();
     this.desiredProjectIds.clear();
   }
@@ -128,3 +136,4 @@ class ProjectSocketService {
 }
 
 export const projectSocketService = new ProjectSocketService();
+

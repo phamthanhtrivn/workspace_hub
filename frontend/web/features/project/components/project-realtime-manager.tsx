@@ -23,8 +23,11 @@ export default function ProjectRealtimeManager() {
   useEffect(() => {
     if (!token) {
       projectSocketService.disconnect();
-      return;
     }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
 
     const socket = projectSocketService.connect(token);
     const syncProjects = async () => {
@@ -74,9 +77,9 @@ export default function ProjectRealtimeManager() {
     return () => {
       socket.off("connect", syncProjects);
       socket.off("project:changed", handleChange);
-      projectSocketService.disconnect();
     };
   }, [queryClient, token]);
 
   return null;
 }
+
