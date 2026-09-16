@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { KafkaProducerModule } from '../../infrastructure/kafka/kafka-producer.module';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 import { CalendarEventController } from './calendar-event.controller';
 import { CalendarEventService } from './calendar-event.service';
@@ -10,7 +11,7 @@ import { RecurrenceMutationService } from './recurrence-mutation.service';
 import { CalendarNotificationService } from './calendar-notification.service';
 
 @Module({
-  imports: [UserProfileSnapshotModule],
+  imports: [KafkaProducerModule, UserProfileSnapshotModule],
   controllers: [CalendarEventController],
   providers: [
     CalendarEventService,

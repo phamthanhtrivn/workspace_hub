@@ -1,10 +1,15 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { useUpdateCalendar } from "../../hooks/use-calendar-queries";
+import {
+  useDeleteCalendar,
+  useUpdateCalendar,
+} from "../../hooks/use-calendar-queries";
 import { WorkspaceCalendar } from "../../types/calendar.types";
+import { DeleteCalendarModal } from "../modal/delete-calendar-modal";
 import { CalendarColorPopover } from "./calendar-color-popover";
 import { CalendarEditPopover } from "./calendar-edit-popover";
 
@@ -44,6 +49,8 @@ export function CalendarListItem({
 }) {
   const intl = useAppIntl();
   const updateCalendar = useUpdateCalendar();
+  const deleteCalendar = useDeleteCalendar();
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   const changeColor = async (color: string) => {
     if (color === calendar.color) return;
@@ -55,6 +62,16 @@ export function CalendarListItem({
       });
     } catch {
       toast.error(intl.formatMessage({ id: "calendar.calendarUpdateFailed" }));
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteCalendar.mutateAsync(calendar.id);
+      toast.success(intl.formatMessage({ id: "calendar.calendarDeleted" }));
+      setDeleteModalOpen(false);
+    } catch {
+      toast.error(intl.formatMessage({ id: "calendar.calendarDeleteFailed" }));
     }
   };
 
@@ -94,37 +111,51 @@ export function CalendarListItem({
   };
 
   return (
-    <div className="group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100/70">
-      <CalendarSelectionCheckbox
-        calendar={calendar}
-        selected={selected}
-        onToggle={onToggle}
-      />
-
-      {calendar.icon && (
-        <span className="shrink-0 text-sm leading-none">{calendar.icon}</span>
-      )}
-
-      <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none">
-        {calendar.name}
-      </span>
-
-      {calendar.projectId ? (
-        <CalendarColorPopover
-          value={calendar.color}
-          label={intl.formatMessage({ id: "calendar.color" })}
-          pending={updateCalendar.isPending}
-          triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-          onChange={changeColor}
-        />
-      ) : (
-        <CalendarEditPopover
+    <>
+      <div className="group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100/70">
+        <CalendarSelectionCheckbox
           calendar={calendar}
-          pending={updateCalendar.isPending}
-          triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
-          onSave={saveChanges}
+          selected={selected}
+          onToggle={onToggle}
+        />
+
+        {calendar.icon && (
+          <span className="shrink-0 text-sm leading-none">{calendar.icon}</span>
+        )}
+
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none">
+          {calendar.name}
+        </span>
+
+        {calendar.projectId ? (
+          <CalendarColorPopover
+            value={calendar.color}
+            label={intl.formatMessage({ id: "calendar.color" })}
+            pending={updateCalendar.isPending}
+            triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+            onChange={changeColor}
+          />
+        ) : (
+          <CalendarEditPopover
+            calendar={calendar}
+            pending={updateCalendar.isPending || deleteCalendar.isPending}
+            canDelete={!calendar.isDefault}
+            onRequestDelete={() => setDeleteModalOpen(true)}
+            triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+            onSave={saveChanges}
+          />
+        )}
+      </div>
+
+      {!calendar.isDefault && (
+        <DeleteCalendarModal
+          open={deleteModalOpen}
+          calendarName={calendar.name}
+          pending={deleteCalendar.isPending}
+          onClose={() => setDeleteModalOpen(false)}
+          onConfirm={handleDelete}
         />
       )}
-    </div>
+    </>
   );
 }

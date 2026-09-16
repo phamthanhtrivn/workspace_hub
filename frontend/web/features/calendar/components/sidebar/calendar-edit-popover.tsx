@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
@@ -19,13 +19,17 @@ interface CalendarEditValues {
 export function CalendarEditPopover({
   calendar,
   pending,
+  canDelete = false,
   triggerClassName,
   onSave,
+  onRequestDelete,
 }: {
   calendar: WorkspaceCalendar;
   pending: boolean;
+  canDelete?: boolean;
   triggerClassName?: string;
   onSave: (values: CalendarEditValues) => Promise<boolean>;
+  onRequestDelete?: () => void;
 }) {
   const intl = useAppIntl();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -89,7 +93,7 @@ export function CalendarEditPopover({
           role="dialog"
           aria-label={intl.formatMessage({ id: "calendar.editCalendar" })}
           onSubmit={handleSubmit}
-          className="absolute right-0 top-[calc(100%+0.1rem)] z-30 w-52 space-y-3 rounded-lg border border-slate-200 bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.2)]"
+          className="absolute right-0 top-[calc(100%+0.1rem)] z-30 w-56 space-y-3 rounded-lg border border-slate-200 bg-white p-3 shadow-[0_8px_24px_rgba(15,23,42,0.2)]"
         >
           <label className="block space-y-1">
             <span className="text-[11px] font-semibold text-slate-500">
@@ -125,22 +129,46 @@ export function CalendarEditPopover({
             />
           </div>
 
-          <div className="flex justify-end gap-2 border-t border-slate-100 pt-3">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => setOpen(false)}
-              className="cursor-pointer px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 disabled:cursor-wait disabled:opacity-60"
-            >
-              {intl.formatMessage({ id: "app.cancel" })}
-            </button>
-            <button
-              type="submit"
-              disabled={pending}
-              className="cursor-pointer rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
-            >
-              {intl.formatMessage({ id: pending ? "app.saving" : "app.save" })}
-            </button>
+          <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+            {canDelete ? (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setOpen(false);
+                  onRequestDelete?.();
+                }}
+                className="inline-flex cursor-pointer items-center gap-1 rounded p-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-60"
+                title={intl.formatMessage({ id: "calendar.deleteCalendar" })}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span className="text-[11px] font-bold">
+                  {intl.formatMessage({ id: "calendar.deleteCalendar" })}
+                </span>
+              </button>
+            ) : (
+              <div />
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => setOpen(false)}
+                className="cursor-pointer px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 disabled:cursor-wait disabled:opacity-60"
+              >
+                {intl.formatMessage({ id: "app.cancel" })}
+              </button>
+              <button
+                type="submit"
+                disabled={pending}
+                className="cursor-pointer rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
+              >
+                {intl.formatMessage({
+                  id: pending ? "app.saving" : "app.save",
+                })}
+              </button>
+            </div>
           </div>
         </form>
       )}

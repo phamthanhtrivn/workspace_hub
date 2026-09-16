@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ClientKafka } from '@nestjs/microservices';
 import { AttendeeResponseStatus } from '@prisma/client';
+import { lastValueFrom } from 'rxjs';
+import { KAFKA_CONFIG } from '../../infrastructure/kafka/kafka.constants';
 
 export interface SendNotificationPayload {
   recipientId: string;
@@ -16,35 +19,23 @@ export interface SendNotificationPayload {
 @Injectable()
 export class CalendarNotificationService {
   private readonly logger = new Logger(CalendarNotificationService.name);
-  private readonly notificationServiceUrl =
-    process.env.NOTIFICATION_SERVICE_URL ?? 'http://localhost:8084';
-  private readonly internalServiceKey =
-    process.env.INTERNAL_SERVICE_KEY ?? 'chi123nhan123dep123trai@$!';
+
+  constructor(
+    @Inject(KAFKA_CONFIG.PRODUCER_CLIENT)
+    private readonly kafka: ClientKafka,
+  ) {}
 
   async sendNotification(payload: SendNotificationPayload): Promise<void> {
     try {
-      const url = new URL(
-        '/api/notifications/internal',
-        this.notificationServiceUrl,
+      await lastValueFrom(
+        this.kafka.emit(KAFKA_CONFIG.NOTIFICATION_TOPIC, {
+          key: payload.recipientId,
+          value: payload,
+        }),
       );
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-internal-service-key': this.internalServiceKey,
-        },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(4000),
-      });
-
-      if (!response.ok) {
-        this.logger.warn(
-          `Failed to dispatch calendar notification: HTTP ${response.status}`,
-        );
-      }
     } catch (error) {
       this.logger.warn(
-        `Calendar notification dispatch error: ${
+        `Calendar notification publish error: ${
           error instanceof Error ? error.message : 'unknown error'
         }`,
       );
@@ -121,4 +112,3 @@ export class CalendarNotificationService {
     });
   }
 }
-

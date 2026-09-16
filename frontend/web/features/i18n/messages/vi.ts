@@ -440,6 +440,9 @@ const vi = {
   "calendar.calendarCreated": "Đã tạo lịch",
   "calendar.calendarUpdated": "Đã cập nhật lịch",
   "calendar.calendarDeleted": "Đã xóa lịch",
+  "calendar.deleteCalendar": "Xóa lịch",
+  "calendar.deleteCalendarConfirm":
+    "Bạn có chắc chắn muốn xóa lịch “{name}” không? Tất cả sự kiện trong lịch cũng sẽ bị xóa.",
   "calendar.calendarCreateFailed": "Không thể tạo lịch",
   "calendar.calendarUpdateFailed": "Không thể cập nhật lịch",
   "calendar.calendarDeleteFailed": "Không thể xóa lịch",
