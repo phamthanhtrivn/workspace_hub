@@ -25,13 +25,15 @@ describe('CalendarNotificationService', () => {
     });
   });
 
-  it('does not fail the calendar operation when Kafka is unavailable', async () => {
+  it('reports Kafka failures so the outbox can retry', async () => {
     const kafka = {
       emit: jest.fn(() => throwError(() => new Error('Kafka unavailable'))),
     };
     const service = new CalendarNotificationService(kafka as never);
 
-    await expect(service.sendNotification(payload)).resolves.toBeUndefined();
+    await expect(service.sendNotification(payload)).rejects.toThrow(
+      'Kafka unavailable',
+    );
   });
 
   it('does not notify a responder about their own response', async () => {

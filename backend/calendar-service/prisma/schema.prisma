@@ -266,3 +266,18 @@ model TaskCalendarSyncCheckpoint {
   @@index([occurredAt])
   @@map("task_calendar_sync_checkpoints")
 }
+
+model NotificationOutbox {
+  id            String    @id @default(uuid()) @db.Uuid
+  eventType     String    @map("event_type") @db.VarChar(50)
+  payload       Json
+  status        String    @default("PENDING") @db.VarChar(20)
+  attemptCount  Int       @default(0) @map("attempt_count")
+  nextAttemptAt DateTime? @map("next_attempt_at") @db.Timestamptz(3)
+  lockedAt      DateTime? @map("locked_at") @db.Timestamptz(3)
+  lastError     String?   @map("last_error")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  processedAt   DateTime? @map("processed_at") @db.Timestamptz(3)
+
+  @@map("notification_outbox")
+}
