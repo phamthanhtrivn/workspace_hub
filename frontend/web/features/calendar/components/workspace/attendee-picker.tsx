@@ -27,7 +27,18 @@ export function AttendeePicker({
 
   const addUser = (user: UserSearchResponse) => {
     if (attendeeIds.has(user.id)) return;
-    onChange([...attendees, { userId: user.id, optional: false }]);
+    onChange([
+      ...attendees,
+      {
+        userId: user.id,
+        optional: false,
+        profile: {
+          fullName: user.fullName || null,
+          email: user.email,
+          avatarUrl: user.avatarUrl || null,
+        },
+      },
+    ]);
     setQuery("");
   };
 
@@ -49,11 +60,15 @@ export function AttendeePicker({
         <input
           value={query}
           aria-label={intl.formatMessage({
-            id: compact ? "calendar.quick.addGuests" : "calendar.searchAttendees",
+            id: compact
+              ? "calendar.quick.addGuests"
+              : "calendar.searchAttendees",
           })}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={intl.formatMessage({
-            id: compact ? "calendar.quick.addGuests" : "calendar.searchAttendees",
+            id: compact
+              ? "calendar.quick.addGuests"
+              : "calendar.searchAttendees",
           })}
           className={`w-full rounded-lg py-2 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-500 ${
             compact
@@ -112,22 +127,43 @@ export function AttendeePicker({
 
       {attendees.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {attendees.map((attendee) => (
-            <span
-              key={attendee.userId}
-              className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600"
-            >
-              <span className="max-w-40 truncate">{attendee.userId}</span>
-              <button
-                type="button"
-                onClick={() => removeUser(attendee.userId)}
-                className="cursor-pointer text-slate-400 hover:text-slate-700"
-                aria-label={intl.formatMessage({ id: "app.delete" })}
+          {attendees.map((attendee) => {
+            const displayName =
+              attendee.profile?.fullName ||
+              attendee.profile?.email ||
+              attendee.userId;
+            const avatarUrl = attendee.profile?.avatarUrl;
+            return (
+              <span
+                key={attendee.userId}
+                className="inline-flex max-w-full items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-bold text-slate-600"
               >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </span>
-          ))}
+                <div className="grid h-5 w-5 shrink-0 place-items-center overflow-hidden rounded-full bg-slate-200">
+                  {avatarUrl ? (
+                    <Image
+                      src={avatarUrl}
+                      alt={displayName}
+                      width={20}
+                      height={20}
+                      unoptimized
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <User className="h-3 w-3 text-slate-400" />
+                  )}
+                </div>
+                <span className="max-w-40 truncate">{displayName}</span>
+                <button
+                  type="button"
+                  onClick={() => removeUser(attendee.userId)}
+                  className="cursor-pointer text-slate-400 hover:text-slate-700"
+                  aria-label={intl.formatMessage({ id: "app.delete" })}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

@@ -112,6 +112,12 @@ export function useNotificationSocket() {
           queryKey: meetingKeys.upcomingRoot,
         });
       }
+
+      if (noti.type === NotificationType.CALENDAR_REMINDER) {
+        queryClient.invalidateQueries({
+          queryKey: ["calendar"],
+        });
+      }
       dispatchNotificationChanged(noti);
     };
 

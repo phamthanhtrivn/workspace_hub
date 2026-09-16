@@ -108,7 +108,8 @@ export function useCalendarEvent(eventId?: string | null) {
     queryKey: calendarKeys.event(eventId || ""),
     queryFn: () => getCalendarEvent(eventId!),
     enabled: Boolean(eventId),
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 }
 

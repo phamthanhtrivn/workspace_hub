@@ -2,16 +2,23 @@
 
 import FullCalendar from "@fullcalendar/react";
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { cn } from "@/lib/utils";
 import { CalendarSidebar } from "../sidebar/calendar-sidebar";
 import { CalendarToolbar } from "../toolbar/calendar-toolbar";
 import { CalendarGrid } from "./calendar-grid";
 import { CalendarTasksDrawer } from "../drawer/calendar-tasks-drawer";
 import { useCalendarWorkspace } from "../../hooks/use-calendar-workspace";
+import { useQueryClient } from "@tanstack/react-query";
 import { useCalendarKeyboardShortcuts } from "../../hooks/use-calendar-keyboard-shortcuts";
-import { useCalendarTasks } from "../../hooks/use-calendar-queries";
+import {
+  calendarKeys,
+  useCalendarEvent,
+  useCalendarTasks,
+} from "../../hooks/use-calendar-queries";
 import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
 import { CalendarEvent, EventStatus } from "../../types/calendar.types";
 
@@ -39,11 +46,104 @@ export function CalendarWorkspace() {
   const calendarRef = useRef<FullCalendar | null>(null);
   const calendar = useCalendarWorkspace(calendarRef);
   const tasksQuery = useCalendarTasks();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
   const [createCalendarOpen, setCreateCalendarOpen] = useState(false);
-  const { handleCalendarNavigate, handleViewChange, openCreateModal } =
-    calendar;
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const eventParam = searchParams.get("event") || searchParams.get("eventId");
+  const timeParam = searchParams.get("t");
+  const lastOpenedKeyRef = useRef<string | null>(null);
+  const directEventQuery = useCalendarEvent(eventParam);
+
+  const {
+    handleCalendarNavigate,
+    handleViewChange,
+    openCreateModal,
+    openDetail,
+    handleMiniCalendarDateSelect,
+  } = calendar;
+
+  const handleCloseDetail = useCallback(() => {
+    calendar.closeDetail();
+    lastOpenedKeyRef.current = null;
+    if (typeof window !== "undefined" && window.location.search) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [calendar]);
+
+  useEffect(() => {
+    if (eventParam) {
+      void queryClient.invalidateQueries({ queryKey: calendarKeys.all });
+    }
+  }, [eventParam, timeParam, queryClient]);
+
+  useEffect(() => {
+    if (!eventParam) return;
+
+    const currentKey = `${eventParam}_${timeParam || ""}`;
+    const foundInEvents = calendar.events.find((e) => e.id === eventParam);
+    const targetEvent = directEventQuery.data || foundInEvents;
+
+    if (targetEvent) {
+      if (lastOpenedKeyRef.current !== currentKey || !calendar.detailEvent) {
+        openDetail(targetEvent);
+        if (targetEvent.startAt) {
+          handleMiniCalendarDateSelect(new Date(targetEvent.startAt));
+        }
+        lastOpenedKeyRef.current = currentKey;
+      } else if (
+        directEventQuery.data &&
+        calendar.detailEvent?.id === eventParam
+      ) {
+        // Keep modal in sync with fresh data if direct query loads later
+        openDetail(directEventQuery.data);
+      }
+    }
+  }, [
+    eventParam,
+    timeParam,
+    calendar.events,
+    calendar.detailEvent,
+    directEventQuery.data,
+    openDetail,
+    handleMiniCalendarDateSelect,
+  ]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("calendar_sidebar_open");
+      if (saved !== null) {
+        setDesktopSidebarOpen(saved === "true");
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleToggleSidebar = useCallback(() => {
+    if (typeof window !== "undefined" && window.innerWidth >= 1024) {
+      setDesktopSidebarOpen((prev) => {
+        const next = !prev;
+        try {
+          localStorage.setItem("calendar_sidebar_open", String(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    } else {
+      setMobileSidebarOpen((prev) => !prev);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      calendarRef.current?.getApi().updateSize();
+    }, 320);
+    return () => clearTimeout(timer);
+  }, [desktopSidebarOpen]);
 
   const createFromShortcut = useCallback(() => {
     openCreateModal();
@@ -59,7 +159,7 @@ export function CalendarWorkspace() {
   });
 
   const handleOpenTasksDrawer = useCallback(() => {
-    setTasksDrawerOpen(true);
+    setTasksDrawerOpen((prev) => !prev);
   }, []);
 
   const handleCloseTasksDrawer = useCallback(() => {
@@ -94,54 +194,64 @@ export function CalendarWorkspace() {
   }, [tasksData, calendarEvents]);
 
   return (
-    <section className="relative h-[calc(100dvh-7.5rem)] min-h-[680px] overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
-      {sidebarOpen && (
+    <section className="relative h-full w-full overflow-hidden bg-white">
+      {mobileSidebarOpen && (
         <button
           type="button"
-          className="absolute inset-0 z-20 cursor-default bg-slate-950/30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 cursor-default bg-slate-950/30 lg:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
           aria-label={intl.formatMessage({ id: "app.close" })}
         />
       )}
-      <div className="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[256px_minmax(0,1fr)]">
+      <div className="flex h-full min-h-0 w-full overflow-hidden">
         <div
-          className={`absolute inset-y-0 left-0 z-30 w-64 transform transition-transform duration-200 lg:static lg:z-auto lg:w-auto lg:translate-x-0 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
+          className={cn(
+            "z-30 shrink-0 transform transition-all duration-300 ease-in-out",
+            "fixed inset-y-0 left-0 w-64 lg:static lg:inset-auto",
+            mobileSidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full lg:translate-x-0",
+            desktopSidebarOpen
+              ? "lg:w-64 lg:opacity-100"
+              : "lg:w-0 lg:overflow-hidden lg:opacity-0 lg:border-none",
+          )}
         >
-          <CalendarSidebar
-            calendars={calendar.calendars}
-            currentDate={calendar.currentDate}
-            selectedCalendarIds={calendar.selectedCalendarIds}
-            selectedDate={calendar.selectedDate}
-            tasksVisible={calendar.tasksVisible}
-            tasksColor={calendar.tasksColor}
-            onToggleCalendar={calendar.toggleCalendar}
-            onToggleTasks={calendar.toggleTasks}
-            onOpenTasksDrawer={handleOpenTasksDrawer}
-            onTasksColorChange={calendar.changeTasksColor}
-            onSelectDate={(date) => {
-              calendar.handleMiniCalendarDateSelect(date);
-              setSidebarOpen(false);
-            }}
-            onCreateEvent={() => {
-              calendar.openCreateModal();
-              setSidebarOpen(false);
-            }}
-            onCreateCalendar={() => {
-              setCreateCalendarOpen(true);
-              setSidebarOpen(false);
-            }}
-          />
+          <div className="h-full w-64">
+            <CalendarSidebar
+              calendars={calendar.calendars}
+              currentDate={calendar.currentDate}
+              selectedCalendarIds={calendar.selectedCalendarIds}
+              selectedDate={calendar.selectedDate}
+              tasksVisible={calendar.tasksVisible}
+              tasksColor={calendar.tasksColor}
+              tasksDrawerOpen={tasksDrawerOpen}
+              onToggleCalendar={calendar.toggleCalendar}
+              onToggleTasks={calendar.toggleTasks}
+              onOpenTasksDrawer={handleOpenTasksDrawer}
+              onTasksColorChange={calendar.changeTasksColor}
+              onSelectDate={(date) => {
+                calendar.handleMiniCalendarDateSelect(date);
+                setMobileSidebarOpen(false);
+              }}
+              onCreateEvent={() => {
+                calendar.openCreateModal();
+                setMobileSidebarOpen(false);
+              }}
+              onCreateCalendar={() => {
+                setCreateCalendarOpen(true);
+                setMobileSidebarOpen(false);
+              }}
+            />
+          </div>
         </div>
 
-        <div className="flex min-h-0 flex-col bg-slate-50/60">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-slate-50/60">
           <CalendarToolbar
             title={calendar.title}
             activeView={calendar.activeView}
             onViewChange={calendar.handleViewChange}
             onNavigate={calendar.handleCalendarNavigate}
-            onToggleSidebar={() => setSidebarOpen((current) => !current)}
+            onToggleSidebar={handleToggleSidebar}
           />
 
           {calendar.hasError ? (
@@ -169,21 +279,21 @@ export function CalendarWorkspace() {
             />
           )}
         </div>
-      </div>
 
-      <CalendarTasksDrawer
-        open={tasksDrawerOpen}
-        tasks={allTasks}
-        color={calendar.tasksColor}
-        loading={tasksQuery.isLoading && allTasks.length === 0}
-        error={tasksQuery.isError}
-        showCompleted={calendar.showCompletedTasks}
-        onToggleShowCompleted={calendar.toggleShowCompletedTasks}
-        onClose={handleCloseTasksDrawer}
-        onRetry={() => void tasksQuery.refetch()}
-        onToggleTask={calendar.handleTaskCompletionQuickToggle}
-        onSelectTask={(task) => calendar.openDetail(task)}
-      />
+        <CalendarTasksDrawer
+          open={tasksDrawerOpen}
+          tasks={allTasks}
+          color={calendar.tasksColor}
+          loading={tasksQuery.isLoading && allTasks.length === 0}
+          error={tasksQuery.isError}
+          showCompleted={calendar.showCompletedTasks}
+          onToggleShowCompleted={calendar.toggleShowCompletedTasks}
+          onClose={handleCloseTasksDrawer}
+          onRetry={() => void tasksQuery.refetch()}
+          onToggleTask={calendar.handleTaskCompletionQuickToggle}
+          onSelectTask={(task) => calendar.openDetail(task)}
+        />
+      </div>
 
       {(calendar.draft || calendar.editingEvent) && (
         <EventFormModal
@@ -207,7 +317,7 @@ export function CalendarWorkspace() {
           open
           event={calendar.detailEvent}
           tasksColor={calendar.tasksColor}
-          onClose={calendar.closeDetail}
+          onClose={handleCloseDetail}
           onEdit={calendar.startEditingDetailEvent}
           onCancelEvent={calendar.handleCancelEvent}
           onRespond={calendar.handleRespond}

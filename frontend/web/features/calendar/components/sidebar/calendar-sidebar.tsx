@@ -15,6 +15,7 @@ export function CalendarSidebar({
   selectedDate,
   tasksVisible,
   tasksColor,
+  tasksDrawerOpen,
   onToggleCalendar,
   onToggleTasks,
   onOpenTasksDrawer,
@@ -29,6 +30,7 @@ export function CalendarSidebar({
   selectedDate: Date | null;
   tasksVisible: boolean;
   tasksColor: string;
+  tasksDrawerOpen?: boolean;
   onToggleCalendar: (calendarId: string) => void;
   onToggleTasks: () => void;
   onOpenTasksDrawer?: () => void;
@@ -106,6 +108,7 @@ export function CalendarSidebar({
                   <TasksCalendarListItem
                     selected={tasksVisible}
                     color={tasksColor}
+                    isDrawerOpen={tasksDrawerOpen}
                     onToggle={onToggleTasks}
                     onOpenDrawer={onOpenTasksDrawer}
                     onColorChange={onTasksColorChange}

@@ -13,6 +13,8 @@ import {
   ReminderMethod,
 } from "../types/calendar.types";
 import {
+  composeDateTimeLocal,
+  getDateInputValue,
   isAllDayDateTimeRange,
   toDateTimeLocal,
 } from "./calendar-date.utils";
@@ -47,7 +49,17 @@ function getDefaultEnd(
 function getEditableAttendees(event?: CalendarEvent | null) {
   return (event?.attendees ?? [])
     .filter((attendee) => attendee.userId !== event?.createdBy)
-    .map(({ userId, optional }) => ({ userId, optional: optional ?? false }));
+    .map(({ userId, optional, profile }) => ({
+      userId,
+      optional: optional ?? false,
+      profile: profile
+        ? {
+            fullName: profile.fullName ?? null,
+            email: profile.email ?? null,
+            avatarUrl: profile.avatarUrl ?? null,
+          }
+        : null,
+    }));
 }
 
 export function createCalendarEventFormDefaults({
@@ -65,6 +77,26 @@ export function createCalendarEventFormDefaults({
       draft?.allDay,
   );
 
+  let initialStartAt = toDateTimeLocal(defaultStart);
+  let initialEndAt = toDateTimeLocal(defaultEnd);
+
+  if (allDay) {
+    const startDateStr = getDateInputValue(initialStartAt);
+    let endDateStr = getDateInputValue(initialEndAt);
+
+    if (
+      defaultEnd.getHours() === 0 &&
+      defaultEnd.getMinutes() === 0 &&
+      defaultEnd.getTime() > defaultStart.getTime()
+    ) {
+      const adjusted = new Date(defaultEnd.getTime() - 1);
+      endDateStr = getDateInputValue(toDateTimeLocal(adjusted));
+    }
+
+    initialStartAt = composeDateTimeLocal(startDateStr, "00:00");
+    initialEndAt = composeDateTimeLocal(endDateStr, "23:59");
+  }
+
   return {
     defaultStart,
     attendees: getEditableAttendees(event),
@@ -78,8 +110,8 @@ export function createCalendarEventFormDefaults({
       title: event?.title || "",
       description: event?.description || "",
       location: event?.location || "",
-      startAt: toDateTimeLocal(defaultStart),
-      endAt: toDateTimeLocal(defaultEnd),
+      startAt: initialStartAt,
+      endAt: initialEndAt,
       allDay,
       useEventColor: Boolean(event?.color),
       color: event?.color || null,

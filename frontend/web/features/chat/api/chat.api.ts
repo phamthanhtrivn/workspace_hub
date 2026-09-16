@@ -81,10 +81,10 @@ export function normalizeDirectConversation(
 // ─── Shared / cross-domain APIs ────────────────────────────────────────────
 
 export const searchUserByEmail = async (
-  email: string,
+  query: string,
 ): Promise<ApiResponse<UserSearchResponse[]>> => {
   const response = await api.get("/api/users/search", {
-    params: { email },
+    params: { query },
   });
   const payload = normalizeApiResponse<
     UserSearchResponse[] | UserSearchResponse

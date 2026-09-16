@@ -31,8 +31,9 @@ export function CalendarToolbar({
         <button
           type="button"
           onClick={onToggleSidebar}
-          className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 lg:hidden"
+          className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
           aria-label={intl.formatMessage({ id: "calendar.myCalendars" })}
+          title={intl.formatMessage({ id: "calendar.myCalendars" })}
         >
           <Menu className="h-5 w-5" />
         </button>

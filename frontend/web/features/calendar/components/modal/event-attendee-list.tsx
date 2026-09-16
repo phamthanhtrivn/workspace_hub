@@ -10,11 +10,13 @@ import {
 interface EventAttendeeListProps {
   attendees: CalendarEventAttendee[];
   resolvedProfiles: Record<string, UserProfileSnapshot>;
+  currentUserId?: string | null;
 }
 
 export function EventAttendeeList({
   attendees,
   resolvedProfiles,
+  currentUserId,
 }: EventAttendeeListProps) {
   const intl = useAppIntl();
 
@@ -58,6 +60,11 @@ export function EventAttendeeList({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-bold text-slate-700">
                     {displayName}
+                    {currentUserId && attendee.userId === currentUserId && (
+                      <span className="ml-1.5 text-xs font-normal text-slate-400">
+                        ({intl.locale === "vi" ? "Bạn" : "You"})
+                      </span>
+                    )}
                   </p>
                   {profile?.email && profile.email !== displayName && (
                     <p className="truncate text-xs font-semibold text-slate-400">
@@ -66,9 +73,31 @@ export function EventAttendeeList({
                   )}
                 </div>
               </div>
-              <span className="rounded-full bg-slate-100 px-2 py-1 text-[10px] font-black text-slate-500">
-                {attendee.responseStatus || AttendeeResponseStatus.NEEDS_ACTION}
-              </span>
+              {(() => {
+                const status =
+                  attendee.responseStatus ||
+                  AttendeeResponseStatus.NEEDS_ACTION;
+                const statusStyles: Record<AttendeeResponseStatus, string> = {
+                  [AttendeeResponseStatus.ACCEPTED]:
+                    "bg-emerald-50 text-emerald-700 border-emerald-200",
+                  [AttendeeResponseStatus.TENTATIVE]:
+                    "bg-amber-50 text-amber-700 border-amber-200",
+                  [AttendeeResponseStatus.DECLINED]:
+                    "bg-rose-50 text-rose-700 border-rose-200",
+                  [AttendeeResponseStatus.NEEDS_ACTION]:
+                    "bg-slate-100 text-slate-500 border-slate-200",
+                };
+                return (
+                  <span
+                    className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${
+                      statusStyles[status] ||
+                      statusStyles[AttendeeResponseStatus.NEEDS_ACTION]
+                    }`}
+                  >
+                    {intl.formatMessage({ id: `calendar.response.${status}` })}
+                  </span>
+                );
+              })()}
             </div>
           );
         })}

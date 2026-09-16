@@ -16,6 +16,7 @@ import {
   useUpdateCalendarTaskCompletion,
 } from "./use-calendar-queries";
 import { isTaskCalendarEvent } from "../utils/calendar-event.utils";
+import { useAppSelector } from "@/store/store";
 
 interface UseCalendarEventDetailActionsInput {
   detailEvent: CalendarEvent | null;
@@ -29,6 +30,7 @@ export function useCalendarEventDetailActions({
   setDetailEvent,
 }: UseCalendarEventDetailActionsInput) {
   const intl = useAppIntl();
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const cancelEvent = useCancelCalendarEvent();
   const updateEvent = useUpdateCalendarEvent();
   const updateResponse = useUpdateCalendarEventResponse();
@@ -110,6 +112,14 @@ export function useCalendarEventDetailActions({
   const handleRespond = useCallback(
     async (responseStatus: AttendeeResponseStatus) => {
       if (!detailEvent) return;
+      setDetailEvent({
+        ...detailEvent,
+        attendees: detailEvent.attendees?.map((a) =>
+          a.userId === currentUserId || (!currentUserId && a.userId !== detailEvent.createdBy)
+            ? { ...a, responseStatus }
+            : a,
+        ),
+      });
       try {
         await updateResponse.mutateAsync({
           eventId: detailEvent.id,
@@ -120,7 +130,7 @@ export function useCalendarEventDetailActions({
         toast.error(intl.formatMessage({ id: "calendar.responseSaveFailed" }));
       }
     },
-    [detailEvent, intl, updateResponse],
+    [currentUserId, detailEvent, intl, setDetailEvent, updateResponse],
   );
 
   const updateTaskCompletionForEvent = useCallback(

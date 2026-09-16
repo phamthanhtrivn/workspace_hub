@@ -45,9 +45,16 @@ export function useCalendarEventEditorActions({
         !selection.allDay &&
         selection.end.getTime() - selection.start.getTime() <= 15 * 60 * 1000;
 
-      const endAt = isSingleClickSelection
-        ? createEventEndFromStart(selection.start)
-        : selection.end;
+      let endAt: Date;
+      if (selection.allDay) {
+        const lastSelectedDay = new Date(selection.end.getTime() - 1);
+        lastSelectedDay.setHours(23, 59, 59, 999);
+        endAt = lastSelectedDay;
+      } else if (isSingleClickSelection) {
+        endAt = createEventEndFromStart(selection.start);
+      } else {
+        endAt = selection.end;
+      }
 
       openCreateModal({
         startAt: selection.start,
@@ -62,9 +69,17 @@ export function useCalendarEventEditorActions({
 
   const handleDateClick = useCallback(
     (date: Date, allDay: boolean) => {
+      let endAt: Date;
+      if (allDay) {
+        endAt = new Date(date);
+        endAt.setHours(23, 59, 59, 999);
+      } else {
+        endAt = createEventEndFromStart(date);
+      }
+
       openCreateModal({
         startAt: date,
-        endAt: createEventEndFromStart(date),
+        endAt,
         allDay,
         calendarId: defaultCalendarId,
       });

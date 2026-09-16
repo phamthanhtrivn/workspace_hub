@@ -14,6 +14,7 @@ import {
   isTaskCalendarEvent,
   mapCalendarEventToFullCalendar,
 } from "../utils/calendar-event.utils";
+import { useAppSelector } from "@/store/store";
 
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
 
@@ -21,6 +22,7 @@ export function useCalendarVisibility(
   calendars: WorkspaceCalendar[],
   events: CalendarEvent[],
 ) {
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const [selectedCalendarIds, setSelectedCalendarIds] =
     useState<Set<string> | null>(null);
   const [tasksVisible, setTasksVisible] = useState(true);
@@ -78,6 +80,14 @@ export function useCalendarVisibility(
     const calendarColors = new Map(
       calendars.map((calendar) => [calendar.id, calendar.color]),
     );
+    const userCalendarIds = new Set(calendars.map((calendar) => calendar.id));
+    const defaultCalendar =
+      calendars.find((c) => !c.projectId && c.isDefault) ??
+      calendars.find((c) => !c.projectId) ??
+      calendars[0];
+    const isDefaultCalendarVisible = defaultCalendar
+      ? visibleIds.has(defaultCalendar.id)
+      : visibleIds.size > 0;
 
     return events
       .filter((event) => event.status !== EventStatus.CANCELLED)
@@ -87,18 +97,31 @@ export function useCalendarVisibility(
           if (!showCompletedTasks && event.completedAt) return false;
           return true;
         }
-        return visibleIds.has(event.calendarId);
+
+        // If the event belongs to one of user's own calendars
+        if (userCalendarIds.has(event.calendarId)) {
+          return visibleIds.has(event.calendarId);
+        }
+
+        // Invited / external event (created by another user on their calendar)
+        // Display it as long as the user's default / personal calendar is active
+        return isDefaultCalendarVisible;
       })
       .map((event) =>
         mapCalendarEventToFullCalendar(
           event,
           isTaskCalendarEvent(event)
             ? tasksColor
-            : calendarColors.get(event.calendarId),
+            : calendarColors.get(event.calendarId) ||
+              event.color ||
+              event.calendar?.color ||
+              defaultCalendar?.color,
+          currentUserId,
         ),
       );
   }, [
     calendars,
+    currentUserId,
     effectiveSelectedCalendarIds,
     events,
     showCompletedTasks,

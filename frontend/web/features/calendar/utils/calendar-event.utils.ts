@@ -1,5 +1,6 @@
 import { EventInput } from "@fullcalendar/core";
 import {
+  AttendeeResponseStatus,
   CalendarEvent,
   CalendarEventDraft,
   CalendarEventFilters,
@@ -83,6 +84,7 @@ export function cleanTaskDescription(
 export function mapCalendarEventToFullCalendar(
   event: CalendarEvent,
   colorOverride?: string,
+  currentUserId?: string | null,
 ): EventInput {
   const isTask = isTaskCalendarEvent(event);
   const normalizedSourceType = isTask
@@ -93,6 +95,13 @@ export function mapCalendarEventToFullCalendar(
   const eventColor = colorOverride || event.color || calendarColor;
   const allDay =
     event.allDay || isAllDayDateTimeRange(event.startAt, event.endAt);
+  const myAttendee =
+    event.attendees?.find((a) => a.userId === currentUserId) ??
+    (!event.permissions?.canManage && event.permissions?.canRespond && event.attendees?.length
+      ? event.attendees.find((a) => a.userId !== event.createdBy)
+      : undefined);
+  const isDeclined = myAttendee?.responseStatus === AttendeeResponseStatus.DECLINED;
+
   const normalizedEvent = {
     ...event,
     allDay: allDay === event.allDay ? event.allDay : true,
@@ -104,17 +113,18 @@ export function mapCalendarEventToFullCalendar(
     title: event.title,
     start: allDay ? formatLocalDateKey(event.startAt) : event.startAt,
     end: allDay
-      ? getExclusiveAllDayEndDateKey(event.endAt)
+      ? getExclusiveAllDayEndDateKey(event.endAt, event.startAt)
       : event.endAt,
     allDay,
-    backgroundColor: eventColor,
-    borderColor: eventColor,
+    backgroundColor: isDeclined ? "#94a3b8" : eventColor,
+    borderColor: isDeclined ? "#94a3b8" : eventColor,
     textColor: "#ffffff",
     classNames: [
       isTask ? "calendar-task-event" : "calendar-user-event",
       ...(isTask && event.completedAt
         ? ["calendar-task-event-completed"]
         : []),
+      ...(isDeclined ? ["calendar-event-declined opacity-60"] : []),
     ],
     editable: event.permissions?.canManage ?? false,
     durationEditable: event.permissions?.canManage ?? false,
@@ -133,6 +143,7 @@ export function mapCalendarEventToFullCalendar(
       calendarColor,
       eventColor,
       hasCustomEventColor: !colorOverride && Boolean(event.color),
+      isDeclined,
     },
   };
 }
