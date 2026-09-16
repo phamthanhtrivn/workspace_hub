@@ -88,7 +88,7 @@ describe('CalendarEventService', () => {
   function createService() {
     const tx = {
       calendarEvent: {
-        create: jest.fn().mockResolvedValue({ id: eventId }),
+        create: jest.fn().mockResolvedValue({ id: eventId, title: 'Planning' }),
         findMany: jest.fn().mockResolvedValue([]),
         update: jest.fn(),
         updateMany: jest.fn(),
@@ -98,6 +98,7 @@ describe('CalendarEventService', () => {
       calendarEventAttendee: {
         createMany: jest.fn(),
         deleteMany: jest.fn(),
+        update: jest.fn(),
       },
       reminder: {
         createMany: jest.fn(),
@@ -156,9 +157,9 @@ describe('CalendarEventService', () => {
       attachProfilesToEvents: jest.fn(async (events) => events),
       getProfilesByUserIds: jest.fn().mockResolvedValue(new Map()),
     };
-    const notifications = {
-      notifyEventInvitation: jest.fn().mockResolvedValue(undefined),
-      notifyAttendeeResponse: jest.fn().mockResolvedValue(undefined),
+    const notificationOutbox = {
+      enqueueEventInvitations: jest.fn().mockResolvedValue(undefined),
+      enqueueAttendeeResponse: jest.fn().mockResolvedValue(undefined),
     };
 
     const recurrence = {
@@ -192,17 +193,18 @@ describe('CalendarEventService', () => {
         mapper,
         relations,
         recurrenceMutations,
-        notifications as any,
+        notificationOutbox as any,
       ),
       prisma,
       tx,
       userProfiles,
       recurrence,
+      notificationOutbox,
     };
   }
 
   it('creates event attendees and reminders in one transaction', async () => {
-    const { service, prisma, tx } = createService();
+    const { service, prisma, tx, notificationOutbox } = createService();
 
     await service.createEvent(ownerId, undefined, {
       calendarId,
@@ -238,6 +240,42 @@ describe('CalendarEventService', () => {
         },
       ],
     });
+    expect(notificationOutbox.enqueueEventInvitations).toHaveBeenCalledWith(
+      tx,
+      {
+        eventTitle: 'Planning',
+        eventId,
+        creatorId: ownerId,
+        recipientIds: [ownerId, guestId],
+      },
+    );
+  });
+
+  it('updates an attendee response and enqueues its notification atomically', async () => {
+    const { service, prisma, tx, notificationOutbox } = createService();
+    const attendee = event.attendees[1];
+    prisma.calendarEventAttendee.findUnique.mockResolvedValue(attendee);
+    tx.calendarEventAttendee.update.mockResolvedValue({
+      ...attendee,
+      responseStatus: AttendeeResponseStatus.ACCEPTED,
+    });
+
+    await service.updateResponse(
+      guestId,
+      eventId,
+      AttendeeResponseStatus.ACCEPTED,
+    );
+
+    expect(notificationOutbox.enqueueAttendeeResponse).toHaveBeenCalledWith(
+      tx,
+      {
+        eventTitle: event.title,
+        eventId,
+        recipientId: ownerId,
+        responderId: guestId,
+        status: AttendeeResponseStatus.ACCEPTED,
+      },
+    );
   });
 
   it('rejects an event whose endAt is not after startAt', async () => {

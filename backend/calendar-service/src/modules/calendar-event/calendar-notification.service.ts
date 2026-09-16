@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { AttendeeResponseStatus } from '@prisma/client';
 import { lastValueFrom } from 'rxjs';
@@ -18,28 +18,18 @@ export interface SendNotificationPayload {
 
 @Injectable()
 export class CalendarNotificationService {
-  private readonly logger = new Logger(CalendarNotificationService.name);
-
   constructor(
     @Inject(KAFKA_CONFIG.PRODUCER_CLIENT)
     private readonly kafka: ClientKafka,
   ) {}
 
   async sendNotification(payload: SendNotificationPayload): Promise<void> {
-    try {
-      await lastValueFrom(
-        this.kafka.emit(KAFKA_CONFIG.NOTIFICATION_TOPIC, {
-          key: payload.recipientId,
-          value: payload,
-        }),
-      );
-    } catch (error) {
-      this.logger.warn(
-        `Calendar notification publish error: ${
-          error instanceof Error ? error.message : 'unknown error'
-        }`,
-      );
-    }
+    await lastValueFrom(
+      this.kafka.emit(KAFKA_CONFIG.NOTIFICATION_TOPIC, {
+        key: payload.recipientId,
+        value: payload,
+      }),
+    );
   }
 
   async notifyAttendeeResponse(params: {

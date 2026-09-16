@@ -9,6 +9,7 @@ import { EventMapper } from './event.mapper';
 import { EventRelationService } from './event-relation.service';
 import { RecurrenceMutationService } from './recurrence-mutation.service';
 import { CalendarNotificationService } from './calendar-notification.service';
+import { CalendarNotificationOutboxService } from './calendar-notification-outbox.service';
 
 @Module({
   imports: [KafkaProducerModule, UserProfileSnapshotModule],
@@ -21,6 +22,7 @@ import { CalendarNotificationService } from './calendar-notification.service';
     EventRelationService,
     RecurrenceMutationService,
     CalendarNotificationService,
+    CalendarNotificationOutboxService,
   ],
   exports: [CalendarEventService, CalendarRecurrenceService],
 })
