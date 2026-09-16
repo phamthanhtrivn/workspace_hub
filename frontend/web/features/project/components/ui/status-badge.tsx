@@ -52,8 +52,8 @@ const taskStatusConfig: Record<
   },
   [TaskStatus.CANCELLED]: {
     labelId: "project.task.status.cancelled",
-    color: "text-slate-600",
-    bg: "bg-slate-200",
+    color: "text-red-700",
+    bg: "bg-red-50 border border-red-200",
     icon: Ban,
   },
 };

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Plus, Search, UserPlus, Users } from "lucide-react";
+import { ChevronRight, Plus, Search, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
 import TaskQuickFilters from "../ui/task-quick-filters";
 import {
@@ -34,7 +34,7 @@ interface ProjectDetailToolbarProps {
   onToggleAssignee: (userId: string) => void;
   onToggleOnlyMyIssues: () => void;
   onClearFilters: () => void;
-  onToggleMembers: () => void;
+  onToggleMembers?: () => void;
   onCreateTask: () => void;
   onInviteMembers?: () => void;
 }
@@ -74,7 +74,7 @@ function TaskStatusCounts({ tasks }: { tasks: Task[] }) {
         )}
       </span>
       <span className="h-3 w-px bg-slate-200" />
-      <span className="text-slate-600">
+      <span className="text-red-600">
         {intl.formatMessage(
           { id: "project.task.count.cancelled" },
           { count: count(TaskStatus.CANCELLED) },
@@ -138,29 +138,19 @@ export default function ProjectDetailToolbar({
         </div>
 
         <div className="flex items-center gap-2">
-          {isMembersView ? (
-            canInviteMembers &&
-            onInviteMembers && (
-              <button
-                type="button"
-                onClick={onInviteMembers}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#0052CC] px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#0747A6]"
-              >
-                <UserPlus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                {intl.formatMessage({ id: "project.members.inviteMember" })}
-              </button>
-            )
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={onToggleMembers}
-                className="inline-flex items-center gap-1.5 rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-              >
-                <Users className="h-3.5 w-3.5 text-slate-500" />
-                {intl.formatMessage({ id: "project.members.view" })}
-              </button>
-              {canCreateTask && (
+          {isMembersView
+            ? canInviteMembers &&
+              onInviteMembers && (
+                <button
+                  type="button"
+                  onClick={onInviteMembers}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#0052CC] px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-[#0747A6]"
+                >
+                  <UserPlus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                  {intl.formatMessage({ id: "project.members.inviteMember" })}
+                </button>
+              )
+            : canCreateTask && (
                 <button
                   type="button"
                   onClick={onCreateTask}
@@ -170,8 +160,6 @@ export default function ProjectDetailToolbar({
                   {intl.formatMessage({ id: "project.task.create" })}
                 </button>
               )}
-            </>
-          )}
         </div>
       </div>
 
