@@ -154,6 +154,11 @@ describe('CalendarEventService', () => {
 
     const userProfiles = {
       attachProfilesToEvents: jest.fn(async (events) => events),
+      getProfilesByUserIds: jest.fn().mockResolvedValue(new Map()),
+    };
+    const notifications = {
+      notifyEventInvitation: jest.fn().mockResolvedValue(undefined),
+      notifyAttendeeResponse: jest.fn().mockResolvedValue(undefined),
     };
 
     const recurrence = {
@@ -187,6 +192,7 @@ describe('CalendarEventService', () => {
         mapper,
         relations,
         recurrenceMutations,
+        notifications as any,
       ),
       prisma,
       tx,
