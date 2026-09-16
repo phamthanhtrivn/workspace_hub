@@ -7,6 +7,7 @@ import {
   WorkspaceCalendar,
 } from "../types/calendar.types";
 import {
+  filterCalendarTasks,
   formatTaskDueDate,
   groupCalendarTasks,
   isProjectCalendarTask,
@@ -171,6 +172,99 @@ describe("calendar-tasks.utils", () => {
       expect(formatTaskDueDate(tomorrowIso, true, "vi", refDate)).toBe(
         "Ngày mai",
       );
+    });
+  });
+
+  describe("filterCalendarTasks", () => {
+    const todayTask = makeMockTask({
+      id: "t-today",
+      title: "Today Task",
+      startAt: "2026-09-14T10:00:00.000Z",
+    });
+    const overdueTask = makeMockTask({
+      id: "t-overdue",
+      title: "Overdue Task",
+      startAt: "2026-09-10T10:00:00.000Z",
+    });
+    const tomorrowTask = makeMockTask({
+      id: "t-tomorrow",
+      title: "Tomorrow Task",
+      startAt: "2026-09-15T10:00:00.000Z",
+    });
+    const completedTask = makeMockTask({
+      id: "t-completed",
+      title: "Completed Task",
+      startAt: "2026-09-14T09:00:00.000Z",
+      completedAt: "2026-09-14T11:00:00.000Z",
+    });
+
+    const allTasks = [todayTask, overdueTask, tomorrowTask, completedTask];
+
+    it("filters by status correctly", () => {
+      const active = filterCalendarTasks(allTasks, "all", "active", refDate);
+      expect(active.map((t) => t.id)).toEqual([
+        "t-today",
+        "t-overdue",
+        "t-tomorrow",
+      ]);
+
+      const completed = filterCalendarTasks(
+        allTasks,
+        "all",
+        "completed",
+        refDate,
+      );
+      expect(completed.map((t) => t.id)).toEqual(["t-completed"]);
+
+      const all = filterCalendarTasks(allTasks, "all", "all", refDate);
+      expect(all.map((t) => t.id)).toEqual([
+        "t-today",
+        "t-overdue",
+        "t-tomorrow",
+        "t-completed",
+      ]);
+    });
+
+    it("filters by time correctly", () => {
+      const today = filterCalendarTasks(allTasks, "today", "all", refDate);
+      expect(today.map((t) => t.id)).toEqual(["t-today", "t-completed"]);
+
+      const overdue = filterCalendarTasks(allTasks, "overdue", "all", refDate);
+      expect(overdue.map((t) => t.id)).toEqual(["t-overdue"]);
+
+      const week = filterCalendarTasks(allTasks, "week", "all", refDate);
+      // 2026-09-14 is Monday, week is 14 to 20
+      expect(week.map((t) => t.id)).toEqual([
+        "t-today",
+        "t-tomorrow",
+        "t-completed",
+      ]);
+    });
+
+    it("combines time and status filters correctly", () => {
+      const todayActive = filterCalendarTasks(
+        allTasks,
+        "today",
+        "active",
+        refDate,
+      );
+      expect(todayActive.map((t) => t.id)).toEqual(["t-today"]);
+
+      const todayCompleted = filterCalendarTasks(
+        allTasks,
+        "today",
+        "completed",
+        refDate,
+      );
+      expect(todayCompleted.map((t) => t.id)).toEqual(["t-completed"]);
+
+      const overdueActive = filterCalendarTasks(
+        allTasks,
+        "overdue",
+        "active",
+        refDate,
+      );
+      expect(overdueActive.map((t) => t.id)).toEqual(["t-overdue"]);
     });
   });
 });

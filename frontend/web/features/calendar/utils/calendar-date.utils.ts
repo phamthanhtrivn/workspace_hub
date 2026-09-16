@@ -48,10 +48,42 @@ export function formatLocalDateKey(value: Date | string): string {
   return `${year}-${month}-${day}`;
 }
 
-export function getExclusiveAllDayEndDateKey(value: Date | string): string {
-  const end = typeof value === "string" ? new Date(value) : new Date(value);
+export function getExclusiveAllDayEndDateKey(
+  endValue: Date | string,
+  startValue?: Date | string,
+): string {
+  const end = typeof endValue === "string" ? new Date(endValue) : new Date(endValue);
   if (Number.isNaN(end.getTime())) return "";
 
+  const start = startValue
+    ? typeof startValue === "string"
+      ? new Date(startValue)
+      : new Date(startValue)
+    : null;
+
+  // If start is provided and end <= start, ensure at least 1 full day from start
+  if (start && !Number.isNaN(start.getTime()) && end.getTime() <= start.getTime()) {
+    const nextDay = new Date(start);
+    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay.setHours(0, 0, 0, 0);
+    return formatLocalDateKey(nextDay);
+  }
+
+  // If end is already at midnight (00:00:00.000) and strictly after start,
+  // it is already an exclusive boundary from FullCalendar (e.g. 17/9 00:00 for a 16/9 event).
+  // Adding +1 day to it would push the event into an extra day.
+  const isMidnight =
+    end.getHours() === 0 &&
+    end.getMinutes() === 0 &&
+    end.getSeconds() === 0 &&
+    end.getMilliseconds() === 0;
+
+  if (isMidnight) {
+    return formatLocalDateKey(end);
+  }
+
+  // Otherwise, end represents an inclusive time on the event's final day (e.g. 23:59:59).
+  // Advance by 1 day to yield FullCalendar's exclusive boundary.
   end.setDate(end.getDate() + 1);
   end.setHours(0, 0, 0, 0);
   return formatLocalDateKey(end);

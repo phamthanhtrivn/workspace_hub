@@ -15,6 +15,8 @@ import { CalendarEvent } from "../../types/calendar.types";
 import {
   formatTaskDueDate,
   groupCalendarTasks,
+  TaskStatusFilter,
+  TaskTimeFilter,
 } from "../../utils/calendar-tasks.utils";
 import { cleanTaskDescription } from "../../utils/calendar-event.utils";
 
@@ -23,6 +25,8 @@ interface CalendarTaskListProps {
   color: string;
   readOnly: boolean;
   showCompleted: boolean;
+  timeFilter?: TaskTimeFilter;
+  statusFilter?: TaskStatusFilter;
   onToggleTask: (task: CalendarEvent) => void;
   onSelectTask: (task: CalendarEvent) => void;
 }
@@ -32,12 +36,21 @@ export function CalendarTaskList({
   color,
   readOnly,
   showCompleted,
+  timeFilter = "all",
+  statusFilter = "all",
   onToggleTask,
   onSelectTask,
 }: CalendarTaskListProps) {
   const intl = useAppIntl();
   const [completedOpen, setCompletedOpen] = useState(false);
-  const grouped = useMemo(() => groupCalendarTasks(tasks), [tasks]);
+  const grouped = useMemo(
+    () =>
+      groupCalendarTasks(tasks, undefined, {
+        allUpcoming: true,
+        allOverdue: true,
+      }),
+    [tasks],
+  );
   const pendingCount =
     grouped.overdue.length + grouped.today.length + grouped.upcoming.length;
 
@@ -53,6 +66,29 @@ export function CalendarTaskList({
       onSelect={() => onSelectTask(task)}
     />
   );
+
+  if (statusFilter === "completed") {
+    if (grouped.completed.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+          <p className="text-xs font-semibold text-slate-500">
+            {intl.formatMessage({ id: "calendar.tasks.noCompletedTasks" })}
+          </p>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-4">
+        <TaskSection
+          title={intl.formatMessage({ id: "calendar.tasks.completed" })}
+          count={grouped.completed.length}
+          tone="neutral"
+        >
+          {grouped.completed.map((task) => renderTask(task))}
+        </TaskSection>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -100,7 +136,7 @@ export function CalendarTaskList({
         </div>
       )}
 
-      {showCompleted && grouped.completed.length > 0 && (
+      {showCompleted && statusFilter === "all" && grouped.completed.length > 0 && (
         <div className="border-t border-slate-100 pt-2">
           <button
             type="button"
@@ -213,9 +249,7 @@ function TaskRowItem({
         >
           <Check
             className={`h-3 w-3 stroke-[2.5] transition-opacity ${
-              completed
-                ? "text-white"
-                : "opacity-0 group-hover:opacity-40"
+              completed ? "text-white" : "opacity-0 group-hover:opacity-40"
             }`}
             style={completed ? undefined : { color: taskColor }}
           />

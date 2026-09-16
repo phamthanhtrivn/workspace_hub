@@ -71,7 +71,8 @@ export function useCalendarEventForm({
       color: values.useEventColor ? values.color : null,
       recurrenceRule: recurrence.getRecurrenceRule(values.startAt),
       recurrenceScope: event ? values.recurrenceScope : undefined,
-      attendees,
+      // Strip client-side profile field before sending to API
+      attendees: attendees.map(({ userId, optional }) => ({ userId, optional })),
       reminders: values.reminders.filter(
         (reminder) =>
           Number.isFinite(reminder.minutesBefore) &&

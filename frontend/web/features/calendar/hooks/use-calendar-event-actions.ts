@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { CalendarEvent } from "../types/calendar.types";
 import { useCalendarEventDetailActions } from "./use-calendar-event-detail-actions";
 import { useCalendarEventEditorActions } from "./use-calendar-event-editor-actions";
@@ -17,12 +17,22 @@ export function useCalendarEventActions({
   const setDetailEvent = useCallback((event: CalendarEvent | null) => {
     setDetailEventState(event);
   }, []);
+
+  const activeDetailEvent = useMemo(() => {
+    if (!detailEvent) return null;
+    const fromList = events.find((e) => e.id === detailEvent.id);
+    if (!fromList) return detailEvent;
+    const detailTime = new Date(detailEvent.updatedAt || 0).getTime();
+    const listTime = new Date(fromList.updatedAt || 0).getTime();
+    return detailTime >= listTime ? detailEvent : fromList;
+  }, [detailEvent, events]);
+
   const editor = useCalendarEventEditorActions({
     defaultCalendarId,
     onEventUpdated: setDetailEvent,
   });
   const detail = useCalendarEventDetailActions({
-    detailEvent,
+    detailEvent: activeDetailEvent,
     onEdit: editor.openEditForm,
     setDetailEvent,
   });
@@ -32,6 +42,6 @@ export function useCalendarEventActions({
     ...editor,
     ...detail,
     ...move,
-    detailEvent,
+    detailEvent: activeDetailEvent,
   };
 }

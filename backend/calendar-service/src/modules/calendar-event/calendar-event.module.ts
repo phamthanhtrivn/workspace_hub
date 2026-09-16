@@ -7,6 +7,7 @@ import { EventAccessPolicy } from './event-access.policy';
 import { EventMapper } from './event.mapper';
 import { EventRelationService } from './event-relation.service';
 import { RecurrenceMutationService } from './recurrence-mutation.service';
+import { CalendarNotificationService } from './calendar-notification.service';
 
 @Module({
   imports: [UserProfileSnapshotModule],
@@ -18,6 +19,7 @@ import { RecurrenceMutationService } from './recurrence-mutation.service';
     EventMapper,
     EventRelationService,
     RecurrenceMutationService,
+    CalendarNotificationService,
   ],
   exports: [CalendarEventService, CalendarRecurrenceService],
 })

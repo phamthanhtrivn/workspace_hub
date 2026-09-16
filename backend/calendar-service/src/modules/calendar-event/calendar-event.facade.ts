@@ -31,6 +31,7 @@ import { EventAccessPolicy } from './event-access.policy';
 import { EventMapper } from './event.mapper';
 import { EventRelationService } from './event-relation.service';
 import { RecurrenceMutationService } from './recurrence-mutation.service';
+import { CalendarNotificationService } from './calendar-notification.service';
 
 @Injectable()
 export class CalendarEventService {
@@ -43,6 +44,7 @@ export class CalendarEventService {
     private readonly mapper: EventMapper,
     private readonly relations: EventRelationService,
     private readonly recurrenceMutations: RecurrenceMutationService,
+    private readonly notifications: CalendarNotificationService,
   ) {}
 
   async createEvent(
@@ -106,6 +108,28 @@ export class CalendarEventService {
       );
       return created;
     });
+
+    // Notify invited attendees asynchronously
+    const guestAttendees = attendees.filter((a) => a.userId !== userId);
+    if (guestAttendees.length > 0) {
+      void this.userProfiles
+        .getProfilesByUserIds([userId])
+        .then((profiles) => {
+          const creatorProfile = profiles.get(userId);
+          for (const attendee of guestAttendees) {
+            void this.notifications.notifyEventInvitation({
+              eventTitle: event.title,
+              eventId: event.id,
+              recipientId: attendee.userId,
+              creatorId: userId,
+              creatorName: creatorProfile?.fullName || creatorProfile?.email,
+              creatorAvatar: creatorProfile?.avatarUrl,
+            });
+          }
+        })
+        .catch(() => {});
+    }
+
     return this.getEventById(userId, event.id);
   }
 
@@ -269,10 +293,34 @@ export class CalendarEventService {
     if (!attendee) {
       throw new ForbiddenException(CALENDAR_ERROR_MESSAGES.FORBIDDEN_RESPONSE);
     }
-    return this.prisma.calendarEventAttendee.update({
+    const updated = await this.prisma.calendarEventAttendee.update({
       where: { id: attendee.id },
       data: { responseStatus },
     });
+
+    await this.prisma.calendarEvent.update({
+      where: { id: eventId },
+      data: { updatedAt: new Date() },
+    });
+
+    // Notify event creator asynchronously
+    void this.userProfiles
+      .getProfilesByUserIds([userId])
+      .then((profiles) => {
+        const responderProfile = profiles.get(userId);
+        return this.notifications.notifyAttendeeResponse({
+          eventTitle: event.title,
+          eventId: event.id,
+          recipientId: event.createdBy,
+          responderId: userId,
+          responderName: responderProfile?.fullName || responderProfile?.email,
+          responderAvatar: responderProfile?.avatarUrl,
+          status: responseStatus,
+        });
+      })
+      .catch(() => {});
+
+    return updated;
   }
 
   private async updateByRecurrenceState(

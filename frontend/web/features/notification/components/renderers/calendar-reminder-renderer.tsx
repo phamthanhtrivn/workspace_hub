@@ -60,7 +60,7 @@ export function CalendarReminderModalRenderer({
           <CalendarClock className="h-7 w-7" />
         </span>
         <p className="mt-4 text-xs font-black uppercase tracking-[0.14em] text-sky-700">
-          Calendar reminder
+          Thông báo lịch
         </p>
         <h3 className="mt-1 text-xl font-black text-slate-950">
           {getCalendarReminderTitle(notification)}
@@ -72,7 +72,7 @@ export function CalendarReminderModalRenderer({
 
       <div className="mt-4 flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-xs font-semibold text-slate-500">
         <Clock3 className="h-4 w-4" />
-        Received {formatTimeAgo(new Date(notification.createdAt))}
+        Đã nhận {formatTimeAgo(new Date(notification.createdAt))}
       </div>
 
       {canOpenCalendar ? (
@@ -80,12 +80,14 @@ export function CalendarReminderModalRenderer({
           type="button"
           onClick={() => {
             onClose();
-            router.push(notification.link!);
+            const rawLink = notification.link!;
+            const sep = rawLink.includes("?") ? "&" : "?";
+            router.push(`${rawLink}${sep}t=${Date.now()}`);
           }}
           className="mt-4 inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-sky-600 text-sm font-bold text-white transition hover:bg-sky-700"
         >
           <CalendarClock className="h-4 w-4" />
-          Open calendar
+          Mở trong Lịch
         </button>
       ) : null}
 
@@ -94,7 +96,7 @@ export function CalendarReminderModalRenderer({
         onClick={onClose}
         className="mt-3 w-full cursor-pointer rounded-xl py-2 text-xs font-bold text-slate-400 transition hover:bg-slate-50 hover:text-slate-600"
       >
-        Close
+        Đóng
       </button>
     </div>
   );

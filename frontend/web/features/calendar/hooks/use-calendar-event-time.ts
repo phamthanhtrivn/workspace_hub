@@ -28,8 +28,12 @@ export function useCalendarEventTime(
       nextDate,
       allDay ? "00:00" : getTimeInputValue(startAt),
     );
+    const prevStartDate = getDateInputValue(startAt);
+    const prevEndDate = getDateInputValue(endAt);
     const nextEndAt = allDay
-      ? composeDateTimeLocal(getDateInputValue(endAt), "23:59")
+      ? prevStartDate === prevEndDate
+        ? composeDateTimeLocal(nextDate, "23:59")
+        : composeDateTimeLocal(prevEndDate, "23:59")
       : endAt;
 
     setValue("startAt", nextStartAt, { shouldDirty: true });

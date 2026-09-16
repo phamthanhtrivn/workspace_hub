@@ -2,17 +2,20 @@
 
 import { Check, ChevronRight, ListTodo } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { cn } from "@/lib/utils";
 import { CalendarColorPopover } from "./calendar-color-popover";
 
 export function TasksCalendarListItem({
   selected,
   color,
+  isDrawerOpen,
   onToggle,
   onOpenDrawer,
   onColorChange,
 }: {
   selected: boolean;
   color: string;
+  isDrawerOpen?: boolean;
   onToggle: () => void;
   onOpenDrawer?: () => void;
   onColorChange: (color: string) => void;
@@ -21,7 +24,12 @@ export function TasksCalendarListItem({
   const label = intl.formatMessage({ id: "calendar.tasks" });
 
   return (
-    <div className="group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100/70">
+    <div
+      className={cn(
+        "group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-slate-100/70",
+        isDrawerOpen && "bg-slate-100/90",
+      )}
+    >
       <button
         type="button"
         onClick={onToggle}
@@ -46,7 +54,12 @@ export function TasksCalendarListItem({
         <span className="min-w-0 flex-1 truncate text-sm font-medium text-slate-700 select-none group-hover:text-slate-900">
           {label}
         </span>
-        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 transition group-hover/task-trigger:translate-x-0.5 group-hover/task-trigger:bg-blue-100 group-hover/task-trigger:text-blue-700 group-focus-visible/task-trigger:bg-blue-100 group-focus-visible/task-trigger:text-blue-700">
+        <span
+          className={cn(
+            "grid h-6 w-6 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-600 transition group-hover/task-trigger:translate-x-0.5 group-hover/task-trigger:bg-blue-100 group-hover/task-trigger:text-blue-700 group-focus-visible/task-trigger:bg-blue-100 group-focus-visible/task-trigger:text-blue-700",
+            isDrawerOpen && "bg-blue-100 text-blue-700 rotate-90",
+          )}
+        >
           <ChevronRight className="h-4 w-4 stroke-[2.5]" />
         </span>
       </button>

@@ -13,7 +13,7 @@ import luxonPlugin from "@fullcalendar/luxon3";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { Circle, CircleCheck } from "lucide-react";
-import { RefObject } from "react";
+import { RefObject, useEffect, useRef } from "react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   CALENDAR_INITIAL_VIEW,
@@ -49,9 +49,22 @@ export function CalendarGrid({
   taskCompletionBusy: boolean;
 }) {
   const intl = useAppIntl();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver(() => {
+      calendarRef.current?.getApi().updateSize();
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [calendarRef]);
 
   return (
-    <div className="calendar-shell relative min-h-0 flex-1 bg-white">
+    <div
+      ref={containerRef}
+      className="calendar-shell relative min-h-0 flex-1 bg-white"
+    >
       {loading && (
         <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm">
           {intl.formatMessage({ id: "app.loading" })}
@@ -78,7 +91,7 @@ export function CalendarGrid({
         editable
         eventResizableFromStart
         dayMaxEvents={3}
-        moreLinkText={() => intl.formatMessage({ id: "calendar.moreEvents" })}
+        moreLinkText={(count) => `+${count}`}
         expandRows
         navLinks
         slotDuration="00:30:00"
@@ -108,6 +121,7 @@ export function CalendarGrid({
             arg.event.extendedProps.sourceType === EventSourceType.TASK;
           const isCompletedTask =
             isTask && Boolean(arg.event.extendedProps.completedAt);
+          const isDeclined = Boolean(arg.event.extendedProps.isDeclined);
           const taskEvent = arg.event.extendedProps.model as CalendarEvent;
           const canToggleTask =
             isTask && Boolean(taskEvent.permissions?.canManage);
@@ -122,15 +136,22 @@ export function CalendarGrid({
           if (isMonthTimedEvent) {
             return (
               <div
-                className="flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-slate-800"
-                title={`${arg.event.title}${arg.timeText ? `, ${arg.timeText}` : ""}`}
+                className={`flex min-w-0 items-center gap-1.5 px-1 py-0.5 text-slate-800 ${
+                  isDeclined ? "opacity-60" : ""
+                }`}
               >
                 <span
                   aria-hidden="true"
                   className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ backgroundColor: eventColor }}
+                  style={{
+                    backgroundColor: isDeclined ? "#94a3b8" : eventColor,
+                  }}
                 />
-                <p className="min-w-0 truncate text-xs leading-5">
+                <p
+                  className={`min-w-0 truncate text-xs leading-5 ${
+                    isDeclined ? "line-through text-slate-400" : ""
+                  }`}
+                >
                   {arg.timeText && (
                     <span className="tabular-nums">{arg.timeText} </span>
                   )}
@@ -144,9 +165,8 @@ export function CalendarGrid({
             <div
               className={`relative min-h-full min-w-0 overflow-hidden rounded px-1.5 py-1 text-white ${
                 isTask ? "calendar-task-event-content" : ""
-              }`}
-              style={{ backgroundColor: eventColor }}
-              title={`${arg.event.title}${arg.timeText ? `, ${arg.timeText}` : ""}`}
+              } ${isDeclined ? "opacity-60" : ""}`}
+              style={{ backgroundColor: isDeclined ? "#94a3b8" : eventColor }}
             >
               {hasCustomEventColor && !isTask && (
                 <span
@@ -207,7 +227,7 @@ export function CalendarGrid({
                 <div className="min-w-0 flex-1">
                   <p
                     className={`truncate text-xs font-semibold leading-[1.25] ${
-                      isCompletedTask ? "line-through" : ""
+                      isCompletedTask || isDeclined ? "line-through" : ""
                     }`}
                   >
                     {arg.event.title}
@@ -215,7 +235,7 @@ export function CalendarGrid({
                   {!arg.event.allDay && (
                     <p
                       className={`mt-0.5 truncate text-[11px] font-medium leading-[1.2] opacity-95 tabular-nums ${
-                        isCompletedTask ? "line-through" : ""
+                        isCompletedTask || isDeclined ? "line-through" : ""
                       }`}
                     >
                       {arg.timeText}

@@ -21,8 +21,10 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAppSelector } from "@/store/store";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAttendeeProfiles } from "../../hooks/use-calendar-users";
+import { useCalendarEvent } from "../../hooks/use-calendar-queries";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
 import {
   AttendeeResponseStatus,
@@ -40,7 +42,7 @@ import {
 import { EventAttendeeList } from "./event-attendee-list";
 
 export function EventDetailModal({
-  event,
+  event: initialEvent,
   open,
   onClose,
   onEdit,
@@ -60,7 +62,12 @@ export function EventDetailModal({
   tasksColor?: string;
   busy?: boolean;
 }) {
+  const { data: freshEvent } = useCalendarEvent(
+    open && initialEvent ? initialEvent.id : null,
+  );
+  const event = freshEvent ?? initialEvent;
   const intl = useAppIntl();
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const dialogRef = useRef<HTMLDivElement>(null);
   const resolvedProfiles = useAttendeeProfiles(event, open);
   useModalDialog({ dialogRef, onClose });
@@ -93,6 +100,11 @@ export function EventDetailModal({
     event.attendees?.filter(
       (attendee) => attendee.userId !== event.createdBy,
     ) || [];
+
+  const myAttendee =
+    guestAttendees.find((a) => a.userId === currentUserId) ??
+    (guestAttendees.length === 1 ? guestAttendees[0] : undefined);
+  const myResponseStatus = myAttendee?.responseStatus;
 
   const isRecurring = Boolean(event.recurrenceRule || event.recurrenceParentId);
   const isTask = isTaskCalendarEvent(event);
@@ -433,6 +445,7 @@ export function EventDetailModal({
                 <EventAttendeeList
                   attendees={guestAttendees}
                   resolvedProfiles={resolvedProfiles}
+                  currentUserId={currentUserId}
                 />
               </div>
             </div>
@@ -452,45 +465,52 @@ export function EventDetailModal({
               </div>
             </div>
           )}
-
-          {/* Row 9: RSVP Options (if guest) */}
-          {event.permissions?.canRespond && !event.permissions.canManage && (
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <p className="mb-2 text-xs font-semibold text-slate-500">
-                {intl.locale === "vi" ? "Bạn có tham gia không?" : "Going?"}
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  {
-                    status: AttendeeResponseStatus.ACCEPTED,
-                    hover:
-                      "hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700",
-                  },
-                  {
-                    status: AttendeeResponseStatus.TENTATIVE,
-                    hover:
-                      "hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700",
-                  },
-                  {
-                    status: AttendeeResponseStatus.DECLINED,
-                    hover:
-                      "hover:border-rose-300 hover:bg-rose-50 hover:text-rose-700",
-                  },
-                ].map(({ status, hover }) => (
-                  <button
-                    key={status}
-                    type="button"
-                    onClick={() => onRespond(status)}
-                    disabled={busy}
-                    className={`cursor-pointer rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 ${hover}`}
-                  >
-                    {intl.formatMessage({ id: `calendar.response.${status}` })}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Guest RSVP Footer Bar */}
+        {event.permissions?.canRespond && !event.permissions.canManage && (
+          <div className="flex items-center justify-between border-t border-slate-200/80 bg-slate-50 px-6 py-3.5">
+            <span className="text-xs font-semibold text-slate-600">
+              {intl.locale === "vi" ? "Bạn có tham gia không?" : "Going?"}
+            </span>
+            <div className="inline-flex rounded-full bg-slate-200/80 p-1">
+              <button
+                type="button"
+                onClick={() => onRespond(AttendeeResponseStatus.ACCEPTED)}
+                disabled={busy}
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                  myResponseStatus === AttendeeResponseStatus.ACCEPTED
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/40"
+                }`}
+              >
+                {myResponseStatus === AttendeeResponseStatus.ACCEPTED && (
+                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                )}
+                <span>
+                  {intl.formatMessage({ id: "calendar.response.ACCEPTED" })}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onRespond(AttendeeResponseStatus.DECLINED)}
+                disabled={busy}
+                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                  myResponseStatus === AttendeeResponseStatus.DECLINED
+                    ? "bg-rose-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/40"
+                }`}
+              >
+                {myResponseStatus === AttendeeResponseStatus.DECLINED && (
+                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                )}
+                <span>
+                  {intl.formatMessage({ id: "calendar.response.DECLINED" })}
+                </span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {isTask && event.permissions?.canManage && (
           <div className="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">

@@ -4,9 +4,112 @@ export function isProjectCalendarTask(task: CalendarEvent): boolean {
   return Boolean(task.calendar?.projectId);
 }
 
+export type TaskTimeFilter = "all" | "today" | "week" | "month" | "overdue";
+export type TaskStatusFilter = "all" | "active" | "completed";
+
+export function filterCalendarTasks(
+  tasks: CalendarEvent[],
+  timeFilter: TaskTimeFilter = "all",
+  statusFilter: TaskStatusFilter = "all",
+  referenceDate: Date = new Date(),
+): CalendarEvent[] {
+  const startOfToday = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+    0,
+    0,
+    0,
+    0,
+  );
+  const endOfToday = new Date(
+    referenceDate.getFullYear(),
+    referenceDate.getMonth(),
+    referenceDate.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+
+  return tasks.filter((task) => {
+    // 1. Status Filter
+    const isCompleted = Boolean(task.completedAt);
+    if (statusFilter === "active" && isCompleted) return false;
+    if (statusFilter === "completed" && !isCompleted) return false;
+
+    // 2. Time Filter
+    if (timeFilter === "all") return true;
+
+    const taskTime = new Date(task.startAt).getTime();
+
+    if (timeFilter === "overdue") {
+      return !isCompleted && taskTime < startOfToday.getTime();
+    }
+
+    if (timeFilter === "today") {
+      return (
+        taskTime >= startOfToday.getTime() && taskTime <= endOfToday.getTime()
+      );
+    }
+
+    if (timeFilter === "week") {
+      const dayOfWeek = referenceDate.getDay();
+      const diffToMonday = (dayOfWeek + 6) % 7;
+      const startOfWeek = new Date(referenceDate);
+      startOfWeek.setDate(referenceDate.getDate() - diffToMonday);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      return (
+        taskTime >= startOfWeek.getTime() && taskTime <= endOfWeek.getTime()
+      );
+    }
+
+    if (timeFilter === "month") {
+      const startOfMonth = new Date(
+        referenceDate.getFullYear(),
+        referenceDate.getMonth(),
+        1,
+        0,
+        0,
+        0,
+        0,
+      );
+      const endOfMonth = new Date(
+        referenceDate.getFullYear(),
+        referenceDate.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
+
+      return (
+        taskTime >= startOfMonth.getTime() && taskTime <= endOfMonth.getTime()
+      );
+    }
+
+    return true;
+  });
+}
+
+export function filterTasksByTime(
+  tasks: CalendarEvent[],
+  filter: TaskTimeFilter,
+  referenceDate: Date = new Date(),
+): CalendarEvent[] {
+  return filterCalendarTasks(tasks, filter, "all", referenceDate);
+}
+
 export function groupCalendarTasks(
   tasks: CalendarEvent[],
   referenceDate: Date = new Date(),
+  options?: { allUpcoming?: boolean; allOverdue?: boolean },
 ): CalendarGroupedTasks {
   const overdue: CalendarEvent[] = [];
   const today: CalendarEvent[] = [];
@@ -58,7 +161,10 @@ export function groupCalendarTasks(
 
     const taskDate = new Date(task.startAt);
     if (taskDate.getTime() < startOfToday.getTime()) {
-      if (taskDate.getTime() >= startOfOverdueWindow.getTime()) {
+      if (
+        options?.allOverdue ||
+        taskDate.getTime() >= startOfOverdueWindow.getTime()
+      ) {
         overdue.push(task);
       }
       continue;
@@ -66,7 +172,10 @@ export function groupCalendarTasks(
 
     if (taskDate.getTime() <= endOfToday.getTime()) {
       today.push(task);
-    } else if (taskDate.getTime() <= endOfTomorrow.getTime()) {
+    } else if (
+      options?.allUpcoming ||
+      taskDate.getTime() <= endOfTomorrow.getTime()
+    ) {
       upcoming.push(task);
     }
   }

@@ -165,9 +165,9 @@ export async function updateCalendarEventResponse(
   eventId: string,
   responseStatus: AttendeeResponseStatus,
 ) {
-  const response = await api.patch(
+  const response = await api.patch<ApiResponse<unknown>>(
     `/api/calendar/events/${eventId}/response`,
     { responseStatus },
   );
-  return response.data;
+  return unwrap(response);
 }

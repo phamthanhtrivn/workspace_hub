@@ -25,7 +25,18 @@ export function useCalendarEventMove(events: CalendarEvent[]) {
       }
 
       try {
-        const end = info.event.end ?? createEventEndFromStart(info.event.start);
+        const rawEnd = info.event.end ?? createEventEndFromStart(info.event.start);
+        // FullCalendar all-day end is exclusive midnight; convert to inclusive 23:59:59 of the last day
+        const end =
+          info.event.allDay &&
+          rawEnd.getHours() === 0 &&
+          rawEnd.getMinutes() === 0
+            ? (() => {
+                const d = new Date(rawEnd.getTime() - 1);
+                d.setHours(23, 59, 59, 999);
+                return d;
+              })()
+            : rawEnd;
         await updateEvent.mutateAsync({
           eventId: info.event.id,
           payload: {
