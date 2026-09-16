@@ -432,6 +432,9 @@ const en = {
   "calendar.calendarCreated": "Calendar created",
   "calendar.calendarUpdated": "Calendar updated",
   "calendar.calendarDeleted": "Calendar deleted",
+  "calendar.deleteCalendar": "Delete calendar",
+  "calendar.deleteCalendarConfirm":
+    "Are you sure you want to delete the calendar “{name}”? All events in it will also be deleted.",
   "calendar.calendarCreateFailed": "Could not create calendar",
   "calendar.calendarUpdateFailed": "Could not update calendar",
   "calendar.calendarDeleteFailed": "Could not delete calendar",
