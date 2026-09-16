@@ -337,7 +337,7 @@ const vi = {
   "project.task.messagePlaceholder": "Nhập tin nhắn...",
   "project.task.chatEnterHint": "Enter để gửi · Shift + Enter xuống dòng",
   "project.calendar.helper":
-    "Bấm vào task để xem chi tiết hoặc bấm dấu + để tạo task.",
+    "Bấm vào task để xem chi tiết hoặc bấm dấu + để tạo task. Kéo thả task chưa lên lịch vào ô ngày để xếp lịch.",
   "project.calendar.today": "Hôm nay",
   "project.calendar.previousMonth": "Tháng trước",
   "project.calendar.nextMonth": "Tháng sau",
@@ -345,7 +345,8 @@ const vi = {
   "project.calendar.moreTasks": "+{count} task khác",
   "project.calendar.unscheduledCount": "Chưa lên lịch ({count})",
   "project.calendar.unscheduledHelp":
-    "Task chưa có ngày bắt đầu hoặc hạn hoàn thành. Bấm vào task để đặt lịch.",
+    "Kéo thả task vào ô ngày trên lịch để xếp lịch.",
+  "project.calendar.dropHere": "Thả vào đây",
   "project.calendar.weekday.mon": "T2",
   "project.calendar.weekday.tue": "T3",
   "project.calendar.weekday.wed": "T4",
@@ -592,7 +593,8 @@ const vi = {
   "project.gantt.filterPlaceholder": "Tìm công việc...",
   "project.gantt.scheduleTask": "Lên lịch",
   "project.gantt.unscheduledHelp":
-    "Các công việc chưa có ngày bắt đầu hoặc hạn chót sẽ hiển thị ở đây. Bấm vào công việc để thiết lập thời gian.",
+    "Các công việc chưa có ngày bắt đầu hoặc hạn chót sẽ hiển thị ở đây. Kéo thả lên dòng thời gian hoặc bấm vào để lên lịch.",
+  "project.gantt.dropToSchedule": "Thả để lên lịch",
   "project.gantt.durationDays": "{days} ngày",
   "project.gantt.taskCount": "{count} công việc",
   "project.gantt.unscheduledDrawer": "Công việc chưa lên lịch",

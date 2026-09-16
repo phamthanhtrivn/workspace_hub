@@ -13,6 +13,7 @@ import SummaryView from "../views/summary-view";
 import type { ProjectPermissions } from "@/features/project/project-permissions";
 import type { ProjectViewMode } from "./project-detail-sidebar";
 import {
+  isTerminalTaskStatus,
   TaskStatus,
   type Project,
   type ProjectMember,
@@ -65,6 +66,7 @@ interface ProjectDetailContentProps {
   onDeleteGroup: (task: Task) => Promise<void>;
   onReorderTasks: (group: Task, orderedTasks: Task[]) => Promise<void>;
   onViewChange?: (view: ProjectViewMode) => void;
+  onTaskReschedule?: (taskId: string, targetDateKey: string) => Promise<void>;
 }
 
 export default function ProjectDetailContent(props: ProjectDetailContentProps) {
@@ -198,6 +200,12 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
               ? (date) => props.openTaskForm(TaskStatus.TODO, date, true)
               : undefined
           }
+          onTaskReschedule={props.onTaskReschedule}
+          canEditTask={(task) =>
+            !isTerminalTaskStatus(task.status) &&
+            (permissions.canEditTask(task) ||
+              permissions.canContributeTask(task))
+          }
         />
       );
     }
@@ -207,6 +215,12 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           tasks={props.tasks}
           dependencies={props.dependencies}
           onTaskClick={props.onTaskSelect}
+          onTaskReschedule={props.onTaskReschedule}
+          canEditTask={(task) =>
+            !isTerminalTaskStatus(task.status) &&
+            (permissions.canEditTask(task) ||
+              permissions.canContributeTask(task))
+          }
         />
       );
     }

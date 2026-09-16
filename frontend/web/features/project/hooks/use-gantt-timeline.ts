@@ -159,7 +159,7 @@ export function getGanttBarColor(status: TaskStatus): string {
     case TaskStatus.DONE:
       return "bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white";
     case TaskStatus.CANCELLED:
-      return "bg-slate-400 hover:bg-slate-500 border-slate-500 text-white";
+      return "bg-red-500 hover:bg-red-600 border-red-600 text-white";
     default:
       return "bg-slate-500 text-white";
   }

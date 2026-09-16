@@ -44,9 +44,9 @@ const COLUMNS: {
   {
     status: TaskStatus.CANCELLED,
     labelId: "project.task.status.cancelledUpper",
-    headerColor: "text-[#5E6C84]",
-    badgeBg: "bg-[#E2E8F0]",
-    badgeText: "text-[#475569]",
+    headerColor: "text-red-600",
+    badgeBg: "bg-red-100",
+    badgeText: "text-red-700",
   },
 ];
 
@@ -150,20 +150,16 @@ export default function BoardView({
             </div>
 
             {/* Inline quick create button at bottom (if tasks exist) */}
-            {columnTasks.length > 0 &&
-              onAddTask &&
-              canCreateInColumn && (
-                <button
-                  type="button"
-                  onClick={() => onAddTask(col.status)}
-                  className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold rounded text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition text-left px-2"
-                >
-                  <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-                  <span>
-                    {intl.formatMessage({ id: "project.task.create" })}
-                  </span>
-                </button>
-              )}
+            {columnTasks.length > 0 && onAddTask && canCreateInColumn && (
+              <button
+                type="button"
+                onClick={() => onAddTask(col.status)}
+                className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold rounded text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition text-left px-2"
+              >
+                <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                <span>{intl.formatMessage({ id: "project.task.create" })}</span>
+              </button>
+            )}
           </div>
         );
       })}

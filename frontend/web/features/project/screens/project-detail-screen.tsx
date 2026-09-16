@@ -49,6 +49,7 @@ import {
   ProjectSettingsDialog,
 } from "@/features/project/components/dialogs";
 import { getProjectKey } from "@/features/project/utils/project.utils";
+import { taskDateKey } from "@/features/project/utils/task-dates";
 import {
   getProjectPermissions,
   NO_PROJECT_PERMISSIONS,
@@ -222,6 +223,29 @@ export default function ProjectDetailScreen() {
     addTasksToSprint: addTasksToSprintMutation.mutateAsync,
   });
 
+  const handleTaskReschedule = async (
+    taskId: string,
+    targetDateKey: string,
+  ) => {
+    const task = serverTasks.find((t) => t.id === taskId);
+    if (!task) return;
+    // Only unscheduled tasks can be scheduled via drag & drop
+    if (task.startDate || task.dueDate) return;
+    if (rejectCompletedTaskChange(taskId)) return;
+    if (!targetDateKey || targetDateKey === "unscheduled") return;
+
+    try {
+      await handleUpdateTaskDirect(taskId, {
+        startDate: `${targetDateKey}T00:00:00.000Z`,
+        dueDate: `${targetDateKey}T00:00:00.000Z`,
+        allDay: true,
+      });
+      toast.success(intl.formatMessage({ id: "project.task.updated" }));
+    } catch {
+      // Error toast handled by updateTaskDirect
+    }
+  };
+
   if (isLoading) {
     return <ProjectDetailLoading />;
   }
@@ -383,6 +407,7 @@ export default function ProjectDetailScreen() {
           onDeleteGroup={handleDeleteGroup}
           onReorderTasks={handleReorderTasks}
           onViewChange={setViewMode}
+          onTaskReschedule={handleTaskReschedule}
         />
       </main>
 
