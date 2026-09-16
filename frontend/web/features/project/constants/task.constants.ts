@@ -30,7 +30,7 @@ export const TASK_DRAWER_STATUS_OPTIONS = [
   { value: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress", color: "text-[#0747A6] bg-[#DEEBFF] hover:bg-[#B3D4FF]" },
   { value: TaskStatus.IN_REVIEW, labelId: "project.task.status.inReview", color: "text-[#A54800] bg-[#FFF0B3] hover:bg-[#FFE380]" },
   { value: TaskStatus.DONE, labelId: "project.task.status.done", color: "text-[#006644] bg-[#E3FCEF] hover:bg-[#ABF5D1]" },
-  { value: TaskStatus.CANCELLED, labelId: "project.task.status.cancelled", color: "text-slate-600 bg-slate-200 hover:bg-slate-300" },
+  { value: TaskStatus.CANCELLED, labelId: "project.task.status.cancelled", color: "text-red-700 bg-red-50 hover:bg-red-100 border border-red-200" },
 ] as const;
 
 export const TASK_PRIORITY_LABEL_IDS: Record<TaskPriority, string> = {
@@ -62,7 +62,7 @@ export const TASK_STATUS_CHART_CONFIG = [
   { status: TaskStatus.IN_PROGRESS, labelId: "project.task.status.inProgress", color: "#0052CC" },
   { status: TaskStatus.IN_REVIEW, labelId: "project.task.status.inReview", color: "#FFAB00" },
   { status: TaskStatus.DONE, labelId: "project.task.status.done", color: "#36B37E" },
-  { status: TaskStatus.CANCELLED, labelId: "project.task.status.cancelled", color: "#64748B" },
+  { status: TaskStatus.CANCELLED, labelId: "project.task.status.cancelled", color: "#EF4444" },
 ] as const;
 
 export const TASK_PRIORITY_CHART_CONFIG = [
@@ -119,9 +119,9 @@ export const TASK_STATUS_COLORS: Record<
   },
   [TaskStatus.CANCELLED]: {
     labelId: "project.task.status.cancelled",
-    bg: "bg-slate-200",
-    dot: "bg-slate-500",
-    text: "text-slate-600",
-    bar: "bg-slate-500",
+    bg: "bg-red-50",
+    dot: "bg-red-500",
+    text: "text-red-700",
+    bar: "bg-red-500",
   },
 };

@@ -331,7 +331,7 @@ const en = {
   "project.task.messagePlaceholder": "Enter a message...",
   "project.task.chatEnterHint": "Enter to send Â· Shift + Enter for a new line",
   "project.calendar.helper":
-    "Click a task to view details or click + to create a task.",
+    "Click a task to view details or click + to create. Drag unscheduled tasks onto a date to schedule.",
   "project.calendar.today": "Today",
   "project.calendar.previousMonth": "Previous month",
   "project.calendar.nextMonth": "Next month",
@@ -339,7 +339,8 @@ const en = {
   "project.calendar.moreTasks": "+{count} more tasks",
   "project.calendar.unscheduledCount": "Unscheduled ({count})",
   "project.calendar.unscheduledHelp":
-    "Tasks without a start date or due date. Click a task to schedule it.",
+    "Drag and drop tasks onto a calendar date to schedule.",
+  "project.calendar.dropHere": "Drop here",
   "project.calendar.weekday.mon": "Mon",
   "project.calendar.weekday.tue": "Tue",
   "project.calendar.weekday.wed": "Wed",
@@ -585,7 +586,8 @@ const en = {
   "project.gantt.filterPlaceholder": "Search tasks...",
   "project.gantt.scheduleTask": "Schedule",
   "project.gantt.unscheduledHelp":
-    "Tasks without start or due dates appear here. Click a task to set schedule.",
+    "Tasks without start or due dates appear here. Drag onto the timeline or click to schedule.",
+  "project.gantt.dropToSchedule": "Drop to schedule",
   "project.gantt.durationDays": "{days, plural, one {# day} other {# days}}",
   "project.gantt.taskCount": "{count, plural, one {# task} other {# tasks}}",
   "project.gantt.unscheduledDrawer": "Unscheduled tasks",

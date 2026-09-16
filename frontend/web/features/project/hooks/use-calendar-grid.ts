@@ -89,23 +89,35 @@ export function useCalendarGrid({
       currentMonth.getMonth(),
       1,
     );
+    const lastDay = new Date(
+      currentMonth.getFullYear(),
+      currentMonth.getMonth() + 1,
+      0,
+    );
     const mondayOffset = (firstDay.getDay() + 6) % 7;
+    const daysInMonth = lastDay.getDate();
+    const totalDays = mondayOffset + daysInMonth;
+    const totalWeeks = Math.ceil(totalDays / 7);
+    const totalGridDays = totalWeeks * 7;
     const todayKey = dateKey(new Date());
 
-    return Array.from({ length: 42 }, (_, index) => {
+    return Array.from({ length: totalGridDays }, (_, index) => {
       const date = new Date(
         currentMonth.getFullYear(),
         currentMonth.getMonth(),
         index - mondayOffset + 1,
       );
       const key = dateKey(date);
-      const dayTasks = activeTasks.filter((task) => isTaskOnDate(task, key));
+      const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+      const dayTasks = isCurrentMonth
+        ? activeTasks.filter((task) => isTaskOnDate(task, key))
+        : [];
 
       return {
         date,
         key,
-        isCurrentMonth: date.getMonth() === currentMonth.getMonth(),
-        isToday: key === todayKey,
+        isCurrentMonth,
+        isToday: isCurrentMonth && key === todayKey,
         tasks: dayTasks,
       };
     });

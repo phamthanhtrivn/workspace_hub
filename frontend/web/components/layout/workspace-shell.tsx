@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   Bot,
   CalendarDays,
-  CheckSquare,
   ChevronLeft,
   ChevronRight,
   Clock3,
@@ -37,12 +36,6 @@ const menuItems = [
     labelId: "nav.projects",
     descriptionId: "nav.projects.description",
     icon: FolderKanban,
-  },
-  {
-    href: "/tasks",
-    labelId: "nav.tasks",
-    descriptionId: "nav.tasks.description",
-    icon: CheckSquare,
   },
   {
     href: "/chat",
@@ -315,8 +308,8 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
           className={cn(
             "flex-1",
             pathname.startsWith("/chat") ||
-            pathname.startsWith("/documents") ||
-            pathname.startsWith("/calendar")
+              pathname.startsWith("/documents") ||
+              pathname.startsWith("/calendar")
               ? "overflow-hidden"
               : "overflow-y-auto",
             "relative flex flex-col",
