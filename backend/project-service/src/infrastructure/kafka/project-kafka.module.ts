@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ClientsModule, Transport } from '@nestjs/microservices';
+import { KAFKA_CLIENTS } from '../../common/constants/kafka.constants';
 
 export const PROJECT_KAFKA_CLIENT = 'PROJECT_KAFKA_CLIENT';
 
@@ -12,7 +13,7 @@ export const PROJECT_KAFKA_CLIENT = 'PROJECT_KAFKA_CLIENT';
         transport: Transport.KAFKA,
         options: {
           client: {
-            clientId: 'project-task-calendar-producer',
+            clientId: KAFKA_CLIENTS.PROJECT_SERVICE.CLIENT_ID,
             brokers: (process.env.KAFKA_BROKER ?? 'localhost:9092')
               .split(',')
               .map((broker) => broker.trim())

@@ -22,11 +22,11 @@ import {
   rethrowWriteConflict,
 } from "../../common/prisma/prisma-errors";
 import { paginate, PaginationQueryDto } from "../../common/utils/pagination";
-import { TaskCalendarEventService } from "../notification-outbox/task-calendar-event.service";
 import { taskInclude } from "./task-query";
 import { lockProject } from "../project/project-transaction";
 import { normalizeTaskRank } from "./task-rank";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
+import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 import {
   resolveProfilesForItem,
   resolveProfilesForItems,
@@ -51,7 +51,6 @@ export class TaskService {
     private readonly access: ProjectAccessService,
     private readonly activities: ActivityService,
     private readonly notifications: NotificationOutboxService,
-    private readonly calendarEvents: TaskCalendarEventService,
     private readonly userProfiles: UserProfileSnapshotService,
   ) {}
 
@@ -115,13 +114,12 @@ export class TaskService {
         created.title,
         tx,
       );
-      await this.calendarEvents.publishUpsert(created.id, tx);
       if (dto.assigneeUserId && dto.assigneeUserId !== userId) {
         await this.notifications.enqueueNotification(
           {
             recipientId: dto.assigneeUserId,
             senderId: userId,
-            type: "PROJECT_TASK_ASSIGNED",
+            type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED,
             title: "You were assigned a task",
             content: `Task "${created.title}" was assigned to you.`,
             link: `/projects/${projectId}`,
@@ -297,7 +295,7 @@ export class TaskService {
             {
               recipientId: dto.assigneeUserId,
               senderId: userId,
-              type: "PROJECT_TASK_ASSIGNED",
+              type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_ASSIGNED,
               title: "You were assigned a task",
               content: `Task "${updated.title}" was assigned to you.`,
               link: `/projects/${current.projectId}`,
@@ -316,7 +314,7 @@ export class TaskService {
               {
                 recipientId: assignee.userId,
                 senderId: userId,
-                type: "PROJECT_TASK_UPDATED",
+                type: KAFKA_EVENTS.NOTIFICATION.PROJECT_TASK_UPDATED,
                 title: "Task updated",
                 content: `Task "${updated.title}" was just updated.`,
                 link: `/projects/${current.projectId}`,
@@ -326,7 +324,6 @@ export class TaskService {
             );
           }
         }
-        await this.calendarEvents.publishUpsert(updated.id, tx);
         if (dto.assigneeUserId === undefined) return updated;
         return tx.task.findUniqueOrThrow({
           where: { id: taskId },
@@ -381,7 +378,6 @@ export class TaskService {
           true,
           tx,
         );
-        await this.calendarEvents.publishUpsert(taskId, tx);
       });
     } catch (error) {
       rethrowWriteConflict(error, "Task was changed by another request");

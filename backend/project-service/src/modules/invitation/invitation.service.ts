@@ -13,11 +13,11 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateInvitationDto } from "./dto/create-invitation.dto";
 import { ProjectAccessService } from "../project/project-access.service";
 import { toInvitationResponse } from "../project/project.mapper";
-import { TaskCalendarEventService } from "../notification-outbox/task-calendar-event.service";
 import { isUniqueConstraintError } from "../../common/prisma/prisma-errors";
 import { NotificationOutboxService } from "../notification-outbox/notification-outbox.service";
 import { defaultMemberPermissions } from "../member/member-permissions";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
+import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 import {
   resolveProfilesForItem,
   resolveProfilesForItems,
@@ -30,7 +30,6 @@ export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
-    private readonly calendarEvents: TaskCalendarEventService,
     private readonly notifications: NotificationOutboxService,
     private readonly userProfiles: UserProfileSnapshotService,
   ) {}
@@ -91,7 +90,7 @@ export class InvitationService {
           {
             recipientId: dto.invitedUserId,
             senderId: userId,
-            type: "PROJECT_INVITATION",
+            type: KAFKA_EVENTS.NOTIFICATION.PROJECT_INVITATION,
             title: "Lời mời tham gia dự án",
             content: `Bạn được mời tham gia dự án ${created.project.name}`,
             metadata: {
@@ -240,7 +239,7 @@ export class InvitationService {
         {
           recipientId: created.invitedUserId,
           senderId: userId,
-          type: "PROJECT_INVITATION",
+          type: KAFKA_EVENTS.NOTIFICATION.PROJECT_INVITATION,
           title: "Lời mời tham gia dự án",
           content: `Bạn được mời tham gia dự án ${created.project.name}`,
           metadata: {
@@ -354,7 +353,6 @@ export class InvitationService {
         InvitationStatus.ACCEPTED,
         tx,
       );
-      await this.calendarEvents.publishProject(invitation.projectId, tx);
 
       return tx.projectInvitation.findUniqueOrThrow({
         where: { id: invitationId },

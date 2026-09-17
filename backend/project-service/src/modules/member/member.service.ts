@@ -9,7 +9,6 @@ import { AddMemberDto } from "./dto/add-member.dto";
 import { UpdateMemberPermissionsDto } from "./dto/update-member-permissions.dto";
 import { ProjectAccessService } from "../project/project-access.service";
 import { toMemberResponse } from "../project/project.mapper";
-import { TaskCalendarEventService } from "../notification-outbox/task-calendar-event.service";
 import {
   isUniqueConstraintError,
   rethrowWriteConflict,
@@ -22,7 +21,6 @@ export class MemberService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
-    private readonly calendarEvents: TaskCalendarEventService,
     private readonly userProfiles: UserProfileSnapshotService,
   ) {}
 
@@ -50,7 +48,6 @@ export class MemberService {
         const member = await tx.projectMember.findUniqueOrThrow({
           where: { projectId_userId: { projectId, userId: dto.userId } },
         });
-        await this.calendarEvents.publishProject(projectId, tx);
         const profile = await this.userProfiles.getProfileByUserId(dto.userId);
         return toMemberResponse(member, profile);
       }
@@ -68,7 +65,6 @@ export class MemberService {
             updatedAt: now,
           },
         });
-        await this.calendarEvents.publishProject(projectId, tx);
         const profile = await this.userProfiles.getProfileByUserId(dto.userId);
         return toMemberResponse(member, profile);
       } catch (error) {
@@ -153,7 +149,6 @@ export class MemberService {
           "Project member was changed by another request",
         );
       }
-      await this.calendarEvents.publishProject(projectId, tx);
     });
   }
 }
