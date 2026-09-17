@@ -26,6 +26,11 @@ import { TaskCalendarEventService } from "../notification-outbox/task-calendar-e
 import { taskInclude } from "./task-query";
 import { lockProject } from "../project/project-transaction";
 import { normalizeTaskRank } from "./task-rank";
+import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
+import {
+  resolveProfilesForItem,
+  resolveProfilesForItems,
+} from "../../common/utils/profile-mapper.util";
 
 const taskWithCount = taskInclude;
 const TASK_PROGRESS_FIELDS = new Set<keyof UpdateTaskDto>(['status', 'rank']);
@@ -47,6 +52,7 @@ export class TaskService {
     private readonly activities: ActivityService,
     private readonly notifications: NotificationOutboxService,
     private readonly calendarEvents: TaskCalendarEventService,
+    private readonly userProfiles: UserProfileSnapshotService,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
@@ -127,7 +133,16 @@ export class TaskService {
       return created;
     });
 
-    return toTaskResponse(task);
+    const profiles = await resolveProfilesForItem(
+      this.userProfiles,
+      task,
+      (t) => [
+        ...(t.assignees?.map((a) => a.userId) ?? []),
+        t.createdBy,
+        t.reporterId,
+      ],
+    );
+    return toTaskResponse(task, profiles);
   }
 
   async findAll(userId: string, projectId: string, query: PaginationQueryDto) {
@@ -147,13 +162,35 @@ export class TaskService {
         take: query.limit,
       }),
     ]);
-    return paginate(tasks.map(toTaskResponse), total, query);
+    const profiles = await resolveProfilesForItems(
+      this.userProfiles,
+      tasks,
+      (t) => [
+        ...(t.assignees?.map((a) => a.userId) ?? []),
+        t.createdBy,
+        t.reporterId,
+      ],
+    );
+    return paginate(
+      tasks.map((task) => toTaskResponse(task, profiles)),
+      total,
+      query,
+    );
   }
 
   async findOne(userId: string, taskId: string) {
     const task = await this.findTask(taskId);
     await this.access.requireReadAccess(userId, task.projectId);
-    return toTaskResponse(task);
+    const profiles = await resolveProfilesForItem(
+      this.userProfiles,
+      task,
+      (t) => [
+        ...(t.assignees?.map((a) => a.userId) ?? []),
+        t.createdBy,
+        t.reporterId,
+      ],
+    );
+    return toTaskResponse(task, profiles);
   }
 
   async update(userId: string, taskId: string, dto: UpdateTaskDto) {
@@ -302,7 +339,16 @@ export class TaskService {
       }
       throw error;
     }
-    return toTaskResponse(task);
+    const profiles = await resolveProfilesForItem(
+      this.userProfiles,
+      task,
+      (t) => [
+        ...(t.assignees?.map((a) => a.userId) ?? []),
+        t.createdBy,
+        t.reporterId,
+      ],
+    );
+    return toTaskResponse(task, profiles);
   }
 
   async delete(userId: string, taskId: string): Promise<void> {

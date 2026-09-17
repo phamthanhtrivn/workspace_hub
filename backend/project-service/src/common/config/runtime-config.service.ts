@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class RuntimeConfigService {
-  readonly userServiceUrl = this.baseUrl(process.env.USER_SERVICE_URL ?? 'http://localhost:8081');
   readonly notificationServiceUrl = this.requiredBaseUrl(
     process.env.NOTIFICATION_SERVICE_URL,
     'NOTIFICATION_SERVICE_URL',

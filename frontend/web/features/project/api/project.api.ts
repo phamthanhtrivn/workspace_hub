@@ -24,6 +24,9 @@ interface ProjectApiModel {
   icon?: string | null;
   description?: string | null;
   ownerId: string;
+  ownerDisplayName?: string | null;
+  ownerAvatarUrl?: string | null;
+  ownerEmail?: string | null;
   status: ProjectStatus;
   startDate?: string | null;
   dueDate?: string | null;
@@ -116,19 +119,16 @@ function normalizeProject(project: ProjectApiModel): Project {
 function normalizeMember(
   member: ProjectMemberApiModel,
   projectId: string,
-  profile?: UserProfileApiModel,
 ): ProjectMember {
   return {
     id: member.id,
     projectId,
     userId: member.userId,
     displayName:
-      profile?.fullName?.trim() ||
       member.displayName?.trim() ||
-      profile?.email ||
       member.email ||
       member.userId,
-    avatarUrl: profile?.avatarUrl || member.avatarUrl || undefined,
+    avatarUrl: member.avatarUrl || undefined,
     role: member.role,
     canCreateTask: member.canCreateTask ?? false,
     canEditOwnTask: member.canEditOwnTask ?? false,
@@ -148,30 +148,29 @@ export async function getProjects(): Promise<Project[]> {
     return { items: unwrap(response) || [], meta: response.data.meta };
   });
   const projects = projectModels.map(normalizeProject);
-  const profilesById = await getUserProfiles(
-    projects.map((project) => project.ownerId),
-  );
-  return projects.map((project) => ({
-    ...project,
-    members: [
-      {
-        id: `owner-${project.id}`,
-        projectId: project.id,
-        userId: project.ownerId,
-        displayName:
-          profilesById.get(project.ownerId)?.fullName?.trim() || project.ownerId,
-        avatarUrl: profilesById.get(project.ownerId)?.avatarUrl || undefined,
-        role: ProjectRole.ADMIN,
-        canCreateTask: true,
-        canEditOwnTask: true,
-        canEditOthersTask: true,
-        canManageSprints: true,
-        canManageMembers: true,
-        canManageLabels: true,
-        joinedAt: project.createdAt,
-      },
-    ],
-  }));
+  return projects.map((project, idx) => {
+    const model = projectModels[idx];
+    return {
+      ...project,
+      members: [
+        {
+          id: `owner-${project.id}`,
+          projectId: project.id,
+          userId: project.ownerId,
+          displayName:
+            model?.ownerDisplayName?.trim() || project.ownerId,
+          avatarUrl: model?.ownerAvatarUrl || undefined,
+          role: ProjectRole.ADMIN,
+          canCreateTask: true,
+          canEditOwnTask: true,
+          canEditOthersTask: true,
+          canManageMembers: true,
+          canManageLabels: true,
+          joinedAt: project.createdAt,
+        },
+      ],
+    };
+  });
 }
 
 export async function getProject(projectId: string): Promise<Project> {
@@ -216,21 +215,7 @@ export async function getProjectMembers(
     `/api/projects/${projectId}/members`,
   );
   const members = unwrap(response) || [];
-
-  if (members.length === 0) return [];
-
-  const missingUserIds = members
-    .filter((member) => !member.displayName)
-    .map((member) => member.userId);
-
-  const profilesById =
-    missingUserIds.length > 0
-      ? await getUserProfiles(missingUserIds)
-      : new Map<string, UserProfileApiModel>();
-
-  return members.map((member) =>
-    normalizeMember(member, projectId, profilesById.get(member.userId)),
-  );
+  return members.map((member) => normalizeMember(member, projectId));
 }
 
 export async function getUserProfiles(

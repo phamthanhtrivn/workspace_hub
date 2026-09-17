@@ -17,6 +17,11 @@ import { TaskCalendarEventService } from "../notification-outbox/task-calendar-e
 import { isUniqueConstraintError } from "../../common/prisma/prisma-errors";
 import { NotificationOutboxService } from "../notification-outbox/notification-outbox.service";
 import { defaultMemberPermissions } from "../member/member-permissions";
+import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
+import {
+  resolveProfilesForItem,
+  resolveProfilesForItems,
+} from "../../common/utils/profile-mapper.util";
 
 const EXPIRY_DAYS = 7;
 
@@ -27,6 +32,7 @@ export class InvitationService {
     private readonly access: ProjectAccessService,
     private readonly calendarEvents: TaskCalendarEventService,
     private readonly notifications: NotificationOutboxService,
+    private readonly userProfiles: UserProfileSnapshotService,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateInvitationDto) {
@@ -111,7 +117,12 @@ export class InvitationService {
       throw error;
     }
 
-    return toInvitationResponse(invitation);
+    const profiles = await resolveProfilesForItem(
+      this.userProfiles,
+      invitation,
+      (inv) => [inv.invitedUserId, inv.invitedBy],
+    );
+    return toInvitationResponse(invitation, profiles);
   }
 
   async findPending(userId: string) {
@@ -129,7 +140,14 @@ export class InvitationService {
       include: { project: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     });
-    return invitations.map(toInvitationResponse);
+    const profiles = await resolveProfilesForItems(
+      this.userProfiles,
+      invitations,
+      (inv) => [inv.invitedUserId, inv.invitedBy],
+    );
+    return invitations.map((invitation) =>
+      toInvitationResponse(invitation, profiles),
+    );
   }
 
   async findProjectPending(userId: string, projectId: string) {
@@ -148,7 +166,14 @@ export class InvitationService {
       include: { project: { select: { name: true } } },
       orderBy: { createdAt: "desc" },
     });
-    return invitations.map(toInvitationResponse);
+    const profiles = await resolveProfilesForItems(
+      this.userProfiles,
+      invitations,
+      (inv) => [inv.invitedUserId, inv.invitedBy],
+    );
+    return invitations.map((invitation) =>
+      toInvitationResponse(invitation, profiles),
+    );
   }
 
   async resend(userId: string, projectId: string, invitationId: string) {
@@ -233,7 +258,12 @@ export class InvitationService {
       return created;
     });
 
-    return toInvitationResponse(resent);
+    const profiles = await resolveProfilesForItem(
+      this.userProfiles,
+      resent,
+      (inv) => [inv.invitedUserId, inv.invitedBy],
+    );
+    return toInvitationResponse(resent, profiles);
   }
 
   async accept(userId: string, invitationId: string) {
@@ -332,7 +362,12 @@ export class InvitationService {
       });
     });
 
-    return toInvitationResponse(updated);
+    const profiles = await resolveProfilesForItem(
+      this.userProfiles,
+      updated,
+      (inv) => [inv.invitedUserId, inv.invitedBy],
+    );
+    return toInvitationResponse(updated, profiles);
   }
 
   async decline(userId: string, invitationId: string) {
@@ -359,7 +394,12 @@ export class InvitationService {
       );
     });
     const updated = await this.findInvitation(invitationId);
-    return toInvitationResponse(updated);
+    const profiles = await resolveProfilesForItem(
+      this.userProfiles,
+      updated,
+      (inv) => [inv.invitedUserId, inv.invitedBy],
+    );
+    return toInvitationResponse(updated, profiles);
   }
 
   async cancel(
