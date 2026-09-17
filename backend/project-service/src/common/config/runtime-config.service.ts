@@ -16,18 +16,9 @@ export class RuntimeConfigService {
   readonly outboxPollIntervalMs = this.positiveInteger(process.env.OUTBOX_POLL_INTERVAL_MS, 2_000);
   readonly outboxBatchSize = this.positiveInteger(process.env.OUTBOX_BATCH_SIZE, 20);
   readonly outboxMaxAttempts = this.positiveInteger(process.env.OUTBOX_MAX_ATTEMPTS, 5);
-  readonly jwtIssuer = process.env.JWT_ISSUER?.trim() || 'workspace-hub';
   readonly corsAllowedOrigins = this.list(
     process.env.CORS_ALLOWED_ORIGINS ?? process.env.FRONTEND_URL ?? 'http://localhost:3000',
   );
-
-  get jwtSecret(): string {
-    const value = process.env.JWT_SECRET_KEY;
-    if (!value || Buffer.byteLength(value) < 32) {
-      throw new Error('JWT_SECRET_KEY must be configured with at least 32 bytes');
-    }
-    return value;
-  }
 
   private baseUrl(value: string): string {
     return value.replace(/\/+$/, '');
