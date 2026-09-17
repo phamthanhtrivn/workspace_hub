@@ -68,12 +68,14 @@ export function MeetingButton({
 interface MeetingInputProps extends ComponentProps<typeof Input> {
   icon?: LucideIcon;
   invalid?: boolean;
+  containerClassName?: string;
 }
 
 export function MeetingInput({
   icon: Icon,
   invalid,
   className,
+  containerClassName,
   ...props
 }: MeetingInputProps) {
   if (!Icon) {
@@ -95,6 +97,7 @@ export function MeetingInput({
       className={cn(
         "flex h-10 min-w-0 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 shadow-sm transition focus-within:border-[#0052CC] focus-within:ring-2 focus-within:ring-[#0052CC]/15",
         invalid && "border-red-300 focus-within:ring-red-500/15",
+        containerClassName,
       )}
     >
       <Icon className="size-4 shrink-0 text-slate-400" />
