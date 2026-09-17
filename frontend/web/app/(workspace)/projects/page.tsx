@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
 import { getProjectKey } from "@/features/project/utils/project.utils";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { ProjectRole } from "@/features/project/types/project";
 
 export default function ProjectsPage() {
   const intl = useAppIntl();
@@ -179,7 +180,7 @@ export default function ProjectsPage() {
               {filteredProjects.map((project) => {
                 const projectKey = getProjectKey(project.name);
                 const owner =
-                  project.members.find((m) => m.role === "OWNER") ||
+                  project.members.find((m) => m.role === ProjectRole.ADMIN) ||
                   project.members[0];
                 const totalTasks = project.totalTaskCount;
                 const doneTasks = project.completedTaskCount;

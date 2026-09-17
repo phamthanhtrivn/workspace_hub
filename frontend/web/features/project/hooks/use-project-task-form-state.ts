@@ -8,21 +8,18 @@ export function useProjectTaskFormState() {
   const [startDate, setStartDate] = useState<string>();
   const [allDay, setAllDay] = useState(false);
   const [parentTaskId, setParentTaskId] = useState<string>();
-  const [sprintId, setSprintId] = useState<string>();
 
   const open = (
     nextStatus: TaskStatus = TaskStatus.TODO,
     nextStartDate?: string,
     nextAllDay = false,
     nextParentTaskId?: string,
-    nextSprintId?: string,
   ) => {
     setEditingTask(null);
     setStatus(nextStatus);
     setStartDate(nextStartDate);
     setAllDay(nextAllDay);
     setParentTaskId(nextParentTaskId);
-    setSprintId(nextSprintId);
     setIsOpen(true);
   };
 
@@ -41,7 +38,6 @@ export function useProjectTaskFormState() {
     setStartDate(undefined);
     setAllDay(false);
     setParentTaskId(undefined);
-    setSprintId(undefined);
   };
 
   return {
@@ -53,7 +49,6 @@ export function useProjectTaskFormState() {
     startDate,
     allDay,
     parentTaskId,
-    sprintId,
     open,
     edit,
     close,

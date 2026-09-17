@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { Task } from "@/features/project/types/project";
-import { formatFileSize } from "../ui/project-file-panel";
+import { formatFileSize } from "@/lib/format-file-size";
 
 interface TaskLocalAttachment {
   id: string;

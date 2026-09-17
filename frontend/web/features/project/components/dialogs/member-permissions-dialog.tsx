@@ -42,11 +42,6 @@ const TASK_PERMISSION_OPTIONS: PermissionOption[] = [
 
 const MANAGEMENT_PERMISSION_OPTIONS: PermissionOption[] = [
   {
-    key: "canManageSprints",
-    labelId: "project.permission.manageSprints",
-    descriptionId: "project.permission.manageSprintsDescription",
-  },
-  {
     key: "canManageMembers",
     labelId: "project.permission.manageMembers",
     descriptionId: "project.permission.manageMembersDescription",
@@ -74,7 +69,6 @@ function getMemberPermissions(member: ProjectMember): ProjectMemberPermissions {
     canCreateTask: member.canCreateTask,
     canEditOwnTask: member.canEditOwnTask,
     canEditOthersTask: member.canEditOthersTask,
-    canManageSprints: member.canManageSprints,
     canManageMembers: member.canManageMembers,
     canManageLabels: member.canManageLabels,
   };
@@ -218,7 +212,7 @@ export default function MemberPermissionsDialog({
             <span className="shrink-0 text-[11px] font-bold text-slate-500">
               {intl.formatMessage(
                 { id: "project.permission.enabledCount" },
-                { count: enabledCount, total: 6 },
+                { count: enabledCount, total: 5 },
               )}
             </span>
           </div>

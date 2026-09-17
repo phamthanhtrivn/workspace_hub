@@ -1,29 +1,22 @@
 import { ConflictException, ForbiddenException } from "@nestjs/common";
 import { PrismaClient } from "@prisma/client";
 import { ClientKafka } from '@nestjs/microservices';
-import { ProjectFileService } from '../src/modules/project/project-file.service';
-import { ActivityService } from "../src/modules/project/activity.service";
-import { InvitationService } from "../src/modules/project/invitation.service";
-import { LabelService } from "../src/modules/project/label.service";
-import { NotificationOutboxService } from "../src/modules/project/notification-outbox.service";
+import { ActivityService } from "../src/modules/activity/activity.service";
+import { InvitationService } from "../src/modules/invitation/invitation.service";
+import { LabelService } from "../src/modules/label/label.service";
+import { NotificationOutboxService } from "../src/modules/notification-outbox/notification-outbox.service";
 import { ProjectAccessService } from "../src/modules/project/project-access.service";
 import {
   InvitationStatus,
   ProjectMemberStatus,
   ProjectRole,
   ProjectStatus,
-  ProjectType,
-  ProjectVisibility,
-  SprintStatus,
   TaskStatus,
 } from "../src/modules/project/project.enums";
-import { SprintService } from "../src/modules/project/sprint.service";
-import { TaskPolicyService } from "../src/modules/project/task-policy.service";
-import { TaskCalendarEventService } from "../src/modules/project/task-calendar-event.service";
-import { TaskService } from "../src/modules/project/task.service";
+import { TaskPolicyService } from "../src/modules/task/task-policy.service";
+import { TaskCalendarEventService } from "../src/modules/notification-outbox/task-calendar-event.service";
+import { TaskService } from "../src/modules/task/task.service";
 import { PrismaService } from "../src/common/prisma/prisma.service";
-import { ProjectTemplateService } from '../src/modules/project/project-template.service';
-import { ProjectTemplate } from '../src/modules/project/project.enums';
 import { authHeaders, withProjectHttpApp } from './project-http-app';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -46,8 +39,6 @@ integration("Project Service database integration", () => {
 
   async function createProject(
     options: {
-      projectType?: ProjectType;
-      visibility?: ProjectVisibility;
       allowOwnEdit?: boolean;
     } = {},
   ) {
@@ -59,8 +50,6 @@ integration("Project Service database integration", () => {
         name: "Integration project",
         ownerId,
         status: ProjectStatus.ACTIVE,
-        projectType: options.projectType ?? ProjectType.GENERAL,
-        visibility: options.visibility ?? ProjectVisibility.MEMBERS_ONLY,
         archived: false,
         createdAt: now,
         updatedAt: now,
@@ -111,8 +100,12 @@ integration("Project Service database integration", () => {
     const access = new ProjectAccessService(database);
     const policy = new TaskPolicyService(database, access);
     const calendar = new TaskCalendarEventService(database, {} as ClientKafka);
-    const tasks = new TaskService(database, access, new ActivityService(database, policy), {} as NotificationOutboxService, calendar);
-    return { access, tasks, sprints: new SprintService(database, access) };
+    const userProfiles = {
+      getProfileByUserId: jest.fn().mockResolvedValue(null),
+      getProfilesByUserIds: jest.fn().mockResolvedValue(new Map()),
+    } as unknown as import('../src/modules/user-profile-snapshot/user-profile-snapshot.service').UserProfileSnapshotService;
+    const tasks = new TaskService(database, access, new ActivityService(database, policy, userProfiles), {} as NotificationOutboxService, calendar);
+    return { access, tasks };
   }
 
   it('persists the task and calendar outbox atomically without Kafka', async () => {
@@ -123,60 +116,6 @@ integration("Project Service database integration", () => {
     expect(events).toHaveLength(1);
     expect(events[0].payload).toEqual({ taskId: created.id });
     await expect(prisma.task.findUnique({ where: { id: created.id } })).resolves.toMatchObject({ title: 'Durable task' });
-  });
-
-  it('rolls back task numbering when creation targets a running sprint', async () => {
-    const { project, ownerId } = await createProject({ projectType: ProjectType.SOFTWARE_DEVELOPMENT });
-    const { tasks, sprints } = taskServices();
-    const sprint = await sprints.create(ownerId, project.id, { name: 'Sprint' });
-    await sprints.start(ownerId, sprint.id);
-    await expect(tasks.create(ownerId, project.id, { title: 'Rejected', sprintId: sprint.id })).rejects.toBeInstanceOf(ConflictException);
-    expect(await prisma.task.count({ where: { projectId: project.id } })).toBe(0);
-    expect((await prisma.project.findUniqueOrThrow({ where: { id: project.id } })).nextTaskNumber).toBe(1);
-    expect(await prisma.notificationOutbox.count()).toBe(0);
-  });
-
-  it('keeps the active sprint unchanged when a task is added to another planned sprint', async () => {
-    const { project, ownerId } = await createProject({ projectType: ProjectType.SOFTWARE_DEVELOPMENT });
-    const { tasks, sprints } = taskServices();
-    const source = await sprints.create(ownerId, project.id, { name: 'Source' });
-    const target = await sprints.create(ownerId, project.id, { name: 'Target' });
-    const task = await tasks.create(ownerId, project.id, { title: 'Work', sprintId: source.id });
-    await sprints.start(ownerId, source.id);
-    await expect(sprints.addTasks(ownerId, target.id, { taskIds: [task.id] })).rejects.toBeInstanceOf(ConflictException);
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: task.id } })).sprintId).toBe(source.id);
-  });
-
-  it('returns full task relations from a sprint and prevents third-level nesting', async () => {
-    const { project, ownerId } = await createProject({ projectType: ProjectType.SOFTWARE_DEVELOPMENT });
-    const { tasks, sprints } = taskServices();
-    const sprint = await sprints.create(ownerId, project.id, { name: 'Sprint' });
-    const parent = await tasks.create(ownerId, project.id, { title: 'Parent', sprintId: sprint.id });
-    await tasks.create(ownerId, project.id, { title: 'Child', parentTaskId: parent.id });
-    const other = await tasks.create(ownerId, project.id, { title: 'Other' });
-    await prisma.taskChecklist.create({ data: { taskId: parent.id, title: 'Check', completed: false, createdAt: new Date() } });
-    await prisma.taskAssignee.create({ data: { taskId: parent.id, projectId: project.id, userId: ownerId, assignedAt: new Date() } });
-    const [result] = await sprints.list(ownerId, project.id);
-    const listed = result.tasks.find((item) => item.id === parent.id)!;
-    expect(listed.assignees).toHaveLength(1);
-    expect(listed.checklists).toHaveLength(1);
-    await expect(tasks.update(ownerId, parent.id, { parentTaskId: other.id })).rejects.toBeInstanceOf(ConflictException);
-    expect((await prisma.task.findUniqueOrThrow({ where: { id: parent.id } })).parentTaskId).toBeNull();
-  });
-
-  it('stores and downloads file bytes across service instances with project access checks', async () => {
-    const { project, ownerId } = await createProject({ visibility: ProjectVisibility.PRIVATE });
-    const { access } = taskServices();
-    const files = new ProjectFileService(database, access);
-    const content = Buffer.from('Project attachment');
-    const file = await files.upload(ownerId, project.id, { originalname: 'plan.txt', mimetype: 'text/plain', size: content.length, buffer: content });
-    expect(file).not.toHaveProperty('content');
-    const reloaded = new ProjectFileService(database, new ProjectAccessService(database));
-    expect(await reloaded.list(ownerId, project.id)).toHaveLength(1);
-    expect(Buffer.from((await reloaded.download(ownerId, project.id, file.id)).content)).toEqual(content);
-    await expect(reloaded.download(crypto.randomUUID(), project.id, file.id)).rejects.toBeInstanceOf(ForbiddenException);
-    await reloaded.remove(ownerId, project.id, file.id);
-    expect(await reloaded.list(ownerId, project.id)).toEqual([]);
   });
 
   it('preserves rank order for twelve tasks in PostgreSQL', async () => {
@@ -203,48 +142,10 @@ integration("Project Service database integration", () => {
     expect(result[3].rank).toBe('custom');
   });
 
-  it('orders template and subsequently created tasks using the same rank format', async () => {
-    const { project, ownerId } = await createProject();
-    await prisma.$transaction((tx) => new ProjectTemplateService().initialize(tx, project.id, ownerId, ProjectTemplate.EVENT_PLAN, new Date()));
-    const { tasks } = taskServices();
-    await tasks.create(ownerId, project.id, { title: 'After template', rank: '4000' });
-    const result = await prisma.task.findMany({ where: { projectId: project.id, parentTaskId: null }, orderBy: { rank: 'asc' } });
-    expect(result.map((task) => task.rank)).toEqual(['1000', '2000', '3000', '4000'].map((rank) => rank.padStart(20, '0')));
-    expect(result[3].title).toBe('After template');
-  });
-
-  it('serves durable multipart attachments over HTTP with authentication and project isolation', async () => {
-    const { project, ownerId } = await createProject({ visibility: ProjectVisibility.PRIVATE });
-    const { tasks, access } = taskServices();
-    await withProjectHttpApp(tasks, new ProjectFileService(database, access), async (url) => {
-      const path = `${url}/api/projects/${project.id}/files`;
-      expect((await fetch(path)).status).toBe(401);
-      const headers = authHeaders(ownerId);
-      const form = new FormData();
-      form.append('file', new Blob(['Project attachment over HTTP']), 'plan.txt');
-      const uploaded = await fetch(path, { method: 'POST', headers, body: form });
-      expect(uploaded.status).toBe(201);
-      const { data: file } = await uploaded.json();
-      expect(file).toMatchObject({ name: 'plan.txt', size: 28 });
-      const listing = await fetch(path, { headers });
-      expect((await listing.json()).data).toHaveLength(1);
-      const download = await fetch(`${path}/${file.id}/download`, { headers });
-      expect(download.status).toBe(200);
-      expect(download.headers.get('content-disposition')).toContain('attachment;');
-      expect(await download.text()).toBe('Project attachment over HTTP');
-      expect((await fetch(`${path}/${file.id}/download`, { headers: authHeaders(crypto.randomUUID()) })).status).toBe(403);
-      const oversized = new FormData();
-      oversized.append('file', new Blob([new Uint8Array(10 * 1024 * 1024 + 1)]), 'too-large.bin');
-      expect((await fetch(path, { method: 'POST', headers, body: oversized })).status).toBe(413);
-      expect((await fetch(`${path}/${file.id}`, { method: 'DELETE', headers })).status).toBe(200);
-      expect((await fetch(`${path}/${file.id}/download`, { headers })).status).toBe(404);
-    });
-  });
-
   it('validates task HTTP payloads and persists timezone dates and explicit date removal', async () => {
     const { project, ownerId } = await createProject();
-    const { tasks, access } = taskServices();
-    await withProjectHttpApp(tasks, new ProjectFileService(database, access), async (url) => {
+    const { tasks } = taskServices();
+    await withProjectHttpApp(tasks, async (url) => {
       const headers = { ...authHeaders(ownerId), 'content-type': 'application/json' };
       const path = `${url}/api/projects/${project.id}/tasks`;
       const invalid = await fetch(path, { method: 'POST', headers, body: JSON.stringify({ title: 'No offset', startDate: '2026-09-05T09:00:00' }) });
@@ -263,24 +164,11 @@ integration("Project Service database integration", () => {
   });
 
   it("enforces the project permission matrix", async () => {
-    const { project, ownerId } = await createProject({
-      visibility: ProjectVisibility.PRIVATE,
-    });
-    const delegatedMemberId = crypto.randomUUID();
+    const { project, ownerId } = await createProject();
     const memberId = crypto.randomUUID();
     const now = new Date();
     await prisma.projectMember.createMany({
       data: [
-        {
-          id: crypto.randomUUID(),
-          projectId: project.id,
-          userId: delegatedMemberId,
-          role: ProjectRole.MEMBER,
-          status: ProjectMemberStatus.ACTIVE,
-          canManageSprints: true,
-          joinedAt: now,
-          updatedAt: now,
-        },
         {
           id: crypto.randomUUID(),
           projectId: project.id,
@@ -299,13 +187,7 @@ integration("Project Service database integration", () => {
       access.requireOwner(ownerId, project.id),
     ).resolves.toMatchObject({ id: project.id });
     await expect(
-      access.requireOwner(delegatedMemberId, project.id),
-    ).rejects.toBeInstanceOf(ForbiddenException);
-    await expect(
-      access.requireCanManageSprints(delegatedMemberId, project.id),
-    ).resolves.toMatchObject({ id: project.id });
-    await expect(
-      access.requireCanManageSprints(memberId, project.id),
+      access.requireOwner(memberId, project.id),
     ).rejects.toBeInstanceOf(ForbiddenException);
     await expect(
       access.requireReadAccess(crypto.randomUUID(), project.id),
@@ -390,48 +272,6 @@ integration("Project Service database integration", () => {
     ).resolves.toBe(1);
   });
 
-  it("allows only one active sprint under concurrent starts", async () => {
-    const { project, ownerId } = await createProject({
-      projectType: ProjectType.SOFTWARE_DEVELOPMENT,
-    });
-    const now = new Date();
-    const sprints = await Promise.all(
-      ["Sprint A", "Sprint B"].map((name) =>
-        prisma.sprint.create({
-          data: {
-            id: crypto.randomUUID(),
-            projectId: project.id,
-            name,
-            status: SprintStatus.PLANNED,
-            createdBy: ownerId,
-            createdAt: now,
-            updatedAt: now,
-          },
-        }),
-      ),
-    );
-    const access = {
-      requireCanManageSprints: jest.fn().mockResolvedValue(project),
-    } as unknown as ProjectAccessService;
-    const service = new SprintService(database, access);
-
-    const results = await Promise.allSettled(
-      sprints.map((sprint) => service.start(ownerId, sprint.id)),
-    );
-
-    expect(
-      results.filter((result) => result.status === "fulfilled"),
-    ).toHaveLength(1);
-    expect(
-      results.filter((result) => result.status === "rejected"),
-    ).toHaveLength(1);
-    await expect(
-      prisma.sprint.count({
-        where: { projectId: project.id, status: SprintStatus.ACTIVE },
-      }),
-    ).resolves.toBe(1);
-  });
-
   it("keeps one label mapping under concurrent attachment", async () => {
     const { project, ownerId } = await createProject();
     const task = await createTask(project.id, ownerId);
@@ -446,7 +286,11 @@ integration("Project Service database integration", () => {
     const taskPolicy = {
       requireEditable: jest.fn().mockResolvedValue(task),
     } as unknown as TaskPolicyService;
-    const activities = new ActivityService(database, taskPolicy);
+    const userProfiles = {
+      getProfileByUserId: jest.fn().mockResolvedValue(null),
+      getProfilesByUserIds: jest.fn().mockResolvedValue(new Map()),
+    } as unknown as import('../src/modules/user-profile-snapshot/user-profile-snapshot.service').UserProfileSnapshotService;
+    const activities = new ActivityService(database, taskPolicy, userProfiles);
     const service = new LabelService(
       database,
       {} as ProjectAccessService,

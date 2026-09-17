@@ -90,10 +90,6 @@ export class ProjectSocketInterceptor implements NestInterceptor {
         const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } });
         return { projectId: task?.projectId, taskId };
       }
-      if (params.sprintId) {
-        const sprint = await this.prisma.sprint.findUnique({ where: { id: params.sprintId }, select: { projectId: true } });
-        return { projectId: sprint?.projectId };
-      }
       if (params.checklistId) {
         const item = await this.prisma.taskChecklist.findUnique({
           where: { id: params.checklistId },

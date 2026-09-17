@@ -7,17 +7,6 @@ export enum ProjectStatus {
   ARCHIVED = "ARCHIVED",
 }
 
-export enum ProjectType {
-  GENERAL = "GENERAL",
-  SOFTWARE_DEVELOPMENT = "SOFTWARE_DEVELOPMENT",
-}
-
-export enum SprintStatus {
-  PLANNED = "PLANNED",
-  ACTIVE = "ACTIVE",
-  COMPLETED = "COMPLETED",
-}
-
 export enum ProjectRole {
   ADMIN = "ADMIN",
   MEMBER = "MEMBER",
@@ -75,7 +64,6 @@ export interface ProjectMember {
   canCreateTask: boolean;
   canEditOwnTask: boolean;
   canEditOthersTask: boolean;
-  canManageSprints: boolean;
   canManageMembers: boolean;
   canManageLabels: boolean;
   joinedAt: string;
@@ -86,7 +74,6 @@ export type ProjectMemberPermissions = Pick<
   | "canCreateTask"
   | "canEditOwnTask"
   | "canEditOthersTask"
-  | "canManageSprints"
   | "canManageMembers"
   | "canManageLabels"
 >;
@@ -174,8 +161,6 @@ export interface Task {
   taskNumber: number;
   parentTaskId?: string;
   childCount?: number;
-  autoCompleteSprint?: boolean;
-  sprintId?: string;
   title: string;
   description: string;
   priority: TaskPriority;
@@ -210,7 +195,6 @@ export interface Project {
   description?: string;
   ownerId: string;
   status: ProjectStatus;
-  projectType: ProjectType;
   startDate?: string;
   dueDate?: string;
   archived: boolean;
@@ -224,20 +208,4 @@ export interface Project {
   members: ProjectMember[];
   tasks: Task[];
   labels: TaskLabel[];
-}
-
-export interface Sprint {
-  id: string;
-  projectId: string;
-  name: string;
-  goal?: string;
-  status: SprintStatus;
-  startDate?: string;
-  endDate?: string;
-  startedAt?: string;
-  completedAt?: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-  tasks: Task[];
 }

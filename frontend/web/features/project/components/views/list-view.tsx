@@ -1,31 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { useMemo } from "react";
 import {
   type Task,
-  ProjectType,
-  TaskStatus,
 } from "@/features/project/types/project";
 import ProjectTaskRow from "../list/project-task-row";
 import TaskInlineCreator from "../list/task-inline-creator";
-import ListGroupPanel from "../list/list-group-panel";
-import { StatusCircles } from "../ui/status-circles";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ListView({
   tasks,
-  projectType = ProjectType.GENERAL,
   onTaskClick,
   onAddTaskInline,
   onAddSubtask,
-  onEditGroup,
-  onDeleteGroup,
-  onReorderTasks,
   onOpenChat,
 }: {
   tasks: Task[];
-  projectType?: ProjectType;
   onTaskClick?: (task: Task) => void;
   onAddTask?: () => void;
   onAddTaskInline?: (
@@ -39,11 +29,6 @@ export default function ListView({
   onOpenChat?: (task: Task) => void;
 }) {
   const intl = useAppIntl();
-  const isGeneralProject = projectType === ProjectType.GENERAL;
-  const [collapsedPanels, setCollapsedPanels] = useState<Set<string>>(
-    new Set(),
-  );
-  const [showCreateSprintBar, setShowCreateSprintBar] = useState(false);
 
   const activeTasks = useMemo(() => tasks.filter((t) => !t.archived), [tasks]);
   const activeTaskIds = useMemo(
@@ -72,223 +57,65 @@ export default function ListView({
     [activeTasks, activeTaskIds],
   );
 
-  // Group tasks
-  const groupTasks = useMemo(
-    () =>
-      rootTasks.filter(
-        (t) =>
-          childrenByParent.has(t.id) ||
-          (t.childCount && t.childCount > 0),
-      ),
-    [childrenByParent, rootTasks],
-  );
-
-  const groupTaskIds = useMemo(
-    () => new Set(groupTasks.map((t) => t.id)),
-    [groupTasks],
-  );
-  const backlogTasks = useMemo(
-    () => rootTasks.filter((t) => !groupTaskIds.has(t.id)),
-    [groupTaskIds, rootTasks],
-  );
-
-  const togglePanel = (id: string) => {
-    setCollapsedPanels((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const statusCounts = (list: Task[]) => {
-    let todo = 0,
-      progress = 0,
-      done = 0;
-    list.forEach((t) => {
-      if (t.status === TaskStatus.TODO) todo++;
-      else if (
-        t.status === TaskStatus.DONE ||
-        t.status === TaskStatus.CANCELLED
-      )
-        done++;
-      else progress++;
-    });
-    return { todo, progress, done };
-  };
-
   return (
     <div className="space-y-5 select-none pb-8">
-      {/* ── 1. GROUP PANELS (Root tasks that have children) ── */}
-      {!isGeneralProject &&
-        groupTasks.map((group) => (
-          <ListGroupPanel
-            key={group.id}
-            group={group}
-            childrenTasks={childrenByParent.get(group.id) || []}
-            isGeneralProject={isGeneralProject}
-            onTaskClick={onTaskClick}
-            onOpenChat={onOpenChat}
-            onEditGroup={onEditGroup}
-            onDeleteGroup={onDeleteGroup}
-            onReorderTasks={onReorderTasks}
-            onAddTaskInline={
-              onAddTaskInline
-                ? (title) => onAddTaskInline(title, group.id)
-                : undefined
-            }
-            onAddSubtask={onAddSubtask}
-          />
-        ))}
-
-      {/* ── 2. GENERAL PROJECT VIEW (Card list with subtasks) ── */}
-      {isGeneralProject && (
-        <div className="space-y-3">
-          {rootTasks.length > 0 ? (
-            rootTasks.map((task) => {
-              const children = childrenByParent.get(task.id) || [];
-              return (
-                <div
-                  key={task.id}
-                  className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
-                >
-                  <ProjectTaskRow
-                    task={task}
-                    onTaskClick={onTaskClick}
-                    onOpenChat={onOpenChat}
-                    onAddSubtask={
-                      onAddSubtask ? () => onAddSubtask(task) : undefined
-                    }
-                  />
-
-                  {children.length > 0 && (
-                    <div className="ml-8 border-l-2 border-slate-200 bg-slate-50/40">
-                      {children.map((child) => (
-                        <div
-                          key={child.id}
-                          className="border-b border-slate-100 pl-4 last:border-b-0"
-                        >
-                          <ProjectTaskRow
-                            task={child}
-                            onTaskClick={onTaskClick}
-                            onOpenChat={onOpenChat}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {onAddTaskInline && (
-                    <TaskInlineCreator
-              placeholder={intl.formatMessage({ id: "project.task.subtaskNamePlaceholder" })}
-              buttonLabel={intl.formatMessage({ id: "project.task.createSubtask" })}
-                      onSubmit={(title) => onAddTaskInline(title, task.id)}
-                    />
-                  )}
-                </div>
-              );
-            })
-          ) : (
-            <div className="rounded-md border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] py-8 text-center text-xs font-semibold text-slate-400">
-          {intl.formatMessage({ id: "project.task.empty" })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── 3. DEFAULT BACKLOG PANEL (Software project) ── */}
-      {!isGeneralProject && (
-        <div className="overflow-hidden rounded border border-slate-200 bg-[#FAFBFC] shadow-sm">
-          {/* Backlog Header */}
-          <div
-            onClick={() => togglePanel("__backlog__")}
-            className="flex cursor-pointer select-none items-center gap-2 bg-[#EBECF0] px-4 py-2 transition hover:bg-[#DFE1E6]"
-          >
-            <button
-              type="button"
-              className="grid h-5 w-5 place-items-center rounded text-slate-600"
-            >
-              {collapsedPanels.has("__backlog__") ? (
-                <ChevronRight className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-
-          <span className="text-sm font-bold text-[#172B4D]">
-            {intl.formatMessage({ id: "project.backlog.title" })}
-          </span>
-            <span className="text-xs font-medium text-slate-500">
-            {intl.formatMessage(
-              { id: "project.task.countParenthesized" },
-              { count: backlogTasks.length },
-            )}
-            </span>
-
-            <StatusCircles counts={statusCounts(backlogTasks)} />
-
-            <div
-              className="ml-auto flex items-center gap-2"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                type="button"
-                onClick={() => setShowCreateSprintBar(true)}
-                className="rounded border border-slate-300 bg-[#DFE1E6] px-2.5 py-1 text-xs font-bold text-[#42526E] shadow-sm transition hover:bg-[#C1C7D0]"
+      <div className="space-y-3">
+        {rootTasks.length > 0 ? (
+          rootTasks.map((task) => {
+            const children = childrenByParent.get(task.id) || [];
+            return (
+              <div
+                key={task.id}
+                className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
               >
-              {intl.formatMessage({ id: "project.sprint.create" })}
-              </button>
-            </div>
-          </div>
+                <ProjectTaskRow
+                  task={task}
+                  onTaskClick={onTaskClick}
+                  onOpenChat={onOpenChat}
+                  onAddSubtask={
+                    onAddSubtask ? () => onAddSubtask(task) : undefined
+                  }
+                />
 
-          {showCreateSprintBar && onAddTaskInline && (
-            <TaskInlineCreator
-            placeholder={intl.formatMessage({ id: "project.sprint.newNamePlaceholder" })}
-            buttonLabel={intl.formatMessage({ id: "project.sprint.create" })}
-              onSubmit={async (title) => {
-                await onAddTaskInline(title);
-                setShowCreateSprintBar(false);
-              }}
-            />
-          )}
+                {children.length > 0 && (
+                  <div className="ml-8 border-l-2 border-slate-200 bg-slate-50/40">
+                    {children.map((child) => (
+                      <div
+                        key={child.id}
+                        className="border-b border-slate-100 pl-4 last:border-b-0"
+                      >
+                        <ProjectTaskRow
+                          task={child}
+                          onTaskClick={onTaskClick}
+                          onOpenChat={onOpenChat}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
 
-          {/* Backlog Rows */}
-          {!collapsedPanels.has("__backlog__") && (
-            <div className="divide-y divide-slate-100 bg-white">
-              {backlogTasks.length > 0 ? (
-                backlogTasks.map((task) => (
-                  <ProjectTaskRow
-                    key={task.id}
-                    task={task}
-                    onTaskClick={onTaskClick}
-                    onOpenChat={onOpenChat}
+                {onAddTaskInline && (
+                  <TaskInlineCreator
+                    placeholder={intl.formatMessage({ id: "project.task.subtaskNamePlaceholder" })}
+                    buttonLabel={intl.formatMessage({ id: "project.task.createSubtask" })}
+                    onSubmit={(title) => onAddTaskInline(title, task.id)}
                   />
-                ))
-              ) : (
-                <div className="m-3 rounded-md border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] py-8 text-center text-xs font-semibold text-slate-400">
-                  {intl.formatMessage({ id: "project.backlog.emptyShort" })}
-                </div>
-              )}
-            </div>
-          )}
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="rounded-md border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] py-8 text-center text-xs font-semibold text-slate-400">
+            {intl.formatMessage({ id: "project.task.empty" })}
+          </div>
+        )}
+      </div>
 
-          {/* Inline Creator for default backlog */}
-          {!collapsedPanels.has("__backlog__") && onAddTaskInline && (
-            <TaskInlineCreator
-              placeholder={intl.formatMessage({ id: "project.task.titlePrompt" })}
-              buttonLabel={intl.formatMessage({ id: "app.create" })}
-              onSubmit={(title) => onAddTaskInline(title)}
-            />
-          )}
-        </div>
-      )}
-
-      {/* ── 4. BOTTOM CREATE BUTTON (General project) ── */}
-      {isGeneralProject && onAddTaskInline && (
+      {onAddTaskInline && (
         <div className="pt-2">
           <TaskInlineCreator
-          placeholder={intl.formatMessage({ id: "project.task.newNamePlaceholder" })}
-          buttonLabel={intl.formatMessage({ id: "project.task.create" })}
+            placeholder={intl.formatMessage({ id: "project.task.newNamePlaceholder" })}
+            buttonLabel={intl.formatMessage({ id: "project.task.create" })}
             onSubmit={(title) => onAddTaskInline(title)}
           />
         </div>

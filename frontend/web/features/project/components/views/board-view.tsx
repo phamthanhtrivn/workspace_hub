@@ -1,10 +1,11 @@
-"use client";
-
 import { type Task, TaskStatus } from "@/features/project/types/project";
-import { getTasksByStatus } from "@/lib/mock-data";
 import TaskCard from "../ui/task-card";
 import { Plus } from "lucide-react";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+
+function getTasksByStatus(tasks: Task[], status: TaskStatus): Task[] {
+  return tasks.filter((task) => task.status === status);
+}
 
 const COLUMNS: {
   status: TaskStatus;

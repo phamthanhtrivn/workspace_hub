@@ -16,7 +16,6 @@ type DelegatedPermission =
   | 'canCreateTask'
   | 'canEditOwnTask'
   | 'canEditOthersTask'
-  | 'canManageSprints'
   | 'canManageMembers'
   | 'canManageLabels';
 
@@ -129,18 +128,6 @@ export class ProjectAccessService {
     projectId: string,
   ): Promise<ProjectWithSetting> {
     return this.requireCanManageMembers(userId, projectId);
-  }
-
-  async requireCanManageSprints(
-    userId: string,
-    projectId: string,
-  ): Promise<ProjectWithSetting> {
-    return this.requireDelegatedPermission(
-      userId,
-      projectId,
-      'canManageSprints',
-      'You cannot manage sprints in this project',
-    );
   }
 
   async requireCanManageMembers(

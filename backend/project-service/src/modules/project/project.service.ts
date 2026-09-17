@@ -8,8 +8,6 @@ import {
   ProjectMemberStatus,
   ProjectRole,
   ProjectStatus,
-  ProjectType,
-  ProjectVisibility,
   TaskStatus,
 } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
@@ -19,12 +17,14 @@ import { ProjectAccessService } from './project-access.service';
 import { toMemberResponse, toProjectResponse } from './project.mapper';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
 import { paginate, PaginationQueryDto } from '../../common/pagination';
+import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
 export class ProjectService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
+    private readonly userProfiles: UserProfileSnapshotService,
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
@@ -41,8 +41,6 @@ export class ProjectService {
           color: dto.color,
           icon: dto.icon,
           description: dto.description,
-          projectType: ProjectType.GENERAL,
-          visibility: dto.visibility ?? ProjectVisibility.MEMBERS_ONLY,
           status: ProjectStatus.ACTIVE,
           ownerId: userId,
           archived: false,
@@ -68,7 +66,6 @@ export class ProjectService {
               canCreateTask: true,
               canEditOwnTask: true,
               canEditOthersTask: true,
-              canManageSprints: true,
               canManageMembers: true,
               canManageLabels: true,
               joinedAt: now,
@@ -80,7 +77,8 @@ export class ProjectService {
       return created;
     });
 
-    return toProjectResponse(project);
+    const ownerProfile = await this.userProfiles.getProfileByUserId(userId);
+    return toProjectResponse(project, {}, ownerProfile);
   }
 
   async findAll(userId: string, query: PaginationQueryDto) {
@@ -102,10 +100,11 @@ export class ProjectService {
       }),
     ]);
     const projectIds = projects.map((project) => project.id);
-    const taskCounts =
+    const ownerIds = [...new Set(projects.map((project) => project.ownerId))];
+    const [taskCounts, ownerProfiles] = await Promise.all([
       projectIds.length === 0
         ? []
-        : await this.prisma.task.groupBy({
+        : this.prisma.task.groupBy({
             by: ['projectId', 'status'],
             where: {
               projectId: { in: projectIds },
@@ -113,7 +112,10 @@ export class ProjectService {
               deletedAt: null,
             },
             _count: { _all: true },
-          });
+          }),
+      this.userProfiles.getProfilesByUserIds(ownerIds),
+    ]);
+
     const statsByProject = new Map<
       string,
       { total: number; completed: number }
@@ -131,10 +133,15 @@ export class ProjectService {
     return paginate(
       projects.map((project) => {
         const stats = statsByProject.get(project.id);
-        return toProjectResponse(project, {
-          totalTaskCount: stats?.total ?? 0,
-          completedTaskCount: stats?.completed ?? 0,
-        });
+        const ownerProfile = ownerProfiles.get(project.ownerId);
+        return toProjectResponse(
+          project,
+          {
+            totalTaskCount: stats?.total ?? 0,
+            completedTaskCount: stats?.completed ?? 0,
+          },
+          ownerProfile,
+        );
       }),
       total,
       query,
@@ -143,7 +150,8 @@ export class ProjectService {
 
   async findOne(userId: string, projectId: string) {
     const project = await this.access.requireReadAccess(userId, projectId);
-    return toProjectResponse(project);
+    const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
+    return toProjectResponse(project, {}, ownerProfile);
   }
 
   async update(userId: string, projectId: string, dto: UpdateProjectDto) {
@@ -169,7 +177,6 @@ export class ProjectService {
     if (dto.color !== undefined) data.color = dto.color;
     if (dto.icon !== undefined) data.icon = dto.icon;
     if (dto.description !== undefined) data.description = dto.description;
-    if (dto.visibility !== undefined) data.visibility = dto.visibility;
     if (dto.startDate !== undefined)
       data.startDate = this.toDate(dto.startDate);
     if (dto.dueDate !== undefined) data.dueDate = this.toDate(dto.dueDate);
@@ -197,7 +204,8 @@ export class ProjectService {
       rethrowWriteConflict(error, 'Project was changed by another request');
     }
 
-    return toProjectResponse(project);
+    const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
+    return toProjectResponse(project, {}, ownerProfile);
   }
 
   async archive(userId: string, projectId: string): Promise<void> {
@@ -223,7 +231,12 @@ export class ProjectService {
       orderBy: { joinedAt: 'asc' },
     });
 
-    return members.map(toMemberResponse);
+    const userIds = members.map((member) => member.userId);
+    const profiles = await this.userProfiles.getProfilesByUserIds(userIds);
+
+    return members.map((member) =>
+      toMemberResponse(member, profiles.get(member.userId)),
+    );
   }
 
   private toDate(value?: string | null): Date | null | undefined {

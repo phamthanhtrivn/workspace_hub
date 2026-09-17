@@ -20,7 +20,6 @@ const member: ProjectMember = {
   canCreateTask: true,
   canEditOwnTask: true,
   canEditOthersTask: false,
-  canManageSprints: false,
   canManageMembers: false,
   canManageLabels: false,
   joinedAt: "2026-09-12T00:00:00.000Z",
@@ -41,7 +40,7 @@ describe("MemberPermissionsDialog", () => {
     expect(screen.getByText("View and discuss")).toBeTruthy();
     expect(screen.getByText("Contribute to assigned tasks")).toBeTruthy();
     expect(screen.getByText("Additional permissions")).toBeTruthy();
-    expect(screen.getByText("2/6 enabled")).toBeTruthy();
+    expect(screen.getByText("2/5 enabled")).toBeTruthy();
     expect(
       screen.getByText(/based on who created the task, not who is assigned/i),
     ).toBeTruthy();
@@ -58,7 +57,7 @@ describe("MemberPermissionsDialog", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("checkbox", { name: /manage sprints/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /manage members/i }));
     fireEvent.click(screen.getByRole("button", { name: "Save permissions" }));
 
     await waitFor(() =>
@@ -66,8 +65,7 @@ describe("MemberPermissionsDialog", () => {
         canCreateTask: true,
         canEditOwnTask: true,
         canEditOthersTask: false,
-        canManageSprints: true,
-        canManageMembers: false,
+        canManageMembers: true,
         canManageLabels: false,
       }),
     );

@@ -11,7 +11,6 @@ export interface ProjectPermissions {
   canManagePermissions: boolean;
   canInviteMembers: boolean;
   canManageMembers: boolean;
-  canManageSprints: boolean;
   canManageLabels: boolean;
   canCreateTask: boolean;
   canEditTask: (task: Pick<Task, "createdBy">) => boolean;
@@ -23,7 +22,6 @@ export const NO_PROJECT_PERMISSIONS: ProjectPermissions = {
   canManagePermissions: false,
   canInviteMembers: false,
   canManageMembers: false,
-  canManageSprints: false,
   canManageLabels: false,
   canCreateTask: false,
   canEditTask: () => false,
@@ -54,7 +52,6 @@ export function getProjectPermissions(
     canManagePermissions: canManageProject,
     canInviteMembers: canManageProject || Boolean(membership?.canManageMembers),
     canManageMembers: canManageProject || Boolean(membership?.canManageMembers),
-    canManageSprints: canManageProject || Boolean(membership?.canManageSprints),
     canManageLabels: canManageProject || Boolean(membership?.canManageLabels),
     canCreateTask: canManageProject || Boolean(membership?.canCreateTask),
     canEditTask,

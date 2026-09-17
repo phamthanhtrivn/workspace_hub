@@ -2,7 +2,6 @@ import { api } from "@/lib/axios";
 import {
   ProjectRole,
   ProjectStatus,
-  ProjectType,
   type Project,
   type ProjectMember,
   type ProjectSetting,
@@ -26,7 +25,6 @@ interface ProjectApiModel {
   description?: string | null;
   ownerId: string;
   status: ProjectStatus;
-  projectType?: ProjectType | null;
   startDate?: string | null;
   dueDate?: string | null;
   archived: boolean;
@@ -40,11 +38,13 @@ interface ProjectApiModel {
 interface ProjectMemberApiModel {
   id: string;
   userId: string;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+  email?: string | null;
   role: ProjectRole;
   canCreateTask: boolean;
   canEditOwnTask: boolean;
   canEditOthersTask: boolean;
-  canManageSprints: boolean;
   canManageMembers: boolean;
   canManageLabels: boolean;
   joinedAt?: string | null;
@@ -92,7 +92,6 @@ function normalizeProject(project: ProjectApiModel): Project {
     description: project.description || "",
     ownerId: project.ownerId,
     status: project.status,
-    projectType: ProjectType.GENERAL,
     startDate: project.startDate || undefined,
     dueDate: project.dueDate || undefined,
     archived: project.archived,
@@ -123,13 +122,17 @@ function normalizeMember(
     id: member.id,
     projectId,
     userId: member.userId,
-    displayName: profile?.fullName?.trim() || profile?.email || member.userId,
-    avatarUrl: profile?.avatarUrl || undefined,
+    displayName:
+      profile?.fullName?.trim() ||
+      member.displayName?.trim() ||
+      profile?.email ||
+      member.email ||
+      member.userId,
+    avatarUrl: profile?.avatarUrl || member.avatarUrl || undefined,
     role: member.role,
     canCreateTask: member.canCreateTask ?? false,
     canEditOwnTask: member.canEditOwnTask ?? false,
     canEditOthersTask: member.canEditOthersTask ?? false,
-    canManageSprints: member.canManageSprints ?? false,
     canManageMembers: member.canManageMembers ?? false,
     canManageLabels: member.canManageLabels ?? false,
     joinedAt: member.joinedAt || new Date().toISOString(),
@@ -216,9 +219,14 @@ export async function getProjectMembers(
 
   if (members.length === 0) return [];
 
-  const profilesById = await getUserProfiles(
-    members.map((member) => member.userId),
-  );
+  const missingUserIds = members
+    .filter((member) => !member.displayName)
+    .map((member) => member.userId);
+
+  const profilesById =
+    missingUserIds.length > 0
+      ? await getUserProfiles(missingUserIds)
+      : new Map<string, UserProfileApiModel>();
 
   return members.map((member) =>
     normalizeMember(member, projectId, profilesById.get(member.userId)),

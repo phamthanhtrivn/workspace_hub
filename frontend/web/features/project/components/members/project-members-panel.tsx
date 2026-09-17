@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { confirmProjectAction } from "@/features/project/project-alert";
 import {
   type ProjectMember,
+  type ProjectMemberPermissions,
   ProjectRole,
 } from "@/features/project/types/project";
 import { Avatar } from "../ui/avatar-stack";

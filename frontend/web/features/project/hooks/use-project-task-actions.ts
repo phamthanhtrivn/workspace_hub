@@ -36,14 +36,12 @@ interface ProjectTaskActionOptions {
   members: ProjectMember[];
   permissions: ProjectPermissions;
   editingTask: Task | null;
-  targetSprintId?: string;
   setSelectedTask: Dispatch<SetStateAction<Task | null>>;
   setStatusOverrides: Dispatch<SetStateAction<Record<string, TaskStatus>>>;
   rejectChange: (taskId: string) => boolean;
   closeTaskForm: () => void;
-  createTask: (payload: TaskFormValues & { sprintId?: string }) => Promise<Task>;
+  createTask: (payload: TaskFormValues) => Promise<Task>;
   updateTask: (input: { taskId: string; payload: UpdateTaskPayload }) => Promise<unknown>;
-  addTasksToSprint: (input: { sprintId: string; taskIds: string[] }) => Promise<unknown>;
 }
 
 function resolveAssignees(
@@ -121,7 +119,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         await options.updateTask({ taskId: options.editingTask.id, payload });
         toast.success(intl.formatMessage({ id: "project.task.updated" }));
       } else {
-        await options.createTask({ ...values, sprintId: options.targetSprintId });
+        await options.createTask(values);
         toast.success(intl.formatMessage({ id: "project.task.created" }));
       }
       options.closeTaskForm();

@@ -15,8 +15,6 @@ model Project {
   icon        String?            @db.VarChar(10)
   ownerId     String             @map("owner_id") @db.Uuid
   status      String             @db.VarChar(20)
-  projectType String             @default("GENERAL") @db.VarChar(30) @map("project_type")
-  visibility  String             @default("MEMBERS_ONLY") @db.VarChar(20)
   startDate   DateTime?          @map("start_date")
   dueDate     DateTime?          @map("due_date")
   archived    Boolean            @default(false)
@@ -28,32 +26,13 @@ model Project {
   setting     ProjectSetting?
   members     ProjectMember[]
   tasks       Task[]
-  sprints     Sprint[]
   invitations ProjectInvitation[]
   labels      TaskLabel[]
   dependencies TaskDependency[]
-  files       ProjectFile[]
 
   @@index([ownerId, archived], map: "idx_projects_owner_archived")
   @@index([status, archived], map: "idx_projects_status_archived")
   @@map("projects")
-}
-
-model ProjectFile {
-  id         String   @id @db.Uuid
-  projectId  String   @map("project_id") @db.Uuid
-  sprintId   String?  @map("sprint_id") @db.Uuid
-  name       String   @db.VarChar(255)
-  mimeType   String   @map("mime_type") @db.VarChar(255)
-  sizeBytes  Int      @map("size_bytes")
-  content    Bytes
-  uploadedBy String   @map("uploaded_by") @db.Uuid
-  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sprint     Sprint?  @relation(fields: [sprintId], references: [id], onDelete: SetNull)
-
-  @@index([projectId, createdAt(sort: Desc)], map: "idx_project_files_project_created")
-  @@map("project_files")
 }
 
 model ProjectSetting {
@@ -78,7 +57,6 @@ model ProjectMember {
   canCreateTask         Boolean   @default(false) @map("can_create_task")
   canEditOwnTask        Boolean   @default(false) @map("can_edit_own_task")
   canEditOthersTask     Boolean   @default(false) @map("can_edit_others_task")
-  canManageSprints      Boolean   @default(false) @map("can_manage_sprints")
   canManageMembers      Boolean   @default(false) @map("can_manage_members")
   canManageLabels       Boolean   @default(false) @map("can_manage_labels")
   joinedAt              DateTime  @map("joined_at")
@@ -113,14 +91,11 @@ model Task {
   estimatedMinutes   Int          @default(0) @map("estimated_minutes")
   rank               String?      @db.VarChar(100)
   archived           Boolean      @default(false)
-  autoCompleteSprint Boolean      @default(false) @map("auto_complete_sprint")
-  sprintId           String?      @map("sprint_id") @db.Uuid
   createdAt          DateTime     @map("created_at")
   updatedAt          DateTime?    @map("updated_at")
   version            BigInt       @default(0)
 
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  sprint    Sprint? @relation(fields: [sprintId], references: [id], onDelete: SetNull)
   parent    Task?   @relation("TaskHierarchy", fields: [parentTaskId], references: [id], onDelete: SetNull)
   children  Task[]  @relation("TaskHierarchy")
   comments  TaskComment[]
@@ -134,33 +109,9 @@ model Task {
   @@index([projectId, archived, rank, createdAt], map: "idx_tasks_project_active_rank")
   @@index([projectId, dueDate], map: "idx_tasks_project_due")
   @@index([parentTaskId], map: "idx_tasks_parent")
-  @@index([projectId, sprintId, archived], map: "idx_tasks_project_sprint_archived")
   @@unique([id, projectId], map: "uk_tasks_id_project")
   @@unique([projectId, taskNumber], map: "uk_tasks_project_task_number")
   @@map("tasks")
-}
-
-model Sprint {
-  id          String    @id @default(uuid()) @db.Uuid
-  projectId   String    @map("project_id") @db.Uuid
-  name        String    @db.VarChar(200)
-  goal        String?
-  status      String    @default("PLANNED") @db.VarChar(20)
-  startDate   DateTime? @map("start_date")
-  endDate     DateTime? @map("end_date")
-  startedAt   DateTime? @map("started_at")
-  completedAt DateTime? @map("completed_at")
-  createdBy   String    @map("created_by") @db.Uuid
-  createdAt   DateTime  @map("created_at")
-  updatedAt   DateTime  @map("updated_at")
-  version     BigInt    @default(0)
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks   Task[]
-  files   ProjectFile[]
-
-  @@index([projectId, status, startDate], map: "idx_project_sprints_project_status_start")
-  @@map("project_sprints")
 }
 
 model TaskChecklist {
@@ -299,4 +250,14 @@ model NotificationOutbox {
   processedAt   DateTime? @map("processed_at")
 
   @@map("notification_outbox")
+}
+
+model UserProfileSnapshot {
+  userId    String   @id @map("user_id") @db.Uuid
+  email     String?
+  fullName  String?  @map("full_name")
+  avatarUrl String?  @map("avatar_url")
+  syncedAt  DateTime @default(now()) @updatedAt @map("synced_at")
+
+  @@map("user_profile_snapshots")
 }

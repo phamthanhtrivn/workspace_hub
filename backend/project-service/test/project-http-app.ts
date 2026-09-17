@@ -6,10 +6,8 @@ import { JwtIdentityGuard } from '../src/common/auth/jwt-identity.guard';
 import { AccessTokenVerifier } from '../src/common/auth/access-token-verifier';
 import { RuntimeConfigService } from '../src/common/config/runtime-config.service';
 import { GlobalExceptionFilter } from '../src/common/filters/global-exception.filter';
-import { ProjectFileController } from '../src/modules/project/project-file.controller';
-import { ProjectFileService } from '../src/modules/project/project-file.service';
-import { TaskController } from '../src/modules/project/task.controller';
-import { TaskService } from '../src/modules/project/task.service';
+import { TaskController } from '../src/modules/task/task.controller';
+import { TaskService } from '../src/modules/task/task.service';
 
 const secret = 'isolated-project-http-test-secret-32-bytes';
 
@@ -20,10 +18,10 @@ export function authHeaders(userId: string) {
   return { authorization: `Bearer ${header}.${payload}.${signature}`, 'x-user-id': userId };
 }
 
-export async function withProjectHttpApp(tasks: TaskService, files: ProjectFileService, check: (url: string) => Promise<void>) {
+export async function withProjectHttpApp(tasks: TaskService, check: (url: string) => Promise<void>) {
   const module = await Test.createTestingModule({
-    controllers: [TaskController, ProjectFileController],
-    providers: [{ provide: TaskService, useValue: tasks }, { provide: ProjectFileService, useValue: files }],
+    controllers: [TaskController],
+    providers: [{ provide: TaskService, useValue: tasks }],
   }).compile();
   const app = module.createNestApplication();
   const config = { jwtSecret: secret, jwtIssuer: 'workspace-hub' } as RuntimeConfigService;

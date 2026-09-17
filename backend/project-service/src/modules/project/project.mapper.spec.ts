@@ -1,8 +1,8 @@
-import { ProjectStatus, ProjectType, ProjectVisibility } from './project.enums';
+import { ProjectStatus } from './project.enums';
 import { toProjectResponse } from './project.mapper';
 
 describe('project mapper', () => {
-  it('keeps the project type and metadata in the public response', () => {
+  it('keeps the project metadata in the public response', () => {
     const project = {
       id: 'project-id',
       name: 'WorkspaceHub',
@@ -11,8 +11,6 @@ describe('project mapper', () => {
       description: 'Project description',
       ownerId: 'owner-id',
       status: ProjectStatus.ACTIVE,
-      projectType: ProjectType.SOFTWARE_DEVELOPMENT,
-      visibility: ProjectVisibility.MEMBERS_ONLY,
       startDate: null,
       dueDate: null,
       archived: false,
@@ -27,8 +25,6 @@ describe('project mapper', () => {
       completedTaskCount: 2,
     })).toMatchObject({
       id: 'project-id',
-      projectType: ProjectType.SOFTWARE_DEVELOPMENT,
-      visibility: ProjectVisibility.MEMBERS_ONLY,
       description: 'Project description',
       totalTaskCount: 5,
       completedTaskCount: 2,

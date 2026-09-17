@@ -2,13 +2,9 @@ import BoardView from "../views/board-view";
 import { useAppSelector } from "@/store/store";
 import CalendarView from "../views/calendar-view";
 import GanttView from "../views/gantt-view";
-import GeneralSummaryView from "../views/general-summary-view";
 import ListView from "../views/list-view";
 import ProjectMembersPanel from "../members/project-members-panel";
 import ProjectMembersView from "../views/project-members-view";
-import SoftwareBacklogView, {
-  type SprintCreateValues,
-} from "../views/software-backlog-view";
 import SummaryView from "../views/summary-view";
 import type { ProjectPermissions } from "@/features/project/project-permissions";
 import type { ProjectViewMode } from "./project-detail-sidebar";
@@ -17,7 +13,6 @@ import {
   TaskStatus,
   type Project,
   type ProjectMember,
-  type Sprint,
   type Task,
   type TaskDependency,
 } from "@/features/project/types/project";
@@ -28,7 +23,6 @@ export type OpenProjectTaskForm = (
   startDate?: string,
   allDay?: boolean,
   parentTaskId?: string,
-  sprintId?: string,
 ) => void;
 
 interface ProjectDetailContentProps {
@@ -37,34 +31,16 @@ interface ProjectDetailContentProps {
   viewMode: ProjectViewMode;
   tasks: Task[];
   members: ProjectMember[];
-  sprints: Sprint[];
   dependencies: TaskDependency[];
-  isSoftwareProject: boolean;
   isLoading: boolean;
   isError: boolean;
   showMembers: boolean;
-  isSprintBusy: boolean;
   permissions: ProjectPermissions;
   openTaskForm: OpenProjectTaskForm;
   onTaskSelect: (task: Task) => void;
   onChatOpen: (task: Task) => void;
   onTaskMove: (taskId: string, status: TaskStatus) => Promise<void>;
-  onCreateSprintTask: (sprintId: string, title: string) => Promise<void>;
-  onCreateSprint: (values: SprintCreateValues) => Promise<void>;
-  onUpdateSprint: (
-    sprintId: string,
-    values: SprintCreateValues,
-  ) => Promise<void>;
-  onAddTasksToSprint: (sprintId: string, taskIds: string[]) => Promise<void>;
-  onBulkUpdateTasks: (taskIds: string[], status: TaskStatus) => Promise<void>;
-  onStartSprint: (sprintId: string) => Promise<void>;
-  onCompleteSprint: (sprintId: string) => Promise<void>;
-  onReopenSprint: (sprintId: string) => Promise<void>;
-  onRemoveTaskFromSprint: (sprintId: string, taskId: string) => Promise<void>;
   onCreateTaskInline: (title: string, parentTaskId?: string) => Promise<void>;
-  onEditGroup: (task: Task) => void;
-  onDeleteGroup: (task: Task) => Promise<void>;
-  onReorderTasks: (group: Task, orderedTasks: Task[]) => Promise<void>;
   onViewChange?: (view: ProjectViewMode) => void;
   onTaskReschedule?: (taskId: string, targetDateKey: string) => Promise<void>;
 }
@@ -101,14 +77,8 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
       );
 
     if (props.viewMode === "summary") {
-      return props.isSoftwareProject ? (
-        <SummaryView
-          tasks={props.tasks}
-          members={props.members}
-          sprints={props.sprints}
-        />
-      ) : (
-        <GeneralSummaryView tasks={props.tasks} members={props.members} />
+      return (
+        <SummaryView tasks={props.tasks} members={props.members} />
       );
     }
     if (props.viewMode === "board") {
@@ -123,47 +93,10 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
         />
       );
     }
-    if (props.viewMode === "list" && props.isSoftwareProject) {
-      return (
-        <SoftwareBacklogView
-          projectId={props.projectId}
-          ownerId={props.project.ownerId}
-          currentUserId={userId}
-          canContribute={Boolean(permissions.role)}
-          tasks={props.tasks}
-          sprints={props.sprints}
-          onTaskClick={props.onTaskSelect}
-          onOpenChat={props.onChatOpen}
-          onCreateTask={(sprintId) =>
-            props.openTaskForm(
-              TaskStatus.TODO,
-              undefined,
-              false,
-              undefined,
-              sprintId,
-            )
-          }
-          onCreateSprintTask={props.onCreateSprintTask}
-          onCreateSprint={props.onCreateSprint}
-          onUpdateSprint={props.onUpdateSprint}
-          onAddTasksToSprint={props.onAddTasksToSprint}
-          onBulkUpdateTasks={props.onBulkUpdateTasks}
-          onStartSprint={props.onStartSprint}
-          onCompleteSprint={props.onCompleteSprint}
-          onReopenSprint={props.onReopenSprint}
-          onRemoveTaskFromSprint={props.onRemoveTaskFromSprint}
-          isBusy={props.isSprintBusy}
-          canCreateTask={permissions.canCreateTask}
-          canManageSprints={permissions.canManageSprints}
-          canEditTask={permissions.canEditTask}
-        />
-      );
-    }
     if (props.viewMode === "list") {
       return (
         <ListView
           tasks={props.tasks}
-          projectType={props.project.projectType}
           onTaskClick={props.onTaskSelect}
           onOpenChat={props.onChatOpen}
           onAddTask={
@@ -177,15 +110,6 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
               ? (task) =>
                   props.openTaskForm(TaskStatus.TODO, undefined, false, task.id)
               : undefined
-          }
-          onEditGroup={
-            permissions.canManageProject ? props.onEditGroup : undefined
-          }
-          onDeleteGroup={
-            permissions.canManageProject ? props.onDeleteGroup : undefined
-          }
-          onReorderTasks={
-            permissions.canManageProject ? props.onReorderTasks : undefined
           }
         />
       );
@@ -233,7 +157,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           canInvite={permissions.canInviteMembers}
           canRemoveMembers={permissions.canManageMembers}
           canManagePermissions={permissions.canManagePermissions}
-          currentUserId={userId}
+          currentUserId={userId ?? undefined}
         />
       );
     }

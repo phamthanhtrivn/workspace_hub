@@ -220,8 +220,6 @@ function DraggableUnscheduledTask({
   return (
     <div
       ref={setNodeRef}
-      role="button"
-      tabIndex={0}
       {...attributes}
       {...listeners}
       onClick={onClick}

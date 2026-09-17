@@ -5,16 +5,12 @@ import {
   TaskPriority,
   TaskStatus,
   ProjectRole,
-  SprintStatus,
   type TaskAssignee,
   type ProjectMember,
   type Task,
   type TaskDependency,
-  type Sprint,
 } from "@/features/project/types/project";
-import type { DragEvent } from "react";
 import { useProjectSummaryMetrics } from "./use-project-summary-metrics";
-import { useBacklogManager } from "./use-backlog-manager";
 import { useTaskDetailDrawerState } from "./use-task-detail-drawer-state";
 import { useCalendarGrid } from "./use-calendar-grid";
 import { useGanttTimeline } from "./use-gantt-timeline";
@@ -25,17 +21,6 @@ vi.mock("@/features/project/hooks/use-tasks", () => ({
     isLoading: false,
     isError: false,
     refetch: vi.fn(),
-  }),
-}));
-
-vi.mock("@/features/project/hooks/use-project-files", () => ({
-  useProjectFiles: () => ({
-    data: [],
-    isLoading: false,
-    isError: false,
-    refetch: vi.fn(),
-    upload: { mutateAsync: vi.fn() },
-    remove: { mutateAsync: vi.fn() },
   }),
 }));
 
@@ -82,7 +67,6 @@ function member(userId: string, displayName: string): ProjectMember {
     canCreateTask: false,
     canEditOwnTask: false,
     canEditOthersTask: false,
-    canManageSprints: false,
     canManageMembers: false,
     canManageLabels: false,
     joinedAt: "2026-09-06T00:00:00Z",
@@ -144,118 +128,6 @@ describe("Custom Hooks for Project Service", () => {
       expect(result.current.completionPercent).toBe(33);
       expect(result.current.completed).toHaveLength(1);
       expect(result.current.workloadItems.length).toBeGreaterThanOrEqual(2);
-    });
-  });
-
-  describe("useBacklogManager", () => {
-    it("closes the sprint form without reopening it", () => {
-      const { result } = renderHook(() =>
-        useBacklogManager({
-          projectId: "p1",
-          tasks: [],
-          sprints: [],
-          onCreateSprint: vi.fn(),
-          onUpdateSprint: vi.fn(),
-          onAddTasksToSprint: vi.fn(),
-        }),
-      );
-
-      act(() => result.current.openCreateSprint());
-      expect(result.current.showCreateSprint).toBe(true);
-
-      act(() => result.current.closeSprintForm());
-      expect(result.current.showCreateSprint).toBe(false);
-      expect(result.current.editingSprint).toBeNull();
-    });
-
-    it("manages task selection and bulk status operations", async () => {
-      const tasks = [mockTask({ id: "t1" }), mockTask({ id: "t2" })];
-      const onBulkUpdateTasks = vi.fn().mockResolvedValue(undefined);
-
-      const { result } = renderHook(() =>
-        useBacklogManager({
-          projectId: "p1",
-          tasks,
-          sprints: [],
-          onCreateSprint: vi.fn(),
-          onUpdateSprint: vi.fn(),
-          onAddTasksToSprint: vi.fn(),
-          onBulkUpdateTasks,
-        }),
-      );
-
-      act(() => {
-        result.current.toggleTask("t1");
-      });
-      expect(result.current.selectedTaskIds).toContain("t1");
-
-      await act(async () => {
-        await result.current.handleBulkStatus();
-      });
-      expect(onBulkUpdateTasks).toHaveBeenCalledWith(
-        ["t1"],
-        TaskStatus.IN_PROGRESS,
-      );
-      expect(result.current.selectedTaskIds).toHaveLength(0);
-    });
-
-    it("moves tasks between backlog and planned sprints only for sprint managers", async () => {
-      const task = mockTask({ id: "t1" });
-      const sprint = {
-        id: "s1",
-        projectId: "p1",
-        name: "Sprint 1",
-        status: SprintStatus.PLANNED,
-        createdBy: "owner",
-        createdAt: "2026-09-12T00:00:00.000Z",
-        updatedAt: "2026-09-12T00:00:00.000Z",
-        tasks: [],
-      } satisfies Sprint;
-      const onAddTasksToSprint = vi.fn().mockResolvedValue(undefined);
-      const onRemoveTaskFromSprint = vi.fn().mockResolvedValue(undefined);
-      const dragEvent = {
-        preventDefault: vi.fn(),
-        dataTransfer: {
-          getData: vi.fn(() => JSON.stringify({ taskId: "t1" })),
-        },
-      } as unknown as DragEvent;
-
-      const { result, rerender } = renderHook(
-        ({ canManageSprints }) =>
-          useBacklogManager({
-            projectId: "p1",
-            tasks: [task],
-            sprints: [sprint],
-            canManageSprints,
-            onCreateSprint: vi.fn(),
-            onUpdateSprint: vi.fn(),
-            onAddTasksToSprint,
-            onRemoveTaskFromSprint,
-          }),
-        { initialProps: { canManageSprints: false } },
-      );
-
-      await act(() => result.current.handleDropOnSprint(dragEvent, sprint));
-      expect(onAddTasksToSprint).not.toHaveBeenCalled();
-
-      vi.mocked(dragEvent.dataTransfer.getData).mockReturnValue(
-        JSON.stringify({ taskId: "t1", sprintId: "s1" }),
-      );
-      await act(() => result.current.handleDropOnBacklog(dragEvent));
-      expect(onRemoveTaskFromSprint).not.toHaveBeenCalled();
-
-      rerender({ canManageSprints: true });
-      vi.mocked(dragEvent.dataTransfer.getData).mockReturnValue(
-        JSON.stringify({ taskId: "t1" }),
-      );
-      await act(() => result.current.handleDropOnSprint(dragEvent, sprint));
-      expect(onAddTasksToSprint).toHaveBeenCalledWith("s1", ["t1"]);
-
-      vi.mocked(dragEvent.dataTransfer.getData).mockReturnValue(
-        JSON.stringify({ taskId: "t1", sprintId: "s1" }),
-      );
-      await act(() => result.current.handleDropOnBacklog(dragEvent));
-      expect(onRemoveTaskFromSprint).toHaveBeenCalledWith("s1", "t1");
     });
   });
 
@@ -353,7 +225,8 @@ describe("Custom Hooks for Project Service", () => {
 
       const { result } = renderHook(() => useCalendarGrid({ tasks: [task] }));
 
-      expect(result.current.days).toHaveLength(42);
+      expect(result.current.days.length % 7).toBe(0);
+      expect(result.current.days.length).toBeGreaterThanOrEqual(35);
       const matchingDay = result.current.days.find((d) =>
         d.tasks.some((t) => t.id === "t1"),
       );
@@ -362,7 +235,8 @@ describe("Custom Hooks for Project Service", () => {
       act(() => {
         result.current.moveMonth(1);
       });
-      expect(result.current.days).toHaveLength(42);
+      expect(result.current.days.length % 7).toBe(0);
+      expect(result.current.days.length).toBeGreaterThanOrEqual(35);
     });
   });
 

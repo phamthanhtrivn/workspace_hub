@@ -3,7 +3,6 @@ import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   ProjectMemberStatus,
   ProjectRole,
-  ProjectVisibility,
 } from './project.enums';
 import { ProjectAccessService } from './project-access.service';
 
@@ -25,7 +24,6 @@ describe('ProjectAccessService member permissions', () => {
       ownerId,
       archived: false,
       status: 'ACTIVE',
-      visibility: ProjectVisibility.MEMBERS_ONLY,
       setting: {
         allowMemberCreateTask: false,
         allowMemberEditOwnTask: false,
@@ -40,7 +38,6 @@ describe('ProjectAccessService member permissions', () => {
       canCreateTask: true,
       canEditOwnTask: true,
       canEditOthersTask: true,
-      canManageSprints: true,
       canManageMembers: true,
       canManageLabels: true,
     });
@@ -104,13 +101,12 @@ describe('ProjectAccessService member permissions', () => {
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
-  it('does not grant anonymous access to legacy PUBLIC project data', async () => {
+  it('does not grant anonymous access to nonexistent project data', async () => {
     findProject.mockResolvedValue({
       id: projectId,
       ownerId,
       archived: false,
       status: 'ACTIVE',
-      visibility: 'PUBLIC',
       setting: null,
     });
     findMember.mockResolvedValue(null);
@@ -126,7 +122,6 @@ describe('ProjectAccessService member permissions', () => {
       ownerId,
       archived: true,
       status: 'ARCHIVED',
-      visibility: ProjectVisibility.MEMBERS_ONLY,
       setting: null,
     });
 

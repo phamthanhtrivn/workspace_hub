@@ -12,5 +12,3 @@ export { default as TaskCard } from "./task-card";
 export * from "./task-card";
 export { default as ProjectCard } from "./project-card";
 export * from "./project-card";
-export { default as ProjectFilePanel, FilePickerButton, formatFileSize } from "./project-file-panel";
-export * from "./project-file-panel";

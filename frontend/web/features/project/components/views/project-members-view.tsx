@@ -472,13 +472,6 @@ export default function ProjectMembersView({
                                   })}
                                 </span>
                               )}
-                              {member.canManageSprints && (
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-                                  {intl.formatMessage({
-                                    id: "project.permission.manageSprints",
-                                  })}
-                                </span>
-                              )}
                               {member.canManageMembers && (
                                 <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
                                   {intl.formatMessage({
@@ -487,7 +480,6 @@ export default function ProjectMembersView({
                                 </span>
                               )}
                               {!member.canCreateTask &&
-                                !member.canManageSprints &&
                                 !member.canManageMembers && (
                                   <span className="text-[11px] text-slate-400">
                                     {intl.formatMessage({

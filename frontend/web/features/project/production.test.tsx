@@ -25,25 +25,19 @@ import {
   useDeleteLabel,
 } from "./hooks/use-labels";
 import * as labelApi from "./api/label.api";
-import { createProjectGroupActions } from "./project-group-actions";
 import { getProjectPermissions } from "./project-permissions";
 import {
   ProjectRole,
-  ProjectType,
-  SprintStatus,
   TaskPriority,
   TaskStatus,
   type Task,
   type Project,
   type ProjectMember,
-  type Sprint,
 } from "./types/project";
 import * as taskApi from "./api/task.api";
 import * as commentApi from "./api/comment.api";
 import CreateProjectDialog from "./components/dialogs/create-project-dialog";
 import TaskChatDialog from "./components/dialogs/task-chat-dialog";
-import SprintMetricsView from "./components/views/sprint-metrics-view";
-import { SprintCard } from "./components/backlog/sprint-card";
 import { TaskDurationSelect } from "./components/forms/task-duration-select";
 import ProjectDetailSidebar from "./components/layout/project-detail-sidebar";
 import { buildWeekTaskSegments } from "./components/views/calendar-view";
@@ -121,7 +115,6 @@ describe("ProjectDetailSidebar members", () => {
           {
             id: "p",
             name: "Project",
-            projectType: ProjectType.GENERAL,
           } as Project
         }
         members={members}
@@ -391,45 +384,6 @@ describe("Project production regressions", () => {
     expect(createChecklist).toHaveBeenCalledTimes(1);
   });
 
-  it("shows sprint quick-create without sprint-management permission", () => {
-    const sprint = {
-      id: "sprint-1",
-      projectId: "p",
-      name: "Sprint 1",
-      status: SprintStatus.PLANNED,
-      createdBy: "owner",
-      createdAt: "2026-09-12T00:00:00.000Z",
-      updatedAt: "2026-09-12T00:00:00.000Z",
-      tasks: [task("A")],
-    } satisfies Sprint;
-    const props = {
-      sprint,
-      dragOverTarget: null,
-      onDragOver: vi.fn(),
-      onDragLeave: vi.fn(),
-      onDrop: vi.fn(),
-      onDragStart: vi.fn(),
-      canContribute: true,
-      canCreateTask: true,
-      filesBusy: false,
-      isBusy: false,
-      onEditSprint: vi.fn(),
-      onStartSprint: vi.fn(),
-      onCompleteSprint: vi.fn(),
-      onReopenSprint: vi.fn(),
-      onCreateSprintTask: vi.fn(),
-    };
-    const view = render(<SprintCard {...props} canManageSprints={false} />);
-
-    expect(
-      screen.getByRole("button", { name: "Create task in sprint" }),
-    ).toBeTruthy();
-    expect(view.container.querySelector('[draggable="true"]')).toBeNull();
-
-    view.rerender(<SprintCard {...props} canManageSprints />);
-    expect(view.container.querySelector('[draggable="true"]')).not.toBeNull();
-  });
-
   it("exposes an accessible create-project form for a regular project", async () => {
     const onSubmit = vi.fn().mockResolvedValue(undefined);
 
@@ -496,7 +450,6 @@ describe("Project production regressions", () => {
           closeTaskForm: vi.fn(),
           createTask: vi.fn(),
           updateTask,
-          addTasksToSprint: vi.fn(),
         }),
       { wrapper },
     );
@@ -506,11 +459,10 @@ describe("Project production regressions", () => {
     expect(setSelectedTask).not.toHaveBeenCalled();
   });
 
-  it("invalidates both task and sprint caches when a task changes", async () => {
+  it("invalidates task cache when a task changes", async () => {
     const { client, wrapper } = setup();
     vi.spyOn(taskApi, "updateTask").mockResolvedValue(task("A"));
     client.setQueryData(["projects", "p", "tasks"], [task("A")]);
-    client.setQueryData(["projects", "p", "sprints"], []);
     const { result } = renderHook(() => useUpdateTask("p"), { wrapper });
     await act(() =>
       result.current.mutateAsync({
@@ -521,13 +473,10 @@ describe("Project production regressions", () => {
     expect(
       client.getQueryState(["projects", "p", "tasks"])?.isInvalidated,
     ).toBe(true);
-    expect(
-      client.getQueryState(["projects", "p", "sprints"])?.isInvalidated,
-    ).toBe(true);
   });
 
   it.each(["attach", "detach", "update", "delete"] as const)(
-    "refreshes task and sprint projections after label %s",
+    "refreshes task and label projections after label %s",
     async (operation) => {
       const { client, wrapper } = setup();
       vi.spyOn(labelApi, "attachLabel").mockResolvedValue({
@@ -555,7 +504,6 @@ describe("Project production regressions", () => {
       );
       const keys = [
         ["projects", "p", "tasks"],
-        ["projects", "p", "sprints"],
         ["projects", "p", "labels"],
       ];
       keys.forEach((key) => client.setQueryData(key, []));
@@ -578,36 +526,6 @@ describe("Project production regressions", () => {
       );
     },
   );
-
-  it("creates a sprint task with one request and uses sortable ranks", async () => {
-    const createTask = vi.fn().mockResolvedValue(task("A"));
-    const addTasksToSprint = vi.fn();
-    const updateTask = vi.fn();
-    const actions = createProjectGroupActions({
-      formatMessage: (id) => id,
-      tasks: [],
-      editingGroup: null,
-      setEditingGroup: vi.fn(),
-      setSelectedTask: vi.fn(),
-      rejectChange: () => false,
-      createTask,
-      updateTask,
-      addTasksToSprint,
-    });
-    await actions.createSprintTask("sprint", "Title");
-    expect(createTask).toHaveBeenCalledWith({
-      title: "Title",
-      status: TaskStatus.TODO,
-      sprintId: "sprint",
-    });
-    expect(addTasksToSprint).not.toHaveBeenCalled();
-    await actions.reorderTasks(
-      task("group"),
-      Array.from({ length: 12 }, (_, i) => task(String(i))),
-    );
-    const ranks = updateTask.mock.calls.map(([input]) => input.payload.rank);
-    expect([...ranks].sort()).toEqual(ranks);
-  });
 
   it("loads separate persisted discussion histories when switching tasks", async () => {
     const { wrapper } = setup();
@@ -674,21 +592,5 @@ describe("Project production regressions", () => {
       { wrapper: next.wrapper },
     );
     await screen.findByText("Message for A");
-  });
-
-  it("shows measured current progress without fabricated history or counting cancelled as done", () => {
-    const tasks = [
-      { ...task("A"), sprintId: "s", status: TaskStatus.DONE },
-      { ...task("B"), sprintId: "s", status: TaskStatus.CANCELLED },
-    ];
-    const view = render(
-      <SprintMetricsView
-        sprints={[{ id: "s", name: "Sprint" } as Sprint]}
-        tasks={tasks}
-      />,
-    );
-    expect(screen.getByRole("progressbar").getAttribute("value")).toBe("1");
-    expect(screen.getByRole("progressbar").getAttribute("max")).toBe("2");
-    expect(view.container.querySelector("svg")).toBeNull();
   });
 });
