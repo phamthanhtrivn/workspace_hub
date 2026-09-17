@@ -1,8 +1,10 @@
+"use client";
+
 import React from "react";
-import { ChevronDown, Flag } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Flag, Layers } from "lucide-react";
 import { TASK_PRIORITY_OPTIONS } from "@/features/project/constants/task.constants";
 import { TaskPriority, type Task } from "@/features/project/types/project";
+import { ProjectSelect } from "../ui/project-form-controls";
 
 interface TaskDetailsFieldsProps {
   priority: TaskPriority;
@@ -21,77 +23,66 @@ export function TaskDetailsFields({
   parentTasks = [],
   currentTaskId,
 }: TaskDetailsFieldsProps) {
-  const intl = useAppIntl();
+  const priorityOptions = TASK_PRIORITY_OPTIONS.map((item) => ({
+    value: item.value,
+    label: item.label,
+  }));
+
+  const parentTaskOptions = [
+    { value: "", label: "No Parent Task (Independent)" },
+    ...parentTasks
+      .filter(
+        (candidate) =>
+          candidate.id !== currentTaskId && !candidate.parentTaskId,
+      )
+      .map((candidate) => ({
+        value: candidate.id,
+        label: candidate.title,
+      })),
+  ];
 
   return (
     <section className="border-t border-slate-100 pt-5">
       <div className="mb-4 flex items-center gap-2">
-        <span className="text-sm font-black text-[var(--color-primary-dark)]">
-          {intl.formatMessage({ id: "project.details" })}
+        <span className="text-sm font-bold text-slate-900">
+          Task Details
         </span>
         <span className="text-xs text-slate-400">
-          {intl.formatMessage({ id: "project.task.managementInfo" })}
+          (Priority and hierarchical grouping)
         </span>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <label className="block">
+        <div>
           <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
             <Flag className="h-3.5 w-3.5 text-slate-400" strokeWidth={2} />
-            {intl.formatMessage({ id: "project.task.priority" })}
+            Priority
           </span>
-          <div className="relative">
-            <select
-              value={priority}
-              onChange={(event) =>
-                onPriorityChange(event.target.value as TaskPriority)
-              }
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
-            >
-              {TASK_PRIORITY_OPTIONS.map((item) => (
-                <option key={item.value} value={item.value}>
-                  {intl.formatMessage({ id: item.labelId })}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          </div>
-        </label>
+          <ProjectSelect
+            value={priority}
+            options={priorityOptions}
+            onChange={(val) => onPriorityChange(val as TaskPriority)}
+            ariaLabel="Select task priority"
+            className="w-full h-11"
+          />
+        </div>
 
-        <label className="block">
+        <div>
           <span className="mb-1.5 inline-flex items-center gap-1.5 text-xs font-bold text-slate-600">
-            <ChevronDown
-              className="h-3.5 w-3.5 text-slate-400"
-              strokeWidth={2}
-            />
-            {intl.formatMessage({ id: "project.task.parentTask" })}
+            <Layers className="h-3.5 w-3.5 text-slate-400" strokeWidth={2} />
+            Parent Task
           </span>
-          <div className="relative">
-            <select
-              value={parentTaskId}
-              onChange={(event) => onParentTaskIdChange(event.target.value)}
-              className="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 pr-9 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10 disabled:bg-slate-50"
-            >
-              <option value="">
-                {intl.formatMessage({ id: "project.task.noParentTask" })}
-              </option>
-              {parentTasks
-                .filter(
-                  (candidate) =>
-                    candidate.id !== currentTaskId && !candidate.parentTaskId,
-                )
-                .map((candidate) => (
-                  <option key={candidate.id} value={candidate.id}>
-                    {candidate.title}
-                  </option>
-                ))}
-            </select>
-            <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          </div>
+          <ProjectSelect
+            value={parentTaskId}
+            options={parentTaskOptions}
+            onChange={onParentTaskIdChange}
+            ariaLabel="Select parent task"
+            className="w-full h-11"
+          />
           <span className="mt-1 block text-[11px] text-slate-400">
-            {intl.formatMessage({ id: "project.task.parentTaskHint" })}
+            Attach this task as a subtask under an existing parent task.
           </span>
-        </label>
+        </div>
       </div>
     </section>
   );

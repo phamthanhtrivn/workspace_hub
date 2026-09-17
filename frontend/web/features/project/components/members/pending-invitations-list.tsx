@@ -8,8 +8,10 @@ import {
   useCancelProjectInvitation,
   useResendProjectInvitation,
 } from "@/features/project/hooks/use-invitations";
-import { confirmProjectAction } from "@/features/project/project-alert";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
+import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
+
+import { Button } from "@/components/ui/button";
 
 export default function PendingInvitationsList({
   projectId,
@@ -18,51 +20,48 @@ export default function PendingInvitationsList({
   projectId: string;
   invitations: ProjectInvitationWithUser[];
 }) {
-  const intl = useAppIntl();
   const cancelMutation = useCancelProjectInvitation(projectId);
   const resendMutation = useResendProjectInvitation(projectId);
+  const { dialogProps, confirm } = useProjectConfirmDialog();
 
   if (invitations.length === 0) return null;
 
-  const handleCancel = async (invitation: ProjectInvitationWithUser) => {
+  const handleCancel = (invitation: ProjectInvitationWithUser) => {
     const name =
       invitation.invitedUser.fullName ||
       invitation.invitedUser.email ||
-      intl.formatMessage({ id: "app.thisUser" });
-    const confirmed = await confirmProjectAction({
-      title: intl.formatMessage(
-        { id: "project.invitation.revokeConfirmTitle" },
-        { name },
-      ),
-      text: intl.formatMessage({ id: "project.invitation.revokeConfirmText" }),
-      confirmText: intl.formatMessage({ id: "project.invitation.revoke" }),
-      cancelText: intl.formatMessage({ id: "app.cancel" }),
-      icon: "warning",
-      destructive: true,
-    });
-    if (!confirmed) return;
+      "this user";
 
-    try {
-      await cancelMutation.mutateAsync(invitation.id);
-      toast.success(intl.formatMessage({ id: "project.invitation.revoked" }));
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : intl.formatMessage({ id: "project.invitation.revokeFailed" }),
-      );
-    }
+    confirm({
+      title: `Revoke Invitation for ${name}`,
+      description: "Are you sure you want to revoke this pending invitation? They will no longer be able to join the project using this invite.",
+      confirmLabel: "Revoke Invitation",
+      cancelLabel: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await cancelMutation.mutateAsync(invitation.id);
+          toast.success("Invitation revoked");
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to revoke invitation",
+          );
+        }
+      },
+    });
   };
 
   const handleResend = async (invitation: ProjectInvitationWithUser) => {
     try {
       await resendMutation.mutateAsync(invitation.id);
-      toast.success(intl.formatMessage({ id: "project.invitation.resent" }));
+      toast.success("Invitation resent");
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : intl.formatMessage({ id: "project.invitation.resendFailed" }),
+          : "Failed to resend invitation",
       );
     }
   };
@@ -72,23 +71,23 @@ export default function PendingInvitationsList({
       <div className="mb-2 flex items-center gap-2 px-2">
         <Clock3 className="h-3.5 w-3.5 text-amber-500" />
         <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">
-          {intl.formatMessage(
-            { id: "project.invitation.pendingTitle" },
-            { count: invitations.length },
-          )}
+          Pending Invitations ({invitations.length})
         </p>
       </div>
       <div className="space-y-1.5">
         {invitations.map((invitation) => {
           const user = invitation.invitedUser;
-          const displayName =
-            user.fullName || intl.formatMessage({ id: "app.user" });
+          const displayName = user.fullName || "User";
           const isCancelling =
             cancelMutation.isPending &&
             cancelMutation.variables === invitation.id;
           const isResending =
             resendMutation.isPending &&
             resendMutation.variables === invitation.id;
+
+          const expiryText = invitation.expiresAt
+            ? new Date(invitation.expiresAt).toLocaleDateString()
+            : "Unlimited";
 
           return (
             <div
@@ -105,7 +104,7 @@ export default function PendingInvitationsList({
                   className="h-9 w-9 rounded-full object-cover grayscale-[20%]"
                 />
               ) : (
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-slate-400 shadow-sm">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white text-slate-400 shadow-xs">
                   <User className="h-4 w-4" />
                 </span>
               )}
@@ -114,57 +113,43 @@ export default function PendingInvitationsList({
                   {displayName}
                 </p>
                 <p className="truncate text-[11px] text-slate-400">
-                  {intl.formatMessage(
-                    { id: "project.invitation.expiry" },
-                    {
-                      email:
-                        user.email ||
-                        intl.formatMessage({ id: "project.invitation.awaitingResponse" }),
-                      expiry: invitation.expiresAt
-                        ? intl.formatDate(new Date(invitation.expiresAt), {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                          })
-                        : intl.formatMessage({ id: "app.unlimited" }),
-                    },
-                  )}
+                  {user.email || "Awaiting response"} • Expires: {expiryText}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => void handleResend(invitation)}
                   disabled={isCancelling || resendMutation.isPending}
-                  className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-white hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={intl.formatMessage(
-                    { id: "project.invitation.resendFor" },
-                    { name: displayName },
-                  )}
-                  title={intl.formatMessage({ id: "project.invitation.resend" })}
+                  className="h-8 w-8 cursor-pointer rounded-lg text-slate-400 transition hover:bg-white hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label={`Resend invitation for ${displayName}`}
+                  title="Resend invitation"
                 >
                   <RotateCw
                     className={`h-3.5 w-3.5 ${isResending ? "animate-spin" : ""}`}
                   />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
-                  onClick={() => void handleCancel(invitation)}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleCancel(invitation)}
                   disabled={isResending || cancelMutation.isPending}
-                  className="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-white hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={intl.formatMessage(
-                    { id: "project.invitation.revokeFor" },
-                    { name: displayName },
-                  )}
-                  title={intl.formatMessage({ id: "project.invitation.revoke" })}
+                  className="h-8 w-8 cursor-pointer rounded-lg text-slate-400 transition hover:bg-white hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+                  aria-label={`Revoke invitation for ${displayName}`}
+                  title="Revoke invitation"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </div>
             </div>
           );
         })}
       </div>
+
+      <ProjectConfirmDialog {...dialogProps} />
     </div>
   );
 }

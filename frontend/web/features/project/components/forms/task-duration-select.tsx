@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-
-export const TASK_DURATION_PRESETS = [30, 45, 60, 120, 240, 360, 480] as const;
+import { ProjectSelect } from "../ui/project-form-controls";
+import { Input } from "@/components/ui/input";
+import {
+  TASK_DURATION_OPTIONS,
+  TASK_DURATION_PRESETS,
+} from "@/features/project/utils/task-duration.utils";
 
 interface TaskDurationSelectProps {
   value: string;
@@ -22,7 +25,6 @@ export function TaskDurationSelect({
   disabled = false,
   compact = false,
 }: TaskDurationSelectProps) {
-  const intl = useAppIntl();
   const minutes = Number(value);
   const [customSelected, setCustomSelected] = useState(
     value !== "" && !TASK_DURATION_PRESETS.some((preset) => preset === minutes),
@@ -31,17 +33,54 @@ export function TaskDurationSelect({
   const selection = customSelected || (value !== "" && !isPreset)
     ? "custom"
     : value;
-  const baseClass = compact
-    ? "w-full border-none bg-transparent p-0 text-xs font-semibold text-slate-700 outline-none focus:ring-0 disabled:cursor-default"
-    : "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm font-semibold text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10 disabled:bg-slate-50";
+
+  if (compact) {
+    return (
+      <div className="space-y-1">
+        <ProjectSelect
+          value={selection}
+          options={TASK_DURATION_OPTIONS}
+          disabled={disabled}
+          onChange={(nextValue) => {
+            if (nextValue === "custom") {
+              setCustomSelected(true);
+              onValueChange(isPreset ? "" : value);
+              return;
+            }
+            setCustomSelected(false);
+            onValueChange(nextValue);
+            onPresetSelect?.(Number(nextValue));
+          }}
+          ariaLabel="Estimated duration"
+          triggerClassName="h-7 text-xs border-slate-200 shadow-2xs px-2"
+        />
+        {selection === "custom" && (
+          <Input
+            type="number"
+            min={0}
+            step={1}
+            value={value}
+            disabled={disabled}
+            onChange={(event) => onValueChange(event.target.value)}
+            onBlur={onCustomCommit}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") event.currentTarget.blur();
+            }}
+            placeholder="Minutes..."
+            className="h-7 text-xs font-semibold"
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
-      <select
+      <ProjectSelect
         value={selection}
+        options={TASK_DURATION_OPTIONS}
         disabled={disabled}
-        onChange={(event) => {
-          const nextValue = event.target.value;
+        onChange={(nextValue) => {
           if (nextValue === "custom") {
             setCustomSelected(true);
             onValueChange(isPreset ? "" : value);
@@ -51,30 +90,12 @@ export function TaskDurationSelect({
           onValueChange(nextValue);
           onPresetSelect?.(Number(nextValue));
         }}
-        className={baseClass}
-      >
-        <option value="">
-          {intl.formatMessage({ id: "project.task.duration.none" })}
-        </option>
-        {TASK_DURATION_PRESETS.map((preset) => (
-          <option key={preset} value={preset}>
-            {intl.formatMessage(
-              {
-                id: preset < 60
-                  ? "project.task.duration.minutes"
-                  : "project.task.duration.hours",
-              },
-              { minutes: preset, hours: preset / 60 },
-            )}
-          </option>
-        ))}
-        <option value="custom">
-          {intl.formatMessage({ id: "project.task.duration.custom" })}
-        </option>
-      </select>
+        ariaLabel="Estimated duration"
+        className="w-full h-11"
+      />
 
       {selection === "custom" && (
-        <input
+        <Input
           type="number"
           min={0}
           step={1}
@@ -85,9 +106,9 @@ export function TaskDurationSelect({
           onKeyDown={(event) => {
             if (event.key === "Enter") event.currentTarget.blur();
           }}
-          placeholder={intl.formatMessage({ id: "project.task.duration.customPlaceholder" })}
-          className={baseClass}
-          aria-label={intl.formatMessage({ id: "project.task.duration.custom" })}
+          placeholder="Enter duration in minutes..."
+          className="h-10 rounded-xl border-slate-200 text-xs font-semibold"
+          aria-label="Custom duration in minutes"
         />
       )}
     </div>

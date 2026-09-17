@@ -8,8 +8,19 @@ import { searchUsers, type UserSearchResult } from "@/features/project/api/user.
 import type { ProjectInvitationWithUser } from "@/features/project/api/invitation.api";
 import { useCreateProjectInvitation } from "@/features/project/hooks/use-invitations";
 import type { ProjectMember } from "@/features/project/types/project";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { getProjectErrorMessage } from "@/features/project/project-error-message";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export default function InviteMemberDialog({
   open,
@@ -24,7 +35,6 @@ export default function InviteMemberDialog({
   pendingInvitations: ProjectInvitationWithUser[];
   onClose: () => void;
 }) {
-  const intl = useAppIntl();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -37,14 +47,10 @@ export default function InviteMemberDialog({
   const pendingIds = useMemo(() => new Set(pendingInvitations.map((item) => item.invitedUserId)), [pendingInvitations]);
 
   useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    window.setTimeout(() => inputRef.current?.focus(), 0);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, open]);
+    if (open) {
+      window.setTimeout(() => inputRef.current?.focus(), 50);
+    }
+  }, [open]);
 
   useEffect(() => {
     const normalizedQuery = query.trim();
@@ -62,18 +68,12 @@ export default function InviteMemberDialog({
         const availableUsers = users.filter((user) => !memberIds.has(user.id));
         setResults(availableUsers);
         if (availableUsers.length === 0) {
-          setSearchError(intl.formatMessage({ id: "project.member.searchEmpty" }));
+          setSearchError("No users found matching your search.");
         }
       } catch (error) {
         if (!active) return;
         setResults([]);
-        setSearchError(
-          getProjectErrorMessage(
-            error,
-            (id) => intl.formatMessage({ id }),
-            "project.member.searchFailed",
-          ),
-        );
+        setSearchError(getProjectErrorMessage(error, "Failed to search users."));
       } finally {
         if (active) setIsSearching(false);
       }
@@ -83,9 +83,7 @@ export default function InviteMemberDialog({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [intl, memberIds, open, query, selectedUser]);
-
-  if (!open) return null;
+  }, [memberIds, open, query, selectedUser]);
 
   const handleSubmit = async () => {
     if (!selectedUser || createInvitationMutation.isPending) return;
@@ -93,48 +91,28 @@ export default function InviteMemberDialog({
     try {
       await createInvitationMutation.mutateAsync(selectedUser.id);
       const name = selectedUser.fullName || selectedUser.email;
-      setSuccessMessage(
-        intl.formatMessage({ id: "project.invitation.sentContinue" }, { name }),
-      );
+      setSuccessMessage(`Invitation sent to ${name}. You can continue inviting more members.`);
       setQuery("");
       setSelectedUser(null);
       setResults([]);
-      toast.success(intl.formatMessage({ id: "project.invitation.sent" }));
+      toast.success("Project invitation sent successfully");
       window.setTimeout(() => inputRef.current?.focus(), 0);
     } catch (error) {
-      toast.error(
-        getProjectErrorMessage(
-          error,
-          (id) => intl.formatMessage({ id }),
-          "project.invitation.sendFailed",
-        ),
-      );
+      toast.error(getProjectErrorMessage(error, "Failed to send invitation"));
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
-      }}
-    >
-      <div role="dialog" aria-modal="true" aria-labelledby="invite-member-title" className="w-full max-w-lg overflow-hidden rounded-2xl border border-white/70 bg-white shadow-2xl">
-        <div className="border-b border-slate-100 px-6 py-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 id="invite-member-title" className="text-lg font-black text-[var(--color-primary-dark)]">
-                {intl.formatMessage({ id: "project.member.invite" })}
-              </h2>
-              <p className="mt-1 text-xs font-semibold text-slate-400">
-                {intl.formatMessage({ id: "project.invitation.searchDescription" })}
-              </p>
-            </div>
-            <button type="button" onClick={onClose} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label={intl.formatMessage({ id: "app.close" })}>
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl">
+        <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
+          <DialogTitle className="text-lg font-bold text-slate-900">
+            Invite Project Member
+          </DialogTitle>
+          <DialogDescription className="mt-1 text-xs font-semibold text-slate-500">
+            Search for colleagues by name or email to invite them to this project.
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="px-6 py-5">
           {successMessage && (
@@ -146,11 +124,11 @@ export default function InviteMemberDialog({
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-bold text-slate-600">
-              {intl.formatMessage({ id: "project.member.nameOrEmail" })}
+              Name or Email
             </span>
             <span className="relative block">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
+              <Input
                 ref={inputRef}
                 type="text"
                 value={query}
@@ -165,38 +143,55 @@ export default function InviteMemberDialog({
                     setResults([]);
                   }
                 }}
-                placeholder={intl.formatMessage({ id: "project.member.searchPlaceholder" })}
-                className="w-full rounded-xl border border-slate-200 py-3 pl-10 pr-10 text-sm outline-none transition placeholder:text-slate-300 focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10"
+                placeholder="Type at least 2 characters to search..."
+                className="w-full rounded-xl border-slate-200 py-2.5 pl-9 pr-9 text-xs font-semibold placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-[#0052CC]/15"
                 autoComplete="off"
               />
               {query && (
-                <button type="button" onClick={() => { setQuery(""); setSelectedUser(null); setResults([]); inputRef.current?.focus(); }} className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-md text-slate-400 hover:bg-slate-100" aria-label={intl.formatMessage({ id: "app.clearSearch" })}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setQuery("");
+                    setSelectedUser(null);
+                    setResults([]);
+                    inputRef.current?.focus();
+                  }}
+                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2 rounded-md text-slate-400 hover:bg-slate-100 cursor-pointer"
+                  aria-label="Clear search"
+                >
                   <X className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               )}
             </span>
           </label>
 
-          <div className="mt-3 min-h-28 max-h-64 overflow-y-auto pr-1">
+          <div className="mt-3 min-h-28 max-h-60 overflow-y-auto pr-1">
             {query.trim().length < 2 && (
               <div className="grid min-h-28 place-items-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-5 text-center">
                 <p className="text-xs font-semibold leading-5 text-slate-400">
-                  {intl.formatMessage({ id: "project.member.searchHint" })}
+                  Search by full name or email address to find people in your organization.
                 </p>
               </div>
             )}
             {isSearching && (
-              <div className="space-y-2" aria-label={intl.formatMessage({ id: "app.searching" })}>
+              <div className="space-y-2" aria-label="Searching users...">
                 {[0, 1].map((item) => (
                   <div key={item} className="flex animate-pulse items-center gap-3 rounded-xl border border-slate-100 p-3">
                     <span className="h-9 w-9 rounded-full bg-slate-100" />
-                    <span className="flex-1 space-y-2"><span className="block h-3 w-1/3 rounded bg-slate-100" /><span className="block h-2.5 w-1/2 rounded bg-slate-100" /></span>
+                    <span className="flex-1 space-y-2">
+                      <span className="block h-3 w-1/3 rounded bg-slate-100" />
+                      <span className="block h-2.5 w-1/2 rounded bg-slate-100" />
+                    </span>
                   </div>
                 ))}
               </div>
             )}
             {!isSearching && searchError && query.trim().length >= 2 && (
-              <div className="grid min-h-28 place-items-center rounded-xl bg-slate-50 px-5 text-center text-xs font-semibold text-slate-400">{searchError}</div>
+              <div className="grid min-h-28 place-items-center rounded-xl bg-slate-50 px-5 text-center text-xs font-semibold text-slate-400">
+                {searchError}
+              </div>
             )}
             {!isSearching && results.length > 0 && (
               <div className="space-y-2">
@@ -204,28 +199,59 @@ export default function InviteMemberDialog({
                   const isPending = pendingIds.has(user.id);
                   const isSelected = selectedUser?.id === user.id;
                   return (
-                    <button
+                    <Button
                       key={user.id}
                       type="button"
+                      variant="ghost"
                       onClick={() => !isPending && setSelectedUser(user)}
                       disabled={isPending}
-                      className={["flex w-full items-center gap-3 rounded-xl border p-3 text-left transition", isPending ? "cursor-default border-amber-100 bg-amber-50/60" : isSelected ? "border-[var(--color-secondary)] bg-blue-50 shadow-sm" : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"].join(" ")}
+                      className={cn(
+                        "flex h-auto w-full cursor-pointer items-center justify-start gap-3 rounded-xl border p-3 text-left transition duration-150 font-normal",
+                        isPending
+                          ? "cursor-default border-amber-100 bg-amber-50/60 hover:bg-amber-50/60"
+                          : isSelected
+                            ? "border-[#0052CC] bg-blue-50 shadow-xs hover:bg-blue-50"
+                            : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
+                      )}
                     >
                       {user.avatarUrl ? (
-                        <Image src={user.avatarUrl} alt="" width={36} height={36} unoptimized className="h-9 w-9 rounded-full object-cover" />
+                        <Image
+                          src={user.avatarUrl}
+                          alt=""
+                          width={36}
+                          height={36}
+                          unoptimized
+                          className="h-9 w-9 rounded-full object-cover shrink-0"
+                        />
                       ) : (
-                        <span className="grid h-9 w-9 place-items-center rounded-full bg-slate-100 text-slate-400"><User className="h-4 w-4" /></span>
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-100 text-slate-400">
+                          <User className="h-4 w-4" />
+                        </span>
                       )}
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-bold text-slate-700">{user.fullName || intl.formatMessage({ id: "app.user" })}</span>
-                        <span className="block truncate text-xs text-slate-400">{user.email}</span>
+                        <span className="block truncate text-sm font-bold text-slate-700">
+                          {user.fullName || "User"}
+                        </span>
+                        <span className="block truncate text-xs text-slate-400">
+                          {user.email}
+                        </span>
                       </span>
                       {isPending ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-700"><Clock3 className="h-3 w-3" /> {intl.formatMessage({ id: "project.invitation.pending" })}</span>
+                        <Badge
+                          variant="outline"
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 border-amber-200"
+                        >
+                          <Clock3 className="h-3 w-3" /> Pending
+                        </Badge>
                       ) : isSelected ? (
-                        <span className="text-xs font-bold text-[var(--color-secondary)]">{intl.formatMessage({ id: "app.selected" })}</span>
+                        <Badge
+                          variant="outline"
+                          className="border-[#0052CC] bg-[#0052CC] text-white text-[10px] font-bold"
+                        >
+                          Selected
+                        </Badge>
                       ) : null}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -233,25 +259,32 @@ export default function InviteMemberDialog({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+        <DialogFooter className="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
           <p className="text-[11px] font-semibold text-slate-400">
-            {intl.formatMessage(
-              { id: "project.invitation.pendingSummary" },
-              { count: pendingInvitations.length },
-            )}
+            {pendingInvitations.length === 1
+              ? "1 pending invitation"
+              : `${pendingInvitations.length} pending invitations`}
           </p>
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 text-sm font-bold text-slate-500 transition hover:bg-slate-200/70">{intl.formatMessage({ id: "app.close" })}</button>
-            <button type="button" onClick={() => void handleSubmit()} disabled={!selectedUser || createInvitationMutation.isPending} className="rounded-xl bg-[var(--color-primary-dark)] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40">
-              {intl.formatMessage({
-                id: createInvitationMutation.isPending
-                  ? "project.invitation.sending"
-                  : "project.invitation.send",
-              })}
-            </button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="cursor-pointer rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+            >
+              Close
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={!selectedUser || createInvitationMutation.isPending}
+              className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-40"
+            >
+              {createInvitationMutation.isPending ? "Sending..." : "Send Invitation"}
+            </Button>
           </div>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

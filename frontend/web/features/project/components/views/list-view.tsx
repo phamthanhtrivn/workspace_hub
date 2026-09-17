@@ -6,7 +6,6 @@ import {
 } from "@/features/project/types/project";
 import ProjectTaskRow from "../list/project-task-row";
 import TaskInlineCreator from "../list/task-inline-creator";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ListView({
   tasks,
@@ -28,8 +27,6 @@ export default function ListView({
   onReorderTasks?: (group: Task, tasks: Task[]) => Promise<void>;
   onOpenChat?: (task: Task) => void;
 }) {
-  const intl = useAppIntl();
-
   const activeTasks = useMemo(() => tasks.filter((t) => !t.archived), [tasks]);
   const activeTaskIds = useMemo(
     () => new Set(activeTasks.map((t) => t.id)),
@@ -96,8 +93,8 @@ export default function ListView({
 
                 {onAddTaskInline && (
                   <TaskInlineCreator
-                    placeholder={intl.formatMessage({ id: "project.task.subtaskNamePlaceholder" })}
-                    buttonLabel={intl.formatMessage({ id: "project.task.createSubtask" })}
+                    placeholder="Add subtask..."
+                    buttonLabel="Create Subtask"
                     onSubmit={(title) => onAddTaskInline(title, task.id)}
                   />
                 )}
@@ -106,7 +103,7 @@ export default function ListView({
           })
         ) : (
           <div className="rounded-md border-2 border-dashed border-[#DFE1E6] bg-[#FAFBFC] py-8 text-center text-xs font-semibold text-slate-400">
-            {intl.formatMessage({ id: "project.task.empty" })}
+            No tasks found in this project.
           </div>
         )}
       </div>
@@ -114,8 +111,8 @@ export default function ListView({
       {onAddTaskInline && (
         <div className="pt-2">
           <TaskInlineCreator
-            placeholder={intl.formatMessage({ id: "project.task.newNamePlaceholder" })}
-            buttonLabel={intl.formatMessage({ id: "project.task.create" })}
+            placeholder="What needs to be done?"
+            buttonLabel="Create Task"
             onSubmit={(title) => onAddTaskInline(title)}
           />
         </div>

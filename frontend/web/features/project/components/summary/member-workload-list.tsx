@@ -1,6 +1,5 @@
 import React from "react";
 import { Users } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export interface WorkloadItem {
   name: string;
@@ -20,12 +19,10 @@ export function MemberWorkloadList({
   emptyMessage,
   barColor = "bg-slate-500",
 }: MemberWorkloadListProps) {
-  const intl = useAppIntl();
   if (items.length === 0) {
     return (
       <p className="py-8 text-center text-xs font-semibold text-slate-400">
-        {emptyMessage ??
-          intl.formatMessage({ id: "project.summary.noAssignedWork" })}
+        {emptyMessage ?? "No assigned workload to display."}
       </p>
     );
   }

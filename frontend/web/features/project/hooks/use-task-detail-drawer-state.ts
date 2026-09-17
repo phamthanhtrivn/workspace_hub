@@ -14,7 +14,6 @@ import { useTaskActivities } from "@/features/project/hooks/use-tasks";
 import type { TaskDrawerUpdatePayload } from "@/features/project/types/task-detail-drawer.types";
 import { createTaskActivityPresenter } from "@/features/project/task-activity-presenter";
 import { toApiDateTime } from "@/features/project/utils/task-dates";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export type TaskDetailTab = "details" | "activity";
 
@@ -43,7 +42,6 @@ export function useTaskDetailDrawerState({
   canEditTask = false,
   canContributeTask = false,
 }: UseTaskDetailDrawerStateParams) {
-  const intl = useAppIntl();
   const [activeTab, setActiveTab] = useState<TaskDetailTab>("details");
 
   // Inline edit states
@@ -95,12 +93,7 @@ export function useTaskDetailDrawerState({
     };
   }, [onClose, task]);
 
-  const { memberDisplayName } = createTaskActivityPresenter(
-    members,
-    tasks,
-    (id, values) => intl.formatMessage({ id }, values),
-    (value) => intl.formatDate(value),
-  );
+  const { memberDisplayName } = createTaskActivityPresenter(members, tasks);
 
   const handleTitleSave = async () => {
     if (!task || isReadOnly) return;
@@ -111,7 +104,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { title: tempTitle.trim() });
-        toast.success(intl.formatMessage({ id: "project.task.titleUpdated" }));
+        toast.success("Task title updated");
       }
       setIsEditingTitle(false);
     } catch {
@@ -128,7 +121,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { description: tempDesc });
-        toast.success(intl.formatMessage({ id: "project.task.descriptionUpdated" }));
+        toast.success("Task description updated");
       }
       setIsEditingDesc(false);
     } catch {
@@ -141,7 +134,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { status: newStatus });
-        toast.success(intl.formatMessage({ id: "project.task.statusUpdated" }));
+        toast.success("Task status updated");
       }
     } catch {}
   };
@@ -155,13 +148,7 @@ export function useTaskDetailDrawerState({
         } else {
           await onUpdateTask(task.id, { assigneeUserId: null, assignees: [] });
         }
-        toast.success(
-          intl.formatMessage({
-            id: userId
-              ? "project.task.assigneeUpdated"
-              : "project.task.unassignedSuccess",
-          }),
-        );
+        toast.success(userId ? "Task assignee updated" : "Task unassigned");
       }
     } catch {}
   };
@@ -171,7 +158,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { priority });
-        toast.success(intl.formatMessage({ id: "project.task.priorityUpdated" }));
+        toast.success("Task priority updated");
       }
     } catch {}
   };
@@ -183,7 +170,7 @@ export function useTaskDetailDrawerState({
       await onToggleLabel(task.id, label.id, attached);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : intl.formatMessage({ id: "project.label.updateFailed" }),
+        error instanceof Error ? error.message : "Failed to update label",
       );
     }
   };
@@ -194,7 +181,7 @@ export function useTaskDetailDrawerState({
       await onCreateDependency(task.id, predecessorTaskId);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : intl.formatMessage({ id: "project.dependency.createFailed" }),
+        error instanceof Error ? error.message : "Failed to create dependency",
       );
     }
   };
@@ -203,10 +190,10 @@ export function useTaskDetailDrawerState({
     if (!task || isReadOnly || !onDeleteDependency) return;
     try {
       await onDeleteDependency(task.id, predecessorTaskId);
-      toast.success(intl.formatMessage({ id: "project.dependency.deleted" }));
+      toast.success("Dependency removed");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : intl.formatMessage({ id: "project.dependency.deleteFailed" }),
+        error instanceof Error ? error.message : "Failed to delete dependency",
       );
     }
   };
@@ -218,7 +205,7 @@ export function useTaskDetailDrawerState({
         await onUpdateTask(task.id, {
           dueDate: toApiDateTime(val ? `${val}T18:00:00` : "", task.allDay),
         });
-        toast.success(intl.formatMessage({ id: "project.task.dueDateUpdated" }));
+        toast.success("Due date updated");
       }
     } catch {}
   };
@@ -230,7 +217,7 @@ export function useTaskDetailDrawerState({
         await onUpdateTask(task.id, {
           startDate: toApiDateTime(val ? `${val}T09:00:00` : "", task.allDay),
         });
-        toast.success(intl.formatMessage({ id: "project.task.startDateUpdated" }));
+        toast.success("Start date updated");
       }
     } catch {}
   };
@@ -239,7 +226,7 @@ export function useTaskDetailDrawerState({
     if (!task || isReadOnly) return;
     if (onUpdateTask) {
       await onUpdateTask(task.id, { estimatedMinutes: minutes });
-      toast.success(intl.formatMessage({ id: "project.task.estimateUpdated" }));
+      toast.success("Estimated duration updated");
     }
   };
 

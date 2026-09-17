@@ -16,5 +16,4 @@ export { default as TaskCommentsSection } from "./task-comments-section";
 export * from "./task-comments-section";
 export { default as TaskActivityPanel } from "./task-activity-panel";
 export * from "./task-activity-panel";
-export { default as TaskAttachmentsSection } from "./task-attachments-section";
-export * from "./task-attachments-section";
+

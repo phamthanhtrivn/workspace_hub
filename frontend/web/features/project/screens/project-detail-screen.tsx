@@ -47,12 +47,10 @@ import { useProjectTaskFormState } from "@/features/project/hooks/use-project-ta
 import { useProjectResourceActions } from "@/features/project/hooks/use-project-resource-actions";
 import { useProjectTaskActions } from "@/features/project/hooks/use-project-task-actions";
 import { createProjectSettingsActions } from "@/features/project/project-settings-actions";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
 import { projectSocketService } from "../api/project-socket.service";
 
 export default function ProjectDetailScreen() {
-  const intl = useAppIntl();
   const params = useParams();
   const projectId = params.id as string;
   const { data: project, isLoading, isError } = useProject(projectId);
@@ -124,11 +122,11 @@ export default function ProjectDetailScreen() {
     const target = serverTasks.find((task) => task.id === taskId);
     if (!target) return false;
     if (isTerminalTaskStatus(target.status)) {
-      toast.info(intl.formatMessage({ id: "project.task.readOnlyTerminal" }));
+      toast.info("This task is completed or cancelled and cannot be modified.");
       return true;
     }
     if (!permissions.canEditTask(target)) {
-      toast.info(intl.formatMessage({ id: "project.task.editForbidden" }));
+      toast.info("You do not have permission to edit this task.");
       return true;
     }
     return false;
@@ -137,7 +135,7 @@ export default function ProjectDetailScreen() {
   function rejectTerminalTaskChange(taskId: string): boolean {
     const target = serverTasks.find((task) => task.id === taskId);
     if (!target || !isTerminalTaskStatus(target.status)) return false;
-    toast.info(intl.formatMessage({ id: "project.task.readOnlyTerminal" }));
+    toast.info("This task is completed or cancelled and cannot be modified.");
     return true;
   }
 
@@ -214,7 +212,7 @@ export default function ProjectDetailScreen() {
         dueDate: `${targetDateKey}T00:00:00.000Z`,
         allDay: true,
       });
-      toast.success(intl.formatMessage({ id: "project.task.updated" }));
+      toast.success("Task updated successfully");
     } catch {
       // Error toast handled by updateTaskDirect
     }
@@ -226,12 +224,12 @@ export default function ProjectDetailScreen() {
         title: title.trim(),
         ...(parentTaskId ? { parentTaskId } : {}),
       });
-      toast.success(intl.formatMessage({ id: "project.task.created" }));
+      toast.success("Task created successfully");
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(
         apiError.response?.data?.message ||
-          intl.formatMessage({ id: "project.task.createFailed" }),
+          "Failed to create task",
       );
     }
   };
@@ -247,17 +245,16 @@ export default function ProjectDetailScreen() {
   const projectKey = getProjectKey(project.name);
   const projectWithMembers = { ...project, members };
   const viewTitle: Record<ProjectViewMode, string> = {
-    summary: intl.formatMessage({ id: "project.view.summary" }),
-    board: intl.formatMessage({ id: "project.view.board" }),
-    list: intl.formatMessage({ id: "project.view.tasks" }),
-    calendar: intl.formatMessage({ id: "project.view.calendar" }),
-    gantt: intl.formatMessage({ id: "project.view.gantt" }),
-    members: intl.formatMessage({ id: "project.view.members" }),
+    summary: "Summary",
+    board: "Board",
+    list: "Tasks",
+    calendar: "Calendar",
+    gantt: "Timeline",
+    members: "Members",
   };
 
   const { save: handleSaveProjectSettings, archive: handleArchiveProject } =
     createProjectSettingsActions({
-      formatMessage: (id) => intl.formatMessage({ id }),
       update: updateProjectMutation.mutateAsync,
       archive: archiveProjectMutation.mutateAsync,
       close: () => setShowProjectSettings(false),

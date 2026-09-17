@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   type ProjectMember,
   type Task,
@@ -11,15 +10,18 @@ import {
 } from "@/features/project/types/project";
 import {
   TASK_DRAWER_PRIORITY_OPTIONS,
-  TASK_PRIORITY_LABEL_IDS,
+  TASK_PRIORITY_LABELS,
 } from "@/features/project/constants/task.constants";
-import { taskDateKey } from "@/features/project/utils/task-dates";
+import {
+  taskDateKey,
+  formatTaskDateTime,
+} from "@/features/project/utils/task-dates";
 import { Avatar } from "../ui/avatar-stack";
 import { getPriorityIcon } from "../ui/task-card";
-import {
-  TASK_DURATION_PRESETS,
-  TaskDurationSelect,
-} from "../forms/task-duration-select";
+import { TaskDurationSelect } from "../forms/task-duration-select";
+import { TASK_DURATION_PRESETS } from "@/features/project/utils/task-duration.utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface TaskPropertiesPanelProps {
   task: Task;
@@ -44,7 +46,6 @@ export default function TaskPropertiesPanel({
   onDueDateChange,
   onEstimateSave,
 }: TaskPropertiesPanelProps) {
-  const intl = useAppIntl();
   const [showAssigneeDropdown, setShowAssigneeDropdown] = useState(false);
   const [showPriorityDropdown, setShowPriorityDropdown] = useState(false);
   const [estimateDraft, setEstimateDraft] = useState(
@@ -55,7 +56,7 @@ export default function TaskPropertiesPanel({
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- Reset estimate draft when task changes
+    // Reset estimate draft when task changes
     setEstimateDraft(
       task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
     );
@@ -102,7 +103,7 @@ export default function TaskPropertiesPanel({
       setEstimateDraft(
         task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
       );
-      toast.error(intl.formatMessage({ id: "project.task.estimateInvalid" }));
+      toast.error("Please enter a valid positive duration in minutes");
       return;
     }
     if (nextValue === task.estimatedMinutes) return;
@@ -116,18 +117,18 @@ export default function TaskPropertiesPanel({
   };
 
   return (
-    <div className="select-none overflow-hidden rounded border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-150 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wide text-slate-700">
-        {intl.formatMessage({ id: "project.details" })}
+    <div className="select-none overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs">
+      <div className="border-b border-slate-100 bg-slate-50 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wide text-slate-700">
+        Task Details
       </div>
       <div className="divide-y divide-slate-100 text-xs">
         {/* Assignee */}
         <div
-          className="flex flex-col gap-1 px-3 py-2.5"
+          className="flex flex-col gap-1 px-3.5 py-2.5"
           ref={assigneeDropdownRef}
         >
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {intl.formatMessage({ id: "project.task.assignee" })}
+            Assignee
           </span>
           <div className="relative">
             <div
@@ -136,7 +137,7 @@ export default function TaskPropertiesPanel({
                   ? undefined
                   : () => setShowAssigneeDropdown((prev) => !prev)
               }
-              className={`-ml-1 flex items-center justify-between rounded p-1 transition ${
+              className={`-ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
                 isReadOnly
                   ? "cursor-default"
                   : "cursor-pointer hover:bg-slate-50"
@@ -153,7 +154,7 @@ export default function TaskPropertiesPanel({
                       }}
                       size="xs"
                     />
-                    <span className="font-semibold text-slate-700">
+                    <span className="font-semibold text-slate-800">
                       {assignedUser.displayName}
                     </span>
                   </>
@@ -163,7 +164,7 @@ export default function TaskPropertiesPanel({
                       ?
                     </div>
                     <span className="font-medium italic text-slate-400">
-                      {intl.formatMessage({ id: "project.task.unassigned" })}
+                      Unassigned
                     </span>
                   </>
                 )}
@@ -174,26 +175,30 @@ export default function TaskPropertiesPanel({
             </div>
 
             {showAssigneeDropdown && !isReadOnly && (
-              <div className="absolute left-0 z-20 mt-1 max-h-48 w-full overflow-y-auto rounded border border-slate-200 bg-white py-1 shadow-lg">
-                <button
+              <div className="absolute left-0 z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     setShowAssigneeDropdown(false);
                     void onAssigneeChange(null);
                   }}
-                  className="flex w-full items-center px-3 py-1.5 text-left text-xs font-semibold italic text-slate-500 hover:bg-slate-100"
+                  className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center px-3 py-1.5 text-left text-xs font-semibold italic text-slate-500 hover:bg-slate-50"
                 >
-                  {intl.formatMessage({ id: "project.task.unassign" })}
-                </button>
+                  Unassign
+                </Button>
                 {members.map((member) => (
-                  <button
+                  <Button
                     key={member.id}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setShowAssigneeDropdown(false);
                       void onAssigneeChange(member.userId);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
                   >
                     <Avatar
                       user={{
@@ -204,7 +209,7 @@ export default function TaskPropertiesPanel({
                       size="xs"
                     />
                     <span>{member.displayName}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -213,11 +218,11 @@ export default function TaskPropertiesPanel({
 
         {/* Priority */}
         <div
-          className="flex flex-col gap-1 px-3 py-2.5"
+          className="flex flex-col gap-1 px-3.5 py-2.5"
           ref={priorityDropdownRef}
         >
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {intl.formatMessage({ id: "project.task.priority" })}
+            Priority
           </span>
           <div className="relative">
             <div
@@ -226,7 +231,7 @@ export default function TaskPropertiesPanel({
                   ? undefined
                   : () => setShowPriorityDropdown((prev) => !prev)
               }
-              className={`-ml-1 flex items-center justify-between rounded p-1 transition ${
+              className={`-ml-1 flex items-center justify-between rounded-lg p-1.5 transition ${
                 isReadOnly
                   ? "cursor-default"
                   : "cursor-pointer hover:bg-slate-50"
@@ -235,7 +240,7 @@ export default function TaskPropertiesPanel({
               <div className="flex items-center gap-2">
                 {getPriorityIcon(task.priority)}
                 <span className="font-semibold text-slate-700">
-                  {intl.formatMessage({ id: TASK_PRIORITY_LABEL_IDS[task.priority] })}
+                  {TASK_PRIORITY_LABELS[task.priority]}
                 </span>
               </div>
               {!isReadOnly && (
@@ -244,20 +249,22 @@ export default function TaskPropertiesPanel({
             </div>
 
             {showPriorityDropdown && !isReadOnly && (
-              <div className="absolute left-0 z-20 mt-1 w-full rounded border border-slate-200 bg-white py-1 shadow-lg">
+              <div className="absolute left-0 z-20 mt-1 w-full overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
                 {TASK_DRAWER_PRIORITY_OPTIONS.map((opt) => (
-                  <button
+                  <Button
                     key={opt.value}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => {
                       setShowPriorityDropdown(false);
                       void onPriorityChange(opt.value);
                     }}
-                    className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                    className="flex w-full h-auto justify-start rounded-none cursor-pointer items-center gap-2 px-3 py-1.5 text-left text-xs font-semibold text-slate-700 hover:bg-slate-50"
                   >
                     {getPriorityIcon(opt.value)}
-                    <span>{intl.formatMessage({ id: opt.labelId })}</span>
-                  </button>
+                    <span>{opt.label}</span>
+                  </Button>
                 ))}
               </div>
             )}
@@ -265,37 +272,37 @@ export default function TaskPropertiesPanel({
         </div>
 
         {/* Start Date */}
-        <div className="flex flex-col gap-1 px-3 py-2.5">
+        <div className="flex flex-col gap-1 px-3.5 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {intl.formatMessage({ id: "project.startDate" })}
+            Start Date
           </span>
-          <input
+          <Input
             type="date"
             value={taskDateKey(task.startDate, task.allDay)}
             onChange={(e) => void onStartDateChange(e.target.value)}
             disabled={isReadOnly}
-            className="w-full cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-slate-700 outline-none focus:ring-0 disabled:cursor-default"
+            className="h-8 w-full rounded-lg border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
           />
         </div>
 
         {/* Due Date */}
-        <div className="flex flex-col gap-1 px-3 py-2.5">
+        <div className="flex flex-col gap-1 px-3.5 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {intl.formatMessage({ id: "project.task.dueDate" })}
+            Due Date
           </span>
-          <input
+          <Input
             type="date"
             value={taskDateKey(task.dueDate, task.allDay)}
             onChange={(e) => void onDueDateChange(e.target.value)}
             disabled={isReadOnly}
-            className="w-full cursor-pointer border-none bg-transparent p-0 text-xs font-semibold text-slate-700 outline-none focus:ring-0 disabled:cursor-default"
+            className="h-8 w-full rounded-lg border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
           />
         </div>
 
         {/* Estimate */}
-        <div className="flex flex-col gap-1 px-3 py-2.5">
+        <div className="flex flex-col gap-1 px-3.5 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {intl.formatMessage({ id: "project.task.estimateMinutes" })}
+            Estimated Duration
           </span>
           <TaskDurationSelect
             key={task.id}
@@ -310,55 +317,35 @@ export default function TaskPropertiesPanel({
             !TASK_DURATION_PRESETS.some(
               (preset) => preset === Number(estimateDraft),
             ) && (
-              <button
+              <Button
                 type="button"
+                variant="link"
+                size="sm"
                 onClick={() => void handleEstimateBlur()}
-                className="self-start text-[10px] font-bold text-blue-600 hover:text-blue-700"
+                className="h-auto self-start p-0 text-[10px] font-bold text-[#0052CC] hover:underline cursor-pointer"
               >
-                {intl.formatMessage({ id: "app.save" })}
-              </button>
+                Save estimate
+              </Button>
             )}
         </div>
 
         {/* Reporter */}
-        <div className="flex flex-col gap-0.5 px-3 py-2.5">
+        <div className="flex flex-col gap-0.5 px-3.5 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            {intl.formatMessage({ id: "project.task.reporter" })}
+            Reporter
           </span>
-          <span className="mt-0.5 block font-semibold text-slate-600">
+          <span className="mt-0.5 block font-semibold text-slate-700">
             {memberDisplayName(task.reporterId)}
           </span>
         </div>
 
         {/* Timestamps */}
-        <div className="flex flex-col gap-0.5 bg-slate-50/30 px-3 py-2.5 text-[10px] font-semibold text-slate-400">
+        <div className="flex flex-col gap-0.5 bg-slate-50/50 px-3.5 py-2.5 text-[10px] font-semibold text-slate-400">
           <div>
-            {intl.formatMessage(
-              { id: "project.task.createdAt" },
-              {
-                date: intl.formatDate(new Date(task.createdAt), {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              },
-            )}
+            Created: {formatTaskDateTime(task.createdAt)}
           </div>
           <div>
-            {intl.formatMessage(
-              { id: "project.task.updatedAt" },
-              {
-                date: intl.formatDate(new Date(task.updatedAt), {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                }),
-              },
-            )}
+            Updated: {formatTaskDateTime(task.updatedAt)}
           </div>
         </div>
       </div>

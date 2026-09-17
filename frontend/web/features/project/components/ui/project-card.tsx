@@ -5,10 +5,8 @@ import { type Project, isTerminalTaskStatus } from "@/features/project/types/pro
 import { ProjectStatusBadge } from "./status-badge";
 import { AvatarStack } from "./avatar-stack";
 import { CheckCircle2, Users, ListTodo } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function ProjectCard({ project }: { project: Project }) {
-  const intl = useAppIntl();
   const totalTasks = project.tasks.filter((t) => !t.archived).length;
   const doneTasks = project.tasks.filter(
     (task) => isTerminalTaskStatus(task.status) && !task.archived,
@@ -49,20 +47,14 @@ export default function ProjectCard({ project }: { project: Project }) {
       <div className="mt-5 flex items-center gap-4 text-xs font-semibold text-slate-500">
         <span className="inline-flex items-center gap-1.5">
           <ListTodo className="h-3.5 w-3.5" strokeWidth={2} />
-          {intl.formatMessage(
-            { id: "project.card.tasksCount" },
-            { count: totalTasks },
-          )}
+          {totalTasks} {totalTasks === 1 ? "task" : "tasks"}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <CheckCircle2
             className="h-3.5 w-3.5 text-emerald-500"
             strokeWidth={2}
           />
-          {intl.formatMessage(
-            { id: "project.card.doneCount" },
-            { count: doneTasks },
-          )}
+          {doneTasks} done
         </span>
         <span className="inline-flex items-center gap-1.5">
           <Users className="h-3.5 w-3.5" strokeWidth={2} />
@@ -73,7 +65,7 @@ export default function ProjectCard({ project }: { project: Project }) {
       {/* Progress bar */}
       <div className="mt-3">
         <div className="flex items-center justify-between text-[10px] font-bold text-slate-400">
-          <span>{intl.formatMessage({ id: "project.card.progress" })}</span>
+          <span>Progress</span>
           <span>{progress}%</span>
         </div>
         <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
@@ -99,7 +91,7 @@ export default function ProjectCard({ project }: { project: Project }) {
           size="xs"
         />
         <span className="text-[10px] font-semibold text-slate-400">
-          {new Date(project.updatedAt).toLocaleDateString(intl.locale)}
+          {new Date(project.updatedAt).toLocaleDateString()}
         </span>
       </div>
     </Link>

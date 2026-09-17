@@ -22,11 +22,11 @@ import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "sonner";
 import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
 import { getProjectKey } from "@/features/project/utils/project.utils";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { ProjectRole } from "@/features/project/types/project";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function ProjectsPage() {
-  const intl = useAppIntl();
   const [activeFilter, setActiveFilter] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -49,13 +49,13 @@ export default function ProjectsPage() {
   const handleCreateProject = async (payload: CreateProjectPayload) => {
     try {
       await createProjectMutation.mutateAsync(payload);
-      toast.success(intl.formatMessage({ id: "project.list.createSuccess" }));
+      toast.success("Project created successfully");
       setShowCreate(false);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : intl.formatMessage({ id: "project.list.createFailed" }),
+          : "Failed to create project",
       );
       throw error;
     }
@@ -66,30 +66,28 @@ export default function ProjectsPage() {
       {/* Breadcrumb & Title */}
       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
         <Link href="/dashboard" className="hover:text-blue-600 transition">
-          {intl.formatMessage({ id: "project.list.workspace" })}
+          Workspace
         </Link>
         <ChevronRight className="h-3 w-3 text-slate-400" />
-        <span className="text-slate-700">
-          {intl.formatMessage({ id: "project.list.title" })}
-        </span>
+        <span className="text-slate-700">Projects</span>
       </div>
 
       <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#172B4D]">
-            {intl.formatMessage({ id: "project.list.title" })}
+          <h1 className="text-2xl font-bold tracking-tight text-[#172B4D]">
+            Projects
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            {intl.formatMessage({ id: "project.list.description" })}
+            Manage your workspaces, track tasks, and collaborate with team members.
           </p>
         </div>
-        <button
+        <Button
           onClick={() => setShowCreate(true)}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded bg-[#0052CC] hover:bg-[#0747A6] px-3 py-2 text-sm font-semibold text-white transition duration-150 active:scale-[0.98] focus-visible:outline-none"
+          className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-xl bg-[#0052CC] hover:bg-[#0747A6] px-4 py-2 text-sm font-semibold text-white shadow-xs transition duration-150 active:scale-[0.98]"
         >
           <Plus className="h-4 w-4" strokeWidth={2.5} />
-          {intl.formatMessage({ id: "project.list.create" })}
-        </button>
+          Create Project
+        </Button>
       </div>
 
       {/* Filter Tabs & Search */}
@@ -103,13 +101,13 @@ export default function ProjectsPage() {
                 key={tab.key}
                 onClick={() => setActiveFilter(tab.key)}
                 className={[
-                  "relative shrink-0 px-3 py-1.5 text-sm font-medium transition duration-150 pb-2.5",
+                  "relative shrink-0 px-3 py-1.5 text-sm font-medium transition duration-150 pb-2.5 cursor-pointer",
                   isActive
-                    ? "text-[#0052CC] border-b-2 border-[#0052CC]"
+                    ? "text-[#0052CC] border-b-2 border-[#0052CC] font-bold"
                     : "text-slate-600 hover:text-slate-900",
                 ].join(" ")}
               >
-                {intl.formatMessage({ id: tab.labelId })}
+                {tab.label}
               </button>
             );
           })}
@@ -121,20 +119,18 @@ export default function ProjectsPage() {
             className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
             strokeWidth={2}
           />
-          <input
+          <Input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={intl.formatMessage({
-              id: "project.list.searchPlaceholder",
-            })}
-            className="w-full sm:w-60 rounded border border-slate-300 bg-white py-1.5 pl-8.5 pr-3 text-sm font-medium text-[#172B4D] outline-none transition placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC]"
+            placeholder="Search projects..."
+            className="w-full sm:w-64 rounded-xl border-slate-300 bg-white py-1.5 pl-9 pr-3 text-xs font-medium text-[#172B4D]"
           />
         </div>
       </div>
 
       {/* Main Table */}
-      <div className="mt-4 overflow-x-auto rounded border border-slate-200 bg-white shadow-sm">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-xs">
         {isLoading ? (
           <div className="divide-y divide-slate-100">
             {[1, 2, 3].map((i) => (
@@ -142,7 +138,7 @@ export default function ProjectsPage() {
                 key={i}
                 className="flex items-center gap-4 px-6 py-4.5 animate-pulse bg-white"
               >
-                <div className="h-10 w-10 rounded bg-slate-100" />
+                <div className="h-10 w-10 rounded-xl bg-slate-100" />
                 <div className="flex-1 space-y-2">
                   <div className="h-4 w-1/3 rounded bg-slate-100" />
                   <div className="h-3 w-1/4 rounded bg-slate-100" />
@@ -152,31 +148,21 @@ export default function ProjectsPage() {
           </div>
         ) : isError ? (
           <div className="py-12 text-center text-sm font-semibold text-red-500">
-            {intl.formatMessage({ id: "project.list.loadError" })}
+            Failed to load projects. Please try refreshing the page.
           </div>
         ) : filteredProjects.length > 0 ? (
           <table className="w-full min-w-[850px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-3 font-semibold">
-                  {intl.formatMessage({ id: "project.list.column.name" })}
-                </th>
-                <th className="px-6 py-3 font-semibold">
-                  {intl.formatMessage({ id: "project.list.column.key" })}
-                </th>
-                <th className="px-6 py-3 font-semibold">
-                  {intl.formatMessage({ id: "project.list.column.owner" })}
-                </th>
-                <th className="px-6 py-3 font-semibold">
-                  {intl.formatMessage({ id: "project.list.column.status" })}
-                </th>
-                <th className="px-6 py-3 font-semibold w-40">
-                  {intl.formatMessage({ id: "project.list.column.progress" })}
-                </th>
+              <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <th className="px-6 py-3 font-semibold">Name</th>
+                <th className="px-6 py-3 font-semibold">Key</th>
+                <th className="px-6 py-3 font-semibold">Owner</th>
+                <th className="px-6 py-3 font-semibold">Status</th>
+                <th className="px-6 py-3 font-semibold w-40">Progress</th>
                 <th className="px-6 py-3 text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
+            <tbody className="divide-y divide-slate-100">
               {filteredProjects.map((project) => {
                 const projectKey = getProjectKey(project.name);
                 const owner =
@@ -192,7 +178,7 @@ export default function ProjectsPage() {
                 return (
                   <tr
                     key={project.id}
-                    className="group hover:bg-[#F4F5F7] transition duration-150"
+                    className="group hover:bg-slate-50/70 transition duration-150"
                   >
                     <td className="px-6 py-3.5">
                       <Link
@@ -200,7 +186,7 @@ export default function ProjectsPage() {
                         className="flex items-center gap-3"
                       >
                         <span
-                          className="grid h-10 w-10 shrink-0 place-items-center rounded text-xl shadow-sm border border-slate-200 font-semibold"
+                          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xl shadow-2xs border border-slate-200 font-semibold"
                           style={{
                             backgroundColor: `${project.color}14`,
                             color: project.color,
@@ -209,13 +195,11 @@ export default function ProjectsPage() {
                           {project.icon || "📁"}
                         </span>
                         <div>
-                          <span className="font-semibold text-[#0052CC] hover:underline block text-[14px]">
+                          <span className="font-bold text-[#0052CC] hover:underline block text-sm">
                             {project.name}
                           </span>
                           <span className="text-xs text-slate-500 font-medium">
-                            {intl.formatMessage({
-                              id: "project.list.teamManaged",
-                            })}
+                            Team-managed project
                           </span>
                         </div>
                       </Link>
@@ -270,36 +254,30 @@ export default function ProjectsPage() {
                       <div className="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition duration-150">
                         <Link
                           href={`/projects/${project.id}?view=settings`}
-                          title={intl.formatMessage({
-                            id: "project.list.settings",
-                          })}
-                          className="grid h-8 w-8 place-items-center rounded hover:bg-slate-200 text-slate-500 hover:text-slate-700"
+                          title="Project Settings"
+                          className="grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-700"
                         >
                           <Settings className="h-4 w-4" />
                         </Link>
                         <details className="relative">
                           <summary
-                            title={intl.formatMessage({
-                              id: "project.list.moreOptions",
-                            })}
-                            className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                            title="More options"
+                            className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </summary>
-                          <div className="absolute right-0 top-9 z-20 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 text-left shadow-lg">
+                          <div className="absolute right-0 top-9 z-20 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-lg">
                             <Link
                               href={`/projects/${project.id}`}
                               className="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                             >
-                              {intl.formatMessage({ id: "project.list.open" })}
+                              Open Board
                             </Link>
                             <Link
                               href={`/projects/${project.id}?view=settings`}
                               className="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                             >
-                              {intl.formatMessage({
-                                id: "project.list.settings",
-                              })}
+                              Settings
                             </Link>
                           </div>
                         </details>
@@ -316,17 +294,17 @@ export default function ProjectsPage() {
               📂
             </div>
             <p className="mt-4 text-sm font-bold text-slate-700">
-              {intl.formatMessage({ id: "project.list.emptyTitle" })}
+              No projects yet
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              {intl.formatMessage({ id: "project.list.emptyDescription" })}
+              Get started by creating your first team project.
             </p>
-            <button
+            <Button
               onClick={() => setShowCreate(true)}
-              className="mt-4 inline-flex items-center gap-1.5 rounded bg-[#0052CC] hover:bg-[#0747A6] px-3.5 py-2 text-xs font-semibold text-white transition"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#0052CC] hover:bg-[#0747A6] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer"
             >
-              {intl.formatMessage({ id: "project.list.createNew" })}
-            </button>
+              Create New Project
+            </Button>
           </div>
         )}
       </div>

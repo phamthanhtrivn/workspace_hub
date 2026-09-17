@@ -7,60 +7,69 @@ import {
   ListChecks,
   Settings2,
   ShieldCheck,
-  X,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { Avatar } from "@/features/project/components/ui/avatar-stack";
 import type {
   ProjectMember,
   ProjectMemberPermissions,
 } from "@/features/project/types/project";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 
 interface PermissionOption {
   key: keyof ProjectMemberPermissions;
-  labelId: string;
-  descriptionId: string;
+  label: string;
+  description: string;
 }
 
 const TASK_PERMISSION_OPTIONS: PermissionOption[] = [
   {
     key: "canCreateTask",
-    labelId: "project.permission.createTask",
-    descriptionId: "project.permission.createTaskDescription",
+    label: "Create tasks",
+    description: "Allow creating new tasks in this project.",
   },
   {
     key: "canEditOwnTask",
-    labelId: "project.permission.editOwnTask",
-    descriptionId: "project.permission.editOwnTaskDescription",
+    label: "Edit own tasks",
+    description: "Allow editing tasks created by or assigned to this member.",
   },
   {
     key: "canEditOthersTask",
-    labelId: "project.permission.editOthersTask",
-    descriptionId: "project.permission.editOthersTaskDescription",
+    label: "Edit other members' tasks",
+    description: "Allow modifying tasks created by other project members.",
   },
 ];
 
 const MANAGEMENT_PERMISSION_OPTIONS: PermissionOption[] = [
   {
     key: "canManageMembers",
-    labelId: "project.permission.manageMembers",
-    descriptionId: "project.permission.manageMembersDescription",
+    label: "Manage members & permissions",
+    description: "Invite new members, change member roles and remove members.",
   },
   {
     key: "canManageLabels",
-    labelId: "project.permission.manageLabels",
-    descriptionId: "project.permission.manageLabelsDescription",
+    label: "Manage project labels",
+    description: "Create, edit, and delete custom project labels.",
   },
 ];
 
 const DEFAULT_CAPABILITIES = [
   {
-    titleId: "project.permission.baseAccess",
-    descriptionId: "project.permission.baseAccessDescription",
+    title: "View Project & Tasks",
+    description: "Access project overview, board, list, timeline, and calendar views.",
   },
   {
-    titleId: "project.permission.assignedAccess",
-    descriptionId: "project.permission.assignedAccessDescription",
+    title: "Comments & Checklists",
+    description: "Post comments and check off assigned checklist items.",
   },
 ];
 
@@ -87,36 +96,26 @@ export default function MemberPermissionsDialog({
   onClose: () => void;
   onSave: (permissions: ProjectMemberPermissions) => Promise<void>;
 }) {
-  const intl = useAppIntl();
   const [permissions, setPermissions] =
     useState<ProjectMemberPermissions | null>(
       member ? getMemberPermissions(member) : null,
     );
 
   useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !isSaving) onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isSaving, onClose, open]);
+    if (member) {
+      setPermissions(getMemberPermissions(member));
+    }
+  }, [member]);
 
   if (!open || !member || !permissions) return null;
 
   const enabledCount = Object.values(permissions).filter(Boolean).length;
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-slate-950/45 p-3 backdrop-blur-[2px] sm:p-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="member-permissions-title"
-        aria-describedby="member-permissions-description"
-        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_24px_80px_rgba(9,30,66,0.24)]"
-      >
-        <header className="flex items-start justify-between gap-4 px-5 pb-4 pt-5 sm:px-6 sm:pt-6">
-          <div className="flex min-w-0 items-center gap-3">
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSaving && onClose()}>
+      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl sm:rounded-2xl">
+        <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
+          <div className="flex items-center gap-3">
             <Avatar
               user={{
                 userId: member.userId,
@@ -125,39 +124,21 @@ export default function MemberPermissionsDialog({
               }}
               size="md"
             />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 shrink-0 text-blue-600" />
-                <h2
-                  id="member-permissions-title"
-                  className="truncate text-lg font-black text-[#172B4D]"
-                >
-                  {intl.formatMessage(
-                    { id: "project.permission.title" },
-                    { name: member.displayName },
-                  )}
-                </h2>
+                <ShieldCheck className="h-4 w-4 shrink-0 text-[#0052CC]" />
+                <DialogTitle className="truncate text-lg font-bold text-slate-900">
+                  Permissions: {member.displayName}
+                </DialogTitle>
               </div>
-              <p
-                id="member-permissions-description"
-                className="mt-1 text-xs font-medium leading-5 text-slate-500"
-              >
-                {intl.formatMessage({ id: "project.permission.ownerOnly" })}
-              </p>
+              <DialogDescription className="mt-1 text-xs text-slate-500">
+                Configure member access privileges for this project.
+              </DialogDescription>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:translate-y-px disabled:opacity-50"
-            aria-label={intl.formatMessage({ id: "app.close" })}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </header>
+        </DialogHeader>
 
-        <main className="overflow-y-auto px-5 pb-5 sm:px-6">
+        <div className="overflow-y-auto px-6 py-5 max-h-[calc(100dvh-16rem)] space-y-4">
           <section
             aria-labelledby="default-member-rights"
             className="rounded-xl border border-blue-100 bg-blue-50/70 p-4"
@@ -166,54 +147,50 @@ export default function MemberPermissionsDialog({
               <div>
                 <h3
                   id="default-member-rights"
-                  className="text-sm font-black text-[#172B4D]"
+                  className="text-xs font-bold text-[#172B4D]"
                 >
-                  {intl.formatMessage({ id: "project.permission.alwaysAvailable" })}
+                  Standard Member Access
                 </h3>
-                <p className="mt-0.5 text-xs leading-5 text-slate-600">
-                  {intl.formatMessage({ id: "project.permission.alwaysAvailableHint" })}
+                <p className="mt-0.5 text-xs leading-relaxed text-slate-600">
+                  Included for all project members automatically.
                 </p>
               </div>
-              <span className="shrink-0 text-[11px] font-bold text-blue-700">
-                {intl.formatMessage({ id: "project.permission.included" })}
-              </span>
+              <Badge
+                variant="outline"
+                className="border-blue-200 bg-blue-100/70 text-[10px] font-bold text-blue-700"
+              >
+                Included
+              </Badge>
             </div>
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
               {DEFAULT_CAPABILITIES.map((capability) => (
-                <div key={capability.titleId} className="flex items-start gap-2.5">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                <div key={capability.title} className="flex items-start gap-2.5">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[#0052CC]" />
                   <div>
                     <p className="text-xs font-bold text-slate-700">
-                      {intl.formatMessage({ id: capability.titleId })}
+                      {capability.title}
                     </p>
-                    <p className="mt-0.5 text-xs leading-5 text-slate-600">
-                      {intl.formatMessage({ id: capability.descriptionId })}
+                    <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+                      {capability.description}
                     </p>
                   </div>
                 </div>
               ))}
             </div>
-
-            <p className="mt-3 border-t border-blue-100 pt-3 text-[11px] font-medium leading-4 text-slate-500">
-              {intl.formatMessage({ id: "project.permission.closedReadOnly" })}
-            </p>
           </section>
 
-          <div className="mb-3 mt-5 flex items-end justify-between gap-4">
+          <div className="flex items-end justify-between gap-4 pt-1">
             <div>
-              <h3 className="text-sm font-black text-[#172B4D]">
-                {intl.formatMessage({ id: "project.permission.additional" })}
+              <h3 className="text-xs font-bold text-[#172B4D]">
+                Additional Permissions
               </h3>
-              <p className="mt-0.5 text-xs leading-5 text-slate-500">
-                {intl.formatMessage({ id: "project.permission.additionalDescription" })}
+              <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
+                Grant specific write and management capabilities.
               </p>
             </div>
             <span className="shrink-0 text-[11px] font-bold text-slate-500">
-              {intl.formatMessage(
-                { id: "project.permission.enabledCount" },
-                { count: enabledCount, total: 5 },
-              )}
+              {enabledCount} of 5 active
             </span>
           </div>
 
@@ -221,15 +198,15 @@ export default function MemberPermissionsDialog({
             {
               id: "task-permissions",
               icon: ListChecks,
-              titleId: "project.permission.taskGroup",
-              descriptionId: "project.permission.taskGroupDescription",
+              title: "Task Management",
+              description: "Permissions related to creating and updating tasks.",
               options: TASK_PERMISSION_OPTIONS,
             },
             {
               id: "management-permissions",
               icon: Settings2,
-              titleId: "project.permission.managementGroup",
-              descriptionId: "project.permission.managementGroupDescription",
+              title: "Project Administration",
+              description: "Permissions for managing project members and labels.",
               options: MANAGEMENT_PERMISSION_OPTIONS,
             },
           ].map((group) => {
@@ -237,19 +214,17 @@ export default function MemberPermissionsDialog({
             return (
               <fieldset
                 key={group.id}
-                className="mt-3 overflow-hidden rounded-xl border border-slate-200"
+                className="overflow-hidden rounded-xl border border-slate-200"
               >
-                <legend className="sr-only">
-                  {intl.formatMessage({ id: group.titleId })}
-                </legend>
-                <div className="flex items-start gap-2.5 bg-slate-50 px-4 py-3">
+                <legend className="sr-only">{group.title}</legend>
+                <div className="flex items-start gap-2.5 bg-slate-50 px-4 py-2.5">
                   <GroupIcon className="mt-0.5 h-4 w-4 shrink-0 text-slate-500" />
                   <div>
-                    <p className="text-xs font-black text-slate-700">
-                      {intl.formatMessage({ id: group.titleId })}
+                    <p className="text-xs font-bold text-slate-700">
+                      {group.title}
                     </p>
                     <p className="mt-0.5 text-[11px] leading-4 text-slate-500">
-                      {intl.formatMessage({ id: group.descriptionId })}
+                      {group.description}
                     </p>
                   </div>
                 </div>
@@ -260,27 +235,26 @@ export default function MemberPermissionsDialog({
                       key={option.key}
                       className="flex cursor-pointer items-start gap-3 bg-white px-4 py-3 transition hover:bg-blue-50/40"
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={permissions[option.key]}
-                        onChange={(event) =>
+                        onCheckedChange={(checked) =>
                           setPermissions((current) =>
                             current
                               ? {
                                   ...current,
-                                  [option.key]: event.target.checked,
+                                  [option.key]: Boolean(checked),
                                 }
                               : current,
                           )
                         }
-                        className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 accent-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                        className="mt-0.5 cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
                       />
                       <span>
-                        <span className="block text-sm font-bold text-slate-700">
-                          {intl.formatMessage({ id: option.labelId })}
+                        <span className="block text-xs font-bold text-slate-800">
+                          {option.label}
                         </span>
-                        <span className="mt-0.5 block text-xs leading-5 text-slate-500">
-                          {intl.formatMessage({ id: option.descriptionId })}
+                        <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-500">
+                          {option.description}
                         </span>
                       </span>
                     </label>
@@ -290,33 +264,34 @@ export default function MemberPermissionsDialog({
             );
           })}
 
-          <div className="mt-4 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-5 text-amber-900">
-            <Info className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>{intl.formatMessage({ id: "project.permission.creatorRule" })}</p>
+          <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 border border-amber-200/60">
+            <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+            <p className="text-[11px] leading-relaxed">
+              Task creators always retain permission to edit tasks they originally created.
+            </p>
           </div>
-        </main>
+        </div>
 
-        <footer className="flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4 sm:px-6">
-          <button
+        <DialogFooter className="flex justify-end gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
             disabled={isSaving}
-            className="rounded-lg px-4 py-2.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:translate-y-px disabled:opacity-50"
+            className="cursor-pointer rounded-xl font-bold text-slate-600 hover:bg-slate-100"
           >
-            {intl.formatMessage({ id: "app.cancel" })}
-          </button>
-          <button
+            Cancel
+          </Button>
+          <Button
             type="button"
             onClick={() => void onSave(permissions)}
             disabled={isSaving}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2 active:translate-y-px disabled:cursor-not-allowed disabled:bg-slate-400"
+            className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
           >
-            {intl.formatMessage({
-              id: isSaving ? "app.saving" : "project.permission.save",
-            })}
-          </button>
-        </footer>
-      </div>
-    </div>
+            {isSaving ? "Saving..." : "Save Permissions"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

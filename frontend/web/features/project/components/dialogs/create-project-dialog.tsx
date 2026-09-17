@@ -1,12 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   PROJECT_COLOR_OPTIONS,
   PROJECT_ICON_OPTIONS,
 } from "@/features/project/constants/project-form.constants";
+import { cn } from "@/lib/utils";
 
 interface CreateProjectDialogProps {
   open: boolean;
@@ -25,7 +34,6 @@ export default function CreateProjectDialog({
   onSubmit,
   isSubmitting = false,
 }: CreateProjectDialogProps) {
-  const intl = useAppIntl();
   const [name, setName] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>(
     PROJECT_COLOR_OPTIONS[0],
@@ -34,9 +42,8 @@ export default function CreateProjectDialog({
     PROJECT_ICON_OPTIONS[0],
   );
 
-  if (!open) return null;
-
-  const handleSubmit = async () => {
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     if (!name.trim() || isSubmitting) return;
 
     await onSubmit?.({
@@ -49,170 +56,141 @@ export default function CreateProjectDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      {/* Backdrop */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px] animate-in fade-in duration-200"
-        onClick={onClose}
-      />
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isSubmitting && onClose()}>
+      <DialogContent className="max-w-xl p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white text-slate-800 shadow-2xl sm:rounded-2xl">
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
+            <DialogTitle className="text-xl font-bold tracking-tight text-[#172B4D]">
+              Create Project
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-sm text-[#42526E]">
+              Set up a new workspace project to manage tasks and collaborate with your team.
+            </DialogDescription>
+          </DialogHeader>
 
-      {/* Dialog */}
-      <form
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="create-project-title"
-        aria-describedby="create-project-description"
-        aria-busy={isSubmitting}
-        onSubmit={(event) => {
-          event.preventDefault();
-          void handleSubmit();
-        }}
-        className="relative flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_24px_70px_-24px_rgba(15,40,84,0.38)] animate-in zoom-in-95 fade-in duration-200 sm:max-h-[calc(100dvh-2rem)]"
-      >
-        {/* Close button */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={intl.formatMessage({ id: "app.close" })}
-          className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
-        >
-          <X className="h-4 w-4" strokeWidth={2} />
-        </button>
-
-        <div className="shrink-0 px-6 pb-4 pr-14 pt-5">
-          <h2
-            id="create-project-title"
-            className="text-xl font-bold tracking-tight text-[#172B4D]"
-          >
-            {intl.formatMessage({ id: "project.create.title" })}
-          </h2>
-          <p
-            id="create-project-description"
-            className="mt-1 text-sm leading-5 text-[#42526E]"
-          >
-            {intl.formatMessage({ id: "project.create.description" })}
-          </p>
-        </div>
-
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 pb-5 pt-1">
-          {/* Project Name */}
-          <div>
-            <label
-              htmlFor="project-name"
-              className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
-            >
-              {intl.formatMessage({ id: "project.name" })}
-            </label>
-            <input
-              id="project-name"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={intl.formatMessage({
-                id: "project.namePlaceholder",
-              })}
-              autoFocus
-              className="mt-2 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-[#172B4D] outline-none transition placeholder:font-normal placeholder:text-slate-400 hover:border-slate-400 focus:border-[#0052CC] focus:ring-2 focus:ring-[#0052CC]/15"
-            />
-          </div>
-
-          {/* Icon Picker */}
-          <fieldset>
-            <legend className="block text-xs font-bold uppercase tracking-wider text-[#42526E]">
-              {intl.formatMessage({ id: "project.icon" })}
-            </legend>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {PROJECT_ICON_OPTIONS.map((icon) => {
-                const selected = selectedIcon === icon;
-
-                return (
-                  <button
-                    key={icon}
-                    type="button"
-                    aria-label={`${intl.formatMessage({ id: "project.icon" })}: ${icon}`}
-                    aria-pressed={selected}
-                    onClick={() => setSelectedIcon(icon)}
-                    className={[
-                      "grid h-9 w-9 place-items-center rounded-lg border text-base transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2",
-                      selected
-                        ? "border-[#0052CC] bg-[#E8F0FE] shadow-sm ring-1 ring-[#0052CC]/20"
-                        : "border-transparent bg-slate-100 hover:border-slate-300 hover:bg-slate-200",
-                    ].join(" ")}
-                  >
-                    {icon}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          {/* Color Picker */}
-          <fieldset>
-            <legend className="block text-xs font-bold uppercase tracking-wider text-[#42526E]">
-              {intl.formatMessage({ id: "project.color" })}
-            </legend>
-            <div className="mt-2 flex flex-wrap gap-2.5">
-              {PROJECT_COLOR_OPTIONS.map((color) => {
-                const selected = selectedColor === color;
-
-                return (
-                  <button
-                    key={color}
-                    type="button"
-                    aria-label={`${intl.formatMessage({ id: "project.color" })}: ${color}`}
-                    aria-pressed={selected}
-                    onClick={() => setSelectedColor(color)}
-                    className={[
-                      "h-8 w-8 rounded-full border-2 border-white shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2",
-                      selected
-                        ? "scale-110 ring-2 ring-[#0F2854] ring-offset-2"
-                        : "hover:scale-105 hover:shadow-md",
-                    ].join(" ")}
-                    style={{ backgroundColor: color }}
-                  />
-                );
-              })}
-            </div>
-          </fieldset>
-
-          {/* Preview */}
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3.5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              {intl.formatMessage({ id: "project.preview" })}
-            </p>
-            <div className="mt-2 flex items-center gap-3">
-              <span
-                className="grid h-10 w-10 place-items-center rounded-lg text-lg shadow-sm ring-1 ring-slate-200"
-                style={{ backgroundColor: `${selectedColor}14` }}
+          <div className="space-y-5 px-6 py-5 max-h-[calc(100dvh-16rem)] overflow-y-auto">
+            {/* Project Name */}
+            <div>
+              <label
+                htmlFor="project-name"
+                className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
               >
-                {selectedIcon}
-              </span>
-              <span className="min-w-0 truncate text-sm font-bold text-[#172B4D]">
-                {name || intl.formatMessage({ id: "project.nameFallback" })}
-              </span>
+                Project Name <span className="text-red-500">*</span>
+              </label>
+              <Input
+                id="project-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Enter project name..."
+                autoFocus
+                required
+                className="mt-2 h-11 w-full rounded-xl border-slate-300 bg-white px-3 text-sm font-semibold text-[#172B4D] placeholder:font-normal placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+              />
+            </div>
+
+            {/* Icon Picker */}
+            <fieldset>
+              <legend className="block text-xs font-bold uppercase tracking-wider text-[#42526E]">
+                Project Icon
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {PROJECT_ICON_OPTIONS.map((icon) => {
+                  const selected = selectedIcon === icon;
+
+                  return (
+                    <Button
+                      key={icon}
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Project icon: ${icon}`}
+                      aria-pressed={selected}
+                      onClick={() => setSelectedIcon(icon)}
+                      className={cn(
+                        "h-9 w-9 cursor-pointer rounded-xl border text-base transition duration-150 p-0",
+                        selected
+                          ? "border-[#0052CC] bg-[#E8F0FE] shadow-sm ring-1 ring-[#0052CC]/20 hover:bg-[#E8F0FE]"
+                          : "border-transparent bg-slate-100 hover:border-slate-300 hover:bg-slate-200"
+                      )}
+                    >
+                      {icon}
+                    </Button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            {/* Color Picker */}
+            <fieldset>
+              <legend className="block text-xs font-bold uppercase tracking-wider text-[#42526E]">
+                Theme Color
+              </legend>
+              <div className="mt-2 flex flex-wrap gap-2.5">
+                {PROJECT_COLOR_OPTIONS.map((color) => {
+                  const selected = selectedColor === color;
+
+                  return (
+                    <Button
+                      key={color}
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Project color: ${color}`}
+                      aria-pressed={selected}
+                      onClick={() => setSelectedColor(color)}
+                      className={cn(
+                        "h-8 w-8 cursor-pointer rounded-full border-2 border-white shadow-sm transition duration-150 p-0",
+                        selected
+                          ? "scale-110 ring-2 ring-[#0052CC] ring-offset-2 hover:scale-110"
+                          : "hover:scale-105 hover:shadow-md"
+                      )}
+                      style={{ backgroundColor: color }}
+                    />
+                  );
+                })}
+              </div>
+            </fieldset>
+
+            {/* Preview */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                Preview
+              </p>
+              <div className="mt-2 flex items-center gap-3">
+                <span
+                  className="grid h-10 w-10 place-items-center rounded-xl text-lg shadow-sm ring-1 ring-slate-200"
+                  style={{ backgroundColor: `${selectedColor}14` }}
+                >
+                  {selectedIcon}
+                </span>
+                <span className="min-w-0 truncate text-sm font-bold text-[#172B4D]">
+                  {name || "Untitled Project"}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Actions */}
-        <div className="flex shrink-0 items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-4 py-2.5 text-sm font-bold text-[#42526E] transition hover:bg-slate-200/70 hover:text-[#172B4D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2"
-          >
-            {intl.formatMessage({ id: "app.cancel" })}
-          </button>
-          <button
-            type="submit"
-            disabled={!name.trim() || isSubmitting}
-            className="rounded-lg bg-[#0052CC] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#0747A6] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC] focus-visible:ring-offset-2 active:translate-y-px disabled:cursor-not-allowed disabled:bg-slate-400 disabled:shadow-none"
-          >
-            {intl.formatMessage({ id: "project.create.submit" })}
-          </button>
-        </div>
-      </form>
-    </div>
+          <DialogFooter className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+              className="cursor-pointer rounded-xl border-slate-200 font-bold text-[#42526E] hover:bg-slate-100"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={!name.trim() || isSubmitting}
+              className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
+            >
+              {isSubmitting ? "Creating..." : "Create Project"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

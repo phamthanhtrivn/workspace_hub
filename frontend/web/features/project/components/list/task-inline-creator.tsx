@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { CheckSquare2, Plus } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface TaskInlineCreatorProps {
   placeholder?: string;
@@ -15,7 +16,6 @@ export default function TaskInlineCreator({
   buttonLabel,
   onSubmit,
 }: TaskInlineCreatorProps) {
-  const intl = useAppIntl();
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +27,6 @@ export default function TaskInlineCreator({
     try {
       await onSubmit(trimmed);
       setTitle("");
-      // Keep creator open for rapid successive additions
     } finally {
       setIsSubmitting(false);
     }
@@ -35,15 +34,13 @@ export default function TaskInlineCreator({
 
   if (isOpen) {
     return (
-      <div className="flex items-center gap-3 border-t border-slate-200 bg-white px-4 py-2">
+      <div className="flex items-center gap-2.5 border-t border-slate-200 bg-white px-4 py-2">
         <CheckSquare2 className="h-4 w-4 shrink-0 text-[#0052CC] fill-[#DEEBFF]" />
-        <input
+        <Input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={
-            placeholder ?? intl.formatMessage({ id: "project.task.titlePrompt" })
-          }
+          placeholder={placeholder ?? "What needs to be done?"}
           autoFocus
           onKeyDown={(e) => {
             if (e.key === "Enter") {
@@ -53,49 +50,45 @@ export default function TaskInlineCreator({
               setTitle("");
             }
           }}
-          className="flex-1 bg-transparent text-sm font-medium text-[#172B4D] outline-none placeholder:text-slate-400"
+          className="h-8 flex-1 border-slate-200 bg-transparent text-xs font-semibold text-[#172B4D] placeholder:text-slate-400"
         />
-        <button
+        <Button
           type="button"
+          size="sm"
           onClick={() => void handleSubmit()}
           disabled={!title.trim() || isSubmitting}
-          className={`rounded px-3 py-1.5 text-xs font-bold transition ${
-            title.trim() && !isSubmitting
-              ? "bg-[#0052CC] text-white hover:bg-[#0747A6]"
-              : "cursor-not-allowed bg-slate-100 text-slate-400"
-          }`}
+          className="h-8 rounded-lg bg-[#0052CC] hover:bg-[#0747A6] px-3 text-xs font-bold text-white cursor-pointer"
         >
-          {isSubmitting
-            ? intl.formatMessage({ id: "app.processing" })
-            : intl.formatMessage({ id: "app.create" })}
-        </button>
-        <button
+          {isSubmitting ? "Creating..." : "Create"}
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => {
             setIsOpen(false);
             setTitle("");
           }}
-          className="rounded px-2.5 py-1.5 text-xs font-bold text-slate-500 transition hover:bg-slate-100"
+          className="h-8 rounded-lg border-slate-200 px-2.5 text-xs font-bold text-slate-500 hover:bg-slate-100 cursor-pointer"
         >
-          {intl.formatMessage({ id: "app.cancel" })}
-        </button>
+          Cancel
+        </Button>
       </div>
     );
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={() => {
         setIsOpen(true);
         setTitle("");
       }}
-      className="flex w-full items-center gap-1.5 border-t border-slate-150 bg-white px-4 py-2.5 text-left text-xs font-semibold text-slate-500 transition hover:bg-[#F4F5F7] hover:text-[#0052CC]"
+      className="flex h-9 w-full justify-start rounded-none items-center gap-1.5 border-t border-slate-200 bg-white px-4 py-2.5 text-left text-xs font-semibold text-slate-500 transition hover:bg-slate-50 hover:text-[#0052CC] cursor-pointer"
     >
       <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-      <span>
-        {buttonLabel ?? intl.formatMessage({ id: "project.task.create" })}
-      </span>
-    </button>
+      <span>{buttonLabel ?? "Create Task"}</span>
+    </Button>
   );
 }

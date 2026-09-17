@@ -23,7 +23,6 @@ import {
   useProjectSummaryMetrics,
   isWithinLastDays,
 } from "@/features/project/hooks/use-project-summary-metrics";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function SummaryView({
   tasks,
@@ -32,11 +31,10 @@ export default function SummaryView({
   tasks: Task[];
   members: ProjectMember[];
 }) {
-  const intl = useAppIntl();
   const formatDate = (value?: string) =>
     value
-      ? intl.formatDate(new Date(value), { day: "2-digit", month: "2-digit" })
-      : intl.formatMessage({ id: "app.notSet" });
+      ? new Date(value).toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })
+      : "Not set";
   const {
     now,
     rootTasks,
@@ -58,10 +56,10 @@ export default function SummaryView({
     <div className="mx-auto w-full max-w-6xl space-y-4 pb-8">
       <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-5 py-4">
         <p className="text-sm font-bold text-[#172B4D]">
-          {intl.formatMessage({ id: "project.summary.workOverview" })}
+          Project Overview
         </p>
         <p className="mt-1 text-xs text-slate-600">
-          {intl.formatMessage({ id: "project.summary.generalDescription" })}
+          Track high-level progress, upcoming milestones, and task distribution across your team.
         </p>
       </div>
 
@@ -69,33 +67,33 @@ export default function SummaryView({
         <ProjectMetricCard
           icon={ListChecks}
           value={rootTasks.length}
-          label={intl.formatMessage({ id: "project.task.task" })}
+          label="Tasks"
           color="bg-blue-50 text-blue-600"
         />
         <ProjectMetricCard
           icon={Activity}
           value={subtasks.length}
-          label={intl.formatMessage({ id: "project.task.subtask" })}
+          label="Subtasks"
           color="bg-violet-50 text-violet-600"
         />
         <ProjectMetricCard
           icon={CheckCircle2}
           value={completed.length}
-          label={intl.formatMessage({ id: "project.summary.completed" })}
+          label="Completed"
           color="bg-emerald-50 text-emerald-600"
         />
         <ProjectMetricCard
           icon={CircleAlert}
           value={overdue.length}
-          label={intl.formatMessage({ id: "project.summary.overdue" })}
+          label="Overdue"
           color="bg-red-50 text-red-600"
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.workProgress" })}
-          description={intl.formatMessage({ id: "project.summary.workProgressDescription" })}
+          title="Work Progress"
+          description="Overall completion percentage and status breakdown."
         >
           <div className="flex items-center gap-5">
             <div
@@ -131,12 +129,12 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.upcomingDeadlines" })}
-          description={intl.formatMessage({ id: "project.summary.upcomingDeadlinesDescription" })}
+          title="Upcoming Deadlines"
+          description="Tasks that are approaching their due dates soon."
         >
           {dueSoon.length === 0 ? (
             <p className="py-8 text-center text-xs font-semibold text-slate-400">
-              {intl.formatMessage({ id: "project.summary.noUpcomingDeadlines" })}
+              No upcoming deadlines in the near future.
             </p>
           ) : (
             <div className="space-y-2">
@@ -159,8 +157,8 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.priorityTitle" })}
-          description={intl.formatMessage({ id: "project.summary.generalPriorityDescription" })}
+          title="Priority Breakdown"
+          description="Distribution of tasks across priority tiers."
         >
           <PriorityDistributionBar
             items={priorityItems}
@@ -169,20 +167,20 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.assignmentTitle" })}
-          description={intl.formatMessage({ id: "project.summary.assignmentDescription" })}
+          title="Team Workload"
+          description="Number of assigned tasks per project team member."
         >
           <MemberWorkloadList
             items={workload}
             maxCount={maxWorkload}
             barColor="bg-blue-500"
-            emptyMessage={intl.formatMessage({ id: "project.summary.noAssignedWork" })}
+            emptyMessage="No assigned workload to display."
           />
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.unscheduledTitle" })}
-          description={intl.formatMessage({ id: "project.summary.unscheduledDescription" })}
+          title="Unscheduled Tasks"
+          description="Tasks missing a start date or due date."
         >
           <div className="flex items-center gap-3">
             <CalendarClock className="h-8 w-8 text-slate-400" />
@@ -191,19 +189,19 @@ export default function SummaryView({
                 {unscheduled.length}
               </p>
               <p className="text-xs text-slate-500">
-                {intl.formatMessage({ id: "project.summary.needsScheduling" })}
+                Tasks needing scheduling in timeline or calendar.
               </p>
             </div>
           </div>
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.recentActivity" })}
-          description={intl.formatMessage({ id: "project.summary.recentTasksDescription" })}
+          title="Recent Activity"
+          description="Recently updated or modified tasks."
         >
           {recentTasks.length === 0 ? (
             <p className="py-8 text-center text-xs font-semibold text-slate-400">
-              {intl.formatMessage({ id: "project.activity.empty" })}
+              No recent task activity.
             </p>
           ) : (
             <div className="space-y-3">
@@ -218,7 +216,7 @@ export default function SummaryView({
                   </span>
                   <span className="text-[10px] font-semibold text-slate-400">
                     {isWithinLastDays(task.updatedAt, now)
-                      ? intl.formatMessage({ id: "project.summary.justUpdated" })
+                      ? "Just updated"
                       : formatDate(task.updatedAt)}
                   </span>
                 </div>

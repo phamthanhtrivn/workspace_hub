@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { confirmProjectAction } from "@/features/project/project-alert";
 import {
   type ProjectMember,
   type ProjectMemberPermissions,
@@ -17,6 +16,8 @@ import {
   useRemoveProjectMember,
   useUpdateProjectMemberPermissions,
 } from "@/features/project/hooks/use-project-members";
+import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
+import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
 import {
   ChevronRight,
   Settings2,
@@ -25,20 +26,21 @@ import {
   User,
   UserPlus,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
+import { Button } from "@/components/ui/button";
 
 const ROLE_CONFIG: Record<
   ProjectRole,
-  { labelId: string; color: string; bg: string; icon: React.ElementType }
+  { label: string; color: string; bg: string; icon: React.ElementType }
 > = {
   [ProjectRole.ADMIN]: {
-    labelId: "project.role.owner",
+    label: "Project Owner",
     color: "text-amber-600",
     bg: "bg-amber-50",
     icon: Star,
   },
   [ProjectRole.MEMBER]: {
-    labelId: "project.role.member",
+    label: "Member",
     color: "text-slate-500",
     bg: "bg-slate-100",
     icon: User,
@@ -60,10 +62,10 @@ export default function ProjectMembersPanel({
   canManagePermissions?: boolean;
   onViewAll?: () => void;
 }) {
-  const intl = useAppIntl();
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [permissionMember, setPermissionMember] =
     useState<ProjectMember | null>(null);
+  const { dialogProps, confirm } = useProjectConfirmDialog();
   const removeMemberMutation = useRemoveProjectMember(projectId);
   const updatePermissionsMutation =
     useUpdateProjectMemberPermissions(projectId);
@@ -78,29 +80,25 @@ export default function ProjectMembersPanel({
     return order[a.role] - order[b.role];
   });
 
-  const handleRemoveMember = async (member: ProjectMember) => {
-    const confirmed = await confirmProjectAction({
-      title: intl.formatMessage(
-        { id: "project.member.removeConfirmTitle" },
-        { name: member.displayName },
-      ),
-      text: intl.formatMessage({ id: "project.member.removeConfirmText" }),
-      confirmText: intl.formatMessage({ id: "project.member.remove" }),
-      cancelText: intl.formatMessage({ id: "app.cancel" }),
-      icon: "warning",
-      destructive: true,
-    });
-    if (!confirmed) return;
-
-    removeMemberMutation.mutate(member.userId, {
-      onSuccess: () =>
-        toast.success(intl.formatMessage({ id: "project.member.removed" })),
-      onError: (error) =>
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage({ id: "project.member.removeFailed" }),
-        ),
+  const handleRemoveMember = (member: ProjectMember) => {
+    confirm({
+      title: `Remove ${member.displayName}`,
+      description: "Are you sure you want to remove this member from the project? They will lose access immediately.",
+      confirmLabel: "Remove Member",
+      cancelLabel: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await removeMemberMutation.mutateAsync(member.userId);
+          toast.success("Member removed from project");
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to remove member",
+          );
+        }
+      },
     });
   };
 
@@ -113,45 +111,41 @@ export default function ProjectMembersPanel({
         memberUserId: permissionMember.userId,
         permissions,
       });
-      toast.success(intl.formatMessage({ id: "project.permission.updated" }));
+      toast.success("Member permissions updated");
       setPermissionMember(null);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : intl.formatMessage({ id: "project.permission.updateFailed" }),
+          : "Failed to update member permissions",
       );
     }
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-black text-[var(--color-primary-dark)]">
-            {intl.formatMessage(
-              { id: "project.member.count" },
-              { count: members.length },
-            )}
+          <h3 className="text-sm font-bold text-slate-800">
+            Project Members ({members.length})
           </h3>
           {pendingInvitations.length > 0 && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black text-amber-700">
-              {intl.formatMessage(
-                { id: "project.invitation.pendingBadge" },
-                { count: pendingInvitations.length },
-              )}
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-700">
+              {pendingInvitations.length} pending
             </span>
           )}
         </div>
         {canInvite && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setShowInviteDialog(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-bold text-[var(--color-secondary)] transition hover:bg-[var(--color-secondary)]/10"
+            className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-bold text-[#0052CC] transition hover:bg-blue-50 hover:text-[#0052CC] cursor-pointer"
           >
             <UserPlus className="h-3 w-3" strokeWidth={2.5} />
-            {intl.formatMessage({ id: "project.member.inviteShort" })}
-          </button>
+            Invite
+          </Button>
         )}
       </div>
 
@@ -173,44 +167,44 @@ export default function ProjectMembersPanel({
                 size="sm"
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-[var(--color-primary-dark)]">
+                <p className="truncate text-sm font-bold text-slate-800">
                   {member.displayName}
                 </p>
                 <span
                   className={`inline-flex items-center gap-1 text-[10px] font-bold ${roleCfg.color}`}
                 >
                   <RoleIcon className="h-2.5 w-2.5" strokeWidth={2.5} />
-                  {intl.formatMessage({ id: roleCfg.labelId })}
+                  {roleCfg.label}
                 </span>
               </div>
               {member.role !== ProjectRole.ADMIN && (
                 <div className="flex shrink-0 items-center">
                   {canManagePermissions && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => setPermissionMember(member)}
-                      className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
-                      aria-label={intl.formatMessage(
-                        { id: "project.permission.manageFor" },
-                        { name: member.displayName },
-                      )}
+                      className="h-8 w-8 cursor-pointer rounded-lg text-slate-300 opacity-0 transition hover:bg-blue-50 hover:text-blue-600 group-hover:opacity-100"
+                      aria-label={`Manage permissions for ${member.displayName}`}
+                      title="Manage permissions"
                     >
                       <Settings2 className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   )}
                   {canRemoveMembers && (
-                    <button
+                    <Button
                       type="button"
-                      onClick={() => void handleRemoveMember(member)}
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveMember(member)}
                       disabled={removeMemberMutation.isPending}
-                      className="grid h-8 w-8 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
-                      aria-label={intl.formatMessage(
-                        { id: "project.member.removeFor" },
-                        { name: member.displayName },
-                      )}
+                      className="h-8 w-8 cursor-pointer rounded-lg text-slate-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 disabled:opacity-40"
+                      aria-label={`Remove member ${member.displayName}`}
+                      title="Remove member"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
@@ -221,7 +215,7 @@ export default function ProjectMembersPanel({
       {pendingInvitationsQuery.isLoading && canInvite && (
         <div
           className="mt-4 space-y-2 border-t border-slate-100 pt-4"
-          aria-label={intl.formatMessage({ id: "project.invitation.loading" })}
+          aria-label="Loading invitations"
         >
           <div className="h-3 w-28 animate-pulse rounded bg-slate-100" />
           <div className="h-14 animate-pulse rounded-xl bg-slate-50" />
@@ -232,14 +226,15 @@ export default function ProjectMembersPanel({
         invitations={pendingInvitations}
       />
       {onViewAll && (
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={onViewAll}
-          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
+          className="mt-3 flex h-9 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 hover:text-slate-900"
         >
-          <span>{intl.formatMessage({ id: "project.members.viewAll" })}</span>
+          <span>View all members</span>
           <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
-        </button>
+        </Button>
       )}
       {canInvite && (
         <InviteMemberDialog
@@ -259,6 +254,7 @@ export default function ProjectMembersPanel({
         onClose={() => setPermissionMember(null)}
         onSave={handleSavePermissions}
       />
+      <ProjectConfirmDialog {...dialogProps} />
     </div>
   );
 }

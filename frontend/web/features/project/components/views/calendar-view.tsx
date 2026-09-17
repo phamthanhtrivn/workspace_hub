@@ -21,39 +21,31 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { TaskStatus, type Task } from "@/features/project/types/project";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useCalendarGrid } from "@/features/project/hooks/use-calendar-grid";
 import { taskDateKey } from "@/features/project/utils/task-dates";
+import { Button } from "@/components/ui/button";
 
-const WEEKDAY_IDS = [
-  "project.calendar.weekday.mon",
-  "project.calendar.weekday.tue",
-  "project.calendar.weekday.wed",
-  "project.calendar.weekday.thu",
-  "project.calendar.weekday.fri",
-  "project.calendar.weekday.sat",
-  "project.calendar.weekday.sun",
-];
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const statusColors: Record<TaskStatus, { labelId: string; card: string }> = {
+const statusColors: Record<TaskStatus, { label: string; card: string }> = {
   [TaskStatus.TODO]: {
-    labelId: "project.task.status.todo",
+    label: "To Do",
     card: "border-slate-600 bg-slate-500 hover:bg-slate-600 text-white",
   },
   [TaskStatus.IN_PROGRESS]: {
-    labelId: "project.task.status.inProgress",
+    label: "In Progress",
     card: "border-[#0747A6] bg-[#0052CC] hover:bg-[#0747A6] text-white",
   },
   [TaskStatus.IN_REVIEW]: {
-    labelId: "project.task.status.inReview",
+    label: "In Review",
     card: "border-amber-600 bg-amber-500 hover:bg-amber-600 text-white",
   },
   [TaskStatus.DONE]: {
-    labelId: "project.task.status.done",
+    label: "Done",
     card: "border-emerald-700 bg-emerald-600 hover:bg-emerald-700 text-white",
   },
   [TaskStatus.CANCELLED]: {
-    labelId: "project.task.status.cancelled",
+    label: "Cancelled",
     card: "border-red-700 bg-red-600 hover:bg-red-700 text-white",
   },
 };
@@ -163,21 +155,23 @@ function DroppableCalendarDay({
             <span
               className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold ${
                 isToday
-                  ? "bg-[var(--color-primary-dark)] text-white"
+                  ? "bg-[#0052CC] text-white"
                   : "text-slate-600"
               }`}
             >
               {date.getDate()}
             </span>
             {onCreateDate && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => onCreateDate(keyStr)}
-                className="pointer-events-auto grid h-7 w-7 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-slate-100 hover:text-slate-600 group-hover:opacity-100"
+                className="pointer-events-auto h-7 w-7 rounded-lg text-slate-300 opacity-0 transition hover:bg-slate-100 hover:text-slate-600 group-hover:opacity-100 cursor-pointer p-0"
                 aria-label={`Create task for ${keyStr}`}
               >
                 <Plus className="h-3.5 w-3.5" />
-              </button>
+              </Button>
             )}
           </div>
           {isOver && (
@@ -202,14 +196,10 @@ function DraggableUnscheduledTask({
   task,
   canDrag,
   onClick,
-  subtaskText,
-  taskText,
 }: {
   task: Task;
   canDrag: boolean;
   onClick?: () => void;
-  subtaskText: string;
-  taskText: string;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
@@ -229,7 +219,7 @@ function DraggableUnscheduledTask({
           onClick?.();
         }
       }}
-      className={`group inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[var(--color-secondary)] hover:shadow-md select-none ${
+      className={`group inline-flex max-w-full items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition hover:border-[#0052CC] hover:shadow-md select-none ${
         canDrag
           ? "cursor-grab active:cursor-grabbing hover:border-blue-400"
           : "cursor-pointer"
@@ -238,11 +228,11 @@ function DraggableUnscheduledTask({
       {canDrag && (
         <GripVertical className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:text-slate-500" />
       )}
-      <span className="max-w-56 truncate text-xs font-bold text-[var(--color-primary-dark)]">
+      <span className="max-w-56 truncate text-xs font-bold text-[#172B4D]">
         {task.title}
       </span>
       <span className="shrink-0 text-[10px] font-semibold text-slate-400">
-        {task.parentTaskId ? subtaskText : taskText}
+        {task.parentTaskId ? "Subtask" : "Task"}
       </span>
     </div>
   );
@@ -253,27 +243,22 @@ function UnscheduledTasksPanel({
   canReschedule,
   canEditTask,
   onTaskClick,
-  intl,
 }: {
   unscheduledTasks: Task[];
   canReschedule: boolean;
   canEditTask?: (task: Task) => boolean;
   onTaskClick?: (task: Task) => void;
-  intl: any;
 }) {
   if (unscheduledTasks.length === 0) return null;
 
   return (
     <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
       <div>
-        <h3 className="text-sm font-black text-[var(--color-primary-dark)]">
-          {intl.formatMessage(
-            { id: "project.calendar.unscheduledCount" },
-            { count: unscheduledTasks.length },
-          )}
+        <h3 className="text-sm font-bold text-[#172B4D]">
+          Unscheduled Tasks ({unscheduledTasks.length})
         </h3>
         <p className="mt-1 text-xs font-semibold text-slate-400">
-          {intl.formatMessage({ id: "project.calendar.unscheduledHelp" })}
+          Drag unscheduled tasks directly onto any calendar date to schedule them.
         </p>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
@@ -285,8 +270,6 @@ function UnscheduledTasksPanel({
               canReschedule && (!canEditTask || canEditTask(task)),
             )}
             onClick={() => onTaskClick?.(task)}
-            subtaskText={intl.formatMessage({ id: "project.task.subtask" })}
-            taskText={intl.formatMessage({ id: "project.task.task" })}
           />
         ))}
       </div>
@@ -309,7 +292,6 @@ export default function CalendarView({
   onTaskReschedule,
   canEditTask,
 }: CalendarViewProps) {
-  const intl = useAppIntl();
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
   const sensors = useSensors(
@@ -327,7 +309,7 @@ export default function CalendarView({
     days,
     unscheduledTasks,
     formatTime,
-  } = useCalendarGrid({ tasks, locale: intl.locale });
+  } = useCalendarGrid({ tasks });
 
   const handleDragStart = (event: DragStartEvent) => {
     const currentTask = event.active.data.current?.task as Task | undefined;
@@ -362,54 +344,56 @@ export default function CalendarView({
         <div className="relative flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-center">
           <div className="sm:absolute sm:left-4">
             <p className="text-xs font-semibold text-slate-400">
-              {intl.formatMessage({ id: "project.calendar.helper" })}
+              Click any date or drag tasks to schedule.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => moveMonth(-1)}
-              className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100"
-              aria-label={intl.formatMessage({
-                id: "project.calendar.previousMonth",
-              })}
+              className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-100 cursor-pointer"
+              aria-label="Previous Month"
             >
               <ChevronLeft className="h-4 w-4" />
-            </button>
+            </Button>
 
-            <h2 className="min-w-36 text-center text-base font-black capitalize text-[var(--color-primary-dark)] sm:text-lg">
+            <h2 className="min-w-36 text-center text-base font-bold capitalize text-[#172B4D] sm:text-lg">
               {monthLabel}
             </h2>
 
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => moveMonth(1)}
-              className="grid h-8 w-8 place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100"
-              aria-label={intl.formatMessage({
-                id: "project.calendar.nextMonth",
-              })}
+              className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-100 cursor-pointer"
+              aria-label="Next Month"
             >
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
 
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={goToToday}
-              className="ml-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs transition hover:bg-slate-50"
+              className="ml-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-xs hover:bg-slate-50 cursor-pointer"
             >
-              {intl.formatMessage({ id: "project.calendar.today" })}
-            </button>
+              Today
+            </Button>
           </div>
         </div>
 
         <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/70">
-          {WEEKDAY_IDS.map((weekdayId) => (
+          {WEEKDAYS.map((weekday) => (
             <div
-              key={weekdayId}
-              className="border-r border-slate-100 px-2 py-2 text-center text-[10px] font-black uppercase tracking-wider text-slate-400 last:border-r-0"
+              key={weekday}
+              className="border-r border-slate-100 px-2 py-2 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 last:border-r-0"
             >
-              {intl.formatMessage({ id: weekdayId })}
+              {weekday}
             </div>
           ))}
         </div>
@@ -444,28 +428,24 @@ export default function CalendarView({
                         isToday={isToday}
                         dayTasksCount={dayTasks.length}
                         onCreateDate={onCreateDate}
-                        dropHereText={intl.formatMessage({
-                          id: "project.calendar.dropHere",
-                        })}
-                        moreTasksText={intl.formatMessage(
-                          { id: "project.calendar.moreTasks" },
-                          { count: Math.max(0, dayTasks.length - 4) },
-                        )}
+                        dropHereText="Drop task here"
+                        moreTasksText={`+${Math.max(0, dayTasks.length - 4)} more`}
                       />
                     ),
                   )}
                   <div className="pointer-events-none absolute inset-x-0 top-11 grid grid-cols-7 auto-rows-[42px] gap-y-1">
                     {visibleSegments.map(
                       ({ task, startColumn, span, lane, showTitle }) => (
-                        <button
+                        <Button
                           key={task.id}
                           type="button"
+                          variant="ghost"
                           onClick={() => onTaskClick?.(task)}
                           style={{
                             gridColumn: `${startColumn + 1} / span ${span}`,
                             gridRow: lane + 1,
                           }}
-                          className={`pointer-events-auto mx-1.5 flex min-w-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left shadow-xs transition-all hover:brightness-95 hover:shadow-md ${statusColors[task.status].card}`}
+                          className={`pointer-events-auto mx-1.5 flex h-auto min-w-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-left shadow-xs transition-all hover:brightness-95 hover:shadow-md cursor-pointer ${statusColors[task.status].card}`}
                         >
                           {showTitle && (
                             <span className="truncate text-[11px] font-bold text-white">
@@ -478,7 +458,7 @@ export default function CalendarView({
                               {formatTime(task.startDate || task.dueDate)}
                             </span>
                           )}
-                        </button>
+                        </Button>
                       ),
                     )}
                   </div>
@@ -493,7 +473,6 @@ export default function CalendarView({
           canReschedule={Boolean(onTaskReschedule)}
           canEditTask={canEditTask}
           onTaskClick={onTaskClick}
-          intl={intl}
         />
       </div>
 

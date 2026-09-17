@@ -12,3 +12,13 @@ export { default as TaskCard } from "./task-card";
 export * from "./task-card";
 export { default as ProjectCard } from "./project-card";
 export * from "./project-card";
+export { ProjectConfirmDialog } from "./project-confirm-dialog";
+export * from "./project-confirm-dialog";
+export {
+  ProjectSearchInput,
+  ProjectSelect,
+  ProjectButton,
+  ProjectInput,
+  ProjectTextarea,
+} from "./project-form-controls";
+export * from "./project-form-controls";

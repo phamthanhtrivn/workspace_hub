@@ -1,16 +1,16 @@
 import { ProjectStatus } from "../types/project";
 
 export const PROJECT_FILTER_TABS = [
-  { key: "ALL", labelId: "project.list.filter.all" },
-  { key: ProjectStatus.ACTIVE, labelId: "project.status.active" },
-  { key: ProjectStatus.ON_HOLD, labelId: "project.status.onHold" },
-  { key: ProjectStatus.COMPLETED, labelId: "project.status.completed" },
+  { key: "ALL", label: "All Projects" },
+  { key: ProjectStatus.ACTIVE, label: "Active" },
+  { key: ProjectStatus.ON_HOLD, label: "On Hold" },
+  { key: ProjectStatus.COMPLETED, label: "Completed" },
 ] as const;
 
 export const PROJECT_STATUS_SELECT_OPTIONS = [
-  { value: ProjectStatus.ACTIVE, labelId: "project.status.active" },
-  { value: ProjectStatus.ON_HOLD, labelId: "project.status.onHold" },
-  { value: ProjectStatus.COMPLETED, labelId: "project.status.completed" },
+  { value: ProjectStatus.ACTIVE, label: "Active" },
+  { value: ProjectStatus.ON_HOLD, label: "On Hold" },
+  { value: ProjectStatus.COMPLETED, label: "Completed" },
 ] as const;
 
 export const DEFAULT_PROJECT_KEY = "PRJ";

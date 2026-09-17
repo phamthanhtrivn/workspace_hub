@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Archive, X } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Archive } from "lucide-react";
 import {
   ProjectStatus,
   type Project,
@@ -12,6 +11,18 @@ import {
   PROJECT_STATUS_SELECT_OPTIONS,
 } from "@/features/project/constants/project.constants";
 import { ProjectLabelManager } from "../forms/project-label-manager";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ProjectSelect } from "../ui/project-form-controls";
 
 export default function ProjectSettingsDialog({
   project,
@@ -42,7 +53,6 @@ export default function ProjectSettingsDialog({
   onCreateLabel?: (payload: { name: string; color: string }) => Promise<void>;
   onDeleteLabel?: (labelId: string) => Promise<void>;
 }) {
-  const intl = useAppIntl();
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
   const [status, setStatus] = useState(project.status);
@@ -50,8 +60,6 @@ export default function ProjectSettingsDialog({
     project.startDate?.slice(0, 10) || "",
   );
   const [dueDate, setDueDate] = useState(project.dueDate?.slice(0, 10) || "");
-
-  if (!open) return null;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -67,146 +75,136 @@ export default function ProjectSettingsDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4">
-      <form
-        onSubmit={(event) => void handleSubmit(event)}
-        className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl"
-      >
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-black text-[#172B4D]">
-              {intl.formatMessage({
-                id: canEditProject
-                  ? "project.settings.title"
-                  : "project.label.title",
-              })}
-            </h2>
-            <p className="mt-1 text-xs font-semibold text-slate-400">
-              {intl.formatMessage({
-                id: canEditProject
-                  ? "project.settings.description"
-                  : "project.label.managementDescription",
-              })}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={intl.formatMessage({ id: "app.close" })}
-            className="text-slate-400 hover:text-slate-700"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-        <div className="mt-5 space-y-4">
-          {canEditProject && (
-            <>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block text-xs font-bold text-slate-500">
-                  {intl.formatMessage({ id: "project.startDate" })}
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(event) => setStartDate(event.target.value)}
-                    max={dueDate || undefined}
-                    className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-                  />
-                </label>
-                <label className="block text-xs font-bold text-slate-500">
-                  {intl.formatMessage({ id: "project.dueDate" })}
-                  <input
-                    type="date"
-                    value={dueDate}
-                    onChange={(event) => setDueDate(event.target.value)}
-                    min={startDate || undefined}
-                    className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-                  />
-                </label>
-              </div>
-              {startDate && dueDate && startDate > dueDate && (
-                <p className="text-xs font-semibold text-red-600">
-                  {intl.formatMessage({ id: "project.dateRange.invalid" })}
-                </p>
-              )}
-              <label className="block text-xs font-bold text-slate-500">
-                {intl.formatMessage({ id: "project.name" })}
-                <input
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  required
-                  className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-                />
-              </label>
-              <label className="block text-xs font-bold text-slate-500">
-                {intl.formatMessage({ id: "project.description" })}
-                <textarea
-                  value={description}
-                  onChange={(event) => setDescription(event.target.value)}
-                  rows={3}
-                  className="mt-1 w-full resize-none rounded border border-slate-300 px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-                />
-              </label>
-              <label className="block text-xs font-bold text-slate-500">
-                {intl.formatMessage({ id: "project.status" })}
-                <select
-                  value={status}
-                  onChange={(event) =>
-                    setStatus(event.target.value as ProjectStatus)
-                  }
-                  className="mt-1 w-full rounded border border-slate-300 bg-white px-3 py-2 text-sm font-normal text-slate-700 outline-none focus:border-blue-600"
-                >
-                  {PROJECT_STATUS_SELECT_OPTIONS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {intl.formatMessage({ id: item.labelId })}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </>
-          )}
+    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isBusy && onClose()}>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl sm:rounded-2xl">
+        <form onSubmit={(event) => void handleSubmit(event)} className="flex flex-col">
+          <DialogHeader className="px-6 pt-6 pb-4 text-left border-b border-slate-100">
+            <DialogTitle className="text-lg font-bold text-[#172B4D]">
+              {canEditProject ? "Project Settings" : "Project Labels"}
+            </DialogTitle>
+            <DialogDescription className="mt-1 text-xs font-semibold text-slate-500">
+              {canEditProject
+                ? "Update project details, status, timelines, and manage labels."
+                : "Manage custom task tags and labels for this project."}
+            </DialogDescription>
+          </DialogHeader>
 
-          {onCreateLabel && (
-            <ProjectLabelManager
-              labels={labels}
-              onCreateLabel={onCreateLabel}
-              onDeleteLabel={onDeleteLabel}
-            />
-          )}
-        </div>
-        <div className="mt-6 flex items-center justify-between gap-2">
-          {canEditProject ? (
-            <button
-              type="button"
-              disabled={isBusy}
-              onClick={() => void onArchive()}
-              className="inline-flex items-center gap-1.5 rounded px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 disabled:opacity-50"
-            >
-              <Archive className="h-3.5 w-3.5" />{" "}
-              {intl.formatMessage({ id: "project.archive" })}
-            </button>
-          ) : (
-            <span />
-          )}
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100"
-            >
-              {intl.formatMessage({ id: "app.cancel" })}
-            </button>
+          <div className="space-y-4 px-6 py-5 max-h-[calc(100dvh-16rem)] overflow-y-auto">
             {canEditProject && (
-              <button
-                type="submit"
-                disabled={isBusy || !name.trim()}
-                className="rounded bg-blue-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
-              >
-                {intl.formatMessage({ id: "app.saveChanges" })}
-              </button>
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block text-xs font-bold text-slate-600">
+                    Start Date
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(event) => setStartDate(event.target.value)}
+                      max={dueDate || undefined}
+                      className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                    />
+                  </label>
+                  <label className="block text-xs font-bold text-slate-600">
+                    Due Date
+                    <Input
+                      type="date"
+                      value={dueDate}
+                      onChange={(event) => setDueDate(event.target.value)}
+                      min={startDate || undefined}
+                      className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                    />
+                  </label>
+                </div>
+                {startDate && dueDate && startDate > dueDate && (
+                  <p className="text-xs font-semibold text-red-600">
+                    Start date cannot be after due date.
+                  </p>
+                )}
+
+                <label className="block text-xs font-bold text-slate-600">
+                  Project Name <span className="text-red-500">*</span>
+                  <Input
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    required
+                    placeholder="Project name"
+                    className="mt-1 h-10 rounded-xl border-slate-200 text-xs font-semibold"
+                  />
+                </label>
+
+                <label className="block text-xs font-bold text-slate-600">
+                  Description
+                  <Textarea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    rows={3}
+                    placeholder="Optional project description..."
+                    className="mt-1 resize-none rounded-xl border-slate-200 text-xs font-medium"
+                  />
+                </label>
+
+                <div>
+                  <span className="block mb-1 text-xs font-bold text-slate-600">
+                    Status
+                  </span>
+                  <ProjectSelect
+                    value={status}
+                    options={PROJECT_STATUS_SELECT_OPTIONS.map((item) => ({
+                      value: item.value,
+                      label: item.label,
+                    }))}
+                    onChange={(val) => setStatus(val as ProjectStatus)}
+                    ariaLabel="Project status"
+                    className="w-full h-10"
+                  />
+                </div>
+              </>
+            )}
+
+            {onCreateLabel && (
+              <ProjectLabelManager
+                labels={labels}
+                onCreateLabel={onCreateLabel}
+                onDeleteLabel={onDeleteLabel}
+              />
             )}
           </div>
-        </div>
-      </form>
-    </div>
+
+          <DialogFooter className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-4">
+            {canEditProject ? (
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={isBusy}
+                onClick={() => void onArchive()}
+                className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl px-3 text-xs font-bold text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+              >
+                <Archive className="h-3.5 w-3.5" /> Archive Project
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="cursor-pointer rounded-xl font-bold text-slate-600 hover:bg-slate-100"
+              >
+                Cancel
+              </Button>
+              {canEditProject && (
+                <Button
+                  type="submit"
+                  disabled={isBusy || !name.trim()}
+                  className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
+                >
+                  {isBusy ? "Saving..." : "Save Changes"}
+                </Button>
+              )}
+            </div>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -16,7 +16,6 @@ import {
   type Task,
   type TaskDependency,
 } from "@/features/project/types/project";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export type OpenProjectTaskForm = (
   status?: TaskStatus,
@@ -46,7 +45,6 @@ interface ProjectDetailContentProps {
 }
 
 export default function ProjectDetailContent(props: ProjectDetailContentProps) {
-  const intl = useAppIntl();
   const { userId } = useAppSelector((state) => state.auth);
   const { permissions } = props;
   const memberPanel = (
@@ -65,14 +63,14 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
   const renderView = () => {
     if (props.isLoading)
       return (
-        <div className="rounded border border-slate-200 bg-white py-24 text-center text-sm font-semibold text-slate-400">
-          {intl.formatMessage({ id: "project.task.loading" })}
+        <div className="rounded-xl border border-slate-200 bg-white py-24 text-center text-sm font-semibold text-slate-400 shadow-2xs">
+          Loading tasks...
         </div>
       );
     if (props.isError)
       return (
-        <div className="rounded border border-red-100 bg-red-50 py-24 text-center text-sm font-semibold text-red-500">
-          {intl.formatMessage({ id: "project.task.loadFailed" })}
+        <div className="rounded-xl border border-red-100 bg-red-50 py-24 text-center text-sm font-semibold text-red-500 shadow-2xs">
+          Failed to load tasks. Please try refreshing the page.
         </div>
       );
 

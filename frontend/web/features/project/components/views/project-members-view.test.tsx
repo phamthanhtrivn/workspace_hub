@@ -110,7 +110,7 @@ describe("ProjectMembersView", () => {
     expect(screen.getByText("Việt Nhân Trần")).toBeTruthy();
     expect(screen.getByText("asd")).toBeTruthy();
     expect(screen.getByText("Total Members")).toBeTruthy();
-    expect(screen.getByText("Administrators")).toBeTruthy();
+    expect(screen.getByText("Project Owners")).toBeTruthy();
 
     // You badge on current user
     expect(screen.getByText("You")).toBeTruthy();
@@ -132,9 +132,7 @@ describe("ProjectMembersView", () => {
       />,
     );
 
-    const searchInput = screen.getByPlaceholderText(
-      "Search members by name...",
-    );
+    const searchInput = screen.getByPlaceholderText("Search members...");
     fireEvent.change(searchInput, { target: { value: "Việt" } });
 
     expect(screen.getByText("Việt Nhân Trần")).toBeTruthy();

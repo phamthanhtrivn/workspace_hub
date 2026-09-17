@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   TaskStatus,
   isTerminalTaskStatus,
@@ -30,7 +29,6 @@ export function useProjectSummaryMetrics(
   members: ProjectMember[],
   options?: { isSoftware?: boolean },
 ) {
-  const intl = useAppIntl();
   const [now] = useState(() => Date.now());
   const isSoftware = options?.isSoftware ?? false;
 
@@ -70,7 +68,7 @@ export function useProjectSummaryMetrics(
     );
 
     const statusItems = TASK_STATUS_CHART_CONFIG.map((cfg) => ({
-      label: intl.formatMessage({ id: cfg.labelId }),
+      label: cfg.label,
       value: workItems.filter((task) => task.status === cfg.status).length,
       color: cfg.color,
     }));
@@ -84,7 +82,7 @@ export function useProjectSummaryMetrics(
       : 0;
 
     const priorityItems = TASK_PRIORITY_CHART_CONFIG.map((cfg) => ({
-      label: intl.formatMessage({ id: cfg.labelId }),
+      label: cfg.label,
       value: workItems.filter((task) => task.priority === cfg.priority).length,
       color: cfg.color,
     }));
@@ -110,7 +108,7 @@ export function useProjectSummaryMetrics(
     const unassignedCount = workItems.filter((task) => !task.assignees?.length).length;
     const workloadItems = [
       {
-        name: intl.formatMessage({ id: "project.task.unassigned" }),
+        name: "Unassigned",
         count: unassignedCount,
       },
       ...workload,
@@ -159,5 +157,5 @@ export function useProjectSummaryMetrics(
       updatedRecently,
       createdRecently,
     };
-  }, [tasks, members, isSoftware, now, intl]);
+  }, [tasks, members, isSoftware, now]);
 }

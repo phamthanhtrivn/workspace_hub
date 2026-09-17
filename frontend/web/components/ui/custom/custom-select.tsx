@@ -32,6 +32,8 @@ interface CustomSelectProps<TValue extends string = string> {
   contentClassName?: string;
 }
 
+const INTERNAL_EMPTY_VALUE = "__CUSTOM_SELECT_EMPTY__";
+
 export function CustomSelect<TValue extends string = string>({
   value,
   options,
@@ -45,13 +47,16 @@ export function CustomSelect<TValue extends string = string>({
   contentClassName,
 }: CustomSelectProps<TValue>) {
   const selectedOption = options.find((option) => option.value === value);
+  const internalValue = value === "" ? INTERNAL_EMPTY_VALUE : value;
 
   return (
     <div className={cn("min-w-0", className)}>
       <Select
-        value={value}
+        value={internalValue}
         disabled={disabled}
-        onValueChange={(nextValue) => onChange(nextValue as TValue)}
+        onValueChange={(nextValue) =>
+          onChange((nextValue === INTERNAL_EMPTY_VALUE ? "" : nextValue) as TValue)
+        }
       >
         <SelectTrigger
           aria-label={ariaLabel}
@@ -63,20 +68,23 @@ export function CustomSelect<TValue extends string = string>({
           )}
         >
           <SelectValue placeholder={placeholder}>
-            {selectedOption ? <OptionLabel option={selectedOption} /> : null}
+            {selectedOption ? <OptionLabel option={selectedOption} /> : placeholder}
           </SelectValue>
         </SelectTrigger>
         <SelectContent className={cn("rounded-lg border-slate-200", contentClassName)}>
-          {options.map((option) => (
-            <SelectItem
-              key={option.value}
-              value={option.value}
-              disabled={option.disabled}
-              className="min-h-9 rounded-md font-medium"
-            >
-              <OptionLabel option={option} />
-            </SelectItem>
-          ))}
+          {options.map((option) => {
+            const itemValue = option.value === "" ? INTERNAL_EMPTY_VALUE : option.value;
+            return (
+              <SelectItem
+                key={itemValue}
+                value={itemValue}
+                disabled={option.disabled}
+                className="min-h-9 rounded-md font-medium"
+              >
+                <OptionLabel option={option} />
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
     </div>

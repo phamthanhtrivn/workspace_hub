@@ -20,9 +20,27 @@ export const GANTT_ZOOM_CONFIG: Record<
     monthWidth: number;
   }
 > = {
-  day: { dayWidth: 100, spanDays: 14, shiftDays: 7, weekWidth: 700, monthWidth: 700 },
-  week: { dayWidth: 32, spanDays: 28, shiftDays: 7, weekWidth: 224, monthWidth: 896 },
-  month: { dayWidth: 3.15, spanDays: 365, shiftDays: 365, weekWidth: 22, monthWidth: 96 },
+  day: {
+    dayWidth: 100,
+    spanDays: 14,
+    shiftDays: 7,
+    weekWidth: 700,
+    monthWidth: 700,
+  },
+  week: {
+    dayWidth: 32,
+    spanDays: 28,
+    shiftDays: 7,
+    weekWidth: 224,
+    monthWidth: 896,
+  },
+  month: {
+    dayWidth: 3.15,
+    spanDays: 365,
+    shiftDays: 365,
+    weekWidth: 22,
+    monthWidth: 96,
+  },
 };
 
 export const GANTT_DAY_WIDTH = GANTT_ZOOM_CONFIG.day.dayWidth;
@@ -75,7 +93,6 @@ export interface GanttTaskItem {
 export interface UseGanttTimelineParams {
   tasks: Task[];
   dependencies?: TaskDependency[];
-  locale?: string;
   dayWidth?: number;
   initialZoom?: GanttZoomMode;
   containerWidth?: number;
@@ -99,42 +116,35 @@ export function dayDifference(from: Date, to: Date): number {
   return Math.round((to.getTime() - from.getTime()) / 86_400_000);
 }
 
-export function formatDay(date: Date, locale?: string): string {
-  return date.toLocaleDateString(locale, { day: "2-digit" });
+export function formatDay(date: Date): string {
+  return date.toLocaleDateString("en-US", { day: "2-digit" });
 }
 
-export function formatWeekday(date: Date, locale?: string): string {
-  const day = date.getDay();
-  if (!locale || locale.startsWith("vi")) {
-    const viDays = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
-    return viDays[day];
-  }
-  return date.toLocaleDateString(locale, { weekday: "short" });
+export function formatWeekday(date: Date): string {
+  const enDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  return enDays[date.getDay()];
 }
 
-export function formatMonth(date: Date, locale?: string): string {
-  return date.toLocaleDateString(locale, { month: "short" });
+export function formatMonth(date: Date): string {
+  return date.toLocaleDateString("en-US", { month: "short" });
 }
 
-export function formatMonthYear(date: Date, locale?: string): string {
-  if (!locale || locale.startsWith("vi")) {
-    return `Tháng ${date.getMonth() + 1}, ${date.getFullYear()}`;
-  }
-  return date.toLocaleDateString(locale, { month: "short", year: "numeric" });
+export function formatMonthYear(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
 }
 
-export function formatRange(start: Date, end: Date, locale?: string): string {
-  return `${start.toLocaleDateString(locale, { day: "2-digit", month: "short" })} – ${end.toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" })}`;
+export function formatRange(start: Date, end: Date): string {
+  return `${start.toLocaleDateString("en-US", { day: "2-digit", month: "short" })} – ${end.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}`;
 }
 
 export function formatWeekRange(startDate: Date, endDate: Date): string {
   return `${startDate.getDate()}/${startDate.getMonth() + 1} - ${endDate.getDate()}/${endDate.getMonth() + 1}`;
 }
 
-export function formatWeekNumber(index: number, locale?: string): string {
-  if (!locale || locale.startsWith("vi")) {
-    return `Tuần ${index}`;
-  }
+export function formatWeekNumber(index: number): string {
   return `Week ${index}`;
 }
 
@@ -168,7 +178,6 @@ export function getGanttBarColor(status: TaskStatus): string {
 export function useGanttTimeline({
   tasks,
   dependencies = [],
-  locale,
   dayWidth: explicitDayWidth,
   initialZoom = "day",
   containerWidth,
@@ -305,15 +314,15 @@ export function useGanttTimeline({
       return {
         date,
         isoKey: date.toISOString(),
-        dayNumberFormatted: formatDay(date, locale),
-        dayOfWeekFormatted: formatWeekday(date, locale),
-        monthFormatted: formatMonth(date, locale),
+        dayNumberFormatted: formatDay(date),
+        dayOfWeekFormatted: formatWeekday(date),
+        monthFormatted: formatMonth(date),
         isWeekend,
         isFirstOfMonth,
         isToday,
       };
     });
-  }, [range, locale, todayDate, zoomMode]);
+  }, [range, todayDate, zoomMode]);
 
   const weeks: GanttWeekColumn[] = useMemo(() => {
     if (zoomMode !== "week") return [];
@@ -329,14 +338,14 @@ export function useGanttTimeline({
       return {
         isoKey: `week-${dateKey(startDate)}`,
         weekIndex: index + 1,
-        weekNumberFormatted: formatWeekNumber(index + 1, locale),
+        weekNumberFormatted: formatWeekNumber(index + 1),
         dateRangeFormatted: formatWeekRange(startDate, endDate),
         startDate,
         endDate,
         isCurrentWeek,
       };
     });
-  }, [zoomMode, days.length, range.start, todayDate, locale]);
+  }, [zoomMode, days.length, range.start, todayDate]);
 
   const months: GanttMonthColumn[] = useMemo(() => {
     if (zoomMode !== "month") return [];
@@ -347,10 +356,7 @@ export function useGanttTimeline({
       const isCurrentMonth =
         todayDate.getFullYear() === year && todayDate.getMonth() === index;
 
-      const monthFormatted =
-        !locale || locale.startsWith("vi")
-          ? `Tháng ${index + 1}`
-          : startDate.toLocaleDateString(locale, { month: "short" });
+      const monthFormatted = startDate.toLocaleDateString("en-US", { month: "short" });
 
       return {
         isoKey: `month-${year}-${index + 1}`,
@@ -363,16 +369,16 @@ export function useGanttTimeline({
         isCurrentMonth,
       };
     });
-  }, [zoomMode, range.start, todayDate, locale]);
+  }, [zoomMode, range.start, todayDate]);
 
   const currentMonthFormatted = useMemo(() => {
     if (zoomMode === "month") {
       const year = range.start.getFullYear();
-      return !locale || locale.startsWith("vi") ? `Năm ${year}` : `Year ${year}`;
+      return `Year ${year}`;
     }
     const midDate = days[Math.floor(days.length / 2)]?.date || anchorDate;
-    return formatMonthYear(midDate, locale);
-  }, [zoomMode, range.start, days, anchorDate, locale]);
+    return formatMonthYear(midDate);
+  }, [zoomMode, range.start, days, anchorDate]);
 
   const timelineWidth = useMemo(() => {
     if (zoomMode === "month") {
@@ -382,7 +388,15 @@ export function useGanttTimeline({
       return Math.max(availableWidth, weeks.length * weekWidth);
     }
     return Math.max(availableWidth, days.length * dayWidth);
-  }, [zoomMode, availableWidth, monthWidth, weeks.length, weekWidth, days.length, dayWidth]);
+  }, [
+    zoomMode,
+    availableWidth,
+    monthWidth,
+    weeks.length,
+    weekWidth,
+    days.length,
+    dayWidth,
+  ]);
 
   const todayOffset = useMemo(
     () => dayDifference(range.start, todayDate),
@@ -406,7 +420,15 @@ export function useGanttTimeline({
       return (monthDiff + fraction) * monthWidth;
     }
     return todayOffset * dayWidth + dayWidth / 2;
-  }, [hasToday, zoomMode, todayDate, range.start, monthWidth, todayOffset, dayWidth]);
+  }, [
+    hasToday,
+    zoomMode,
+    todayDate,
+    range.start,
+    monthWidth,
+    todayOffset,
+    dayWidth,
+  ]);
 
   const datedGanttItems: GanttTaskItem[] = useMemo(() => {
     const baseYear = range.start.getFullYear();
@@ -423,8 +445,10 @@ export function useGanttTimeline({
           start.getMonth() + 1,
           0,
         ).getDate();
-        const startFraction =
-          Math.max(0, Math.min(1, (start.getDate() - 1) / startDaysInMonth));
+        const startFraction = Math.max(
+          0,
+          Math.min(1, (start.getDate() - 1) / startDaysInMonth),
+        );
         left = Math.max(0, (startMonthDiff + startFraction) * monthWidth) + 4;
 
         const endMonthDiff =
@@ -434,8 +458,10 @@ export function useGanttTimeline({
           end.getMonth() + 1,
           0,
         ).getDate();
-        const endFraction =
-          Math.max(0, Math.min(1, end.getDate() / endDaysInMonth));
+        const endFraction = Math.max(
+          0,
+          Math.min(1, end.getDate() / endDaysInMonth),
+        );
         const right = (endMonthDiff + endFraction) * monthWidth;
 
         width = Math.max(28, right - left - 4);
@@ -455,7 +481,7 @@ export function useGanttTimeline({
       const durationDays = Math.max(1, dayDifference(start, end) + 1);
       const isSubtask = Boolean(task.parentTaskId);
       const predecessors = predecessorsBySuccessor.get(task.id) || [];
-      const dateRangeFormatted = formatRange(start, end, locale);
+      const dateRangeFormatted = formatRange(start, end);
 
       return {
         task,
@@ -476,12 +502,11 @@ export function useGanttTimeline({
     monthWidth,
     zoomMode,
     predecessorsBySuccessor,
-    locale,
   ]);
 
   const rangeFormatted = useMemo(
-    () => formatRange(range.start, range.end, locale),
-    [range, locale],
+    () => formatRange(range.start, range.end),
+    [range],
   );
 
   const navigate = (direction: -1 | 1) => {

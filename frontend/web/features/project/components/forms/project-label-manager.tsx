@@ -1,8 +1,15 @@
+"use client";
+
 import { useState } from "react";
-import { Check } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Check, X } from "lucide-react";
 import type { TaskLabel } from "@/features/project/types/project";
 import { PROJECT_SETTINGS_LABELS } from "@/features/project/constants/project.constants";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
+import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
+import { cn } from "@/lib/utils";
 
 interface ProjectLabelManagerProps {
   labels?: TaskLabel[];
@@ -15,11 +22,11 @@ export function ProjectLabelManager({
   onCreateLabel,
   onDeleteLabel,
 }: ProjectLabelManagerProps) {
-  const intl = useAppIntl();
   const [labelName, setLabelName] = useState("");
   const [labelColor, setLabelColor] = useState<string>(
     PROJECT_SETTINGS_LABELS.DEFAULT_LABEL_COLOR,
   );
+  const { dialogProps, confirm } = useProjectConfirmDialog();
 
   const handleCreateLabel = async () => {
     if (!labelName.trim() || !onCreateLabel) return;
@@ -27,95 +34,114 @@ export function ProjectLabelManager({
     setLabelName("");
   };
 
+  const handleDeleteClick = (label: TaskLabel) => {
+    if (!onDeleteLabel) return;
+    confirm({
+      title: "Delete Label",
+      description: `Are you sure you want to delete the label "${label.name}"? It will be removed from all associated tasks.`,
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      variant: "danger",
+      onConfirm: () => onDeleteLabel(label.id),
+    });
+  };
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-      <p className="text-xs font-bold text-slate-600">
-        {intl.formatMessage({ id: "project.label.title" })}
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <p className="text-xs font-bold text-slate-700">
+        Project Labels
       </p>
-      <div className="mt-2 flex flex-wrap gap-1.5">
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
         {labels.map((label) => (
-          <span
+          <Badge
             key={label.id}
-            className="inline-flex items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold text-white"
+            variant="outline"
+            className="inline-flex items-center gap-1.5 rounded-full border-transparent px-2.5 py-0.5 text-[11px] font-bold text-white shadow-2xs"
             style={{ backgroundColor: label.color }}
           >
             {label.name}
             {onDeleteLabel && (
-              <button
+              <Button
                 type="button"
-                onClick={() => void onDeleteLabel(label.id)}
-                className="opacity-80 hover:opacity-100"
-                aria-label={intl.formatMessage(
-                  { id: "project.label.delete" },
-                  { name: label.name },
-                )}
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDeleteClick(label)}
+                className="h-3.5 w-3.5 p-0 cursor-pointer text-white/80 hover:bg-transparent hover:text-white transition-opacity ml-0.5"
+                aria-label={`Delete label ${label.name}`}
               >
-                ×
-              </button>
+                <X className="h-3 w-3" />
+              </Button>
             )}
-          </span>
+          </Badge>
         ))}
         {labels.length === 0 && (
-          <span className="text-[11px] text-slate-400">
-            {intl.formatMessage({ id: "project.label.empty" })}
+          <span className="text-xs text-slate-400 font-medium">
+            No custom labels created yet.
           </span>
         )}
       </div>
-      <div className="mt-3">
+
+      <div className="mt-4">
         <div className="flex items-center gap-2">
-          <input
+          <Input
             value={labelName}
             onChange={(event) => setLabelName(event.target.value)}
-            placeholder={intl.formatMessage({ id: "project.label.namePlaceholder" })}
+            placeholder="Label name..."
             maxLength={PROJECT_SETTINGS_LABELS.LABEL_MAX_LENGTH}
-            className="min-w-0 flex-1 rounded border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100"
+            className="h-9 min-w-0 flex-1 rounded-xl border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
           />
-          <button
+          <Button
             type="button"
             onClick={() => void handleCreateLabel()}
             disabled={!labelName.trim()}
-            className="rounded bg-blue-600 px-3 py-1.5 text-[11px] font-bold text-white transition hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
+            className="h-9 cursor-pointer rounded-xl bg-[#0052CC] px-4 text-xs font-bold text-white hover:bg-[#0747A6] disabled:opacity-50"
           >
-            {intl.formatMessage({ id: "app.add" })}
-          </button>
+            Add
+          </Button>
         </div>
+
         <div
           role="radiogroup"
-          aria-label={intl.formatMessage({ id: "project.label.color" })}
-          className="mt-2.5 flex flex-wrap gap-2"
+          aria-label="Select label color"
+          className="mt-3 flex flex-wrap gap-2"
         >
           {PROJECT_SETTINGS_LABELS.COLOR_OPTIONS.map((color, index) => {
             const isSelected = labelColor === color;
-            const colorLabel = `${intl.formatMessage({ id: "project.label.color" })} ${index + 1}: ${color}`;
+            const colorLabel = `Color ${index + 1}: ${color}`;
 
             return (
-              <button
+              <Button
                 key={color}
                 type="button"
+                variant="ghost"
+                size="icon"
                 role="radio"
                 aria-checked={isSelected}
                 aria-label={colorLabel}
                 title={colorLabel}
                 onClick={() => setLabelColor(color)}
-                className={`grid h-7 w-7 place-items-center rounded-md border-2 transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 active:scale-95 ${
+                className={cn(
+                  "h-7 w-7 p-0 cursor-pointer rounded-lg border-2 transition duration-150 active:scale-95",
                   isSelected
-                    ? "border-white ring-2 ring-slate-700 ring-offset-1"
-                    : "border-white ring-1 ring-slate-300"
-                }`}
+                    ? "border-white ring-2 ring-[#0052CC] ring-offset-1 hover:border-white"
+                    : "border-white ring-1 ring-slate-300 hover:scale-105"
+                )}
                 style={{ backgroundColor: color }}
               >
                 {isSelected && (
                   <Check
                     aria-hidden="true"
-                    className="h-4 w-4 text-white drop-shadow-sm"
+                    className="h-3.5 w-3.5 text-white drop-shadow-sm"
                     strokeWidth={3}
                   />
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>
       </div>
+
+      <ProjectConfirmDialog {...dialogProps} />
     </div>
   );
 }
