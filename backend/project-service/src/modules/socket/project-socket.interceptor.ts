@@ -120,12 +120,10 @@ export class ProjectSocketInterceptor implements NestInterceptor {
       return 'INVITATION';
     }
     if (path.includes('/members')) return 'MEMBER';
-    if (path.includes('/files')) return 'FILE';
     if (path.includes('/checklists')) return 'CHECKLIST';
     if (path.includes('/task-comments') || path.includes('/comments')) return 'COMMENT';
     if (path.includes('/dependencies')) return 'DEPENDENCY';
     if (path.includes('/labels')) return 'LABEL';
-    if (path.includes('/sprints')) return 'SPRINT';
     if (path.includes('/tasks')) return 'TASK';
     if (path.includes('/projects')) return 'PROJECT';
     return undefined;
@@ -140,8 +138,8 @@ export class ProjectSocketInterceptor implements NestInterceptor {
 
   private entityId(request: Request): string | undefined {
     const params = request.params as Record<string, string | undefined>;
-    return params.taskId ?? params.successorTaskId ?? params.sprintId ?? params.checklistId
-      ?? params.commentId ?? params.labelId ?? params.invitationId ?? params.fileId ?? params.memberUserId;
+    return params.taskId ?? params.successorTaskId ?? params.checklistId
+      ?? params.commentId ?? params.labelId ?? params.invitationId ?? params.memberUserId;
   }
 
   private targetUsers(

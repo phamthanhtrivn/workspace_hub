@@ -10,9 +10,9 @@ const baseEvent = {
 };
 
 describe('projectQueriesForEvent', () => {
-  it('invalidates sprint and task-list queries for sprint events', () => {
-    expect(projectQueriesForEvent({ ...baseEvent, resource: 'SPRINT' })).toEqual([
-      { queryKey: ['projects', 'project-1', 'sprints'] },
+  it('invalidates label and task-list queries for label events', () => {
+    expect(projectQueriesForEvent({ ...baseEvent, resource: 'LABEL' })).toEqual([
+      { queryKey: ['projects', 'project-1', 'labels'] },
       { queryKey: ['projects', 'project-1', 'tasks'] },
     ]);
   });
@@ -33,10 +33,10 @@ describe('projectQueriesForEvent', () => {
     ]);
   });
 
-  it('invalidates every task detail changed by a sprint operation', () => {
+  it('invalidates every task detail changed by a batch task operation', () => {
     expect(projectQueriesForEvent({
       ...baseEvent,
-      resource: 'SPRINT',
+      resource: 'TASK',
       taskIds: ['task-1', 'task-2'],
     })).toContainEqual({ queryKey: ['tasks', 'task-2'] });
   });

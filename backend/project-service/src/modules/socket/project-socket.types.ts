@@ -7,14 +7,12 @@ export const ProjectSocketEvent = {
 export type ProjectResource =
   | 'PROJECT'
   | 'TASK'
-  | 'SPRINT'
   | 'MEMBER'
   | 'INVITATION'
   | 'CHECKLIST'
   | 'COMMENT'
   | 'LABEL'
-  | 'DEPENDENCY'
-  | 'FILE';
+  | 'DEPENDENCY';
 
 export type ProjectChangeAction = 'CREATED' | 'UPDATED' | 'DELETED';
 

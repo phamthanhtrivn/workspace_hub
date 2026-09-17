@@ -25,6 +25,11 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     { provide: USER_DIRECTORY, useClass: HttpUserDirectoryAdapter },
     { provide: NOTIFICATION_GATEWAY, useClass: HttpNotificationAdapter },
   ],
-  exports: [NotificationOutboxService],
+  exports: [
+    NotificationOutboxService,
+    USER_DIRECTORY,
+    NOTIFICATION_GATEWAY,
+    HttpJsonClient,
+  ],
 })
 export class NotificationOutboxModule {}
