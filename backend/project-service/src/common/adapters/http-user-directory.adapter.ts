@@ -1,9 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpJsonClient } from '../../../common/communication/http-json.client';
-import { RuntimeConfigService } from '../../../common/config/runtime-config.service';
+import { HttpJsonClient } from './http-json.client';
+import { RuntimeConfigService } from '../config/runtime-config.service';
 import { UserContact, UserDirectory } from './project-communication.port';
-import { UserProfileSnapshotService } from '../../user-profile-snapshot/user-profile-snapshot.service';
-import { UserProfileSnapshotEventType } from '../../user-profile-snapshot/types/user-profile-snapshot.enums';
+import { UserProfileSnapshotService } from '../../modules/user-profile-snapshot/user-profile-snapshot.service';
+import { UserProfileSnapshotEventType } from '../../modules/user-profile-snapshot/types/user-profile-snapshot.enums';
 
 interface UserProfileResponse {
   data?: {

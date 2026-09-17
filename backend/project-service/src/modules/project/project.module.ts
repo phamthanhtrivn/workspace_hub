@@ -2,13 +2,13 @@ import { Module } from "@nestjs/common";
 import { ProjectController } from "./project.controller";
 import { ProjectAccessService } from "./project-access.service";
 import { ProjectService } from "./project.service";
-import { HttpJsonClient } from "../../common/communication/http-json.client";
+import { HttpJsonClient } from "../../common/adapters/http-json.client";
 import {
   NOTIFICATION_GATEWAY,
   USER_DIRECTORY,
-} from "./communication/project-communication.port";
-import { HttpNotificationAdapter } from "./communication/http-notification.adapter";
-import { HttpUserDirectoryAdapter } from "./communication/http-user-directory.adapter";
+} from "../../common/adapters/project-communication.port";
+import { HttpNotificationAdapter } from "../../common/adapters/http-notification.adapter";
+import { HttpUserDirectoryAdapter } from "../../common/adapters/http-user-directory.adapter";
 import { SocketModule } from "../socket/socket.module";
 import { UserProfileSnapshotModule } from "../user-profile-snapshot/user-profile-snapshot.module";
 

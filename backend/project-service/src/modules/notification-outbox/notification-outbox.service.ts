@@ -19,7 +19,7 @@ import {
   ProjectNotification,
   USER_DIRECTORY,
   UserDirectory,
-} from "../project/communication/project-communication.port";
+} from "../../common/adapters/project-communication.port";
 
 type OutboxDatabase = PrismaService | Prisma.TransactionClient;
 

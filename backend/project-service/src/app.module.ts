@@ -1,6 +1,6 @@
 import { Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
-import { JwtIdentityGuard } from "./common/auth/jwt-identity.guard";
+import { JwtIdentityGuard } from "./common/guards/jwt-identity.guard";
 import { RuntimeConfigModule } from "./common/config/runtime-config.module";
 import { PrismaModule } from "./common/prisma/prisma.module";
 import { ProjectKafkaModule } from "./infrastructure/kafka/project-kafka.module";

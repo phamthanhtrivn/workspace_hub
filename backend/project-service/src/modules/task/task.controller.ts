@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
-import { PaginationQueryDto } from '../../common/pagination';
+import { ApiResponse } from '../../common/utils/api-response';
+import { PaginationQueryDto } from '../../common/utils/pagination';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';

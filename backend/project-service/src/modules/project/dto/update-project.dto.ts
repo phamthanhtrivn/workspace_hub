@@ -1,4 +1,4 @@
-import { OptionalField } from "../../../common/optional-field.decorator";
+import { OptionalField } from "../../../common/decorators/optional-field.decorator";
 import {
   IsDateString,
   IsEnum,
@@ -8,7 +8,7 @@ import {
   MaxLength,
 } from "class-validator";
 import { ProjectStatus } from "../project.enums";
-import { Trim } from "../../../common/trim.decorator";
+import { Trim } from "../../../common/decorators/trim.decorator";
 
 export class UpdateProjectDto {
   @OptionalField()

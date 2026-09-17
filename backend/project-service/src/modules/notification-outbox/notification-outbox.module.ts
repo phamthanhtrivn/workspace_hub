@@ -4,13 +4,13 @@ import { TaskCalendarEventService } from './task-calendar-event.service';
 import { ProjectKafkaModule } from '../../infrastructure/kafka/project-kafka.module';
 import { InvitationModule } from '../invitation/invitation.module';
 import { ProjectModule } from '../project/project.module';
-import { HttpJsonClient } from '../../common/communication/http-json.client';
+import { HttpJsonClient } from '../../common/adapters/http-json.client';
 import {
   NOTIFICATION_GATEWAY,
   USER_DIRECTORY,
-} from '../project/communication/project-communication.port';
-import { HttpNotificationAdapter } from '../project/communication/http-notification.adapter';
-import { HttpUserDirectoryAdapter } from '../project/communication/http-user-directory.adapter';
+} from '../../common/adapters/project-communication.port';
+import { HttpNotificationAdapter } from '../../common/adapters/http-notification.adapter';
+import { HttpUserDirectoryAdapter } from '../../common/adapters/http-user-directory.adapter';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 
 @Module({

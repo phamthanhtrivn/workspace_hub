@@ -10,7 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { isUUID } from 'class-validator';
 import { Server, Socket } from 'socket.io';
-import { AccessTokenVerifier } from '../../common/auth/access-token-verifier';
+import { AccessTokenVerifier } from '../../common/guards/access-token-verifier';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ProjectMemberStatus } from '../project/project.enums';
 import { SocketEventEmitter } from './socket-event-emitter';

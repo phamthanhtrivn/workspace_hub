@@ -1,9 +1,9 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ClientKafka } from "@nestjs/microservices";
 import { lastValueFrom } from "rxjs";
-import { HttpJsonClient } from "../../../common/communication/http-json.client";
-import { RuntimeConfigService } from "../../../common/config/runtime-config.service";
-import { PROJECT_KAFKA_CLIENT } from "../../../infrastructure/kafka/project-kafka.module";
+import { HttpJsonClient } from "./http-json.client";
+import { RuntimeConfigService } from "../config/runtime-config.service";
+import { PROJECT_KAFKA_CLIENT } from "../../infrastructure/kafka/project-kafka.module";
 import {
   InvitationEmail,
   NotificationGateway,
@@ -19,10 +19,12 @@ export class HttpNotificationAdapter implements NotificationGateway {
   ) {}
 
   async send(event: ProjectNotification): Promise<void> {
-    await lastValueFrom(this.kafka.emit("notification-topic", {
-      key: event.recipientId,
-      value: event,
-    }));
+    await lastValueFrom(
+      this.kafka.emit("notification-topic", {
+        key: event.recipientId,
+        value: event,
+      }),
+    );
   }
 
   async sendInvitationEmail(email: InvitationEmail): Promise<void> {

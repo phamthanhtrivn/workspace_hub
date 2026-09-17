@@ -1,6 +1,6 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
-import { PaginationQueryDto } from '../../common/pagination';
+import { ApiResponse } from '../../common/utils/api-response';
+import { PaginationQueryDto } from '../../common/utils/pagination';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { ActivityService } from './activity.service';
 

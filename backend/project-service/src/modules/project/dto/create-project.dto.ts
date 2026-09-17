@@ -5,7 +5,7 @@ import {
   IsString,
   MaxLength,
 } from "class-validator";
-import { Trim } from "../../../common/trim.decorator";
+import { Trim } from "../../../common/decorators/trim.decorator";
 
 export class CreateProjectDto {
   @Trim()

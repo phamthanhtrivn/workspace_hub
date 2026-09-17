@@ -8,7 +8,7 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
-import { ApiResponse } from '../../common/api-response';
+import { ApiResponse } from '../../common/utils/api-response';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { AddMemberDto } from './dto/add-member.dto';
 import { UpdateMemberPermissionsDto } from './dto/update-member-permissions.dto';

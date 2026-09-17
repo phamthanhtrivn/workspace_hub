@@ -11,7 +11,7 @@ import { toCommentResponse } from '../project/project.mapper';
 import { ActivityService } from '../activity/activity.service';
 import { assertTaskEditable } from '../task/task-edit.guard';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
-import { paginate, PaginationQueryDto } from '../../common/pagination';
+import { paginate, PaginationQueryDto } from '../../common/utils/pagination';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()

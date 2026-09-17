@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma, TaskActivity } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TaskPolicyService } from '../task/task-policy.service';
-import { paginate, PaginationQueryDto } from '../../common/pagination';
+import { paginate, PaginationQueryDto } from '../../common/utils/pagination';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { toActivityResponse } from '../project/project.mapper';
 

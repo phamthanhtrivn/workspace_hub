@@ -3,7 +3,7 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { AuthenticatedRequest } from '../auth/jwt-identity.guard';
+import { AuthenticatedRequest } from '../guards/jwt-identity.guard';
 
 export const CurrentUserId = createParamDecorator(
   (_data: unknown, context: ExecutionContext): string => {

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { Observable, tap } from 'rxjs';
-import { AuthenticatedRequest } from '../../common/auth/jwt-identity.guard';
+import { AuthenticatedRequest } from '../../common/guards/jwt-identity.guard';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   ProjectChangeAction,

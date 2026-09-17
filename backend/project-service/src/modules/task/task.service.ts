@@ -21,7 +21,7 @@ import {
   isRecordNotFoundError,
   rethrowWriteConflict,
 } from "../../common/prisma/prisma-errors";
-import { paginate, PaginationQueryDto } from "../../common/pagination";
+import { paginate, PaginationQueryDto } from "../../common/utils/pagination";
 import { TaskCalendarEventService } from "../notification-outbox/task-calendar-event.service";
 import { taskInclude } from "./task-query";
 import { lockProject } from "../project/project-transaction";
