@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
+  ArrowLeft,
   Calendar,
   ChartGantt,
   ChevronLeft,
@@ -388,38 +390,70 @@ export default function ProjectDetailSidebar({
           </section>
         </nav>
 
-        {canOpenSettings ? (
-          <footer className="mt-auto shrink-0 border-t border-slate-100 p-2">
-            <SidebarTooltip label="Project settings" enabled={isCollapsed}>
+        <footer className="mt-auto shrink-0 border-t border-slate-100 p-2">
+          <div className="space-y-1">
+            {canOpenSettings ? (
+              <SidebarTooltip label="Project settings" enabled={isCollapsed}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={onOpenSettings}
+                  className={cn(
+                    "group h-12 w-full justify-start gap-3 rounded-lg px-2.5 text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+                    isCollapsed && "lg:justify-center lg:px-2",
+                  )}
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#0052CC]">
+                    <Settings
+                      className="h-[18px] w-[18px]"
+                      strokeWidth={2}
+                    />
+                  </span>
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 overflow-hidden text-left opacity-100 transition-[width,opacity] duration-200",
+                      isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
+                    )}
+                  >
+                    <span className="block truncate text-sm font-semibold">
+                      Project settings
+                    </span>
+                  </span>
+                </Button>
+              </SidebarTooltip>
+            ) : null}
+
+            <SidebarTooltip label="Exit project" enabled={isCollapsed}>
               <Button
-                type="button"
+                asChild
                 variant="ghost"
-                onClick={onOpenSettings}
                 className={cn(
-                  "group h-12 w-full justify-start gap-3 rounded-lg px-2.5 text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+                  "group h-12 w-full justify-start gap-3 rounded-lg px-2.5 text-rose-600 hover:bg-rose-50 hover:text-rose-700",
                   isCollapsed && "lg:justify-center lg:px-2",
                 )}
               >
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#0052CC]">
-                  <Settings
-                    className="h-[18px] w-[18px]"
-                    strokeWidth={2}
-                  />
-                </span>
-                <span
-                  className={cn(
-                    "min-w-0 flex-1 overflow-hidden text-left opacity-100 transition-[width,opacity] duration-200",
-                    isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
-                  )}
-                >
-                  <span className="block truncate text-sm font-semibold">
-                    Project settings
+                <Link href="/projects" aria-label="Exit project">
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-rose-50 text-rose-500 group-hover:bg-white group-hover:text-rose-600">
+                    <ArrowLeft
+                      className="h-[18px] w-[18px]"
+                      strokeWidth={2}
+                    />
                   </span>
-                </span>
+                  <span
+                    className={cn(
+                      "min-w-0 flex-1 overflow-hidden text-left opacity-100 transition-[width,opacity] duration-200",
+                      isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
+                    )}
+                  >
+                    <span className="block truncate text-sm font-semibold">
+                      Exit project
+                    </span>
+                  </span>
+                </Link>
               </Button>
             </SidebarTooltip>
-          </footer>
-        ) : null}
+          </div>
+        </footer>
       </aside>
     </>
   );
