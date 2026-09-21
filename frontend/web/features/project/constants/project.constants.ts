@@ -13,9 +13,6 @@ export const PROJECT_STATUS_SELECT_OPTIONS = [
   { value: ProjectStatus.COMPLETED, label: "Completed" },
 ] as const;
 
-export const DEFAULT_PROJECT_KEY = "PRJ";
-export const MAX_PROJECT_KEY_LENGTH = 4;
-
 export const PROJECT_SETTINGS_LABELS = {
   DEFAULT_LABEL_COLOR: "#0052CC",
   COLOR_OPTIONS: [

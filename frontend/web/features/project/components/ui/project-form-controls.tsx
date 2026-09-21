@@ -28,7 +28,9 @@ export function ProjectSearchInput({
     <div className={cn("relative flex-1 min-w-[180px]", className)}>
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       <Input
-        type="search"
+        type="text"
+        role="searchbox"
+        enterKeyHint="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

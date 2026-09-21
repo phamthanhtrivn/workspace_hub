@@ -18,10 +18,14 @@ import {
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "sonner";
 import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
-import { getProjectKey } from "@/features/project/utils/project.utils";
 import { ProjectRole } from "@/features/project/types/project";
 import { Button } from "@/components/ui/button";
 import { CustomTabs } from "@/components/ui/custom/custom-tabs";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ProjectSearchInput } from "@/features/project/components/ui/project-form-controls";
 
 const PROJECT_FILTER_OPTIONS = PROJECT_FILTER_TABS.map((tab) => ({
@@ -137,11 +141,10 @@ export default function ProjectsPage() {
             Failed to load projects. Please try refreshing the page.
           </div>
         ) : filteredProjects.length > 0 ? (
-          <table className="w-full min-w-[850px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-bold text-slate-500 uppercase tracking-wider">
                 <th className="px-6 py-3 font-semibold">Name</th>
-                <th className="px-6 py-3 font-semibold">Key</th>
                 <th className="px-6 py-3 font-semibold">Owner</th>
                 <th className="px-6 py-3 font-semibold">Status</th>
                 <th className="px-6 py-3 font-semibold w-40">Progress</th>
@@ -150,7 +153,6 @@ export default function ProjectsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredProjects.map((project) => {
-                const projectKey = getProjectKey(project.name);
                 const owner =
                   project.members.find((m) => m.role === ProjectRole.ADMIN) ||
                   project.members[0];
@@ -189,9 +191,6 @@ export default function ProjectsPage() {
                           </span>
                         </div>
                       </Link>
-                    </td>
-                    <td className="px-6 py-3.5 font-medium text-slate-700">
-                      {projectKey}
                     </td>
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-2">
@@ -237,7 +236,7 @@ export default function ProjectsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-3.5 text-right">
-                      <div className="inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition duration-150">
+                      <div className="inline-flex items-center gap-1 opacity-0 transition duration-150 group-hover:opacity-100 focus-within:opacity-100">
                         <Link
                           href={`/projects/${project.id}?view=settings`}
                           title="Project Settings"
@@ -245,28 +244,38 @@ export default function ProjectsPage() {
                         >
                           <Settings className="h-4 w-4" />
                         </Link>
-                        <details className="relative">
-                          <summary
-                            title="More options"
-                            className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon-sm"
+                              aria-label="More project options"
+                             title="More options"
+                              className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            align="end"
+                            sideOffset={6}
+                            className="w-40 overflow-hidden rounded-lg border-slate-200 bg-white p-1 text-left shadow-lg"
                           >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </summary>
-                          <div className="absolute right-0 top-9 z-20 w-40 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 text-left shadow-lg">
                             <Link
                               href={`/projects/${project.id}`}
-                              className="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                              className="block rounded-md px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/30"
                             >
                               Open Board
                             </Link>
                             <Link
                               href={`/projects/${project.id}?view=settings`}
-                              className="block px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                              className="block rounded-md px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/30"
                             >
                               Settings
                             </Link>
-                          </div>
-                        </details>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </td>
                   </tr>

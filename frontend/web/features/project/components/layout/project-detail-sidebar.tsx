@@ -40,7 +40,6 @@ export type ProjectViewMode =
 interface ProjectDetailSidebarProps {
   project: Project;
   members: ProjectMember[];
-  projectKey: string;
   viewMode: ProjectViewMode;
   isCollapsed: boolean;
   isMobileOpen: boolean;
@@ -145,7 +144,6 @@ function SidebarNavItem({
 export default function ProjectDetailSidebar({
   project,
   members,
-  projectKey,
   viewMode,
   isCollapsed,
   isMobileOpen,
@@ -228,9 +226,6 @@ export default function ProjectDetailSidebar({
             <h2 className="truncate text-sm font-bold text-[#172B4D]">
               {project.name}
             </h2>
-            <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
-              {projectKey}
-            </p>
           </div>
           <Button
             type="button"
@@ -401,7 +396,7 @@ export default function ProjectDetailSidebar({
                 variant="ghost"
                 onClick={onOpenSettings}
                 className={cn(
-                  "group h-14 w-full justify-start gap-3 rounded-lg px-2.5 text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+                  "group h-12 w-full justify-start gap-3 rounded-lg px-2.5 text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
                   isCollapsed && "lg:justify-center lg:px-2",
                 )}
               >
@@ -419,9 +414,6 @@ export default function ProjectDetailSidebar({
                 >
                   <span className="block truncate text-sm font-semibold">
                     Project settings
-                  </span>
-                  <span className="mt-0.5 block truncate text-[11px] font-medium text-slate-400">
-                    {projectKey}
                   </span>
                 </span>
               </Button>

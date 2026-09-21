@@ -36,7 +36,6 @@ import TaskChatDialog from "@/features/project/components/dialogs/task-chat-dial
 import TaskFormDialog from "@/features/project/components/dialogs/task-form-dialog";
 import InviteMemberDialog from "@/features/project/components/dialogs/invite-member-dialog";
 import ProjectSettingsDialog from "@/features/project/components/dialogs/project-settings-dialog";
-import { getProjectKey } from "@/features/project/utils/project.utils";
 import {
   getProjectPermissions,
   NO_PROJECT_PERMISSIONS,
@@ -263,7 +262,6 @@ export default function ProjectDetailScreen() {
     return <ProjectDetailNotFound />;
   }
 
-  const projectKey = getProjectKey(project.name);
   const projectWithMembers = { ...project, members };
   const viewTitle: Record<ProjectViewMode, string> = {
     summary: "Summary",
@@ -286,7 +284,6 @@ export default function ProjectDetailScreen() {
       <ProjectDetailSidebar
         project={project}
         members={projectWithMembers.members}
-        projectKey={projectKey}
         viewMode={viewMode}
         isCollapsed={isSidebarCollapsed}
         isMobileOpen={isMobileSidebarOpen}
