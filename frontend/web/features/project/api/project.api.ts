@@ -64,6 +64,9 @@ export interface CreateProjectPayload {
   name: string;
   color: string;
   icon: string;
+  description?: string;
+  startDate?: string | null;
+  dueDate?: string | null;
 }
 
 export interface UpdateProjectPayload {

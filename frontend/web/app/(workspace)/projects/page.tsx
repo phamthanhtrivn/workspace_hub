@@ -229,6 +229,8 @@ export default function ProjectsPage() {
                   totalTasks > 0
                     ? Math.round((doneTasks / totalTasks) * 100)
                     : 0;
+                const projectDescription =
+                  project.description?.trim() || "No description";
 
                 return (
                   <tr
@@ -259,12 +261,15 @@ export default function ProjectsPage() {
                         >
                           {project.icon || "📁"}
                         </span>
-                        <div>
+                        <div className="min-w-0">
                           <span className="block text-sm font-bold text-[#0052CC] group-hover:underline">
                             {project.name}
                           </span>
-                          <span className="text-xs text-slate-500 font-medium">
-                            Team-managed project
+                          <span
+                            className="block max-w-[10rem] truncate text-xs font-medium text-slate-500"
+                            title={projectDescription}
+                          >
+                            {projectDescription}
                           </span>
                         </div>
                       </div>

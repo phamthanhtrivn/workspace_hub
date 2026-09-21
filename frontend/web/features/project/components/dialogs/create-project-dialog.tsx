@@ -11,20 +11,19 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import {
   PROJECT_COLOR_OPTIONS,
   PROJECT_ICON_OPTIONS,
 } from "@/features/project/constants/project-form.constants";
+import { getTodayDateValue } from "@/features/project/utils/project-date.utils";
 import { cn } from "@/lib/utils";
 
 interface CreateProjectDialogProps {
   open: boolean;
   onClose: () => void;
-  onSubmit?: (payload: {
-    name: string;
-    color: string;
-    icon: string;
-  }) => Promise<void>;
+  onSubmit?: (payload: CreateProjectPayload) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -35,6 +34,9 @@ export default function CreateProjectDialog({
   isSubmitting = false,
 }: CreateProjectDialogProps) {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [startDate, setStartDate] = useState(getTodayDateValue);
+  const [dueDate, setDueDate] = useState("");
   const [selectedColor, setSelectedColor] = useState<string>(
     PROJECT_COLOR_OPTIONS[0],
   );
@@ -45,14 +47,21 @@ export default function CreateProjectDialog({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!name.trim() || isSubmitting) return;
+    if (startDate && dueDate && startDate > dueDate) return;
 
     await onSubmit?.({
       name: name.trim(),
       color: selectedColor,
       icon: selectedIcon,
+      description: description.trim() || undefined,
+      startDate: startDate || null,
+      dueDate: dueDate || null,
     });
 
     setName("");
+    setDescription("");
+    setStartDate(getTodayDateValue());
+    setDueDate("");
   };
 
   return (
@@ -87,6 +96,62 @@ export default function CreateProjectDialog({
                 required
                 className="mt-2 h-11 w-full rounded-xl border-slate-300 bg-white px-3 text-sm font-semibold text-[#172B4D] placeholder:font-normal placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
               />
+            </div>
+
+            <div>
+              <label
+                htmlFor="project-description"
+                className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
+              >
+                Description <span className="font-semibold normal-case text-slate-400">(Optional)</span>
+              </label>
+              <Textarea
+                id="project-description"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                maxLength={2000}
+                rows={3}
+                placeholder="Describe the project goals or scope..."
+                className="mt-2 min-h-24 resize-none rounded-xl border-slate-300 bg-white text-sm text-[#172B4D] placeholder:font-normal placeholder:text-slate-400 focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+              />
+            </div>
+
+            <div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label
+                  htmlFor="project-start-date"
+                  className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
+                >
+                  Start Date <span className="font-semibold normal-case text-slate-400">(Optional)</span>
+                  <Input
+                    id="project-start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(event) => setStartDate(event.target.value)}
+                    max={dueDate || undefined}
+                    className="mt-2 h-11 rounded-xl border-slate-300 bg-white text-sm font-semibold text-[#172B4D] focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                  />
+                </label>
+                <label
+                  htmlFor="project-due-date"
+                  className="block text-xs font-bold uppercase tracking-wider text-[#42526E]"
+                >
+                  End Date <span className="font-semibold normal-case text-slate-400">(Optional)</span>
+                  <Input
+                    id="project-due-date"
+                    type="date"
+                    value={dueDate}
+                    onChange={(event) => setDueDate(event.target.value)}
+                    min={startDate || undefined}
+                    className="mt-2 h-11 rounded-xl border-slate-300 bg-white text-sm font-semibold text-[#172B4D] focus-visible:border-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/15"
+                  />
+                </label>
+              </div>
+              {startDate && dueDate && startDate > dueDate ? (
+                <p className="mt-2 text-xs font-semibold text-red-600">
+                  Start date cannot be after end date.
+                </p>
+              ) : null}
             </div>
 
             {/* Icon Picker */}
@@ -183,7 +248,11 @@ export default function CreateProjectDialog({
             </Button>
             <Button
               type="submit"
-              disabled={!name.trim() || isSubmitting}
+              disabled={
+                !name.trim() ||
+                isSubmitting ||
+                Boolean(startDate && dueDate && startDate > dueDate)
+              }
               className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
             >
               {isSubmitting ? "Creating..." : "Create Project"}

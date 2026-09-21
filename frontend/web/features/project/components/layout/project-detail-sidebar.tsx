@@ -72,12 +72,12 @@ const NAV_ITEMS: Array<{
   label: string;
   icon: LucideIcon;
 }> = [
-  { view: "summary", label: "Summary", icon: LayoutDashboard },
-  { view: "board", label: "Board", icon: LayoutGrid },
-  { view: "list", label: "List View", icon: List },
-  { view: "calendar", label: "Calendar", icon: Calendar },
-  { view: "gantt", label: "Timeline", icon: ChartGantt },
-];
+    { view: "summary", label: "Summary", icon: LayoutDashboard },
+    { view: "board", label: "Board", icon: LayoutGrid },
+    { view: "list", label: "List View", icon: List },
+    { view: "calendar", label: "Calendar", icon: Calendar },
+    { view: "gantt", label: "Timeline", icon: ChartGantt },
+  ];
 
 function SidebarTooltip({ label, enabled, children }: SidebarTooltipProps) {
   return (
@@ -278,7 +278,7 @@ export default function ProjectDetailSidebar({
                       ? "bg-[#0052CC] text-white hover:bg-[#0747A6] hover:text-white"
                       : "text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
                     isCollapsed &&
-                      "lg:w-full lg:flex-none lg:justify-center lg:px-2",
+                    "lg:w-full lg:flex-none lg:justify-center lg:px-2",
                   )}
                 >
                   <span

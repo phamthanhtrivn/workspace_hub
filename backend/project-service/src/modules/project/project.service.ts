@@ -29,7 +29,7 @@ export class ProjectService {
 
   async create(userId: string, dto: CreateProjectDto) {
     const now = new Date();
-    const startDate = this.toDate(dto.startDate) ?? now;
+    const startDate = this.toDate(dto.startDate);
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
 
