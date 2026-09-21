@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, ChevronRight, Settings } from "lucide-react";
@@ -16,16 +16,23 @@ import {
 } from "@/features/project/hooks/use-projects";
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "sonner";
-import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
+import {
+  PROJECT_FILTER_TABS,
+  PROJECT_SEARCH_DEBOUNCE_MS,
+  PROJECTS_PER_PAGE,
+} from "@/features/project/constants/project.constants";
 import {
   ProjectRole,
   type Project,
 } from "@/features/project/types/project";
 import type { ProjectSettingsPayload } from "@/features/project/project-settings-actions";
+import { useDebouncedValue } from "@/features/project/hooks/use-debounced-value";
+import { getProjectIdSuffix } from "@/features/project/utils/project-id.utils";
 import { useAppSelector } from "@/store/store";
 import { Button } from "@/components/ui/button";
 import { CustomTabs } from "@/components/ui/custom/custom-tabs";
 import { ProjectSearchInput } from "@/features/project/components/ui/project-form-controls";
+import { DocumentsPagination } from "@/features/documents/components/ui/documents-pagination";
 
 const PROJECT_FILTER_OPTIONS = PROJECT_FILTER_TABS.map((tab) => ({
   value: tab.key,
@@ -39,26 +46,46 @@ export default function ProjectsPage() {
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const [activeFilter, setActiveFilter] = useState<ProjectFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebouncedValue(
+    searchQuery.trim(),
+    PROJECT_SEARCH_DEBOUNCE_MS,
+  );
+  const [currentPage, setCurrentPage] = useState(1);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const { data: projects = [], isLoading, isError } = useProjects();
+  const projectListQuery = useMemo(
+    () => ({
+      page: currentPage,
+      limit: PROJECTS_PER_PAGE,
+      search: debouncedSearchQuery || undefined,
+      status: activeFilter === "ALL" ? undefined : activeFilter,
+    }),
+    [activeFilter, currentPage, debouncedSearchQuery],
+  );
+  const {
+    data: projectList,
+    isFetching,
+    isLoading,
+    isError,
+  } = useProjects(projectListQuery);
+  const projects = projectList?.data ?? [];
+  const paginationMeta = projectList?.meta;
   const createProjectMutation = useCreateProject();
   const selectedProjectId = selectedProject?.id ?? "";
   const updateProjectMutation = useUpdateProject(selectedProjectId);
   const archiveProjectMutation = useArchiveProject(selectedProjectId);
+  const hasActiveProjectSearch =
+    Boolean(debouncedSearchQuery) || activeFilter !== "ALL";
 
-  const filteredProjects = useMemo(() => {
-    return projects.filter((p) => {
-      const matchesFilter =
-        activeFilter === "ALL"
-          ? !p.archived
-          : p.status === activeFilter && !p.archived;
-      const matchesSearch =
-        !searchQuery ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesFilter && matchesSearch;
-    });
-  }, [activeFilter, projects, searchQuery]);
+  const handleFilterChange = (filter: ProjectFilter) => {
+    setActiveFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    setCurrentPage(1);
+  };
 
   const handleCreateProject = async (payload: CreateProjectPayload) => {
     try {
@@ -137,7 +164,7 @@ export default function ProjectsPage() {
         <CustomTabs
           value={activeFilter}
           options={PROJECT_FILTER_OPTIONS}
-          onChange={setActiveFilter}
+          onChange={handleFilterChange}
           ariaLabel="Filter projects by status"
           className="max-w-full overflow-x-auto"
         />
@@ -145,7 +172,7 @@ export default function ProjectsPage() {
         {/* Search */}
         <ProjectSearchInput
           value={searchQuery}
-          onChange={setSearchQuery}
+          onChange={handleSearchChange}
           placeholder="Search projects..."
           ariaLabel="Search projects"
           className="w-full flex-none sm:w-64"
@@ -173,156 +200,184 @@ export default function ProjectsPage() {
           <div className="py-12 text-center text-sm font-semibold text-red-500">
             Failed to load projects. Please try refreshing the page.
           </div>
-        ) : filteredProjects.length > 0 ? (
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <th className="px-6 py-3 font-semibold">Name</th>
-                <th className="px-6 py-3 font-semibold">Owner</th>
-                <th className="px-6 py-3 font-semibold">Status</th>
-                <th className="px-6 py-3 font-semibold w-40">Progress</th>
-                <th className="px-6 py-3 text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredProjects.map((project) => {
-                const owner =
-                  project.members.find((m) => m.role === ProjectRole.ADMIN) ||
-                  project.members[0];
-                const totalTasks = project.totalTaskCount;
-                const doneTasks = project.completedTaskCount;
-                const progress =
-                  totalTasks > 0
-                    ? Math.round((doneTasks / totalTasks) * 100)
-                    : 0;
-                const projectDescription =
-                  project.description?.trim() || "No description";
+        ) : projects.length > 0 ? (
+          <>
+            <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-slate-50/75 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 font-semibold">Name</th>
+                  <th className="px-6 py-3 font-semibold">Owner</th>
+                  <th className="px-6 py-3 font-semibold">Status</th>
+                  <th className="px-6 py-3 font-semibold w-40">Progress</th>
+                  <th className="px-6 py-3 text-right"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {projects.map((project) => {
+                  const owner =
+                    project.members.find((m) => m.role === ProjectRole.ADMIN) ||
+                    project.members[0];
+                  const totalTasks = project.totalTaskCount;
+                  const doneTasks = project.completedTaskCount;
+                  const progress =
+                    totalTasks > 0
+                      ? Math.round((doneTasks / totalTasks) * 100)
+                      : 0;
+                  const projectIdSuffix = getProjectIdSuffix(project.id);
 
-                return (
-                  <tr
-                    key={project.id}
-                    role="link"
-                    tabIndex={0}
-                    aria-label={`Open ${project.name}`}
-                    onClick={() => router.push(`/projects/${project.id}`)}
-                    onKeyDown={(event) => {
-                      if (
-                        event.key === "Enter" &&
-                        event.target === event.currentTarget
-                      ) {
-                        event.preventDefault();
-                        router.push(`/projects/${project.id}`);
-                      }
-                    }}
-                    className="group cursor-pointer transition duration-150 hover:bg-slate-50/70 focus-visible:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0052CC]/30"
-                  >
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-3">
-                        <span
-                          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xl shadow-2xs border border-slate-200 font-semibold"
-                          style={{
-                            backgroundColor: `${project.color}14`,
-                            color: project.color,
-                          }}
-                        >
-                          {project.icon || "📁"}
-                        </span>
-                        <div className="min-w-0">
-                          <span className="block text-sm font-bold text-[#0052CC] group-hover:underline">
-                            {project.name}
-                          </span>
+                  return (
+                    <tr
+                      key={project.id}
+                      role="link"
+                      tabIndex={0}
+                      aria-label={`Open ${project.name}`}
+                      onClick={() => router.push(`/projects/${project.id}`)}
+                      onKeyDown={(event) => {
+                        if (
+                          event.key === "Enter" &&
+                          event.target === event.currentTarget
+                        ) {
+                          event.preventDefault();
+                          router.push(`/projects/${project.id}`);
+                        }
+                      }}
+                      className="group cursor-pointer transition duration-150 hover:bg-slate-50/70 focus-visible:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0052CC]/30"
+                    >
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center gap-3">
                           <span
-                            className="block max-w-[10rem] truncate text-xs font-medium text-slate-500"
-                            title={projectDescription}
-                          >
-                            {projectDescription}
-                          </span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-2">
-                        {owner ? (
-                          <>
-                            <Avatar
-                              user={{
-                                userId: owner.userId,
-                                displayName: owner.displayName,
-                                avatarUrl: owner.avatarUrl,
-                              }}
-                              size="xs"
-                            />
-                            <span className="text-slate-700 font-medium">
-                              {owner.displayName}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-slate-400 font-medium">—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <ProjectStatusBadge status={project.status} />
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex justify-between text-[11px] font-bold text-slate-500">
-                          <span>{progress}%</span>
-                          <span>
-                            {doneTasks}/{totalTasks}
-                          </span>
-                        </div>
-                        <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-300"
+                            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xl shadow-2xs border border-slate-200 font-semibold"
                             style={{
-                              width: `${progress}%`,
-                              backgroundColor: project.color || "#0052CC",
+                              backgroundColor: `${project.color}14`,
+                              color: project.color,
                             }}
-                          />
+                          >
+                            {project.icon || "📁"}
+                          </span>
+                          <div className="min-w-0">
+                            <span className="block text-sm font-bold text-[#0052CC] group-hover:underline">
+                              {project.name}
+                            </span>
+                            {projectIdSuffix ? (
+                              <div className="mt-0.5">
+                                <span
+                                  className="inline-flex rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-slate-500"
+                                  title={`Project ID: ${project.id}`}
+                                >
+                                  {projectIdSuffix}
+                                </span>
+                              </div>
+                            ) : null}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-3.5 text-right">
-                      {project.ownerId === currentUserId ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          title="Project Settings"
-                          aria-label={`Open settings for ${project.name}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setSelectedProject(project);
-                          }}
-                          className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
-                        >
-                          <Settings className="h-4 w-4" />
-                        </Button>
-                      ) : null}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="flex items-center gap-2">
+                          {owner ? (
+                            <>
+                              <Avatar
+                                user={{
+                                  userId: owner.userId,
+                                  displayName: owner.displayName,
+                                  avatarUrl: owner.avatarUrl,
+                                }}
+                                size="xs"
+                              />
+                              <span className="text-slate-700 font-medium">
+                                {owner.displayName}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-slate-400 font-medium">—</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <ProjectStatusBadge status={project.status} />
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex justify-between text-[11px] font-bold text-slate-500">
+                            <span>{progress}%</span>
+                            <span>
+                              {doneTasks}/{totalTasks}
+                            </span>
+                          </div>
+                          <div className="h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-300"
+                              style={{
+                                width: `${progress}%`,
+                                backgroundColor: project.color || "#0052CC",
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        {project.ownerId === currentUserId ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            title="Project Settings"
+                            aria-label={`Open settings for ${project.name}`}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedProject(project);
+                            }}
+                            className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <DocumentsPagination
+              currentPage={paginationMeta?.page ?? currentPage}
+              totalPages={paginationMeta?.totalPages ?? 1}
+              totalItems={paginationMeta?.total ?? 0}
+              itemsPerPage={PROJECTS_PER_PAGE}
+              isLoading={isFetching}
+              onPageChange={setCurrentPage}
+              summaryText={
+                paginationMeta
+                  ? `Showing ${(paginationMeta.page - 1) * paginationMeta.limit + 1}-${Math.min(
+                      paginationMeta.page * paginationMeta.limit,
+                      paginationMeta.total,
+                    )} of ${paginationMeta.total} projects`
+                  : undefined
+              }
+              className="px-6 pb-4"
+            />
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <div className="grid h-16 w-16 place-items-center rounded-2xl bg-slate-50 text-3xl border border-slate-100">
               📂
             </div>
             <p className="mt-4 text-sm font-bold text-slate-700">
-              No projects yet
+              {hasActiveProjectSearch
+                ? "No matching projects found"
+                : "No projects yet"}
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              Get started by creating your first team project.
+              {hasActiveProjectSearch
+                ? "Try adjusting your search or project status filter."
+                : "Get started by creating your first team project."}
             </p>
-            <Button
-              onClick={() => setShowCreate(true)}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#0052CC] hover:bg-[#0747A6] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer"
-            >
-              Create New Project
-            </Button>
+            {!hasActiveProjectSearch ? (
+              <Button
+                onClick={() => setShowCreate(true)}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#0052CC] hover:bg-[#0747A6] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer"
+              >
+                Create New Project
+              </Button>
+            ) : null}
           </div>
         )}
       </div>

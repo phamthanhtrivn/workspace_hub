@@ -1,5 +1,9 @@
 import { ProjectStatus } from "../types/project";
 
+export const PROJECTS_PER_PAGE = 10;
+export const PROJECT_SEARCH_DEBOUNCE_MS = 350;
+export const PROJECT_ID_SUFFIX_LENGTH = 5;
+
 export const PROJECT_FILTER_TABS = [
   { key: "ALL", label: "All Projects" },
   { key: ProjectStatus.ACTIVE, label: "Active" },

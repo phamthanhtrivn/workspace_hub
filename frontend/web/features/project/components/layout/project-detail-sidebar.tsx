@@ -29,6 +29,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { getProjectIdSuffix } from "@/features/project/utils/project-id.utils";
 import { cn } from "@/lib/utils";
 
 export type ProjectViewMode =
@@ -166,6 +167,7 @@ export default function ProjectDetailSidebar({
   const visibleMembers = members.slice(0, 5);
   const remainingMembers = Math.max(0, members.length - visibleMembers.length);
   const membersActive = viewMode === "members";
+  const projectIdSuffix = getProjectIdSuffix(project.id);
 
   return (
     <>
@@ -234,6 +236,14 @@ export default function ProjectDetailSidebar({
             <h2 className="truncate text-sm font-bold text-[#172B4D]">
               {project.name}
             </h2>
+            {projectIdSuffix ? (
+              <p
+                className="mt-0.5 truncate font-mono text-[11px] font-semibold text-slate-500"
+                title={`Project ID: ${project.id}`}
+              >
+                {projectIdSuffix}
+              </p>
+            ) : null}
           </div>
           <Button
             type="button"

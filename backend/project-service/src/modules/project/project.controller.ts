@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
-import { PaginationQueryDto } from '../../common/utils/pagination';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { ProjectListQueryDto } from './dto/project-list-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectService } from './project.service';
 
@@ -16,7 +16,7 @@ export class ProjectController {
   }
 
   @Get()
-  async findAll(@CurrentUserId() userId: string, @Query() query: PaginationQueryDto) {
+  async findAll(@CurrentUserId() userId: string, @Query() query: ProjectListQueryDto) {
     const result = await this.projects.findAll(userId, query);
     return ApiResponse.success(result.items, 'Projects loaded successfully', result.pagination);
   }
