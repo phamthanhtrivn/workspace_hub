@@ -2,7 +2,6 @@
 
 import type { KeyboardEvent } from "react";
 import { Calendar } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   type Task,
   isTerminalTaskStatus,
@@ -11,7 +10,7 @@ import { TaskStatusBadge, LabelBadge } from "../ui/status-badge";
 import { Avatar } from "../ui/avatar-stack";
 import { getIssueKey, getIssueIcon, getPriorityIcon } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
-import { TASK_PRIORITY_LABEL_IDS } from "@/features/project/constants/task.constants";
+import { TASK_PRIORITY_LABELS } from "@/features/project/constants/task.constants";
 
 function isOverdue(dueDate?: string, status?: string): boolean {
   if (!dueDate || status === "DONE" || status === "CANCELLED") return false;
@@ -38,12 +37,18 @@ export default function ProjectTaskRow({
   onTaskClick,
   onOpenChat,
 }: ProjectTaskRowProps) {
-  const intl = useAppIntl();
   const overdue = isOverdue(task.dueDate, task.status);
   const issueKey = getIssueKey(task);
   const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
   const isDraggable = reorderEnabled && !isTerminalTaskStatus(task.status);
+
+  const formattedDueDate = task.dueDate
+    ? new Date(task.dueDate).toLocaleDateString(undefined, {
+        day: "2-digit",
+        month: "short",
+      })
+    : "";
 
   return (
     <div
@@ -70,7 +75,7 @@ export default function ProjectTaskRow({
           onTaskClick?.(task);
         }
       }}
-      className="group flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-[7px] text-left transition-colors hover:bg-[#F4F5F7] cursor-pointer focus-visible:bg-[#DEEBFF] focus-visible:outline-none"
+      className="group flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-[7px] text-left transition-colors hover:bg-slate-50 cursor-pointer focus-visible:bg-blue-50/50 focus-visible:outline-hidden"
     >
       <div className="shrink-0">{issueIcon}</div>
 
@@ -97,17 +102,14 @@ export default function ProjectTaskRow({
       <div className="w-20 shrink-0 text-right">
         {task.dueDate ? (
           <span
-            className={`inline-flex items-center gap-1 rounded px-1 text-[11px] font-semibold ${
+            className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${
               overdue
-                ? "bg-red-50 text-[#DE350B]"
-                : "bg-slate-100 text-slate-500"
+                ? "bg-red-50 text-red-600"
+                : "bg-slate-100 text-slate-600"
             }`}
           >
             <Calendar className="h-3 w-3" />
-            {intl.formatDate(new Date(task.dueDate), {
-              day: "2-digit",
-              month: "short",
-            })}
+            {formattedDueDate}
           </span>
         ) : (
           <span className="text-xs text-slate-300">—</span>
@@ -122,9 +124,7 @@ export default function ProjectTaskRow({
       {/* Priority */}
       <div
         className="flex w-8 shrink-0 justify-center"
-        title={intl.formatMessage({
-          id: TASK_PRIORITY_LABEL_IDS[task.priority],
-        })}
+        title={TASK_PRIORITY_LABELS[task.priority]}
       >
         {priorityIcon}
       </div>

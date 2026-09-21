@@ -4,16 +4,14 @@ import {
   Activity,
   CalendarClock,
   CheckCircle2,
-  CircleDot,
+  CircleAlert,
   ListChecks,
 } from "lucide-react";
 import {
-  isTerminalTaskStatus,
   type ProjectMember,
   type Task,
-  type Sprint,
 } from "@/features/project/types/project";
-import SprintMetricsView from "./sprint-metrics-view";
+import { TaskStatusBadge } from "../ui/status-badge";
 import {
   ProjectMetricCard,
   ProjectSummaryPanel,
@@ -21,123 +19,96 @@ import {
   MemberWorkloadList,
 } from "../summary";
 
-import { useProjectSummaryMetrics } from "@/features/project/hooks/use-project-summary-metrics";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { formatTaskRelativeTime } from "@/features/project/utils/task-relative-time";
+import {
+  useProjectSummaryMetrics,
+  isWithinLastDays,
+} from "@/features/project/hooks/use-project-summary-metrics";
 
 export default function SummaryView({
   tasks,
   members,
-  sprints = [],
 }: {
   tasks: Task[];
   members: ProjectMember[];
-  sprints?: Sprint[];
 }) {
-  const intl = useAppIntl();
+  const formatDate = (value?: string) =>
+    value
+      ? new Date(value).toLocaleDateString(undefined, { day: "2-digit", month: "2-digit" })
+      : "Not set";
   const {
     now,
-    activeTasks,
-    completedRecently,
-    updatedRecently,
-    createdRecently,
+    rootTasks,
+    subtasks,
+    completed,
+    overdue,
     dueSoon,
+    unscheduled,
+    completionPercent,
     statusItems,
-    totalStatus,
-    donePercent,
     priorityItems,
     maxPriority,
     recentTasks,
-    workloadItems,
-    maxWorkloadItems: maxWorkload,
-  } = useProjectSummaryMetrics(tasks, members, { isSoftware: true });
-
-  const sprintItems = activeTasks
-    .filter((task) => activeTasks.some((child) => child.parentTaskId === task.id))
-    .map((sprint) => {
-      const children = activeTasks.filter(
-        (task) => task.parentTaskId === sprint.id,
-      );
-      const done = children.filter((task) =>
-        isTerminalTaskStatus(task.status),
-      ).length;
-      return {
-        sprint,
-        total: children.length,
-        done,
-        percent: children.length
-          ? Math.round((done / children.length) * 100)
-          : 0,
-      };
-    })
-    .slice(0, 5);
+    workload,
+    maxWorkload,
+  } = useProjectSummaryMetrics(tasks, members, { isSoftware: false });
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-4 pb-8">
-      <div className="rounded-lg border border-blue-100 bg-blue-50 px-5 py-4">
+      <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-5 py-4">
         <p className="text-sm font-bold text-[#172B4D]">
-          {intl.formatMessage({ id: "project.summary.customizeTitle" })}
+          Project Overview
         </p>
         <p className="mt-1 text-xs text-slate-600">
-          {intl.formatMessage({ id: "project.summary.customizeDescription" })}
+          Track high-level progress, upcoming milestones, and task distribution across your team.
         </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <ProjectMetricCard
-          icon={CheckCircle2}
-          value={completedRecently.length}
-          label={intl.formatMessage({ id: "project.summary.completed" })}
-          sublabel={intl.formatMessage({ id: "project.summary.lastSevenDays" })}
-          color="bg-emerald-50 text-emerald-600"
-        />
-        <ProjectMetricCard
-          icon={Activity}
-          value={updatedRecently.length}
-          label={intl.formatMessage({ id: "project.summary.updated" })}
-          sublabel={intl.formatMessage({ id: "project.summary.lastSevenDays" })}
+          icon={ListChecks}
+          value={rootTasks.length}
+          label="Tasks"
           color="bg-blue-50 text-blue-600"
         />
         <ProjectMetricCard
-          icon={ListChecks}
-          value={createdRecently.length}
-          label={intl.formatMessage({ id: "project.summary.created" })}
-          sublabel={intl.formatMessage({ id: "project.summary.lastSevenDays" })}
+          icon={Activity}
+          value={subtasks.length}
+          label="Subtasks"
           color="bg-violet-50 text-violet-600"
         />
         <ProjectMetricCard
-          icon={CalendarClock}
-          value={dueSoon.length}
-          label={intl.formatMessage({ id: "project.summary.dueSoon" })}
-          sublabel={intl.formatMessage({ id: "project.summary.lastSevenDays" })}
-          color="bg-amber-50 text-amber-600"
+          icon={CheckCircle2}
+          value={completed.length}
+          label="Completed"
+          color="bg-emerald-50 text-emerald-600"
+        />
+        <ProjectMetricCard
+          icon={CircleAlert}
+          value={overdue.length}
+          label="Overdue"
+          color="bg-red-50 text-red-600"
         />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.statusTitle" })}
-          description={intl.formatMessage({ id: "project.summary.statusDescription" })}
+          title="Work Progress"
+          description="Overall completion percentage and status breakdown."
         >
-          <div className="flex flex-col items-center gap-5 sm:flex-row sm:justify-center">
+          <div className="flex items-center gap-5">
             <div
-              className="grid h-40 w-40 shrink-0 place-items-center rounded-full"
+              className="grid h-32 w-32 shrink-0 place-items-center rounded-full"
               style={{
-                background: `conic-gradient(#36B37E ${donePercent}%, #DEEBFF ${donePercent}% 100%)`,
+                background: `conic-gradient(#36B37E ${completionPercent}%, #E2E8F0 ${completionPercent}% 100%)`,
               }}
             >
-              <div className="grid h-28 w-28 place-items-center rounded-full bg-white text-center">
-                <div>
-                  <p className="text-2xl font-bold text-[#172B4D]">
-                    {totalStatus}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {intl.formatMessage({ id: "project.summary.totalWorkItems" })}
-                  </p>
-                </div>
+              <div className="grid h-24 w-24 place-items-center rounded-full bg-white text-center">
+                <strong className="text-2xl text-[#172B4D]">
+                  {completionPercent}%
+                </strong>
               </div>
             </div>
-            <div className="w-full max-w-xs space-y-2">
+            <div className="w-full space-y-2">
               {statusItems.map((item) => (
                 <div
                   key={item.label}
@@ -150,7 +121,7 @@ export default function SummaryView({
                     />
                     {item.label}
                   </span>
-                  <strong className="text-slate-700">{item.value}</strong>
+                  <strong>{item.value}</strong>
                 </div>
               ))}
             </div>
@@ -158,46 +129,36 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.recentActivity" })}
-          description={intl.formatMessage({ id: "project.summary.recentActivityDescription" })}
+          title="Upcoming Deadlines"
+          description="Tasks that are approaching their due dates soon."
         >
-          <div className="space-y-3">
-            {recentTasks.length === 0 && (
-              <p className="py-8 text-center text-xs text-slate-400">
-                {intl.formatMessage({ id: "project.activity.empty" })}
-              </p>
-            )}
-            {recentTasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-start gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0"
-              >
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-blue-100 text-blue-700">
-                  <CircleDot className="h-4 w-4" />
-                </span>
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold text-[#172B4D]">
+          {dueSoon.length === 0 ? (
+            <p className="py-8 text-center text-xs font-semibold text-slate-400">
+              No upcoming deadlines in the near future.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {dueSoon.slice(0, 6).map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-3 rounded border border-slate-100 px-3 py-2"
+                >
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700">
                     {task.title}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-slate-400">
-                    {intl.formatMessage({ id: `project.task.status.${task.status === "IN_PROGRESS" ? "inProgress" : task.status === "IN_REVIEW" ? "inReview" : task.status.toLowerCase()}` })} ·{" "}
-                    {formatTaskRelativeTime({
-                      value: task.updatedAt || task.createdAt,
-                      now,
-                      formatRelativeTime: (value, unit) =>
-                        intl.formatRelativeTime(value, unit),
-                      formatDate: (value) => intl.formatDate(value),
-                    })}
-                  </p>
+                  </span>
+                  <span className="shrink-0 text-[11px] font-bold text-amber-600">
+                    {formatDate(task.dueDate)}
+                  </span>
+                  <TaskStatusBadge status={task.status} compact />
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.priorityTitle" })}
-          description={intl.formatMessage({ id: "project.summary.priorityDescription" })}
+          title="Priority Breakdown"
+          description="Distribution of tasks across priority tiers."
         >
           <PriorityDistributionBar
             items={priorityItems}
@@ -206,48 +167,64 @@ export default function SummaryView({
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.workloadTitle" })}
-          description={intl.formatMessage({ id: "project.summary.workloadDescription" })}
+          title="Team Workload"
+          description="Number of assigned tasks per project team member."
         >
           <MemberWorkloadList
-            items={workloadItems}
+            items={workload}
             maxCount={maxWorkload}
-            emptyMessage={intl.formatMessage({ id: "project.member.empty" })}
+            barColor="bg-blue-500"
+            emptyMessage="No assigned workload to display."
           />
         </ProjectSummaryPanel>
 
         <ProjectSummaryPanel
-          title={intl.formatMessage({ id: "project.summary.sprintProgress" })}
-          description={intl.formatMessage({ id: "project.summary.sprintProgressDescription" })}
+          title="Unscheduled Tasks"
+          description="Tasks missing a start date or due date."
         >
-          <div className="space-y-4">
-            {sprintItems.length === 0 && (
-              <p className="py-8 text-center text-xs text-slate-400">
-                {intl.formatMessage({ id: "project.sprint.empty" })}
+          <div className="flex items-center gap-3">
+            <CalendarClock className="h-8 w-8 text-slate-400" />
+            <div>
+              <p className="text-2xl font-bold text-[#172B4D]">
+                {unscheduled.length}
               </p>
-            )}
-            {sprintItems.map(({ sprint, total, done, percent }) => (
-              <div key={sprint.id}>
-                <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
-                  <span className="truncate font-semibold text-slate-700">
-                    {sprint.title}
-                  </span>
-                  <span className="shrink-0 text-slate-500">
-                    {done}/{total}
-                  </span>
-                </div>
-                <div className="h-2 rounded-full bg-slate-100">
-                  <div
-                    className="h-2 rounded-full bg-blue-600"
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+              <p className="text-xs text-slate-500">
+                Tasks needing scheduling in timeline or calendar.
+              </p>
+            </div>
           </div>
         </ProjectSummaryPanel>
+
+        <ProjectSummaryPanel
+          title="Recent Activity"
+          description="Recently updated or modified tasks."
+        >
+          {recentTasks.length === 0 ? (
+            <p className="py-8 text-center text-xs font-semibold text-slate-400">
+              No recent task activity.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {recentTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center gap-3 border-b border-slate-100 pb-2 last:border-0"
+                >
+                  <span className="h-2 w-2 rounded-full bg-blue-500" />
+                  <span className="min-w-0 flex-1 truncate text-xs font-semibold text-slate-700">
+                    {task.title}
+                  </span>
+                  <span className="text-[10px] font-semibold text-slate-400">
+                    {isWithinLastDays(task.updatedAt, now)
+                      ? "Just updated"
+                      : formatDate(task.updatedAt)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </ProjectSummaryPanel>
       </div>
-      <SprintMetricsView sprints={sprints} tasks={activeTasks} />
     </div>
   );
 }

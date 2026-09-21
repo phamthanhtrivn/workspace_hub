@@ -19,6 +19,39 @@ export function toDateTimeInput(value?: string | null): string {
 export function toApiDateTime(value: string, allDay: boolean): string | null {
   if (!value) return null;
   const date = new Date(allDay ? `${value.slice(0, 10)}T00:00:00.000Z` : value);
-  if (Number.isNaN(date.getTime())) throw new Error("project.date.invalid");
+  if (Number.isNaN(date.getTime())) throw new Error("Invalid date format");
   return date.toISOString();
+}
+
+export function formatSimpleDate(dateString?: string | null): string {
+  if (!dateString) return "";
+  try {
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return dateString;
+    return d.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return dateString;
+  }
+}
+
+export function formatTaskDateTime(dateString?: string | null): string {
+  if (!dateString) return "";
+  try {
+    const d = new Date(dateString);
+    if (Number.isNaN(d.getTime())) return dateString;
+    return d.toLocaleDateString(undefined, {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return dateString;
+  }
 }

@@ -49,7 +49,6 @@ const mockMembers: ProjectMember[] = [
     canCreateTask: true,
     canEditOwnTask: true,
     canEditOthersTask: true,
-    canManageSprints: true,
     canManageMembers: true,
     canManageLabels: true,
     joinedAt: "2026-09-01T00:00:00.000Z",
@@ -63,7 +62,6 @@ const mockMembers: ProjectMember[] = [
     canCreateTask: true,
     canEditOwnTask: true,
     canEditOthersTask: false,
-    canManageSprints: false,
     canManageMembers: false,
     canManageLabels: false,
     joinedAt: "2026-09-10T00:00:00.000Z",
@@ -78,13 +76,20 @@ const mockTasks: Task[] = [
     title: "Setup API",
     status: TaskStatus.IN_PROGRESS,
     priority: TaskPriority.HIGH,
-    assignees: [{ userId: "user-dev", displayName: "asd" }],
+    assignees: [
+      {
+        id: "assignee-1",
+        taskId: "task-1",
+        userId: "user-dev",
+        displayName: "asd",
+        assignedAt: "2026-09-11T00:00:00.000Z",
+      },
+    ],
     labels: [],
-    checklistTotal: 0,
-    checklistCompleted: 0,
+    checklists: [],
     archived: false,
     createdAt: "2026-09-11T00:00:00.000Z",
-  },
+  } as unknown as Task,
 ];
 
 describe("ProjectMembersView", () => {
@@ -105,7 +110,7 @@ describe("ProjectMembersView", () => {
     expect(screen.getByText("Việt Nhân Trần")).toBeTruthy();
     expect(screen.getByText("asd")).toBeTruthy();
     expect(screen.getByText("Total Members")).toBeTruthy();
-    expect(screen.getByText("Administrators")).toBeTruthy();
+    expect(screen.getByText("Project Owners")).toBeTruthy();
 
     // You badge on current user
     expect(screen.getByText("You")).toBeTruthy();
@@ -127,9 +132,7 @@ describe("ProjectMembersView", () => {
       />,
     );
 
-    const searchInput = screen.getByPlaceholderText(
-      "Search members by name...",
-    );
+    const searchInput = screen.getByPlaceholderText("Search members...");
     fireEvent.change(searchInput, { target: { value: "Việt" } });
 
     expect(screen.getByText("Việt Nhân Trần")).toBeTruthy();

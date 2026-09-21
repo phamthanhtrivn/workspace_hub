@@ -1,6 +1,9 @@
+"use client";
+
 import React from "react";
 import { CalendarDays } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskDateRangeFieldsProps {
   allDay: boolean;
@@ -21,28 +24,25 @@ export function TaskDateRangeFields({
   onDueDateChange,
   disabled = false,
 }: TaskDateRangeFieldsProps) {
-  const intl = useAppIntl();
-
   return (
     <section className="border-t border-slate-100 pt-5">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-black text-[var(--color-primary-dark)]">
-            {intl.formatMessage({ id: "project.schedule" })}
+          <p className="text-sm font-bold text-slate-900">
+            Schedule & Dates
           </p>
           <p className="mt-0.5 text-xs text-slate-400">
-            {intl.formatMessage({ id: "project.task.scheduleHint" })}
+            Set target timelines for starting and completing this task.
           </p>
         </div>
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
-          <input
-            type="checkbox"
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200/60">
+          <Checkbox
             checked={allDay}
             disabled={disabled}
-            onChange={(event) => onAllDayChange(event.target.checked)}
-            className="h-4 w-4 accent-[var(--color-secondary)] disabled:opacity-50"
+            onCheckedChange={(checked) => onAllDayChange(Boolean(checked))}
+            className="cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
           />
-          {intl.formatMessage({ id: "project.task.allDay" })}
+          All Day Event
         </label>
       </div>
 
@@ -53,16 +53,14 @@ export function TaskDateRangeFields({
               className="h-3.5 w-3.5 text-slate-400"
               strokeWidth={2}
             />
-            {intl.formatMessage({
-              id: allDay ? "project.task.startDate" : "project.task.startAt",
-            })}
+            {allDay ? "Start Date" : "Start Date & Time"}
           </span>
-          <input
+          <Input
             type={allDay ? "date" : "datetime-local"}
             value={startDate}
             disabled={disabled}
             onChange={(event) => onStartDateChange(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10 disabled:bg-slate-50"
+            className="h-11 w-full rounded-xl border-slate-200 text-xs font-semibold text-slate-700 disabled:bg-slate-50"
           />
         </label>
         <label className="block">
@@ -71,16 +69,14 @@ export function TaskDateRangeFields({
               className="h-3.5 w-3.5 text-slate-400"
               strokeWidth={2}
             />
-            {intl.formatMessage({
-              id: allDay ? "project.task.endDate" : "project.task.dueAt",
-            })}
+            {allDay ? "Due Date" : "Due Date & Time"}
           </span>
-          <input
+          <Input
             type={allDay ? "date" : "datetime-local"}
             value={dueDate}
             disabled={disabled}
             onChange={(event) => onDueDateChange(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm text-slate-700 outline-none transition focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-[var(--color-secondary)]/10 disabled:bg-slate-50"
+            className="h-11 w-full rounded-xl border-slate-200 text-xs font-semibold text-slate-700 disabled:bg-slate-50"
           />
         </label>
       </div>

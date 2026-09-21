@@ -3,11 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { UpdateTaskPayload } from "../api/task.api";
 import type { TaskFormValues } from "../components/dialogs/task-form-dialog";
-import { confirmProjectAction } from "../project-alert";
 import type { ProjectPermissions } from "../project-permissions";
 import { canMoveTaskToStatus } from "../task-status-transition";
-import { TASK_STATUS_LABEL_IDS } from "../constants/task.constants";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { TaskDrawerUpdatePayload } from "../types/task-detail-drawer.types";
 import {
   isTerminalTaskStatus,
@@ -36,14 +33,12 @@ interface ProjectTaskActionOptions {
   members: ProjectMember[];
   permissions: ProjectPermissions;
   editingTask: Task | null;
-  targetSprintId?: string;
   setSelectedTask: Dispatch<SetStateAction<Task | null>>;
   setStatusOverrides: Dispatch<SetStateAction<Record<string, TaskStatus>>>;
   rejectChange: (taskId: string) => boolean;
   closeTaskForm: () => void;
-  createTask: (payload: TaskFormValues & { sprintId?: string }) => Promise<Task>;
+  createTask: (payload: TaskFormValues) => Promise<Task>;
   updateTask: (input: { taskId: string; payload: UpdateTaskPayload }) => Promise<unknown>;
-  addTasksToSprint: (input: { sprintId: string; taskIds: string[] }) => Promise<unknown>;
 }
 
 function resolveAssignees(
@@ -69,7 +64,6 @@ function resolveAssignees(
 }
 
 export function useProjectTaskActions(options: ProjectTaskActionOptions) {
-  const intl = useAppIntl();
   const queryClient = useQueryClient();
 
   const moveTask = async (taskId: string, newStatus: TaskStatus) => {
@@ -77,21 +71,6 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
     if (!task || task.status === newStatus) return;
     if (isTerminalTaskStatus(task.status) || !options.permissions.canContributeTask(task)) return;
     if (!canMoveTaskToStatus(task, newStatus)) return;
-    const confirmed = await confirmProjectAction({
-      title: intl.formatMessage({ id: "project.task.statusChangeTitle" }),
-      text: intl.formatMessage(
-        { id: "project.task.statusChangeText" },
-        {
-          name: task.title,
-          from: intl.formatMessage({ id: TASK_STATUS_LABEL_IDS[task.status] }),
-          to: intl.formatMessage({ id: TASK_STATUS_LABEL_IDS[newStatus] }),
-        },
-      ),
-      confirmText: intl.formatMessage({ id: "project.task.statusChangeAction" }),
-      cancelText: intl.formatMessage({ id: "app.cancel" }),
-      icon: "question",
-    });
-    if (!confirmed) return;
 
     options.setStatusOverrides((current) => ({ ...current, [taskId]: newStatus }));
     try {
@@ -101,13 +80,14 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         delete next[taskId];
         return next;
       });
+      toast.success("Task status updated");
     } catch {
       options.setStatusOverrides((current) => {
         const next = { ...current };
         delete next[taskId];
         return next;
       });
-      toast.error(intl.formatMessage({ id: "project.task.statusUpdateFailed" }));
+      toast.error("Failed to update task status");
     }
   };
 
@@ -119,19 +99,19 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
           ? { ...values, clearParent: true }
           : values;
         await options.updateTask({ taskId: options.editingTask.id, payload });
-        toast.success(intl.formatMessage({ id: "project.task.updated" }));
+        toast.success("Task updated");
       } else {
-        await options.createTask({ ...values, sprintId: options.targetSprintId });
-        toast.success(intl.formatMessage({ id: "project.task.created" }));
+        await options.createTask(values);
+        toast.success("Task created");
       }
       options.closeTaskForm();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : intl.formatMessage({ id: "project.task.saveFailed" }));
+      toast.error(error instanceof Error ? error.message : "Failed to save task");
     }
   };
 
   const updateTaskDirect = async (taskId: string, payload: TaskDrawerUpdatePayload) => {
-    if (options.rejectChange(taskId)) throw new Error(intl.formatMessage({ id: "project.task.editForbidden" }));
+    if (options.rejectChange(taskId)) throw new Error("You do not have permission to edit this task");
     try {
       const backendPayload = Object.fromEntries(
         Object.entries(payload).filter(([key]) => BACKEND_TASK_FIELDS.has(key)),
@@ -154,7 +134,7 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
       } as Task : current);
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
-      toast.error(apiError.response?.data?.message || intl.formatMessage({ id: "project.task.updateFailed" }));
+      toast.error(apiError.response?.data?.message || "Failed to update task");
       throw error;
     }
   };

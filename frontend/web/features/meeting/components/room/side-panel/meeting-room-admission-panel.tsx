@@ -73,7 +73,8 @@ export function MeetingRoomAdmissionPanel({
           setPage(1);
         }}
         placeholder="Search by name or email..."
-        className="h-10 border-white/10 bg-white/8 text-slate-100 placeholder:text-slate-500 focus-visible:bg-white/10"
+        containerClassName="border-white/10 bg-white/8 focus-within:border-white/20 focus-within:ring-white/10"
+        className="text-slate-100 placeholder:text-slate-500"
       />
 
       {hasRequests ? (

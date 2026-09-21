@@ -1,0 +1,14 @@
+import { IsHexColor, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { Trim } from '../../../common/decorators/trim.decorator';
+
+export class CreateLabelDto {
+  @Trim()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(50)
+  name!: string;
+
+  @IsOptional()
+  @IsHexColor()
+  color?: string;
+}

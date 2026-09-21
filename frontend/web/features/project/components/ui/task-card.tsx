@@ -19,8 +19,7 @@ import {
   Equal,
   CheckSquare2,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { TASK_PRIORITY_LABEL_IDS } from "@/features/project/constants/task.constants";
+import { TASK_PRIORITY_LABELS } from "@/features/project/constants/task.constants";
 
 function isOverdue(dueDate?: string): boolean {
   if (!dueDate) return false;
@@ -60,7 +59,6 @@ export default function TaskCard({
   onOpenChat?: (task: Task) => void;
   canDrag?: boolean;
 }) {
-  const intl = useAppIntl();
   const checklistTotal = task.checklists.length;
   const checklistDone = task.checklists.filter((c) => c.completed).length;
   const overdue = isOverdue(task.dueDate) && !isTerminalTaskStatus(task.status);
@@ -73,6 +71,13 @@ export default function TaskCard({
     e.dataTransfer.setData("text/plain", task.id);
     e.dataTransfer.effectAllowed = "move";
   };
+
+  const formattedDueDate = task.dueDate
+    ? new Date(task.dueDate).toLocaleDateString(undefined, {
+        day: "2-digit",
+        month: "short",
+      })
+    : "";
 
   return (
     <div
@@ -87,10 +92,12 @@ export default function TaskCard({
           onClick?.();
         }
       }}
-      className={`group w-full rounded border border-slate-200 bg-white p-3 text-left shadow-[0_1px_1px_rgba(9,30,66,0.25)] transition duration-150 hover:bg-[#F4F5F7] focus-visible:outline-none ${isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"}`}
+      className={`group w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xs transition duration-150 hover:border-slate-300 hover:bg-slate-50/70 focus-visible:outline-hidden ${
+        isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+      }`}
     >
       {/* Title */}
-      <p className="text-sm font-medium leading-normal text-[#172B4D] group-hover:text-[#0052CC] break-words">
+      <p className="text-sm font-semibold leading-snug text-[#172B4D] group-hover:text-[#0052CC] break-words">
         {task.title}
       </p>
 
@@ -112,22 +119,19 @@ export default function TaskCard({
           {/* Due date */}
           {task.dueDate && (
             <span
-              className={`inline-flex items-center gap-1 px-1 py-0.5 rounded ${
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${
                 overdue ? "bg-red-50 text-red-600" : "bg-slate-100"
               }`}
             >
               <Calendar className="h-3 w-3" />
-              {intl.formatDate(new Date(task.dueDate), {
-                day: "2-digit",
-                month: "short",
-              })}
+              {formattedDueDate}
             </span>
           )}
 
           {/* Checklist */}
           {checklistTotal > 0 && (
             <span
-              className={`inline-flex items-center gap-1 px-1 py-0.5 rounded ${
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md ${
                 checklistDone === checklistTotal
                   ? "bg-emerald-50 text-emerald-600"
                   : "bg-slate-100"
@@ -140,7 +144,7 @@ export default function TaskCard({
 
           {/* Comments */}
           {task.comments.length > 0 && (
-            <span className="inline-flex items-center gap-1 bg-slate-100 px-1 py-0.5 rounded">
+            <span className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded-md">
               <MessageSquare className="h-3 w-3" />
               {task.comments.length}
             </span>
@@ -148,7 +152,7 @@ export default function TaskCard({
 
           {/* Estimate */}
           {task.estimatedMinutes > 0 && (
-            <span className="inline-flex items-center gap-1 bg-slate-100 px-1 py-0.5 rounded">
+            <span className="inline-flex items-center gap-1 bg-slate-100 px-1.5 py-0.5 rounded-md">
               <Clock className="h-3 w-3" />
               {task.estimatedMinutes >= 60
                 ? `${Math.floor(task.estimatedMinutes / 60)}h`
@@ -171,8 +175,8 @@ export default function TaskCard({
           <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
           {/* Priority Icon */}
           <div
-            className="grid place-items-center h-5 w-5 rounded hover:bg-slate-200 transition"
-            title={intl.formatMessage({ id: TASK_PRIORITY_LABEL_IDS[task.priority] })}
+            className="grid place-items-center h-5 w-5 rounded-md hover:bg-slate-200 transition"
+            title={TASK_PRIORITY_LABELS[task.priority]}
           >
             {priorityIcon}
           </div>

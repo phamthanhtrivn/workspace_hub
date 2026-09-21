@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import {
   TaskStatus,
   TaskPriority,
@@ -18,42 +19,43 @@ import {
   Archive,
   Ban,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 // ─── Task Status ──────────────────────────────────────────────────────────────
 
 const taskStatusConfig: Record<
   TaskStatus,
-  { labelId: string; color: string; bg: string; icon: React.ElementType }
+  { label: string; color: string; bg: string; icon: React.ElementType }
 > = {
   [TaskStatus.TODO]: {
-    labelId: "project.task.status.todo",
-    color: "text-slate-500",
-    bg: "bg-slate-100",
+    label: "To Do",
+    color: "text-slate-600",
+    bg: "bg-slate-100 border-slate-200",
     icon: Circle,
   },
   [TaskStatus.IN_PROGRESS]: {
-    labelId: "project.task.status.inProgress",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
+    label: "In Progress",
+    color: "text-blue-700",
+    bg: "bg-blue-50 border-blue-200",
     icon: Loader2,
   },
   [TaskStatus.IN_REVIEW]: {
-    labelId: "project.task.status.inReview",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
+    label: "In Review",
+    color: "text-amber-700",
+    bg: "bg-amber-50 border-amber-200",
     icon: Eye,
   },
   [TaskStatus.DONE]: {
-    labelId: "project.task.status.done",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
+    label: "Done",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50 border-emerald-200",
     icon: CheckCircle2,
   },
   [TaskStatus.CANCELLED]: {
-    labelId: "project.task.status.cancelled",
+    label: "Cancelled",
     color: "text-red-700",
-    bg: "bg-red-50 border border-red-200",
+    bg: "bg-red-50 border-red-200",
     icon: Ban,
   },
 };
@@ -62,30 +64,30 @@ const taskStatusConfig: Record<
 
 const taskPriorityConfig: Record<
   TaskPriority,
-  { labelId: string; color: string; bg: string; icon: React.ElementType }
+  { label: string; color: string; bg: string; icon: React.ElementType }
 > = {
   [TaskPriority.LOW]: {
-    labelId: "project.task.priority.low",
-    color: "text-slate-500",
-    bg: "bg-slate-100",
+    label: "Low",
+    color: "text-slate-600",
+    bg: "bg-slate-100 border-slate-200",
     icon: ArrowDown,
   },
   [TaskPriority.MEDIUM]: {
-    labelId: "project.task.priority.medium",
-    color: "text-sky-600",
-    bg: "bg-sky-50",
+    label: "Medium",
+    color: "text-sky-700",
+    bg: "bg-sky-50 border-sky-200",
     icon: ArrowRight,
   },
   [TaskPriority.HIGH]: {
-    labelId: "project.task.priority.high",
-    color: "text-orange-600",
-    bg: "bg-orange-50",
+    label: "High",
+    color: "text-orange-700",
+    bg: "bg-orange-50 border-orange-200",
     icon: ArrowUp,
   },
   [TaskPriority.URGENT]: {
-    labelId: "project.task.priority.urgent",
-    color: "text-red-600",
-    bg: "bg-red-50",
+    label: "Urgent",
+    color: "text-red-700",
+    bg: "bg-red-50 border-red-200",
     icon: Flame,
   },
 };
@@ -94,30 +96,30 @@ const taskPriorityConfig: Record<
 
 const projectStatusConfig: Record<
   ProjectStatus,
-  { labelId: string; color: string; bg: string; icon: React.ElementType }
+  { label: string; color: string; bg: string; icon: React.ElementType }
 > = {
   [ProjectStatus.ACTIVE]: {
-    labelId: "project.status.active",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
+    label: "Active",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50 border-emerald-200",
     icon: Loader2,
   },
   [ProjectStatus.ON_HOLD]: {
-    labelId: "project.status.onHold",
-    color: "text-amber-600",
-    bg: "bg-amber-50",
+    label: "On Hold",
+    color: "text-amber-700",
+    bg: "bg-amber-50 border-amber-200",
     icon: Pause,
   },
   [ProjectStatus.COMPLETED]: {
-    labelId: "project.status.completed",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
+    label: "Completed",
+    color: "text-blue-700",
+    bg: "bg-blue-50 border-blue-200",
     icon: CheckCircle2,
   },
   [ProjectStatus.ARCHIVED]: {
-    labelId: "project.status.archived",
-    color: "text-slate-500",
-    bg: "bg-slate-100",
+    label: "Archived",
+    color: "text-slate-600",
+    bg: "bg-slate-100 border-slate-200",
     icon: Archive,
   },
 };
@@ -131,16 +133,21 @@ export function TaskStatusBadge({
   status: TaskStatus;
   compact?: boolean;
 }) {
-  const intl = useAppIntl();
-  const cfg = taskStatusConfig[status];
+  const cfg = taskStatusConfig[status] || taskStatusConfig[TaskStatus.TODO];
   const Icon = cfg.icon;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 ${compact ? "rounded-[3px] px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-1 text-xs"} font-bold ${cfg.bg} ${cfg.color}`}
+    <Badge
+      variant="outline"
+      className={cn(
+        "inline-flex items-center gap-1.5 font-bold transition-all",
+        compact ? "rounded-md px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
+        cfg.bg,
+        cfg.color
+      )}
     >
-      <Icon className="h-3 w-3" strokeWidth={2.5} />
-      {intl.formatMessage({ id: cfg.labelId })}
-    </span>
+      <Icon className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+      {cfg.label}
+    </Badge>
   );
 }
 
@@ -151,40 +158,50 @@ export function TaskPriorityBadge({
   priority: TaskPriority;
   compact?: boolean;
 }) {
-  const intl = useAppIntl();
-  const cfg = taskPriorityConfig[priority];
+  const cfg = taskPriorityConfig[priority] || taskPriorityConfig[TaskPriority.MEDIUM];
   const Icon = cfg.icon;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 ${compact ? "rounded-[3px] px-1 py-0.5 text-[10px]" : "rounded-full px-2.5 py-1 text-xs"} font-bold ${cfg.bg} ${cfg.color}`}
+    <Badge
+      variant="outline"
+      className={cn(
+        "inline-flex items-center gap-1.5 font-bold transition-all",
+        compact ? "rounded-md px-1 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
+        cfg.bg,
+        cfg.color
+      )}
     >
-      <Icon className="h-3 w-3" strokeWidth={2.5} />
-      {intl.formatMessage({ id: cfg.labelId })}
-    </span>
+      <Icon className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+      {cfg.label}
+    </Badge>
   );
 }
 
 export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
-  const intl = useAppIntl();
-  const cfg = projectStatusConfig[status];
+  const cfg = projectStatusConfig[status] || projectStatusConfig[ProjectStatus.ACTIVE];
   const Icon = cfg.icon;
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${cfg.bg} ${cfg.color}`}
+    <Badge
+      variant="outline"
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold transition-all",
+        cfg.bg,
+        cfg.color
+      )}
     >
-      <Icon className="h-3 w-3" strokeWidth={2.5} />
-      {intl.formatMessage({ id: cfg.labelId })}
-    </span>
+      <Icon className="h-3 w-3 shrink-0" strokeWidth={2.5} />
+      {cfg.label}
+    </Badge>
   );
 }
 
 export function LabelBadge({ name, color }: { name: string; color: string }) {
   return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+    <Badge
+      variant="outline"
+      className="inline-flex items-center gap-1.5 rounded-full border-transparent px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs"
       style={{ backgroundColor: color }}
     >
       {name}
-    </span>
+    </Badge>
   );
 }

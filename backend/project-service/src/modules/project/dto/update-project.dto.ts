@@ -1,7 +1,14 @@
-import { OptionalField } from '../../../common/optional-field.decorator';
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ProjectStatus, ProjectVisibility } from '../project.enums';
-import { Trim } from '../../../common/trim.decorator';
+import { OptionalField } from "../../../common/decorators/optional-field.decorator";
+import {
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from "class-validator";
+import { ProjectStatus } from "../project.enums";
+import { Trim } from "../../../common/decorators/trim.decorator";
 
 export class UpdateProjectDto {
   @OptionalField()
@@ -29,10 +36,6 @@ export class UpdateProjectDto {
   @IsString()
   @MaxLength(2000)
   description?: string;
-
-  @OptionalField()
-  @IsEnum(ProjectVisibility)
-  visibility?: ProjectVisibility;
 
   @IsOptional()
   @IsDateString()

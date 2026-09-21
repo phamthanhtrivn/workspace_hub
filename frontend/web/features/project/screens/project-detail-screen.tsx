@@ -16,16 +16,6 @@ import {
   useArchiveProject,
 } from "@/features/project/hooks/use-projects";
 import {
-  useAddTasksToSprint,
-  useCompleteSprint,
-  useCreateSprint,
-  useProjectSprints,
-  useStartSprint,
-  useUpdateSprint,
-  useReopenSprint,
-  useRemoveTaskFromSprint,
-} from "@/features/project/hooks/use-sprints";
-import {
   useCreateTask,
   useProjectTasks,
   useUpdateTask,
@@ -45,11 +35,9 @@ import {
   TaskChatDialog,
   TaskFormDialog,
   InviteMemberDialog,
-  SprintEditDialog,
   ProjectSettingsDialog,
 } from "@/features/project/components/dialogs";
 import { getProjectKey } from "@/features/project/utils/project.utils";
-import { taskDateKey } from "@/features/project/utils/task-dates";
 import {
   getProjectPermissions,
   NO_PROJECT_PERMISSIONS,
@@ -58,20 +46,15 @@ import { useProjectTaskFilters } from "@/features/project/hooks/use-project-task
 import { useProjectTaskFormState } from "@/features/project/hooks/use-project-task-form-state";
 import { useProjectResourceActions } from "@/features/project/hooks/use-project-resource-actions";
 import { useProjectTaskActions } from "@/features/project/hooks/use-project-task-actions";
-import { createProjectSprintActions } from "@/features/project/hooks/use-project-sprint-actions";
 import { createProjectSettingsActions } from "@/features/project/project-settings-actions";
-import { createProjectGroupActions } from "@/features/project/project-group-actions";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
 import { projectSocketService } from "../api/project-socket.service";
 
 export default function ProjectDetailScreen() {
-  const intl = useAppIntl();
   const params = useParams();
   const projectId = params.id as string;
   const { data: project, isLoading, isError } = useProject(projectId);
   const { data: members = [] } = useProjectMembers(projectId);
-  const { data: sprints = [] } = useProjectSprints(projectId, false);
   const {
     data: serverTasks = [],
     isLoading: tasksLoading,
@@ -91,13 +74,6 @@ export default function ProjectDetailScreen() {
     };
   }, [projectId]);
   const { data: dependencies = [] } = useProjectDependencies(projectId);
-  const createSprintMutation = useCreateSprint(projectId);
-  const addTasksToSprintMutation = useAddTasksToSprint(projectId);
-  const startSprintMutation = useStartSprint(projectId);
-  const completeSprintMutation = useCompleteSprint(projectId);
-  const updateSprintMutation = useUpdateSprint(projectId);
-  const reopenSprintMutation = useReopenSprint(projectId);
-  const removeTaskFromSprintMutation = useRemoveTaskFromSprint(projectId);
 
   const { userId: currentUserId } = useAppSelector((state) => state.auth);
   const permissions = project
@@ -126,7 +102,7 @@ export default function ProjectDetailScreen() {
     const timer = window.setTimeout(() => setShowProjectSettings(true), 0);
     return () => window.clearTimeout(timer);
   }, []);
-  const [editingSprint, setEditingSprint] = useState<Task | null>(null);
+
   const {
     isOpen: showTaskForm,
     editingTask,
@@ -134,7 +110,6 @@ export default function ProjectDetailScreen() {
     startDate: newTaskStartDate,
     allDay: newTaskAllDay,
     parentTaskId: newTaskParentId,
-    sprintId: newTaskSprintId,
     open: openCreateTask,
     edit: editTask,
     close: closeTaskForm,
@@ -147,11 +122,11 @@ export default function ProjectDetailScreen() {
     const target = serverTasks.find((task) => task.id === taskId);
     if (!target) return false;
     if (isTerminalTaskStatus(target.status)) {
-      toast.info(intl.formatMessage({ id: "project.task.readOnlyTerminal" }));
+      toast.info("This task is completed or cancelled and cannot be modified.");
       return true;
     }
     if (!permissions.canEditTask(target)) {
-      toast.info(intl.formatMessage({ id: "project.task.editForbidden" }));
+      toast.info("You do not have permission to edit this task.");
       return true;
     }
     return false;
@@ -160,7 +135,7 @@ export default function ProjectDetailScreen() {
   function rejectTerminalTaskChange(taskId: string): boolean {
     const target = serverTasks.find((task) => task.id === taskId);
     if (!target || !isTerminalTaskStatus(target.status)) return false;
-    toast.info(intl.formatMessage({ id: "project.task.readOnlyTerminal" }));
+    toast.info("This task is completed or cancelled and cannot be modified.");
     return true;
   }
 
@@ -213,14 +188,12 @@ export default function ProjectDetailScreen() {
     members,
     permissions,
     editingTask,
-    targetSprintId: newTaskSprintId,
     setSelectedTask,
     setStatusOverrides: setTaskStatusOverrides,
     rejectChange: rejectCompletedTaskChange,
     closeTaskForm,
     createTask: createTaskMutation.mutateAsync,
     updateTask: updateTaskMutation.mutateAsync,
-    addTasksToSprint: addTasksToSprintMutation.mutateAsync,
   });
 
   const handleTaskReschedule = async (
@@ -229,7 +202,6 @@ export default function ProjectDetailScreen() {
   ) => {
     const task = serverTasks.find((t) => t.id === taskId);
     if (!task) return;
-    // Only unscheduled tasks can be scheduled via drag & drop
     if (task.startDate || task.dueDate) return;
     if (rejectCompletedTaskChange(taskId)) return;
     if (!targetDateKey || targetDateKey === "unscheduled") return;
@@ -240,9 +212,25 @@ export default function ProjectDetailScreen() {
         dueDate: `${targetDateKey}T00:00:00.000Z`,
         allDay: true,
       });
-      toast.success(intl.formatMessage({ id: "project.task.updated" }));
+      toast.success("Task updated successfully");
     } catch {
       // Error toast handled by updateTaskDirect
+    }
+  };
+
+  const handleCreateTaskInline = async (title: string, parentTaskId?: string) => {
+    try {
+      await createTaskMutation.mutateAsync({
+        title: title.trim(),
+        ...(parentTaskId ? { parentTaskId } : {}),
+      });
+      toast.success("Task created successfully");
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      toast.error(
+        apiError.response?.data?.message ||
+          "Failed to create task",
+      );
     }
   };
 
@@ -256,66 +244,21 @@ export default function ProjectDetailScreen() {
 
   const projectKey = getProjectKey(project.name);
   const projectWithMembers = { ...project, members };
-  const isSoftwareProject = false;
   const viewTitle: Record<ProjectViewMode, string> = {
-    summary: intl.formatMessage({ id: "project.view.summary" }),
-    board: intl.formatMessage({ id: "project.view.board" }),
-    list: intl.formatMessage({
-      id: isSoftwareProject ? "project.view.backlog" : "project.view.tasks",
-    }),
-    calendar: intl.formatMessage({ id: "project.view.calendar" }),
-    gantt: intl.formatMessage({ id: "project.view.gantt" }),
-    members: intl.formatMessage({ id: "project.view.members" }),
+    summary: "Summary",
+    board: "Board",
+    list: "Tasks",
+    calendar: "Calendar",
+    gantt: "Timeline",
+    members: "Members",
   };
 
   const { save: handleSaveProjectSettings, archive: handleArchiveProject } =
     createProjectSettingsActions({
-      formatMessage: (id) => intl.formatMessage({ id }),
       update: updateProjectMutation.mutateAsync,
       archive: archiveProjectMutation.mutateAsync,
       close: () => setShowProjectSettings(false),
     });
-
-  const {
-    editGroup: handleEditGroup,
-    submitGroup: handleSprintSubmit,
-    deleteGroup: handleDeleteGroup,
-    reorderTasks: handleReorderTasks,
-    createTaskInline: handleCreateTaskInline,
-    createSprintTask: handleCreateSprintTask,
-  } = createProjectGroupActions({
-    formatMessage: (id, values) => intl.formatMessage({ id }, values),
-    tasks,
-    editingGroup: editingSprint,
-    setEditingGroup: setEditingSprint,
-    setSelectedTask,
-    rejectChange: rejectCompletedTaskChange,
-    createTask: createTaskMutation.mutateAsync,
-    updateTask: updateTaskMutation.mutateAsync,
-    addTasksToSprint: addTasksToSprintMutation.mutateAsync,
-  });
-
-  const {
-    createSprint: handleCreateSprint,
-    addTasks: handleAddTasksToSprint,
-    bulkUpdateTasks: handleBulkUpdateTasks,
-    updateSprint: handleUpdateSprint,
-    startSprint: handleStartSprint,
-    completeSprint: handleCompleteSprint,
-    reopenSprint: handleReopenSprint,
-    removeTask: handleRemoveTaskFromSprint,
-  } = createProjectSprintActions({
-    formatMessage: (id, values) => intl.formatMessage({ id }, values),
-    createSprint: createSprintMutation.mutateAsync,
-    addTasks: addTasksToSprintMutation.mutateAsync,
-    updateTasks: (taskId, status) =>
-      updateTaskMutation.mutateAsync({ taskId, payload: { status } }),
-    updateSprint: updateSprintMutation.mutateAsync,
-    startSprint: startSprintMutation.mutateAsync,
-    completeSprint: completeSprintMutation.mutateAsync,
-    reopenSprint: reopenSprintMutation.mutateAsync,
-    removeTask: removeTaskFromSprintMutation.mutateAsync,
-  });
 
   return (
     <div className="flex flex-1 overflow-hidden h-full">
@@ -373,39 +316,16 @@ export default function ProjectDetailScreen() {
           viewMode={viewMode}
           tasks={filteredTasks}
           members={projectWithMembers.members}
-          sprints={sprints}
           dependencies={dependencies}
-          isSoftwareProject={isSoftwareProject}
           isLoading={tasksLoading}
           isError={tasksError}
           showMembers={showMembers}
-          isSprintBusy={
-            createSprintMutation.isPending ||
-            addTasksToSprintMutation.isPending ||
-            startSprintMutation.isPending ||
-            completeSprintMutation.isPending ||
-            updateSprintMutation.isPending ||
-            reopenSprintMutation.isPending ||
-            removeTaskFromSprintMutation.isPending
-          }
           permissions={permissions}
           openTaskForm={openCreateTask}
           onTaskSelect={setSelectedTask}
           onChatOpen={setChatTask}
           onTaskMove={handleTaskMove}
-          onCreateSprintTask={handleCreateSprintTask}
-          onCreateSprint={handleCreateSprint}
-          onUpdateSprint={handleUpdateSprint}
-          onAddTasksToSprint={handleAddTasksToSprint}
-          onBulkUpdateTasks={handleBulkUpdateTasks}
-          onStartSprint={handleStartSprint}
-          onCompleteSprint={handleCompleteSprint}
-          onReopenSprint={handleReopenSprint}
-          onRemoveTaskFromSprint={handleRemoveTaskFromSprint}
           onCreateTaskInline={handleCreateTaskInline}
-          onEditGroup={handleEditGroup}
-          onDeleteGroup={handleDeleteGroup}
-          onReorderTasks={handleReorderTasks}
           onViewChange={setViewMode}
           onTaskReschedule={handleTaskReschedule}
         />
@@ -511,15 +431,6 @@ export default function ProjectDetailScreen() {
         isSubmitting={
           createTaskMutation.isPending || updateTaskMutation.isPending
         }
-      />
-
-      <SprintEditDialog
-        key={editingSprint?.id ?? "closed-sprint-editor"}
-        open={Boolean(editingSprint)}
-        sprint={editingSprint}
-        onClose={() => setEditingSprint(null)}
-        onSubmit={handleSprintSubmit}
-        isSubmitting={updateTaskMutation.isPending}
       />
     </div>
   );

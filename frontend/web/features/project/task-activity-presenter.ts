@@ -3,57 +3,55 @@ import type {
   Task,
   TaskActivity,
 } from "./types/project";
+import { formatTaskDateTime } from "./utils/task-dates";
 
-export const ACTIVITY_ACTION_LABEL_IDS: Record<string, string> = {
-  created: "project.activity.action.created",
-  title: "project.activity.action.title",
-  description: "project.activity.action.description",
-  priority: "project.activity.action.priority",
-  status: "project.activity.action.status",
-  startDate: "project.activity.action.startDate",
-  dueDate: "project.activity.action.dueDate",
-  estimatedMinutes: "project.activity.action.estimatedMinutes",
-  allDay: "project.activity.action.allDay",
-  archived: "project.activity.action.archived",
-  parentTaskId: "project.activity.action.parentTaskId",
-  assigneeUserId: "project.activity.action.assigneeUserId",
-  autoCompleteSprint: "project.activity.action.autoCompleteSprint",
-  rank: "project.activity.action.rank",
-  checklist_created: "project.activity.action.checklistCreated",
-  checklist_completed: "project.activity.action.checklistCompleted",
-  checklist_deleted: "project.activity.action.checklistDeleted",
-  label_attached: "project.activity.action.labelAttached",
-  label_detached: "project.activity.action.labelDetached",
-  comment_created: "project.activity.action.commentCreated",
-  comment_updated: "project.activity.action.commentUpdated",
-  comment_deleted: "project.activity.action.commentDeleted",
+export const ACTIVITY_ACTION_LABELS: Record<string, string> = {
+  created: "created this task",
+  title: "updated the title",
+  description: "updated the description",
+  priority: "changed priority to",
+  status: "changed status to",
+  startDate: "updated start date to",
+  dueDate: "updated due date to",
+  estimatedMinutes: "updated estimated duration to",
+  allDay: "updated all-day setting",
+  archived: "archived this task",
+  parentTaskId: "changed parent task to",
+  assigneeUserId: "assigned task to",
+  rank: "reordered task position",
+  checklist_created: "added a checklist item",
+  checklist_completed: "updated checklist status",
+  checklist_deleted: "deleted a checklist item",
+  label_attached: "added label",
+  label_detached: "removed label",
+  comment_created: "commented on task",
+  comment_updated: "edited a comment",
+  comment_deleted: "deleted a comment",
 };
 
-const STATUS_LABEL_IDS: Record<string, string> = {
-  TODO: "project.task.status.todo",
-  IN_PROGRESS: "project.task.status.inProgress",
-  IN_REVIEW: "project.task.status.inReview",
-  DONE: "project.task.status.done",
-  CANCELLED: "project.task.status.cancelled",
+const STATUS_LABELS: Record<string, string> = {
+  TODO: "To Do",
+  IN_PROGRESS: "In Progress",
+  IN_REVIEW: "In Review",
+  DONE: "Done",
+  CANCELLED: "Cancelled",
 };
 
-const PRIORITY_LABEL_IDS: Record<string, string> = {
-  LOW: "project.task.priority.low",
-  MEDIUM: "project.task.priority.medium",
-  HIGH: "project.task.priority.high",
-  URGENT: "project.task.priority.urgent",
+const PRIORITY_LABELS: Record<string, string> = {
+  LOW: "Low",
+  MEDIUM: "Medium",
+  HIGH: "High",
+  URGENT: "Urgent",
 };
 
 export function createTaskActivityPresenter(
   members: ProjectMember[],
   tasks: Task[],
-  formatMessage: (id: string, values?: Record<string, string | number>) => string,
-  formatDate: (value: Date) => string,
 ) {
   const memberDisplayName = (userId?: string | null) => {
-    if (!userId) return formatMessage("app.user");
+    if (!userId) return "User";
     const name = members.find((member) => member.userId === userId)?.displayName;
-    return name && name !== userId ? name : formatMessage("app.user");
+    return name && name !== userId ? name : "User";
   };
 
   const activityActor = (activity: TaskActivity) => {
@@ -64,7 +62,7 @@ export function createTaskActivityPresenter(
     if (activity.actorName && activity.actorName !== activity.actorId) {
       return activity.actorName;
     }
-    return formatMessage(activity.actorId ? "project.role.member" : "app.system");
+    return activity.actorId ? "Member" : "System";
   };
 
   const activityValue = (activity: TaskActivity, value?: string | null) => {
@@ -76,41 +74,28 @@ export function createTaskActivityPresenter(
           completed?: boolean;
         };
         if (typeof checklist.completed === "boolean") {
-          return formatMessage(
-            "project.activity.checklistValue",
-            {
-              title: checklist.title || formatMessage("project.checklist.title"),
-              state: formatMessage(
-                checklist.completed
-                  ? "project.task.status.done"
-                  : "project.checklist.incomplete",
-              ),
-            },
-          );
+          return `${checklist.title || "Checklist item"} (${checklist.completed ? "Done" : "Pending"})`;
         }
-        return checklist.title || formatMessage("project.checklist.title");
+        return checklist.title || "Checklist item";
       } catch {
         return value;
       }
     }
     if (activity.field === "status")
-      return STATUS_LABEL_IDS[value] ? formatMessage(STATUS_LABEL_IDS[value]) : value;
+      return STATUS_LABELS[value] || value;
     if (activity.field === "priority")
-      return PRIORITY_LABEL_IDS[value] ? formatMessage(PRIORITY_LABEL_IDS[value]) : value;
+      return PRIORITY_LABELS[value] || value;
     if (activity.field === "assigneeUserId") return memberDisplayName(value);
     if (activity.field === "parentTaskId") {
       return tasks.find((task) => task.id === value)?.title || value;
     }
     if (activity.field === "estimatedMinutes")
-      return formatMessage("project.task.minutes", { count: value });
+      return `${value} minutes`;
     if (["startDate", "dueDate"].includes(activity.field)) {
-      const date = new Date(value);
-      return Number.isNaN(date.getTime())
-        ? value
-        : formatDate(date);
+      return formatTaskDateTime(value);
     }
-    if (["allDay", "archived", "autoCompleteSprint"].includes(activity.field)) {
-      return formatMessage(value === "true" ? "app.enabled" : "app.disabled");
+    if (["allDay", "archived"].includes(activity.field)) {
+      return value === "true" ? "Enabled" : "Disabled";
     }
     return value;
   };

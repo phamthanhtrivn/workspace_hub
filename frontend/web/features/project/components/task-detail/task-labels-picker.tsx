@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronDown, Tag } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import type { TaskLabel } from "@/features/project/types/project";
 import { LabelBadge } from "../ui/status-badge";
+import { Button } from "@/components/ui/button";
 
 interface TaskLabelsPickerProps {
   taskLabels: TaskLabel[];
@@ -19,7 +19,6 @@ export default function TaskLabelsPicker({
   onToggleLabel,
   disabled = false,
 }: TaskLabelsPickerProps) {
-  const intl = useAppIntl();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -40,28 +39,27 @@ export default function TaskLabelsPicker({
     <div className="flex flex-wrap items-center gap-1.5" ref={containerRef}>
       {/* Trigger Button & Dropdown */}
       <div className="relative">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="sm"
           onClick={() => !disabled && setIsOpen((prev) => !prev)}
           disabled={disabled}
-          className="inline-flex items-center gap-1.5 rounded border border-dashed border-slate-300 px-2 py-1 text-xs font-semibold text-slate-500 hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-default disabled:hover:border-slate-300 disabled:hover:bg-transparent disabled:hover:text-slate-500"
-          title={intl.formatMessage({ id: "project.label.attach" })}
+          className="h-7 cursor-pointer items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-2.5 text-xs font-semibold text-slate-600 hover:border-[#0052CC] hover:bg-blue-50/50 hover:text-[#0052CC] disabled:cursor-default disabled:hover:border-slate-300 disabled:hover:bg-transparent disabled:hover:text-slate-500 transition"
+          title="Attach or remove labels"
         >
           <Tag className="h-3.5 w-3.5" />
           {taskLabels.length > 0
-            ? intl.formatMessage(
-                { id: "project.label.count" },
-                { count: taskLabels.length },
-              )
-            : intl.formatMessage({ id: "project.label.attach" })}
+            ? `Labels (${taskLabels.length})`
+            : "Add Label"}
           {!disabled && <ChevronDown className="h-3 w-3" />}
-        </button>
+        </Button>
 
         {isOpen && !disabled && (
-          <div className="absolute left-0 top-full z-30 mt-1 w-56 rounded border border-slate-200 bg-white p-1.5 shadow-lg">
+          <div className="absolute left-0 top-full z-30 mt-1 max-h-60 w-56 overflow-y-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
             {availableLabels.length === 0 ? (
-              <p className="px-2 py-2 text-[11px] text-slate-400">
-                {intl.formatMessage({ id: "project.label.empty" })}
+              <p className="px-3 py-2.5 text-xs text-slate-400">
+                No labels configured in project settings.
               </p>
             ) : (
               availableLabels.map((label) => {
@@ -69,23 +67,25 @@ export default function TaskLabelsPicker({
                   (item) => item.id === label.id,
                 );
                 return (
-                  <button
+                  <Button
                     key={label.id}
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => void onToggleLabel(label)}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs hover:bg-slate-50"
+                    className="flex w-full h-auto justify-start cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs hover:bg-slate-50 transition"
                   >
                     <span
                       className={`grid h-3.5 w-3.5 place-items-center rounded border ${
                         attached
-                          ? "border-blue-600 bg-blue-600 text-white"
+                          ? "border-[#0052CC] bg-[#0052CC] text-white"
                           : "border-slate-300"
                       }`}
                     >
                       {attached && <Check className="h-2.5 w-2.5" />}
                     </span>
                     <LabelBadge name={label.name} color={label.color} />
-                  </button>
+                  </Button>
                 );
               })
             )}

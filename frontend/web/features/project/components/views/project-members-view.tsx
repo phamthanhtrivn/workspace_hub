@@ -14,8 +14,6 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { confirmProjectAction } from "@/features/project/project-alert";
 import {
   type ProjectMember,
   type ProjectMemberPermissions,
@@ -30,6 +28,10 @@ import {
   useRemoveProjectMember,
   useUpdateProjectMemberPermissions,
 } from "@/features/project/hooks/use-project-members";
+import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
+import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 interface ProjectMembersViewProps {
   projectId: string;
@@ -53,11 +55,11 @@ export default function ProjectMembersView({
   canManagePermissions = false,
   currentUserId,
 }: ProjectMembersViewProps) {
-  const intl = useAppIntl();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<RoleFilterTab>("ALL");
   const [permissionMember, setPermissionMember] =
     useState<ProjectMember | null>(null);
+  const { dialogProps, confirm } = useProjectConfirmDialog();
 
   const removeMemberMutation = useRemoveProjectMember(projectId);
   const updatePermissionsMutation =
@@ -114,29 +116,25 @@ export default function ProjectMembersView({
       });
   }, [members, activeTab, searchQuery]);
 
-  const handleRemoveMember = async (member: ProjectMember) => {
-    const confirmed = await confirmProjectAction({
-      title: intl.formatMessage(
-        { id: "project.member.removeConfirmTitle" },
-        { name: member.displayName },
-      ),
-      text: intl.formatMessage({ id: "project.member.removeConfirmText" }),
-      confirmText: intl.formatMessage({ id: "project.member.remove" }),
-      cancelText: intl.formatMessage({ id: "app.cancel" }),
-      icon: "warning",
-      destructive: true,
-    });
-    if (!confirmed) return;
-
-    removeMemberMutation.mutate(member.userId, {
-      onSuccess: () =>
-        toast.success(intl.formatMessage({ id: "project.member.removed" })),
-      onError: (error) =>
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage({ id: "project.member.removeFailed" }),
-        ),
+  const handleRemoveMember = (member: ProjectMember) => {
+    confirm({
+      title: `Remove ${member.displayName}`,
+      description: "Are you sure you want to remove this member from the project? They will lose access immediately.",
+      confirmLabel: "Remove Member",
+      cancelLabel: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await removeMemberMutation.mutateAsync(member.userId);
+          toast.success("Member removed from project");
+        } catch (error) {
+          toast.error(
+            error instanceof Error
+              ? error.message
+              : "Failed to remove member",
+          );
+        }
+      },
     });
   };
 
@@ -149,13 +147,13 @@ export default function ProjectMembersView({
         memberUserId: permissionMember.userId,
         permissions,
       });
-      toast.success(intl.formatMessage({ id: "project.permission.updated" }));
+      toast.success("Member permissions updated");
       setPermissionMember(null);
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : intl.formatMessage({ id: "project.permission.updateFailed" }),
+          : "Failed to update member permissions",
       );
     }
   };
@@ -164,11 +162,7 @@ export default function ProjectMembersView({
     if (!isoString) return "—";
     try {
       const date = new Date(isoString);
-      return intl.formatDate(date, {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
+      return date.toLocaleDateString();
     } catch {
       return "—";
     }
@@ -179,64 +173,62 @@ export default function ProjectMembersView({
       {/* ── 1. Top Summary Metric Cards ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {/* Total Members */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow">
+        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-blue-50 text-[#0052CC]">
             <Users className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-slate-500">
-              {intl.formatMessage({ id: "project.members.total" })}
+              Total Members
             </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">
+              <span className="text-2xl font-bold text-slate-900">
                 {members.length}
               </span>
               <span className="text-[11px] font-medium text-slate-400">
-                {intl.formatMessage({ id: "project.members.activeMembers" })}
+                active members
               </span>
             </div>
           </div>
         </div>
 
         {/* Owners & Admins */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow">
+        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600">
             <Star className="h-6 w-6 fill-amber-400 text-amber-500" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-slate-500">
-              {intl.formatMessage({ id: "project.members.owners" })}
+              Project Owners
             </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">
+              <span className="text-2xl font-bold text-slate-900">
                 {ownerCount}
               </span>
               <span className="text-[11px] font-medium text-slate-400">
-                {intl.formatMessage({ id: "project.role.owner" })}
+                owners
               </span>
             </div>
           </div>
         </div>
 
         {/* Pending Invites */}
-        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:shadow">
+        <div className="flex items-center gap-4 rounded-xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
           <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600">
             <Clock3 className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-slate-500">
-              {intl.formatMessage({ id: "project.members.pending" })}
+              Pending Invitations
             </p>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-black text-slate-900">
+              <span className="text-2xl font-bold text-slate-900">
                 {pendingInvitations.length}
               </span>
               <span className="text-[11px] font-medium text-slate-400">
                 {pendingInvitations.length > 0
-                  ? intl.formatMessage({
-                      id: "project.members.pendingSubtitle",
-                    })
-                  : intl.formatMessage({ id: "project.members.noPending" })}
+                  ? "awaiting response"
+                  : "no pending invites"}
               </span>
             </div>
           </div>
@@ -248,60 +240,60 @@ export default function ProjectMembersView({
         <div className="flex flex-wrap items-center gap-2">
           {/* Tab buttons */}
           <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50/70 p-1">
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setActiveTab("ALL")}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
+              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-bold transition ${
                 activeTab === "ALL"
-                  ? "bg-white text-slate-800 shadow-sm"
+                  ? "bg-white text-slate-800 shadow-xs hover:bg-white hover:text-slate-800"
                   : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              {intl.formatMessage({ id: "project.members.filterAll" })} (
-              {members.length})
-            </button>
-            <button
+              All Members ({members.length})
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setActiveTab("ADMIN")}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
+              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-bold transition ${
                 activeTab === "ADMIN"
-                  ? "bg-white text-slate-800 shadow-sm"
+                  ? "bg-white text-slate-800 shadow-xs hover:bg-white hover:text-slate-800"
                   : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              {intl.formatMessage({ id: "project.members.filterOwners" })} (
-              {ownerCount})
-            </button>
-            <button
+              Owners ({ownerCount})
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => setActiveTab("MEMBER")}
-              className={`rounded-md px-3 py-1.5 text-xs font-bold transition ${
+              className={`h-7 cursor-pointer rounded-md px-3 py-1 text-xs font-bold transition ${
                 activeTab === "MEMBER"
-                  ? "bg-white text-slate-800 shadow-sm"
+                  ? "bg-white text-slate-800 shadow-xs hover:bg-white hover:text-slate-800"
                   : "text-slate-500 hover:text-slate-900"
               }`}
             >
-              {intl.formatMessage({ id: "project.members.filterMembers" })} (
-              {regularMemberCount})
-            </button>
+              Members ({regularMemberCount})
+            </Button>
             {pendingInvitations.length > 0 && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setActiveTab("PENDING")}
-                className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-bold transition ${
+                className={`flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-3 py-1 text-xs font-bold transition ${
                   activeTab === "PENDING"
-                    ? "bg-white text-amber-700 shadow-sm"
+                    ? "bg-white text-amber-700 shadow-xs hover:bg-white hover:text-amber-700"
                     : "text-amber-600 hover:text-amber-800"
                 }`}
               >
-                <span>
-                  {intl.formatMessage(
-                    { id: "project.members.filterPending" },
-                    { count: pendingInvitations.length },
-                  )}
-                </span>
+                <span>Pending ({pendingInvitations.length})</span>
                 <span className="flex h-2 w-2 rounded-full bg-amber-500" />
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -310,14 +302,12 @@ export default function ProjectMembersView({
         {activeTab !== "PENDING" && (
           <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-            <input
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={intl.formatMessage({
-                id: "project.members.searchPlaceholder",
-              })}
-              className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-3 text-xs font-medium text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-[#0052CC] focus:ring-1 focus:ring-[#0052CC]"
+              placeholder="Search members..."
+              className="h-9 w-full rounded-lg border-slate-200 bg-white pl-9 pr-3 text-xs font-medium text-slate-800"
             />
           </div>
         )}
@@ -325,21 +315,21 @@ export default function ProjectMembersView({
 
       {/* ── 3. Main Content: Members Table or Pending Invites Tab ── */}
       {activeTab === "PENDING" ? (
-        <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-sm">
+        <div className="rounded-xl border border-slate-200/80 bg-white p-6 shadow-xs">
           <PendingInvitationsList
             projectId={projectId}
             invitations={pendingInvitations}
           />
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-xs">
           {filteredMembers.length === 0 ? (
             <div className="py-16 text-center">
               <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400">
                 <Users className="h-6 w-6" />
               </div>
               <p className="text-sm font-semibold text-slate-600">
-                {intl.formatMessage({ id: "project.members.noResults" })}
+                No members found
               </p>
             </div>
           ) : (
@@ -347,26 +337,12 @@ export default function ProjectMembersView({
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-slate-100 bg-slate-50/75 text-[11px] font-black uppercase tracking-wider text-slate-500">
-                    <th className="px-6 py-3.5">
-                      {intl.formatMessage({ id: "project.members.colMember" })}
-                    </th>
-                    <th className="px-4 py-3.5">
-                      {intl.formatMessage({ id: "project.members.colRole" })}
-                    </th>
-                    <th className="px-4 py-3.5">
-                      {intl.formatMessage({ id: "project.members.colTasks" })}
-                    </th>
-                    <th className="px-4 py-3.5">
-                      {intl.formatMessage({ id: "project.members.colJoined" })}
-                    </th>
-                    <th className="px-4 py-3.5">
-                      {intl.formatMessage({
-                        id: "project.members.colPermissions",
-                      })}
-                    </th>
-                    <th className="px-6 py-3.5 text-right">
-                      {intl.formatMessage({ id: "project.members.colActions" })}
-                    </th>
+                    <th className="px-6 py-3.5">Member</th>
+                    <th className="px-4 py-3.5">Role</th>
+                    <th className="px-4 py-3.5">Tasks</th>
+                    <th className="px-4 py-3.5">Joined</th>
+                    <th className="px-4 py-3.5">Permissions</th>
+                    <th className="px-6 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
@@ -398,9 +374,7 @@ export default function ProjectMembersView({
                                 </span>
                                 {isCurrent && (
                                   <span className="rounded-full border border-blue-200 bg-blue-50 px-1.5 py-0.2 text-[10px] font-bold text-blue-700">
-                                    {intl.formatMessage({
-                                      id: "project.members.you",
-                                    })}
+                                    You
                                   </span>
                                 )}
                               </div>
@@ -413,16 +387,12 @@ export default function ProjectMembersView({
                           {isOwner ? (
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200/80 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">
                               <Star className="h-3 w-3 fill-amber-400 text-amber-600" />
-                              {intl.formatMessage({
-                                id: "project.members.ownerBadge",
-                              })}
+                              Project Owner
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
                               <User className="h-3 w-3 text-slate-500" />
-                              {intl.formatMessage({
-                                id: "project.members.memberBadge",
-                              })}
+                              Member
                             </span>
                           )}
                         </td>
@@ -432,16 +402,11 @@ export default function ProjectMembersView({
                           {assignedCount > 0 ? (
                             <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 font-semibold text-slate-700">
                               <Briefcase className="h-3 w-3 text-[#0052CC]" />
-                              {intl.formatMessage(
-                                { id: "project.members.tasksCount" },
-                                { count: assignedCount },
-                              )}
+                              {assignedCount} tasks
                             </span>
                           ) : (
                             <span className="text-slate-400">
-                              {intl.formatMessage({
-                                id: "project.members.noTasks",
-                              })}
+                              No tasks assigned
                             </span>
                           )}
                         </td>
@@ -459,40 +424,24 @@ export default function ProjectMembersView({
                           {isOwner ? (
                             <span className="inline-flex items-center gap-1 rounded border border-emerald-200/80 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-800">
                               <ShieldCheck className="h-3 w-3 text-emerald-600" />
-                              {intl.formatMessage({
-                                id: "project.members.fullPermissions",
-                              })}
+                              Full Access
                             </span>
                           ) : (
                             <div className="flex flex-wrap gap-1 max-w-xs">
                               {member.canCreateTask && (
                                 <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-                                  {intl.formatMessage({
-                                    id: "project.permission.createTask",
-                                  })}
-                                </span>
-                              )}
-                              {member.canManageSprints && (
-                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-                                  {intl.formatMessage({
-                                    id: "project.permission.manageSprints",
-                                  })}
+                                  Create Tasks
                                 </span>
                               )}
                               {member.canManageMembers && (
                                 <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
-                                  {intl.formatMessage({
-                                    id: "project.permission.manageMembers",
-                                  })}
+                                  Manage Members
                                 </span>
                               )}
                               {!member.canCreateTask &&
-                                !member.canManageSprints &&
                                 !member.canManageMembers && (
                                   <span className="text-[11px] text-slate-400">
-                                    {intl.formatMessage({
-                                      id: "project.permission.included",
-                                    })}
+                                    Standard permissions
                                   </span>
                                 )}
                             </div>
@@ -503,51 +452,37 @@ export default function ProjectMembersView({
                         <td className="px-6 py-4 text-right whitespace-nowrap">
                           {isOwner ? (
                             <span className="text-[11px] font-semibold text-slate-400">
-                              {intl.formatMessage({
-                                id: "project.role.owner",
-                              })}
+                              Owner
                             </span>
                           ) : (
                             <div className="inline-flex items-center gap-2">
                               {canManagePermissions && (
-                                <button
+                                <Button
                                   type="button"
+                                  variant="outline"
+                                  size="sm"
                                   onClick={() => setPermissionMember(member)}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#0052CC] hover:bg-blue-50 hover:text-[#0052CC]"
-                                  title={intl.formatMessage(
-                                    { id: "project.permission.manageFor" },
-                                    { name: member.displayName },
-                                  )}
+                                  className="h-8 gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-700 hover:border-[#0052CC] hover:bg-blue-50 hover:text-[#0052CC]"
+                                  title={`Edit permissions for ${member.displayName}`}
                                 >
                                   <Settings2 className="h-3.5 w-3.5" />
-                                  <span>
-                                    {intl.formatMessage({
-                                      id: "project.members.editPermissions",
-                                    })}
-                                  </span>
-                                </button>
+                                  <span>Permissions</span>
+                                </Button>
                               )}
 
                               {canRemoveMembers && (
-                                <button
+                                <Button
                                   type="button"
-                                  onClick={() =>
-                                    void handleRemoveMember(member)
-                                  }
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleRemoveMember(member)}
                                   disabled={removeMemberMutation.isPending}
-                                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
-                                  title={intl.formatMessage(
-                                    { id: "project.member.removeFor" },
-                                    { name: member.displayName },
-                                  )}
+                                  className="h-8 gap-1 rounded-lg px-2.5 text-xs font-semibold text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                                  title={`Remove ${member.displayName}`}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
-                                  <span>
-                                    {intl.formatMessage({
-                                      id: "project.member.remove",
-                                    })}
-                                  </span>
-                                </button>
+                                  <span>Remove</span>
+                                </Button>
                               )}
                             </div>
                           )}
@@ -571,6 +506,7 @@ export default function ProjectMembersView({
         onClose={() => setPermissionMember(null)}
         onSave={handleSavePermissions}
       />
+      <ProjectConfirmDialog {...dialogProps} />
     </div>
   );
 }

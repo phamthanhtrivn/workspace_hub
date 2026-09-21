@@ -3,14 +3,12 @@ import { io, Socket } from 'socket.io-client';
 export type ProjectResource =
   | 'PROJECT'
   | 'TASK'
-  | 'SPRINT'
   | 'MEMBER'
   | 'INVITATION'
   | 'CHECKLIST'
   | 'COMMENT'
   | 'LABEL'
-  | 'DEPENDENCY'
-  | 'FILE';
+  | 'DEPENDENCY';
 
 export interface ProjectChangedEvent {
   projectId: string;

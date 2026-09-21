@@ -1,18 +1,17 @@
 "use client";
 
 import { ArrowRight, History } from "lucide-react";
-import { useState } from "react";
 import type {
   ProjectMember,
   Task,
   TaskActivity,
 } from "@/features/project/types/project";
 import {
-  ACTIVITY_ACTION_LABEL_IDS,
+  ACTIVITY_ACTION_LABELS,
   createTaskActivityPresenter,
 } from "@/features/project/task-activity-presenter";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { formatTaskRelativeTime } from "@/features/project/utils/task-relative-time";
+import { formatTaskDateTime } from "@/features/project/utils/task-dates";
+import { Button } from "@/components/ui/button";
 
 export default function TaskActivityPanel({
   activities,
@@ -29,13 +28,9 @@ export default function TaskActivityPanel({
   isError: boolean;
   onRefresh: () => void;
 }) {
-  const intl = useAppIntl();
-  const [now] = useState(() => Date.now());
   const { activityActor, activityValue } = createTaskActivityPresenter(
     members,
     tasks,
-    (id, values) => intl.formatMessage({ id }, values),
-    (value) => intl.formatDate(value),
   );
 
   return (
@@ -43,23 +38,25 @@ export default function TaskActivityPanel({
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-bold text-[#172B4D]">
-            {intl.formatMessage({ id: "project.activity.logTitle" })}
+            Activity Log
           </h3>
-          <p className="mt-0.5 text-[11px] text-slate-500">
-            {intl.formatMessage({ id: "project.activity.description" })}
+          <p className="mt-0.5 text-xs text-slate-500">
+            Audit history of updates and state transitions on this task.
           </p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={onRefresh}
-          className="shrink-0 rounded px-2 py-1 text-[10px] font-bold text-[#0052CC] hover:bg-blue-50"
+          className="h-7 shrink-0 rounded-lg px-2.5 text-xs font-bold text-[#0052CC] hover:bg-blue-50 cursor-pointer"
         >
-          {intl.formatMessage({ id: "app.refresh" })}
-        </button>
+          Refresh
+        </Button>
       </div>
 
       {isLoading ? (
-        <div className="space-y-3" aria-label={intl.formatMessage({ id: "project.activity.loading" })}>
+        <div className="space-y-3" aria-label="Loading activities...">
           {[0, 1, 2].map((item) => (
             <div key={item} className="flex animate-pulse gap-3">
               <div className="h-7 w-7 shrink-0 rounded-full bg-slate-100" />
@@ -71,23 +68,25 @@ export default function TaskActivityPanel({
           ))}
         </div>
       ) : isError ? (
-        <div className="rounded border border-red-100 bg-red-50 px-4 py-5 text-center">
+        <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-5 text-center">
           <p className="text-xs font-semibold text-red-700">
-            {intl.formatMessage({ id: "project.activity.loadFailed" })}
+            Could not load task activity log.
           </p>
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="sm"
             onClick={onRefresh}
-            className="mt-2 text-[11px] font-bold text-red-700 underline"
+            className="mt-2 h-auto p-0 text-xs font-bold text-red-700 underline cursor-pointer hover:text-red-800"
           >
-            {intl.formatMessage({ id: "app.retry" })}
-          </button>
+            Retry
+          </Button>
         </div>
       ) : activities.length === 0 ? (
-        <div className="rounded border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
+        <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center">
           <History className="mx-auto h-6 w-6 text-slate-300" />
           <p className="mt-2 text-xs font-semibold text-slate-500">
-            {intl.formatMessage({ id: "project.activity.emptyDetailed" })}
+            No activity history recorded for this task yet.
           </p>
         </div>
       ) : (
@@ -109,39 +108,21 @@ export default function TaskActivityPanel({
                       <strong className="font-bold text-[#172B4D]">
                         {activityActor(activity)}
                       </strong>{" "}
-                      {intl.formatMessage(
-                        {
-                          id:
-                            ACTIVITY_ACTION_LABEL_IDS[activity.field] ||
-                            "project.activity.action.changedField",
-                        },
-                        { field: activity.field },
-                      )}
+                      {ACTIVITY_ACTION_LABELS[activity.field] ||
+                        `updated ${activity.field}`}
                     </p>
                     <time
                       dateTime={activity.createdAt}
-                      title={intl.formatDate(new Date(activity.createdAt), {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      className="shrink-0 pt-0.5 text-[9px] font-semibold text-slate-400"
+                      title={formatTaskDateTime(activity.createdAt)}
+                      className="shrink-0 pt-0.5 text-[10px] font-semibold text-slate-400"
                     >
-                      {formatTaskRelativeTime({
-                        value: activity.createdAt,
-                        now,
-                        formatRelativeTime: (value, unit) =>
-                          intl.formatRelativeTime(value, unit),
-                        formatDate: (value) => intl.formatDate(value),
-                      })}
+                      {formatTaskDateTime(activity.createdAt)}
                     </time>
                   </div>
                   {(oldValue || newValue) && (
-                    <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-[11px] leading-4 text-slate-500">
+                    <div className="mt-1.5 flex min-w-0 items-center gap-1.5 text-xs leading-4 text-slate-500">
                       {oldValue && (
-                        <span className="min-w-0 break-words rounded bg-slate-100 px-1.5 py-1">
+                        <span className="min-w-0 break-words rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-700">
                           {oldValue}
                         </span>
                       )}
@@ -149,7 +130,7 @@ export default function TaskActivityPanel({
                         <ArrowRight className="h-3 w-3 shrink-0 text-slate-300" />
                       )}
                       {newValue && (
-                        <span className="min-w-0 break-words rounded bg-blue-50 px-1.5 py-1 text-blue-700">
+                        <span className="min-w-0 break-words rounded-md bg-blue-50 px-2 py-0.5 font-bold text-[#0052CC]">
                           {newValue}
                         </span>
                       )}

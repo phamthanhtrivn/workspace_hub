@@ -1,10 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { RuntimeConfigService } from './runtime-config.service';
-import { AccessTokenVerifier } from '../auth/access-token-verifier';
 
 @Global()
 @Module({
-  providers: [RuntimeConfigService, AccessTokenVerifier],
-  exports: [RuntimeConfigService, AccessTokenVerifier],
+  providers: [RuntimeConfigService],
+  exports: [RuntimeConfigService],
 })
 export class RuntimeConfigModule {}

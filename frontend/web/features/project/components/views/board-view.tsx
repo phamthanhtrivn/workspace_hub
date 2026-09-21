@@ -1,49 +1,52 @@
 "use client";
 
 import { type Task, TaskStatus } from "@/features/project/types/project";
-import { getTasksByStatus } from "@/lib/mock-data";
 import TaskCard from "../ui/task-card";
 import { Plus } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { Button } from "@/components/ui/button";
+
+function getTasksByStatus(tasks: Task[], status: TaskStatus): Task[] {
+  return tasks.filter((task) => task.status === status);
+}
 
 const COLUMNS: {
   status: TaskStatus;
-  labelId: string;
+  label: string;
   headerColor: string;
   badgeBg: string;
   badgeText: string;
 }[] = [
   {
     status: TaskStatus.TODO,
-    labelId: "project.task.status.todoUpper",
+    label: "TO DO",
     headerColor: "text-[#5E6C84]",
     badgeBg: "bg-[#DFE1E6]",
     badgeText: "text-[#42526E]",
   },
   {
     status: TaskStatus.IN_PROGRESS,
-    labelId: "project.task.status.inProgressUpper",
+    label: "IN PROGRESS",
     headerColor: "text-[#0052CC]",
     badgeBg: "bg-[#DEEBFF]",
     badgeText: "text-[#0747A6]",
   },
   {
     status: TaskStatus.IN_REVIEW,
-    labelId: "project.task.status.inReviewUpper",
+    label: "IN REVIEW",
     headerColor: "text-[#FF8B00]",
     badgeBg: "bg-[#FFF0B3]",
     badgeText: "text-[#A54800]",
   },
   {
     status: TaskStatus.DONE,
-    labelId: "project.task.status.doneUpper",
+    label: "DONE",
     headerColor: "text-[#006644]",
     badgeBg: "bg-[#E3FCEF]",
     badgeText: "text-[#006644]",
   },
   {
     status: TaskStatus.CANCELLED,
-    labelId: "project.task.status.cancelledUpper",
+    label: "CANCELLED",
     headerColor: "text-red-600",
     badgeBg: "bg-red-100",
     badgeText: "text-red-700",
@@ -65,19 +68,16 @@ export default function BoardView({
   onOpenChat?: (task: Task) => void;
   canMoveTask?: (task: Task) => boolean;
 }) {
-  const intl = useAppIntl();
-
   return (
     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-5 items-start h-full">
       {COLUMNS.map((col) => {
         const columnTasks = getTasksByStatus(tasks, col.status);
-        const columnLabel = intl.formatMessage({ id: col.labelId });
         const canCreateInColumn = col.status === TaskStatus.TODO;
 
         return (
           <div
             key={col.status}
-            className="flex flex-col rounded bg-[#F4F5F7] p-2 min-h-[500px]"
+            className="flex flex-col rounded-2xl bg-[#F4F5F7] p-2.5 min-h-[500px]"
             onDragOver={(e) => {
               if (onTaskMove) e.preventDefault();
             }}
@@ -95,7 +95,7 @@ export default function BoardView({
                 <h3
                   className={`text-xs font-bold tracking-wider ${col.headerColor}`}
                 >
-                  {columnLabel}
+                  {col.label}
                 </h3>
                 <span
                   className={`inline-flex items-center justify-center h-5 px-1.5 rounded-full text-[10px] font-bold ${col.badgeBg} ${col.badgeText}`}
@@ -103,18 +103,17 @@ export default function BoardView({
                   {columnTasks.length}
                 </span>
               </div>
-              {canCreateInColumn && (
-                <button
+              {canCreateInColumn && onAddTask && (
+                <Button
                   type="button"
-                  onClick={() => onAddTask?.(col.status)}
-                  className="grid h-6 w-6 place-items-center rounded hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition"
-                  title={intl.formatMessage(
-                    { id: "project.task.createInStatus" },
-                    { status: columnLabel },
-                  )}
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onAddTask(col.status)}
+                  className="h-6 w-6 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition cursor-pointer"
+                  title={`Create task in ${col.label}`}
                 >
                   <Plus className="h-4 w-4" strokeWidth={2} />
-                </button>
+                </Button>
               )}
             </div>
 
@@ -131,19 +130,19 @@ export default function BoardView({
               ))}
 
               {columnTasks.length === 0 && (
-                <div className="flex flex-1 flex-col items-center justify-center rounded border border-dashed border-slate-300 py-10 text-xs font-medium text-slate-400 bg-slate-50/50">
-                  <span>
-                    {intl.formatMessage({ id: "project.task.empty" })}
-                  </span>
+                <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 py-10 text-xs font-medium text-slate-400 bg-slate-50/50">
+                  <span>No tasks</span>
                   {onAddTask && canCreateInColumn && (
-                    <button
+                    <Button
                       type="button"
+                      variant="link"
+                      size="sm"
                       onClick={() => onAddTask(col.status)}
-                      className="mt-2 inline-flex items-center gap-1 font-semibold text-[#0052CC] hover:underline"
+                      className="mt-2 h-auto p-0 inline-flex items-center gap-1 font-semibold text-[#0052CC] hover:underline cursor-pointer"
                     >
                       <Plus className="h-3 w-3" strokeWidth={2.5} />
-                      {intl.formatMessage({ id: "project.task.add" })}
-                    </button>
+                      Add Task
+                    </Button>
                   )}
                 </div>
               )}
@@ -151,14 +150,16 @@ export default function BoardView({
 
             {/* Inline quick create button at bottom (if tasks exist) */}
             {columnTasks.length > 0 && onAddTask && canCreateInColumn && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => onAddTask(col.status)}
-                className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold rounded text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition text-left px-2"
+                className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 text-xs font-semibold rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-800 transition cursor-pointer text-left px-2"
               >
                 <Plus className="h-3.5 w-3.5" strokeWidth={2} />
-                <span>{intl.formatMessage({ id: "project.task.create" })}</span>
-              </button>
+                <span>Create Task</span>
+              </Button>
             )}
           </div>
         );

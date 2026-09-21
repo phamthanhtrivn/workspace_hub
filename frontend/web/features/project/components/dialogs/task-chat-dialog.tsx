@@ -1,13 +1,19 @@
 "use client";
 
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import {
   isTerminalTaskStatus,
   type ProjectMember,
   type Task,
 } from "@/features/project/types/project";
 import TaskCommentsSection from "../task-detail/task-comments-section";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function TaskChatDialog({
   task,
@@ -20,47 +26,23 @@ export default function TaskChatDialog({
   canComment: boolean;
   onClose: () => void;
 }) {
-  const intl = useAppIntl();
   if (!task) return null;
   return (
-    <div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 p-4"
-      onClick={onClose}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onClose();
-      }}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="task-chat-title"
-        className="flex max-h-[85vh] w-full max-w-lg flex-col rounded-xl bg-white shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4">
-          <div className="min-w-0">
-            <p className="flex items-center gap-2 text-xs text-slate-500">
-              <MessageCircle size={16} />
-              {intl.formatMessage({ id: "project.comment.discussion" })}
-            </p>
-            <h2
-              id="task-chat-title"
-              className="truncate font-bold text-slate-800"
-            >
-              {task.title}
-            </h2>
+    <Dialog open={Boolean(task)} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden rounded-2xl border-slate-200 bg-white shadow-2xl sm:rounded-2xl">
+        <DialogHeader className="px-6 pt-5 pb-4 text-left border-b border-slate-100">
+          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+            <MessageCircle size={15} className="text-[#0052CC]" />
+            <span>Task Comments</span>
           </div>
-          <button
-            type="button"
-            autoFocus
-            onClick={onClose}
-            aria-label={intl.formatMessage({ id: "project.comment.closeDiscussion" })}
-            className="p-2 text-slate-500"
-          >
-            <X size={18} />
-          </button>
-        </div>
-        <div className="overflow-y-auto p-4">
+          <DialogTitle className="mt-1 truncate text-base font-bold text-slate-900">
+            {task.title}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Discussion and activity comments for task {task.title}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="overflow-y-auto px-6 py-4 max-h-[calc(100dvh-16rem)]">
           <TaskCommentsSection
             key={task.id}
             task={task}
@@ -68,7 +50,7 @@ export default function TaskChatDialog({
             isReadOnly={!canComment || isTerminalTaskStatus(task.status)}
           />
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -10,7 +10,6 @@ import {
 } from '@nestjs/websockets';
 import { isUUID } from 'class-validator';
 import { Server, Socket } from 'socket.io';
-import { AccessTokenVerifier } from '../../common/auth/access-token-verifier';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ProjectMemberStatus } from '../project/project.enums';
 import { SocketEventEmitter } from './socket-event-emitter';
@@ -34,7 +33,6 @@ export class ProjectGateway
   private readonly logger = new Logger(ProjectGateway.name);
 
   constructor(
-    private readonly tokens: AccessTokenVerifier,
     private readonly prisma: PrismaService,
     private readonly events: SocketEventEmitter,
     private readonly rooms: SocketRoomService,
@@ -56,20 +54,18 @@ export class ProjectGateway
     }
 
     try {
-      let userId: string | undefined;
-      try {
-        userId = this.tokens.verify(String(token));
-      } catch {
-        const payloadBase64 = String(token).split('.')[1];
-        if (payloadBase64) {
-          const decoded = JSON.parse(
-            Buffer.from(payloadBase64, 'base64').toString(),
-          );
-          userId = decoded.sub || decoded.id;
-        }
+      const payloadBase64 = String(token).split('.')[1];
+      if (!payloadBase64) {
+        client.disconnect();
+        return;
       }
 
-      if (!userId) {
+      const decoded = JSON.parse(
+        Buffer.from(payloadBase64, 'base64').toString(),
+      );
+      const userId = decoded.sub || decoded.id;
+
+      if (!userId || !isUUID(userId)) {
         client.disconnect();
         return;
       }

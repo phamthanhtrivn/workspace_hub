@@ -23,8 +23,6 @@ export interface TaskApiModel {
   taskNumber: number;
   parentTaskId?: string | null;
   childCount?: number;
-  autoCompleteSprint?: boolean;
-  sprintId?: string | null;
   title: string;
   description?: string | null;
   priority: TaskPriority;
@@ -48,7 +46,6 @@ export interface TaskApiModel {
 }
 
 export interface CreateTaskPayload {
-  sprintId?: string;
   title: string;
   description?: string;
   priority?: TaskPriority;
@@ -59,7 +56,6 @@ export interface CreateTaskPayload {
   estimatedMinutes?: number;
   rank?: string;
   parentTaskId?: string;
-  autoCompleteSprint?: boolean;
   assigneeUserId?: string | null;
 }
 
@@ -77,7 +73,6 @@ export interface UpdateTaskPayload {
   archived?: boolean;
   parentTaskId?: string;
   clearParent?: boolean;
-  autoCompleteSprint?: boolean;
 }
 
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
@@ -97,8 +92,6 @@ export function normalizeTask(task: TaskApiModel): Task {
     taskNumber: task.taskNumber,
     parentTaskId: task.parentTaskId || undefined,
     childCount: task.childCount || 0,
-    autoCompleteSprint: task.autoCompleteSprint || false,
-    sprintId: task.sprintId || undefined,
     title: task.title,
     description: task.description || "",
     priority: task.priority || TaskPriority.MEDIUM,

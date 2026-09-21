@@ -1,16 +1,12 @@
-type MessageFormatter = (id: string) => string;
-
-const MESSAGE_ID_PATTERN = /^(?:app|project)\.[a-zA-Z0-9_.-]+$/;
-
 export function getProjectErrorMessage(
   error: unknown,
-  formatMessage: MessageFormatter,
-  fallbackId: string,
+  fallbackMessage = "An error occurred. Please try again.",
 ): string {
-  if (!(error instanceof Error) || !error.message) {
-    return formatMessage(fallbackId);
+  if (error instanceof Error && error.message) {
+    return error.message;
   }
-  return MESSAGE_ID_PATTERN.test(error.message)
-    ? formatMessage(error.message)
-    : error.message;
+  if (typeof error === "string" && error.length > 0) {
+    return error;
+  }
+  return fallbackMessage;
 }

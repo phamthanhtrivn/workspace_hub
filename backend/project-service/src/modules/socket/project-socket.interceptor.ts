@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { Observable, tap } from 'rxjs';
-import { AuthenticatedRequest } from '../../common/auth/jwt-identity.guard';
+import { AuthenticatedRequest } from '../../common/guards/jwt-identity.guard';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import {
   ProjectChangeAction,
@@ -90,10 +90,6 @@ export class ProjectSocketInterceptor implements NestInterceptor {
         const task = await this.prisma.task.findUnique({ where: { id: taskId }, select: { projectId: true } });
         return { projectId: task?.projectId, taskId };
       }
-      if (params.sprintId) {
-        const sprint = await this.prisma.sprint.findUnique({ where: { id: params.sprintId }, select: { projectId: true } });
-        return { projectId: sprint?.projectId };
-      }
       if (params.checklistId) {
         const item = await this.prisma.taskChecklist.findUnique({
           where: { id: params.checklistId },
@@ -124,12 +120,10 @@ export class ProjectSocketInterceptor implements NestInterceptor {
       return 'INVITATION';
     }
     if (path.includes('/members')) return 'MEMBER';
-    if (path.includes('/files')) return 'FILE';
     if (path.includes('/checklists')) return 'CHECKLIST';
     if (path.includes('/task-comments') || path.includes('/comments')) return 'COMMENT';
     if (path.includes('/dependencies')) return 'DEPENDENCY';
     if (path.includes('/labels')) return 'LABEL';
-    if (path.includes('/sprints')) return 'SPRINT';
     if (path.includes('/tasks')) return 'TASK';
     if (path.includes('/projects')) return 'PROJECT';
     return undefined;
@@ -144,8 +138,8 @@ export class ProjectSocketInterceptor implements NestInterceptor {
 
   private entityId(request: Request): string | undefined {
     const params = request.params as Record<string, string | undefined>;
-    return params.taskId ?? params.successorTaskId ?? params.sprintId ?? params.checklistId
-      ?? params.commentId ?? params.labelId ?? params.invitationId ?? params.fileId ?? params.memberUserId;
+    return params.taskId ?? params.successorTaskId ?? params.checklistId
+      ?? params.commentId ?? params.labelId ?? params.invitationId ?? params.memberUserId;
   }
 
   private targetUsers(

@@ -1,6 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
 import { toast } from "sonner";
-import { confirmProjectAction } from "../project-alert";
 import type { Task, TaskLabel } from "../types/project";
 import {
   useAttachLabel,
@@ -17,7 +16,6 @@ import {
   useDeleteChecklist,
   useUpdateChecklist,
 } from "./use-tasks";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 interface ProjectResourceActionsOptions {
   projectId: string;
@@ -36,7 +34,6 @@ export function useProjectResourceActions({
   rejectChange,
   rejectChecklistChange,
 }: ProjectResourceActionsOptions) {
-  const intl = useAppIntl();
   const createLabelMutation = useCreateLabel(projectId);
   const deleteLabelMutation = useDeleteLabel(projectId);
   const attachLabelMutation = useAttachLabel(projectId);
@@ -66,43 +63,35 @@ export function useProjectResourceActions({
   const createDependency = async (successorTaskId: string, predecessorTaskId: string) => {
     if (rejectChange(successorTaskId)) return;
     await createDependencyMutation.mutateAsync({ successorTaskId, predecessorTaskId });
-    toast.success(intl.formatMessage({ id: "project.dependency.created" }));
+    toast.success("Dependency created");
   };
 
   const deleteDependency = async (successorTaskId: string, predecessorTaskId: string) => {
     if (rejectChange(successorTaskId)) return;
     await deleteDependencyMutation.mutateAsync({ successorTaskId, predecessorTaskId });
+    toast.success("Dependency removed");
   };
 
   const createLabel = async (payload: { name: string; color: string }) => {
     try {
       await createLabelMutation.mutateAsync(payload);
-      toast.success(intl.formatMessage({ id: "project.label.created" }));
+      toast.success("Label created");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : intl.formatMessage({ id: "project.label.createFailed" }));
+      toast.error(error instanceof Error ? error.message : "Failed to create label");
     }
   };
 
   const deleteLabel = async (labelId: string) => {
-    const confirmed = await confirmProjectAction({
-      title: intl.formatMessage({ id: "project.label.deleteConfirmTitle" }),
-      text: intl.formatMessage({ id: "project.label.deleteConfirmText" }),
-      confirmText: intl.formatMessage({ id: "project.label.deleteAction" }),
-      cancelText: intl.formatMessage({ id: "app.cancel" }),
-      icon: "warning",
-      destructive: true,
-    });
-    if (!confirmed) return;
     try {
       await deleteLabelMutation.mutateAsync(labelId);
-      toast.success(intl.formatMessage({ id: "project.label.deleted" }));
+      toast.success("Label deleted");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : intl.formatMessage({ id: "project.label.deleteFailed" }));
+      toast.error(error instanceof Error ? error.message : "Failed to delete label");
     }
   };
 
   const createChecklist = async (taskId: string, title: string) => {
-    if (rejectChecklistChange(taskId)) throw new Error(intl.formatMessage({ id: "project.task.readOnly.completed" }));
+    if (rejectChecklistChange(taskId)) throw new Error("Task is completed and read-only");
     const item = await createChecklistMutation.mutateAsync({ taskId, title });
     setSelectedTask((current) => current?.id === taskId
       ? { ...current, checklists: [...current.checklists, item] }
@@ -112,7 +101,7 @@ export function useProjectResourceActions({
 
   const updateChecklist = async (checklistId: string, completed: boolean) => {
     if (selectedTask && rejectChecklistChange(selectedTask.id)) {
-      throw new Error(intl.formatMessage({ id: "project.task.readOnly.completed" }));
+      throw new Error("Task is completed and read-only");
     }
     const item = await updateChecklistMutation.mutateAsync({ checklistId, completed });
     setSelectedTask((current) => current ? {
@@ -124,7 +113,7 @@ export function useProjectResourceActions({
 
   const deleteChecklist = async (checklistId: string) => {
     if (selectedTask && rejectChecklistChange(selectedTask.id)) {
-      throw new Error(intl.formatMessage({ id: "project.task.readOnly.completed" }));
+      throw new Error("Task is completed and read-only");
     }
     await deleteChecklistMutation.mutateAsync(checklistId);
     setSelectedTask((current) => current ? {

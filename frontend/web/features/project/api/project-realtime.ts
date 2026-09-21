@@ -30,7 +30,6 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
 
   const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
     TASK: [[...projectKey, 'tasks']],
-    SPRINT: [[...projectKey, 'sprints'], [...projectKey, 'tasks']],
     MEMBER: [[...projectKey, 'members']],
     INVITATION: [
       [...projectKey, 'members'],
@@ -40,7 +39,6 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
     CHECKLIST: [[...projectKey, 'tasks']],
     LABEL: [[...projectKey, 'labels'], [...projectKey, 'tasks']],
     DEPENDENCY: [[...projectKey, 'dependencies']],
-    FILE: [[...projectKey, 'files']],
   };
 
   for (const queryKey of resourceKeys[event.resource] ?? []) {

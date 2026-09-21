@@ -4,7 +4,6 @@ import { useState } from "react";
 import { MessageSquare, Pencil, Send, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAppSelector } from "@/store/store";
-import { confirmProjectAction } from "@/features/project/project-alert";
 import {
   useCreateTaskComment,
   useDeleteTaskComment,
@@ -13,8 +12,12 @@ import {
 } from "@/features/project/hooks/use-comments";
 import type { ProjectMember, Task } from "@/features/project/types/project";
 import { Avatar } from "../ui/avatar-stack";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
-import { formatTaskRelativeTime } from "@/features/project/utils/task-relative-time";
+import { ProjectConfirmDialog } from "../ui/project-confirm-dialog";
+import { useProjectConfirmDialog } from "@/features/project/hooks/use-project-confirm-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { formatSimpleDate } from "@/features/project/utils/task-dates";
 
 interface TaskCommentsSectionProps {
   task: Task;
@@ -27,11 +30,11 @@ export default function TaskCommentsSection({
   members,
   isReadOnly,
 }: TaskCommentsSectionProps) {
-  const intl = useAppIntl();
-  const [now] = useState(() => Date.now());
   const [newComment, setNewComment] = useState("");
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editingComment, setEditingComment] = useState("");
+  const { dialogProps, confirm } = useProjectConfirmDialog();
+
   const {
     userId: currentUserId,
     fullName: currentUserName,
@@ -64,12 +67,10 @@ export default function TaskCommentsSection({
     try {
       await createComment.mutateAsync({ content });
       setNewComment("");
-      toast.success(intl.formatMessage({ id: "project.comment.created" }));
+      toast.success("Comment added");
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : intl.formatMessage({ id: "project.comment.createFailed" }),
+        error instanceof Error ? error.message : "Failed to add comment",
       );
     }
   };
@@ -84,36 +85,26 @@ export default function TaskCommentsSection({
       });
       setEditingCommentId(null);
       setEditingComment("");
-      toast.success(intl.formatMessage({ id: "project.comment.updated" }));
+      toast.success("Comment updated");
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : intl.formatMessage({ id: "project.comment.updateFailed" }),
+        error instanceof Error ? error.message : "Failed to update comment",
       );
     }
   };
 
-  const handleDelete = async (commentId: string) => {
+  const handleDelete = (commentId: string) => {
     if (isReadOnly) return;
-    const confirmed = await confirmProjectAction({
-      title: intl.formatMessage({ id: "project.comment.deleteConfirmTitle" }),
-      text: intl.formatMessage({ id: "project.comment.deleteConfirmText" }),
-      confirmText: intl.formatMessage({ id: "project.comment.delete" }),
-      cancelText: intl.formatMessage({ id: "app.cancel" }),
-      icon: "warning",
-      destructive: true,
-    });
-    if (!confirmed) return;
-    deleteComment.mutate(commentId, {
-      onSuccess: () =>
-        toast.success(intl.formatMessage({ id: "project.comment.deleted" })),
-      onError: (error) =>
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : intl.formatMessage({ id: "project.comment.deleteFailed" }),
-        ),
+    confirm({
+      title: "Delete Comment",
+      description: "Are you sure you want to delete this comment? This action cannot be undone.",
+      confirmLabel: "Delete",
+      cancelLabel: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        await deleteComment.mutateAsync(commentId);
+        toast.success("Comment deleted");
+      },
     });
   };
 
@@ -121,27 +112,26 @@ export default function TaskCommentsSection({
     <div className="space-y-4 border-t border-slate-100 pb-2 pt-4">
       <h3 className="flex select-none items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-slate-500">
         <MessageSquare className="h-3.5 w-3.5" />
-        {intl.formatMessage(
-          { id: "project.comment.count" },
-          { count: comments.length },
-        )}
+        Activity Comments ({comments.length})
       </h3>
 
       {isLoading && (
         <p className="text-xs text-slate-500">
-          {intl.formatMessage({ id: "project.comment.loading" })}
+          Loading comments...
         </p>
       )}
       {isError && (
         <p role="alert" className="text-xs text-red-600">
-          {intl.formatMessage({ id: "project.comment.loadFailed" })}{" "}
-          <button
+          Could not load comments.{" "}
+          <Button
             type="button"
-            className="underline"
+            variant="link"
+            size="sm"
+            className="h-auto p-0 underline font-bold cursor-pointer text-red-600 hover:text-red-700"
             onClick={() => void refetch()}
           >
-            {intl.formatMessage({ id: "app.retry" })}
-          </button>
+            Retry
+          </Button>
         </p>
       )}
       {comments.length ? (
@@ -156,75 +146,75 @@ export default function TaskCommentsSection({
                 }}
                 size="sm"
               />
-              <div className="flex-1 rounded border border-slate-150 bg-slate-50 p-2.5 transition hover:bg-slate-100/50">
+              <div className="flex-1 rounded-xl border border-slate-200/80 bg-slate-50/80 p-3 transition hover:bg-slate-100/60">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-[#172B4D]">
+                  <span className="text-xs font-bold text-[#172B4D]">
                     {comment.authorName}
                   </span>
                   <div className="flex select-none items-center gap-1.5">
-                    <span className="text-[9px] font-semibold text-slate-400">
-                      {formatTaskRelativeTime({
-                        value: comment.createdAt,
-                        now,
-                        formatRelativeTime: (value, unit) =>
-                          intl.formatRelativeTime(value, unit),
-                        formatDate: (value) => intl.formatDate(value),
-                      })}
-                      {comment.edited &&
-                        intl.formatMessage({ id: "project.comment.edited" })}
+                    <span className="text-[10px] font-semibold text-slate-400">
+                      {formatSimpleDate(comment.createdAt)}
+                      {comment.edited && " (edited)"}
                     </span>
                     {currentUserId === comment.authorId && !isReadOnly && (
-                      <div className="flex items-center gap-0.5">
-                        <button
+                      <div className="flex items-center gap-0.5 ml-1">
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => {
                             setEditingCommentId(comment.id);
                             setEditingComment(comment.content);
                           }}
-                          className="grid h-5 w-5 place-items-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                          className="h-5 w-5 rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700 cursor-pointer"
+                          aria-label="Edit comment"
                         >
                           <Pencil className="h-3 w-3" />
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
-                          onClick={() => void handleDelete(comment.id)}
-                          className="grid h-5 w-5 place-items-center rounded text-slate-400 hover:bg-red-50 hover:text-red-500"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(comment.id)}
+                          className="h-5 w-5 rounded text-slate-400 hover:bg-red-50 hover:text-red-500 cursor-pointer"
+                          aria-label="Delete comment"
                         >
                           <Trash2 className="h-3 w-3" />
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {editingCommentId === comment.id && !isReadOnly ? (
-                  <div className="mt-1.5 space-y-1.5">
-                    <textarea
+                  <div className="mt-2 space-y-2">
+                    <Textarea
                       value={editingComment}
                       onChange={(event) =>
                         setEditingComment(event.target.value)
                       }
                       rows={2}
-                      className="w-full resize-none rounded border border-[#0052CC] p-2 text-xs text-slate-700 outline-none"
+                      className="w-full resize-none rounded-lg border-[#0052CC] p-2 text-xs text-slate-800"
                     />
-                    <div className="flex justify-end gap-1">
-                      <button
+                    <div className="flex justify-end gap-1.5">
+                      <Button
                         type="button"
+                        variant="outline"
                         onClick={() => setEditingCommentId(null)}
-                        className="rounded px-2 py-0.5 text-[9px] font-bold text-slate-500 transition hover:bg-slate-200"
+                        className="h-7 rounded-lg px-2.5 text-[10px] font-bold text-slate-600"
                       >
-                        {intl.formatMessage({ id: "app.cancel" })}
-                      </button>
-                      <button
+                        Cancel
+                      </Button>
+                      <Button
                         type="button"
                         onClick={() => void handleUpdate()}
                         disabled={
                           !editingComment.trim() || updateComment.isPending
                         }
-                        className="rounded bg-[#0052CC] px-2 py-0.5 text-[9px] font-bold text-white transition disabled:opacity-50"
+                        className="h-7 rounded-lg bg-[#0052CC] px-2.5 text-[10px] font-bold text-white hover:bg-[#0747A6] disabled:opacity-50"
                       >
-                        {intl.formatMessage({ id: "app.save" })}
-                      </button>
+                        Save
+                      </Button>
                     </div>
                   </div>
                 ) : (
@@ -237,24 +227,23 @@ export default function TaskCommentsSection({
           ))}
         </div>
       ) : (
-        <div className="select-none rounded border border-dashed border-slate-200 bg-slate-50/30 py-6 text-center text-[11px] font-semibold text-slate-400">
-          {intl.formatMessage({ id: "project.comment.empty" })}
+        <div className="select-none rounded-xl border border-dashed border-slate-200 bg-slate-50/50 py-6 text-center text-xs font-semibold text-slate-400">
+          No comments yet. Start the conversation below.
         </div>
       )}
 
       {!isReadOnly && (
-        <div className="flex gap-2.5 border-t border-slate-100 pt-2">
+        <div className="flex gap-2.5 border-t border-slate-100 pt-3">
           <Avatar
             user={{
               userId: currentUserId || "u-curr",
-              displayName:
-                currentUserName || intl.formatMessage({ id: "app.me" }),
+              displayName: currentUserName || "Me",
               avatarUrl: currentUserAvatar || undefined,
             }}
             size="sm"
           />
           <div className="relative flex-1">
-            <input
+            <Input
               type="text"
               maxLength={10000}
               value={newComment}
@@ -262,22 +251,26 @@ export default function TaskCommentsSection({
               onKeyDown={(event) => {
                 if (event.key === "Enter") void handleCreate();
               }}
-              placeholder={intl.formatMessage({ id: "project.comment.placeholder" })}
-              aria-label={intl.formatMessage({ id: "project.comment.placeholder" })}
-              className="w-full rounded border border-slate-300 bg-white py-2 pl-3 pr-9 text-xs font-semibold text-[#172B4D] outline-none transition placeholder:text-slate-400 focus:border-[#0052CC]"
+              placeholder="Write a comment..."
+              aria-label="Write a comment..."
+              className="h-10 w-full rounded-xl border-slate-300 bg-white py-2 pl-3 pr-10 text-xs font-semibold text-[#172B4D] placeholder:text-slate-400 focus-visible:border-[#0052CC]"
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => void handleCreate()}
               disabled={!newComment.trim() || createComment.isPending}
-              aria-label={intl.formatMessage({ id: "project.comment.send" })}
-              className="absolute right-1.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded text-[#0052CC] transition hover:bg-slate-100 disabled:opacity-50"
+              aria-label="Send comment"
+              className="absolute right-1.5 top-1/2 h-7 w-7 -translate-y-1/2 cursor-pointer rounded-lg text-[#0052CC] hover:bg-slate-100 disabled:opacity-50"
             >
-              <Send className="h-3 w-3" strokeWidth={2.5} />
-            </button>
+              <Send className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </Button>
           </div>
         </div>
       )}
+
+      <ProjectConfirmDialog {...dialogProps} />
     </div>
   );
 }
