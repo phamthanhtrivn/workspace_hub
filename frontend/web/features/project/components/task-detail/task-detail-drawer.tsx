@@ -246,7 +246,14 @@ export default function TaskDetailDrawer({
               </div>
             ) : (
               <h2
-                onClick={isReadOnly ? undefined : () => setIsEditingTitle(true)}
+                onClick={
+                  isReadOnly
+                    ? undefined
+                    : () => {
+                        setTempTitle(task.title);
+                        setIsEditingTitle(true);
+                      }
+                }
                 className={[
                   "text-lg font-bold text-[#172B4D] transition leading-snug rounded p-1 -ml-1 border border-transparent break-words",
                   isReadOnly
@@ -326,7 +333,14 @@ export default function TaskDetailDrawer({
               </div>
             ) : (
               <div
-                onClick={isReadOnly ? undefined : () => setIsEditingDesc(true)}
+                onClick={
+                  isReadOnly
+                    ? undefined
+                    : () => {
+                        setTempDesc(task.description || "");
+                        setIsEditingDesc(true);
+                      }
+                }
                 className={[
                   "min-h-[60px] p-2.5 rounded-xl border border-transparent bg-slate-50/50 text-xs transition leading-relaxed text-[#42526E] break-words",
                   isReadOnly
@@ -360,6 +374,7 @@ export default function TaskDetailDrawer({
 
           {/* Details Accordion / Properties Panel */}
           <TaskPropertiesPanel
+            key={`${task.id}:${task.estimatedMinutes}`}
             task={task}
             members={members}
             isReadOnly={isReadOnly}

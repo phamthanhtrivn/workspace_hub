@@ -56,13 +56,6 @@ export default function TaskPropertiesPanel({
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Reset estimate draft when task changes
-    setEstimateDraft(
-      task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
-    );
-  }, [task.id, task.estimatedMinutes]);
-
-  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
         assigneeDropdownRef.current &&

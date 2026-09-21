@@ -22,21 +22,20 @@ import {
 } from "@/features/project/hooks/use-tasks";
 import { useProjectLabels } from "@/features/project/hooks/use-labels";
 import { useProjectDependencies } from "@/features/project/hooks/use-dependencies";
+import ProjectDetailContent from "@/features/project/components/layout/project-detail-content";
+import ProjectDetailSidebar, {
+  type ProjectViewMode,
+} from "@/features/project/components/layout/project-detail-sidebar";
+import ProjectDetailToolbar from "@/features/project/components/layout/project-detail-toolbar";
 import {
-  ProjectDetailContent,
-  ProjectDetailSidebar,
-  ProjectDetailToolbar,
   ProjectDetailLoading,
   ProjectDetailNotFound,
-  type ProjectViewMode,
-} from "@/features/project/components/layout";
-import { TaskDetailDrawer } from "@/features/project/components/task-detail";
-import {
-  TaskChatDialog,
-  TaskFormDialog,
-  InviteMemberDialog,
-  ProjectSettingsDialog,
-} from "@/features/project/components/dialogs";
+} from "@/features/project/components/layout/project-detail-fallback";
+import TaskDetailDrawer from "@/features/project/components/task-detail/task-detail-drawer";
+import TaskChatDialog from "@/features/project/components/dialogs/task-chat-dialog";
+import TaskFormDialog from "@/features/project/components/dialogs/task-form-dialog";
+import InviteMemberDialog from "@/features/project/components/dialogs/invite-member-dialog";
+import ProjectSettingsDialog from "@/features/project/components/dialogs/project-settings-dialog";
 import { getProjectKey } from "@/features/project/utils/project.utils";
 import {
   getProjectPermissions,
@@ -334,6 +333,7 @@ export default function ProjectDetailScreen() {
       {/* ── Task detail drawer ── */}
       {selectedTask && (
         <TaskDetailDrawer
+          key={selectedTask.id}
           task={selectedTask}
           tasks={tasks}
           members={projectWithMembers.members}

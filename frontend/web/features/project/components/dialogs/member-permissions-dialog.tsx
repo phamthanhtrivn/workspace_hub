@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   CheckCircle2,
   Info,
@@ -100,12 +100,6 @@ export default function MemberPermissionsDialog({
     useState<ProjectMemberPermissions | null>(
       member ? getMemberPermissions(member) : null,
     );
-
-  useEffect(() => {
-    if (member) {
-      setPermissions(getMemberPermissions(member));
-    }
-  }, [member]);
 
   if (!open || !member || !permissions) return null;
 

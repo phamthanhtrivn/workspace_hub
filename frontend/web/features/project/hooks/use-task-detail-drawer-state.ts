@@ -46,9 +46,9 @@ export function useTaskDetailDrawerState({
 
   // Inline edit states
   const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [tempTitle, setTempTitle] = useState("");
+  const [tempTitle, setTempTitle] = useState(task?.title ?? "");
   const [isEditingDesc, setIsEditingDesc] = useState(false);
-  const [tempDesc, setTempDesc] = useState("");
+  const [tempDesc, setTempDesc] = useState(task?.description ?? "");
 
   const {
     data: activities = [],
@@ -63,18 +63,6 @@ export function useTaskDetailDrawerState({
   const canChangeStatus = task
     ? !isTerminalTaskStatus(task.status) && (canEditTask || canContributeTask)
     : false;
-
-  // Reset temp inputs when task changes
-  useEffect(() => {
-    if (task) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- Draft fields must reset when the selected task changes.
-      setTempTitle(task.title);
-      setTempDesc(task.description || "");
-      setIsEditingTitle(false);
-      setIsEditingDesc(false);
-      setActiveTab("details");
-    }
-  }, [task]);
 
   useEffect(() => {
     if (!task) return;

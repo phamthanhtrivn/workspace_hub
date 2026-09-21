@@ -9,10 +9,8 @@ import {
   Settings,
 } from "lucide-react";
 import CreateProjectDialog from "@/features/project/components/dialogs/create-project-dialog";
-import {
-  ProjectStatusBadge,
-  Avatar,
-} from "@/features/project/components/ui";
+import { Avatar } from "@/features/project/components/ui/avatar-stack";
+import { ProjectStatusBadge } from "@/features/project/components/ui/status-badge";
 import {
   useCreateProject,
   useProjects,

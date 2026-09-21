@@ -131,13 +131,6 @@ export async function getProjectTasks(projectId: string): Promise<Task[]> {
   return taskModels.map(normalizeTask);
 }
 
-export async function getTask(taskId: string): Promise<Task> {
-  const response = await api.get<ApiResponse<TaskApiModel>>(
-    `/api/tasks/${taskId}`,
-  );
-  return normalizeTask(unwrap(response));
-}
-
 export async function createTask(
   projectId: string,
   payload: CreateTaskPayload,

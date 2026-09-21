@@ -142,5 +142,5 @@ export class ProjectGateway
     return { success: true, projectId };
   }
 
-  handleDisconnect(_: Socket): void {}
+  handleDisconnect(): void {}
 }

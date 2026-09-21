@@ -1,13 +1,5 @@
 import { TaskPriority, TaskStatus } from "../types/project";
 
-export const TASK_STATUS_LABELS: Record<TaskStatus, string> = {
-  [TaskStatus.TODO]: "To Do",
-  [TaskStatus.IN_PROGRESS]: "In Progress",
-  [TaskStatus.IN_REVIEW]: "In Review",
-  [TaskStatus.DONE]: "Done",
-  [TaskStatus.CANCELLED]: "Cancelled",
-};
-
 export const TASK_STATUS_OPTIONS = [
   { value: TaskStatus.TODO, label: "To Do" },
   { value: TaskStatus.IN_PROGRESS, label: "In Progress" },
@@ -43,19 +35,6 @@ export const TASK_DRAWER_STATUS_OPTIONS = [
 export const TASK_PRIORITY_SELECT_OPTIONS = TASK_PRIORITY_OPTIONS;
 export const TASK_DRAWER_PRIORITY_OPTIONS = TASK_PRIORITY_OPTIONS;
 
-export const TASK_FILTER_LABELS = {
-  STATUS_ALL: "Status",
-  PRIORITY_ALL: "Priority",
-  ASSIGNEE_ALL: "Assignee",
-  ASSIGNEE_UNASSIGNED: "Unassigned",
-  SPRINT_SELECT: "Select Sprint",
-} as const;
-
-export const TASK_ASSIGNEE_FILTER_OPTIONS = [
-  { value: "", label: "Assignee" },
-  { value: "UNASSIGNED", label: "Unassigned" },
-] as const;
-
 export const TASK_STATUS_CHART_CONFIG = [
   { status: TaskStatus.TODO, label: "To Do", color: "#4C9AFF" },
   { status: TaskStatus.IN_PROGRESS, label: "In Progress", color: "#0052CC" },
@@ -78,50 +57,3 @@ export const GANTT_STATUS_LEGEND = [
   { status: TaskStatus.DONE, label: "Done", color: "bg-emerald-500" },
   { status: TaskStatus.CANCELLED, label: "Cancelled", color: "bg-red-500" },
 ] as const;
-
-export const TASK_STATUS_COLORS: Record<
-  TaskStatus,
-  {
-    label: string;
-    bg: string;
-    dot: string;
-    text: string;
-    bar: string;
-  }
-> = {
-  [TaskStatus.TODO]: {
-    label: "To Do",
-    bg: "bg-[#DFE1E6]",
-    dot: "bg-slate-400",
-    text: "text-[#42526E]",
-    bar: "bg-slate-400",
-  },
-  [TaskStatus.IN_PROGRESS]: {
-    label: "In Progress",
-    bg: "bg-[#DEEBFF]",
-    dot: "bg-blue-600",
-    text: "text-[#0747A6]",
-    bar: "bg-blue-600",
-  },
-  [TaskStatus.IN_REVIEW]: {
-    label: "In Review",
-    bg: "bg-[#FFF0B3]",
-    dot: "bg-amber-500",
-    text: "text-[#A54800]",
-    bar: "bg-amber-500",
-  },
-  [TaskStatus.DONE]: {
-    label: "Done",
-    bg: "bg-[#E3FCEF]",
-    dot: "bg-emerald-500",
-    text: "text-[#006644]",
-    bar: "bg-emerald-500",
-  },
-  [TaskStatus.CANCELLED]: {
-    label: "Cancelled",
-    bg: "bg-red-50",
-    dot: "bg-red-500",
-    text: "text-red-700",
-    bar: "bg-red-500",
-  },
-};

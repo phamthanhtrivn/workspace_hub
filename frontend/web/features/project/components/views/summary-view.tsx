@@ -12,12 +12,10 @@ import {
   type Task,
 } from "@/features/project/types/project";
 import { TaskStatusBadge } from "../ui/status-badge";
-import {
-  ProjectMetricCard,
-  ProjectSummaryPanel,
-  PriorityDistributionBar,
-  MemberWorkloadList,
-} from "../summary";
+import { ProjectMetricCard } from "../summary/project-metric-card";
+import { ProjectSummaryPanel } from "../summary/project-summary-panel";
+import { PriorityDistributionBar } from "../summary/priority-distribution-bar";
+import { MemberWorkloadList } from "../summary/member-workload-list";
 
 import {
   useProjectSummaryMetrics,

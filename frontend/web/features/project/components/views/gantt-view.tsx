@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ChevronDown,
   ChevronLeft,
@@ -226,7 +226,7 @@ export default function GanttView({
   });
 
   // Auto-scroll timeline to center on Today
-  const scrollToToday = () => {
+  const scrollToToday = useCallback(() => {
     if (timelineScrollRef.current && hasToday) {
       const container = timelineScrollRef.current;
       const targetScroll = labelWidth + todayLeft - container.clientWidth / 2;
@@ -235,15 +235,14 @@ export default function GanttView({
         behavior: "smooth",
       });
     }
-  };
+  }, [hasToday, labelWidth, todayLeft]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       scrollToToday();
     }, 100);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zoomMode]);
+  }, [scrollToToday, zoomMode]);
 
   const handleJumpToToday = () => {
     jumpToToday();

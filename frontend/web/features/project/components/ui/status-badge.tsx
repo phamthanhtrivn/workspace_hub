@@ -3,7 +3,6 @@
 import React from "react";
 import {
   TaskStatus,
-  TaskPriority,
   ProjectStatus,
 } from "@/features/project/types/project";
 import {
@@ -11,10 +10,6 @@ import {
   Loader2,
   Eye,
   CheckCircle2,
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  Flame,
   Pause,
   Archive,
   Ban,
@@ -57,38 +52,6 @@ const taskStatusConfig: Record<
     color: "text-red-700",
     bg: "bg-red-50 border-red-200",
     icon: Ban,
-  },
-};
-
-// ─── Task Priority ────────────────────────────────────────────────────────────
-
-const taskPriorityConfig: Record<
-  TaskPriority,
-  { label: string; color: string; bg: string; icon: React.ElementType }
-> = {
-  [TaskPriority.LOW]: {
-    label: "Low",
-    color: "text-slate-600",
-    bg: "bg-slate-100 border-slate-200",
-    icon: ArrowDown,
-  },
-  [TaskPriority.MEDIUM]: {
-    label: "Medium",
-    color: "text-sky-700",
-    bg: "bg-sky-50 border-sky-200",
-    icon: ArrowRight,
-  },
-  [TaskPriority.HIGH]: {
-    label: "High",
-    color: "text-orange-700",
-    bg: "bg-orange-50 border-orange-200",
-    icon: ArrowUp,
-  },
-  [TaskPriority.URGENT]: {
-    label: "Urgent",
-    color: "text-red-700",
-    bg: "bg-red-50 border-red-200",
-    icon: Flame,
   },
 };
 
@@ -141,31 +104,6 @@ export function TaskStatusBadge({
       className={cn(
         "inline-flex items-center gap-1.5 font-bold transition-all",
         compact ? "rounded-md px-1.5 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
-        cfg.bg,
-        cfg.color
-      )}
-    >
-      <Icon className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-      {cfg.label}
-    </Badge>
-  );
-}
-
-export function TaskPriorityBadge({
-  priority,
-  compact = false,
-}: {
-  priority: TaskPriority;
-  compact?: boolean;
-}) {
-  const cfg = taskPriorityConfig[priority] || taskPriorityConfig[TaskPriority.MEDIUM];
-  const Icon = cfg.icon;
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "inline-flex items-center gap-1.5 font-bold transition-all",
-        compact ? "rounded-md px-1 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
         cfg.bg,
         cfg.color
       )}

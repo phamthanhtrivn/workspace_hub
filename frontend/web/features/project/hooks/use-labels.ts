@@ -5,7 +5,6 @@ import {
   deleteLabel,
   detachLabel,
   getProjectLabels,
-  updateLabel,
   type LabelPayload,
 } from "../api/label.api";
 
@@ -28,21 +27,6 @@ export function useCreateLabel(projectId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: LabelPayload) => createLabel(projectId, payload),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["projects", projectId] }),
-  });
-}
-
-export function useUpdateLabel(projectId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({
-      labelId,
-      payload,
-    }: {
-      labelId: string;
-      payload: Partial<LabelPayload>;
-    }) => updateLabel(labelId, payload),
     onSuccess: () =>
       queryClient.invalidateQueries({ queryKey: ["projects", projectId] }),
   });
