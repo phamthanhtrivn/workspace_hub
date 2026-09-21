@@ -23,6 +23,7 @@ import {
 } from "@/features/project/constants/project.constants";
 import {
   ProjectRole,
+  ProjectStatus,
   type Project,
 } from "@/features/project/types/project";
 import type { ProjectSettingsPayload } from "@/features/project/project-settings-actions";
@@ -44,7 +45,9 @@ type ProjectFilter = (typeof PROJECT_FILTER_TABS)[number]["key"];
 export default function ProjectsPage() {
   const router = useRouter();
   const currentUserId = useAppSelector((state) => state.auth.userId);
-  const [activeFilter, setActiveFilter] = useState<ProjectFilter>("ALL");
+  const [activeFilter, setActiveFilter] = useState<ProjectFilter>(
+    ProjectStatus.ACTIVE,
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebouncedValue(
     searchQuery.trim(),
@@ -74,8 +77,26 @@ export default function ProjectsPage() {
   const selectedProjectId = selectedProject?.id ?? "";
   const updateProjectMutation = useUpdateProject(selectedProjectId);
   const archiveProjectMutation = useArchiveProject(selectedProjectId);
-  const hasActiveProjectSearch =
-    Boolean(debouncedSearchQuery) || activeFilter !== "ALL";
+  const hasSearchQuery = Boolean(debouncedSearchQuery);
+  const emptyStateTitle = hasSearchQuery
+    ? "No matching projects found"
+    : activeFilter === "ALL"
+      ? "No projects yet"
+      : activeFilter === ProjectStatus.ACTIVE
+        ? "No active projects found"
+        : activeFilter === ProjectStatus.ON_HOLD
+          ? "No on hold projects found"
+          : "No completed projects found";
+  const emptyStateDescription = hasSearchQuery
+    ? "Try adjusting your search or project status filter."
+    : activeFilter === "ALL"
+      ? "Get started by creating your first team project."
+      : activeFilter === ProjectStatus.ACTIVE
+        ? "Create a new project or switch to All Projects to see everything."
+        : "Switch to another status or All Projects to see more projects.";
+  const showEmptyCreateAction =
+    !hasSearchQuery &&
+    (activeFilter === "ALL" || activeFilter === ProjectStatus.ACTIVE);
 
   const handleFilterChange = (filter: ProjectFilter) => {
     setActiveFilter(filter);
@@ -147,7 +168,7 @@ export default function ProjectsPage() {
             Projects
           </h1>
           <p className="mt-1 text-sm text-slate-500">
-            Manage your workspaces, track tasks, and collaborate with team members.
+            Manage your projects, track tasks, and collaborate with team members.
           </p>
         </div>
         <Button
@@ -361,16 +382,12 @@ export default function ProjectsPage() {
               📂
             </div>
             <p className="mt-4 text-sm font-bold text-slate-700">
-              {hasActiveProjectSearch
-                ? "No matching projects found"
-                : "No projects yet"}
+              {emptyStateTitle}
             </p>
             <p className="mt-1 text-xs text-slate-400">
-              {hasActiveProjectSearch
-                ? "Try adjusting your search or project status filter."
-                : "Get started by creating your first team project."}
+              {emptyStateDescription}
             </p>
-            {!hasActiveProjectSearch ? (
+            {showEmptyCreateAction ? (
               <Button
                 onClick={() => setShowCreate(true)}
                 className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-[#0052CC] hover:bg-[#0747A6] px-4 py-2 text-xs font-semibold text-white transition cursor-pointer"

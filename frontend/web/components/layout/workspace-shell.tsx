@@ -75,6 +75,10 @@ const menuItems = [
   },
 ];
 
+function isWorkspaceRouteActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 const WorkspaceShell = React.memo(function WorkspaceShell({
   children,
 }: {
@@ -82,7 +86,9 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
 }) {
   const intl = useAppIntl();
   const pathname = usePathname();
-  const currentItem = menuItems.find((item) => item.href === pathname);
+  const currentItem = menuItems.find((item) =>
+    isWorkspaceRouteActive(pathname, item.href),
+  );
   const currentTitle = currentItem
     ? intl.formatMessage({ id: currentItem.labelId })
     : intl.formatMessage({ id: "app.workspace" });
@@ -202,7 +208,7 @@ const WorkspaceShell = React.memo(function WorkspaceShell({
         >
           {menuItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive = isWorkspaceRouteActive(pathname, item.href);
             const label = intl.formatMessage({ id: item.labelId });
             const description = intl.formatMessage({ id: item.descriptionId });
 

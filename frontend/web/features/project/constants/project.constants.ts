@@ -5,10 +5,10 @@ export const PROJECT_SEARCH_DEBOUNCE_MS = 350;
 export const PROJECT_ID_SUFFIX_LENGTH = 5;
 
 export const PROJECT_FILTER_TABS = [
-  { key: "ALL", label: "All Projects" },
   { key: ProjectStatus.ACTIVE, label: "Active" },
   { key: ProjectStatus.ON_HOLD, label: "On Hold" },
   { key: ProjectStatus.COMPLETED, label: "Completed" },
+  { key: "ALL", label: "All Projects" },
 ] as const;
 
 export const PROJECT_STATUS_SELECT_OPTIONS = [
