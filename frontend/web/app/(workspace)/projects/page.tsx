@@ -14,11 +14,6 @@ import {
   useProjects,
   useUpdateProject,
 } from "@/features/project/hooks/use-projects";
-import {
-  useCreateLabel,
-  useDeleteLabel,
-  useProjectLabels,
-} from "@/features/project/hooks/use-labels";
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "sonner";
 import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
@@ -51,10 +46,6 @@ export default function ProjectsPage() {
   const selectedProjectId = selectedProject?.id ?? "";
   const updateProjectMutation = useUpdateProject(selectedProjectId);
   const archiveProjectMutation = useArchiveProject(selectedProjectId);
-  const createLabelMutation = useCreateLabel(selectedProjectId);
-  const deleteLabelMutation = useDeleteLabel(selectedProjectId);
-  const { data: selectedProjectLabels = [] } =
-    useProjectLabels(selectedProjectId);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
@@ -108,31 +99,6 @@ export default function ProjectsPage() {
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to archive project",
-      );
-    }
-  };
-
-  const handleCreateLabel = async (payload: {
-    name: string;
-    color: string;
-  }) => {
-    try {
-      await createLabelMutation.mutateAsync(payload);
-      toast.success("Label created");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to create label",
-      );
-    }
-  };
-
-  const handleDeleteLabel = async (labelId: string) => {
-    try {
-      await deleteLabelMutation.mutateAsync(labelId);
-      toast.success("Label deleted");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Failed to delete label",
       );
     }
   };
@@ -381,9 +347,6 @@ export default function ProjectsPage() {
           onClose={() => setSelectedProject(null)}
           onSave={handleSaveProjectSettings}
           onArchive={handleArchiveProject}
-          labels={selectedProjectLabels}
-          onCreateLabel={handleCreateLabel}
-          onDeleteLabel={handleDeleteLabel}
         />
       ) : null}
     </div>

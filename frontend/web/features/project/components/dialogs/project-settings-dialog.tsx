@@ -10,6 +10,10 @@ import {
 import {
   PROJECT_STATUS_SELECT_OPTIONS,
 } from "@/features/project/constants/project.constants";
+import {
+  PROJECT_COLOR_OPTIONS,
+  PROJECT_ICON_OPTIONS,
+} from "@/features/project/constants/project-form.constants";
 import { ProjectLabelManager } from "../forms/project-label-manager";
 import {
   Dialog,
@@ -23,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectSelect } from "../ui/project-form-controls";
+import { cn } from "@/lib/utils";
 
 export default function ProjectSettingsDialog({
   project,
@@ -42,6 +47,8 @@ export default function ProjectSettingsDialog({
   onClose: () => void;
   onSave: (payload: {
     name: string;
+    color: string;
+    icon: string;
     description: string;
     status: ProjectStatus;
     startDate: string | null;
@@ -55,6 +62,8 @@ export default function ProjectSettingsDialog({
 }) {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
+  const [selectedColor, setSelectedColor] = useState(project.color);
+  const [selectedIcon, setSelectedIcon] = useState(project.icon);
   const [status, setStatus] = useState(project.status);
   const [startDate, setStartDate] = useState(
     project.startDate?.slice(0, 10) || "",
@@ -67,6 +76,8 @@ export default function ProjectSettingsDialog({
     if (startDate && dueDate && startDate > dueDate) return;
     await onSave({
       name: name.trim(),
+      color: selectedColor,
+      icon: selectedIcon,
       description: description.trim(),
       status,
       startDate: startDate || null,
@@ -141,6 +152,84 @@ export default function ProjectSettingsDialog({
                     className="mt-1 resize-none rounded-xl border-slate-200 text-xs font-medium"
                   />
                 </label>
+
+                <fieldset>
+                  <legend className="block text-xs font-bold text-slate-600">
+                    Project Icon
+                  </legend>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {PROJECT_ICON_OPTIONS.map((icon) => {
+                      const selected = selectedIcon === icon;
+
+                      return (
+                        <Button
+                          key={icon}
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Project icon: ${icon}`}
+                          aria-pressed={selected}
+                          onClick={() => setSelectedIcon(icon)}
+                          className={cn(
+                            "h-9 w-9 cursor-pointer rounded-xl border p-0 text-base transition duration-150",
+                            selected
+                              ? "border-[#0052CC] bg-[#E8F0FE] shadow-sm ring-1 ring-[#0052CC]/20 hover:bg-[#E8F0FE]"
+                              : "border-transparent bg-slate-100 hover:border-slate-300 hover:bg-slate-200",
+                          )}
+                        >
+                          {icon}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <fieldset>
+                  <legend className="block text-xs font-bold text-slate-600">
+                    Theme Color
+                  </legend>
+                  <div className="mt-2 flex flex-wrap gap-2.5">
+                    {PROJECT_COLOR_OPTIONS.map((color) => {
+                      const selected = selectedColor === color;
+
+                      return (
+                        <Button
+                          key={color}
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Project color: ${color}`}
+                          aria-pressed={selected}
+                          onClick={() => setSelectedColor(color)}
+                          className={cn(
+                            "h-8 w-8 cursor-pointer rounded-full border-2 border-white p-0 shadow-sm transition duration-150",
+                            selected
+                              ? "scale-110 ring-2 ring-[#0052CC] ring-offset-2 hover:scale-110"
+                              : "hover:scale-105 hover:shadow-md",
+                          )}
+                          style={{ backgroundColor: color }}
+                        />
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                    Preview
+                  </p>
+                  <div className="mt-2 flex items-center gap-3">
+                    <span
+                      className="grid h-10 w-10 place-items-center rounded-xl text-lg shadow-sm ring-1 ring-slate-200"
+                      style={{ backgroundColor: `${selectedColor}14` }}
+                    >
+                      {selectedIcon}
+                    </span>
+                    <span className="min-w-0 truncate text-sm font-bold text-[#172B4D]">
+                      {name || project.name || "Untitled Project"}
+                    </span>
+                  </div>
+                </div>
 
                 <div>
                   <span className="block mb-1 text-xs font-bold text-slate-600">

@@ -3,6 +3,8 @@ import type { ProjectStatus } from "./types/project";
 
 export interface ProjectSettingsPayload {
   name: string;
+  color: string;
+  icon: string;
   description: string;
   status: ProjectStatus;
   startDate: string | null;
