@@ -16,6 +16,7 @@ import TaskLabelsPicker from "./task-labels-picker";
 import TaskDependenciesSection from "./task-dependencies-section";
 import TaskSubtasksSection from "./task-subtasks-section";
 import TaskPropertiesPanel from "./task-properties-panel";
+import TaskLabelBadges from "../ui/task-label-badges";
 import { FileText, History, LockKeyhole, Pencil, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -205,10 +206,10 @@ export default function TaskDetailDrawer({
             activeTab === "details" ? "block" : "hidden",
           ].join(" ")}
         >
-          {/* Title Edit */}
-          <div>
+          {/* Title & Labels */}
+          <div className="flex flex-wrap items-start gap-2.5">
             {isEditingTitle && !isReadOnly ? (
-              <div className="space-y-1.5">
+              <div className="min-w-0 flex-1 basis-full space-y-1.5">
                 <Input
                   type="text"
                   value={tempTitle}
@@ -220,7 +221,7 @@ export default function TaskDetailDrawer({
                       setIsEditingTitle(false);
                     }
                   }}
-                  className="w-full rounded-xl border-[#0052CC] p-2 text-base font-bold text-[#172B4D]"
+                  className="w-full rounded-xl border-[#0052CC] p-2 text-xl font-bold leading-snug text-[#172B4D] sm:text-2xl"
                   autoFocus
                 />
                 <div className="flex gap-2">
@@ -245,28 +246,34 @@ export default function TaskDetailDrawer({
                 </div>
               </div>
             ) : (
-              <h2
-                onClick={
-                  isReadOnly
-                    ? undefined
-                    : () => {
-                        setTempTitle(task.title);
-                        setIsEditingTitle(true);
-                      }
-                }
-                className={[
-                  "text-lg font-bold text-[#172B4D] transition leading-snug rounded p-1 -ml-1 border border-transparent break-words",
-                  isReadOnly
-                    ? "cursor-default"
-                    : "cursor-pointer hover:border-slate-300 hover:bg-slate-50",
-                ].join(" ")}
-              >
-                {task.title}
-              </h2>
+              <>
+                <h2
+                  onClick={
+                    isReadOnly
+                      ? undefined
+                      : () => {
+                          setTempTitle(task.title);
+                          setIsEditingTitle(true);
+                        }
+                  }
+                  className={[
+                    "min-w-0 flex-1 rounded border border-transparent p-1 -ml-1 text-xl font-bold leading-snug text-[#172B4D] break-words transition sm:text-2xl",
+                    isReadOnly
+                      ? "cursor-default"
+                      : "cursor-pointer hover:border-slate-300 hover:bg-slate-50",
+                  ].join(" ")}
+                >
+                  {task.title}
+                </h2>
+                <TaskLabelBadges
+                  labels={task.labels}
+                  className="mt-1 shrink-0"
+                />
+              </>
             )}
           </div>
 
-          {/* Status, Labels & Dependencies Bar */}
+          {/* Status & Dependencies Bar */}
           <div className="flex flex-wrap items-center gap-2 select-none">
             <TaskStatusPicker
               status={task.status}
@@ -279,6 +286,7 @@ export default function TaskDetailDrawer({
               availableLabels={labels}
               onToggleLabel={onToggleLabelItem}
               disabled={isReadOnly}
+              showSelectedBadges={false}
             />
 
             <TaskDependenciesSection

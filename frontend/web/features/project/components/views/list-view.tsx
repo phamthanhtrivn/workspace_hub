@@ -63,7 +63,7 @@ export default function ListView({
             return (
               <div
                 key={task.id}
-                className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
+                className="overflow-visible rounded-lg border border-slate-200 bg-white shadow-sm"
               >
                 <ProjectTaskRow
                   task={task}

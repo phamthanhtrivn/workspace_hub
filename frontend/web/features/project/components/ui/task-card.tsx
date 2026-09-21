@@ -5,7 +5,7 @@ import {
   TaskPriority,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
-import { LabelBadge } from "./status-badge";
+import TaskLabelBadges from "./task-label-badges";
 import { AvatarStack } from "./avatar-stack";
 import TaskChatButton from "./task-chat-button";
 import {
@@ -92,7 +92,7 @@ export default function TaskCard({
           onClick?.();
         }
       }}
-      className={`group w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xs transition duration-150 hover:border-slate-300 hover:bg-slate-50/70 focus-visible:outline-hidden ${
+      className={`group relative w-full overflow-visible rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xs transition duration-150 hover:z-20 hover:border-slate-300 hover:bg-slate-50/70 focus-within:z-20 focus-visible:outline-hidden ${
         isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
       }`}
     >
@@ -102,13 +102,7 @@ export default function TaskCard({
       </p>
 
       {/* Labels */}
-      {task.labels.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {task.labels.map((label) => (
-            <LabelBadge key={label.id} name={label.name} color={label.color} />
-          ))}
-        </div>
-      )}
+      <TaskLabelBadges labels={task.labels} className="mt-2" />
 
       {/* Meta indicators */}
       {(task.dueDate ||

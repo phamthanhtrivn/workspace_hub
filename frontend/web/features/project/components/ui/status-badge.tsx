@@ -15,6 +15,7 @@ import {
   Ban,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CustomBadge } from "@/components/ui/custom/custom-badge";
 import { cn } from "@/lib/utils";
 
 // ─── Task Status ──────────────────────────────────────────────────────────────
@@ -134,12 +135,11 @@ export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
 
 export function LabelBadge({ name, color }: { name: string; color: string }) {
   return (
-    <Badge
-      variant="outline"
-      className="inline-flex items-center gap-1.5 rounded-full border-transparent px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs"
+    <CustomBadge
+      variantStyle="label"
       style={{ backgroundColor: color }}
     >
       {name}
-    </Badge>
+    </CustomBadge>
   );
 }

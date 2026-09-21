@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ChevronDown, Tag } from "lucide-react";
 import type { TaskLabel } from "@/features/project/types/project";
 import { LabelBadge } from "../ui/status-badge";
+import TaskLabelBadges from "../ui/task-label-badges";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -12,6 +13,7 @@ interface TaskLabelsPickerProps {
   availableLabels: TaskLabel[];
   onToggleLabel: (label: TaskLabel) => Promise<void> | void;
   disabled?: boolean;
+  showSelectedBadges?: boolean;
 }
 
 export default function TaskLabelsPicker({
@@ -19,6 +21,7 @@ export default function TaskLabelsPicker({
   availableLabels,
   onToggleLabel,
   disabled = false,
+  showSelectedBadges = true,
 }: TaskLabelsPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -97,12 +100,8 @@ export default function TaskLabelsPicker({
       </div>
 
       {/* Attached labels list */}
-      {taskLabels.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1">
-          {taskLabels.map((label) => (
-            <LabelBadge key={label.id} name={label.name} color={label.color} />
-          ))}
-        </div>
+      {showSelectedBadges && taskLabels.length > 0 && (
+        <TaskLabelBadges labels={taskLabels} />
       )}
     </div>
   );

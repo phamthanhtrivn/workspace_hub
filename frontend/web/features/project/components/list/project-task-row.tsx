@@ -6,7 +6,8 @@ import {
   type Task,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
-import { TaskStatusBadge, LabelBadge } from "../ui/status-badge";
+import { TaskStatusBadge } from "../ui/status-badge";
+import TaskLabelBadges from "../ui/task-label-badges";
 import { Avatar } from "../ui/avatar-stack";
 import { getIssueKey, getIssueIcon, getPriorityIcon } from "../ui/task-card";
 import TaskChatButton from "../ui/task-chat-button";
@@ -75,7 +76,7 @@ export default function ProjectTaskRow({
           onTaskClick?.(task);
         }
       }}
-      className="group flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-[7px] text-left transition-colors hover:bg-slate-50 cursor-pointer focus-visible:bg-blue-50/50 focus-visible:outline-hidden"
+      className="group relative flex items-center gap-3 overflow-visible border-b border-slate-200 bg-white px-4 py-[7px] text-left transition-colors hover:z-20 hover:bg-slate-50 focus-within:z-20 focus-visible:bg-blue-50/50 focus-visible:outline-hidden cursor-pointer"
     >
       <div className="shrink-0">{issueIcon}</div>
 
@@ -89,13 +90,7 @@ export default function ProjectTaskRow({
         <span className="truncate text-sm font-medium text-[#172B4D] group-hover:text-[#0052CC]">
           {task.title}
         </span>
-        {task.labels.length > 0 && (
-          <div className="flex shrink-0 gap-1">
-            {task.labels.slice(0, 2).map((l) => (
-              <LabelBadge key={l.id} name={l.name} color={l.color} />
-            ))}
-          </div>
-        )}
+        <TaskLabelBadges labels={task.labels} className="shrink-0" />
       </div>
 
       {/* Due date */}
