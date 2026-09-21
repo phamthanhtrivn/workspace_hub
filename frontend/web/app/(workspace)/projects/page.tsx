@@ -2,30 +2,34 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import {
-  Plus,
-  ChevronRight,
-  MoreHorizontal,
-  Settings,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, ChevronRight, Settings } from "lucide-react";
 import CreateProjectDialog from "@/features/project/components/dialogs/create-project-dialog";
+import ProjectSettingsDialog from "@/features/project/components/dialogs/project-settings-dialog";
 import { Avatar } from "@/features/project/components/ui/avatar-stack";
 import { ProjectStatusBadge } from "@/features/project/components/ui/status-badge";
 import {
+  useArchiveProject,
   useCreateProject,
   useProjects,
+  useUpdateProject,
 } from "@/features/project/hooks/use-projects";
+import {
+  useCreateLabel,
+  useDeleteLabel,
+  useProjectLabels,
+} from "@/features/project/hooks/use-labels";
 import type { CreateProjectPayload } from "@/features/project/api/project.api";
 import { toast } from "sonner";
 import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.constants";
-import { ProjectRole } from "@/features/project/types/project";
+import {
+  ProjectRole,
+  type Project,
+} from "@/features/project/types/project";
+import type { ProjectSettingsPayload } from "@/features/project/project-settings-actions";
+import { useAppSelector } from "@/store/store";
 import { Button } from "@/components/ui/button";
 import { CustomTabs } from "@/components/ui/custom/custom-tabs";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { ProjectSearchInput } from "@/features/project/components/ui/project-form-controls";
 
 const PROJECT_FILTER_OPTIONS = PROJECT_FILTER_TABS.map((tab) => ({
@@ -36,11 +40,21 @@ const PROJECT_FILTER_OPTIONS = PROJECT_FILTER_TABS.map((tab) => ({
 type ProjectFilter = (typeof PROJECT_FILTER_TABS)[number]["key"];
 
 export default function ProjectsPage() {
+  const router = useRouter();
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const [activeFilter, setActiveFilter] = useState<ProjectFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const { data: projects = [], isLoading, isError } = useProjects();
   const createProjectMutation = useCreateProject();
+  const selectedProjectId = selectedProject?.id ?? "";
+  const updateProjectMutation = useUpdateProject(selectedProjectId);
+  const archiveProjectMutation = useArchiveProject(selectedProjectId);
+  const createLabelMutation = useCreateLabel(selectedProjectId);
+  const deleteLabelMutation = useDeleteLabel(selectedProjectId);
+  const { data: selectedProjectLabels = [] } =
+    useProjectLabels(selectedProjectId);
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
@@ -67,6 +81,59 @@ export default function ProjectsPage() {
           : "Failed to create project",
       );
       throw error;
+    }
+  };
+
+  const handleSaveProjectSettings = async (
+    payload: ProjectSettingsPayload,
+  ) => {
+    try {
+      await updateProjectMutation.mutateAsync(payload);
+      setSelectedProject(null);
+      toast.success("Project settings updated");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update project settings",
+      );
+    }
+  };
+
+  const handleArchiveProject = async () => {
+    try {
+      await archiveProjectMutation.mutateAsync();
+      setSelectedProject(null);
+      toast.success("Project archived");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to archive project",
+      );
+    }
+  };
+
+  const handleCreateLabel = async (payload: {
+    name: string;
+    color: string;
+  }) => {
+    try {
+      await createLabelMutation.mutateAsync(payload);
+      toast.success("Label created");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create label",
+      );
+    }
+  };
+
+  const handleDeleteLabel = async (labelId: string) => {
+    try {
+      await deleteLabelMutation.mutateAsync(labelId);
+      toast.success("Label deleted");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete label",
+      );
     }
   };
 
@@ -166,13 +233,23 @@ export default function ProjectsPage() {
                 return (
                   <tr
                     key={project.id}
-                    className="group hover:bg-slate-50/70 transition duration-150"
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`Open ${project.name}`}
+                    onClick={() => router.push(`/projects/${project.id}`)}
+                    onKeyDown={(event) => {
+                      if (
+                        event.key === "Enter" &&
+                        event.target === event.currentTarget
+                      ) {
+                        event.preventDefault();
+                        router.push(`/projects/${project.id}`);
+                      }
+                    }}
+                    className="group cursor-pointer transition duration-150 hover:bg-slate-50/70 focus-visible:bg-blue-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#0052CC]/30"
                   >
                     <td className="px-6 py-3.5">
-                      <Link
-                        href={`/projects/${project.id}`}
-                        className="flex items-center gap-3"
-                      >
+                      <div className="flex items-center gap-3">
                         <span
                           className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-xl shadow-2xs border border-slate-200 font-semibold"
                           style={{
@@ -183,14 +260,14 @@ export default function ProjectsPage() {
                           {project.icon || "📁"}
                         </span>
                         <div>
-                          <span className="font-bold text-[#0052CC] hover:underline block text-sm">
+                          <span className="block text-sm font-bold text-[#0052CC] group-hover:underline">
                             {project.name}
                           </span>
                           <span className="text-xs text-slate-500 font-medium">
                             Team-managed project
                           </span>
                         </div>
-                      </Link>
+                      </div>
                     </td>
                     <td className="px-6 py-3.5">
                       <div className="flex items-center gap-2">
@@ -236,47 +313,22 @@ export default function ProjectsPage() {
                       </div>
                     </td>
                     <td className="px-6 py-3.5 text-right">
-                      <div className="inline-flex items-center gap-1 opacity-0 transition duration-150 group-hover:opacity-100 focus-within:opacity-100">
-                        <Link
-                          href={`/projects/${project.id}?view=settings`}
+                      {project.ownerId === currentUserId ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
                           title="Project Settings"
-                          className="grid h-8 w-8 place-items-center rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-700"
+                          aria-label={`Open settings for ${project.name}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setSelectedProject(project);
+                          }}
+                          className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
                         >
                           <Settings className="h-4 w-4" />
-                        </Link>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label="More project options"
-                             title="More options"
-                              className="h-8 w-8 rounded-lg text-slate-500 hover:bg-slate-200 hover:text-slate-700"
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            align="end"
-                            sideOffset={6}
-                            className="w-40 overflow-hidden rounded-lg border-slate-200 bg-white p-1 text-left shadow-lg"
-                          >
-                            <Link
-                              href={`/projects/${project.id}`}
-                              className="block rounded-md px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/30"
-                            >
-                              Open Board
-                            </Link>
-                            <Link
-                              href={`/projects/${project.id}?view=settings`}
-                              className="block rounded-md px-3 py-2 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0052CC]/30"
-                            >
-                              Settings
-                            </Link>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
+                        </Button>
+                      ) : null}
                     </td>
                   </tr>
                 );
@@ -311,6 +363,24 @@ export default function ProjectsPage() {
         onSubmit={handleCreateProject}
         isSubmitting={createProjectMutation.isPending}
       />
+
+      {selectedProject && selectedProject.ownerId === currentUserId ? (
+        <ProjectSettingsDialog
+          key={selectedProject.id}
+          project={selectedProject}
+          open
+          isBusy={
+            updateProjectMutation.isPending ||
+            archiveProjectMutation.isPending
+          }
+          onClose={() => setSelectedProject(null)}
+          onSave={handleSaveProjectSettings}
+          onArchive={handleArchiveProject}
+          labels={selectedProjectLabels}
+          onCreateLabel={handleCreateLabel}
+          onDeleteLabel={handleDeleteLabel}
+        />
+      ) : null}
     </div>
   );
 }
