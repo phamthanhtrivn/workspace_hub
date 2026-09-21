@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectSelect } from "../ui/project-form-controls";
+import ProjectPreviewCard from "../ui/project-preview-card";
 import { cn } from "@/lib/utils";
 
 export default function ProjectSettingsDialog({
@@ -108,6 +109,14 @@ export default function ProjectSettingsDialog({
           </DialogHeader>
 
           <div className="space-y-4 px-6 py-5 max-h-[calc(100dvh-16rem)] overflow-y-auto">
+            <ProjectPreviewCard
+              name={name}
+              description={description}
+              icon={selectedIcon}
+              color={selectedColor}
+              fallbackName={project.name || "Untitled Project"}
+            />
+
             {canEditProject && (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -225,27 +234,6 @@ export default function ProjectSettingsDialog({
                     })}
                   </div>
                 </fieldset>
-
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                    Preview
-                  </p>
-                  <div className="mt-2 flex items-center gap-3">
-                    <span
-                      className="grid h-10 w-10 place-items-center rounded-xl text-lg shadow-sm"
-                      style={{
-                        backgroundColor: `${selectedColor}14`,
-                        boxShadow: `0 0 0 1px ${selectedColor}66`,
-                        color: selectedColor,
-                      }}
-                    >
-                      {selectedIcon}
-                    </span>
-                    <span className="min-w-0 truncate text-sm font-bold text-[#172B4D]">
-                      {name || project.name || "Untitled Project"}
-                    </span>
-                  </div>
-                </div>
 
                 <div>
                   <span className="block mb-1 text-xs font-bold text-slate-600">

@@ -18,6 +18,7 @@ import {
   PROJECT_ICON_OPTIONS,
 } from "@/features/project/constants/project-form.constants";
 import { getTodayDateValue } from "@/features/project/utils/project-date.utils";
+import ProjectPreviewCard from "../ui/project-preview-card";
 import { cn } from "@/lib/utils";
 
 interface CreateProjectDialogProps {
@@ -78,6 +79,13 @@ export default function CreateProjectDialog({
           </DialogHeader>
 
           <div className="space-y-5 px-6 py-5 max-h-[calc(100dvh-16rem)] overflow-y-auto">
+            <ProjectPreviewCard
+              name={name}
+              description={description}
+              icon={selectedIcon}
+              color={selectedColor}
+            />
+
             {/* Project Name */}
             <div>
               <label
@@ -222,27 +230,6 @@ export default function CreateProjectDialog({
               </div>
             </fieldset>
 
-            {/* Preview */}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                Preview
-              </p>
-              <div className="mt-2 flex items-center gap-3">
-                <span
-                  className="grid h-10 w-10 place-items-center rounded-xl text-lg shadow-sm"
-                  style={{
-                    backgroundColor: `${selectedColor}14`,
-                    boxShadow: `0 0 0 1px ${selectedColor}66`,
-                    color: selectedColor,
-                  }}
-                >
-                  {selectedIcon}
-                </span>
-                <span className="min-w-0 truncate text-sm font-bold text-[#172B4D]">
-                  {name || "Untitled Project"}
-                </span>
-              </div>
-            </div>
           </div>
 
           <DialogFooter className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50/80 px-6 py-4">
