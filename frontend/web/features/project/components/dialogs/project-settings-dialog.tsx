@@ -204,10 +204,15 @@ export default function ProjectSettingsDialog({
                           className={cn(
                             "h-8 w-8 cursor-pointer rounded-full border-2 border-white p-0 shadow-sm transition duration-150",
                             selected
-                              ? "scale-110 ring-2 ring-[#0052CC] ring-offset-2 hover:scale-110"
+                              ? "scale-110 hover:scale-110"
                               : "hover:scale-105 hover:shadow-md",
                           )}
-                          style={{ backgroundColor: color }}
+                          style={{
+                            backgroundColor: color,
+                            boxShadow: selected
+                              ? `0 0 0 2px #ffffff, 0 0 0 4px ${color}`
+                              : undefined,
+                          }}
                         />
                       );
                     })}
@@ -220,8 +225,12 @@ export default function ProjectSettingsDialog({
                   </p>
                   <div className="mt-2 flex items-center gap-3">
                     <span
-                      className="grid h-10 w-10 place-items-center rounded-xl text-lg shadow-sm ring-1 ring-slate-200"
-                      style={{ backgroundColor: `${selectedColor}14` }}
+                      className="grid h-10 w-10 place-items-center rounded-xl text-lg shadow-sm"
+                      style={{
+                        backgroundColor: `${selectedColor}14`,
+                        boxShadow: `0 0 0 1px ${selectedColor}66`,
+                        color: selectedColor,
+                      }}
                     >
                       {selectedIcon}
                     </span>
