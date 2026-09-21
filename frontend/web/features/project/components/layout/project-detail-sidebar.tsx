@@ -57,6 +57,7 @@ interface ProjectDetailSidebarProps {
 interface SidebarTooltipProps {
   label: string;
   enabled: boolean;
+  className?: string;
   children: ReactNode;
 }
 
@@ -81,9 +82,14 @@ const NAV_ITEMS: Array<{
     { view: "gantt", label: "Timeline", icon: ChartGantt },
   ];
 
-function SidebarTooltip({ label, enabled, children }: SidebarTooltipProps) {
+function SidebarTooltip({
+  label,
+  enabled,
+  className,
+  children,
+}: SidebarTooltipProps) {
   return (
-    <div className="w-full [&>span]:w-full">
+    <div className={cn("w-full [&>span]:w-full", className)}>
       <Tooltip>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
         {enabled ? (
@@ -264,11 +270,15 @@ export default function ProjectDetailSidebar({
           >
             <div
               className={cn(
-                "flex items-center gap-1",
+                "flex items-center justify-between gap-2",
                 isCollapsed && "lg:flex-col",
               )}
             >
-              <SidebarTooltip label="Members" enabled={isCollapsed}>
+              <SidebarTooltip
+                label="Members"
+                enabled={isCollapsed}
+                className="min-w-0 flex-1"
+              >
                 <Button
                   type="button"
                   variant="ghost"
@@ -300,7 +310,7 @@ export default function ProjectDetailSidebar({
                   </span>
                   <span
                     className={cn(
-                      "flex min-w-0 flex-1 items-center justify-between gap-2 overflow-hidden text-left opacity-100 transition-[width,opacity] duration-200",
+                      "flex min-w-0 flex-1 items-center justify-start gap-2 overflow-hidden text-left opacity-100 transition-[width,opacity] duration-200",
                       isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
                     )}
                   >
@@ -320,7 +330,11 @@ export default function ProjectDetailSidebar({
               </SidebarTooltip>
 
               {canInviteMembers && onInviteMembers ? (
-                <SidebarTooltip label="Invite member" enabled={isCollapsed}>
+                <SidebarTooltip
+                  label="Invite member"
+                  enabled={isCollapsed}
+                  className="w-auto shrink-0 [&>span]:w-auto"
+                >
                   <Button
                     type="button"
                     variant="ghost"
