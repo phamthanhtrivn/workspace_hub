@@ -15,6 +15,7 @@ export interface ProjectSearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  ariaLabel?: string;
   className?: string;
 }
 
@@ -22,15 +23,18 @@ export function ProjectSearchInput({
   value,
   onChange,
   placeholder = "Search...",
+  ariaLabel,
   className,
 }: ProjectSearchInputProps) {
   return (
     <div className={cn("relative flex-1 min-w-[180px]", className)}>
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       <Input
+        type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        aria-label={ariaLabel || placeholder}
         className="h-9 rounded-xl border border-slate-200 bg-slate-50/60 pl-9 pr-8 text-xs font-semibold text-slate-700 placeholder:text-slate-400 focus:border-[#0052CC] focus:bg-white focus:outline-hidden transition-all"
       />
       {value ? (
@@ -39,6 +43,7 @@ export function ProjectSearchInput({
           variant="ghost"
           size="icon"
           onClick={() => onChange("")}
+          aria-label="Clear search"
           className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 text-slate-400 hover:text-slate-600 hover:bg-transparent cursor-pointer p-0"
         >
           <X className="h-3.5 w-3.5" />

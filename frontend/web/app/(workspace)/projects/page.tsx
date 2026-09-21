@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Plus,
-  Search,
   ChevronRight,
   MoreHorizontal,
   Settings,
@@ -24,10 +23,18 @@ import { PROJECT_FILTER_TABS } from "@/features/project/constants/project.consta
 import { getProjectKey } from "@/features/project/utils/project.utils";
 import { ProjectRole } from "@/features/project/types/project";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CustomTabs } from "@/components/ui/custom/custom-tabs";
+import { ProjectSearchInput } from "@/features/project/components/ui/project-form-controls";
+
+const PROJECT_FILTER_OPTIONS = PROJECT_FILTER_TABS.map((tab) => ({
+  value: tab.key,
+  label: tab.label,
+}));
+
+type ProjectFilter = (typeof PROJECT_FILTER_TABS)[number]["key"];
 
 export default function ProjectsPage() {
-  const [activeFilter, setActiveFilter] = useState<string>("ALL");
+  const [activeFilter, setActiveFilter] = useState<ProjectFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const { data: projects = [], isLoading, isError } = useProjects();
@@ -92,41 +99,22 @@ export default function ProjectsPage() {
 
       {/* Filter Tabs & Search */}
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-3">
-        {/* Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto">
-          {PROJECT_FILTER_TABS.map((tab) => {
-            const isActive = activeFilter === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setActiveFilter(tab.key)}
-                className={[
-                  "relative shrink-0 px-3 py-1.5 text-sm font-medium transition duration-150 pb-2.5 cursor-pointer",
-                  isActive
-                    ? "text-[#0052CC] border-b-2 border-[#0052CC] font-bold"
-                    : "text-slate-600 hover:text-slate-900",
-                ].join(" ")}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
+        <CustomTabs
+          value={activeFilter}
+          options={PROJECT_FILTER_OPTIONS}
+          onChange={setActiveFilter}
+          ariaLabel="Filter projects by status"
+          className="max-w-full overflow-x-auto"
+        />
 
         {/* Search */}
-        <div className="relative">
-          <Search
-            className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
-            strokeWidth={2}
-          />
-          <Input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search projects..."
-            className="w-full sm:w-64 rounded-xl border-slate-300 bg-white py-1.5 pl-9 pr-3 text-xs font-medium text-[#172B4D]"
-          />
-        </div>
+        <ProjectSearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search projects..."
+          ariaLabel="Search projects"
+          className="w-full flex-none sm:w-64"
+        />
       </div>
 
       {/* Main Table */}

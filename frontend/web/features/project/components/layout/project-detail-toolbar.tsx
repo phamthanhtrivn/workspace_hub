@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Plus, Search, UserPlus } from "lucide-react";
+import { ChevronRight, Plus, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
+import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
 import {
   TaskPriority,
@@ -13,7 +14,6 @@ import {
 } from "@/features/project/types/project";
 import type { ProjectViewMode } from "./project-detail-sidebar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 interface ProjectDetailToolbarProps {
   project: Project;
@@ -140,16 +140,13 @@ export default function ProjectDetailToolbar({
 
       {!isMembersView && (
         <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-            <Input
-              type="text"
-              value={searchQuery}
-              onChange={(event) => onSearchChange(event.target.value)}
-              placeholder="Search tasks..."
-              className="h-9 w-48 rounded-xl border-slate-200 bg-white pl-8 pr-3 text-xs font-medium text-[#172B4D] sm:w-56"
-            />
-          </div>
+          <ProjectSearchInput
+            value={searchQuery}
+            onChange={onSearchChange}
+            placeholder="Search tasks..."
+            ariaLabel="Search tasks"
+            className="flex-none w-48 sm:w-56"
+          />
 
           <TaskQuickFilters
             members={members}
