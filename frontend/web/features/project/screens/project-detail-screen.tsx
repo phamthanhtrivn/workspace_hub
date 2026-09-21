@@ -164,6 +164,7 @@ export default function ProjectDetailScreen() {
     createDependency: handleCreateDependency,
     deleteDependency: handleDeleteDependency,
     createLabel: handleCreateLabel,
+    updateLabel: handleUpdateLabel,
     deleteLabel: handleDeleteLabel,
     createChecklist: handleCreateChecklist,
     updateChecklist: handleUpdateChecklist,
@@ -428,9 +429,13 @@ export default function ProjectDetailScreen() {
           onSave={handleSaveProjectSettings}
           onArchive={handleArchiveProject}
           canEditProject={permissions.canManageProject}
+          showLabelManager={permissions.canManageLabels}
           labels={labels}
           onCreateLabel={
             permissions.canManageLabels ? handleCreateLabel : undefined
+          }
+          onUpdateLabel={
+            permissions.canManageLabels ? handleUpdateLabel : undefined
           }
           onDeleteLabel={
             permissions.canManageLabels ? handleDeleteLabel : undefined

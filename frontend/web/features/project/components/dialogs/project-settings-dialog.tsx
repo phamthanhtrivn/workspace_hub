@@ -37,8 +37,10 @@ export default function ProjectSettingsDialog({
   onSave,
   onArchive,
   canEditProject = true,
+  showLabelManager = false,
   labels = [],
   onCreateLabel,
+  onUpdateLabel,
   onDeleteLabel,
 }: {
   project: Project;
@@ -56,8 +58,13 @@ export default function ProjectSettingsDialog({
   }) => Promise<void>;
   onArchive: () => Promise<void>;
   canEditProject?: boolean;
+  showLabelManager?: boolean;
   labels?: TaskLabel[];
   onCreateLabel?: (payload: { name: string; color: string }) => Promise<void>;
+  onUpdateLabel?: (
+    labelId: string,
+    payload: { name: string; color: string },
+  ) => Promise<void>;
   onDeleteLabel?: (labelId: string) => Promise<void>;
 }) {
   const [name, setName] = useState(project.name);
@@ -258,13 +265,14 @@ export default function ProjectSettingsDialog({
               </>
             )}
 
-            {onCreateLabel && (
+            {showLabelManager ? (
               <ProjectLabelManager
                 labels={labels}
                 onCreateLabel={onCreateLabel}
+                onUpdateLabel={onUpdateLabel}
                 onDeleteLabel={onDeleteLabel}
               />
-            )}
+            ) : null}
           </div>
 
           <DialogFooter className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-4">

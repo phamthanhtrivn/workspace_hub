@@ -38,6 +38,17 @@ export async function createLabel(
   return unwrap(response);
 }
 
+export async function updateLabel(
+  labelId: string,
+  payload: LabelPayload,
+): Promise<TaskLabel> {
+  const response = await api.patch<ApiResponse<TaskLabel>>(
+    `/api/labels/${labelId}`,
+    payload,
+  );
+  return unwrap(response);
+}
+
 export async function deleteLabel(labelId: string): Promise<void> {
   await api.delete(`/api/labels/${labelId}`);
 }
