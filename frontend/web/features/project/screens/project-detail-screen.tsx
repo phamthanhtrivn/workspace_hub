@@ -47,6 +47,7 @@ import { useProjectResourceActions } from "@/features/project/hooks/use-project-
 import { useProjectTaskActions } from "@/features/project/hooks/use-project-task-actions";
 import { createProjectSettingsActions } from "@/features/project/project-settings-actions";
 import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
+import { useProjectSidebarState } from "@/features/project/hooks/use-project-sidebar-state";
 import { projectSocketService } from "../api/project-socket.service";
 
 export default function ProjectDetailScreen() {
@@ -115,7 +116,28 @@ export default function ProjectDetailScreen() {
   } = useProjectTaskFormState();
 
   // Sidebar state
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const {
+    isCollapsed: isSidebarCollapsed,
+    isMobileOpen: isMobileSidebarOpen,
+    toggleCollapsed: handleSidebarToggle,
+    openMobile: openMobileSidebar,
+    closeMobile: closeMobileSidebar,
+  } = useProjectSidebarState();
+
+  const handleSidebarViewChange = (view: ProjectViewMode) => {
+    setViewMode(view);
+    closeMobileSidebar();
+  };
+
+  const handleSidebarInvite = () => {
+    closeMobileSidebar();
+    setShowInviteDialog(true);
+  };
+
+  const handleSidebarSettings = () => {
+    closeMobileSidebar();
+    setShowProjectSettings(true);
+  };
 
   function rejectCompletedTaskChange(taskId: string): boolean {
     const target = serverTasks.find((task) => task.id === taskId);
@@ -267,18 +289,20 @@ export default function ProjectDetailScreen() {
         projectKey={projectKey}
         viewMode={viewMode}
         isCollapsed={isSidebarCollapsed}
+        isMobileOpen={isMobileSidebarOpen}
         canOpenSettings={
           permissions.canManageProject || permissions.canManageLabels
         }
         canInviteMembers={permissions.canInviteMembers}
-        onInviteMembers={() => setShowInviteDialog(true)}
-        onViewChange={setViewMode}
-        onToggle={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
-        onOpenSettings={() => setShowProjectSettings(true)}
+        onInviteMembers={handleSidebarInvite}
+        onViewChange={handleSidebarViewChange}
+        onToggle={handleSidebarToggle}
+        onMobileClose={closeMobileSidebar}
+        onOpenSettings={handleSidebarSettings}
       />
 
       {/* ── Main Content Area ── */}
-      <main className="flex-1 flex flex-col min-w-0 bg-white overflow-y-auto px-8 py-6">
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-white px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <ProjectDetailToolbar
           project={project}
           members={projectWithMembers.members}
@@ -305,6 +329,7 @@ export default function ProjectDetailScreen() {
           onToggleOnlyMyIssues={() => setOnlyMyIssues((value) => !value)}
           onClearFilters={clearAllFilters}
           onToggleMembers={() => setShowMembers((visible) => !visible)}
+          onOpenProjectNavigation={openMobileSidebar}
           onCreateTask={() => openCreateTask()}
           onInviteMembers={() => setShowInviteDialog(true)}
         />

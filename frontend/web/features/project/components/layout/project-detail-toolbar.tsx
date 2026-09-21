@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Plus, UserPlus } from "lucide-react";
+import { ChevronRight, Menu, Plus, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
 import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
@@ -38,6 +38,7 @@ interface ProjectDetailToolbarProps {
   onToggleOnlyMyIssues: () => void;
   onClearFilters: () => void;
   onToggleMembers?: () => void;
+  onOpenProjectNavigation: () => void;
   onCreateTask: () => void;
   onInviteMembers?: () => void;
 }
@@ -83,6 +84,7 @@ export default function ProjectDetailToolbar({
   onToggleAssignee,
   onToggleOnlyMyIssues,
   onClearFilters,
+  onOpenProjectNavigation,
   onCreateTask,
   onInviteMembers,
 }: ProjectDetailToolbarProps) {
@@ -90,14 +92,27 @@ export default function ProjectDetailToolbar({
 
   return (
     <>
-      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-        <Link href="/projects" className="transition hover:text-blue-600">
+      <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-slate-500">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={onOpenProjectNavigation}
+          aria-label="Open project navigation"
+          className="mr-1 h-8 w-8 shrink-0 text-slate-600 hover:bg-slate-100 hover:text-[#0052CC] lg:hidden"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
+        <Link
+          href="/projects"
+          className="shrink-0 transition hover:text-blue-600"
+        >
           Projects
         </Link>
         <ChevronRight className="h-3 w-3 text-slate-400" />
-        <span>{project.name}</span>
-        <ChevronRight className="h-3 w-3 text-slate-400" />
-        <span className="capitalize text-slate-700">{viewTitle}</span>
+        <span className="truncate">{project.name}</span>
+        <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
+        <span className="shrink-0 capitalize text-slate-700">{viewTitle}</span>
       </div>
 
       <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">

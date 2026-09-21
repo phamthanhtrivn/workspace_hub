@@ -1,14 +1,18 @@
+import type { ReactNode } from "react";
 import {
   Calendar,
   ChartGantt,
   ChevronLeft,
   ChevronRight,
+  FolderKanban,
   LayoutDashboard,
   LayoutGrid,
   List,
   Settings,
   UserPlus,
   Users,
+  X,
+  type LucideIcon,
 } from "lucide-react";
 import {
   ProjectRole,
@@ -18,6 +22,12 @@ import {
 import { Avatar } from "../ui/avatar-stack";
 
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export type ProjectViewMode =
   | "summary"
@@ -33,24 +43,104 @@ interface ProjectDetailSidebarProps {
   projectKey: string;
   viewMode: ProjectViewMode;
   isCollapsed: boolean;
+  isMobileOpen: boolean;
   canOpenSettings: boolean;
   canInviteMembers?: boolean;
   onViewChange: (view: ProjectViewMode) => void;
   onToggle: () => void;
+  onMobileClose: () => void;
   onOpenSettings: () => void;
   onInviteMembers?: () => void;
+}
+
+interface SidebarTooltipProps {
+  label: string;
+  enabled: boolean;
+  children: ReactNode;
+}
+
+interface SidebarNavItemProps {
+  view: ProjectViewMode;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+  isCollapsed: boolean;
+  onSelect: (view: ProjectViewMode) => void;
 }
 
 const NAV_ITEMS: Array<{
   view: ProjectViewMode;
   label: string;
-  icon: typeof LayoutGrid;
+  icon: LucideIcon;
 }> = [
   { view: "summary", label: "Summary", icon: LayoutDashboard },
   { view: "board", label: "Board", icon: LayoutGrid },
+  { view: "list", label: "List View", icon: List },
   { view: "calendar", label: "Calendar", icon: Calendar },
   { view: "gantt", label: "Timeline", icon: ChartGantt },
 ];
+
+function SidebarTooltip({ label, enabled, children }: SidebarTooltipProps) {
+  return (
+    <div className="w-full [&>span]:w-full">
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        {enabled ? (
+          <TooltipContent className="bottom-auto left-full top-1/2 mb-0 ml-2 -translate-x-0 -translate-y-1/2 max-lg:!hidden">
+            {label}
+          </TooltipContent>
+        ) : null}
+      </Tooltip>
+    </div>
+  );
+}
+
+function SidebarNavItem({
+  view,
+  label,
+  icon: Icon,
+  active,
+  isCollapsed,
+  onSelect,
+}: SidebarNavItemProps) {
+  return (
+    <SidebarTooltip label={label} enabled={isCollapsed}>
+      <Button
+        type="button"
+        variant="ghost"
+        onClick={() => onSelect(view)}
+        aria-current={active ? "page" : undefined}
+        className={cn(
+          "group h-12 w-full justify-start gap-3 rounded-lg px-2.5 text-sm font-semibold transition-colors",
+          "focus-visible:ring-2 focus-visible:ring-[#0052CC]/35",
+          active
+            ? "bg-[#0052CC] text-white hover:bg-[#0747A6] hover:text-white"
+            : "text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+          isCollapsed && "lg:justify-center lg:px-2",
+        )}
+      >
+        <span
+          className={cn(
+            "grid h-8 w-8 shrink-0 place-items-center rounded-md transition-colors",
+            active
+              ? "bg-white/15"
+              : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#0052CC]",
+          )}
+        >
+          <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
+        </span>
+        <span
+          className={cn(
+            "min-w-0 flex-1 overflow-hidden text-left opacity-100 transition-[width,opacity] duration-200",
+            isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
+          )}
+        >
+          {label}
+        </span>
+      </Button>
+    </SidebarTooltip>
+  );
+}
 
 export default function ProjectDetailSidebar({
   project,
@@ -58,190 +148,287 @@ export default function ProjectDetailSidebar({
   projectKey,
   viewMode,
   isCollapsed,
+  isMobileOpen,
   canOpenSettings,
   canInviteMembers = false,
   onViewChange,
   onToggle,
+  onMobileClose,
   onOpenSettings,
   onInviteMembers,
 }: ProjectDetailSidebarProps) {
   const visibleMembers = members.slice(0, 5);
   const remainingMembers = Math.max(0, members.length - visibleMembers.length);
-
-  const renderNavItem = (
-    view: ProjectViewMode,
-    label: string,
-    Icon: typeof LayoutGrid,
-  ) => (
-    <Button
-      key={view}
-      type="button"
-      variant="ghost"
-      onClick={() => onViewChange(view)}
-      className={[
-        "flex w-full justify-start h-8 items-center gap-3 rounded-lg px-3 py-2 text-xs font-semibold transition cursor-pointer",
-        viewMode === view
-          ? "bg-[#DEEBFF] text-[#0747A6] hover:bg-[#DEEBFF] hover:text-[#0747A6]"
-          : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
-      ].join(" ")}
-    >
-      <Icon className="h-4 w-4 shrink-0" />
-      <span>{label}</span>
-    </Button>
-  );
+  const membersActive = viewMode === "members";
 
   return (
     <>
-      <aside
-        className={[
-          "relative flex select-none flex-col border-r border-slate-200 bg-[#F4F5F7] transition-all duration-300",
-          isCollapsed ? "w-0 overflow-hidden" : "w-60 shrink-0",
-        ].join(" ")}
-      >
-        <div className="flex items-center gap-2.5 border-b border-slate-200 p-4">
-          <span
-            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 bg-white text-lg font-bold shadow-2xs"
-            style={{ color: project.color }}
-          >
-            {project.icon || "📁"}
-          </span>
-          <div className="min-w-0">
-            <h2 className="truncate text-sm font-bold text-[#172B4D]">
-              {project.name}
-            </h2>
-          </div>
-        </div>
-
-        <nav className="flex-1 space-y-0.5 px-2 py-3">
-          {NAV_ITEMS.slice(0, 2).map(({ view, label, icon }) =>
-            renderNavItem(view, label, icon),
-          )}
-          {renderNavItem("list", "List View", List)}
-          {NAV_ITEMS.slice(2).map(({ view, label, icon }) =>
-            renderNavItem(view, label, icon),
-          )}
-          <div className="my-4 h-px bg-slate-200" />
-          <div
-            className={[
-              "flex items-center rounded-lg px-1 transition",
-              viewMode === "members"
-                ? "bg-[#DEEBFF] text-[#0747A6]"
-                : "text-slate-600 hover:bg-slate-200/60 hover:text-slate-900",
-            ].join(" ")}
-          >
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onViewChange("members")}
-              className="flex h-8 min-w-0 flex-1 justify-start items-center gap-3 px-2 py-2 text-left text-xs font-semibold cursor-pointer hover:bg-transparent"
-            >
-              <Users className="h-4 w-4 shrink-0" />
-              <span className="truncate">
-                Members ({members.length})
-              </span>
-            </Button>
-            {canInviteMembers && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={onInviteMembers}
-                className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-2 py-1 text-[10px] font-bold text-[#0052CC] hover:bg-white/70 hover:text-[#0052CC] cursor-pointer"
-                title="Invite member"
-              >
-                <UserPlus className="h-3 w-3" />
-                Invite
-              </Button>
-            )}
-          </div>
-          <div className="mt-1 space-y-1 pl-3 pr-1">
-            {visibleMembers.map((member) => (
-              <Button
-                key={member.id}
-                type="button"
-                variant="ghost"
-                onClick={() => onViewChange("members")}
-                className="flex h-auto w-full justify-start items-center gap-2 rounded-lg px-2 py-1.5 text-left transition hover:bg-slate-200/60 cursor-pointer font-normal"
-              >
-                <Avatar
-                  user={{
-                    userId: member.userId,
-                    displayName: member.displayName,
-                    avatarUrl: member.avatarUrl,
-                  }}
-                  size="xs"
-                />
-                <span className="min-w-0 flex-1 text-left">
-                  <span className="block truncate text-xs font-semibold text-slate-700">
-                    {member.displayName}
-                  </span>
-                  <span className="block text-[10px] text-slate-400">
-                    {member.role === ProjectRole.ADMIN ? "Owner" : "Member"}
-                  </span>
-                </span>
-              </Button>
-            ))}
-            {remainingMembers > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => onViewChange("members")}
-                className="h-7 w-full justify-start rounded-lg px-2 py-1 text-left text-[11px] font-bold text-blue-600 hover:bg-blue-50 hover:text-blue-700 cursor-pointer"
-              >
-                +{remainingMembers} more
-              </Button>
-            )}
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => onViewChange("members")}
-              className={[
-                "mt-1 flex h-7 w-full items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs font-semibold transition cursor-pointer",
-                viewMode === "members"
-                  ? "bg-[#DEEBFF] text-[#0747A6] hover:bg-[#DEEBFF] hover:text-[#0747A6]"
-                  : "text-[#0052CC] hover:bg-slate-200/60 hover:text-[#0052CC]",
-              ].join(" ")}
-            >
-              <span>View all members</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-70" />
-            </Button>
-          </div>
-        </nav>
-
-        <div className="border-t border-slate-200 bg-slate-100/50 p-4">
-          <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-            <span>Key: {projectKey}</span>
-            {canOpenSettings && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={onOpenSettings}
-                className="h-6 w-6 text-slate-400 hover:text-slate-600 cursor-pointer"
-                title="Project Settings"
-              >
-                <Settings className="h-3.5 w-3.5" />
-              </Button>
-            )}
-          </div>
-        </div>
-      </aside>
-
       <Button
         type="button"
         variant="ghost"
-        onClick={onToggle}
-        className="group relative z-30 -ml-1 flex h-auto w-3 items-center justify-center rounded-none border-r border-slate-200 p-0 transition-colors hover:bg-slate-200 cursor-pointer"
-        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        onClick={onMobileClose}
+        tabIndex={isMobileOpen ? 0 : -1}
+        aria-label="Close project navigation overlay"
+        aria-hidden={!isMobileOpen}
+        className={cn(
+          "fixed inset-0 z-40 h-auto w-auto rounded-none bg-slate-950/30 p-0 backdrop-blur-[1px] transition-opacity hover:bg-slate-950/30 lg:hidden",
+          isMobileOpen
+            ? "visible pointer-events-auto opacity-100"
+            : "invisible pointer-events-none opacity-0",
+        )}
+      />
+
+      <aside
+        aria-label="Project navigation"
+        className={cn(
+          "fixed inset-y-0 left-0 z-50 flex h-dvh w-72 max-w-[calc(100vw-3rem)] shrink-0 flex-col border-r border-slate-200/80 bg-white shadow-[18px_0_48px_rgba(15,40,84,0.08)] transition-[width,transform,visibility] duration-300 ease-in-out",
+          "lg:relative lg:inset-auto lg:z-20 lg:h-full lg:max-w-none lg:translate-x-0 lg:visible",
+          isMobileOpen
+            ? "visible translate-x-0"
+            : "invisible -translate-x-full",
+          isCollapsed ? "lg:w-20" : "lg:w-62",
+        )}
       >
-        <div className="absolute left-1/2 top-16 -translate-x-1/2 cursor-pointer rounded-full border border-slate-200 bg-white p-0.5 opacity-0 shadow-xs transition-opacity group-hover:opacity-100">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          onClick={onToggle}
+          aria-label={
+            isCollapsed ? "Expand project sidebar" : "Collapse project sidebar"
+          }
+          aria-expanded={!isCollapsed}
+          className="absolute -right-4 top-8 z-30 hidden h-8 w-8 rounded-full border-slate-200 bg-white text-slate-500 shadow-sm hover:bg-slate-50 hover:text-[#0052CC] focus-visible:ring-2 focus-visible:ring-[#0052CC]/35 lg:flex"
+        >
           {isCollapsed ? (
-            <ChevronRight className="h-3 w-3 text-slate-500" />
+            <ChevronRight className="h-4 w-4" />
           ) : (
-            <ChevronLeft className="h-3 w-3 text-slate-500" />
+            <ChevronLeft className="h-4 w-4" />
           )}
-        </div>
-      </Button>
+        </Button>
+
+        <header className="flex h-[72px] shrink-0 items-center gap-3 border-b border-slate-100 px-3">
+          <span
+            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-lg font-bold shadow-sm"
+            style={{ color: project.color }}
+            aria-hidden="true"
+          >
+            {project.icon ? (
+              project.icon
+            ) : (
+              <FolderKanban className="h-5 w-5" strokeWidth={2} />
+            )}
+          </span>
+          <div
+            className={cn(
+              "min-w-0 flex-1 overflow-hidden opacity-100 transition-[width,opacity] duration-200",
+              isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
+            )}
+          >
+            <h2 className="truncate text-sm font-bold text-[#172B4D]">
+              {project.name}
+            </h2>
+            <p className="mt-0.5 truncate text-xs font-medium text-slate-400">
+              {projectKey}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={onMobileClose}
+            aria-label="Close project navigation"
+            className="ml-auto h-8 w-8 text-slate-500 hover:bg-slate-100 hover:text-slate-800 lg:hidden"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </header>
+
+        <nav className="flex min-h-0 flex-1 flex-col px-2 py-3">
+          <div className="space-y-1">
+            {NAV_ITEMS.map(({ view, label, icon }) => (
+              <SidebarNavItem
+                key={view}
+                view={view}
+                label={label}
+                icon={icon}
+                active={viewMode === view}
+                isCollapsed={isCollapsed}
+                onSelect={onViewChange}
+              />
+            ))}
+          </div>
+
+          <div className="my-3 h-px shrink-0 bg-slate-100" />
+
+          <section
+            className="flex min-h-0 flex-1 flex-col"
+            aria-label="Project members"
+          >
+            <div
+              className={cn(
+                "flex items-center gap-1",
+                isCollapsed && "lg:flex-col",
+              )}
+            >
+              <SidebarTooltip label="Members" enabled={isCollapsed}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onViewChange("members")}
+                  aria-current={membersActive ? "page" : undefined}
+                  className={cn(
+                    "group h-12 min-w-0 flex-1 justify-start gap-3 rounded-lg px-2.5 text-sm font-semibold transition-colors",
+                    membersActive
+                      ? "bg-[#0052CC] text-white hover:bg-[#0747A6] hover:text-white"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+                    isCollapsed &&
+                      "lg:w-full lg:flex-none lg:justify-center lg:px-2",
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "relative grid h-8 w-8 shrink-0 place-items-center rounded-md",
+                      membersActive
+                        ? "bg-white/15"
+                        : "bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#0052CC]",
+                    )}
+                  >
+                    <Users className="h-[18px] w-[18px]" strokeWidth={2} />
+                    {isCollapsed ? (
+                      <span className="absolute -right-2 -top-2 hidden min-w-5 items-center justify-center rounded-full bg-[#0052CC] px-1 text-[9px] font-bold leading-5 text-white ring-2 ring-white lg:inline-flex">
+                        {members.length > 99 ? "99+" : members.length}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex min-w-0 flex-1 items-center justify-between gap-2 overflow-hidden text-left opacity-100 transition-[width,opacity] duration-200",
+                      isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
+                    )}
+                  >
+                    <span>Members</span>
+                    <span
+                      className={cn(
+                        "rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                        membersActive
+                          ? "bg-white/15 text-white"
+                          : "bg-slate-100 text-slate-500",
+                      )}
+                    >
+                      {members.length}
+                    </span>
+                  </span>
+                </Button>
+              </SidebarTooltip>
+
+              {canInviteMembers && onInviteMembers ? (
+                <SidebarTooltip label="Invite member" enabled={isCollapsed}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onInviteMembers}
+                    aria-label="Invite member"
+                    className={cn(
+                      "h-9 text-[#0052CC] hover:bg-blue-50 hover:text-[#0747A6]",
+                      isCollapsed ? "lg:w-full" : "w-9",
+                    )}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                </SidebarTooltip>
+              ) : null}
+            </div>
+
+            <div
+              className={cn(
+                "mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto px-1 pb-2",
+                isCollapsed && "lg:hidden",
+              )}
+            >
+              {visibleMembers.map((member) => (
+                <Button
+                  key={member.id}
+                  type="button"
+                  variant="ghost"
+                  onClick={() => onViewChange("members")}
+                  className="h-auto w-full justify-start gap-2.5 rounded-lg px-2 py-2 font-normal hover:bg-slate-50"
+                >
+                  <Avatar
+                    user={{
+                      userId: member.userId,
+                      displayName: member.displayName,
+                      avatarUrl: member.avatarUrl,
+                    }}
+                    size="xs"
+                  />
+                  <span className="min-w-0 flex-1 text-left">
+                    <span className="block truncate text-xs font-semibold text-slate-700">
+                      {member.displayName}
+                    </span>
+                    <span className="block text-[10px] font-medium text-slate-400">
+                      {member.role === ProjectRole.ADMIN ? "Owner" : "Member"}
+                    </span>
+                  </span>
+                </Button>
+              ))}
+
+              {remainingMembers > 0 ? (
+                <p className="px-2 py-1 text-[11px] font-semibold text-slate-400">
+                  +{remainingMembers} more members
+                </p>
+              ) : null}
+
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => onViewChange("members")}
+                className="h-9 w-full justify-between rounded-lg px-2 text-xs font-semibold text-[#0052CC] hover:bg-blue-50 hover:text-[#0747A6]"
+              >
+                <span>View all members</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </section>
+        </nav>
+
+        {canOpenSettings ? (
+          <footer className="mt-auto shrink-0 border-t border-slate-100 p-2">
+            <SidebarTooltip label="Project settings" enabled={isCollapsed}>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onOpenSettings}
+                className={cn(
+                  "group h-14 w-full justify-start gap-3 rounded-lg px-2.5 text-slate-600 hover:bg-slate-100 hover:text-[#172B4D]",
+                  isCollapsed && "lg:justify-center lg:px-2",
+                )}
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-slate-100 text-slate-500 group-hover:bg-white group-hover:text-[#0052CC]">
+                  <Settings
+                    className="h-[18px] w-[18px]"
+                    strokeWidth={2}
+                  />
+                </span>
+                <span
+                  className={cn(
+                    "min-w-0 flex-1 overflow-hidden text-left opacity-100 transition-[width,opacity] duration-200",
+                    isCollapsed && "lg:w-0 lg:flex-none lg:opacity-0",
+                  )}
+                >
+                  <span className="block truncate text-sm font-semibold">
+                    Project settings
+                  </span>
+                  <span className="mt-0.5 block truncate text-[11px] font-medium text-slate-400">
+                    {projectKey}
+                  </span>
+                </span>
+              </Button>
+            </SidebarTooltip>
+          </footer>
+        ) : null}
+      </aside>
     </>
   );
 }
