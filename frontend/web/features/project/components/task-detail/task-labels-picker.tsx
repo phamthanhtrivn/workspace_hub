@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronDown, Tag } from "lucide-react";
+import { ChevronDown, Tag } from "lucide-react";
 import type { TaskLabel } from "@/features/project/types/project";
 import { LabelBadge } from "../ui/status-badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface TaskLabelsPickerProps {
   taskLabels: TaskLabel[];
@@ -67,25 +68,27 @@ export default function TaskLabelsPicker({
                   (item) => item.id === label.id,
                 );
                 return (
-                  <Button
+                  <div
                     key={label.id}
-                    type="button"
-                    variant="ghost"
-                    size="sm"
+                    role="menuitemcheckbox"
+                    aria-checked={attached}
+                    tabIndex={0}
                     onClick={() => void onToggleLabel(label)}
-                    className="flex w-full h-auto justify-start cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs hover:bg-slate-50 transition"
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      void onToggleLabel(label);
+                    }}
+                    className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs transition hover:bg-slate-50 focus-visible:bg-slate-50 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-[#0052CC]/20"
                   >
-                    <span
-                      className={`grid h-3.5 w-3.5 place-items-center rounded border ${
-                        attached
-                          ? "border-[#0052CC] bg-[#0052CC] text-white"
-                          : "border-slate-300"
-                      }`}
-                    >
-                      {attached && <Check className="h-2.5 w-2.5" />}
-                    </span>
+                    <Checkbox
+                      checked={attached}
+                      tabIndex={-1}
+                      aria-hidden="true"
+                      className="pointer-events-none size-4 border-slate-300 data-[state=checked]:border-[#0052CC] data-[state=checked]:bg-[#0052CC]"
+                    />
                     <LabelBadge name={label.name} color={label.color} />
-                  </Button>
+                  </div>
                 );
               })
             )}

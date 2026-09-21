@@ -19,6 +19,8 @@ interface CustomTabsProps<TValue extends string = string> {
   onChange: (value: TValue) => void;
   ariaLabel: string;
   className?: string;
+  listClassName?: string;
+  triggerClassName?: string;
 }
 
 export function CustomTabs<TValue extends string = string>({
@@ -27,6 +29,8 @@ export function CustomTabs<TValue extends string = string>({
   onChange,
   ariaLabel,
   className,
+  listClassName,
+  triggerClassName,
 }: CustomTabsProps<TValue>) {
   return (
     <Tabs
@@ -36,7 +40,10 @@ export function CustomTabs<TValue extends string = string>({
     >
       <TabsList
         aria-label={ariaLabel}
-        className="h-10 gap-1 rounded-none bg-transparent p-0"
+        className={cn(
+          "h-10 gap-1 rounded-none bg-transparent p-0",
+          listClassName,
+        )}
       >
         {options.map((option) => (
           <TabsTrigger
@@ -45,6 +52,7 @@ export function CustomTabs<TValue extends string = string>({
             disabled={option.disabled}
             className={cn(
               "relative h-10 cursor-pointer rounded-none border-b-2 border-transparent bg-transparent px-2.5 text-sm font-black text-slate-500 shadow-none data-[state=active]:border-[var(--color-primary)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-none",
+              triggerClassName,
             )}
           >
             {option.label}

@@ -2,7 +2,7 @@
 
 import { CalendarDays } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
+import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 
 interface TaskDateRangeFieldsProps {
   allDay: boolean;
@@ -34,15 +34,15 @@ export function TaskDateRangeFields({
             Set target timelines for starting and completing this task.
           </p>
         </div>
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-600 border border-slate-200/60">
-          <Checkbox
-            checked={allDay}
-            disabled={disabled}
-            onCheckedChange={(checked) => onAllDayChange(Boolean(checked))}
-            className="cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
-          />
-          All Day Event
-        </label>
+        <CustomCheckbox
+          checked={allDay}
+          disabled={disabled}
+          onCheckedChange={(checked) => onAllDayChange(Boolean(checked))}
+          label="All Day Event"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200/60 bg-slate-50 px-3 py-1.5"
+          checkboxClassName="cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
+          labelClassName="text-xs font-bold text-slate-600"
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
