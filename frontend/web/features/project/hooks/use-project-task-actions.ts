@@ -24,6 +24,8 @@ const BACKEND_TASK_FIELDS = new Set([
   "allDay",
   "estimatedMinutes",
   "assigneeUserId",
+  "parentTaskId",
+  "clearParent",
 ]);
 
 interface ProjectTaskActionOptions {
@@ -31,7 +33,6 @@ interface ProjectTaskActionOptions {
   tasks: Task[];
   members: ProjectMember[];
   permissions: ProjectPermissions;
-  editingTask: Task | null;
   setSelectedTask: Dispatch<SetStateAction<Task | null>>;
   setStatusOverrides: Dispatch<SetStateAction<Record<string, TaskStatus>>>;
   rejectChange: (taskId: string) => boolean;
@@ -65,14 +66,27 @@ function resolveAssignees(
 export function useProjectTaskActions(options: ProjectTaskActionOptions) {
   const queryClient = useQueryClient();
 
-  const applyTaskUpdate = (task: Task, taskId: string, payload: TaskDrawerUpdatePayload): Task =>
-    task.id === taskId
-      ? ({
-          ...task,
-          ...payload,
-          assignees: resolveAssignees(task.assignees, payload, options.members, taskId),
-        } as Task)
-      : task;
+  const applyTaskUpdate = (
+    task: Task,
+    taskId: string,
+    payload: TaskDrawerUpdatePayload,
+  ): Task => {
+    if (task.id !== taskId) return task;
+    const taskPatch = { ...payload };
+    delete taskPatch.clearParent;
+    delete taskPatch.assignees;
+    const parentTaskId = payload.clearParent
+      ? undefined
+      : "parentTaskId" in taskPatch
+        ? taskPatch.parentTaskId
+        : task.parentTaskId;
+    return {
+      ...task,
+      ...taskPatch,
+      parentTaskId,
+      assignees: resolveAssignees(task.assignees, payload, options.members, taskId),
+    } as Task;
+  };
 
   const moveTask = async (taskId: string, newStatus: TaskStatus) => {
     const task = options.tasks.find((item) => item.id === taskId);
@@ -100,18 +114,9 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
   };
 
   const submitTask = async (values: TaskFormValues) => {
-    if (options.editingTask && options.rejectChange(options.editingTask.id)) return;
     try {
-      if (options.editingTask) {
-        const payload = options.editingTask.parentTaskId && !values.parentTaskId
-          ? { ...values, clearParent: true }
-          : values;
-        await options.updateTask({ taskId: options.editingTask.id, payload });
-        toast.success("Task updated");
-      } else {
-        await options.createTask(values);
-        toast.success("Task created");
-      }
+      await options.createTask(values);
+      toast.success("Task created");
       options.closeTaskForm();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save task");
@@ -132,11 +137,11 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         { queryKey: ["projects", options.projectId, "tasks"] },
         (current) => current?.map((task) => applyTaskUpdate(task, taskId, payload)),
       );
-      options.setSelectedTask((current) => current?.id === taskId ? {
-        ...current,
-        ...payload,
-        assignees: resolveAssignees(current.assignees, payload, options.members, taskId),
-      } as Task : current);
+      options.setSelectedTask((current) =>
+        current?.id === taskId
+          ? applyTaskUpdate(current, taskId, payload)
+          : current,
+      );
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
       toast.error(apiError.response?.data?.message || "Failed to update task");

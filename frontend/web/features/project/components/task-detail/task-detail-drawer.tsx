@@ -17,7 +17,7 @@ import TaskDependenciesSection from "./task-dependencies-section";
 import TaskSubtasksSection from "./task-subtasks-section";
 import TaskPropertiesPanel from "./task-properties-panel";
 import TaskLabelBadges from "../ui/task-label-badges";
-import { FileText, History, LockKeyhole, Pencil, X } from "lucide-react";
+import { FileText, History, LockKeyhole, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,7 +28,6 @@ export default function TaskDetailDrawer({
   members = [],
   onClose,
   onOpenChat,
-  onEdit,
   onTaskClick,
   onUpdateTask,
   onCreateSubtask,
@@ -67,6 +66,8 @@ export default function TaskDetailDrawer({
     handleStatusChange,
     handleAssigneeChange,
     handlePriorityChange,
+    handleParentTaskChange,
+    handleAllDayChange,
     handleToggleLabel: onToggleLabelItem,
     handleAddDependency,
     handleDeleteDependency,
@@ -113,18 +114,6 @@ export default function TaskDetailDrawer({
           </div>
           <div className="flex items-center gap-1.5">
             <TaskChatButton task={task} onOpenChat={onOpenChat} />
-            {onEdit && !isReadOnly && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => onEdit(task)}
-                className="h-7 w-7 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800 cursor-pointer"
-                title="Open edit form"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-            )}
             <Button
               type="button"
               variant="ghost"
@@ -384,11 +373,14 @@ export default function TaskDetailDrawer({
           <TaskPropertiesPanel
             key={`${task.id}:${task.estimatedMinutes}`}
             task={task}
+            tasks={tasks}
             members={members}
             isReadOnly={isReadOnly}
             memberDisplayName={memberDisplayName}
             onAssigneeChange={handleAssigneeChange}
             onPriorityChange={handlePriorityChange}
+            onParentTaskChange={handleParentTaskChange}
+            onAllDayChange={handleAllDayChange}
             onStartDateChange={handleStartDateChange}
             onDueDateChange={handleDueDateChange}
             onEstimateSave={handleEstimateSave}

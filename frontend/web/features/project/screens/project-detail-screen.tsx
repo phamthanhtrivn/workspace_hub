@@ -108,13 +108,11 @@ export default function ProjectDetailScreen() {
 
   const {
     isOpen: showTaskForm,
-    editingTask,
     status: newTaskStatus,
     startDate: newTaskStartDate,
     allDay: newTaskAllDay,
     parentTaskId: newTaskParentId,
     open: openCreateTask,
-    edit: editTask,
     close: closeTaskForm,
   } = useProjectTaskFormState();
 
@@ -227,7 +225,6 @@ export default function ProjectDetailScreen() {
     tasks,
     members,
     permissions,
-    editingTask,
     setSelectedTask,
     setStatusOverrides: setTaskStatusOverrides,
     rejectChange: rejectCompletedTaskChange,
@@ -415,15 +412,6 @@ export default function ProjectDetailScreen() {
                 }
               : undefined
           }
-          onEdit={
-            permissions.canEditTask(selectedTask)
-              ? (task) => {
-                  if (rejectCompletedTaskChange(task.id)) return;
-                  setSelectedTask(null);
-                  editTask(task);
-                }
-              : undefined
-          }
         />
       )}
 
@@ -474,9 +462,8 @@ export default function ProjectDetailScreen() {
       )}
 
       <TaskFormDialog
-        key={`${showTaskForm}-${editingTask?.id ?? "new"}-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}`}
+        key={`${showTaskForm}-new-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}`}
         open={showTaskForm}
-        task={editingTask}
         projectName={project.name}
         parentTasks={tasks}
         initialParentTaskId={newTaskParentId}
@@ -485,9 +472,7 @@ export default function ProjectDetailScreen() {
         initialAllDay={newTaskAllDay}
         onClose={closeTaskForm}
         onSubmit={handleTaskSubmit}
-        isSubmitting={
-          createTaskMutation.isPending || updateTaskMutation.isPending
-        }
+        isSubmitting={createTaskMutation.isPending}
       />
     </div>
   );

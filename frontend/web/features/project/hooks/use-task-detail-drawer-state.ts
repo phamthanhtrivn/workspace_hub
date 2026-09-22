@@ -13,7 +13,11 @@ import {
 import { useTaskActivities } from "@/features/project/hooks/use-tasks";
 import type { TaskDrawerUpdatePayload } from "@/features/project/types/task-detail-drawer.types";
 import { createTaskActivityPresenter } from "@/features/project/task-activity-presenter";
-import { toApiDateTime } from "@/features/project/utils/task-dates";
+import {
+  taskDateKey,
+  toApiDateTime,
+  toDateTimeInput,
+} from "@/features/project/utils/task-dates";
 
 export type TaskDetailTab = "details" | "activity";
 
@@ -151,6 +155,54 @@ export function useTaskDetailDrawerState({
     } catch {}
   };
 
+  const handleParentTaskChange = async (parentTaskId: string) => {
+    if (!task || isReadOnly) return;
+    const nextParentTaskId = parentTaskId || undefined;
+    if (nextParentTaskId === task.parentTaskId) return;
+    try {
+      if (onUpdateTask) {
+        await onUpdateTask(
+          task.id,
+          nextParentTaskId
+            ? { parentTaskId: nextParentTaskId }
+            : {
+                parentTaskId: undefined,
+                clearParent: Boolean(task.parentTaskId),
+              },
+        );
+        toast.success("Parent task updated");
+      }
+    } catch {}
+  };
+
+  const handleAllDayChange = async (allDay: boolean) => {
+    if (!task || isReadOnly || allDay === task.allDay) return;
+    try {
+      if (onUpdateTask) {
+        await onUpdateTask(task.id, {
+          allDay,
+          startDate: task.startDate
+            ? toApiDateTime(
+                allDay
+                  ? taskDateKey(task.startDate, true)
+                  : toDateTimeInput(task.startDate),
+                allDay,
+              )
+            : null,
+          dueDate: task.dueDate
+            ? toApiDateTime(
+                allDay
+                  ? taskDateKey(task.dueDate, true)
+                  : toDateTimeInput(task.dueDate),
+                allDay,
+              )
+            : null,
+        });
+        toast.success("Task schedule updated");
+      }
+    } catch {}
+  };
+
   const handleToggleLabel = async (label: TaskLabel) => {
     if (!task || isReadOnly || !onToggleLabel) return;
     const attached = task.labels.some((item) => item.id === label.id);
@@ -191,7 +243,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, {
-          dueDate: toApiDateTime(val ? `${val}T18:00:00` : "", task.allDay),
+          dueDate: toApiDateTime(val, task.allDay),
         });
         toast.success("Due date updated");
       }
@@ -203,7 +255,7 @@ export function useTaskDetailDrawerState({
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, {
-          startDate: toApiDateTime(val ? `${val}T09:00:00` : "", task.allDay),
+          startDate: toApiDateTime(val, task.allDay),
         });
         toast.success("Start date updated");
       }
@@ -246,6 +298,8 @@ export function useTaskDetailDrawerState({
     handleStatusChange,
     handleAssigneeChange,
     handlePriorityChange,
+    handleParentTaskChange,
+    handleAllDayChange,
     handleToggleLabel,
     handleAddDependency,
     handleDeleteDependency,
