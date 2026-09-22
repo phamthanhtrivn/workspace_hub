@@ -65,7 +65,7 @@ const MANAGEMENT_PERMISSION_OPTIONS: PermissionOption[] = [
 const DEFAULT_CAPABILITIES = [
   {
     title: "View Project & Tasks",
-    description: "Access project overview, board, list, timeline, and calendar views.",
+    description: "Access project overview, board, backlog, schedule, and roadmap views.",
   },
   {
     title: "Comments & Checklists",

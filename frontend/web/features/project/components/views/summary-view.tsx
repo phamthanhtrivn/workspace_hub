@@ -187,7 +187,7 @@ export default function SummaryView({
                 {unscheduled.length}
               </p>
               <p className="text-xs text-slate-500">
-                Tasks needing scheduling in timeline or calendar.
+                Tasks needing scheduling in Roadmap or Schedule.
               </p>
             </div>
           </div>

@@ -713,7 +713,7 @@ export default function GanttView({
                       <Calendar className="h-6 w-6" />
                     </div>
                     <p className="mt-3 text-sm font-bold text-slate-700">
-                      No dated tasks to display in the timeline.
+                      No dated tasks to display in the Roadmap.
                     </p>
                   </div>
                 )}
@@ -793,7 +793,7 @@ export default function GanttView({
                     </span>
                   </div>
                   <p className="mt-0.5 text-[11px] font-medium text-slate-500">
-                    Drag any unscheduled task onto a timeline date to schedule it.
+                    Drag any unscheduled task onto a Roadmap date to schedule it.
                   </p>
                 </div>
               </div>

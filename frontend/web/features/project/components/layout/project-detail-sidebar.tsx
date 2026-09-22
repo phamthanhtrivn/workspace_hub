@@ -2,14 +2,14 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
-  Calendar,
-  ChartGantt,
+  CalendarClock,
   ChevronLeft,
   ChevronRight,
   FolderKanban,
   LayoutDashboard,
   LayoutGrid,
-  List,
+  ListTodo,
+  Route,
   Settings,
   UserPlus,
   Users,
@@ -78,9 +78,9 @@ const NAV_ITEMS: Array<{
 }> = [
     { view: "overview", label: "Overview", icon: LayoutDashboard },
     { view: "board", label: "Kanban Board", icon: LayoutGrid },
-    { view: "list", label: "List View", icon: List },
-    { view: "calendar", label: "Calendar", icon: Calendar },
-    { view: "gantt", label: "Timeline", icon: ChartGantt },
+    { view: "list", label: "Backlog", icon: ListTodo },
+    { view: "calendar", label: "Schedule", icon: CalendarClock },
+    { view: "gantt", label: "Grantt Chart", icon: Route },
   ];
 
 function SidebarTooltip({

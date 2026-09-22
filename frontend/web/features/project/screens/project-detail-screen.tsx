@@ -291,9 +291,9 @@ export default function ProjectDetailScreen() {
   const viewTitle: Record<ProjectViewMode, string> = {
     overview: "Overview",
     board: "Kanban Board",
-    list: "Tasks",
-    calendar: "Calendar",
-    gantt: "Timeline",
+    list: "Backlog",
+    calendar: "Schedule",
+    gantt: "Grantt Chart",
     members: "Members",
   };
 
