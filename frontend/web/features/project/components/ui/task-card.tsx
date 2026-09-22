@@ -5,7 +5,7 @@ import {
   TaskPriority,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
-import { LabelBadge } from "./status-badge";
+import TaskLabelBadges from "./task-label-badges";
 import { AvatarStack } from "./avatar-stack";
 import TaskChatButton from "./task-chat-button";
 import {
@@ -19,7 +19,17 @@ import {
   Equal,
   CheckSquare2,
 } from "lucide-react";
-import { TASK_PRIORITY_LABELS } from "@/features/project/constants/task.constants";
+import {
+  TASK_PRIORITY_LABELS,
+  TASK_PRIORITY_OPTIONS,
+} from "@/features/project/constants/task.constants";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function isOverdue(dueDate?: string): boolean {
   if (!dueDate) return false;
@@ -52,11 +62,15 @@ export default function TaskCard({
   task,
   onClick,
   onOpenChat,
+  onPriorityChange,
+  density = "default",
   canDrag = true,
 }: {
   task: Task;
   onClick?: () => void;
   onOpenChat?: (task: Task) => void;
+  onPriorityChange?: (taskId: string, priority: TaskPriority) => void | Promise<void>;
+  density?: "default" | "compact";
   canDrag?: boolean;
 }) {
   const checklistTotal = task.checklists.length;
@@ -66,8 +80,16 @@ export default function TaskCard({
   const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
   const isDraggable = canDrag && !isTerminalTaskStatus(task.status);
+  const isCompact = density === "compact";
 
   const handleDragStart = (e: React.DragEvent) => {
+    if (
+      e.target instanceof HTMLElement &&
+      e.target.closest("[data-card-interactive='true']")
+    ) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData("text/plain", task.id);
     e.dataTransfer.effectAllowed = "move";
   };
@@ -92,30 +114,34 @@ export default function TaskCard({
           onClick?.();
         }
       }}
-      className={`group w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xs transition duration-150 hover:border-slate-300 hover:bg-slate-50/70 focus-visible:outline-hidden ${
+      className={`group relative w-full overflow-visible rounded-xl border border-slate-200 bg-white text-left shadow-2xs transition duration-150 hover:z-20 hover:border-slate-300 hover:bg-slate-50/70 focus-within:z-20 focus-visible:outline-hidden ${
+        isCompact ? "p-2.5" : "p-3"
+      } ${
         isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
       }`}
     >
       {/* Title */}
-      <p className="text-sm font-semibold leading-snug text-[#172B4D] group-hover:text-[#0052CC] break-words">
+      <p
+        className={`font-semibold leading-snug text-[#172B4D] group-hover:text-[#0052CC] break-words ${
+          isCompact ? "text-[13px]" : "text-sm"
+        }`}
+      >
         {task.title}
       </p>
 
       {/* Labels */}
-      {task.labels.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {task.labels.map((label) => (
-            <LabelBadge key={label.id} name={label.name} color={label.color} />
-          ))}
-        </div>
-      )}
+      <TaskLabelBadges labels={task.labels} className={isCompact ? "mt-1.5" : "mt-2"} />
 
       {/* Meta indicators */}
       {(task.dueDate ||
         checklistTotal > 0 ||
         task.comments.length > 0 ||
         task.estimatedMinutes > 0) && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-semibold text-slate-500">
+        <div
+          className={`flex flex-wrap items-center gap-y-1 text-[11px] font-semibold text-slate-500 ${
+            isCompact ? "mt-2 gap-x-2" : "mt-2.5 gap-x-2.5"
+          }`}
+        >
           {/* Due date */}
           {task.dueDate && (
             <span
@@ -163,7 +189,11 @@ export default function TaskCard({
       )}
 
       {/* Bottom row: Issue Key / Type & Priority / Assignees */}
-      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+      <div
+        className={`border-t border-slate-100 flex items-center justify-between ${
+          isCompact ? "mt-2 pt-2" : "mt-3 pt-2.5"
+        }`}
+      >
         <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium select-none">
           {issueIcon}
           <span className="hover:underline font-semibold text-[11px] uppercase tracking-wide">
@@ -173,13 +203,19 @@ export default function TaskCard({
 
         <div className="flex items-center gap-2">
           <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
-          {/* Priority Icon */}
-          <div
-            className="grid place-items-center h-5 w-5 rounded-md hover:bg-slate-200 transition"
-            title={TASK_PRIORITY_LABELS[task.priority]}
-          >
-            {priorityIcon}
-          </div>
+          {onPriorityChange && !isTerminalTaskStatus(task.status) ? (
+            <TaskPrioritySelect
+              task={task}
+              onPriorityChange={onPriorityChange}
+            />
+          ) : (
+            <div
+              className="grid place-items-center h-5 w-5 rounded-md hover:bg-slate-200 transition"
+              title={TASK_PRIORITY_LABELS[task.priority]}
+            >
+              {priorityIcon}
+            </div>
+          )}
 
           {/* Assignees stack */}
           {task.assignees.length > 0 && (
@@ -195,6 +231,64 @@ export default function TaskCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function TaskPrioritySelect({
+  task,
+  onPriorityChange,
+}: {
+  task: Task;
+  onPriorityChange: (taskId: string, priority: TaskPriority) => void | Promise<void>;
+}) {
+  const issueKey = getIssueKey(task);
+
+  const handleChange = (priority: TaskPriority) => {
+    if (priority === task.priority) return;
+    void onPriorityChange(task.id, priority);
+  };
+
+  const stopCardInteraction = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+  };
+
+  return (
+    <div
+      data-card-interactive="true"
+      onClick={stopCardInteraction}
+      onPointerDown={stopCardInteraction}
+      onKeyDown={stopCardInteraction}
+    >
+      <Select value={task.priority} onValueChange={(value) => handleChange(value as TaskPriority)}>
+        <SelectTrigger
+          aria-label={`Change priority for ${issueKey}`}
+          title={TASK_PRIORITY_LABELS[task.priority]}
+          className="grid h-6 w-6 place-items-center rounded-md border-0 bg-transparent p-0 text-slate-500 shadow-none transition hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-[#0052CC]/30 [&>svg:last-child]:hidden"
+        >
+          <SelectValue>
+            <span className="grid h-5 w-5 place-items-center">
+              {getPriorityIcon(task.priority)}
+            </span>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent
+          align="end"
+          className="min-w-36 rounded-xl border-slate-200 shadow-lg"
+          onClick={stopCardInteraction}
+        >
+          {TASK_PRIORITY_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value} className="text-xs font-semibold">
+              <span className="flex items-center gap-2">
+                <span className="grid h-4 w-4 place-items-center">
+                  {getPriorityIcon(option.value)}
+                </span>
+                {option.label}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

@@ -12,12 +12,10 @@ import {
   type Task,
 } from "@/features/project/types/project";
 import { TaskStatusBadge } from "../ui/status-badge";
-import {
-  ProjectMetricCard,
-  ProjectSummaryPanel,
-  PriorityDistributionBar,
-  MemberWorkloadList,
-} from "../summary";
+import { ProjectMetricCard } from "../summary/project-metric-card";
+import { ProjectSummaryPanel } from "../summary/project-summary-panel";
+import { PriorityDistributionBar } from "../summary/priority-distribution-bar";
+import { MemberWorkloadList } from "../summary/member-workload-list";
 
 import {
   useProjectSummaryMetrics,
@@ -189,7 +187,7 @@ export default function SummaryView({
                 {unscheduled.length}
               </p>
               <p className="text-xs text-slate-500">
-                Tasks needing scheduling in timeline or calendar.
+                Tasks needing scheduling in Roadmap or Schedule.
               </p>
             </div>
           </div>

@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { Flag, Layers } from "lucide-react";
 import { TASK_PRIORITY_OPTIONS } from "@/features/project/constants/task.constants";
 import { TaskPriority, type Task } from "@/features/project/types/project";

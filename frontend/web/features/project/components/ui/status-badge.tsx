@@ -3,7 +3,6 @@
 import React from "react";
 import {
   TaskStatus,
-  TaskPriority,
   ProjectStatus,
 } from "@/features/project/types/project";
 import {
@@ -11,15 +10,12 @@ import {
   Loader2,
   Eye,
   CheckCircle2,
-  ArrowDown,
-  ArrowRight,
-  ArrowUp,
-  Flame,
   Pause,
   Archive,
   Ban,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CustomBadge } from "@/components/ui/custom/custom-badge";
 import { cn } from "@/lib/utils";
 
 // ─── Task Status ──────────────────────────────────────────────────────────────
@@ -57,38 +53,6 @@ const taskStatusConfig: Record<
     color: "text-red-700",
     bg: "bg-red-50 border-red-200",
     icon: Ban,
-  },
-};
-
-// ─── Task Priority ────────────────────────────────────────────────────────────
-
-const taskPriorityConfig: Record<
-  TaskPriority,
-  { label: string; color: string; bg: string; icon: React.ElementType }
-> = {
-  [TaskPriority.LOW]: {
-    label: "Low",
-    color: "text-slate-600",
-    bg: "bg-slate-100 border-slate-200",
-    icon: ArrowDown,
-  },
-  [TaskPriority.MEDIUM]: {
-    label: "Medium",
-    color: "text-sky-700",
-    bg: "bg-sky-50 border-sky-200",
-    icon: ArrowRight,
-  },
-  [TaskPriority.HIGH]: {
-    label: "High",
-    color: "text-orange-700",
-    bg: "bg-orange-50 border-orange-200",
-    icon: ArrowUp,
-  },
-  [TaskPriority.URGENT]: {
-    label: "Urgent",
-    color: "text-red-700",
-    bg: "bg-red-50 border-red-200",
-    icon: Flame,
   },
 };
 
@@ -151,31 +115,6 @@ export function TaskStatusBadge({
   );
 }
 
-export function TaskPriorityBadge({
-  priority,
-  compact = false,
-}: {
-  priority: TaskPriority;
-  compact?: boolean;
-}) {
-  const cfg = taskPriorityConfig[priority] || taskPriorityConfig[TaskPriority.MEDIUM];
-  const Icon = cfg.icon;
-  return (
-    <Badge
-      variant="outline"
-      className={cn(
-        "inline-flex items-center gap-1.5 font-bold transition-all",
-        compact ? "rounded-md px-1 py-0.5 text-[10px]" : "rounded-full px-2.5 py-0.5 text-xs",
-        cfg.bg,
-        cfg.color
-      )}
-    >
-      <Icon className="h-3 w-3 shrink-0" strokeWidth={2.5} />
-      {cfg.label}
-    </Badge>
-  );
-}
-
 export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
   const cfg = projectStatusConfig[status] || projectStatusConfig[ProjectStatus.ACTIVE];
   const Icon = cfg.icon;
@@ -196,12 +135,11 @@ export function ProjectStatusBadge({ status }: { status: ProjectStatus }) {
 
 export function LabelBadge({ name, color }: { name: string; color: string }) {
   return (
-    <Badge
-      variant="outline"
-      className="inline-flex items-center gap-1.5 rounded-full border-transparent px-2 py-0.5 text-[10px] font-bold text-white shadow-2xs"
+    <CustomBadge
+      variantStyle="label"
       style={{ backgroundColor: color }}
     >
       {name}
-    </Badge>
+    </CustomBadge>
   );
 }

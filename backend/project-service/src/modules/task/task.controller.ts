@@ -1,8 +1,8 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
-import { PaginationQueryDto } from '../../common/utils/pagination';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { GetProjectTasksQueryDto } from './dto/get-project-tasks-query.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
 
@@ -19,11 +19,19 @@ export class TaskController {
     return ApiResponse.success(await this.tasks.create(userId, projectId, dto), 'Task created successfully');
   }
 
+  @Get('projects/:projectId/tasks/status-counts')
+  async statusCounts(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return ApiResponse.success(await this.tasks.statusCounts(userId, projectId), 'Task status counts loaded successfully');
+  }
+
   @Get('projects/:projectId/tasks')
   async findAll(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
-    @Query() query: PaginationQueryDto,
+    @Query() query: GetProjectTasksQueryDto,
   ) {
     const result = await this.tasks.findAll(userId, projectId, query);
     return ApiResponse.success(result.items, 'Tasks loaded successfully', result.pagination);

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { CalendarDays, ChevronDown, Layers } from "lucide-react";
 import { toast } from "sonner";
 import {
   type ProjectMember,
@@ -15,6 +15,7 @@ import {
 import {
   taskDateKey,
   formatTaskDateTime,
+  toDateTimeInput,
 } from "@/features/project/utils/task-dates";
 import { Avatar } from "../ui/avatar-stack";
 import { getPriorityIcon } from "../ui/task-card";
@@ -22,14 +23,19 @@ import { TaskDurationSelect } from "../forms/task-duration-select";
 import { TASK_DURATION_PRESETS } from "@/features/project/utils/task-duration.utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
+import { ProjectSelect } from "../ui/project-form-controls";
 
 interface TaskPropertiesPanelProps {
   task: Task;
+  tasks: Task[];
   members: ProjectMember[];
   isReadOnly: boolean;
   memberDisplayName: (userId?: string | null) => string;
   onAssigneeChange: (userId: string | null) => Promise<void> | void;
   onPriorityChange: (priority: TaskPriority) => Promise<void> | void;
+  onParentTaskChange: (parentTaskId: string) => Promise<void> | void;
+  onAllDayChange: (allDay: boolean) => Promise<void> | void;
   onStartDateChange: (val: string) => Promise<void> | void;
   onDueDateChange: (val: string) => Promise<void> | void;
   onEstimateSave: (estimateMinutes: number) => Promise<void> | void;
@@ -37,11 +43,14 @@ interface TaskPropertiesPanelProps {
 
 export default function TaskPropertiesPanel({
   task,
+  tasks,
   members,
   isReadOnly,
   memberDisplayName,
   onAssigneeChange,
   onPriorityChange,
+  onParentTaskChange,
+  onAllDayChange,
   onStartDateChange,
   onDueDateChange,
   onEstimateSave,
@@ -55,12 +64,24 @@ export default function TaskPropertiesPanel({
   const assigneeDropdownRef = useRef<HTMLDivElement>(null);
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // Reset estimate draft when task changes
-    setEstimateDraft(
-      task.estimatedMinutes > 0 ? String(task.estimatedMinutes) : "",
-    );
-  }, [task.id, task.estimatedMinutes]);
+  const parentTaskOptions = [
+    { value: "", label: "No Parent Task (Independent)" },
+    ...tasks
+      .filter(
+        (candidate) =>
+          candidate.id !== task.id && !candidate.parentTaskId,
+      )
+      .map((candidate) => ({
+        value: candidate.id,
+        label: candidate.title,
+      })),
+  ];
+  const startDateValue = task.allDay
+    ? taskDateKey(task.startDate, true)
+    : toDateTimeInput(task.startDate);
+  const dueDateValue = task.allDay
+    ? taskDateKey(task.dueDate, true)
+    : toDateTimeInput(task.dueDate);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -95,6 +116,14 @@ export default function TaskPropertiesPanel({
         avatarUrl: assignedMember?.avatarUrl || taskAssignee.avatarUrl,
       }
     : undefined;
+  const reporterMember = members.find((member) => member.userId === task.reporterId);
+  const reporterName =
+    reporterMember?.displayName || memberDisplayName(task.reporterId);
+  const reporterUser = {
+    userId: task.reporterId,
+    displayName: reporterName,
+    avatarUrl: reporterMember?.avatarUrl,
+  };
 
   const handleEstimateBlur = async () => {
     if (isReadOnly) return;
@@ -271,14 +300,48 @@ export default function TaskPropertiesPanel({
           </div>
         </div>
 
+        {/* Parent Task */}
+        <div className="flex flex-col gap-1 px-3.5 py-2.5">
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <Layers className="h-3 w-3" strokeWidth={2} />
+            Parent Task
+          </span>
+          <ProjectSelect
+            value={task.parentTaskId || ""}
+            options={parentTaskOptions}
+            onChange={onParentTaskChange}
+            ariaLabel="Select parent task"
+            disabled={isReadOnly}
+            className="w-full"
+            triggerClassName="h-8 rounded-lg px-2.5 text-xs"
+            contentClassName="max-h-56"
+          />
+        </div>
+
+        {/* All Day */}
+        <div className="flex flex-col gap-1 px-3.5 py-2.5">
+          <CustomCheckbox
+            checked={task.allDay}
+            disabled={isReadOnly}
+            onCheckedChange={(checked) => void onAllDayChange(Boolean(checked))}
+            label="All Day Event"
+            description="Switch between date-only and date-time scheduling."
+            className="items-start gap-2 rounded-lg border border-slate-200/70 bg-slate-50 px-2.5 py-2"
+            checkboxClassName="mt-0.5 cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
+            labelClassName="text-xs font-bold text-slate-700"
+            descriptionClassName="text-[10px]"
+          />
+        </div>
+
         {/* Start Date */}
         <div className="flex flex-col gap-1 px-3.5 py-2.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Start Date
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <CalendarDays className="h-3 w-3" strokeWidth={2} />
+            {task.allDay ? "Start Date" : "Start Date & Time"}
           </span>
           <Input
-            type="date"
-            value={taskDateKey(task.startDate, task.allDay)}
+            type={task.allDay ? "date" : "datetime-local"}
+            value={startDateValue}
             onChange={(e) => void onStartDateChange(e.target.value)}
             disabled={isReadOnly}
             className="h-8 w-full rounded-lg border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
@@ -287,12 +350,13 @@ export default function TaskPropertiesPanel({
 
         {/* Due Date */}
         <div className="flex flex-col gap-1 px-3.5 py-2.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Due Date
+          <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <CalendarDays className="h-3 w-3" strokeWidth={2} />
+            {task.allDay ? "Due Date" : "Due Date & Time"}
           </span>
           <Input
-            type="date"
-            value={taskDateKey(task.dueDate, task.allDay)}
+            type={task.allDay ? "date" : "datetime-local"}
+            value={dueDateValue}
             onChange={(e) => void onDueDateChange(e.target.value)}
             disabled={isReadOnly}
             className="h-8 w-full rounded-lg border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700"
@@ -330,13 +394,16 @@ export default function TaskPropertiesPanel({
         </div>
 
         {/* Reporter */}
-        <div className="flex flex-col gap-0.5 px-3.5 py-2.5">
+        <div className="flex flex-col gap-1 px-3.5 py-2.5">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
             Reporter
           </span>
-          <span className="mt-0.5 block font-semibold text-slate-700">
-            {memberDisplayName(task.reporterId)}
-          </span>
+          <div className="-ml-1 flex items-center gap-2 rounded-lg p-1.5">
+            <Avatar user={reporterUser} size="xs" />
+            <span className="font-semibold text-slate-700">
+              {reporterName}
+            </span>
+          </div>
         </div>
 
         {/* Timestamps */}

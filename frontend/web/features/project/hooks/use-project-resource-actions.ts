@@ -6,6 +6,7 @@ import {
   useCreateLabel,
   useDeleteLabel,
   useDetachLabel,
+  useUpdateLabel,
 } from "./use-labels";
 import {
   useCreateTaskDependency,
@@ -36,6 +37,7 @@ export function useProjectResourceActions({
 }: ProjectResourceActionsOptions) {
   const createLabelMutation = useCreateLabel(projectId);
   const deleteLabelMutation = useDeleteLabel(projectId);
+  const updateLabelMutation = useUpdateLabel(projectId);
   const attachLabelMutation = useAttachLabel(projectId);
   const detachLabelMutation = useDetachLabel(projectId);
   const createDependencyMutation = useCreateTaskDependency(projectId);
@@ -78,15 +80,50 @@ export function useProjectResourceActions({
       toast.success("Label created");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to create label");
+      throw error;
     }
   };
 
   const deleteLabel = async (labelId: string) => {
     try {
       await deleteLabelMutation.mutateAsync(labelId);
+      setSelectedTask((current) =>
+        current
+          ? {
+              ...current,
+              labels: current.labels.filter((label) => label.id !== labelId),
+            }
+          : current,
+      );
       toast.success("Label deleted");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to delete label");
+    }
+  };
+
+  const updateLabel = async (
+    labelId: string,
+    payload: { name: string; color: string },
+  ) => {
+    try {
+      const updatedLabel = await updateLabelMutation.mutateAsync({
+        labelId,
+        payload,
+      });
+      setSelectedTask((current) =>
+        current
+          ? {
+              ...current,
+              labels: current.labels.map((label) =>
+                label.id === updatedLabel.id ? updatedLabel : label,
+              ),
+            }
+          : current,
+      );
+      toast.success("Label updated");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update label");
+      throw error;
     }
   };
 
@@ -128,6 +165,7 @@ export function useProjectResourceActions({
     deleteDependency,
     createLabel,
     deleteLabel,
+    updateLabel,
     createChecklist,
     updateChecklist,
     deleteChecklist,

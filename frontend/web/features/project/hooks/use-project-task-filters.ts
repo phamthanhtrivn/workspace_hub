@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { enrichProjectTasks, filterProjectTasks } from "../project-task-view";
+import {
+  buildProjectTaskQuery,
+  enrichProjectTasks,
+} from "../project-task-view";
+import { PROJECT_TASK_SEARCH_DEBOUNCE_MS } from "../constants/project.constants";
+import { useDebouncedValue } from "./use-debounced-value";
 import {
   TaskPriority,
   TaskStatus,
@@ -10,9 +15,12 @@ import {
 export function useProjectTaskFilters(
   serverTasks: Task[],
   members: ProjectMember[],
-  currentUserId?: string | null,
 ) {
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearchQuery = useDebouncedValue(
+    searchQuery,
+    PROJECT_TASK_SEARCH_DEBOUNCE_MS,
+  );
   const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [status, setStatus] = useState<TaskStatus | "">("");
   const [priority, setPriority] = useState<TaskPriority | "">("");
@@ -24,28 +32,26 @@ export function useProjectTaskFilters(
     () => enrichProjectTasks(serverTasks, members, statusOverrides),
     [members, serverTasks, statusOverrides],
   );
-  const filteredTasks = useMemo(
+  const taskQuery = useMemo(
     () =>
-      filterProjectTasks(tasks, {
-        searchQuery,
+      buildProjectTaskQuery({
+        searchQuery: debouncedSearchQuery,
         assigneeIds,
         onlyMyIssues,
-        currentUserId,
         status,
         priority,
         quickAssignee,
       }),
     [
       assigneeIds,
-      currentUserId,
+      debouncedSearchQuery,
       onlyMyIssues,
       priority,
       quickAssignee,
-      searchQuery,
       status,
-      tasks,
     ],
   );
+  const hasApiFilters = Object.keys(taskQuery).length > 0;
 
   const toggleAssignee = (userId: string) => {
     setQuickAssignee("");
@@ -73,7 +79,8 @@ export function useProjectTaskFilters(
 
   return {
     tasks,
-    filteredTasks,
+    taskQuery,
+    hasApiFilters,
     searchQuery,
     setSearchQuery,
     assigneeIds,

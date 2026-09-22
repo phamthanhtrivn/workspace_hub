@@ -40,7 +40,7 @@ export async function createLabel(
 
 export async function updateLabel(
   labelId: string,
-  payload: Partial<LabelPayload>,
+  payload: LabelPayload,
 ): Promise<TaskLabel> {
   const response = await api.patch<ApiResponse<TaskLabel>>(
     `/api/labels/${labelId}`,

@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { TaskStatus, type Task } from "../types/project";
+import { TaskStatus } from "../types/project";
 
 export function useProjectTaskFormState() {
   const [isOpen, setIsOpen] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [status, setStatus] = useState<TaskStatus>(TaskStatus.TODO);
   const [startDate, setStartDate] = useState<string>();
   const [allDay, setAllDay] = useState(false);
@@ -15,7 +14,6 @@ export function useProjectTaskFormState() {
     nextAllDay = false,
     nextParentTaskId?: string,
   ) => {
-    setEditingTask(null);
     setStatus(nextStatus);
     setStartDate(nextStartDate);
     setAllDay(nextAllDay);
@@ -23,17 +21,8 @@ export function useProjectTaskFormState() {
     setIsOpen(true);
   };
 
-  const edit = (task: Task) => {
-    setEditingTask(task);
-    setStatus(task.status);
-    setStartDate(undefined);
-    setAllDay(false);
-    setIsOpen(true);
-  };
-
   const close = () => {
     setIsOpen(false);
-    setEditingTask(null);
     setStatus(TaskStatus.TODO);
     setStartDate(undefined);
     setAllDay(false);
@@ -43,14 +32,11 @@ export function useProjectTaskFormState() {
   return {
     isOpen,
     setIsOpen,
-    editingTask,
-    setEditingTask,
     status,
     startDate,
     allDay,
     parentTaskId,
     open,
-    edit,
     close,
   };
 }

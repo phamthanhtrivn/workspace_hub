@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, TaskActivity } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { TaskPolicyService } from '../task/task-policy.service';
 import { paginate, PaginationQueryDto } from '../../common/utils/pagination';

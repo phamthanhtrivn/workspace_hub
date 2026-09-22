@@ -16,8 +16,3 @@ export interface UserProfileSnapshotResponse {
   fullName: string | null;
   avatarUrl: string | null;
 }
-
-export type UserProfileSnapshotMap = Record<
-  string,
-  UserProfileSnapshotResponse
->;

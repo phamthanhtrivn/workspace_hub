@@ -1,10 +1,15 @@
 import { ProjectStatus } from "../types/project";
 
+export const PROJECTS_PER_PAGE = 10;
+export const PROJECT_SEARCH_DEBOUNCE_MS = 350;
+export const PROJECT_TASK_SEARCH_DEBOUNCE_MS = 500;
+export const PROJECT_ID_SUFFIX_LENGTH = 5;
+
 export const PROJECT_FILTER_TABS = [
-  { key: "ALL", label: "All Projects" },
   { key: ProjectStatus.ACTIVE, label: "Active" },
   { key: ProjectStatus.ON_HOLD, label: "On Hold" },
   { key: ProjectStatus.COMPLETED, label: "Completed" },
+  { key: "ALL", label: "All Projects" },
 ] as const;
 
 export const PROJECT_STATUS_SELECT_OPTIONS = [
@@ -12,9 +17,6 @@ export const PROJECT_STATUS_SELECT_OPTIONS = [
   { value: ProjectStatus.ON_HOLD, label: "On Hold" },
   { value: ProjectStatus.COMPLETED, label: "Completed" },
 ] as const;
-
-export const DEFAULT_PROJECT_KEY = "PRJ";
-export const MAX_PROJECT_KEY_LENGTH = 4;
 
 export const PROJECT_SETTINGS_LABELS = {
   DEFAULT_LABEL_COLOR: "#0052CC",

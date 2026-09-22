@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   CheckCircle2,
   Info,
@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { CustomCheckbox } from "@/components/ui/custom/custom-checkbox";
 import { Badge } from "@/components/ui/badge";
 
 interface PermissionOption {
@@ -65,7 +65,7 @@ const MANAGEMENT_PERMISSION_OPTIONS: PermissionOption[] = [
 const DEFAULT_CAPABILITIES = [
   {
     title: "View Project & Tasks",
-    description: "Access project overview, board, list, timeline, and calendar views.",
+    description: "Access project overview, board, backlog, schedule, and roadmap views.",
   },
   {
     title: "Comments & Checklists",
@@ -100,12 +100,6 @@ export default function MemberPermissionsDialog({
     useState<ProjectMemberPermissions | null>(
       member ? getMemberPermissions(member) : null,
     );
-
-  useEffect(() => {
-    if (member) {
-      setPermissions(getMemberPermissions(member));
-    }
-  }, [member]);
 
   if (!open || !member || !permissions) return null;
 
@@ -231,33 +225,24 @@ export default function MemberPermissionsDialog({
 
                 <div className="divide-y divide-slate-100">
                   {group.options.map((option) => (
-                    <label
+                    <CustomCheckbox
                       key={option.key}
-                      className="flex cursor-pointer items-start gap-3 bg-white px-4 py-3 transition hover:bg-blue-50/40"
-                    >
-                      <Checkbox
-                        checked={permissions[option.key]}
-                        onCheckedChange={(checked) =>
-                          setPermissions((current) =>
-                            current
-                              ? {
-                                  ...current,
-                                  [option.key]: Boolean(checked),
-                                }
-                              : current,
-                          )
-                        }
-                        className="mt-0.5 cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
-                      />
-                      <span>
-                        <span className="block text-xs font-bold text-slate-800">
-                          {option.label}
-                        </span>
-                        <span className="mt-0.5 block text-[11px] leading-relaxed text-slate-500">
-                          {option.description}
-                        </span>
-                      </span>
-                    </label>
+                      checked={permissions[option.key]}
+                      onCheckedChange={(checked) =>
+                        setPermissions((current) =>
+                          current
+                            ? {
+                                ...current,
+                                [option.key]: Boolean(checked),
+                              }
+                            : current,
+                        )
+                      }
+                      label={option.label}
+                      description={option.description}
+                      className="bg-white px-4 py-3 transition hover:bg-blue-50/40"
+                      checkboxClassName="mt-0.5 cursor-pointer data-[state=checked]:bg-[#0052CC] data-[state=checked]:border-[#0052CC]"
+                    />
                   ))}
                 </div>
               </fieldset>

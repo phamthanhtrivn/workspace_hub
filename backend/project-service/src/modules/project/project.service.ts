@@ -12,11 +12,13 @@ import {
 } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { ProjectListQueryDto } from './dto/project-list-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
+import { PROJECT_LIST_PAGE_SIZE } from './project.constants';
 import { toMemberResponse, toProjectResponse } from './project.mapper';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
-import { paginate, PaginationQueryDto } from '../../common/utils/pagination';
+import { paginate } from '../../common/utils/pagination';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 
 @Injectable()
@@ -29,7 +31,7 @@ export class ProjectService {
 
   async create(userId: string, dto: CreateProjectDto) {
     const now = new Date();
-    const startDate = this.toDate(dto.startDate) ?? now;
+    const startDate = this.toDate(dto.startDate);
     const dueDate = this.toDate(dto.dueDate);
     this.validateDateRange(startDate, dueDate);
 
@@ -81,12 +83,42 @@ export class ProjectService {
     return toProjectResponse(project, {}, ownerProfile);
   }
 
-  async findAll(userId: string, query: PaginationQueryDto) {
+  async findAll(userId: string, query: ProjectListQueryDto) {
+    const listQuery = {
+      ...query,
+      page: query.page ?? 1,
+      limit: Math.min(query.limit ?? PROJECT_LIST_PAGE_SIZE, PROJECT_LIST_PAGE_SIZE),
+    };
+    const search = query.search?.trim();
     const where: Prisma.ProjectWhereInput = {
       archived: false,
-      OR: [
-        { ownerId: userId },
-        { members: { some: { userId, status: ProjectMemberStatus.ACTIVE } } },
+      ...(query.status ? { status: query.status } : {}),
+      AND: [
+        {
+          OR: [
+            { ownerId: userId },
+            {
+              members: {
+                some: { userId, status: ProjectMemberStatus.ACTIVE },
+              },
+            },
+          ],
+        },
+        ...(search
+          ? [
+              {
+                OR: [
+                  { name: { contains: search, mode: 'insensitive' } },
+                  {
+                    description: {
+                      contains: search,
+                      mode: 'insensitive',
+                    },
+                  },
+                ],
+              } satisfies Prisma.ProjectWhereInput,
+            ]
+          : []),
       ],
     };
     const [total, projects] = await this.prisma.$transaction([
@@ -95,8 +127,8 @@ export class ProjectService {
         where,
         orderBy: [{ updatedAt: 'desc' }, { createdAt: 'desc' }],
         include: { setting: true },
-        skip: (query.page - 1) * query.limit,
-        take: query.limit,
+        skip: (listQuery.page - 1) * listQuery.limit,
+        take: listQuery.limit,
       }),
     ]);
     const projectIds = projects.map((project) => project.id);
@@ -144,7 +176,7 @@ export class ProjectService {
         );
       }),
       total,
-      query,
+      listQuery,
     );
   }
 

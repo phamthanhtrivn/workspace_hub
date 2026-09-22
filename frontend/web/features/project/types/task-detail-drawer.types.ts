@@ -19,7 +19,6 @@ export interface TaskDetailDrawerProps {
   project?: unknown;
   onClose: () => void;
   onOpenChat?: (task: Task) => void;
-  onEdit?: (task: Task) => void;
   onTaskClick?: (task: Task) => void;
   onUpdateTask?: (taskId: string, payload: TaskDrawerUpdatePayload) => Promise<void>;
   onCreateSubtask?: (task: Task) => void;

@@ -44,14 +44,6 @@ export default function ProjectRealtimeManager() {
       }
     };
     const handleChange = (event: ProjectChangedEvent) => {
-      if (process.env.NODE_ENV !== "production") {
-        console.log(
-          "[ProjectRealtime] Received event:",
-          event.resource,
-          event.action,
-          event,
-        );
-      }
       if (event.resource === "TASK") {
         queryClient.setQueryData<Task[]>(
           taskKeys.project(event.projectId),

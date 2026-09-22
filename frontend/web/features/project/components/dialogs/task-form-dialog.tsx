@@ -58,7 +58,6 @@ function FieldLabel({
 
 export default function TaskFormDialog({
   open,
-  task,
   projectName,
   parentTasks = [],
   initialParentTaskId,
@@ -70,7 +69,6 @@ export default function TaskFormDialog({
   isSubmitting = false,
 }: {
   open: boolean;
-  task: Task | null;
   projectName?: string;
   parentTasks?: Task[];
   initialParentTaskId?: string;
@@ -81,27 +79,19 @@ export default function TaskFormDialog({
   onSubmit: (values: TaskFormValues) => Promise<void>;
   isSubmitting?: boolean;
 }) {
-  const [title, setTitle] = useState(task?.title || "");
-  const [description, setDescription] = useState(task?.description || "");
-  const [priority, setPriority] = useState<TaskPriority>(
-    task?.priority || TaskPriority.MEDIUM,
-  );
-  const status = task?.status || initialStatus;
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<TaskPriority>(TaskPriority.MEDIUM);
+  const status = initialStatus;
   const [startDate, setStartDate] = useState(
-    task?.allDay || initialAllDay
-      ? toDateInput(task?.startDate || initialStartDate)
-      : toDateTimeInput(task?.startDate || initialStartDate),
+    initialAllDay
+      ? toDateInput(initialStartDate)
+      : toDateTimeInput(initialStartDate),
   );
-  const [dueDate, setDueDate] = useState(
-    task?.allDay ? toDateInput(task?.dueDate) : toDateTimeInput(task?.dueDate),
-  );
-  const [allDay, setAllDay] = useState(task?.allDay || initialAllDay);
-  const [estimatedMinutes, setEstimatedMinutes] = useState(
-    task?.estimatedMinutes ? String(task.estimatedMinutes) : "",
-  );
-  const [parentTaskId, setParentTaskId] = useState(
-    task?.parentTaskId || initialParentTaskId || "",
-  );
+  const [dueDate, setDueDate] = useState("");
+  const [allDay, setAllDay] = useState(initialAllDay);
+  const [estimatedMinutes, setEstimatedMinutes] = useState("");
+  const [parentTaskId, setParentTaskId] = useState(initialParentTaskId || "");
 
   const handleClose = () => {
     if (isSubmitting) return;
@@ -144,12 +134,10 @@ export default function TaskFormDialog({
               {projectName ? `Project: ${projectName}` : "Project"}
             </p>
             <DialogTitle className="mt-1 text-xl font-bold tracking-tight text-[#172B4D]">
-              {task ? "Edit Task" : "Create New Task"}
+              Create New Task
             </DialogTitle>
             <DialogDescription className="mt-1 text-xs text-slate-500">
-              {task
-                ? "Update task details, assignees, dates, and estimates."
-                : "Fill in the details below to create a new task in this project."}
+              Fill in the details below to create a new task in this project.
             </DialogDescription>
           </DialogHeader>
 
@@ -193,7 +181,6 @@ export default function TaskFormDialog({
               parentTaskId={parentTaskId}
               onParentTaskIdChange={setParentTaskId}
               parentTasks={parentTasks}
-              currentTaskId={task?.id}
             />
 
             <TaskDateRangeFields
@@ -241,7 +228,7 @@ export default function TaskFormDialog({
                 disabled={!title.trim() || isSubmitting}
                 className="cursor-pointer rounded-xl bg-[#0052CC] font-bold text-white shadow-sm hover:bg-[#0747A6] disabled:opacity-50"
               >
-                {isSubmitting ? "Saving..." : task ? "Save Changes" : "Create Task"}
+                {isSubmitting ? "Saving..." : "Create Task"}
               </Button>
             </div>
           </DialogFooter>

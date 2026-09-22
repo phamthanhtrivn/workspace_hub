@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { AlertTriangle, HelpCircle, Info, Trash2 } from "lucide-react";
 import {
   AlertDialog,

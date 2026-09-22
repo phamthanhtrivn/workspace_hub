@@ -43,7 +43,6 @@ export const GANTT_ZOOM_CONFIG: Record<
   },
 };
 
-export const GANTT_DAY_WIDTH = GANTT_ZOOM_CONFIG.day.dayWidth;
 export const GANTT_LABEL_WIDTH = 280;
 
 export interface GanttMonthColumn {

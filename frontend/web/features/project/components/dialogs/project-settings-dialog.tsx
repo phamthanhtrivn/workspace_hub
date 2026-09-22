@@ -10,6 +10,10 @@ import {
 import {
   PROJECT_STATUS_SELECT_OPTIONS,
 } from "@/features/project/constants/project.constants";
+import {
+  PROJECT_COLOR_OPTIONS,
+  PROJECT_ICON_OPTIONS,
+} from "@/features/project/constants/project-form.constants";
 import { ProjectLabelManager } from "../forms/project-label-manager";
 import {
   Dialog,
@@ -23,6 +27,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ProjectSelect } from "../ui/project-form-controls";
+import ProjectPreviewCard from "../ui/project-preview-card";
+import { cn } from "@/lib/utils";
 
 export default function ProjectSettingsDialog({
   project,
@@ -32,8 +38,10 @@ export default function ProjectSettingsDialog({
   onSave,
   onArchive,
   canEditProject = true,
+  showLabelManager = false,
   labels = [],
   onCreateLabel,
+  onUpdateLabel,
   onDeleteLabel,
 }: {
   project: Project;
@@ -42,6 +50,8 @@ export default function ProjectSettingsDialog({
   onClose: () => void;
   onSave: (payload: {
     name: string;
+    color: string;
+    icon: string;
     description: string;
     status: ProjectStatus;
     startDate: string | null;
@@ -49,12 +59,19 @@ export default function ProjectSettingsDialog({
   }) => Promise<void>;
   onArchive: () => Promise<void>;
   canEditProject?: boolean;
+  showLabelManager?: boolean;
   labels?: TaskLabel[];
   onCreateLabel?: (payload: { name: string; color: string }) => Promise<void>;
+  onUpdateLabel?: (
+    labelId: string,
+    payload: { name: string; color: string },
+  ) => Promise<void>;
   onDeleteLabel?: (labelId: string) => Promise<void>;
 }) {
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description || "");
+  const [selectedColor, setSelectedColor] = useState(project.color);
+  const [selectedIcon, setSelectedIcon] = useState(project.icon);
   const [status, setStatus] = useState(project.status);
   const [startDate, setStartDate] = useState(
     project.startDate?.slice(0, 10) || "",
@@ -67,6 +84,8 @@ export default function ProjectSettingsDialog({
     if (startDate && dueDate && startDate > dueDate) return;
     await onSave({
       name: name.trim(),
+      color: selectedColor,
+      icon: selectedIcon,
       description: description.trim(),
       status,
       startDate: startDate || null,
@@ -90,6 +109,14 @@ export default function ProjectSettingsDialog({
           </DialogHeader>
 
           <div className="space-y-4 px-6 py-5 max-h-[calc(100dvh-16rem)] overflow-y-auto">
+            <ProjectPreviewCard
+              name={name}
+              description={description}
+              icon={selectedIcon}
+              color={selectedColor}
+              fallbackName={project.name || "Untitled Project"}
+            />
+
             {canEditProject && (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -142,6 +169,72 @@ export default function ProjectSettingsDialog({
                   />
                 </label>
 
+                <fieldset>
+                  <legend className="block text-xs font-bold text-slate-600">
+                    Project Icon
+                  </legend>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {PROJECT_ICON_OPTIONS.map((icon) => {
+                      const selected = selectedIcon === icon;
+
+                      return (
+                        <Button
+                          key={icon}
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Project icon: ${icon}`}
+                          aria-pressed={selected}
+                          onClick={() => setSelectedIcon(icon)}
+                          className={cn(
+                            "h-9 w-9 cursor-pointer rounded-xl border p-0 text-base transition duration-150",
+                            selected
+                              ? "border-[#0052CC] bg-[#E8F0FE] shadow-sm ring-1 ring-[#0052CC]/20 hover:bg-[#E8F0FE]"
+                              : "border-transparent bg-slate-100 hover:border-slate-300 hover:bg-slate-200",
+                          )}
+                        >
+                          {icon}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
+                <fieldset>
+                  <legend className="block text-xs font-bold text-slate-600">
+                    Theme Color
+                  </legend>
+                  <div className="mt-2 flex flex-wrap gap-2.5">
+                    {PROJECT_COLOR_OPTIONS.map((color) => {
+                      const selected = selectedColor === color;
+
+                      return (
+                        <Button
+                          key={color}
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Project color: ${color}`}
+                          aria-pressed={selected}
+                          onClick={() => setSelectedColor(color)}
+                          className={cn(
+                            "h-8 w-8 cursor-pointer rounded-full border-2 border-white p-0 shadow-sm transition duration-150",
+                            selected
+                              ? "scale-110 hover:scale-110"
+                              : "hover:scale-105 hover:shadow-md",
+                          )}
+                          style={{
+                            backgroundColor: color,
+                            boxShadow: selected
+                              ? `0 0 0 2px #ffffff, 0 0 0 4px ${color}`
+                              : undefined,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                </fieldset>
+
                 <div>
                   <span className="block mb-1 text-xs font-bold text-slate-600">
                     Status
@@ -160,13 +253,14 @@ export default function ProjectSettingsDialog({
               </>
             )}
 
-            {onCreateLabel && (
+            {showLabelManager ? (
               <ProjectLabelManager
                 labels={labels}
                 onCreateLabel={onCreateLabel}
+                onUpdateLabel={onUpdateLabel}
                 onDeleteLabel={onDeleteLabel}
               />
-            )}
+            ) : null}
           </div>
 
           <DialogFooter className="flex items-center justify-between gap-2 border-t border-slate-100 bg-slate-50/70 px-6 py-4">

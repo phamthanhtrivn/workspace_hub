@@ -10,6 +10,7 @@ import type { ProjectPermissions } from "@/features/project/project-permissions"
 import type { ProjectViewMode } from "./project-detail-sidebar";
 import {
   isTerminalTaskStatus,
+  TaskPriority,
   TaskStatus,
   type Project,
   type ProjectMember,
@@ -39,6 +40,7 @@ interface ProjectDetailContentProps {
   onTaskSelect: (task: Task) => void;
   onChatOpen: (task: Task) => void;
   onTaskMove: (taskId: string, status: TaskStatus) => Promise<void>;
+  onTaskPriorityChange: (taskId: string, priority: TaskPriority) => Promise<void>;
   onCreateTaskInline: (title: string, parentTaskId?: string) => Promise<void>;
   onViewChange?: (view: ProjectViewMode) => void;
   onTaskReschedule?: (taskId: string, targetDateKey: string) => Promise<void>;
@@ -74,7 +76,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
         </div>
       );
 
-    if (props.viewMode === "summary") {
+    if (props.viewMode === "overview") {
       return (
         <SummaryView tasks={props.tasks} members={props.members} />
       );
@@ -86,8 +88,10 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           onTaskClick={props.onTaskSelect}
           onOpenChat={props.onChatOpen}
           onTaskMove={props.onTaskMove}
+          onTaskPriorityChange={props.onTaskPriorityChange}
           onAddTask={permissions.canCreateTask ? props.openTaskForm : undefined}
           canMoveTask={permissions.canContributeTask}
+          canEditTask={permissions.canEditTask}
         />
       );
     }
@@ -137,12 +141,6 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           tasks={props.tasks}
           dependencies={props.dependencies}
           onTaskClick={props.onTaskSelect}
-          onTaskReschedule={props.onTaskReschedule}
-          canEditTask={(task) =>
-            !isTerminalTaskStatus(task.status) &&
-            (permissions.canEditTask(task) ||
-              permissions.canContributeTask(task))
-          }
         />
       );
     }
@@ -164,7 +162,18 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
 
   return (
     <div className="relative mt-5 flex min-h-0 flex-1 gap-5 overflow-hidden">
-      <div className="min-w-0 flex-1 overflow-y-auto pr-1">{renderView()}</div>
+      <div
+        className={
+          props.viewMode === "board" ||
+          props.viewMode === "list" ||
+          props.viewMode === "calendar" ||
+          props.viewMode === "gantt"
+            ? "min-w-0 flex-1 overflow-hidden pr-1"
+            : "min-w-0 flex-1 overflow-y-auto pr-1"
+        }
+      >
+        {renderView()}
+      </div>
       {props.showMembers && props.viewMode !== "members" && (
         <div className="hidden w-72 shrink-0 overflow-y-auto border-l border-slate-200 pl-4 lg:block">
           {memberPanel}

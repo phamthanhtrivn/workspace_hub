@@ -11,17 +11,22 @@ import {
   getProjects,
   updateProject,
   type CreateProjectPayload,
+  type ProjectListQuery,
   type UpdateProjectPayload,
 } from "../api/project.api";
 
 export const projectKeys = {
   all: ["projects"] as const,
+  list: (query: ProjectListQuery) => ["projects", "list", query] as const,
   detail: (projectId: string) => ["projects", projectId] as const,
   members: (projectId: string) => ["projects", projectId, "members"] as const,
 };
 
-export function useProjects() {
-  return useQuery({ queryKey: projectKeys.all, queryFn: getProjects });
+export function useProjects(query: ProjectListQuery) {
+  return useQuery({
+    queryKey: projectKeys.list(query),
+    queryFn: () => getProjects(query),
+  });
 }
 
 export function useProject(projectId: string) {

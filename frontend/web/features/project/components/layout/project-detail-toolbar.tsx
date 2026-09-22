@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Plus, UserPlus } from "lucide-react";
+import { Menu, Plus, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
 import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
@@ -12,13 +12,23 @@ import {
   type ProjectMember,
   type Task,
 } from "@/features/project/types/project";
+import type { ProjectTaskStatusCounts } from "@/features/project/api/task.api";
 import type { ProjectViewMode } from "./project-detail-sidebar";
 import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface ProjectDetailToolbarProps {
   project: Project;
   members: ProjectMember[];
   tasks: Task[];
+  taskStatusCounts?: ProjectTaskStatusCounts;
   viewTitle: string;
   viewMode?: ProjectViewMode;
   searchQuery: string;
@@ -30,6 +40,7 @@ interface ProjectDetailToolbarProps {
   isFiltersActive: boolean;
   canCreateTask: boolean;
   canInviteMembers?: boolean;
+  onViewChange?: (view: ProjectViewMode) => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: TaskStatus | "") => void;
   onPriorityChange: (value: TaskPriority | "") => void;
@@ -38,16 +49,24 @@ interface ProjectDetailToolbarProps {
   onToggleOnlyMyIssues: () => void;
   onClearFilters: () => void;
   onToggleMembers?: () => void;
+  onOpenProjectNavigation: () => void;
   onCreateTask: () => void;
   onInviteMembers?: () => void;
 }
 
-function TaskStatusCounts({ tasks }: { tasks: Task[] }) {
+function TaskStatusCounts({
+  tasks,
+  counts,
+}: {
+  tasks: Task[];
+  counts?: ProjectTaskStatusCounts;
+}) {
   const count = (status: TaskStatus) =>
+    counts?.[status] ??
     tasks.filter((task) => task.status === status && !task.archived).length;
 
   return (
-    <div className="ml-auto flex items-center gap-3 rounded-lg bg-slate-100/80 px-2.5 py-1 text-[11px] font-bold text-slate-500">
+    <div className="flex w-fit items-center gap-3 rounded-lg bg-slate-100/80 px-2.5 py-1 text-[11px] font-bold text-slate-500">
       <span>{count(TaskStatus.TODO)} To Do</span>
       <span className="h-3 w-px bg-slate-200" />
       <span className="text-blue-600">{count(TaskStatus.IN_PROGRESS)} In Progress</span>
@@ -65,6 +84,7 @@ export default function ProjectDetailToolbar({
   project,
   members,
   tasks,
+  taskStatusCounts,
   viewTitle,
   searchQuery,
   statusFilter,
@@ -76,6 +96,7 @@ export default function ProjectDetailToolbar({
   canCreateTask,
   viewMode,
   canInviteMembers,
+  onViewChange,
   onSearchChange,
   onStatusChange,
   onPriorityChange,
@@ -83,6 +104,7 @@ export default function ProjectDetailToolbar({
   onToggleAssignee,
   onToggleOnlyMyIssues,
   onClearFilters,
+  onOpenProjectNavigation,
   onCreateTask,
   onInviteMembers,
 }: ProjectDetailToolbarProps) {
@@ -90,14 +112,44 @@ export default function ProjectDetailToolbar({
 
   return (
     <>
-      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-        <Link href="/projects" className="transition hover:text-blue-600">
-          Projects
-        </Link>
-        <ChevronRight className="h-3 w-3 text-slate-400" />
-        <span>{project.name}</span>
-        <ChevronRight className="h-3 w-3 text-slate-400" />
-        <span className="capitalize text-slate-700">{viewTitle}</span>
+      <div className="flex min-w-0 items-center gap-1.5 text-xs font-medium text-slate-500">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={onOpenProjectNavigation}
+          aria-label="Open project navigation"
+          className="mr-1 h-8 w-8 shrink-0 text-slate-600 hover:bg-slate-100 hover:text-[#0052CC] lg:hidden"
+        >
+          <Menu className="h-4 w-4" />
+        </Button>
+        <Breadcrumb className="min-w-0">
+          <BreadcrumbList className="flex-nowrap text-xs font-medium text-slate-500">
+            <BreadcrumbItem className="shrink-0">
+              <BreadcrumbLink asChild className="hover:text-blue-600">
+                <Link href="/projects">Projects</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="shrink-0 text-slate-400" />
+            <BreadcrumbItem className="min-w-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewChange?.("overview")}
+                className="h-auto min-w-0 justify-start rounded-sm p-0 text-xs font-medium text-slate-500 shadow-none hover:bg-transparent hover:text-blue-600 focus-visible:ring-[#0052CC]/30"
+              >
+                <span className="truncate">{project.name}</span>
+              </Button>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="shrink-0 text-slate-400" />
+            <BreadcrumbItem className="shrink-0">
+              <BreadcrumbPage className="font-semibold text-slate-700">
+                {viewTitle}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
 
       <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -139,83 +191,87 @@ export default function ProjectDetailToolbar({
       </div>
 
       {!isMembersView && (
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
-          <ProjectSearchInput
-            value={searchQuery}
-            onChange={onSearchChange}
-            placeholder="Search tasks..."
-            ariaLabel="Search tasks"
-            className="flex-none w-48 sm:w-56"
-          />
-
-          <TaskQuickFilters
-            members={members}
-            status={statusFilter}
-            priority={priorityFilter}
-            assignee={assigneeFilter}
-            onStatusChange={onStatusChange}
-            onPriorityChange={onPriorityChange}
-            onAssigneeChange={onAssigneeChange}
-          />
-
-          <div className="flex items-center gap-1">
-            <span className="mr-1 text-xs font-semibold text-slate-500">
-              Assignee:
-            </span>
-            <div className="flex -space-x-1.5">
-              {members.map((member) => {
-                const isSelected = selectedAssigneeIds.includes(member.userId);
-                return (
-                  <Button
-                    key={member.id}
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onToggleAssignee(member.userId)}
-                    title={member.displayName}
-                    className={[
-                      "relative h-6 w-6 rounded-full ring-2 transition-transform cursor-pointer p-0",
-                      isSelected
-                        ? "z-10 scale-110 ring-[#0052CC]"
-                        : "ring-white hover:z-10 hover:scale-105",
-                    ].join(" ")}
-                  >
-                    <AvatarStack users={[member]} size="xs" max={1} />
-                  </Button>
-                );
-              })}
-            </div>
+        <>
+          <div className="mt-4">
+            <TaskStatusCounts tasks={tasks} counts={taskStatusCounts} />
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onToggleOnlyMyIssues}
-            className={[
-              "h-9 rounded-xl px-3 text-xs font-semibold transition cursor-pointer",
-              onlyMyIssues
-                ? "border-[#C0B6F2] bg-[#EAE6FF] text-[#403294] hover:bg-[#EAE6FF]"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-            ].join(" ")}
-          >
-            Only My Tasks
-          </Button>
+          <div className="mt-3 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
+            <ProjectSearchInput
+              value={searchQuery}
+              onChange={onSearchChange}
+              placeholder="Search tasks..."
+              ariaLabel="Search tasks"
+              className="flex-none w-48 sm:w-56"
+            />
 
-          {isFiltersActive && (
+            <TaskQuickFilters
+              members={members}
+              status={statusFilter}
+              priority={priorityFilter}
+              assignee={assigneeFilter}
+              onStatusChange={onStatusChange}
+              onPriorityChange={onPriorityChange}
+              onAssigneeChange={onAssigneeChange}
+            />
+
+            <div className="flex items-center gap-1">
+              <span className="mr-1 text-xs font-semibold text-slate-500">
+                Assignee:
+              </span>
+              <div className="flex -space-x-1.5">
+                {members.map((member) => {
+                  const isSelected = selectedAssigneeIds.includes(member.userId);
+                  return (
+                    <Button
+                      key={member.id}
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onToggleAssignee(member.userId)}
+                      title={member.displayName}
+                      className={[
+                        "relative h-6 w-6 rounded-full ring-2 transition-transform cursor-pointer p-0",
+                        isSelected
+                          ? "z-10 scale-110 ring-[#0052CC]"
+                          : "ring-white hover:z-10 hover:scale-105",
+                      ].join(" ")}
+                    >
+                      <AvatarStack users={[member]} size="xs" max={1} />
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
             <Button
               type="button"
-              variant="link"
+              variant="outline"
               size="sm"
-              onClick={onClearFilters}
-              className="h-auto p-0 text-xs font-bold text-[#0052CC] hover:underline cursor-pointer"
+              onClick={onToggleOnlyMyIssues}
+              className={[
+                "h-9 rounded-xl px-3 text-xs font-semibold transition cursor-pointer",
+                onlyMyIssues
+                  ? "border-[#C0B6F2] bg-[#EAE6FF] text-[#403294] hover:bg-[#EAE6FF]"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+              ].join(" ")}
             >
-              Clear filters
+              Only My Tasks
             </Button>
-          )}
 
-          <TaskStatusCounts tasks={tasks} />
-        </div>
+            {isFiltersActive && (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                onClick={onClearFilters}
+                className="h-auto p-0 text-xs font-bold text-[#0052CC] hover:underline cursor-pointer"
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </>
       )}
     </>
   );

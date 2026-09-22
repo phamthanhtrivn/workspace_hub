@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   type Task,
+  TaskPriority,
   TaskStatus,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
@@ -17,27 +18,26 @@ import {
 } from "@/features/project/hooks/use-projects";
 import {
   useCreateTask,
+  useProjectTaskStatusCounts,
   useProjectTasks,
   useUpdateTask,
 } from "@/features/project/hooks/use-tasks";
 import { useProjectLabels } from "@/features/project/hooks/use-labels";
 import { useProjectDependencies } from "@/features/project/hooks/use-dependencies";
+import ProjectDetailContent from "@/features/project/components/layout/project-detail-content";
+import ProjectDetailSidebar, {
+  type ProjectViewMode,
+} from "@/features/project/components/layout/project-detail-sidebar";
+import ProjectDetailToolbar from "@/features/project/components/layout/project-detail-toolbar";
 import {
-  ProjectDetailContent,
-  ProjectDetailSidebar,
-  ProjectDetailToolbar,
   ProjectDetailLoading,
   ProjectDetailNotFound,
-  type ProjectViewMode,
-} from "@/features/project/components/layout";
-import { TaskDetailDrawer } from "@/features/project/components/task-detail";
-import {
-  TaskChatDialog,
-  TaskFormDialog,
-  InviteMemberDialog,
-  ProjectSettingsDialog,
-} from "@/features/project/components/dialogs";
-import { getProjectKey } from "@/features/project/utils/project.utils";
+} from "@/features/project/components/layout/project-detail-fallback";
+import TaskDetailDrawer from "@/features/project/components/task-detail/task-detail-drawer";
+import TaskChatDialog from "@/features/project/components/dialogs/task-chat-dialog";
+import TaskFormDialog from "@/features/project/components/dialogs/task-form-dialog";
+import InviteMemberDialog from "@/features/project/components/dialogs/invite-member-dialog";
+import ProjectSettingsDialog from "@/features/project/components/dialogs/project-settings-dialog";
 import {
   getProjectPermissions,
   NO_PROJECT_PERMISSIONS,
@@ -46,8 +46,10 @@ import { useProjectTaskFilters } from "@/features/project/hooks/use-project-task
 import { useProjectTaskFormState } from "@/features/project/hooks/use-project-task-form-state";
 import { useProjectResourceActions } from "@/features/project/hooks/use-project-resource-actions";
 import { useProjectTaskActions } from "@/features/project/hooks/use-project-task-actions";
+import { enrichProjectTasks } from "@/features/project/project-task-view";
 import { createProjectSettingsActions } from "@/features/project/project-settings-actions";
 import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
+import { useProjectSidebarState } from "@/features/project/hooks/use-project-sidebar-state";
 import { projectSocketService } from "../api/project-socket.service";
 
 export default function ProjectDetailScreen() {
@@ -60,6 +62,7 @@ export default function ProjectDetailScreen() {
     isLoading: tasksLoading,
     isError: tasksError,
   } = useProjectTasks(projectId);
+  const taskStatusCountsQuery = useProjectTaskStatusCounts(projectId);
   const createTaskMutation = useCreateTask(projectId);
   const updateTaskMutation = useUpdateTask(projectId);
   const updateProjectMutation = useUpdateProject(projectId);
@@ -105,18 +108,37 @@ export default function ProjectDetailScreen() {
 
   const {
     isOpen: showTaskForm,
-    editingTask,
     status: newTaskStatus,
     startDate: newTaskStartDate,
     allDay: newTaskAllDay,
     parentTaskId: newTaskParentId,
     open: openCreateTask,
-    edit: editTask,
     close: closeTaskForm,
   } = useProjectTaskFormState();
 
   // Sidebar state
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const {
+    isCollapsed: isSidebarCollapsed,
+    isMobileOpen: isMobileSidebarOpen,
+    toggleCollapsed: handleSidebarToggle,
+    openMobile: openMobileSidebar,
+    closeMobile: closeMobileSidebar,
+  } = useProjectSidebarState();
+
+  const handleSidebarViewChange = (view: ProjectViewMode) => {
+    setViewMode(view);
+    closeMobileSidebar();
+  };
+
+  const handleSidebarInvite = () => {
+    closeMobileSidebar();
+    setShowInviteDialog(true);
+  };
+
+  const handleSidebarSettings = () => {
+    closeMobileSidebar();
+    setShowProjectSettings(true);
+  };
 
   function rejectCompletedTaskChange(taskId: string): boolean {
     const target = serverTasks.find((task) => task.id === taskId);
@@ -144,6 +166,7 @@ export default function ProjectDetailScreen() {
     createDependency: handleCreateDependency,
     deleteDependency: handleDeleteDependency,
     createLabel: handleCreateLabel,
+    updateLabel: handleUpdateLabel,
     deleteLabel: handleDeleteLabel,
     createChecklist: handleCreateChecklist,
     updateChecklist: handleUpdateChecklist,
@@ -159,7 +182,8 @@ export default function ProjectDetailScreen() {
 
   const {
     tasks,
-    filteredTasks,
+    taskQuery,
+    hasApiFilters,
     searchQuery,
     setSearchQuery,
     assigneeIds: activeAssigneeFilters,
@@ -176,7 +200,21 @@ export default function ProjectDetailScreen() {
     toggleAssignee: toggleAssigneeFilter,
     clear: clearAllFilters,
     isActive: isFiltersActive,
-  } = useProjectTaskFilters(serverTasks, members, currentUserId);
+  } = useProjectTaskFilters(serverTasks, members);
+
+  const {
+    data: filteredServerTasks = [],
+    isLoading: filteredTasksLoading,
+    isError: filteredTasksError,
+  } = useProjectTasks(projectId, taskQuery, hasApiFilters);
+  const visibleTaskSource = hasApiFilters ? filteredServerTasks : serverTasks;
+  const filteredTasks = useMemo(
+    () => enrichProjectTasks(visibleTaskSource, members, setTaskStatusOverrides),
+    [members, setTaskStatusOverrides, visibleTaskSource],
+  );
+  const visibleTasksLoading =
+    tasksLoading || (hasApiFilters && filteredTasksLoading);
+  const visibleTasksError = tasksError || (hasApiFilters && filteredTasksError);
 
   const {
     moveTask: handleTaskMove,
@@ -187,7 +225,6 @@ export default function ProjectDetailScreen() {
     tasks,
     members,
     permissions,
-    editingTask,
     setSelectedTask,
     setStatusOverrides: setTaskStatusOverrides,
     rejectChange: rejectCompletedTaskChange,
@@ -218,6 +255,14 @@ export default function ProjectDetailScreen() {
     }
   };
 
+  const handleTaskPriorityChange = async (
+    taskId: string,
+    priority: TaskPriority,
+  ) => {
+    await handleUpdateTaskDirect(taskId, { priority });
+    toast.success("Task priority updated");
+  };
+
   const handleCreateTaskInline = async (title: string, parentTaskId?: string) => {
     try {
       await createTaskMutation.mutateAsync({
@@ -242,14 +287,13 @@ export default function ProjectDetailScreen() {
     return <ProjectDetailNotFound />;
   }
 
-  const projectKey = getProjectKey(project.name);
   const projectWithMembers = { ...project, members };
   const viewTitle: Record<ProjectViewMode, string> = {
-    summary: "Summary",
-    board: "Board",
-    list: "Tasks",
-    calendar: "Calendar",
-    gantt: "Timeline",
+    overview: "Overview",
+    board: "Kanban Board",
+    list: "Backlog",
+    calendar: "Schedule",
+    gantt: "Grantt Chart",
     members: "Members",
   };
 
@@ -265,25 +309,27 @@ export default function ProjectDetailScreen() {
       <ProjectDetailSidebar
         project={project}
         members={projectWithMembers.members}
-        projectKey={projectKey}
         viewMode={viewMode}
         isCollapsed={isSidebarCollapsed}
+        isMobileOpen={isMobileSidebarOpen}
         canOpenSettings={
           permissions.canManageProject || permissions.canManageLabels
         }
         canInviteMembers={permissions.canInviteMembers}
-        onInviteMembers={() => setShowInviteDialog(true)}
-        onViewChange={setViewMode}
-        onToggle={() => setIsSidebarCollapsed((collapsed) => !collapsed)}
-        onOpenSettings={() => setShowProjectSettings(true)}
+        onInviteMembers={handleSidebarInvite}
+        onViewChange={handleSidebarViewChange}
+        onToggle={handleSidebarToggle}
+        onMobileClose={closeMobileSidebar}
+        onOpenSettings={handleSidebarSettings}
       />
 
       {/* ── Main Content Area ── */}
-      <main className="flex-1 flex flex-col min-w-0 bg-white overflow-y-auto px-8 py-6">
+      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-white px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
         <ProjectDetailToolbar
           project={project}
           members={projectWithMembers.members}
           tasks={tasks}
+          taskStatusCounts={taskStatusCountsQuery.data}
           viewTitle={viewTitle[viewMode]}
           viewMode={viewMode}
           searchQuery={searchQuery}
@@ -295,6 +341,7 @@ export default function ProjectDetailScreen() {
           isFiltersActive={isFiltersActive}
           canCreateTask={permissions.canCreateTask}
           canInviteMembers={permissions.canInviteMembers}
+          onViewChange={setViewMode}
           onSearchChange={setSearchQuery}
           onStatusChange={setStatusFilter}
           onPriorityChange={setPriorityFilter}
@@ -306,6 +353,7 @@ export default function ProjectDetailScreen() {
           onToggleOnlyMyIssues={() => setOnlyMyIssues((value) => !value)}
           onClearFilters={clearAllFilters}
           onToggleMembers={() => setShowMembers((visible) => !visible)}
+          onOpenProjectNavigation={openMobileSidebar}
           onCreateTask={() => openCreateTask()}
           onInviteMembers={() => setShowInviteDialog(true)}
         />
@@ -317,14 +365,15 @@ export default function ProjectDetailScreen() {
           tasks={filteredTasks}
           members={projectWithMembers.members}
           dependencies={dependencies}
-          isLoading={tasksLoading}
-          isError={tasksError}
+          isLoading={visibleTasksLoading}
+          isError={visibleTasksError}
           showMembers={showMembers}
           permissions={permissions}
           openTaskForm={openCreateTask}
           onTaskSelect={setSelectedTask}
           onChatOpen={setChatTask}
           onTaskMove={handleTaskMove}
+          onTaskPriorityChange={handleTaskPriorityChange}
           onCreateTaskInline={handleCreateTaskInline}
           onViewChange={setViewMode}
           onTaskReschedule={handleTaskReschedule}
@@ -334,6 +383,7 @@ export default function ProjectDetailScreen() {
       {/* ── Task detail drawer ── */}
       {selectedTask && (
         <TaskDetailDrawer
+          key={selectedTask.id}
           task={selectedTask}
           tasks={tasks}
           members={projectWithMembers.members}
@@ -359,15 +409,6 @@ export default function ProjectDetailScreen() {
                   if (rejectCompletedTaskChange(task.id)) return;
                   setSelectedTask(null);
                   openCreateTask(TaskStatus.TODO, undefined, false, task.id);
-                }
-              : undefined
-          }
-          onEdit={
-            permissions.canEditTask(selectedTask)
-              ? (task) => {
-                  if (rejectCompletedTaskChange(task.id)) return;
-                  setSelectedTask(null);
-                  editTask(task);
                 }
               : undefined
           }
@@ -406,9 +447,13 @@ export default function ProjectDetailScreen() {
           onSave={handleSaveProjectSettings}
           onArchive={handleArchiveProject}
           canEditProject={permissions.canManageProject}
+          showLabelManager={permissions.canManageLabels}
           labels={labels}
           onCreateLabel={
             permissions.canManageLabels ? handleCreateLabel : undefined
+          }
+          onUpdateLabel={
+            permissions.canManageLabels ? handleUpdateLabel : undefined
           }
           onDeleteLabel={
             permissions.canManageLabels ? handleDeleteLabel : undefined
@@ -417,9 +462,8 @@ export default function ProjectDetailScreen() {
       )}
 
       <TaskFormDialog
-        key={`${showTaskForm}-${editingTask?.id ?? "new"}-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}`}
+        key={`${showTaskForm}-new-${newTaskStatus}-${newTaskStartDate ?? ""}-${newTaskAllDay}-${newTaskParentId ?? ""}`}
         open={showTaskForm}
-        task={editingTask}
         projectName={project.name}
         parentTasks={tasks}
         initialParentTaskId={newTaskParentId}
@@ -428,9 +472,7 @@ export default function ProjectDetailScreen() {
         initialAllDay={newTaskAllDay}
         onClose={closeTaskForm}
         onSubmit={handleTaskSubmit}
-        isSubmitting={
-          createTaskMutation.isPending || updateTaskMutation.isPending
-        }
+        isSubmitting={createTaskMutation.isPending}
       />
     </div>
   );

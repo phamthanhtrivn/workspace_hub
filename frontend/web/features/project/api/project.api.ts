@@ -6,7 +6,7 @@ import {
   type ProjectMember,
   type ProjectSetting,
 } from "@/features/project/types/project";
-import { fetchAllPages, type PaginationMeta } from "./pagination";
+import type { PaginationMeta } from "./pagination";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -64,6 +64,9 @@ export interface CreateProjectPayload {
   name: string;
   color: string;
   icon: string;
+  description?: string;
+  startDate?: string | null;
+  dueDate?: string | null;
 }
 
 export interface UpdateProjectPayload {
@@ -74,6 +77,18 @@ export interface UpdateProjectPayload {
   description?: string;
   startDate?: string | null;
   dueDate?: string | null;
+}
+
+export interface ProjectListQuery {
+  page: number;
+  limit: number;
+  search?: string;
+  status?: ProjectStatus;
+}
+
+export interface ProjectListResponse {
+  data: Project[];
+  meta: PaginationMeta;
 }
 
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
@@ -139,14 +154,7 @@ function normalizeMember(
   };
 }
 
-export async function getProjects(): Promise<Project[]> {
-  const projectModels = await fetchAllPages(async (page, limit) => {
-    const response = await api.get<ApiResponse<ProjectApiModel[]>>(
-      "/api/projects",
-      { params: { page, limit } },
-    );
-    return { items: unwrap(response) || [], meta: response.data.meta };
-  });
+function withOwnerMembers(projectModels: ProjectApiModel[]): Project[] {
   const projects = projectModels.map(normalizeProject);
   return projects.map((project, idx) => {
     const model = projectModels[idx];
@@ -171,6 +179,43 @@ export async function getProjects(): Promise<Project[]> {
       ],
     };
   });
+}
+
+function getFallbackProjectListMeta(
+  query: ProjectListQuery,
+  total: number,
+): PaginationMeta {
+  const totalPages = Math.max(1, Math.ceil(total / query.limit));
+  return {
+    page: query.page,
+    limit: query.limit,
+    total,
+    totalPages,
+    hasNext: query.page < totalPages,
+  };
+}
+
+export async function getProjects(
+  query: ProjectListQuery,
+): Promise<ProjectListResponse> {
+  const response = await api.get<ApiResponse<ProjectApiModel[]>>(
+    "/api/projects",
+    {
+      params: {
+        page: query.page,
+        limit: query.limit,
+        search: query.search || undefined,
+        status: query.status,
+      },
+    },
+  );
+  const projectModels = unwrap(response) || [];
+  return {
+    data: withOwnerMembers(projectModels),
+    meta:
+      response.data.meta ??
+      getFallbackProjectListMeta(query, projectModels.length),
+  };
 }
 
 export async function getProject(projectId: string): Promise<Project> {

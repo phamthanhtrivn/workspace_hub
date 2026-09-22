@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -24,8 +24,18 @@ import { TaskStatus, type Task } from "@/features/project/types/project";
 import { useCalendarGrid } from "@/features/project/hooks/use-calendar-grid";
 import { taskDateKey } from "@/features/project/utils/task-dates";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getPriorityIcon } from "../ui/task-card";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTH_INDEXES = Array.from({ length: 12 }, (_, index) => index);
 
 const statusColors: Record<TaskStatus, { label: string; card: string }> = {
   [TaskStatus.TODO]: {
@@ -112,6 +122,17 @@ export function buildWeekTaskSegments(
           weekDays.findIndex((day) => day.isCurrentMonth !== false),
     };
   });
+}
+
+function getCalendarTaskTimeLabel(
+  task: Task,
+  formatTime: (value: string | undefined) => string,
+): string {
+  if (task.allDay) return "";
+  const startTime = formatTime(task.startDate);
+  const endTime = formatTime(task.dueDate);
+  if (startTime && endTime) return `${startTime} - ${endTime}`;
+  return startTime || endTime;
 }
 
 function DroppableCalendarDay({
@@ -201,6 +222,7 @@ function DraggableUnscheduledTask({
   canDrag: boolean;
   onClick?: () => void;
 }) {
+  const priorityIcon = getPriorityIcon(task.priority);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
     disabled: !canDrag,
@@ -228,6 +250,7 @@ function DraggableUnscheduledTask({
       {canDrag && (
         <GripVertical className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:text-slate-500" />
       )}
+      <span className="shrink-0">{priorityIcon}</span>
       <span className="max-w-56 truncate text-xs font-bold text-[#172B4D]">
         {task.title}
       </span>
@@ -252,16 +275,27 @@ function UnscheduledTasksPanel({
   if (unscheduledTasks.length === 0) return null;
 
   return (
-    <div className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
-      <div>
-        <h3 className="text-sm font-bold text-[#172B4D]">
-          Unscheduled Tasks ({unscheduledTasks.length})
-        </h3>
-        <p className="mt-1 text-xs font-semibold text-slate-400">
-          Drag unscheduled tasks directly onto any calendar date to schedule them.
-        </p>
+    <div className="shrink-0 border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+      <div className="flex items-start gap-2.5">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 ring-1 ring-amber-500/20">
+          <Clock className="h-4 w-4" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[#172B4D]">
+              Unscheduled Tasks
+            </h3>
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+              {unscheduledTasks.length}
+            </span>
+          </div>
+          <p className="mt-1 text-xs font-semibold text-slate-400">
+            Drag unscheduled tasks directly onto any calendar date to schedule
+            them. Done and Cancelled tasks cannot be dragged.
+          </p>
+        </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="mt-3 flex max-h-24 flex-wrap gap-2 overflow-y-auto pr-1">
         {unscheduledTasks.map((task) => (
           <DraggableUnscheduledTask
             key={task.id}
@@ -293,6 +327,9 @@ export default function CalendarView({
   canEditTask,
 }: CalendarViewProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
+  const [yearInput, setYearInput] = useState("");
+  const [isEditingYear, setIsEditingYear] = useState(false);
+  const skipNextYearCommitRef = useRef(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -303,14 +340,27 @@ export default function CalendarView({
   );
 
   const {
+    currentMonth,
+    setCurrentMonth,
     moveMonth,
     goToToday,
-    monthLabel,
     days,
     unscheduledTasks,
     formatTime,
   } = useCalendarGrid({ tasks });
-
+  const selectedMonth = currentMonth.getMonth();
+  const selectedYear = currentMonth.getFullYear();
+  const yearInputValue = isEditingYear ? yearInput : String(selectedYear);
+  const monthOptions = useMemo(
+    () =>
+      MONTH_INDEXES.map((monthIndex) => ({
+        value: String(monthIndex),
+        label: new Date(2026, monthIndex, 1).toLocaleDateString(undefined, {
+          month: "long",
+        }),
+      })),
+    [],
+  );
   const handleDragStart = (event: DragStartEvent) => {
     const currentTask = event.active.data.current?.task as Task | undefined;
     setActiveTask(currentTask ?? null);
@@ -332,6 +382,34 @@ export default function CalendarView({
     setActiveTask(null);
   };
 
+  const handleMonthChange = (value: string) => {
+    const nextMonth = Number(value);
+    setCurrentMonth(
+      (current) => new Date(current.getFullYear(), nextMonth, 1),
+    );
+  };
+
+  const commitYearInput = () => {
+    if (skipNextYearCommitRef.current) {
+      skipNextYearCommitRef.current = false;
+      setIsEditingYear(false);
+      setYearInput("");
+      return;
+    }
+
+    const nextYear = Number(yearInputValue);
+    if (!Number.isInteger(nextYear) || nextYear < 1000 || nextYear > 9999) {
+      setIsEditingYear(false);
+      setYearInput("");
+      return;
+    }
+    setIsEditingYear(false);
+    setYearInput("");
+    setCurrentMonth(
+      (current) => new Date(nextYear, current.getMonth(), 1),
+    );
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -340,8 +418,8 @@ export default function CalendarView({
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <div className="relative flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-center">
+      <div className="flex h-full min-h-[560px] flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <div className="relative shrink-0 flex flex-col gap-2 border-b border-slate-100 px-4 py-3 sm:flex-row sm:items-center sm:justify-center">
           <div className="sm:absolute sm:left-4">
             <p className="text-xs font-semibold text-slate-400">
               Click any date or drag tasks to schedule.
@@ -360,9 +438,56 @@ export default function CalendarView({
               <ChevronLeft className="h-4 w-4" />
             </Button>
 
-            <h2 className="min-w-36 text-center text-base font-bold capitalize text-[#172B4D] sm:text-lg">
-              {monthLabel}
-            </h2>
+            <div className="flex min-w-0 items-center gap-2">
+              <Select
+                value={String(selectedMonth)}
+                onValueChange={handleMonthChange}
+              >
+                <SelectTrigger
+                  className="h-8 w-36 rounded-lg border-slate-200 bg-white text-xs font-bold text-[#172B4D] shadow-xs"
+                  aria-label="Select calendar month"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="rounded-lg border-slate-200">
+                  {monthOptions.map((month) => (
+                    <SelectItem
+                      key={month.value}
+                      value={month.value}
+                      className="text-xs font-semibold"
+                    >
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Input
+                type="text"
+                inputMode="numeric"
+                aria-label="Enter calendar year"
+                value={yearInputValue}
+                maxLength={4}
+                onFocus={() => {
+                  setIsEditingYear(true);
+                  setYearInput(String(selectedYear));
+                }}
+                onChange={(event) => {
+                  setIsEditingYear(true);
+                  setYearInput(event.target.value.replace(/\D/g, ""));
+                }}
+                onBlur={commitYearInput}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.currentTarget.blur();
+                  } else if (event.key === "Escape") {
+                    skipNextYearCommitRef.current = true;
+                    event.currentTarget.blur();
+                  }
+                }}
+                className="h-8 w-24 rounded-lg border-slate-200 bg-white text-center text-xs font-bold text-[#172B4D] shadow-xs"
+              />
+            </div>
 
             <Button
               type="button"
@@ -387,7 +512,7 @@ export default function CalendarView({
           </div>
         </div>
 
-        <div className="grid grid-cols-7 border-b border-slate-100 bg-slate-50/70">
+        <div className="grid shrink-0 grid-cols-7 border-b border-slate-100 bg-slate-50/70">
           {WEEKDAYS.map((weekday) => (
             <div
               key={weekday}
@@ -398,7 +523,7 @@ export default function CalendarView({
           ))}
         </div>
 
-        <div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {Array.from(
             { length: Math.ceil(days.length / 7) },
             (_, weekIndex) => {
@@ -435,7 +560,12 @@ export default function CalendarView({
                   )}
                   <div className="pointer-events-none absolute inset-x-0 top-11 grid grid-cols-7 auto-rows-[42px] gap-y-1">
                     {visibleSegments.map(
-                      ({ task, startColumn, span, lane, showTitle }) => (
+                      ({ task, startColumn, span, lane, showTitle }) => {
+                        const timeLabel = getCalendarTaskTimeLabel(
+                          task,
+                          formatTime,
+                        );
+                        return (
                         <Button
                           key={task.id}
                           type="button"
@@ -452,14 +582,15 @@ export default function CalendarView({
                               {task.title}
                             </span>
                           )}
-                          {showTitle && !task.allDay && (
-                            <span className="ml-auto inline-flex shrink-0 items-center gap-0.5 text-[9px] font-semibold text-white/90">
+                          {showTitle && timeLabel && (
+                            <span className="ml-auto inline-flex min-w-0 shrink-0 items-center gap-0.5 truncate text-[9px] font-semibold text-white/90">
                               <Clock className="h-2.5 w-2.5 text-white/90" />
-                              {formatTime(task.startDate || task.dueDate)}
+                              {timeLabel}
                             </span>
                           )}
                         </Button>
-                      ),
+                        );
+                      },
                     )}
                   </div>
                 </div>
