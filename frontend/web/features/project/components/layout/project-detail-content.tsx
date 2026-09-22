@@ -170,7 +170,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
     <div className="relative mt-5 flex min-h-0 flex-1 gap-5 overflow-hidden">
       <div
         className={
-          props.viewMode === "board"
+          props.viewMode === "board" || props.viewMode === "list"
             ? "min-w-0 flex-1 overflow-hidden pr-1"
             : "min-w-0 flex-1 overflow-y-auto pr-1"
         }
