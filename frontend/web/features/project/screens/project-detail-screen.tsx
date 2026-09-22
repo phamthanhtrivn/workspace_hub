@@ -266,7 +266,7 @@ export default function ProjectDetailScreen() {
   const projectWithMembers = { ...project, members };
   const viewTitle: Record<ProjectViewMode, string> = {
     summary: "Summary",
-    board: "Board",
+    board: "Kanban Board",
     list: "Tasks",
     calendar: "Calendar",
     gantt: "Timeline",

@@ -77,7 +77,7 @@ const NAV_ITEMS: Array<{
   icon: LucideIcon;
 }> = [
     { view: "summary", label: "Summary", icon: LayoutDashboard },
-    { view: "board", label: "Board", icon: LayoutGrid },
+    { view: "board", label: "Kanban Board", icon: LayoutGrid },
     { view: "list", label: "List View", icon: List },
     { view: "calendar", label: "Calendar", icon: Calendar },
     { view: "gantt", label: "Timeline", icon: ChartGantt },
