@@ -48,7 +48,7 @@ function TaskStatusCounts({ tasks }: { tasks: Task[] }) {
     tasks.filter((task) => task.status === status && !task.archived).length;
 
   return (
-    <div className="ml-auto flex items-center gap-3 rounded-lg bg-slate-100/80 px-2.5 py-1 text-[11px] font-bold text-slate-500">
+    <div className="flex w-fit items-center gap-3 rounded-lg bg-slate-100/80 px-2.5 py-1 text-[11px] font-bold text-slate-500">
       <span>{count(TaskStatus.TODO)} To Do</span>
       <span className="h-3 w-px bg-slate-200" />
       <span className="text-blue-600">{count(TaskStatus.IN_PROGRESS)} In Progress</span>
@@ -154,83 +154,87 @@ export default function ProjectDetailToolbar({
       </div>
 
       {!isMembersView && (
-        <div className="mt-5 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
-          <ProjectSearchInput
-            value={searchQuery}
-            onChange={onSearchChange}
-            placeholder="Search tasks..."
-            ariaLabel="Search tasks"
-            className="flex-none w-48 sm:w-56"
-          />
-
-          <TaskQuickFilters
-            members={members}
-            status={statusFilter}
-            priority={priorityFilter}
-            assignee={assigneeFilter}
-            onStatusChange={onStatusChange}
-            onPriorityChange={onPriorityChange}
-            onAssigneeChange={onAssigneeChange}
-          />
-
-          <div className="flex items-center gap-1">
-            <span className="mr-1 text-xs font-semibold text-slate-500">
-              Assignee:
-            </span>
-            <div className="flex -space-x-1.5">
-              {members.map((member) => {
-                const isSelected = selectedAssigneeIds.includes(member.userId);
-                return (
-                  <Button
-                    key={member.id}
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onToggleAssignee(member.userId)}
-                    title={member.displayName}
-                    className={[
-                      "relative h-6 w-6 rounded-full ring-2 transition-transform cursor-pointer p-0",
-                      isSelected
-                        ? "z-10 scale-110 ring-[#0052CC]"
-                        : "ring-white hover:z-10 hover:scale-105",
-                    ].join(" ")}
-                  >
-                    <AvatarStack users={[member]} size="xs" max={1} />
-                  </Button>
-                );
-              })}
-            </div>
+        <>
+          <div className="mt-4">
+            <TaskStatusCounts tasks={tasks} />
           </div>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onToggleOnlyMyIssues}
-            className={[
-              "h-9 rounded-xl px-3 text-xs font-semibold transition cursor-pointer",
-              onlyMyIssues
-                ? "border-[#C0B6F2] bg-[#EAE6FF] text-[#403294] hover:bg-[#EAE6FF]"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-            ].join(" ")}
-          >
-            Only My Tasks
-          </Button>
+          <div className="mt-3 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">
+            <ProjectSearchInput
+              value={searchQuery}
+              onChange={onSearchChange}
+              placeholder="Search tasks..."
+              ariaLabel="Search tasks"
+              className="flex-none w-48 sm:w-56"
+            />
 
-          {isFiltersActive && (
+            <TaskQuickFilters
+              members={members}
+              status={statusFilter}
+              priority={priorityFilter}
+              assignee={assigneeFilter}
+              onStatusChange={onStatusChange}
+              onPriorityChange={onPriorityChange}
+              onAssigneeChange={onAssigneeChange}
+            />
+
+            <div className="flex items-center gap-1">
+              <span className="mr-1 text-xs font-semibold text-slate-500">
+                Assignee:
+              </span>
+              <div className="flex -space-x-1.5">
+                {members.map((member) => {
+                  const isSelected = selectedAssigneeIds.includes(member.userId);
+                  return (
+                    <Button
+                      key={member.id}
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onToggleAssignee(member.userId)}
+                      title={member.displayName}
+                      className={[
+                        "relative h-6 w-6 rounded-full ring-2 transition-transform cursor-pointer p-0",
+                        isSelected
+                          ? "z-10 scale-110 ring-[#0052CC]"
+                          : "ring-white hover:z-10 hover:scale-105",
+                      ].join(" ")}
+                    >
+                      <AvatarStack users={[member]} size="xs" max={1} />
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+
             <Button
               type="button"
-              variant="link"
+              variant="outline"
               size="sm"
-              onClick={onClearFilters}
-              className="h-auto p-0 text-xs font-bold text-[#0052CC] hover:underline cursor-pointer"
+              onClick={onToggleOnlyMyIssues}
+              className={[
+                "h-9 rounded-xl px-3 text-xs font-semibold transition cursor-pointer",
+                onlyMyIssues
+                  ? "border-[#C0B6F2] bg-[#EAE6FF] text-[#403294] hover:bg-[#EAE6FF]"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+              ].join(" ")}
             >
-              Clear filters
+              Only My Tasks
             </Button>
-          )}
 
-          <TaskStatusCounts tasks={tasks} />
-        </div>
+            {isFiltersActive && (
+              <Button
+                type="button"
+                variant="link"
+                size="sm"
+                onClick={onClearFilters}
+                className="h-auto p-0 text-xs font-bold text-[#0052CC] hover:underline cursor-pointer"
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </>
       )}
     </>
   );
