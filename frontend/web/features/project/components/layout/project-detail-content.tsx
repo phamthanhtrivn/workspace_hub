@@ -141,12 +141,6 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           tasks={props.tasks}
           dependencies={props.dependencies}
           onTaskClick={props.onTaskSelect}
-          onTaskReschedule={props.onTaskReschedule}
-          canEditTask={(task) =>
-            !isTerminalTaskStatus(task.status) &&
-            (permissions.canEditTask(task) ||
-              permissions.canContributeTask(task))
-          }
         />
       );
     }
@@ -172,7 +166,8 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
         className={
           props.viewMode === "board" ||
           props.viewMode === "list" ||
-          props.viewMode === "calendar"
+          props.viewMode === "calendar" ||
+          props.viewMode === "gantt"
             ? "min-w-0 flex-1 overflow-hidden pr-1"
             : "min-w-0 flex-1 overflow-y-auto pr-1"
         }

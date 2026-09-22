@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getPriorityIcon } from "../ui/task-card";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTH_INDEXES = Array.from({ length: 12 }, (_, index) => index);
@@ -221,6 +222,7 @@ function DraggableUnscheduledTask({
   canDrag: boolean;
   onClick?: () => void;
 }) {
+  const priorityIcon = getPriorityIcon(task.priority);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
     disabled: !canDrag,
@@ -248,6 +250,7 @@ function DraggableUnscheduledTask({
       {canDrag && (
         <GripVertical className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:text-slate-500" />
       )}
+      <span className="shrink-0">{priorityIcon}</span>
       <span className="max-w-56 truncate text-xs font-bold text-[#172B4D]">
         {task.title}
       </span>
@@ -273,14 +276,24 @@ function UnscheduledTasksPanel({
 
   return (
     <div className="shrink-0 border-t border-slate-100 bg-slate-50/60 px-4 py-4">
-      <div>
-        <h3 className="text-sm font-bold text-[#172B4D]">
-          Unscheduled Tasks ({unscheduledTasks.length})
-        </h3>
-        <p className="mt-1 text-xs font-semibold text-slate-400">
-          Drag unscheduled tasks directly onto any calendar date to schedule
-          them. Done and Cancelled tasks cannot be dragged.
-        </p>
+      <div className="flex items-start gap-2.5">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600 ring-1 ring-amber-500/20">
+          <Clock className="h-4 w-4" />
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-bold text-[#172B4D]">
+              Unscheduled Tasks
+            </h3>
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+              {unscheduledTasks.length}
+            </span>
+          </div>
+          <p className="mt-1 text-xs font-semibold text-slate-400">
+            Drag unscheduled tasks directly onto any calendar date to schedule
+            them. Done and Cancelled tasks cannot be dragged.
+          </p>
+        </div>
       </div>
       <div className="mt-3 flex max-h-24 flex-wrap gap-2 overflow-y-auto pr-1">
         {unscheduledTasks.map((task) => (
