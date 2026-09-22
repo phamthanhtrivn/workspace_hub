@@ -9,6 +9,7 @@ import {
   type TaskActivity,
 } from "@/features/project/types/project";
 import { fetchAllPages, type PaginationMeta } from "./pagination";
+import type { ProjectTaskQuery } from "../project-task-view";
 
 interface ApiResponse<T> {
   success: boolean;
@@ -75,6 +76,8 @@ export interface UpdateTaskPayload {
   clearParent?: boolean;
 }
 
+export type ProjectTaskStatusCounts = Record<TaskStatus, number>;
+
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
   if (!response.data.success) {
     throw new Error(response.data.message || "Task API request failed");
@@ -120,15 +123,27 @@ export function normalizeTask(task: TaskApiModel): Task {
   };
 }
 
-export async function getProjectTasks(projectId: string): Promise<Task[]> {
+export async function getProjectTasks(
+  projectId: string,
+  query: ProjectTaskQuery = {},
+): Promise<Task[]> {
   const taskModels = await fetchAllPages(async (page, limit) => {
     const response = await api.get<ApiResponse<TaskApiModel[]>>(
       `/api/projects/${projectId}/tasks`,
-      { params: { page, limit } },
+      { params: { page, limit, ...query } },
     );
     return { items: unwrap(response) || [], meta: response.data.meta };
   });
   return taskModels.map(normalizeTask);
+}
+
+export async function getProjectTaskStatusCounts(
+  projectId: string,
+): Promise<ProjectTaskStatusCounts> {
+  const response = await api.get<ApiResponse<ProjectTaskStatusCounts>>(
+    `/api/projects/${projectId}/tasks/status-counts`,
+  );
+  return unwrap(response);
 }
 
 export async function createTask(

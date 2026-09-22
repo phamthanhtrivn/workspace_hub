@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@/features/project/hooks/use-projects";
 import {
   useCreateTask,
+  useProjectTaskStatusCounts,
   useProjectTasks,
   useUpdateTask,
 } from "@/features/project/hooks/use-tasks";
@@ -44,6 +45,7 @@ import { useProjectTaskFilters } from "@/features/project/hooks/use-project-task
 import { useProjectTaskFormState } from "@/features/project/hooks/use-project-task-form-state";
 import { useProjectResourceActions } from "@/features/project/hooks/use-project-resource-actions";
 import { useProjectTaskActions } from "@/features/project/hooks/use-project-task-actions";
+import { enrichProjectTasks } from "@/features/project/project-task-view";
 import { createProjectSettingsActions } from "@/features/project/project-settings-actions";
 import { usePendingProjectInvitations } from "@/features/project/hooks/use-invitations";
 import { useProjectSidebarState } from "@/features/project/hooks/use-project-sidebar-state";
@@ -59,6 +61,7 @@ export default function ProjectDetailScreen() {
     isLoading: tasksLoading,
     isError: tasksError,
   } = useProjectTasks(projectId);
+  const taskStatusCountsQuery = useProjectTaskStatusCounts(projectId);
   const createTaskMutation = useCreateTask(projectId);
   const updateTaskMutation = useUpdateTask(projectId);
   const updateProjectMutation = useUpdateProject(projectId);
@@ -180,7 +183,8 @@ export default function ProjectDetailScreen() {
 
   const {
     tasks,
-    filteredTasks,
+    taskQuery,
+    hasApiFilters,
     searchQuery,
     setSearchQuery,
     assigneeIds: activeAssigneeFilters,
@@ -197,7 +201,21 @@ export default function ProjectDetailScreen() {
     toggleAssignee: toggleAssigneeFilter,
     clear: clearAllFilters,
     isActive: isFiltersActive,
-  } = useProjectTaskFilters(serverTasks, members, currentUserId);
+  } = useProjectTaskFilters(serverTasks, members);
+
+  const {
+    data: filteredServerTasks = [],
+    isLoading: filteredTasksLoading,
+    isError: filteredTasksError,
+  } = useProjectTasks(projectId, taskQuery, hasApiFilters);
+  const visibleTaskSource = hasApiFilters ? filteredServerTasks : serverTasks;
+  const filteredTasks = useMemo(
+    () => enrichProjectTasks(visibleTaskSource, members, setTaskStatusOverrides),
+    [members, setTaskStatusOverrides, visibleTaskSource],
+  );
+  const visibleTasksLoading =
+    tasksLoading || (hasApiFilters && filteredTasksLoading);
+  const visibleTasksError = tasksError || (hasApiFilters && filteredTasksError);
 
   const {
     moveTask: handleTaskMove,
@@ -305,6 +323,7 @@ export default function ProjectDetailScreen() {
           project={project}
           members={projectWithMembers.members}
           tasks={tasks}
+          taskStatusCounts={taskStatusCountsQuery.data}
           viewTitle={viewTitle[viewMode]}
           viewMode={viewMode}
           searchQuery={searchQuery}
@@ -340,8 +359,8 @@ export default function ProjectDetailScreen() {
           tasks={filteredTasks}
           members={projectWithMembers.members}
           dependencies={dependencies}
-          isLoading={tasksLoading}
-          isError={tasksError}
+          isLoading={visibleTasksLoading}
+          isError={visibleTasksError}
           showMembers={showMembers}
           permissions={permissions}
           openTaskForm={openCreateTask}

@@ -21,8 +21,13 @@ import {
   isRecordNotFoundError,
   rethrowWriteConflict,
 } from "../../common/prisma/prisma-errors";
-import { paginate, PaginationQueryDto } from "../../common/utils/pagination";
-import { taskInclude } from "./task-query";
+import { paginate } from "../../common/utils/pagination";
+import { GetProjectTasksQueryDto } from "./dto/get-project-tasks-query.dto";
+import {
+  buildProjectTaskWhere,
+  buildTaskStatusCounts,
+  taskInclude,
+} from "./task-query";
 import { lockProject } from "../project/project-transaction";
 import { normalizeTaskRank } from "./task-rank";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
@@ -143,13 +148,9 @@ export class TaskService {
     return toTaskResponse(task, profiles);
   }
 
-  async findAll(userId: string, projectId: string, query: PaginationQueryDto) {
+  async findAll(userId: string, projectId: string, query: GetProjectTasksQueryDto) {
     await this.access.requireReadAccess(userId, projectId);
-    const where: Prisma.TaskWhereInput = {
-      projectId,
-      archived: false,
-      deletedAt: null,
-    };
+    const where = buildProjectTaskWhere(projectId, userId, query);
     const [total, tasks] = await this.prisma.$transaction([
       this.prisma.task.count({ where }),
       this.prisma.task.findMany({
@@ -174,6 +175,20 @@ export class TaskService {
       total,
       query,
     );
+  }
+
+  async statusCounts(userId: string, projectId: string) {
+    await this.access.requireReadAccess(userId, projectId);
+    const rows = await this.prisma.task.groupBy({
+      by: ["status"],
+      where: {
+        projectId,
+        archived: false,
+        deletedAt: null,
+      },
+      _count: { _all: true },
+    });
+    return buildTaskStatusCounts(rows);
   }
 
   async findOne(userId: string, taskId: string) {

@@ -12,6 +12,7 @@ import {
   type ProjectMember,
   type Task,
 } from "@/features/project/types/project";
+import type { ProjectTaskStatusCounts } from "@/features/project/api/task.api";
 import type { ProjectViewMode } from "./project-detail-sidebar";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,7 @@ interface ProjectDetailToolbarProps {
   project: Project;
   members: ProjectMember[];
   tasks: Task[];
+  taskStatusCounts?: ProjectTaskStatusCounts;
   viewTitle: string;
   viewMode?: ProjectViewMode;
   searchQuery: string;
@@ -52,8 +54,15 @@ interface ProjectDetailToolbarProps {
   onInviteMembers?: () => void;
 }
 
-function TaskStatusCounts({ tasks }: { tasks: Task[] }) {
+function TaskStatusCounts({
+  tasks,
+  counts,
+}: {
+  tasks: Task[];
+  counts?: ProjectTaskStatusCounts;
+}) {
   const count = (status: TaskStatus) =>
+    counts?.[status] ??
     tasks.filter((task) => task.status === status && !task.archived).length;
 
   return (
@@ -75,6 +84,7 @@ export default function ProjectDetailToolbar({
   project,
   members,
   tasks,
+  taskStatusCounts,
   viewTitle,
   searchQuery,
   statusFilter,
@@ -183,7 +193,7 @@ export default function ProjectDetailToolbar({
       {!isMembersView && (
         <>
           <div className="mt-4">
-            <TaskStatusCounts tasks={tasks} />
+            <TaskStatusCounts tasks={tasks} counts={taskStatusCounts} />
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-3 border-b border-slate-100 pb-4">

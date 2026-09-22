@@ -29,7 +29,7 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
   }
 
   const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
-    TASK: [[...projectKey, 'tasks']],
+    TASK: [[...projectKey, 'tasks'], [...projectKey, 'task-status-counts']],
     MEMBER: [[...projectKey, 'members']],
     INVITATION: [
       [...projectKey, 'members'],

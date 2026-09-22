@@ -9,10 +9,40 @@ export interface ProjectTaskFilters {
   searchQuery: string;
   assigneeIds: string[];
   onlyMyIssues: boolean;
-  currentUserId?: string | null;
   status: TaskStatus | "";
   priority: TaskPriority | "";
   quickAssignee: string;
+}
+
+export interface ProjectTaskQuery {
+  search?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  assigneeUserIds?: string;
+  unassigned?: boolean;
+  onlyMine?: boolean;
+}
+
+export function buildProjectTaskQuery(
+  filters: ProjectTaskFilters,
+): ProjectTaskQuery {
+  const search = filters.searchQuery.trim();
+  const query: ProjectTaskQuery = {
+    ...(search ? { search } : {}),
+    ...(filters.status ? { status: filters.status } : {}),
+    ...(filters.priority ? { priority: filters.priority } : {}),
+    ...(filters.onlyMyIssues ? { onlyMine: true } : {}),
+  };
+
+  if (filters.quickAssignee === "UNASSIGNED") {
+    return { ...query, unassigned: true };
+  }
+
+  const assigneeUserIds = filters.quickAssignee
+    ? filters.quickAssignee
+    : filters.assigneeIds.join(",");
+
+  return assigneeUserIds ? { ...query, assigneeUserIds } : query;
 }
 
 export function enrichProjectTasks(
@@ -37,7 +67,7 @@ export function enrichProjectTasks(
 
 export function filterProjectTasks(
   tasks: Task[],
-  filters: ProjectTaskFilters,
+  filters: ProjectTaskFilters & { currentUserId?: string | null },
 ): Task[] {
   const normalizedSearch = filters.searchQuery.trim().toLowerCase();
   return tasks.filter((task) => {
