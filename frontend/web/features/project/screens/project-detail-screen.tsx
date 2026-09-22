@@ -265,7 +265,7 @@ export default function ProjectDetailScreen() {
 
   const projectWithMembers = { ...project, members };
   const viewTitle: Record<ProjectViewMode, string> = {
-    summary: "Summary",
+    overview: "Overview",
     board: "Kanban Board",
     list: "Tasks",
     calendar: "Calendar",
@@ -316,6 +316,7 @@ export default function ProjectDetailScreen() {
           isFiltersActive={isFiltersActive}
           canCreateTask={permissions.canCreateTask}
           canInviteMembers={permissions.canInviteMembers}
+          onViewChange={setViewMode}
           onSearchChange={setSearchQuery}
           onStatusChange={setStatusFilter}
           onPriorityChange={setPriorityFilter}

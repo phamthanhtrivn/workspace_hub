@@ -74,7 +74,7 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
         </div>
       );
 
-    if (props.viewMode === "summary") {
+    if (props.viewMode === "overview") {
       return (
         <SummaryView tasks={props.tasks} members={props.members} />
       );

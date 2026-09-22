@@ -33,7 +33,7 @@ import { getProjectIdSuffix } from "@/features/project/utils/project-id.utils";
 import { cn } from "@/lib/utils";
 
 export type ProjectViewMode =
-  | "summary"
+  | "overview"
   | "board"
   | "list"
   | "calendar"
@@ -76,7 +76,7 @@ const NAV_ITEMS: Array<{
   label: string;
   icon: LucideIcon;
 }> = [
-    { view: "summary", label: "Summary", icon: LayoutDashboard },
+    { view: "overview", label: "Overview", icon: LayoutDashboard },
     { view: "board", label: "Kanban Board", icon: LayoutGrid },
     { view: "list", label: "List View", icon: List },
     { view: "calendar", label: "Calendar", icon: Calendar },

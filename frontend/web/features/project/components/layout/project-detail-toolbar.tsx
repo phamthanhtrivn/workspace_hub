@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronRight, Menu, Plus, UserPlus } from "lucide-react";
+import { Menu, Plus, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
 import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
@@ -14,6 +14,14 @@ import {
 } from "@/features/project/types/project";
 import type { ProjectViewMode } from "./project-detail-sidebar";
 import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 interface ProjectDetailToolbarProps {
   project: Project;
@@ -30,6 +38,7 @@ interface ProjectDetailToolbarProps {
   isFiltersActive: boolean;
   canCreateTask: boolean;
   canInviteMembers?: boolean;
+  onViewChange?: (view: ProjectViewMode) => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: TaskStatus | "") => void;
   onPriorityChange: (value: TaskPriority | "") => void;
@@ -77,6 +86,7 @@ export default function ProjectDetailToolbar({
   canCreateTask,
   viewMode,
   canInviteMembers,
+  onViewChange,
   onSearchChange,
   onStatusChange,
   onPriorityChange,
@@ -103,16 +113,33 @@ export default function ProjectDetailToolbar({
         >
           <Menu className="h-4 w-4" />
         </Button>
-        <Link
-          href="/projects"
-          className="shrink-0 transition hover:text-blue-600"
-        >
-          Projects
-        </Link>
-        <ChevronRight className="h-3 w-3 text-slate-400" />
-        <span className="truncate">{project.name}</span>
-        <ChevronRight className="h-3 w-3 shrink-0 text-slate-400" />
-        <span className="shrink-0 capitalize text-slate-700">{viewTitle}</span>
+        <Breadcrumb className="min-w-0">
+          <BreadcrumbList className="flex-nowrap text-xs font-medium text-slate-500">
+            <BreadcrumbItem className="shrink-0">
+              <BreadcrumbLink asChild className="hover:text-blue-600">
+                <Link href="/projects">Projects</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="shrink-0 text-slate-400" />
+            <BreadcrumbItem className="min-w-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => onViewChange?.("overview")}
+                className="h-auto min-w-0 justify-start rounded-sm p-0 text-xs font-medium text-slate-500 shadow-none hover:bg-transparent hover:text-blue-600 focus-visible:ring-[#0052CC]/30"
+              >
+                <span className="truncate">{project.name}</span>
+              </Button>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="shrink-0 text-slate-400" />
+            <BreadcrumbItem className="shrink-0">
+              <BreadcrumbPage className="font-semibold text-slate-700">
+                {viewTitle}
+              </BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
       </div>
 
       <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
