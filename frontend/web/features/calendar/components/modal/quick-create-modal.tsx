@@ -80,7 +80,7 @@ export function QuickCreateModal({
 
   const selectedCalendar =
     calendars.find((calendar) => calendar.id === calendarId) ?? calendars[0];
-  useModalDialog({ dialogRef, onClose });
+  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
 
   // Expand "More options" downwards
   const [showMoreOptions, setShowMoreOptions] = useState<boolean>(() => {
@@ -140,7 +140,29 @@ export function QuickCreateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 p-2 backdrop-blur-[3px] sm:p-5">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/30 p-2 backdrop-blur-[3px] sm:p-5"
+      onWheelCapture={(event) => {
+        if (
+          event.target instanceof Node &&
+          dialogRef.current?.contains(event.target)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onTouchMoveCapture={(event) => {
+        if (
+          event.target instanceof Node &&
+          dialogRef.current?.contains(event.target)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
       <form
         ref={dialogRef}
         onSubmit={handleSubmit}
@@ -224,7 +246,7 @@ export function QuickCreateModal({
         </div>
 
         {/* Scrollable Body */}
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-4 sm:px-7">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 pt-4 sm:px-7">
           <div className="space-y-4">
             {/* Time & Recurrence Section */}
             <QuickCreateTimeSection

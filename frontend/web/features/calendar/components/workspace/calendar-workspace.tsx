@@ -28,9 +28,9 @@ const EventDetailModal = dynamic(() =>
     (module) => module.EventDetailModal,
   ),
 );
-const EventFormModal = dynamic(() =>
-  import("../modal/event-form-modal").then((module) => module.EventFormModal),
-);
+const loadEventFormModal = () =>
+  import("../modal/event-form-modal").then((module) => module.EventFormModal);
+const EventFormModal = dynamic(loadEventFormModal);
 const RecurrenceScopeModal = dynamic(() =>
   import("../modal/recurrence-scope-modal").then(
     (module) => module.RecurrenceScopeModal,
@@ -113,6 +113,7 @@ export function CalendarWorkspace() {
   ]);
 
   useEffect(() => {
+    void loadEventFormModal();
     queueMicrotask(() => {
       try {
         const saved = localStorage.getItem("calendar_sidebar_open");

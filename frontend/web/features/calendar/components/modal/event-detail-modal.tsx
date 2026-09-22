@@ -73,7 +73,7 @@ export function EventDetailModal({
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dialogRef = useRef<HTMLDivElement>(null);
   const resolvedProfiles = useAttendeeProfiles(event, open);
-  useModalDialog({ dialogRef, onClose });
+  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
 
   const [copiedMeeting, setCopiedMeeting] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
@@ -208,7 +208,29 @@ export function EventDetailModal({
   const cleanedDescription = cleanTaskDescription(event.description);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs"
+      onWheelCapture={(event) => {
+        if (
+          event.target instanceof Node &&
+          dialogRef.current?.contains(event.target)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onTouchMoveCapture={(event) => {
+        if (
+          event.target instanceof Node &&
+          dialogRef.current?.contains(event.target)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
       <div
         ref={dialogRef}
         role="dialog"

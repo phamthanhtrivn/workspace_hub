@@ -32,7 +32,7 @@ export function CustomRecurrenceModal({
   const intl = useAppIntl();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(value);
-  useModalDialog({ dialogRef, onClose });
+  useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
 
   if (!open) return null;
 
@@ -62,7 +62,29 @@ export function CustomRecurrenceModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm"
+      onWheelCapture={(event) => {
+        if (
+          event.target instanceof Node &&
+          dialogRef.current?.contains(event.target)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onTouchMoveCapture={(event) => {
+        if (
+          event.target instanceof Node &&
+          dialogRef.current?.contains(event.target)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
       <div
         ref={dialogRef}
         role="dialog"
