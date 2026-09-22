@@ -168,7 +168,15 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
 
   return (
     <div className="relative mt-5 flex min-h-0 flex-1 gap-5 overflow-hidden">
-      <div className="min-w-0 flex-1 overflow-y-auto pr-1">{renderView()}</div>
+      <div
+        className={
+          props.viewMode === "board"
+            ? "min-w-0 flex-1 overflow-hidden pr-1"
+            : "min-w-0 flex-1 overflow-y-auto pr-1"
+        }
+      >
+        {renderView()}
+      </div>
       {props.showMembers && props.viewMode !== "members" && (
         <div className="hidden w-72 shrink-0 overflow-y-auto border-l border-slate-200 pl-4 lg:block">
           {memberPanel}

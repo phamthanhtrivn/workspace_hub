@@ -63,12 +63,14 @@ export default function TaskCard({
   onClick,
   onOpenChat,
   onPriorityChange,
+  density = "default",
   canDrag = true,
 }: {
   task: Task;
   onClick?: () => void;
   onOpenChat?: (task: Task) => void;
   onPriorityChange?: (taskId: string, priority: TaskPriority) => void | Promise<void>;
+  density?: "default" | "compact";
   canDrag?: boolean;
 }) {
   const checklistTotal = task.checklists.length;
@@ -78,6 +80,7 @@ export default function TaskCard({
   const issueIcon = getIssueIcon();
   const priorityIcon = getPriorityIcon(task.priority);
   const isDraggable = canDrag && !isTerminalTaskStatus(task.status);
+  const isCompact = density === "compact";
 
   const handleDragStart = (e: React.DragEvent) => {
     if (
@@ -111,24 +114,34 @@ export default function TaskCard({
           onClick?.();
         }
       }}
-      className={`group relative w-full overflow-visible rounded-xl border border-slate-200 bg-white p-3 text-left shadow-2xs transition duration-150 hover:z-20 hover:border-slate-300 hover:bg-slate-50/70 focus-within:z-20 focus-visible:outline-hidden ${
+      className={`group relative w-full overflow-visible rounded-xl border border-slate-200 bg-white text-left shadow-2xs transition duration-150 hover:z-20 hover:border-slate-300 hover:bg-slate-50/70 focus-within:z-20 focus-visible:outline-hidden ${
+        isCompact ? "p-2.5" : "p-3"
+      } ${
         isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-default"
       }`}
     >
       {/* Title */}
-      <p className="text-sm font-semibold leading-snug text-[#172B4D] group-hover:text-[#0052CC] break-words">
+      <p
+        className={`font-semibold leading-snug text-[#172B4D] group-hover:text-[#0052CC] break-words ${
+          isCompact ? "text-[13px]" : "text-sm"
+        }`}
+      >
         {task.title}
       </p>
 
       {/* Labels */}
-      <TaskLabelBadges labels={task.labels} className="mt-2" />
+      <TaskLabelBadges labels={task.labels} className={isCompact ? "mt-1.5" : "mt-2"} />
 
       {/* Meta indicators */}
       {(task.dueDate ||
         checklistTotal > 0 ||
         task.comments.length > 0 ||
         task.estimatedMinutes > 0) && (
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-semibold text-slate-500">
+        <div
+          className={`flex flex-wrap items-center gap-y-1 text-[11px] font-semibold text-slate-500 ${
+            isCompact ? "mt-2 gap-x-2" : "mt-2.5 gap-x-2.5"
+          }`}
+        >
           {/* Due date */}
           {task.dueDate && (
             <span
@@ -176,7 +189,11 @@ export default function TaskCard({
       )}
 
       {/* Bottom row: Issue Key / Type & Priority / Assignees */}
-      <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between">
+      <div
+        className={`border-t border-slate-100 flex items-center justify-between ${
+          isCompact ? "mt-2 pt-2" : "mt-3 pt-2.5"
+        }`}
+      >
         <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium select-none">
           {issueIcon}
           <span className="hover:underline font-semibold text-[11px] uppercase tracking-wide">
