@@ -10,13 +10,14 @@ import {
   Repeat,
 } from "lucide-react";
 import { ReactNode, useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarEvent } from "../../types/calendar.types";
 import {
   formatTaskDueDate,
   groupCalendarTasks,
   TaskStatusFilter,
-  TaskTimeFilter,
 } from "../../utils/calendar-tasks.utils";
 import { cleanTaskDescription } from "../../utils/calendar-event.utils";
 
@@ -25,7 +26,6 @@ interface CalendarTaskListProps {
   color: string;
   readOnly: boolean;
   showCompleted: boolean;
-  timeFilter?: TaskTimeFilter;
   statusFilter?: TaskStatusFilter;
   onToggleTask: (task: CalendarEvent) => void;
   onSelectTask: (task: CalendarEvent) => void;
@@ -36,7 +36,6 @@ export function CalendarTaskList({
   color,
   readOnly,
   showCompleted,
-  timeFilter = "all",
   statusFilter = "all",
   onToggleTask,
   onSelectTask,
@@ -138,10 +137,11 @@ export function CalendarTaskList({
 
       {showCompleted && statusFilter === "all" && grouped.completed.length > 0 && (
         <div className="border-t border-slate-100 pt-2">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => setCompletedOpen((current) => !current)}
-            className="flex w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100"
+            className="flex h-auto w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100"
           >
             <span className="flex items-center gap-1.5">
               {completedOpen ? (
@@ -152,7 +152,7 @@ export function CalendarTaskList({
               {intl.formatMessage({ id: "calendar.tasks.completed" })} (
               {grouped.completed.length})
             </span>
-          </button>
+          </Button>
 
           {completedOpen && (
             <div className="mt-1 space-y-1">
@@ -235,30 +235,23 @@ function TaskRowItem({
           <FolderKanban className="h-3.5 w-3.5" />
         </span>
       ) : (
-        <button
-          type="button"
-          onClick={onToggle}
-          className="mt-0.5 grid h-5 w-5 shrink-0 cursor-pointer place-items-center rounded-full border transition-all active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+        <Checkbox
+          checked={completed}
+          onCheckedChange={() => onToggle?.()}
+          onClick={(event) => event.stopPropagation()}
+          className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-full border transition-all active:scale-90 focus-visible:ring-2 focus-visible:ring-blue-500/40"
           style={{
             borderColor: completed ? taskColor : "#cbd5e1",
             backgroundColor: completed ? taskColor : "transparent",
           }}
           aria-label={task.title}
-          aria-checked={completed}
-          role="checkbox"
-        >
-          <Check
-            className={`h-3 w-3 stroke-[2.5] transition-opacity ${
-              completed ? "text-white" : "opacity-0 group-hover:opacity-40"
-            }`}
-            style={completed ? undefined : { color: taskColor }}
-          />
-        </button>
+        />
       )}
 
-      <button
+      <Button
         type="button"
-        className="min-w-0 flex-1 cursor-pointer text-left"
+        variant="ghost"
+        className="h-auto min-w-0 flex-1 cursor-pointer justify-start rounded-none p-0 text-left hover:bg-transparent"
         onClick={onSelect}
       >
         <span
@@ -310,7 +303,7 @@ function TaskRowItem({
             {cleanTaskDescription(task.description)}
           </span>
         )}
-      </button>
+      </Button>
     </div>
   );
 }

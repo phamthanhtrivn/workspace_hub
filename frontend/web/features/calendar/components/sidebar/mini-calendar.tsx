@@ -6,6 +6,7 @@ import interactionPlugin, { DateClickArg } from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { getMiniCalendarWeekdayLabel, isSameDate } from "../../utils/calendar-date.utils";
 
@@ -67,22 +68,26 @@ export function MiniCalendar({
           {title}
         </h2>
         <div className="flex items-center gap-1">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => move("prev")}
             className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             aria-label={intl.formatMessage({ id: "app.previous" })}
           >
             <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-sm"
             onClick={() => move("next")}
             className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
             aria-label={intl.formatMessage({ id: "app.next" })}
           >
             <ChevronRight className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

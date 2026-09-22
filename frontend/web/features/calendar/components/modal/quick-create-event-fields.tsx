@@ -3,6 +3,8 @@
 import { MapPin, Users, Video } from "lucide-react";
 import { UseFormRegister } from "react-hook-form";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
 import { CalendarEventAttendeePayload } from "../../types/calendar.types";
@@ -32,24 +34,25 @@ export function QuickCreateEventFields({
         />
       </QuickRow>
       <QuickRow icon={<Video className="h-5 w-5" />}>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() =>
             toast.info(
               intl.formatMessage({ id: "calendar.quick.conferenceUiOnly" }),
             )
           }
-          className="w-full cursor-pointer rounded-lg px-2 py-2 text-left text-sm text-slate-600 transition hover:bg-slate-200/60"
+          className="h-auto w-full cursor-pointer justify-start rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-100"
         >
           {intl.formatMessage({ id: "calendar.quick.addConference" })}
-        </button>
+        </Button>
       </QuickRow>
       <QuickRow icon={<MapPin className="h-5 w-5" />}>
-        <input
+        <Input
           {...register("location")}
           aria-label={intl.formatMessage({ id: "calendar.location" })}
           placeholder={intl.formatMessage({ id: "calendar.quick.addLocation" })}
-          className="w-full rounded-lg border-0 bg-transparent px-2 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-600 hover:bg-slate-200/60 focus:bg-white"
+          className="h-auto w-full rounded-xl border border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-slate-700 shadow-none outline-none transition placeholder:text-slate-600 hover:bg-slate-100 focus:border-blue-500/50 focus:bg-white focus-visible:ring-1 focus-visible:ring-blue-100"
         />
       </QuickRow>
     </>

@@ -378,6 +378,9 @@ const en = {
   "calendar.editEvent": "Edit event",
   "calendar.editCalendar": "Edit calendar",
   "calendar.cancelEvent": "Cancel event",
+  "calendar.deleteRecurringEvent": "Delete recurring event",
+  "calendar.deleteRecurringEventDescription":
+    "Choose which events in this series you want to delete:",
   "calendar.today": "Today",
   "calendar.moreEvents": "More",
   "calendar.view.year": "Year",

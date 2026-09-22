@@ -3,6 +3,8 @@
 import { X } from "lucide-react";
 import { FormEvent, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useCreateCalendar } from "../../hooks/use-calendar-queries";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
@@ -76,14 +78,16 @@ export function CreateCalendarModal({
           >
             {intl.formatMessage({ id: "calendar.createCalendar" })}
           </h2>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             aria-label={intl.formatMessage({ id: "app.close" })}
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-4 px-5 py-5">
@@ -91,14 +95,14 @@ export function CreateCalendarModal({
             <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
               {intl.formatMessage({ id: "calendar.calendarName" })}
             </span>
-            <input
+            <Input
               data-modal-initial-focus
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder={intl.formatMessage({
                 id: "calendar.calendarNamePlaceholder",
               })}
-              className="w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="h-10 w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 shadow-none outline-none transition placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
             />
           </label>
 
@@ -146,14 +150,15 @@ export function CreateCalendarModal({
         </div>
 
         <div className="flex justify-end gap-2.5 border-t border-slate-100 px-5 py-3.5">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
             className="cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-800 active:scale-[0.98]"
           >
             {intl.formatMessage({ id: "app.cancel" })}
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={createCalendar.isPending}
             className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-xs transition-all hover:bg-blue-700 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
@@ -161,7 +166,7 @@ export function CreateCalendarModal({
             {createCalendar.isPending
               ? intl.formatMessage({ id: "app.saving" })
               : intl.formatMessage({ id: "app.create" })}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

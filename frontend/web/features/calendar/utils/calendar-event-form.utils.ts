@@ -52,13 +52,15 @@ function getEditableAttendees(event?: CalendarEvent | null) {
     .map(({ userId, optional, profile }) => ({
       userId,
       optional: optional ?? false,
-      profile: profile
+      ...(profile
         ? {
-            fullName: profile.fullName ?? null,
-            email: profile.email ?? null,
-            avatarUrl: profile.avatarUrl ?? null,
+            profile: {
+              fullName: profile.fullName ?? null,
+              email: profile.email ?? null,
+              avatarUrl: profile.avatarUrl ?? null,
+            },
           }
-        : null,
+        : {}),
     }));
 }
 

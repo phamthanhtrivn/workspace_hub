@@ -2,6 +2,8 @@
 
 import { Check, MoreVertical, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { CALENDAR_COLOR_CHOICES } from "../../types/calendar.constants";
 
@@ -45,8 +47,10 @@ export function CalendarColorPopover({
 
   return (
     <div ref={rootRef} className="relative">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         onClick={() => setOpen((current) => !current)}
         className={cn(
           "grid h-6 w-6 cursor-pointer place-items-center rounded-md text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
@@ -58,7 +62,7 @@ export function CalendarColorPopover({
         aria-label={label}
       >
         <MoreVertical className="h-3.5 w-3.5" />
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -68,9 +72,11 @@ export function CalendarColorPopover({
         >
           <div className="grid grid-cols-6 gap-2">
             {CALENDAR_COLOR_CHOICES.map((color) => (
-              <button
+              <Button
                 key={color}
                 type="button"
+                variant="ghost"
+                size="icon"
                 disabled={pending}
                 onClick={() => selectColor(color)}
                 className="grid h-6 w-6 cursor-pointer place-items-center rounded-full ring-1 ring-black/5 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-wait disabled:opacity-60"
@@ -80,11 +86,11 @@ export function CalendarColorPopover({
                 {value.toLowerCase() === color.toLowerCase() && (
                   <Check className="h-3.5 w-3.5 text-white" />
                 )}
-              </button>
+              </Button>
             ))}
             <label className="relative grid h-6 w-6 cursor-pointer place-items-center rounded-full bg-slate-100 text-slate-500 ring-1 ring-slate-200 transition hover:bg-slate-200 focus-within:ring-2 focus-within:ring-blue-500">
               <Plus className="h-3.5 w-3.5" />
-              <input
+              <Input
                 type="color"
                 defaultValue={value}
                 disabled={pending}

@@ -3,6 +3,8 @@
 import { Search, User, X } from "lucide-react";
 import Image from "next/image";
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import { useAttendeeSearch } from "../../hooks/use-calendar-users";
@@ -57,7 +59,7 @@ export function AttendeePicker({
         {!compact && (
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
         )}
-        <input
+        <Input
           value={query}
           aria-label={intl.formatMessage({
             id: compact
@@ -70,10 +72,10 @@ export function AttendeePicker({
               ? "calendar.quick.addGuests"
               : "calendar.searchAttendees",
           })}
-          className={`w-full rounded-lg py-2 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-500 ${
+          className={`h-auto w-full rounded-lg py-2 pr-3 text-sm text-slate-700 shadow-none outline-none transition placeholder:text-slate-500 ${
             compact
-              ? "border-0 bg-transparent pl-2 hover:bg-slate-200/60 focus:bg-white"
-              : "border border-slate-200 pl-9 font-semibold focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+              ? "rounded-xl border border-transparent bg-transparent pl-3 font-medium hover:bg-slate-100 focus:border-blue-500/50 focus:bg-white focus-visible:ring-1 focus-visible:ring-blue-100"
+              : "border border-slate-200 pl-9 font-semibold focus-visible:border-[var(--color-secondary)] focus-visible:ring-4 focus-visible:ring-blue-100"
           }`}
         />
       </div>
@@ -90,11 +92,12 @@ export function AttendeePicker({
             </div>
           ) : (
             results.map((user) => (
-              <button
+              <Button
                 key={user.id}
                 type="button"
+                variant="ghost"
                 onClick={() => addUser(user)}
-                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-auto w-full cursor-pointer items-center justify-start gap-2 rounded-none px-3 py-2 text-left transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={attendeeIds.has(user.id)}
               >
                 <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-full bg-slate-100">
@@ -119,7 +122,7 @@ export function AttendeePicker({
                     {user.email}
                   </p>
                 </div>
-              </button>
+              </Button>
             ))
           )}
         </div>
@@ -153,14 +156,16 @@ export function AttendeePicker({
                   )}
                 </div>
                 <span className="max-w-40 truncate">{displayName}</span>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => removeUser(attendee.userId)}
-                  className="cursor-pointer text-slate-400 hover:text-slate-700"
+                  className="h-5 w-5 cursor-pointer p-0 text-slate-400 hover:bg-transparent hover:text-slate-700"
                   aria-label={intl.formatMessage({ id: "app.delete" })}
                 >
                   <X className="h-3.5 w-3.5" />
-                </button>
+                </Button>
               </span>
             );
           })}

@@ -385,6 +385,9 @@ const vi = {
   "calendar.editEvent": "Chỉnh sửa sự kiện",
   "calendar.editCalendar": "Chỉnh sửa lịch",
   "calendar.cancelEvent": "Hủy sự kiện",
+  "calendar.deleteRecurringEvent": "Xóa sự kiện định kỳ",
+  "calendar.deleteRecurringEventDescription":
+    "Chọn phạm vi bạn muốn áp dụng khi xóa sự kiện này:",
   "calendar.today": "Hôm nay",
   "calendar.moreEvents": "Xem thêm",
   "calendar.view.year": "Năm",

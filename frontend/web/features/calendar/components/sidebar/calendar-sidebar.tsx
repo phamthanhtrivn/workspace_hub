@@ -1,6 +1,7 @@
 "use client";
 
 import { CalendarPlus, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { WorkspaceCalendar } from "../../types/calendar.types";
 import { CalendarListItem } from "./calendar-list-item";
@@ -44,8 +45,9 @@ export function CalendarSidebar({
   return (
     <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-slate-200 bg-white [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <div className="px-4 pb-2 pt-4">
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={onCreateEvent}
           className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-slate-200/90 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-xs transition-all duration-150 hover:border-slate-300 hover:bg-slate-50 hover:shadow-md active:scale-[0.98] active:shadow-xs"
         >
@@ -53,7 +55,7 @@ export function CalendarSidebar({
             <Plus className="h-4 w-4 stroke-[2.5]" />
           </div>
           <span>{intl.formatMessage({ id: "calendar.newEvent" })}</span>
-        </button>
+        </Button>
       </div>
 
       <MiniCalendar
@@ -71,15 +73,17 @@ export function CalendarSidebar({
             </h2>
           </div>
           {onCreateCalendar && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onCreateCalendar}
               className="grid h-6 w-6 cursor-pointer place-items-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
               aria-label={intl.formatMessage({ id: "calendar.createCalendar" })}
               title={intl.formatMessage({ id: "calendar.createCalendar" })}
             >
               <Plus className="h-4 w-4" />
-            </button>
+            </Button>
           )}
         </div>
         {(() => {

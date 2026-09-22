@@ -2,6 +2,7 @@
 
 import { Repeat2, X } from "lucide-react";
 import { useRef } from "react";
+import { Button } from "@/components/ui/button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
 import { RecurrenceScope } from "../../types/calendar.types";
@@ -39,38 +40,42 @@ export function RecurrenceScopeModal({
           >
             {intl.formatMessage({ id: "calendar.moveRecurringEvent" })}
           </h2>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-500 hover:bg-slate-100"
             aria-label={intl.formatMessage({ id: "app.close" })}
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-1 p-3">
           {Object.values(RecurrenceScope).map((scope) => (
-            <button
+            <Button
               key={scope}
               data-modal-initial-focus={scope === RecurrenceScope.THIS || undefined}
               type="button"
+              variant="ghost"
               onClick={() => onSelect(scope)}
-              className="w-full cursor-pointer rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
+              className="h-auto w-full cursor-pointer justify-start rounded-lg px-4 py-3 text-left text-sm font-medium text-slate-700 transition hover:bg-blue-50 hover:text-blue-800"
             >
               {intl.formatMessage({ id: `calendar.scope.${scope}` })}
-            </button>
+            </Button>
           ))}
         </div>
 
         <div className="flex justify-end border-t border-slate-200 px-4 py-3">
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onClose}
             className="cursor-pointer rounded-md px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-50"
           >
             {intl.formatMessage({ id: "app.cancel" })}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

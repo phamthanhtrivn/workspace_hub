@@ -14,6 +14,7 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { Circle, CircleCheck } from "lucide-react";
 import { RefObject, useEffect, useRef } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   CALENDAR_INITIAL_VIEW,
@@ -180,45 +181,23 @@ export function CalendarGrid({
                 }`}
               >
                 {canToggleTask ? (
-                  <span
-                    role="checkbox"
-                    aria-checked={isCompletedTask}
+                  <Checkbox
+                    checked={isCompletedTask}
                     aria-label={taskToggleLabel}
-                    aria-disabled={taskCompletionBusy}
+                    disabled={taskCompletionBusy}
                     title={taskToggleLabel}
-                    tabIndex={taskCompletionBusy ? -1 : 0}
                     data-task-completion-toggle
                     onPointerDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
-                      event.preventDefault();
                       event.stopPropagation();
-                      if (!taskCompletionBusy) {
-                        onTaskCompletionToggle(taskEvent);
-                      }
                     }}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter" && event.key !== " ") return;
-                      event.preventDefault();
-                      event.stopPropagation();
-                      if (!taskCompletionBusy) {
-                        onTaskCompletionToggle(taskEvent);
-                      }
-                    }}
+                    onCheckedChange={() => onTaskCompletionToggle(taskEvent)}
                     className={`group/task-toggle relative mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full outline-none ring-white/90 focus-visible:ring-2 ${
                       taskCompletionBusy
                         ? "cursor-wait opacity-70"
                         : "cursor-pointer"
                     }`}
-                  >
-                    {isCompletedTask ? (
-                      <CircleCheck className="h-3.5 w-3.5" />
-                    ) : (
-                      <>
-                        <Circle className="h-3.5 w-3.5 transition-opacity group-hover/task-toggle:opacity-0 group-focus-visible/task-toggle:opacity-0" />
-                        <CircleCheck className="absolute h-3.5 w-3.5 opacity-0 transition-opacity group-hover/task-toggle:opacity-100 group-focus-visible/task-toggle:opacity-100" />
-                      </>
-                    )}
-                  </span>
+                  />
                 ) : isTask && isCompletedTask ? (
                   <CircleCheck className="mt-px h-3.5 w-3.5 shrink-0" />
                 ) : isTask ? (

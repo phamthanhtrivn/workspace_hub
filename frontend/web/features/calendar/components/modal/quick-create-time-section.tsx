@@ -3,7 +3,10 @@
 import { Clock3 } from "lucide-react";
 import { ReactNode, useMemo } from "react";
 import { UseFormReturn, useWatch } from "react-hook-form";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { cn } from "@/lib/utils";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
 import {
   getDateInputValue,
@@ -21,16 +24,25 @@ export type QuickCreateKind = "event" | "task";
 export function QuickRow({
   icon,
   children,
+  className,
+  contentClassName,
 }: {
   icon: ReactNode;
   children: ReactNode;
+  className?: string;
+  contentClassName?: string;
 }) {
   return (
-    <div className="grid grid-cols-[2rem_minmax(0,1fr)] items-start gap-3">
-      <span className="mt-2 grid h-8 w-8 place-items-center text-slate-600">
+    <div
+      className={cn(
+        "grid grid-cols-[2.25rem_minmax(0,1fr)] items-start gap-3",
+        className,
+      )}
+    >
+      <span className="mt-1 grid h-9 w-9 place-items-center rounded-xl text-slate-500">
         {icon}
       </span>
-      <div className="min-w-0">{children}</div>
+      <div className={cn("min-w-0", contentClassName)}>{children}</div>
     </div>
   );
 }
@@ -57,11 +69,10 @@ export function QuickCreateTimeSection({
   onRecurrenceChange: (preset: CalendarRecurrencePreset) => void;
 }) {
   const intl = useAppIntl();
-  const { control, register } = form;
+  const { control, setValue } = form;
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const allDay = useWatch({ control, name: "allDay" });
-  const allDayRegistration = register("allDay");
   const startTime = getTimeInputValue(startAt);
   const startTimeOptions = useMemo(
     () => createStartTimeOptions(intl.locale, startTime),
@@ -81,60 +92,65 @@ export function QuickCreateTimeSection({
 
   return (
     <QuickRow icon={<Clock3 className="h-5 w-5" />}>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-1 py-1.5 hover:bg-slate-200/50">
-        <input
-          type="date"
-          aria-label={intl.formatMessage({ id: "calendar.start" })}
-          value={getDateInputValue(startAt)}
-          onChange={(event) => onStartDateChange(event.target.value)}
-          className="h-8 cursor-pointer border-0 bg-transparent text-sm font-medium text-slate-700 outline-none"
-        />
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2 transition-colors hover:bg-slate-100/90">
+          <Input
+            type="date"
+            aria-label={intl.formatMessage({ id: "calendar.start" })}
+            value={getDateInputValue(startAt)}
+            onChange={(event) => onStartDateChange(event.target.value)}
+            className="h-8 w-auto cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
+          />
+        </div>
+
         {!allDay && (
-          <>
+          <div className="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
             <CalendarSelect
               value={startTime}
               options={startTimeOptions}
               ariaLabel={intl.formatMessage({ id: "calendar.start" })}
               onChange={onStartTimeChange}
-              triggerClassName="h-8 min-w-[6.6rem] bg-slate-200/80 px-2.5"
+              triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-slate-700 hover:bg-slate-200/70 data-[state=open]:bg-white"
               popupClassName="min-w-[11.75rem]"
             />
-            <span className="text-sm text-slate-500">-</span>
+            <span className="hidden text-sm font-medium text-slate-400 sm:block">
+              -
+            </span>
             <CalendarSelect
               value={endAt}
               options={endTimeOptions}
               ariaLabel={intl.formatMessage({ id: "calendar.end" })}
               onChange={onEndDateTimeChange}
               triggerLabel={selectedEndTimeLabel}
-              triggerClassName="h-8 min-w-[6.6rem] bg-slate-200/80 px-2.5"
+              triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-slate-700 hover:bg-slate-200/70 data-[state=open]:bg-white"
               popupClassName="min-w-[11.75rem]"
             />
-          </>
+          </div>
         )}
-      </div>
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-2 text-xs text-slate-500">
-        <label className="inline-flex cursor-pointer items-center gap-1.5">
-          <input
-            {...allDayRegistration}
-            type="checkbox"
-            aria-label={intl.formatMessage({ id: "calendar.allDay" })}
-            checked={allDay}
-            onChange={(event) => {
-              void allDayRegistration.onChange(event);
-              onAllDayChange(event.target.checked);
-            }}
-            className="h-3.5 w-3.5 rounded border-slate-300"
-          />
-          {intl.formatMessage({ id: "calendar.allDay" })}
-        </label>
-        {kind === "event" && (
-          <>
-            <span>·</span>
-            <span>{intl.formatMessage({ id: "calendar.quick.timeZone" })}</span>
-          </>
-        )}
-      </div>
-      <div className="mt-1 px-1">
+
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-xs font-medium text-slate-500">
+          <label className="inline-flex cursor-pointer items-center gap-2">
+            <Checkbox
+              aria-label={intl.formatMessage({ id: "calendar.allDay" })}
+              checked={allDay}
+              onCheckedChange={(checked) => {
+                setValue("allDay", checked, { shouldDirty: true });
+                onAllDayChange(checked);
+              }}
+              className="h-3.5 w-3.5 rounded border-slate-300"
+            />
+            {intl.formatMessage({ id: "calendar.allDay" })}
+          </label>
+          {kind === "event" && (
+            <>
+              <span className="text-slate-300">{"\u00B7"}</span>
+              <span>
+                {intl.formatMessage({ id: "calendar.quick.timeZone" })}
+              </span>
+            </>
+          )}
+        </div>
+
         <CalendarSelect
           value={recurrencePreset}
           options={recurrenceOptions}
@@ -143,7 +159,7 @@ export function QuickCreateTimeSection({
             onRecurrenceChange(value as CalendarRecurrencePreset)
           }
           alignItemWithTrigger={false}
-          triggerClassName="h-9 min-w-[10.5rem] justify-between bg-slate-200/80 px-3 text-slate-600"
+          triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-200/70 data-[state=open]:bg-white"
           popupClassName="min-w-[15.5rem]"
         />
       </div>

@@ -2,6 +2,8 @@
 
 import { MoreVertical, Trash2 } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { WorkspaceCalendar } from "../../types/calendar.types";
@@ -73,8 +75,10 @@ export function CalendarEditPopover({
 
   return (
     <div ref={rootRef} className="relative">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         onClick={() => (open ? setOpen(false) : openEditor())}
         className={cn(
           "grid h-6 w-6 cursor-pointer place-items-center rounded-md text-slate-400 transition hover:bg-slate-200/70 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40",
@@ -86,7 +90,7 @@ export function CalendarEditPopover({
         aria-label={intl.formatMessage({ id: "calendar.editCalendar" })}
       >
         <MoreVertical className="h-3.5 w-3.5" />
-      </button>
+      </Button>
 
       {open && (
         <form
@@ -99,13 +103,13 @@ export function CalendarEditPopover({
             <span className="text-[11px] font-semibold text-slate-500">
               {intl.formatMessage({ id: "calendar.calendarName" })}
             </span>
-            <input
+            <Input
               autoFocus
               value={name}
               maxLength={120}
               disabled={pending}
               onChange={(event) => setName(event.target.value)}
-              className="h-8 w-full rounded-md border border-slate-200 px-2.5 text-sm text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
+              className="h-8 w-full rounded-md border border-slate-200 px-2.5 text-sm text-slate-700 shadow-none outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100 disabled:opacity-60"
             />
           </label>
 
@@ -131,8 +135,9 @@ export function CalendarEditPopover({
 
           <div className="flex items-center justify-between border-t border-slate-100 pt-3">
             {canDelete ? (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 disabled={pending}
                 onClick={() => {
                   setOpen(false);
@@ -145,21 +150,22 @@ export function CalendarEditPopover({
                 <span className="text-[11px] font-bold">
                   {intl.formatMessage({ id: "calendar.deleteCalendar" })}
                 </span>
-              </button>
+              </Button>
             ) : (
               <div />
             )}
 
             <div className="flex items-center gap-2">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 disabled={pending}
                 onClick={() => setOpen(false)}
-                className="cursor-pointer px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 disabled:cursor-wait disabled:opacity-60"
+                className="h-auto cursor-pointer px-2.5 py-1.5 text-xs font-semibold text-slate-500 hover:bg-transparent hover:text-slate-800 disabled:cursor-wait disabled:opacity-60"
               >
                 {intl.formatMessage({ id: "app.cancel" })}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={pending}
                 className="cursor-pointer rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
@@ -167,7 +173,7 @@ export function CalendarEditPopover({
                 {intl.formatMessage({
                   id: pending ? "app.saving" : "app.save",
                 })}
-              </button>
+              </Button>
             </div>
           </div>
         </form>

@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { CalendarSidebar } from "../sidebar/calendar-sidebar";
@@ -112,14 +113,16 @@ export function CalendarWorkspace() {
   ]);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("calendar_sidebar_open");
-      if (saved !== null) {
-        setDesktopSidebarOpen(saved === "true");
+    queueMicrotask(() => {
+      try {
+        const saved = localStorage.getItem("calendar_sidebar_open");
+        if (saved !== null) {
+          setDesktopSidebarOpen(saved === "true");
+        }
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
-    }
+    });
   }, []);
 
   const handleToggleSidebar = useCallback(() => {
@@ -196,9 +199,10 @@ export function CalendarWorkspace() {
   return (
     <section className="relative h-full w-full overflow-hidden bg-white">
       {mobileSidebarOpen && (
-        <button
+        <Button
           type="button"
-          className="fixed inset-0 z-40 cursor-default bg-slate-950/30 lg:hidden"
+          variant="ghost"
+          className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-slate-950/30 p-0 lg:hidden"
           onClick={() => setMobileSidebarOpen(false)}
           aria-label={intl.formatMessage({ id: "app.close" })}
         />

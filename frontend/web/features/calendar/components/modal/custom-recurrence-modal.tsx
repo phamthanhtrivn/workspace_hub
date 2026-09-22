@@ -2,8 +2,12 @@
 
 import { useRef, useState } from "react";
 import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CustomSelect } from "@/components/ui/custom/custom-select";
+import { Input } from "@/components/ui/input";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
+import { CalendarRadioGroup } from "../ui/calendar-radio-group";
 import {
   CALENDAR_RECURRENCE_FREQUENCY_OPTIONS,
   CALENDAR_RECURRENCE_WEEKDAY_OPTIONS,
@@ -11,7 +15,6 @@ import {
 import {
   CalendarCustomRecurrence,
   CalendarRecurrenceEndType,
-  CalendarRecurrenceFrequency,
   CalendarRecurrenceWeekday,
 } from "../../types/calendar.types";
 
@@ -74,14 +77,16 @@ export function CustomRecurrenceModal({
           >
             {intl.formatMessage({ id: "calendar.recurrence.customTitle" })}
           </h3>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             aria-label={intl.formatMessage({ id: "app.close" })}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-5 px-5 py-5">
@@ -89,7 +94,7 @@ export function CustomRecurrenceModal({
             <span className="text-sm font-bold text-slate-500">
               {intl.formatMessage({ id: "calendar.recurrence.repeatEvery" })}
             </span>
-            <input
+            <Input
               data-modal-initial-focus
               type="number"
               min={1}
@@ -100,24 +105,27 @@ export function CustomRecurrenceModal({
                   interval: Math.max(1, Number(event.target.value) || 1),
                 }))
               }
-              className="h-11 w-20 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
+              className="h-11 w-20 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none outline-none focus-visible:border-[var(--color-secondary)] focus-visible:ring-4 focus-visible:ring-blue-100"
             />
-            <select
+            <CustomSelect
               value={draft.frequency}
-              onChange={(event) =>
+              onChange={(frequency) =>
                 setDraft((current) => ({
                   ...current,
-                  frequency: event.target.value as CalendarRecurrenceFrequency,
+                  frequency,
                 }))
               }
-              className="h-11 min-w-32 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 outline-none focus:border-[var(--color-secondary)] focus:ring-4 focus:ring-blue-100"
-            >
-              {CALENDAR_RECURRENCE_FREQUENCY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {intl.formatMessage({ id: option.labelId })}
-                </option>
-              ))}
-            </select>
+              ariaLabel={intl.formatMessage({
+                id: "calendar.recurrence.repeatEvery",
+              })}
+              options={CALENDAR_RECURRENCE_FREQUENCY_OPTIONS.map((option) => ({
+                value: option.value,
+                label: intl.formatMessage({ id: option.labelId }),
+              }))}
+              className="min-w-32"
+              triggerClassName="h-11 rounded-lg border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none"
+              contentClassName="rounded-lg border-slate-200"
+            />
           </div>
 
           {draft.frequency === "WEEKLY" && (
@@ -130,9 +138,11 @@ export function CustomRecurrenceModal({
                   const selected = draft.weekdays.includes(weekday.value);
 
                   return (
-                    <button
+                    <Button
                       key={weekday.value}
                       type="button"
+                      variant="ghost"
+                      size="icon"
                       onClick={() => toggleWeekday(weekday.value)}
                       className={`grid h-9 w-9 cursor-pointer place-items-center rounded-full text-xs font-black transition ${
                         selected
@@ -141,7 +151,7 @@ export function CustomRecurrenceModal({
                       }`}
                     >
                       {intl.formatMessage({ id: weekday.labelId })}
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -152,76 +162,69 @@ export function CustomRecurrenceModal({
             <span className="text-sm font-bold text-slate-500">
               {intl.formatMessage({ id: "calendar.recurrence.ends" })}
             </span>
-            {(["never", "on", "after"] as CalendarRecurrenceEndType[]).map(
-              (endType) => (
-                <label
-                  key={endType}
-                  className="flex cursor-pointer items-center gap-3 text-sm font-bold text-slate-600"
-                >
-                  <input
-                    type="radio"
-                    name="recurrenceEndType"
-                    checked={draft.endType === endType}
-                    onChange={() =>
-                      setDraft((current) => ({ ...current, endType }))
-                    }
-                    className="h-4 w-4 cursor-pointer"
-                  />
-                  <span className="w-24">
-                    {intl.formatMessage({
-                      id: `calendar.recurrence.ends.${endType}`,
-                    })}
-                  </span>
-                  {endType === "on" && (
-                    <input
-                      type="date"
-                      value={draft.until || ""}
-                      disabled={draft.endType !== "on"}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          until: event.target.value,
-                        }))
-                      }
-                      className="h-10 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-400"
-                    />
-                  )}
-                  {endType === "after" && (
-                    <input
-                      type="number"
-                      min={1}
-                      value={draft.count || 1}
-                      disabled={draft.endType !== "after"}
-                      onChange={(event) =>
-                        setDraft((current) => ({
-                          ...current,
-                          count: Math.max(1, Number(event.target.value) || 1),
-                        }))
-                      }
-                      className="h-10 w-24 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-700 outline-none disabled:bg-slate-100 disabled:text-slate-400"
-                    />
-                  )}
-                </label>
-              ),
+            <CalendarRadioGroup<CalendarRecurrenceEndType>
+              name="recurrenceEndType"
+              ariaLabel={intl.formatMessage({ id: "calendar.recurrence.ends" })}
+              value={draft.endType}
+              onChange={(endType) =>
+                setDraft((current) => ({ ...current, endType }))
+              }
+              options={(["never", "on", "after"] as CalendarRecurrenceEndType[]).map(
+                (endType) => ({
+                  value: endType,
+                  label: intl.formatMessage({
+                    id: `calendar.recurrence.ends.${endType}`,
+                  }),
+                }),
+              )}
+              optionClassName="text-sm font-bold"
+            />
+            {draft.endType === "on" && (
+              <Input
+                type="date"
+                value={draft.until || ""}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    until: event.target.value,
+                  }))
+                }
+                className="h-10 rounded-lg border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none"
+              />
+            )}
+            {draft.endType === "after" && (
+              <Input
+                type="number"
+                min={1}
+                value={draft.count || 1}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    count: Math.max(1, Number(event.target.value) || 1),
+                  }))
+                }
+                className="h-10 w-24 rounded-lg border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none"
+              />
             )}
           </div>
         </div>
 
         <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
             className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
           >
             {intl.formatMessage({ id: "app.cancel" })}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={handleSave}
             className="cursor-pointer rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary)]"
           >
             {intl.formatMessage({ id: "app.done" })}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

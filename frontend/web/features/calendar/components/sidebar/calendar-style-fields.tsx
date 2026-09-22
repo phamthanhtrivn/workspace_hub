@@ -1,6 +1,8 @@
 "use client";
 
 import { Ban, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   CALENDAR_COLOR_CHOICES,
@@ -23,8 +25,10 @@ export function CalendarIconPicker({
     <div
       className={compact ? "flex flex-wrap gap-1.5" : "flex flex-wrap gap-2"}
     >
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
         onClick={() => {
           onChange(null);
         }}
@@ -38,12 +42,14 @@ export function CalendarIconPicker({
         aria-label={intl.formatMessage({ id: "calendar.noIcon" })}
       >
         <Ban className="h-4 w-4" />
-      </button>
+      </Button>
 
       {CALENDAR_ICON_CHOICES.map((icon) => (
-        <button
+        <Button
           key={icon}
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => {
             onChange(icon);
           }}
@@ -57,7 +63,7 @@ export function CalendarIconPicker({
           aria-label={icon}
         >
           {icon}
-        </button>
+        </Button>
       ))}
     </div>
   );
@@ -80,9 +86,11 @@ export function CalendarColorPicker({
     <div className="space-y-3">
       <div className={`grid gap-2 ${compact ? "grid-cols-5" : "grid-cols-6"}`}>
         {CALENDAR_COLOR_CHOICES.map((choice) => (
-          <button
+          <Button
             key={choice}
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={() => {
               onChange(choice);
               onShowCustomColor(false);
@@ -100,10 +108,12 @@ export function CalendarColorPicker({
               !showCustomColor && (
                 <Check className="h-3.5 w-3.5 stroke-[2.5] text-white drop-shadow-xs" />
               )}
-          </button>
+          </Button>
         ))}
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={() => onShowCustomColor(true)}
           className={cn(
             "grid h-7 w-7 cursor-pointer place-items-center rounded-full bg-slate-100 text-sm font-semibold text-slate-500 transition-transform hover:scale-110 active:scale-95",
@@ -114,21 +124,21 @@ export function CalendarColorPicker({
           aria-label="Custom color"
         >
           +
-        </button>
+        </Button>
       </div>
 
       {showCustomColor && (
         <div className="flex items-center gap-2">
-          <input
+          <Input
             type="color"
             value={value}
             onChange={(event) => onChange(event.target.value)}
             className="h-9 w-10 cursor-pointer rounded-md border border-slate-200 bg-white p-0.5 shadow-xs"
           />
-          <input
+          <Input
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            className="min-w-0 flex-1 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-mono font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="min-w-0 flex-1 rounded-md border border-slate-200 px-3 py-1.5 text-xs font-mono font-medium text-slate-700 shadow-none outline-none focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
           />
         </div>
       )}

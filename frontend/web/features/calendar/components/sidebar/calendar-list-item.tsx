@@ -1,8 +1,8 @@
 "use client";
 
-import { Check } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
   useDeleteCalendar,
@@ -23,18 +23,16 @@ function CalendarSelectionCheckbox({
   onToggle: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="grid h-4.5 w-4.5 cursor-pointer place-items-center rounded-[5px] border transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
+    <Checkbox
+      checked={selected}
+      onCheckedChange={onToggle}
+      className="h-4.5 w-4.5 cursor-pointer rounded-[5px] border transition-all active:scale-95 focus-visible:ring-2 focus-visible:ring-blue-500/40"
       style={{
         borderColor: calendar.color,
         backgroundColor: selected ? calendar.color : "#ffffff",
       }}
       aria-label={calendar.name}
-    >
-      {selected && <Check className="h-3 w-3 stroke-[2.5] text-white" />}
-    </button>
+    />
   );
 }
 

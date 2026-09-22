@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   AlignLeft,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAttendeeProfiles } from "../../hooks/use-calendar-users";
@@ -39,6 +40,8 @@ import {
   cleanTaskDescription,
   isTaskCalendarEvent,
 } from "../../utils/calendar-event.utils";
+import { CalendarConfirmDialog } from "../ui/calendar-confirm-dialog";
+import { CalendarRadioGroup } from "../ui/calendar-radio-group";
 import { EventAttendeeList } from "./event-attendee-list";
 
 export function EventDetailModal({
@@ -134,7 +137,7 @@ export function EventDetailModal({
       navigator.clipboard.writeText(info).then(() => {
         toast.success(
           intl.locale === "vi"
-            ? "Đã sao chép thông tin sự kiện"
+            ? "ÄÃ£ sao chÃ©p thÃ´ng tin sá»± kiá»‡n"
             : "Event details copied to clipboard",
         );
       });
@@ -148,7 +151,7 @@ export function EventDetailModal({
       setShowMoreMenu(false);
       toast.success(
         intl.locale === "vi"
-          ? "Đã sao chép liên kết sự kiện"
+          ? "ÄÃ£ sao chÃ©p liÃªn káº¿t sá»± kiá»‡n"
           : "Event link copied to clipboard",
       );
     });
@@ -166,7 +169,7 @@ export function EventDetailModal({
       setTimeout(() => setCopiedMeeting(false), 2000);
       toast.success(
         intl.locale === "vi"
-          ? "Đã sao chép liên kết cuộc họp"
+          ? "ÄÃ£ sao chÃ©p liÃªn káº¿t cuá»™c há»p"
           : "Meeting link copied to clipboard",
       );
     } catch {
@@ -187,14 +190,14 @@ export function EventDetailModal({
           .map((r) => formatReminderLabel(r.minutesBefore, intl.locale))
           .join(", ")
       : intl.locale === "vi"
-        ? "30 phút trước"
+        ? "30 phÃºt trÆ°á»›c"
         : "30 minutes before";
 
   const calendarName =
     event.calendar?.name ||
     event.creatorProfile?.fullName ||
     event.creatorProfile?.email ||
-    (intl.locale === "vi" ? "Lịch của tôi" : "My Calendar");
+    (intl.locale === "vi" ? "Lá»‹ch cá»§a tÃ´i" : "My Calendar");
 
   const eventColor =
     (isTask ? tasksColor : undefined) ||
@@ -217,18 +220,22 @@ export function EventDetailModal({
         <div className="flex h-12 items-center justify-end gap-1 px-3 pt-2 text-slate-500">
           {event.permissions?.canManage && (
             <>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={onEdit}
                 aria-label={intl.formatMessage({ id: "calendar.editEvent" })}
                 title={intl.formatMessage({ id: "calendar.editEvent" })}
                 className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
               >
                 <Pencil className="h-4 w-4" />
-              </button>
+              </Button>
 
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={handleDelete}
                 disabled={busy}
                 aria-label={intl.formatMessage({ id: "calendar.cancelEvent" })}
@@ -236,76 +243,84 @@ export function EventDetailModal({
                 className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
-              </button>
+              </Button>
             </>
           )}
 
           {!isTask && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={handleEmailGuests}
               aria-label={
-                intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"
+                intl.locale === "vi" ? "Gá»­i email cho khÃ¡ch" : "Email guests"
               }
               title={
-                intl.locale === "vi" ? "Gửi email cho khách" : "Email guests"
+                intl.locale === "vi" ? "Gá»­i email cho khÃ¡ch" : "Email guests"
               }
               className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               <Mail className="h-4 w-4" />
-            </button>
+            </Button>
           )}
 
           <div className="relative" ref={moreMenuRef}>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => setShowMoreMenu((prev) => !prev)}
               aria-label={
-                intl.locale === "vi" ? "Tùy chọn khác" : "More options"
+                intl.locale === "vi" ? "TÃ¹y chá»n khÃ¡c" : "More options"
               }
-              title={intl.locale === "vi" ? "Tùy chọn khác" : "More options"}
+              title={intl.locale === "vi" ? "TÃ¹y chá»n khÃ¡c" : "More options"}
               className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               <MoreVertical className="h-4 w-4" />
-            </button>
+            </Button>
 
             {showMoreMenu && (
               <div className="absolute right-0 top-10 z-20 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-xl">
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={handleCopyLink}
-                  className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  className="flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-none px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
                 >
                   <Copy className="h-3.5 w-3.5 text-slate-400" />
                   <span>
                     {intl.locale === "vi"
-                      ? "Sao chép liên kết sự kiện"
+                      ? "Sao chÃ©p liÃªn káº¿t sá»± kiá»‡n"
                       : "Copy event link"}
                   </span>
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
                   onClick={handlePrint}
-                  className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+                  className="flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-none px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
                 >
                   <Printer className="h-3.5 w-3.5 text-slate-400" />
                   <span>
-                    {intl.locale === "vi" ? "In sự kiện" : "Print event"}
+                    {intl.locale === "vi" ? "In sá»± kiá»‡n" : "Print event"}
                   </span>
-                </button>
+                </Button>
               </div>
             )}
           </div>
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             aria-label={intl.formatMessage({ id: "app.close" })}
             title={intl.formatMessage({ id: "app.close" })}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Modal Body with Left Icon Column and Right Aligned Content */}
@@ -379,21 +394,23 @@ export function EventDetailModal({
                     <span>
                       {event.location!.includes("meet.google.com")
                         ? intl.locale === "vi"
-                          ? "Tham gia bằng Google Meet"
+                          ? "Tham gia báº±ng Google Meet"
                           : "Join with Google Meet"
                         : intl.locale === "vi"
-                          ? "Tham gia cuộc họp Meeting"
+                          ? "Tham gia cuá»™c há»p Meeting"
                           : "Join Meeting"}
                     </span>
                     <ExternalLink className="h-3.5 w-3.5 opacity-80" />
                   </a>
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleCopyMeeting(event.location!)}
                     className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
                     title={
                       intl.locale === "vi"
-                        ? "Sao chép liên kết"
+                        ? "Sao chÃ©p liÃªn káº¿t"
                         : "Copy meeting link"
                     }
                   >
@@ -402,7 +419,7 @@ export function EventDetailModal({
                     ) : (
                       <Copy className="h-4 w-4" />
                     )}
-                  </button>
+                  </Button>
                 </div>
                 <p className="truncate text-xs font-mono text-slate-500">
                   {event.location!.replace(/^https?:\/\//, "")}
@@ -471,14 +488,15 @@ export function EventDetailModal({
         {event.permissions?.canRespond && !event.permissions.canManage && (
           <div className="flex items-center justify-between border-t border-slate-200/80 bg-slate-50 px-6 py-3.5">
             <span className="text-xs font-semibold text-slate-600">
-              {intl.locale === "vi" ? "Bạn có tham gia không?" : "Going?"}
+              {intl.locale === "vi" ? "Báº¡n cÃ³ tham gia khÃ´ng?" : "Going?"}
             </span>
             <div className="inline-flex rounded-full bg-slate-200/80 p-1">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => onRespond(AttendeeResponseStatus.ACCEPTED)}
                 disabled={busy}
-                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                className={`inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                   myResponseStatus === AttendeeResponseStatus.ACCEPTED
                     ? "bg-emerald-600 text-white shadow-xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/40"
@@ -490,12 +508,13 @@ export function EventDetailModal({
                 <span>
                   {intl.formatMessage({ id: "calendar.response.ACCEPTED" })}
                 </span>
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => onRespond(AttendeeResponseStatus.DECLINED)}
                 disabled={busy}
-                className={`inline-flex cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
+                className={`inline-flex h-auto cursor-pointer items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold transition-all ${
                   myResponseStatus === AttendeeResponseStatus.DECLINED
                     ? "bg-rose-600 text-white shadow-xs"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-300/40"
@@ -507,14 +526,14 @@ export function EventDetailModal({
                 <span>
                   {intl.formatMessage({ id: "calendar.response.DECLINED" })}
                 </span>
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
         {isTask && event.permissions?.canManage && (
           <div className="flex justify-end border-t border-slate-200 bg-slate-50 px-6 py-4">
-            <button
+            <Button
               type="button"
               onClick={onTaskCompletionChange}
               disabled={busy}
@@ -525,82 +544,48 @@ export function EventDetailModal({
                   ? "calendar.task.markIncomplete"
                   : "calendar.task.markCompleted",
               })}
-            </button>
+            </Button>
           </div>
         )}
 
         {/* Recurrence Delete Confirmation Dialog */}
         {showDeleteScopeModal && (
-          <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-900/50 p-4">
-            <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
-              <h3 className="text-base font-semibold text-slate-900">
-                {intl.locale === "vi"
-                  ? "Xóa sự kiện định kỳ"
-                  : "Delete recurring event"}
-              </h3>
-              <p className="mt-1 text-xs text-slate-500">
-                {intl.locale === "vi"
-                  ? "Chọn phạm vi bạn muốn áp dụng khi xóa sự kiện này:"
-                  : "Choose which events in this series you want to delete:"}
-              </p>
-
-              <div className="mt-4 space-y-2">
-                {[
-                  {
-                    value: RecurrenceScope.THIS,
-                    label: intl.formatMessage({ id: "calendar.scope.THIS" }),
-                  },
-                  {
-                    value: RecurrenceScope.THIS_AND_FOLLOWING,
-                    label: intl.formatMessage({
-                      id: "calendar.scope.THIS_AND_FOLLOWING",
-                    }),
-                  },
-                  {
-                    value: RecurrenceScope.ALL,
-                    label: intl.formatMessage({ id: "calendar.scope.ALL" }),
-                  },
-                ].map((option) => (
-                  <label
-                    key={option.value}
-                    className={`flex cursor-pointer items-center gap-2.5 rounded-xl border p-2.5 text-xs font-medium transition ${
-                      cancelScope === option.value
-                        ? "border-blue-500 bg-blue-50/50 text-blue-900"
-                        : "border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="recurrence-delete-scope"
-                      value={option.value}
-                      checked={cancelScope === option.value}
-                      onChange={() => setCancelScope(option.value)}
-                      className="text-blue-600 focus:ring-blue-500"
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </div>
-
-              <div className="mt-5 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowDeleteScopeModal(false)}
-                  className="cursor-pointer rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  {intl.formatMessage({ id: "app.cancel" })}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmDeleteScope}
-                  disabled={busy}
-                  className="cursor-pointer rounded-xl bg-rose-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-rose-700 disabled:opacity-60"
-                >
-                  {intl.formatMessage({ id: "calendar.cancelEvent" })}
-                </button>
-              </div>
-            </div>
-          </div>
+          <CalendarConfirmDialog
+            open={showDeleteScopeModal}
+          title={intl.formatMessage({ id: "calendar.deleteRecurringEvent" })}
+          description={intl.formatMessage({
+            id: "calendar.deleteRecurringEventDescription",
+          })}
+            confirmLabel={intl.formatMessage({ id: "calendar.cancelEvent" })}
+            cancelLabel={intl.formatMessage({ id: "app.cancel" })}
+            variant="danger"
+            isLoading={busy}
+            onCancel={() => setShowDeleteScopeModal(false)}
+            onConfirm={handleConfirmDeleteScope}
+          >
+          <CalendarRadioGroup<RecurrenceScope>
+            name="recurrence-delete-scope"
+            value={cancelScope}
+            ariaLabel={intl.formatMessage({ id: "calendar.cancelEvent" })}
+            onChange={setCancelScope}
+            options={[
+              {
+                value: RecurrenceScope.THIS,
+                label: intl.formatMessage({ id: "calendar.scope.THIS" }),
+              },
+              {
+                value: RecurrenceScope.THIS_AND_FOLLOWING,
+                label: intl.formatMessage({
+                  id: "calendar.scope.THIS_AND_FOLLOWING",
+                }),
+              },
+              {
+                value: RecurrenceScope.ALL,
+                label: intl.formatMessage({ id: "calendar.scope.ALL" }),
+              },
+            ]}
+          />
+          </CalendarConfirmDialog>
         )}
       </div>
     </div>
