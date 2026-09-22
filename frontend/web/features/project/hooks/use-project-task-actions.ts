@@ -13,7 +13,6 @@ import {
   type Task,
   type TaskAssignee,
 } from "../types/project";
-import { taskKeys } from "./use-tasks";
 
 const BACKEND_TASK_FIELDS = new Set([
   "title",
@@ -65,6 +64,15 @@ function resolveAssignees(
 
 export function useProjectTaskActions(options: ProjectTaskActionOptions) {
   const queryClient = useQueryClient();
+
+  const applyTaskUpdate = (task: Task, taskId: string, payload: TaskDrawerUpdatePayload): Task =>
+    task.id === taskId
+      ? ({
+          ...task,
+          ...payload,
+          assignees: resolveAssignees(task.assignees, payload, options.members, taskId),
+        } as Task)
+      : task;
 
   const moveTask = async (taskId: string, newStatus: TaskStatus) => {
     const task = options.tasks.find((item) => item.id === taskId);
@@ -120,12 +128,9 @@ export function useProjectTaskActions(options: ProjectTaskActionOptions) {
         await options.updateTask({ taskId, payload: backendPayload });
       }
 
-      queryClient.setQueryData<Task[]>(taskKeys.project(options.projectId), (current) =>
-        current?.map((task) => task.id === taskId ? ({
-          ...task,
-          ...payload,
-          assignees: resolveAssignees(task.assignees, payload, options.members, taskId),
-        } as Task) : task),
+      queryClient.setQueriesData<Task[]>(
+        { queryKey: ["projects", options.projectId, "tasks"] },
+        (current) => current?.map((task) => applyTaskUpdate(task, taskId, payload)),
       );
       options.setSelectedTask((current) => current?.id === taskId ? {
         ...current,

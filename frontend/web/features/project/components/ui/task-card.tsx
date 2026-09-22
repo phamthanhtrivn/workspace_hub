@@ -19,7 +19,17 @@ import {
   Equal,
   CheckSquare2,
 } from "lucide-react";
-import { TASK_PRIORITY_LABELS } from "@/features/project/constants/task.constants";
+import {
+  TASK_PRIORITY_LABELS,
+  TASK_PRIORITY_OPTIONS,
+} from "@/features/project/constants/task.constants";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function isOverdue(dueDate?: string): boolean {
   if (!dueDate) return false;
@@ -52,11 +62,13 @@ export default function TaskCard({
   task,
   onClick,
   onOpenChat,
+  onPriorityChange,
   canDrag = true,
 }: {
   task: Task;
   onClick?: () => void;
   onOpenChat?: (task: Task) => void;
+  onPriorityChange?: (taskId: string, priority: TaskPriority) => void | Promise<void>;
   canDrag?: boolean;
 }) {
   const checklistTotal = task.checklists.length;
@@ -68,6 +80,13 @@ export default function TaskCard({
   const isDraggable = canDrag && !isTerminalTaskStatus(task.status);
 
   const handleDragStart = (e: React.DragEvent) => {
+    if (
+      e.target instanceof HTMLElement &&
+      e.target.closest("[data-card-interactive='true']")
+    ) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData("text/plain", task.id);
     e.dataTransfer.effectAllowed = "move";
   };
@@ -167,13 +186,19 @@ export default function TaskCard({
 
         <div className="flex items-center gap-2">
           <TaskChatButton task={task} onOpenChat={onOpenChat} compact />
-          {/* Priority Icon */}
-          <div
-            className="grid place-items-center h-5 w-5 rounded-md hover:bg-slate-200 transition"
-            title={TASK_PRIORITY_LABELS[task.priority]}
-          >
-            {priorityIcon}
-          </div>
+          {onPriorityChange && !isTerminalTaskStatus(task.status) ? (
+            <TaskPrioritySelect
+              task={task}
+              onPriorityChange={onPriorityChange}
+            />
+          ) : (
+            <div
+              className="grid place-items-center h-5 w-5 rounded-md hover:bg-slate-200 transition"
+              title={TASK_PRIORITY_LABELS[task.priority]}
+            >
+              {priorityIcon}
+            </div>
+          )}
 
           {/* Assignees stack */}
           {task.assignees.length > 0 && (
@@ -189,6 +214,64 @@ export default function TaskCard({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function TaskPrioritySelect({
+  task,
+  onPriorityChange,
+}: {
+  task: Task;
+  onPriorityChange: (taskId: string, priority: TaskPriority) => void | Promise<void>;
+}) {
+  const issueKey = getIssueKey(task);
+
+  const handleChange = (priority: TaskPriority) => {
+    if (priority === task.priority) return;
+    void onPriorityChange(task.id, priority);
+  };
+
+  const stopCardInteraction = (event: React.SyntheticEvent) => {
+    event.stopPropagation();
+  };
+
+  return (
+    <div
+      data-card-interactive="true"
+      onClick={stopCardInteraction}
+      onPointerDown={stopCardInteraction}
+      onKeyDown={stopCardInteraction}
+    >
+      <Select value={task.priority} onValueChange={(value) => handleChange(value as TaskPriority)}>
+        <SelectTrigger
+          aria-label={`Change priority for ${issueKey}`}
+          title={TASK_PRIORITY_LABELS[task.priority]}
+          className="grid h-6 w-6 place-items-center rounded-md border-0 bg-transparent p-0 text-slate-500 shadow-none transition hover:bg-slate-200 focus-visible:ring-2 focus-visible:ring-[#0052CC]/30 [&>svg:last-child]:hidden"
+        >
+          <SelectValue>
+            <span className="grid h-5 w-5 place-items-center">
+              {getPriorityIcon(task.priority)}
+            </span>
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent
+          align="end"
+          className="min-w-36 rounded-xl border-slate-200 shadow-lg"
+          onClick={stopCardInteraction}
+        >
+          {TASK_PRIORITY_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value} className="text-xs font-semibold">
+              <span className="flex items-center gap-2">
+                <span className="grid h-4 w-4 place-items-center">
+                  {getPriorityIcon(option.value)}
+                </span>
+                {option.label}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

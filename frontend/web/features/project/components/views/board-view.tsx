@@ -1,7 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { type Task, TaskStatus } from "@/features/project/types/project";
+import {
+  type Task,
+  TaskPriority,
+  TaskStatus,
+  isTerminalTaskStatus,
+} from "@/features/project/types/project";
 import TaskCard from "../ui/task-card";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -68,16 +73,20 @@ export default function BoardView({
   tasks,
   onTaskClick,
   onTaskMove,
+  onTaskPriorityChange,
   onAddTask,
   onOpenChat,
   canMoveTask = () => false,
+  canEditTask = () => false,
 }: {
   tasks: Task[];
   onTaskClick?: (task: Task) => void;
   onTaskMove?: (taskId: string, newStatus: TaskStatus) => void | Promise<void>;
+  onTaskPriorityChange?: (taskId: string, priority: TaskPriority) => void | Promise<void>;
   onAddTask?: (status: TaskStatus) => void;
   onOpenChat?: (task: Task) => void;
   canMoveTask?: (task: Task) => boolean;
+  canEditTask?: (task: Task) => boolean;
 }) {
   const [pendingDrop, setPendingDrop] = useState<{
     task: Task;
@@ -174,6 +183,13 @@ export default function BoardView({
                     onClick={() => onTaskClick?.(task)}
                     onOpenChat={onOpenChat}
                     canDrag={Boolean(onTaskMove) && canMoveTask(task)}
+                    onPriorityChange={
+                      onTaskPriorityChange &&
+                      canEditTask(task) &&
+                      !isTerminalTaskStatus(task.status)
+                        ? onTaskPriorityChange
+                        : undefined
+                    }
                   />
                 ))}
 

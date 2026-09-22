@@ -10,6 +10,7 @@ import type { ProjectPermissions } from "@/features/project/project-permissions"
 import type { ProjectViewMode } from "./project-detail-sidebar";
 import {
   isTerminalTaskStatus,
+  TaskPriority,
   TaskStatus,
   type Project,
   type ProjectMember,
@@ -39,6 +40,7 @@ interface ProjectDetailContentProps {
   onTaskSelect: (task: Task) => void;
   onChatOpen: (task: Task) => void;
   onTaskMove: (taskId: string, status: TaskStatus) => Promise<void>;
+  onTaskPriorityChange: (taskId: string, priority: TaskPriority) => Promise<void>;
   onCreateTaskInline: (title: string, parentTaskId?: string) => Promise<void>;
   onViewChange?: (view: ProjectViewMode) => void;
   onTaskReschedule?: (taskId: string, targetDateKey: string) => Promise<void>;
@@ -86,8 +88,10 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           onTaskClick={props.onTaskSelect}
           onOpenChat={props.onChatOpen}
           onTaskMove={props.onTaskMove}
+          onTaskPriorityChange={props.onTaskPriorityChange}
           onAddTask={permissions.canCreateTask ? props.openTaskForm : undefined}
           canMoveTask={permissions.canContributeTask}
+          canEditTask={permissions.canEditTask}
         />
       );
     }

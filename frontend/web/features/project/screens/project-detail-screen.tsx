@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { toast } from "sonner";
 import {
   type Task,
+  TaskPriority,
   TaskStatus,
   isTerminalTaskStatus,
 } from "@/features/project/types/project";
@@ -257,6 +258,14 @@ export default function ProjectDetailScreen() {
     }
   };
 
+  const handleTaskPriorityChange = async (
+    taskId: string,
+    priority: TaskPriority,
+  ) => {
+    await handleUpdateTaskDirect(taskId, { priority });
+    toast.success("Task priority updated");
+  };
+
   const handleCreateTaskInline = async (title: string, parentTaskId?: string) => {
     try {
       await createTaskMutation.mutateAsync({
@@ -367,6 +376,7 @@ export default function ProjectDetailScreen() {
           onTaskSelect={setSelectedTask}
           onChatOpen={setChatTask}
           onTaskMove={handleTaskMove}
+          onTaskPriorityChange={handleTaskPriorityChange}
           onCreateTaskInline={handleCreateTaskInline}
           onViewChange={setViewMode}
           onTaskReschedule={handleTaskReschedule}
