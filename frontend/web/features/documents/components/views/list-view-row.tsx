@@ -138,24 +138,26 @@ export function ListViewRow({
         {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
       </td>
       <td className="p-4 text-right">
-        <ItemActionsMenu
-          item={item}
-          activeView={activeView}
-          activeMenuId={activeMenuId}
-          setActiveMenuId={setActiveMenuId}
-          onRename={() => onRename(item)}
-          onMove={() => onMove(item.id)}
-          onToggleStar={() => onToggleStar(item)}
-          onArchive={(archive) => (archive ? onMoveToTrash(item) : onRestore(item))}
-          onViewDetails={() => onViewDetails(item)}
-          onDeletePermanently={() => onDeletePermanently(item)}
-          onPreview={() => onPreview?.(item)}
-          onDownload={() => onDownload?.(item)}
-          onDownloadFolder={() => onDownloadFolder?.(item)}
-          onManageVersions={() => onManageVersions?.(item)}
-          onShare={() => onShare?.(item)}
-          onShareToChat={() => onShareToChat?.(item)}
-        />
+        <div className="flex items-center justify-end gap-2">
+          <ItemActionsMenu
+            item={item}
+            activeView={activeView}
+            activeMenuId={activeMenuId}
+            setActiveMenuId={setActiveMenuId}
+            onRename={() => onRename(item)}
+            onMove={() => onMove(item.id)}
+            onToggleStar={() => onToggleStar(item)}
+            onArchive={(archive) => (archive ? onMoveToTrash(item) : onRestore(item))}
+            onViewDetails={() => onViewDetails(item)}
+            onDeletePermanently={() => onDeletePermanently(item)}
+            onPreview={() => onPreview?.(item)}
+            onDownload={() => onDownload?.(item)}
+            onDownloadFolder={() => onDownloadFolder?.(item)}
+            onManageVersions={() => onManageVersions?.(item)}
+            onShare={() => onShare?.(item)}
+            onShareToChat={() => onShareToChat?.(item)}
+          />
+        </div>
       </td>
     </tr>
   );

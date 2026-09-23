@@ -7,6 +7,7 @@ import { ListViewRow } from "./list-view-row";
 
 interface ListViewProps {
   items: DocumentItem[];
+  activeView: DocumentViewType;
   footer?: React.ReactNode;
   scrollContainerRef?: React.Ref<HTMLDivElement>;
   selectedItemId: string | null;
@@ -31,6 +32,7 @@ interface ListViewProps {
 
 function ListView({
   items,
+  activeView,
   footer,
   scrollContainerRef,
   selectedItemId,
@@ -64,7 +66,7 @@ function ListView({
                 selectedItemId={selectedItemId}
                 onSelect={onSelectItem}
                 onFolderClick={onOpenItem}
-                activeView={DocumentViewType.MY_FILES}
+                activeView={activeView}
                 activeMenuId={activeMenuId}
                 setActiveMenuId={setActiveMenuId}
                 onRename={onRename}

@@ -33,7 +33,7 @@ import { useDocumentUpload } from "../hooks/useDocumentUpload";
 import { useDocumentDragAndDrop } from "../hooks/useDocumentDragAndDrop";
 import { useDocumentModals } from "../hooks/useDocumentModals";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
-import { UploadCloud, FolderPlus, Edit3 } from "lucide-react";
+import { Info, UploadCloud, FolderPlus, Edit3 } from "lucide-react";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -325,6 +325,15 @@ export function DocumentExplorer({
             onCreateFolder={openCreateFolder}
             onUploadFile={uploadFile}
           />
+          {activeView === DocumentViewType.TRASH ? (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs font-semibold text-amber-800">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <p>
+                Items in Trash are automatically deleted after 30 days. You can
+                permanently delete them now.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         {/* Main Content Area */}
@@ -350,6 +359,8 @@ export function DocumentExplorer({
                   description={
                     searchQuery
                       ? `No matching resources found for "${searchQuery}"`
+                      : activeView === DocumentViewType.TRASH
+                        ? "Deleted items will appear here before permanent removal"
                       : "Upload files or create new folders to get started"
                   }
                 />
@@ -360,6 +371,7 @@ export function DocumentExplorer({
                 >
                   <GridView
                     items={items}
+                    activeView={activeView}
                     selectedItemId={selectedItemId}
                     onSelectItem={setSelectedItemId}
                     onOpenItem={(item) =>
@@ -390,6 +402,7 @@ export function DocumentExplorer({
                   <ListView
                     scrollContainerRef={scrollContainerRef}
                     items={items}
+                    activeView={activeView}
                     footer={loadMoreFooter}
                     selectedItemId={selectedItemId}
                     onSelectItem={setSelectedItemId}

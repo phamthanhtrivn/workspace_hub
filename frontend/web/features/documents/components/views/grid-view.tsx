@@ -7,6 +7,7 @@ import { GridViewCard } from "./grid-view-card";
 
 interface GridViewProps {
   items: DocumentItem[];
+  activeView: DocumentViewType;
   selectedItemId: string | null;
   onSelectItem: (id: string | null) => void;
   onOpenItem: (item: DocumentItem) => void;
@@ -29,6 +30,7 @@ interface GridViewProps {
 
 function GridView({
   items,
+  activeView,
   selectedItemId,
   onSelectItem,
   onOpenItem,
@@ -57,7 +59,7 @@ function GridView({
           selectedItemId={selectedItemId}
           onSelect={onSelectItem}
           onFolderClick={onOpenItem}
-          activeView={DocumentViewType.MY_FILES}
+          activeView={activeView}
           activeMenuId={activeMenuId}
           setActiveMenuId={setActiveMenuId}
           onRename={onRename}
