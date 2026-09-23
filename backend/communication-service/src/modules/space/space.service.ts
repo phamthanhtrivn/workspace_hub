@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  BadGatewayException,
   Inject,
   ForbiddenException,
   NotFoundException,
@@ -16,6 +17,7 @@ import { DefaultSpaceChannelNames } from './types/space.types';
 import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
 import { EnsureProjectSpaceDto } from './dto/ensure-project-space.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
+import { ProjectNameClient } from './project-name.client';
 import { UserProfileSnapshot } from 'src/common/types/user.types';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatEvent } from '../socket/chat/chat-socket.events';
@@ -36,6 +38,7 @@ export class SpaceService {
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
     private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    private readonly projectNames: ProjectNameClient,
   ) {}
 
   private normalizeLimit(limit?: string | number) {
@@ -71,7 +74,7 @@ export class SpaceService {
   private async assertSpaceOwner(spaceId: string, userId: string) {
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
-      select: { createdBy: true },
+      select: { createdBy: true, name: true, projectId: true },
     });
     if (!space) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
@@ -375,6 +378,43 @@ export class SpaceService {
         role: resolvedRoleMap.get(member.userId) ?? SpaceRole.MEMBER,
       })),
     };
+  }
+
+  private async publishSpaceRenamed(
+    spaceId: string,
+    name: string,
+    actorId: string,
+  ) {
+    const defaultChannel = await this.prisma.channel.findFirst({
+      where: { spaceId, isDefault: true },
+    });
+
+    if (defaultChannel) {
+      const profileMap =
+        await this.userProfileSnapshotService.getProfilesByUserIds([actorId]);
+      const actorProfile = profileMap.get(actorId);
+      const content = `Space name was updated to "${name}" by ${actorProfile?.fullName || 'an admin'}`;
+      await this.chatSocketPublisher.sendSystemMessage(
+        defaultChannel.id,
+        actorId,
+        content,
+      );
+    }
+
+    const members = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: { userId: true },
+    });
+
+    this.chatSocketPublisher.publishToRooms(
+      members.map((member) => member.userId),
+      ChatEvent.CHANNEL_SETTING_UPDATED,
+      {
+        eventType: 'space_updated',
+        spaceId,
+        name,
+      },
+    );
   }
 
   private normalizeProjectSpaceMembers(dto: EnsureProjectSpaceDto) {
@@ -716,48 +756,70 @@ export class SpaceService {
   }
 
   async updateSpace(userId: string, spaceId: string, name: string) {
-    await this.assertSpaceOwner(spaceId, userId);
+    const current = await this.assertSpaceOwner(spaceId, userId);
     if (!name || name.trim().length === 0) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
     }
 
+    const trimmedName = name.trim();
     const updatedSpace = await this.prisma.space.update({
       where: { id: spaceId },
-      data: { name: name.trim() },
+      data: { name: trimmedName },
     });
 
-    const defaultChannel = await this.prisma.channel.findFirst({
-      where: { spaceId, isDefault: true },
-    });
-
-    if (defaultChannel) {
-      const profileMap =
-        await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
-      const actorProfile = profileMap.get(userId);
-      const content = `Space name was updated to "${updatedSpace.name}" by ${actorProfile?.fullName || 'an admin'}`;
-      await this.chatSocketPublisher.sendSystemMessage(
-        defaultChannel.id,
-        userId,
-        content,
-      );
+    if (current.projectId && current.name !== trimmedName) {
+      try {
+        await this.projectNames.renameProject(
+          current.projectId,
+          trimmedName,
+          userId,
+        );
+      } catch {
+        await this.prisma.space
+          .update({
+            where: { id: spaceId },
+            data: { name: current.name },
+          })
+          .catch(() => undefined);
+        throw new BadGatewayException('Unable to sync project name');
+      }
     }
 
-    const members = await this.prisma.spaceMember.findMany({
-      where: { spaceId },
-      select: { userId: true },
-    });
-
-    this.chatSocketPublisher.publishToRooms(
-      members.map((member) => member.userId),
-      ChatEvent.CHANNEL_SETTING_UPDATED,
-      {
-        eventType: 'space_updated',
-        spaceId,
-        name: updatedSpace.name,
-      },
-    );
+    await this.publishSpaceRenamed(spaceId, updatedSpace.name, userId);
 
     return updatedSpace;
+  }
+
+  async renameProjectSpaceFromProject(
+    projectId: string,
+    name: string,
+    actorId: string,
+  ) {
+    if (!name || name.trim().length === 0) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
+    }
+
+    const trimmedName = name.trim();
+    const space = await this.prisma.space.findFirst({
+      where: { projectId },
+      select: { id: true, name: true },
+    });
+
+    if (!space) {
+      return { projectId, spaceId: null, name: trimmedName };
+    }
+    if (space.name === trimmedName) {
+      return { projectId, spaceId: space.id, name: space.name };
+    }
+
+    const updatedSpace = await this.prisma.space.update({
+      where: { id: space.id },
+      data: { name: trimmedName },
+    });
+
+    await this.publishSpaceRenamed(updatedSpace.id, updatedSpace.name, actorId);
+
+    return { projectId, spaceId: updatedSpace.id, name: updatedSpace.name };
   }
 
   async updateSpaceSettings(

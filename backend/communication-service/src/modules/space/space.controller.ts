@@ -8,8 +8,10 @@ import {
   Headers,
   BadRequestException,
   Patch,
+  ParseUUIDPipe,
   Query,
   Put,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { SpaceService } from './space.service';
 import {
@@ -18,13 +20,18 @@ import {
 } from './types/space.enums';
 import { InviteSpaceMembersDto } from './dto/invite-space-members.dto';
 import { EnsureProjectSpaceDto } from './dto/ensure-project-space.dto';
+import { InternalRenameSpaceDto } from './dto/internal-rename-space.dto';
+import { RuntimeConfigService } from '../../common/config/runtime-config.service';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { UpdateSpaceMemberRoleDto } from './dto/update-space-member-role.dto';
 
 @Controller('api/spaces')
 export class SpaceController {
-  constructor(private readonly spaceService: SpaceService) {}
+  constructor(
+    private readonly spaceService: SpaceService,
+    private readonly config: RuntimeConfigService,
+  ) {}
   @Post()
   async createSpace(
     @Headers('x-user-id') userId: string,
@@ -57,6 +64,24 @@ export class SpaceController {
     const result = await this.spaceService.ensureProjectSpace(body);
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.CREATED,
+      data: result,
+    };
+  }
+
+  @Patch('internal/project/:projectId/name')
+  async renameProjectSpaceFromProject(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() body: InternalRenameSpaceDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const result = await this.spaceService.renameProjectSpaceFromProject(
+      projectId,
+      body.name,
+      body.actorId,
+    );
+    return {
+      message: SPACE_SUCCESS_MESSAGES_LABEL.UPDATED,
       data: result,
     };
   }
@@ -354,5 +379,11 @@ export class SpaceController {
       message: SPACE_SUCCESS_MESSAGES_LABEL.INVITATION_RESENT,
       data: invitation,
     };
+  }
+
+  private assertInternalServiceKey(serviceKey?: string): void {
+    if (!serviceKey || serviceKey !== this.config.internalServiceKey) {
+      throw new UnauthorizedException('Invalid internal service key');
+    }
   }
 }

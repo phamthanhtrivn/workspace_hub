@@ -22,6 +22,12 @@ export interface ProjectSpaceResponse {
   channelId: string;
 }
 
+export interface RenameProjectSpaceResponse {
+  projectId: string;
+  spaceId: string | null;
+  name: string;
+}
+
 interface ApiResponse<T> {
   data: T;
 }
@@ -43,5 +49,24 @@ export class ProjectSpaceClient {
       body: payload,
     });
     return response.data;
+  }
+
+  async renameProjectSpace(
+    projectId: string,
+    name: string,
+    actorId: string,
+  ): Promise<RenameProjectSpaceResponse> {
+    const response = await this.http.request<ApiResponse<RenameProjectSpaceResponse>>({
+      service: 'communication-service',
+      url: `${this.config.communicationServiceUrl}/api/spaces/internal/project/${projectId}/name`,
+      method: 'PATCH',
+      headers: this.internalHeaders(),
+      body: { name, actorId },
+    });
+    return response.data;
+  }
+
+  private internalHeaders(): Record<string, string> {
+    return { 'x-internal-service-key': this.config.internalServiceKey };
   }
 }

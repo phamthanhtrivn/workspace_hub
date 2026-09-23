@@ -13,6 +13,7 @@ import {
 } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { InternalRenameProjectDto } from './dto/internal-rename-project.dto';
 import { ProjectListQueryDto } from './dto/project-list-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
@@ -245,12 +246,14 @@ export class ProjectService {
     }
     const data: Prisma.ProjectUpdateInput = {};
 
+    let nextProjectName: string | undefined;
     if (dto.name !== undefined) {
       const name = dto.name.trim();
       if (!name) {
         throw new BadRequestException('Project name cannot be empty');
       }
       data.name = name;
+      nextProjectName = name;
     }
     if (dto.color !== undefined) data.color = dto.color;
     if (dto.icon !== undefined) data.icon = dto.icon;
@@ -272,6 +275,20 @@ export class ProjectService {
       data.archived = dto.status === ProjectStatus.ARCHIVED;
     }
 
+    let syncedProjectSpace = false;
+    if (nextProjectName !== undefined && nextProjectName !== current.name) {
+      try {
+        const result = await this.projectSpaces.renameProjectSpace(
+          projectId,
+          nextProjectName,
+          userId,
+        );
+        syncedProjectSpace = result.spaceId !== null;
+      } catch {
+        throw new BadGatewayException('Unable to sync project chat space name');
+      }
+    }
+
     let project;
     try {
       project = await this.prisma.project.update({
@@ -279,11 +296,55 @@ export class ProjectService {
         data: { ...data, version: { increment: 1 } },
       });
     } catch (error) {
+      if (syncedProjectSpace) {
+        await this.projectSpaces
+          .renameProjectSpace(projectId, current.name, userId)
+          .catch(() => undefined);
+      }
       rethrowWriteConflict(error, 'Project was changed by another request');
     }
 
     const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
     return toProjectResponse(project, {}, ownerProfile);
+  }
+
+  async renameProjectFromSpace(
+    projectId: string,
+    dto: InternalRenameProjectDto,
+  ) {
+    const name = dto.name.trim();
+    if (!name) {
+      throw new BadRequestException('Project name cannot be empty');
+    }
+
+    const current = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        archived: true,
+        status: true,
+      },
+    });
+    if (!current) {
+      throw new BadRequestException('Project not found');
+    }
+    if (current.archived || current.status === ProjectStatus.ARCHIVED) {
+      throw new ConflictException(
+        'Archived projects are read-only; restore the project before editing it',
+      );
+    }
+    if (current.name === name) {
+      return { projectId, name: current.name };
+    }
+
+    const project = await this.prisma.project.update({
+      where: { id: projectId },
+      data: { name, version: { increment: 1 } },
+      select: { id: true, name: true },
+    });
+
+    return { projectId: project.id, name: project.name };
   }
 
   async archive(userId: string, projectId: string): Promise<void> {
