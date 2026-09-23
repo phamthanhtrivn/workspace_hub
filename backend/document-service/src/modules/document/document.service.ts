@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import * as archiver from 'archiver';
@@ -37,6 +38,125 @@ export class DocumentService {
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
   ) {}
 
+  private normalizeItemName(name: string) {
+    return name.trim();
+  }
+
+  private buildSiblingScopeWhere(
+    ownerUserId: string,
+    parentFolderId?: string | null,
+    projectId?: string | null,
+  ) {
+    if (parentFolderId) {
+      return { parentFolderId };
+    }
+    if (projectId) {
+      return { parentFolderId: null, projectId };
+    }
+    return { ownerUserId, parentFolderId: null, projectId: null };
+  }
+
+  private async findActiveSiblingByName(
+    ownerUserId: string,
+    name: string,
+    parentFolderId?: string | null,
+    projectId?: string | null,
+    excludeId?: string,
+  ) {
+    const normalizedName = this.normalizeItemName(name);
+    if (!normalizedName) {
+      throw new BadRequestException('Name cannot be empty');
+    }
+
+    return this.prisma.documentItem.findFirst({
+      where: {
+        ...this.buildSiblingScopeWhere(ownerUserId, parentFolderId, projectId),
+        isArchived: false,
+        name: { equals: normalizedName, mode: 'insensitive' },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        parentFolderId: true,
+        projectId: true,
+      },
+    });
+  }
+
+  private throwDuplicateNameConflict(conflict: {
+    name: string;
+    type: ItemType;
+  }) {
+    throw new ConflictException(
+      `${conflict.type === ItemType.FOLDER ? 'A folder' : 'A file'} named "${conflict.name}" already exists in this location`,
+    );
+  }
+
+  private async assertNoActiveSiblingWithName(
+    ownerUserId: string,
+    name: string,
+    parentFolderId?: string | null,
+    projectId?: string | null,
+    excludeId?: string,
+  ) {
+    const conflict = await this.findActiveSiblingByName(
+      ownerUserId,
+      name,
+      parentFolderId,
+      projectId,
+      excludeId,
+    );
+    if (conflict) {
+      this.throwDuplicateNameConflict(conflict);
+    }
+  }
+
+  private async validateUploadNameConflict(
+    userId: string,
+    userEmail: string,
+    options: {
+      name: string;
+      parentFolderId?: string | null;
+      projectId?: string | null;
+      overwriteItemId?: string;
+    },
+  ) {
+    const conflict = await this.findActiveSiblingByName(
+      userId,
+      options.name,
+      options.parentFolderId,
+      options.projectId,
+    );
+
+    if (!conflict) {
+      if (options.overwriteItemId) {
+        throw new ConflictException(
+          'The file selected for overwrite no longer matches this upload',
+        );
+      }
+      return null;
+    }
+
+    if (conflict.type === ItemType.FOLDER) {
+      this.throwDuplicateNameConflict(conflict);
+    }
+
+    if (!options.overwriteItemId) {
+      this.throwDuplicateNameConflict(conflict);
+    }
+
+    if (conflict.id !== options.overwriteItemId) {
+      throw new ConflictException(
+        'The file selected for overwrite no longer matches this upload',
+      );
+    }
+
+    await this.checkPermission(conflict.id, userId, userEmail, DocumentRole.EDITOR);
+    return conflict;
+  }
+
   async initiateUpload(
     userId: string,
     userEmail: string,
@@ -63,6 +183,14 @@ export class DocumentService {
 
     // Check storage quota
     await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
+    const projectId = dto.projectId || parentFolder?.projectId || null;
+    await this.validateUploadNameConflict(userId, userEmail, {
+      name: dto.name,
+      parentFolderId: dto.parentFolderId || null,
+      projectId,
+      overwriteItemId: dto.overwriteItemId,
+    });
 
     const { presignedUrl, s3Key } =
       await this.s3Service.generatePresignedUploadUrl(
@@ -98,16 +226,47 @@ export class DocumentService {
       }
     }
 
+    const projectId = dto.projectId || parentFolder?.projectId || null;
+    const normalizedName = this.normalizeItemName(dto.name);
+    const overwriteTarget = await this.validateUploadNameConflict(
+      userId,
+      userEmail,
+      {
+        name: normalizedName,
+        parentFolderId: dto.parentFolderId || null,
+        projectId,
+        overwriteItemId: dto.overwriteItemId,
+      },
+    );
+
+    if (overwriteTarget) {
+      const version = await this.createVersion(
+        userId,
+        userEmail,
+        overwriteTarget.id,
+        {
+          s3Key: dto.s3Key,
+          sizeBytes: dto.sizeBytes,
+          mimeType: dto.mimeType,
+        },
+      );
+      const updatedItem = await this.prisma.documentItem.findUnique({
+        where: { id: version.documentItemId },
+      });
+      if (!updatedItem) {
+        throw new NotFoundException('Document or folder not found');
+      }
+      return this.enrichDocumentItem(updatedItem);
+    }
+
     // Double check quota
     await this.quotaService.checkQuota(userId, dto.sizeBytes);
-
-    const projectId = dto.projectId || parentFolder?.projectId || null;
 
     // Create DocumentItem and first Version in Database
     const item = await this.prisma.$transaction(async (tx) => {
       const createdItem = await tx.documentItem.create({
         data: {
-          name: dto.name,
+          name: normalizedName,
           type: ItemType.FILE,
           ownerUserId: userId,
           ownerEmail: userEmail,
@@ -136,6 +295,53 @@ export class DocumentService {
     await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
 
     return this.enrichDocumentItem(item);
+  }
+
+  async getNameConflict(
+    userId: string,
+    userEmail: string,
+    options: {
+      name: string;
+      parentFolderId?: string;
+      projectId?: string;
+    },
+  ) {
+    let parentFolder: DocumentItem | null = null;
+    if (options.parentFolderId) {
+      parentFolder = await this.checkPermission(
+        options.parentFolderId,
+        userId,
+        userEmail,
+        DocumentRole.EDITOR,
+      );
+      if (parentFolder.type !== ItemType.FOLDER) {
+        throw new BadRequestException('Parent item must be a folder');
+      }
+      if (parentFolder.isArchived) {
+        throw new BadRequestException(
+          'Cannot upload files into an archived or trashed folder',
+        );
+      }
+    }
+
+    const projectId = options.projectId || parentFolder?.projectId || null;
+    const conflict = await this.findActiveSiblingByName(
+      userId,
+      options.name,
+      options.parentFolderId || null,
+      projectId,
+    );
+
+    return {
+      exists: Boolean(conflict),
+      item: conflict
+        ? {
+            id: conflict.id,
+            name: conflict.name,
+            type: conflict.type,
+          }
+        : null,
+    };
   }
 
   /**
@@ -325,10 +531,17 @@ export class DocumentService {
 
     // Inherit project ID from parent if not specified
     const projectId = dto.projectId || parentFolder?.projectId || null;
+    const normalizedName = this.normalizeItemName(dto.name);
+    await this.assertNoActiveSiblingWithName(
+      userId,
+      normalizedName,
+      dto.parentFolderId || null,
+      projectId,
+    );
 
     const folder = await this.prisma.documentItem.create({
       data: {
-        name: dto.name,
+        name: normalizedName,
         type: ItemType.FOLDER,
         ownerUserId: userId,
         ownerEmail: userEmail,
@@ -508,11 +721,24 @@ export class DocumentService {
     id: string,
     dto: RenameItemDto,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+    const normalizedName = this.normalizeItemName(dto.name);
+    await this.assertNoActiveSiblingWithName(
+      item.ownerUserId,
+      normalizedName,
+      item.parentFolderId,
+      item.projectId,
+      id,
+    );
 
     const updated = await this.prisma.documentItem.update({
       where: { id },
-      data: { name: dto.name },
+      data: { name: normalizedName },
     });
     return this.enrichDocumentItem(updated);
   }
@@ -563,6 +789,14 @@ export class DocumentService {
       destProjectId = destFolder.projectId;
     }
 
+    await this.assertNoActiveSiblingWithName(
+      item.ownerUserId,
+      item.name,
+      dto.parentFolderId || null,
+      destProjectId,
+      id,
+    );
+
     const updated = await this.prisma.documentItem.update({
       where: { id },
       data: {
@@ -582,7 +816,22 @@ export class DocumentService {
     id: string,
     archive: boolean,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.OWNER,
+    );
+
+    if (!archive) {
+      await this.assertNoActiveSiblingWithName(
+        item.ownerUserId,
+        item.name,
+        item.parentFolderId,
+        item.projectId,
+        id,
+      );
+    }
 
     const updated = await this.prisma.documentItem.update({
       where: { id },
@@ -1310,11 +1559,24 @@ export class DocumentService {
     userId?: string,
     userEmail?: string,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+    const normalizedName = this.normalizeItemName(dto.name);
+    await this.assertNoActiveSiblingWithName(
+      item.ownerUserId,
+      normalizedName,
+      item.parentFolderId,
+      item.projectId,
+      id,
+    );
 
     return this.prisma.documentItem.update({
       where: { id },
-      data: { name: dto.name },
+      data: { name: normalizedName },
     });
   }
 

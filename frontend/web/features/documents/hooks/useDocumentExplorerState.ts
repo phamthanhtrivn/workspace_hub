@@ -27,11 +27,9 @@ export function useDocumentExplorerState({
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [activeDetailsItemId, setActiveDetailsItemId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<DocumentSortBy>(DocumentSortBy.LATEST);
-  const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    setCurrentPage(1);
     setSelectedItemId(null);
     setActiveMenuId(null);
   }, [activeView, initialFolderId]);
@@ -40,7 +38,6 @@ export function useDocumentExplorerState({
     (folderId: string | null, folderName?: string) => {
       setSelectedItemId(null);
       setActiveMenuId(null);
-      setCurrentPage(1);
       if (onNavigate) {
         onNavigate(folderId, folderName);
       }
@@ -50,12 +47,10 @@ export function useDocumentExplorerState({
 
   const handleSortChange = useCallback((newSortBy: DocumentSortBy) => {
     setSortBy(newSortBy);
-    setCurrentPage(1);
   }, []);
 
   const handleSearchChange = useCallback((query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1);
   }, []);
 
   return {
@@ -69,8 +64,6 @@ export function useDocumentExplorerState({
     setActiveDetailsItemId,
     sortBy,
     setSortBy: handleSortChange,
-    currentPage,
-    setCurrentPage,
     searchQuery,
     setSearchQuery: handleSearchChange,
     handleNavigate,

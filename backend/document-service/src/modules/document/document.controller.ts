@@ -170,6 +170,34 @@ export class DocumentController {
     };
   }
 
+  @Get('conflicts')
+  async getNameConflict(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Query('name') name?: string,
+    @Query('parentFolderId') parentFolderId?: string,
+    @Query('projectId') projectId?: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    if (!name?.trim()) {
+      throw new BadRequestException('Missing document name');
+    }
+
+    const result = await this.documentService.getNameConflict(
+      userId,
+      userEmail,
+      {
+        name,
+        parentFolderId,
+        projectId,
+      },
+    );
+    return {
+      message: 'Document name conflict checked successfully',
+      data: result,
+    };
+  }
+
   @Put(':id/rename')
   async renameItem(
     @Headers('x-user-id') userId: string,

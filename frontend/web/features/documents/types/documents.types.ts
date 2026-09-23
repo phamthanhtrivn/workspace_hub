@@ -56,6 +56,11 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface DocumentNameConflict {
+  exists: boolean;
+  item: Pick<DocumentItem, "id" | "name" | "type"> | null;
+}
+
 export interface DocumentVersion {
   id: string;
   documentItemId: string;

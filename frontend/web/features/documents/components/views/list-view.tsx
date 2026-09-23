@@ -7,6 +7,8 @@ import { ListViewRow } from "./list-view-row";
 
 interface ListViewProps {
   items: DocumentItem[];
+  footer?: React.ReactNode;
+  scrollContainerRef?: React.Ref<HTMLDivElement>;
   selectedItemId: string | null;
   onSelectItem: (id: string | null) => void;
   onOpenItem: (item: DocumentItem) => void;
@@ -29,6 +31,8 @@ interface ListViewProps {
 
 function ListView({
   items,
+  footer,
+  scrollContainerRef,
   selectedItemId,
   onSelectItem,
   onOpenItem,
@@ -50,7 +54,7 @@ function ListView({
 }: ListViewProps) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs animate-in fade-in duration-200">
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
         <table className="w-full border-collapse text-left text-sm text-slate-700">
           <tbody className="divide-y divide-slate-100">
             {items.map((item) => (
@@ -80,6 +84,7 @@ function ListView({
             ))}
           </tbody>
         </table>
+        {footer}
       </div>
     </div>
   );

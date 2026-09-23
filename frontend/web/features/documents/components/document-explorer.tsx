@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { DndContext } from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
 import { DocumentItem } from "../types/documents.types";
@@ -12,7 +12,6 @@ import { DocumentsConfirmDialog } from "./ui/documents-confirm-dialog";
 import { DocumentsInputModal } from "./ui/documents-input-modal";
 import { DocumentsEmptyState } from "./ui/documents-empty-state";
 import { DocumentsLoadingState } from "./ui/documents-loading-state";
-import { DocumentsPagination } from "./ui/documents-pagination";
 
 // Explorer & Modal Sub-components
 import DetailsPanel from "./explorer/details-panel";
@@ -65,8 +64,6 @@ export function DocumentExplorer({
     setActiveDetailsItemId,
     sortBy,
     setSortBy,
-    currentPage,
-    setCurrentPage,
     searchQuery,
     setSearchQuery,
     handleNavigate,
@@ -137,9 +134,14 @@ export function DocumentExplorer({
     uploadState,
     uploadProgress,
     uploadingFileName,
+    overwriteConflict,
     isDraggingOver,
     uploadFile,
+    confirmOverwrite,
+    cancelOverwrite,
   } = useDocumentUpload({ currentFolderId });
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // 5. Drag and Drop Hook
   const { sensors, handleDragEnd } = useDocumentDragAndDrop({
@@ -151,20 +153,33 @@ export function DocumentExplorer({
   const {
     data: documentResponse,
     isLoading,
-    isFetching,
-  } = useQuery({
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
     queryKey: [
       "documents",
       activeView,
       currentFolderId,
       sortBy,
       searchQuery,
-      currentPage,
     ],
-    queryFn: () => {
+    initialPageParam: 1,
+    queryFn: ({ pageParam = 1 }) => {
+      const page = Number(pageParam);
+      if (currentFolderId) {
+        return documentsApi.getDocuments({
+          folderId: currentFolderId,
+          sortBy,
+          search: searchQuery || undefined,
+          page,
+          limit: ITEMS_PER_PAGE,
+        });
+      }
+
       if (activeView === DocumentViewType.SHARED) {
         return documentsApi.getSharedDocuments({
-          page: currentPage,
+          page,
           limit: ITEMS_PER_PAGE,
           sortBy,
           search: searchQuery || undefined,
@@ -176,28 +191,46 @@ export function DocumentExplorer({
         archived: activeView === DocumentViewType.TRASH ? true : undefined,
         sortBy,
         search: searchQuery || undefined,
-        page: currentPage,
+        page,
         limit: ITEMS_PER_PAGE,
       });
     },
+    getNextPageParam: (lastPage) => {
+      const meta = lastPage.meta;
+      return meta.page < meta.totalPages ? meta.page + 1 : undefined;
+    },
   });
 
-  const items = useMemo(() => documentResponse?.data || [], [documentResponse]);
-  const meta = useMemo(() => {
-    if (documentResponse?.meta) return documentResponse.meta;
-    if (items.length > 0) {
-      return {
-        totalItems: items.length,
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-        totalPages: Math.ceil(items.length / ITEMS_PER_PAGE),
-      };
-    }
-    return undefined;
-  }, [documentResponse, items.length, currentPage]);
+  const items = useMemo(
+    () => documentResponse?.pages.flatMap((page) => page.data) || [],
+    [documentResponse],
+  );
 
-  const totalPages = meta?.totalPages || 1;
-  const totalItems = meta?.totalItems || items.length;
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: "160px",
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    items.length,
+    viewLayout,
+  ]);
 
   const activeDetailsItem = useMemo(
     () => items.find((i: DocumentItem) => i.id === activeDetailsItemId) || null,
@@ -208,9 +241,8 @@ export function DocumentExplorer({
   const handleFolderClick = useCallback(
     (folder: DocumentItem) => {
       handleNavigate(folder.id, folder.name);
-      setPath((prev) => [...prev, { id: folder.id, name: folder.name }]);
     },
-    [handleNavigate, setPath],
+    [handleNavigate],
   );
 
   // Breadcrumb navigation click
@@ -250,6 +282,16 @@ export function DocumentExplorer({
       closeDeleteConfirm();
     }
   };
+
+  const loadMoreFooter =
+    items.length > 0 ? (
+      <div
+        ref={loadMoreRef}
+        className="flex min-h-8 items-center justify-center px-4 py-2 text-xs font-semibold text-slate-400"
+      >
+        {isFetchingNextPage ? "Loading more..." : null}
+      </div>
+    ) : null;
 
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -312,7 +354,10 @@ export function DocumentExplorer({
                   }
                 />
               ) : viewLayout === "GRID" ? (
-                <div className="flex-1 min-h-0 overflow-y-auto">
+                <div
+                  ref={scrollContainerRef}
+                  className="flex-1 min-h-0 overflow-y-auto"
+                >
                   <GridView
                     items={items}
                     selectedItemId={selectedItemId}
@@ -338,11 +383,14 @@ export function DocumentExplorer({
                     onShare={openShareModal}
                     onShareToChat={openShareToChatModal}
                   />
+                  {loadMoreFooter}
                 </div>
               ) : (
                 <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
                   <ListView
+                    scrollContainerRef={scrollContainerRef}
                     items={items}
+                    footer={loadMoreFooter}
                     selectedItemId={selectedItemId}
                     onSelectItem={setSelectedItemId}
                     onOpenItem={(item) =>
@@ -369,21 +417,6 @@ export function DocumentExplorer({
                 </div>
               )}
             </div>
-
-            {/* Fixed Pagination Footer (Outside Scrollable Grid/List Area) */}
-            {items.length > 0 ? (
-              <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-3">
-                <DocumentsPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={totalItems}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  isLoading={isFetching}
-                  onPageChange={setCurrentPage}
-                  className="border-t-0 pt-0"
-                />
-              </div>
-            ) : null}
           </div>
 
           {/* Details Side Panel */}
@@ -434,7 +467,23 @@ export function DocumentExplorer({
           onCancel={closeRename}
         />
 
-        {/* Shadcn Alert Dialog: Move to Trash */}
+        {/* Shadcn Alert Dialog: Overwrite File */}
+        <DocumentsConfirmDialog
+          open={Boolean(overwriteConflict)}
+          title="Overwrite existing file?"
+          description={
+            overwriteConflict
+              ? `"${overwriteConflict.item.name}" already exists in this folder. Overwriting will upload this file as a new version.`
+              : undefined
+          }
+          confirmLabel="Overwrite"
+          cancelLabel="Cancel"
+          variant="warning"
+          isLoading={false}
+          onConfirm={confirmOverwrite}
+          onCancel={cancelOverwrite}
+        />
+
         <DocumentsConfirmDialog
           open={isTrashConfirmOpen}
           title="Move to trash?"
