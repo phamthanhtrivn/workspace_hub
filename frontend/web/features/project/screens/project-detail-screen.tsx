@@ -13,6 +13,7 @@ import { useAppSelector } from "@/store/store";
 import {
   useProject,
   useProjectMembers,
+  useProjectSpaceStatus,
   useUpdateProject,
   useArchiveProject,
   useOpenProjectSpace,
@@ -69,6 +70,7 @@ export default function ProjectDetailScreen() {
   const updateTaskMutation = useUpdateTask(projectId);
   const updateProjectMutation = useUpdateProject(projectId);
   const archiveProjectMutation = useArchiveProject(projectId);
+  const projectSpaceStatusQuery = useProjectSpaceStatus(projectId);
   const openProjectSpaceMutation = useOpenProjectSpace(projectId);
   const { data: labels = [] } = useProjectLabels(projectId);
 
@@ -85,6 +87,9 @@ export default function ProjectDetailScreen() {
   const permissions = project
     ? getProjectPermissions(project, members, currentUserId)
     : NO_PROJECT_PERMISSIONS;
+  const canOpenProjectChat =
+    permissions.canManageProject ||
+    Boolean(projectSpaceStatusQuery.data?.exists);
   const pendingInvitationsQuery = usePendingProjectInvitations(
     projectId,
     permissions.canInviteMembers,
@@ -362,6 +367,7 @@ export default function ProjectDetailScreen() {
           isFiltersActive={isFiltersActive}
           canCreateTask={permissions.canCreateTask}
           canInviteMembers={permissions.canInviteMembers}
+          canOpenProjectChat={canOpenProjectChat}
           isOpeningProjectChat={openProjectSpaceMutation.isPending}
           onViewChange={setViewMode}
           onSearchChange={setSearchQuery}
@@ -378,7 +384,7 @@ export default function ProjectDetailScreen() {
           onOpenProjectNavigation={openMobileSidebar}
           onCreateTask={() => openCreateTask()}
           onInviteMembers={() => setShowInviteDialog(true)}
-          onOpenProjectChat={handleOpenProjectChat}
+          onOpenProjectChat={canOpenProjectChat ? handleOpenProjectChat : undefined}
         />
 
         <ProjectDetailContent

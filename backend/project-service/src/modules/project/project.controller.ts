@@ -49,6 +49,17 @@ export class ProjectController {
     );
   }
 
+  @Get(':projectId/space/status')
+  async getProjectSpaceStatus(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return ApiResponse.success(
+      await this.projects.getProjectSpaceStatus(userId, projectId),
+      'Project space status loaded successfully',
+    );
+  }
+
   @Get(':projectId')
   async findOne(
     @CurrentUserId() userId: string,

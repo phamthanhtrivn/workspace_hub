@@ -321,6 +321,16 @@ export function useChatSocket() {
     const handleMemberJoin = (data: ChatSocketMemberPayload) => {
       const chatId = getMessageChatId(data);
       if (!chatId) return;
+      if (data.spaceId && data.member?.userId === currentUserId) {
+        queryClient.invalidateQueries({ queryKey: chatKeys.allSpaces() });
+        queryClient.invalidateQueries({ queryKey: chatKeys.allChannels() });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.channels(data.spaceId),
+        });
+        queryClient.invalidateQueries({
+          queryKey: chatKeys.spaceDetails(data.spaceId),
+        });
+      }
 
       if (isChannelPayload(data)) {
         if (!data.member) {

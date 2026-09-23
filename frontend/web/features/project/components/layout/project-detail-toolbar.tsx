@@ -39,6 +39,7 @@ interface ProjectDetailToolbarProps {
   onlyMyIssues: boolean;
   isFiltersActive: boolean;
   canCreateTask: boolean;
+  canOpenProjectChat?: boolean;
   canInviteMembers?: boolean;
   isOpeningProjectChat?: boolean;
   onViewChange?: (view: ProjectViewMode) => void;
@@ -96,6 +97,7 @@ export default function ProjectDetailToolbar({
   onlyMyIssues,
   isFiltersActive,
   canCreateTask,
+  canOpenProjectChat,
   viewMode,
   canInviteMembers,
   isOpeningProjectChat,
@@ -169,7 +171,7 @@ export default function ProjectDetailToolbar({
         </div>
 
         <div className="flex items-center gap-2">
-          {onOpenProjectChat && (
+          {canOpenProjectChat && onOpenProjectChat && (
             <Button
               type="button"
               variant="outline"

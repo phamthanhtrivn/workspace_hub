@@ -97,6 +97,13 @@ export interface ProjectSpaceResponse {
   channelId: string;
 }
 
+export interface ProjectSpaceStatusResponse {
+  projectId: string;
+  exists: boolean;
+  spaceId: string | null;
+  channelId: string | null;
+}
+
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
   if (!response.data.success) {
     throw new Error(response.data.message || "API request failed");
@@ -264,6 +271,15 @@ export async function openProjectSpace(
 ): Promise<ProjectSpaceResponse> {
   const response = await api.post<ApiResponse<ProjectSpaceResponse>>(
     `/api/projects/${projectId}/space`,
+  );
+  return unwrap(response);
+}
+
+export async function getProjectSpaceStatus(
+  projectId: string,
+): Promise<ProjectSpaceStatusResponse> {
+  const response = await api.get<ApiResponse<ProjectSpaceStatusResponse>>(
+    `/api/projects/${projectId}/space/status`,
   );
   return unwrap(response);
 }

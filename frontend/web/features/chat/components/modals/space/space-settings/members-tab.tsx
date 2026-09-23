@@ -13,6 +13,7 @@ interface MembersTabProps {
   isLoading: boolean;
   isMutating: boolean;
   members: SpaceMemberListItem[];
+  readOnly?: boolean;
   search: string;
   onSearchChange: (search: string) => void;
   onTransferOwnership?: (member: SpaceMemberListItem) => void;
@@ -27,6 +28,7 @@ export function MembersTab({
   isLoading,
   isMutating,
   members,
+  readOnly,
   search,
   onSearchChange,
   onTransferOwnership,
@@ -67,9 +69,9 @@ export function MembersTab({
               currentUserRole={currentUserRole}
               disabled={isMutating}
               member={member}
-              onTransferOwnership={onTransferOwnership}
-              onRemove={onRemove}
-              onUpdateRole={onUpdateRole}
+              onTransferOwnership={readOnly ? undefined : onTransferOwnership}
+              onRemove={readOnly ? undefined : onRemove}
+              onUpdateRole={readOnly ? undefined : onUpdateRole}
               spaceCreatorId={spaceCreatorId}
             />
           ))
@@ -94,7 +96,7 @@ function MemberRow({
   disabled: boolean;
   member: SpaceMemberListItem;
   onTransferOwnership?: (member: SpaceMemberListItem) => void;
-  onRemove: (member: SpaceMemberListItem) => void;
+  onRemove?: (member: SpaceMemberListItem) => void;
   onUpdateRole?: (member: SpaceMemberListItem, role: SpaceRole) => void;
   spaceCreatorId?: string | null;
 }) {
@@ -164,7 +166,7 @@ function MemberRow({
 
       {!isMe && (
         <div className="flex shrink-0 items-center gap-1">
-          {isCurrentUserCreator && !isCreator && (
+          {isCurrentUserCreator && !isCreator && onTransferOwnership && (
             <>
               {member.role === SpaceRole.MEMBER && (
                 <button
@@ -199,7 +201,7 @@ function MemberRow({
               </button>
             </>
           )}
-          {canCurrentUserRemove && (
+          {canCurrentUserRemove && onRemove && (
             <button
               type="button"
               title="Remove from Space"

@@ -116,10 +116,11 @@ export function useSpaceSettings({
   const isResolvingMembership =
     membersQuery.isLoading || roleMembersQuery.isLoading;
   const detail = detailsQuery.data || space;
+  const isProjectSpace = Boolean(detail.projectId || space.projectId);
   const invitationsQuery = useQuery({
     queryKey: chatKeys.spaceInvitations(space.id),
     queryFn: async () => (await getSpaceInvitations(space.id)).data,
-    enabled: isOpen && isAdmin,
+    enabled: isOpen && isAdmin && !isProjectSpace,
   });
 
   const invalidateSpaceData = () => {

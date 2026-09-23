@@ -46,6 +46,7 @@ export enum SPACE_ERROR_MESSAGES {
   LAST_ADMIN = 'Space must have at least one admin',
   INVITATION_NOT_FOUND = 'Invitation not found',
   CHANNEL_NAME_EXISTS = 'A channel with this name already exists in this space',
+  PROJECT_SPACE_MANAGED_BY_PROJECT = 'Project space members are managed from the project',
 }
 
 export enum SPACE_SOCKET_EVENT_TYPE {

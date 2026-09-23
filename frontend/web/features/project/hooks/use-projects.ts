@@ -8,6 +8,7 @@ import {
   createProject,
   getProject,
   getProjectMembers,
+  getProjectSpaceStatus,
   getProjects,
   openProjectSpace,
   updateProject,
@@ -21,6 +22,8 @@ export const projectKeys = {
   list: (query: ProjectListQuery) => ["projects", "list", query] as const,
   detail: (projectId: string) => ["projects", projectId] as const,
   members: (projectId: string) => ["projects", projectId, "members"] as const,
+  spaceStatus: (projectId: string) =>
+    ["projects", projectId, "space-status"] as const,
 };
 
 export function useProjects(query: ProjectListQuery) {
@@ -79,8 +82,23 @@ export function useArchiveProject(projectId: string) {
   });
 }
 
+export function useProjectSpaceStatus(projectId: string) {
+  return useQuery({
+    queryKey: projectKeys.spaceStatus(projectId),
+    queryFn: () => getProjectSpaceStatus(projectId),
+    enabled: Boolean(projectId),
+  });
+}
+
 export function useOpenProjectSpace(projectId: string) {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: () => openProjectSpace(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.spaceStatus(projectId),
+      });
+    },
   });
 }

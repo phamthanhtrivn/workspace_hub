@@ -68,6 +68,19 @@ export class SpaceController {
     };
   }
 
+  @Get('internal/project/:projectId')
+  async getProjectSpaceStatus(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const result = await this.spaceService.getProjectSpaceStatus(projectId);
+    return {
+      message: SPACE_SUCCESS_MESSAGES_LABEL.DETAILS_RETRIEVED,
+      data: result,
+    };
+  }
+
   @Patch('internal/project/:projectId/name')
   async renameProjectSpaceFromProject(
     @Headers('x-internal-service-key') serviceKey: string,

@@ -2,6 +2,7 @@ import {
   BadGatewayException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -195,6 +196,16 @@ export class ProjectService {
 
   async openProjectSpace(userId: string, projectId: string) {
     const project = await this.access.requireReadAccess(userId, projectId);
+    const status = await this.getProjectSpaceStatus(userId, projectId);
+    const member = project.ownerId === userId
+      ? null
+      : await this.access.getActiveMember(projectId, userId);
+    const canCreateProjectSpace =
+      project.ownerId === userId || member?.role === ProjectRole.ADMIN;
+    if (!status.exists && !canCreateProjectSpace) {
+      throw new ForbiddenException('Project chat space has not been created yet');
+    }
+
     const members = await this.prisma.projectMember.findMany({
       where: {
         projectId,
@@ -230,6 +241,15 @@ export class ProjectService {
       });
     } catch {
       throw new BadGatewayException('Unable to open project chat space');
+    }
+  }
+
+  async getProjectSpaceStatus(userId: string, projectId: string) {
+    await this.access.requireReadAccess(userId, projectId);
+    try {
+      return await this.projectSpaces.getProjectSpaceStatus(projectId);
+    } catch {
+      throw new BadGatewayException('Unable to load project chat space status');
     }
   }
 

@@ -76,16 +76,20 @@ export default function SpaceSettingsModal({
 
   const isOwner =
     (settings.detail?.createdBy || space.createdBy) === currentUserId;
+  const isProjectSpace = Boolean(settings.detail?.projectId || space.projectId);
 
   const visibleTabs = useMemo(
     () =>
       SPACE_SETTINGS_TABS.filter((tab) => {
+        if (tab.id === SpaceSettingsTab.INVITATIONS) {
+          return !isProjectSpace && settings.isAdmin;
+        }
         if (tab.id === SpaceSettingsTab.PERMISSIONS) {
           return isOwner;
         }
         return !tab.adminOnly || settings.isAdmin;
       }),
-    [settings.isAdmin, isOwner],
+    [isProjectSpace, settings.isAdmin, isOwner],
   );
 
   useEffect(() => {
@@ -154,11 +158,13 @@ export default function SpaceSettingsModal({
                 currentUserRole={settings.currentMember?.role}
                 isLoading={settings.isLoadingMembers}
                 isMutating={
+                  isProjectSpace ||
                   settings.transferOwnershipMutation.isPending ||
                   settings.removeMemberMutation.isPending ||
                   settings.updateMemberRoleMutation.isPending
                 }
                 members={settings.allMembers}
+                readOnly={isProjectSpace}
                 search={memberSearch}
                 onSearchChange={setMemberSearch}
                 onTransferOwnership={settings.confirmOwnershipTransfer}
@@ -232,7 +238,7 @@ export default function SpaceSettingsModal({
           </button>
         </div>
 
-        {settings.isAdmin && (
+        {settings.isAdmin && !isProjectSpace && (
           <InviteSpaceMembersModal
             isOpen={isInviteModalOpen}
             onClose={() => setIsInviteModalOpen(false)}

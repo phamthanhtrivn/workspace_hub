@@ -22,6 +22,13 @@ export interface ProjectSpaceResponse {
   channelId: string;
 }
 
+export interface ProjectSpaceStatusResponse {
+  projectId: string;
+  exists: boolean;
+  spaceId: string | null;
+  channelId: string | null;
+}
+
 export interface RenameProjectSpaceResponse {
   projectId: string;
   spaceId: string | null;
@@ -47,6 +54,18 @@ export class ProjectSpaceClient {
       url: `${this.config.communicationServiceUrl}/api/spaces/project`,
       method: 'POST',
       body: payload,
+    });
+    return response.data;
+  }
+
+  async getProjectSpaceStatus(
+    projectId: string,
+  ): Promise<ProjectSpaceStatusResponse> {
+    const response = await this.http.request<ApiResponse<ProjectSpaceStatusResponse>>({
+      service: 'communication-service',
+      url: `${this.config.communicationServiceUrl}/api/spaces/internal/project/${projectId}`,
+      method: 'GET',
+      headers: this.internalHeaders(),
     });
     return response.data;
   }
