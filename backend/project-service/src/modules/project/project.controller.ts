@@ -21,6 +21,17 @@ export class ProjectController {
     return ApiResponse.success(result.items, 'Projects loaded successfully', result.pagination);
   }
 
+  @Post(':projectId/space')
+  async openProjectSpace(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return ApiResponse.success(
+      await this.projects.openProjectSpace(userId, projectId),
+      'Project space opened successfully',
+    );
+  }
+
   @Get(':projectId')
   async findOne(
     @CurrentUserId() userId: string,

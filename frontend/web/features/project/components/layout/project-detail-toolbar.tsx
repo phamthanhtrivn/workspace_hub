@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, Plus, UserPlus } from "lucide-react";
+import { Loader2, Menu, MessageCircle, Plus, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
 import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
@@ -40,6 +40,7 @@ interface ProjectDetailToolbarProps {
   isFiltersActive: boolean;
   canCreateTask: boolean;
   canInviteMembers?: boolean;
+  isOpeningProjectChat?: boolean;
   onViewChange?: (view: ProjectViewMode) => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: TaskStatus | "") => void;
@@ -52,6 +53,7 @@ interface ProjectDetailToolbarProps {
   onOpenProjectNavigation: () => void;
   onCreateTask: () => void;
   onInviteMembers?: () => void;
+  onOpenProjectChat?: () => void;
 }
 
 function TaskStatusCounts({
@@ -96,6 +98,7 @@ export default function ProjectDetailToolbar({
   canCreateTask,
   viewMode,
   canInviteMembers,
+  isOpeningProjectChat,
   onViewChange,
   onSearchChange,
   onStatusChange,
@@ -107,6 +110,7 @@ export default function ProjectDetailToolbar({
   onOpenProjectNavigation,
   onCreateTask,
   onInviteMembers,
+  onOpenProjectChat,
 }: ProjectDetailToolbarProps) {
   const isMembersView = viewMode === "members";
 
@@ -165,6 +169,22 @@ export default function ProjectDetailToolbar({
         </div>
 
         <div className="flex items-center gap-2">
+          {onOpenProjectChat && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onOpenProjectChat}
+              disabled={isOpeningProjectChat}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isOpeningProjectChat ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} />
+              )}
+              Project Chat
+            </Button>
+          )}
           {isMembersView
             ? canInviteMembers &&
               onInviteMembers && (

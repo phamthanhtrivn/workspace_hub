@@ -91,6 +91,12 @@ export interface ProjectListResponse {
   meta: PaginationMeta;
 }
 
+export interface ProjectSpaceResponse {
+  projectId: string;
+  spaceId: string;
+  channelId: string;
+}
+
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
   if (!response.data.success) {
     throw new Error(response.data.message || "API request failed");
@@ -251,6 +257,15 @@ export async function archiveProject(projectId: string): Promise<void> {
     `/api/projects/${projectId}`,
   );
   unwrap(response);
+}
+
+export async function openProjectSpace(
+  projectId: string,
+): Promise<ProjectSpaceResponse> {
+  const response = await api.post<ApiResponse<ProjectSpaceResponse>>(
+    `/api/projects/${projectId}/space`,
+  );
+  return unwrap(response);
 }
 
 export async function getProjectMembers(

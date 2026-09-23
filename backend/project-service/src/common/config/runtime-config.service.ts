@@ -6,6 +6,9 @@ export class RuntimeConfigService {
     process.env.NOTIFICATION_SERVICE_URL,
     'NOTIFICATION_SERVICE_URL',
   );
+  readonly communicationServiceUrl = this.baseUrl(
+    process.env.COMMUNICATION_SERVICE_URL ?? 'http://localhost:8083',
+  );
   readonly frontendUrl = this.baseUrl(process.env.FRONTEND_URL ?? 'http://localhost:3000');
   readonly notificationServiceKey = this.required(
     process.env.NOTIFICATION_INTERNAL_SERVICE_KEY ?? process.env.INTERNAL_SERVICE_KEY,

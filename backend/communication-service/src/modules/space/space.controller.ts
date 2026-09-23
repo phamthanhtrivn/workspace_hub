@@ -17,6 +17,7 @@ import {
   SPACE_SUCCESS_MESSAGES_LABEL,
 } from './types/space.enums';
 import { InviteSpaceMembersDto } from './dto/invite-space-members.dto';
+import { EnsureProjectSpaceDto } from './dto/ensure-project-space.dto';
 import { decodeHeaderUtf8 } from '../../common/utils/string.util';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { UpdateSpaceMemberRoleDto } from './dto/update-space-member-role.dto';
@@ -48,6 +49,15 @@ export class SpaceController {
     return {
       message: SPACE_SUCCESS_MESSAGES_LABEL.LISTED,
       data: spaces,
+    };
+  }
+
+  @Post('project')
+  async ensureProjectSpace(@Body() body: EnsureProjectSpaceDto) {
+    const result = await this.spaceService.ensureProjectSpace(body);
+    return {
+      message: SPACE_SUCCESS_MESSAGES_LABEL.CREATED,
+      data: result,
     };
   }
 

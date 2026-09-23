@@ -1,4 +1,5 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
   Injectable,
@@ -20,6 +21,10 @@ import { toMemberResponse, toProjectResponse } from './project.mapper';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
 import { paginate } from '../../common/utils/pagination';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import {
+  ProjectSpaceClient,
+  ProjectSpaceRole,
+} from './project-space.client';
 
 @Injectable()
 export class ProjectService {
@@ -27,6 +32,7 @@ export class ProjectService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly userProfiles: UserProfileSnapshotService,
+    private readonly projectSpaces: ProjectSpaceClient,
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
@@ -184,6 +190,46 @@ export class ProjectService {
     const project = await this.access.requireReadAccess(userId, projectId);
     const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
     return toProjectResponse(project, {}, ownerProfile);
+  }
+
+  async openProjectSpace(userId: string, projectId: string) {
+    const project = await this.access.requireReadAccess(userId, projectId);
+    const members = await this.prisma.projectMember.findMany({
+      where: {
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    const roleByUserId = new Map<string, ProjectSpaceRole>();
+    for (const member of members) {
+      roleByUserId.set(
+        member.userId,
+        member.userId === project.ownerId || member.role === ProjectRole.ADMIN
+          ? 'ADMIN'
+          : 'MEMBER',
+      );
+    }
+    roleByUserId.set(project.ownerId, 'ADMIN');
+
+    try {
+      return await this.projectSpaces.ensureProjectSpace({
+        projectId,
+        name: project.name,
+        ownerId: project.ownerId,
+        members: Array.from(roleByUserId.entries()).map(([memberUserId, role]) => ({
+          userId: memberUserId,
+          role,
+        })),
+      });
+    } catch {
+      throw new BadGatewayException('Unable to open project chat space');
+    }
   }
 
   async update(userId: string, projectId: string, dto: UpdateProjectDto) {

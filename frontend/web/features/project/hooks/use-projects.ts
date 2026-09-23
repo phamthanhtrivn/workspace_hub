@@ -9,6 +9,7 @@ import {
   getProject,
   getProjectMembers,
   getProjects,
+  openProjectSpace,
   updateProject,
   type CreateProjectPayload,
   type ProjectListQuery,
@@ -75,5 +76,11 @@ export function useArchiveProject(projectId: string) {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
       queryClient.removeQueries({ queryKey: projectKeys.detail(projectId) });
     },
+  });
+}
+
+export function useOpenProjectSpace(projectId: string) {
+  return useMutation({
+    mutationFn: () => openProjectSpace(projectId),
   });
 }

@@ -14,6 +14,7 @@ import {
 } from '../../common/constants/kafka.constants';
 import { DefaultSpaceChannelNames } from './types/space.types';
 import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
+import { EnsureProjectSpaceDto } from './dto/ensure-project-space.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
 import { UserProfileSnapshot } from 'src/common/types/user.types';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
@@ -374,6 +375,215 @@ export class SpaceService {
         role: resolvedRoleMap.get(member.userId) ?? SpaceRole.MEMBER,
       })),
     };
+  }
+
+  private normalizeProjectSpaceMembers(dto: EnsureProjectSpaceDto) {
+    const roleByUserId = new Map<string, SpaceRole>();
+    for (const member of dto.members ?? []) {
+      if (!member.userId) continue;
+      const existingRole = roleByUserId.get(member.userId);
+      if (existingRole === SpaceRole.ADMIN) continue;
+      roleByUserId.set(
+        member.userId,
+        member.role === SpaceRole.ADMIN ? SpaceRole.ADMIN : SpaceRole.MEMBER,
+      );
+    }
+    roleByUserId.set(dto.ownerId, SpaceRole.ADMIN);
+    return Array.from(roleByUserId.entries()).map(([userId, role]) => ({
+      userId,
+      role,
+    }));
+  }
+
+  private async ensureDefaultProjectChannel(
+    tx: any,
+    spaceId: string,
+    createdBy: string,
+  ) {
+    const existingDefaultChannel = await tx.channel.findFirst({
+      where: { spaceId, isDefault: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existingDefaultChannel) {
+      return existingDefaultChannel;
+    }
+
+    const channel = await tx.channel.create({
+      data: {
+        spaceId,
+        name: DefaultSpaceChannelNames[0],
+        createdBy,
+        isDefault: true,
+      },
+    });
+
+    await tx.channelSetting.create({
+      data: {
+        channelId: channel.id,
+        allowSendMessage: true,
+        allowCreateNote: true,
+        allowCreatePoll: true,
+        allowPinMessage: true,
+      },
+    });
+
+    return channel;
+  }
+
+  private isProjectSpaceUniqueConstraint(error: unknown) {
+    if (typeof error !== 'object' || error === null) return false;
+    const prismaError = error as { code?: string; meta?: { target?: unknown } };
+    return (
+      prismaError.code === 'P2002' &&
+      String(prismaError.meta?.target ?? '').includes('project_id')
+    );
+  }
+
+  private async syncProjectSpace(
+    tx: any,
+    existingSpace: { id: string; name: string; createdBy: string },
+    dto: EnsureProjectSpaceDto,
+    trimmedName: string,
+    members: { userId: string; role: SpaceRole }[],
+  ) {
+    const space =
+      existingSpace.name === trimmedName
+        ? existingSpace
+        : await tx.space.update({
+            where: { id: existingSpace.id },
+            data: { name: trimmedName },
+          });
+    const defaultChannel = await this.ensureDefaultProjectChannel(
+      tx,
+      space.id,
+      space.createdBy,
+    );
+
+    for (const member of members) {
+      await tx.spaceMember.upsert({
+        where: {
+          spaceId_userId: {
+            spaceId: space.id,
+            userId: member.userId,
+          },
+        },
+        create: {
+          spaceId: space.id,
+          userId: member.userId,
+          role: member.role,
+        },
+        update: {
+          role: member.role,
+        },
+      });
+
+      await tx.channelMember.upsert({
+        where: {
+          channelId_userId: {
+            channelId: defaultChannel.id,
+            userId: member.userId,
+          },
+        },
+        create: {
+          channelId: defaultChannel.id,
+          userId: member.userId,
+        },
+        update: {},
+      });
+    }
+
+    return {
+      projectId: dto.projectId,
+      spaceId: space.id,
+      channelId: defaultChannel.id,
+    };
+  }
+
+  async ensureProjectSpace(dto: EnsureProjectSpaceDto) {
+    const trimmedName = dto.name?.trim();
+    if (!trimmedName) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
+    }
+
+    const members = this.normalizeProjectSpaceMembers(dto);
+    if (members.length === 0) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    }
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const existingSpace = await tx.space.findFirst({
+          where: { projectId: dto.projectId },
+        });
+
+        if (existingSpace) {
+          return this.syncProjectSpace(
+            tx,
+            existingSpace,
+            dto,
+            trimmedName,
+            members,
+          );
+        }
+
+        const space = await tx.space.create({
+          data: {
+            name: trimmedName,
+            createdBy: dto.ownerId,
+            projectId: dto.projectId,
+          },
+        });
+
+        await tx.spaceMember.createMany({
+          data: members.map((member) => ({
+            spaceId: space.id,
+            userId: member.userId,
+            role: member.role,
+          })),
+          skipDuplicates: true,
+        });
+
+        await this.createSpaceSettingIfAvailable(tx, space.id);
+
+        const defaultChannel = await this.ensureDefaultProjectChannel(
+          tx,
+          space.id,
+          dto.ownerId,
+        );
+
+        await tx.channelMember.createMany({
+          data: members.map((member) => ({
+            channelId: defaultChannel.id,
+            userId: member.userId,
+          })),
+          skipDuplicates: true,
+        });
+
+        return {
+          projectId: dto.projectId,
+          spaceId: space.id,
+          channelId: defaultChannel.id,
+        };
+      });
+    } catch (error) {
+      if (!this.isProjectSpaceUniqueConstraint(error)) {
+        throw error;
+      }
+
+      return this.prisma.$transaction(async (tx) => {
+        const existingSpace = await tx.space.findFirst({
+          where: { projectId: dto.projectId },
+        });
+        if (!existingSpace) throw error;
+        return this.syncProjectSpace(
+          tx,
+          existingSpace,
+          dto,
+          trimmedName,
+          members,
+        );
+      });
+    }
   }
 
   async createSpace(userId: string, name: string) {
