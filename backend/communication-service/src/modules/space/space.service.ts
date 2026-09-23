@@ -1348,6 +1348,17 @@ export class SpaceService {
 
   async leaveSpace(userId: string, spaceId: string) {
     const member = await this.assertSpaceMember(spaceId, userId);
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { createdBy: true },
+    });
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (space.createdBy === userId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.OWNER_CANNOT_LEAVE);
+    }
+
     if (member.role === SpaceRole.ADMIN) {
       const adminCount = await this.getAdminCount(spaceId);
       if (adminCount <= 1) {

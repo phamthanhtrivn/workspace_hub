@@ -42,6 +42,7 @@ export enum SPACE_ERROR_MESSAGES {
   SELF_OWNERSHIP_TRANSFER = 'You cannot transfer ownership to yourself',
   SELF_REMOVE = 'You cannot remove yourself from the space',
   OWNER_REMOVE = 'You cannot remove the space owner',
+  OWNER_CANNOT_LEAVE = 'Space owner must transfer ownership before leaving',
   ADMIN_REMOVE_MEMBER_ONLY = 'Admins can only remove regular members',
   LAST_ADMIN = 'Space must have at least one admin',
   INVITATION_NOT_FOUND = 'Invitation not found',
