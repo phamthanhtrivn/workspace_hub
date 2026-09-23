@@ -9,10 +9,17 @@ import { toast } from "sonner";
 
 export interface UseDocumentUploadOptions {
   currentFolderId: string | null;
+  projectId?: string;
+  enabled?: boolean;
   onSuccess?: () => void;
 }
 
-export function useDocumentUpload({ currentFolderId, onSuccess }: UseDocumentUploadOptions) {
+export function useDocumentUpload({
+  currentFolderId,
+  projectId,
+  enabled = true,
+  onSuccess,
+}: UseDocumentUploadOptions) {
   const queryClient = useQueryClient();
   const [uploadState, setUploadState] = useState<UploadState>(UploadState.IDLE);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -72,6 +79,7 @@ export function useDocumentUpload({ currentFolderId, onSuccess }: UseDocumentUpl
       return documentsApi.uploadFile(
         file,
         currentFolderId || undefined,
+        !currentFolderId ? projectId : undefined,
         (percent) => setUploadProgress(percent),
         overwriteItemId,
       );
@@ -94,6 +102,7 @@ export function useDocumentUpload({ currentFolderId, onSuccess }: UseDocumentUpl
 
   const handleFileUpload = useCallback(
     async (files: FileList | File[] | File) => {
+      if (!enabled) return;
       if (!files) return;
       const fileArray: File[] =
         files instanceof File
@@ -113,6 +122,7 @@ export function useDocumentUpload({ currentFolderId, onSuccess }: UseDocumentUpl
           const conflict = await documentsApi.getNameConflict({
             name: file.name,
             parentFolderId: currentFolderId || undefined,
+            projectId: !currentFolderId ? projectId : undefined,
           });
           let overwriteItemId: string | undefined;
 
@@ -151,6 +161,8 @@ export function useDocumentUpload({ currentFolderId, onSuccess }: UseDocumentUpl
     },
     [
       currentFolderId,
+      enabled,
+      projectId,
       requestOverwriteConfirmation,
       uploadMutation,
     ]
@@ -158,27 +170,30 @@ export function useDocumentUpload({ currentFolderId, onSuccess }: UseDocumentUpl
 
   // Window drag events
   const handleDragEnter = useCallback((e: DragEvent) => {
+    if (!enabled) return;
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current += 1;
     if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
       setIsDraggingOver(true);
     }
-  }, []);
+  }, [enabled]);
 
   const handleDragLeave = useCallback((e: DragEvent) => {
+    if (!enabled) return;
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current -= 1;
     if (dragCounter.current === 0) {
       setIsDraggingOver(false);
     }
-  }, []);
+  }, [enabled]);
 
   const handleDragOver = useCallback((e: DragEvent) => {
+    if (!enabled) return;
     e.preventDefault();
     e.stopPropagation();
-  }, []);
+  }, [enabled]);
 
   const handleDrop = useCallback(
     (e: DragEvent) => {
@@ -187,15 +202,20 @@ export function useDocumentUpload({ currentFolderId, onSuccess }: UseDocumentUpl
       setIsDraggingOver(false);
       dragCounter.current = 0;
 
-      if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      if (enabled && e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
         handleFileUpload(e.dataTransfer.files);
         e.dataTransfer.clearData();
       }
     },
-    [handleFileUpload]
+    [enabled, handleFileUpload]
   );
 
   useEffect(() => {
+    if (!enabled) {
+      setIsDraggingOver(false);
+      dragCounter.current = 0;
+      return;
+    }
     window.addEventListener("dragenter", handleDragEnter);
     window.addEventListener("dragleave", handleDragLeave);
     window.addEventListener("dragover", handleDragOver);
@@ -207,7 +227,7 @@ export function useDocumentUpload({ currentFolderId, onSuccess }: UseDocumentUpl
       window.removeEventListener("dragover", handleDragOver);
       window.removeEventListener("drop", handleDrop);
     };
-  }, [handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
+  }, [enabled, handleDragEnter, handleDragLeave, handleDragOver, handleDrop]);
 
   return {
     uploadState,

@@ -9,6 +9,9 @@ export class RuntimeConfigService {
   readonly communicationServiceUrl = this.baseUrl(
     process.env.COMMUNICATION_SERVICE_URL ?? 'http://localhost:8083',
   );
+  readonly documentServiceUrl = this.baseUrl(
+    process.env.DOCUMENT_SERVICE_URL ?? 'http://localhost:8085',
+  );
   readonly frontendUrl = this.baseUrl(process.env.FRONTEND_URL ?? 'http://localhost:3000');
   readonly notificationServiceKey = this.required(
     process.env.NOTIFICATION_INTERNAL_SERVICE_KEY ?? process.env.INTERNAL_SERVICE_KEY,

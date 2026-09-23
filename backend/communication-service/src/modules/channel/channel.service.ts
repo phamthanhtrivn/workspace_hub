@@ -389,6 +389,7 @@ export class ChannelService {
       chatId: channelId,
       chatType: CHAT_CONTEXT_TYPE.CHANNEL,
       channelId,
+      spaceId: channel.spaceId,
       setting: updatedSettings,
     });
 

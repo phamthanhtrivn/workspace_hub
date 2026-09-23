@@ -17,6 +17,7 @@ import { isUniqueConstraintError } from "../../common/prisma/prisma-errors";
 import { NotificationOutboxService } from "../notification-outbox/notification-outbox.service";
 import { defaultMemberPermissions } from "../member/member-permissions";
 import { UserProfileSnapshotService } from "../user-profile-snapshot/user-profile-snapshot.service";
+import { ProjectService } from "../project/project.service";
 import { KAFKA_EVENTS } from "../../common/constants/kafka.constants";
 import {
   resolveProfilesForItem,
@@ -32,6 +33,7 @@ export class InvitationService {
     private readonly access: ProjectAccessService,
     private readonly notifications: NotificationOutboxService,
     private readonly userProfiles: UserProfileSnapshotService,
+    private readonly projects: ProjectService,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateInvitationDto) {
@@ -359,6 +361,8 @@ export class InvitationService {
         include: { project: { select: { name: true } } },
       });
     });
+
+    await this.projects.syncProjectDocumentAccess(updated.projectId);
 
     const profiles = await resolveProfilesForItem(
       this.userProfiles,

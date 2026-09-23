@@ -9,6 +9,7 @@ import {
   Query,
   Headers,
   BadRequestException,
+  UnauthorizedException,
   Res,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -24,6 +25,7 @@ import { UpdateLinkAccessDto } from './dto/update-link-access.dto';
 import { AddShareDto } from './dto/add-share.dto';
 import { CheckPermissionsDto } from './dto/check-permissions.dto';
 import { AddShareBatchDto } from './dto/add-share-batch.dto';
+import { EnsureProjectRootFolderDto } from './dto/ensure-project-root-folder.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
 
@@ -35,6 +37,34 @@ export class DocumentController {
     if (!userId || !userEmail) {
       throw new BadRequestException('Missing x-user-id or x-user-email header');
     }
+  }
+
+  private assertInternalServiceKey(serviceKey?: string): void {
+    const expected = process.env.INTERNAL_SERVICE_KEY || 'local-internal-key';
+    if (!serviceKey || serviceKey !== expected) {
+      throw new UnauthorizedException('Invalid internal service key');
+    }
+  }
+
+  @Post('internal/projects/:projectId/root-folder')
+  async ensureProjectRootFolder(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() dto: EnsureProjectRootFolderDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const folder = await this.documentService.ensureProjectRootFolder(
+      projectId,
+      dto,
+    );
+    return {
+      message: 'Project root folder ensured successfully',
+      data: {
+        projectId,
+        folderId: folder.id,
+        name: folder.name,
+      },
+    };
   }
 
   @Post('folders')

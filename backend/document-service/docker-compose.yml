@@ -11,6 +11,8 @@ services:
       - "8085:8085"
     env_file:
       - .env.docker
+    environment:
+      PROJECT_SERVICE_URL: http://project-service:8082
     volumes:
       - .:/app
       - /app/node_modules

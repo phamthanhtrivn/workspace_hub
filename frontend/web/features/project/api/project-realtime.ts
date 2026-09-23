@@ -30,19 +30,32 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
 
   const resourceKeys: Partial<Record<ProjectChangedEvent['resource'], QueryKey[]>> = {
     TASK: [[...projectKey, 'tasks'], [...projectKey, 'task-status-counts']],
-    MEMBER: [[...projectKey, 'members']],
+    MEMBER: [[...projectKey, 'members'], ['documents'], [...projectKey, 'documents']],
     INVITATION: [
       [...projectKey, 'members'],
       [...projectKey, 'invitations', 'pending'],
       ['projects', 'invitations', 'mine'],
+      ['documents'],
+      [...projectKey, 'documents'],
     ],
     CHECKLIST: [[...projectKey, 'tasks']],
     LABEL: [[...projectKey, 'labels'], [...projectKey, 'tasks']],
     DEPENDENCY: [[...projectKey, 'dependencies']],
+    DOCUMENT: [
+      ['documents'],
+      ['document-versions'],
+      ['document-preview'],
+      ['folder-picker'],
+      [...projectKey, 'documents'],
+    ],
   };
 
   for (const queryKey of resourceKeys[event.resource] ?? []) {
     invalidations.push({ queryKey });
+  }
+  if (event.resource === 'DOCUMENT' && event.entityId) {
+    invalidations.push({ queryKey: ['document-versions', event.entityId] });
+    invalidations.push({ queryKey: ['document-preview', event.entityId] });
   }
 
   const taskIds = new Set(event.taskIds ?? []);

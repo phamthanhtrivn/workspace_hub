@@ -5,7 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { DndContext } from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
 import { DocumentItem } from "../types/documents.types";
-import { DocumentViewType } from "../types/documents.enums";
+import { DocumentRole, DocumentViewType } from "../types/documents.enums";
 
 // UI Building Blocks
 import { DocumentsConfirmDialog } from "./ui/documents-confirm-dialog";
@@ -43,6 +43,10 @@ interface DocumentExplorerProps {
   setPath: React.Dispatch<
     React.SetStateAction<{ id: string | null; name: string }[]>
   >;
+  projectId?: string;
+  canEditDocuments?: boolean;
+  accessErrorTitle?: string;
+  accessErrorDescription?: string;
 }
 
 export function DocumentExplorer({
@@ -51,7 +55,14 @@ export function DocumentExplorer({
   activeView,
   path,
   setPath,
+  projectId,
+  canEditDocuments = true,
+  accessErrorTitle = "Unable to load documents",
+  accessErrorDescription = "You do not have access to these documents yet",
 }: DocumentExplorerProps) {
+  const isProjectDocuments = Boolean(projectId);
+  const projectRootFolderId = isProjectDocuments ? path[0]?.id ?? null : null;
+  const projectRootLabel = isProjectDocuments ? path[0]?.name : undefined;
   // 1. Explorer State Hook
   const {
     activeMenuId,
@@ -127,7 +138,7 @@ export function DocumentExplorer({
     deletePermanently,
     isDeletingPermanently,
     downloadItem,
-  } = useDocumentActions({ currentFolderId });
+  } = useDocumentActions({ currentFolderId, projectId });
 
   // 4. File Upload Hook
   const {
@@ -139,20 +150,28 @@ export function DocumentExplorer({
     uploadFile,
     confirmOverwrite,
     cancelOverwrite,
-  } = useDocumentUpload({ currentFolderId });
+  } = useDocumentUpload({
+    currentFolderId,
+    projectId,
+    enabled: canEditDocuments,
+  });
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // 5. Drag and Drop Hook
   const { sensors, handleDragEnd } = useDocumentDragAndDrop({
     onMoveItem: (itemId, targetFolderId) =>
-      moveResource({ id: itemId, targetFolderId }),
+      canEditDocuments
+        ? moveResource({ id: itemId, targetFolderId })
+        : Promise.resolve(),
   });
 
   // Query Main Document List
   const {
     data: documentResponse,
     isLoading,
+    isError,
+    error: documentError,
     isFetchingNextPage,
     fetchNextPage,
     hasNextPage,
@@ -160,6 +179,7 @@ export function DocumentExplorer({
     queryKey: [
       "documents",
       activeView,
+      projectId,
       currentFolderId,
       sortBy,
       searchQuery,
@@ -187,7 +207,8 @@ export function DocumentExplorer({
       }
       return documentsApi.getDocuments({
         folderId: currentFolderId || undefined,
-        starred: activeView === DocumentViewType.STARRED ? true : undefined,
+        projectId: projectId && !currentFolderId ? projectId : undefined,
+        starred: !isProjectDocuments && activeView === DocumentViewType.STARRED ? true : undefined,
         archived: activeView === DocumentViewType.TRASH ? true : undefined,
         sortBy,
         search: searchQuery || undefined,
@@ -236,6 +257,9 @@ export function DocumentExplorer({
     () => items.find((i: DocumentItem) => i.id === activeDetailsItemId) || null,
     [items, activeDetailsItemId],
   );
+  const canEditActiveDetailsItem =
+    activeDetailsItem?.userRole === DocumentRole.OWNER ||
+    activeDetailsItem?.userRole === DocumentRole.EDITOR;
 
   // Folder click navigation
   const handleFolderClick = useCallback(
@@ -324,6 +348,7 @@ export function DocumentExplorer({
             onSearchQueryChange={setSearchQuery}
             onCreateFolder={openCreateFolder}
             onUploadFile={uploadFile}
+            canEditDocuments={canEditDocuments}
           />
           {activeView === DocumentViewType.TRASH ? (
             <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs font-semibold text-amber-800">
@@ -344,6 +369,14 @@ export function DocumentExplorer({
               {isLoading ? (
                 <DocumentsLoadingState
                   view={viewLayout === "GRID" ? "grid" : "list"}
+                />
+              ) : isError ? (
+                <DocumentsEmptyState
+                  title={accessErrorTitle}
+                  description={
+                    (documentError as { response?: { data?: { message?: string } } })
+                      ?.response?.data?.message || accessErrorDescription
+                  }
                 />
               ) : items.length === 0 ? (
                 <DocumentsEmptyState
@@ -384,7 +417,11 @@ export function DocumentExplorer({
                     onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
                     onRename={openRename}
                     onMove={openMoveModal}
-                    onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
+                    onToggleStar={
+                      isProjectDocuments
+                        ? undefined
+                        : (item) => toggleStar(item.id, item.isStarred)
+                    }
                     onMoveToTrash={openTrashConfirm}
                     onRestore={(item) => restoreFromTrash(item.id)}
                     onDeletePermanently={openDeleteConfirm}
@@ -392,8 +429,9 @@ export function DocumentExplorer({
                     onDownload={downloadItem}
                     onDownloadFolder={downloadItem}
                     onManageVersions={openVersionModal}
-                    onShare={openShareModal}
+                    onShare={isProjectDocuments ? undefined : openShareModal}
                     onShareToChat={openShareToChatModal}
+                    isProjectDocuments={isProjectDocuments}
                   />
                   {loadMoreFooter}
                 </div>
@@ -416,7 +454,11 @@ export function DocumentExplorer({
                     onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
                     onRename={openRename}
                     onMove={openMoveModal}
-                    onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
+                    onToggleStar={
+                      isProjectDocuments
+                        ? undefined
+                        : (item) => toggleStar(item.id, item.isStarred)
+                    }
                     onMoveToTrash={openTrashConfirm}
                     onRestore={(item) => restoreFromTrash(item.id)}
                     onDeletePermanently={openDeleteConfirm}
@@ -424,8 +466,9 @@ export function DocumentExplorer({
                     onDownload={downloadItem}
                     onDownloadFolder={downloadItem}
                     onManageVersions={openVersionModal}
-                    onShare={openShareModal}
+                    onShare={isProjectDocuments ? undefined : openShareModal}
                     onShareToChat={openShareToChatModal}
+                    isProjectDocuments={isProjectDocuments}
                   />
                 </div>
               )}
@@ -437,10 +480,22 @@ export function DocumentExplorer({
             <DetailsPanel
               item={activeDetailsItem}
               onClose={() => setActiveDetailsItemId(null)}
-              onRename={() => openRename(activeDetailsItem)}
-              onShare={() => openShareModal(activeDetailsItem)}
+              onRename={
+                canEditActiveDetailsItem
+                  ? () => openRename(activeDetailsItem)
+                  : undefined
+              }
+              onShare={
+                canEditActiveDetailsItem && !isProjectDocuments
+                  ? () => openShareModal(activeDetailsItem)
+                  : undefined
+              }
               onDownload={() => downloadItem(activeDetailsItem)}
-              onManageVersions={() => openVersionModal(activeDetailsItem)}
+              onManageVersions={
+                canEditActiveDetailsItem
+                  ? () => openVersionModal(activeDetailsItem)
+                  : undefined
+              }
             />
           ) : null}
         </div>
@@ -513,7 +568,11 @@ export function DocumentExplorer({
         <DocumentsConfirmDialog
           open={isDeleteConfirmOpen}
           title="Delete permanently?"
-          description="This action cannot be undone. This item will be permanently deleted."
+          description={
+            isProjectDocuments
+              ? "This project document will be permanently deleted for every project member. This action cannot be undone."
+              : "This action cannot be undone. This item will be permanently deleted."
+          }
           confirmLabel="Delete"
           cancelLabel="Cancel"
           variant="danger"
@@ -528,6 +587,9 @@ export function DocumentExplorer({
             open={isMoveModalOpen}
             movingItemId={movingItemId}
             onClose={closeMoveModal}
+            projectId={projectId}
+            projectRootFolderId={projectRootFolderId}
+            rootLabel={projectRootLabel}
             onSelectFolder={(targetFolderId) =>
               moveResource({ id: movingItemId, targetFolderId })
             }
@@ -557,7 +619,7 @@ export function DocumentExplorer({
         ) : null}
 
         {/* Share Modal */}
-        {isShareModalOpen && sharingItem ? (
+        {!isProjectDocuments && isShareModalOpen && sharingItem ? (
           <ShareModal
             open={isShareModalOpen}
             item={sharingItem}
@@ -570,6 +632,7 @@ export function DocumentExplorer({
           <ShareToChatModal
             open={isShareToChatOpen}
             item={shareToChatItem}
+            projectId={projectId}
             onClose={closeShareToChatModal}
           />
         ) : null}

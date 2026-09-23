@@ -14,7 +14,9 @@ import {
 import { ApiResponse } from '../../common/utils/api-response';
 import { RuntimeConfigService } from '../../common/config/runtime-config.service';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { InternalDocumentEventDto } from './dto/internal-document-event.dto';
 import { InternalRenameProjectDto } from './dto/internal-rename-project.dto';
 import { ProjectListQueryDto } from './dto/project-list-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -60,6 +62,17 @@ export class ProjectController {
     );
   }
 
+  @Post(':projectId/documents')
+  async openProjectDocuments(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return ApiResponse.success(
+      await this.projects.openProjectDocuments(userId, projectId),
+      'Project documents opened successfully',
+    );
+  }
+
   @Get(':projectId')
   async findOne(
     @CurrentUserId() userId: string,
@@ -69,6 +82,7 @@ export class ProjectController {
   }
 
   @Patch('internal/:projectId/name')
+  @Public()
   async renameProjectFromSpace(
     @Headers('x-internal-service-key') serviceKey: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
@@ -78,6 +92,20 @@ export class ProjectController {
     return ApiResponse.success(
       await this.projects.renameProjectFromSpace(projectId, dto),
       'Project name synced successfully',
+    );
+  }
+
+  @Post('internal/:projectId/document-events')
+  @Public()
+  async publishProjectDocumentEvent(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() dto: InternalDocumentEventDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    return ApiResponse.success(
+      await this.projects.publishDocumentEvent(projectId, dto),
+      'Project document event published successfully',
     );
   }
 

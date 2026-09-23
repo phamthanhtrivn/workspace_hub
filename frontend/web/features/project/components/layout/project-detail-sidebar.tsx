@@ -5,6 +5,7 @@ import {
   CalendarClock,
   ChevronLeft,
   ChevronRight,
+  FileText,
   FolderKanban,
   LayoutDashboard,
   LayoutGrid,
@@ -38,6 +39,7 @@ export type ProjectViewMode =
   | "list"
   | "calendar"
   | "gantt"
+  | "documents"
   | "members";
 
 interface ProjectDetailSidebarProps {
@@ -81,6 +83,7 @@ const NAV_ITEMS: Array<{
     { view: "list", label: "Backlog", icon: ListTodo },
     { view: "calendar", label: "Schedule", icon: CalendarClock },
     { view: "gantt", label: "Grantt Chart", icon: Route },
+    { view: "documents", label: "Documents", icon: FileText },
   ];
 
 function SidebarTooltip({

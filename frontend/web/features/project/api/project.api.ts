@@ -50,6 +50,7 @@ interface ProjectMemberApiModel {
   canEditOthersTask: boolean;
   canManageMembers: boolean;
   canManageLabels: boolean;
+  canEditDocuments: boolean;
   joinedAt?: string | null;
 }
 
@@ -102,6 +103,12 @@ export interface ProjectSpaceStatusResponse {
   exists: boolean;
   spaceId: string | null;
   channelId: string | null;
+}
+
+export interface ProjectDocumentsResponse {
+  projectId: string;
+  folderId: string;
+  name: string;
 }
 
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
@@ -163,6 +170,7 @@ function normalizeMember(
     canEditOthersTask: member.canEditOthersTask ?? false,
     canManageMembers: member.canManageMembers ?? false,
     canManageLabels: member.canManageLabels ?? false,
+    canEditDocuments: member.canEditDocuments ?? false,
     joinedAt: member.joinedAt || new Date().toISOString(),
   };
 }
@@ -187,6 +195,7 @@ function withOwnerMembers(projectModels: ProjectApiModel[]): Project[] {
           canEditOthersTask: true,
           canManageMembers: true,
           canManageLabels: true,
+          canEditDocuments: true,
           joinedAt: project.createdAt,
         },
       ],
@@ -280,6 +289,15 @@ export async function getProjectSpaceStatus(
 ): Promise<ProjectSpaceStatusResponse> {
   const response = await api.get<ApiResponse<ProjectSpaceStatusResponse>>(
     `/api/projects/${projectId}/space/status`,
+  );
+  return unwrap(response);
+}
+
+export async function openProjectDocuments(
+  projectId: string,
+): Promise<ProjectDocumentsResponse> {
+  const response = await api.post<ApiResponse<ProjectDocumentsResponse>>(
+    `/api/projects/${projectId}/documents`,
   );
   return unwrap(response);
 }

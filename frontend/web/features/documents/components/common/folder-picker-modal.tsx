@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { documentsApi } from "../../api/documents.api";
 import { Folder, ChevronRight, Loader2 } from "lucide-react";
@@ -23,6 +23,9 @@ interface FolderPickerModalProps {
   onSelectFolder: (folderId: string | null) => void;
   movingItemId: string;
   initialFolderId?: string | null;
+  projectId?: string;
+  projectRootFolderId?: string | null;
+  rootLabel?: string;
 }
 
 export function FolderPickerModal({
@@ -32,21 +35,44 @@ export function FolderPickerModal({
   onSelectFolder,
   movingItemId,
   initialFolderId = null,
+  projectId,
+  projectRootFolderId = null,
+  rootLabel,
 }: FolderPickerModalProps) {
   const isModalOpen = open ?? isOpen ?? false;
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(initialFolderId);
+  const pickerRootFolderId = projectId ? projectRootFolderId : null;
+  const pickerRootName = rootLabel || NavigationLabel.ROOT;
+  const getInitialPickerFolderId = useCallback(
+    () => initialFolderId ?? pickerRootFolderId,
+    [initialFolderId, pickerRootFolderId],
+  );
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(
+    getInitialPickerFolderId,
+  );
   const [path, setPath] = useState<{ id: string | null; name: string }[]>([
-    { id: null, name: NavigationLabel.ROOT },
+    { id: pickerRootFolderId, name: pickerRootName },
+  ]);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    setCurrentFolderId(getInitialPickerFolderId());
+    setPath([{ id: pickerRootFolderId, name: pickerRootName }]);
+  }, [
+    getInitialPickerFolderId,
+    isModalOpen,
+    pickerRootFolderId,
+    pickerRootName,
   ]);
 
   const { data: response, isLoading } = useQuery({
-    queryKey: ["folder-picker", currentFolderId],
+    queryKey: ["folder-picker", currentFolderId, projectId, pickerRootFolderId],
     queryFn: () =>
       documentsApi.getDocuments({
         folderId: currentFolderId || undefined,
+        projectId: projectId && !currentFolderId ? projectId : undefined,
         limit: 1000,
       }),
-    enabled: isModalOpen,
+    enabled: isModalOpen && (!projectId || Boolean(pickerRootFolderId)),
   });
 
   const items = response?.data || [];
@@ -58,7 +84,7 @@ export function FolderPickerModal({
   const handleNavigate = useCallback((folderId: string | null, name: string) => {
     setCurrentFolderId(folderId);
     if (folderId === null) {
-      setPath([{ id: null, name: NavigationLabel.ROOT }]);
+      setPath([{ id: pickerRootFolderId, name: pickerRootName }]);
     } else {
       setPath((prev) => {
         const index = prev.findIndex((p) => p.id === folderId);
@@ -68,7 +94,7 @@ export function FolderPickerModal({
         return [...prev, { id: folderId, name }];
       });
     }
-  }, []);
+  }, [pickerRootFolderId, pickerRootName]);
 
   const handlePathClick = useCallback((index: number) => {
     setPath((prev) => {

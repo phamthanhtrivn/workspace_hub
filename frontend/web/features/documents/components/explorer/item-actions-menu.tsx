@@ -32,7 +32,7 @@ interface ItemActionsMenuProps {
   setActiveMenuId: (id: string | null) => void;
   onRename: () => void;
   onMove: () => void;
-  onToggleStar: () => void;
+  onToggleStar?: () => void;
   onArchive: (archive: boolean) => void;
   onViewDetails?: () => void;
   onDeletePermanently?: () => void;
@@ -42,6 +42,7 @@ interface ItemActionsMenuProps {
   onShare?: () => void;
   onDownloadFolder?: () => void;
   onShareToChat?: () => void;
+  isProjectDocuments?: boolean;
 }
 
 export function ItemActionsMenu({
@@ -61,11 +62,14 @@ export function ItemActionsMenu({
   onShare,
   onDownloadFolder,
   onShareToChat,
+  isProjectDocuments = false,
 }: ItemActionsMenuProps) {
   const isOpen = activeMenuId === item.id;
   const userRole = item.userRole ?? DocumentRole.OWNER;
   const isOwner = userRole === DocumentRole.OWNER;
   const isEditor = userRole === DocumentRole.EDITOR;
+  const canEdit = isOwner || isEditor;
+  const canMove = isProjectDocuments ? canEdit : isOwner;
   const isFolder = item.type === DocumentItemType.FOLDER;
 
   const menuRef = useRef<HTMLDivElement>(null);
@@ -147,7 +151,7 @@ export function ItemActionsMenu({
                 </button>
               ) : null}
 
-              {!isFolder && onManageVersions ? (
+              {!isFolder && (isOwner || isEditor) && onManageVersions ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -162,7 +166,7 @@ export function ItemActionsMenu({
                 </button>
               ) : null}
 
-              {(isOwner || isEditor) && onShare ? (
+              {!isProjectDocuments && canEdit && onShare ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -177,7 +181,7 @@ export function ItemActionsMenu({
                 </button>
               ) : null}
 
-              {isOwner && onShareToChat ? (
+              {((isProjectDocuments && userRole !== DocumentRole.NONE) || isOwner) && onShareToChat ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -205,7 +209,7 @@ export function ItemActionsMenu({
                 <span>Details</span>
               </button>
 
-              {isOwner || isEditor ? (
+              {canEdit ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -220,7 +224,7 @@ export function ItemActionsMenu({
                 </button>
               ) : null}
 
-              {isOwner ? (
+              {canMove ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -235,24 +239,26 @@ export function ItemActionsMenu({
                 </button>
               ) : null}
 
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveMenuId(null);
-                  onToggleStar();
-                }}
-                className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
-              >
-                {item.isStarred ? (
-                  <FaStar className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
-                ) : (
-                  <FaRegStar className="h-3.5 w-3.5 text-amber-400" />
-                )}
-                <span>{item.isStarred ? "Unstar" : "Star"}</span>
-              </button>
+              {!isProjectDocuments && onToggleStar ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onToggleStar();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-slate-700 hover:bg-slate-50 transition cursor-pointer"
+                >
+                  {item.isStarred ? (
+                    <FaStar className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+                  ) : (
+                    <FaRegStar className="h-3.5 w-3.5 text-amber-400" />
+                  )}
+                  <span>{item.isStarred ? "Unstar" : "Star"}</span>
+                </button>
+              ) : null}
 
-              {isOwner ? (
+              {!isProjectDocuments && isOwner ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -264,6 +270,21 @@ export function ItemActionsMenu({
                 >
                   <FaTrashAlt className="h-3.5 w-3.5 text-red-500" />
                   <span>Move to trash</span>
+                </button>
+              ) : null}
+
+              {isProjectDocuments && canEdit && onDeletePermanently ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveMenuId(null);
+                    onDeletePermanently();
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-red-600 hover:bg-red-50/50 transition cursor-pointer border-t border-slate-50 mt-1 pt-2"
+                >
+                  <FaTrash className="h-3.5 w-3.5 text-rose-600" />
+                  <span>Delete permanently</span>
                 </button>
               ) : null}
             </>

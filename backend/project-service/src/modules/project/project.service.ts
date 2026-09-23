@@ -23,6 +23,9 @@ import { toMemberResponse, toProjectResponse } from './project.mapper';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
 import { paginate } from '../../common/utils/pagination';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { ProjectDocumentClient } from './project-document.client';
+import { InternalDocumentEventDto } from './dto/internal-document-event.dto';
+import { ProjectSocketPublisher } from '../socket/project-socket.publisher';
 import {
   ProjectSpaceClient,
   ProjectSpaceRole,
@@ -34,7 +37,9 @@ export class ProjectService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly userProfiles: UserProfileSnapshotService,
+    private readonly projectDocuments: ProjectDocumentClient,
     private readonly projectSpaces: ProjectSpaceClient,
+    private readonly socketPublisher: ProjectSocketPublisher,
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
@@ -78,6 +83,7 @@ export class ProjectService {
               canEditOthersTask: true,
               canManageMembers: true,
               canManageLabels: true,
+              canEditDocuments: true,
               joinedAt: now,
               updatedAt: now,
             },
@@ -88,6 +94,20 @@ export class ProjectService {
     });
 
     const ownerProfile = await this.userProfiles.getProfileByUserId(userId);
+    try {
+      await this.projectDocuments.ensureProjectRootFolder({
+        projectId: project.id,
+        name: project.name,
+        ownerId: project.ownerId,
+        ownerEmail: this.resolveOwnerEmail(project.ownerId, ownerProfile?.email),
+        members: [],
+      });
+    } catch {
+      await this.prisma.project
+        .delete({ where: { id: project.id } })
+        .catch(() => undefined);
+      throw new BadGatewayException('Unable to create project documents folder');
+    }
     return toProjectResponse(project, {}, ownerProfile);
   }
 
@@ -253,6 +273,58 @@ export class ProjectService {
     }
   }
 
+  async openProjectDocuments(userId: string, projectId: string) {
+    const project = await this.access.requireReadAccess(userId, projectId);
+    return this.syncProjectDocumentAccess(projectId, project);
+  }
+
+  async syncProjectDocumentAccess(
+    projectId: string,
+    project?: Awaited<ReturnType<ProjectAccessService['findProject']>>,
+  ) {
+    const currentProject = project ?? await this.access.findProject(projectId);
+    const ownerProfile = await this.userProfiles.getProfileByUserId(
+      currentProject.ownerId,
+    );
+    const members = await this.prisma.projectMember.findMany({
+      where: { projectId, status: ProjectMemberStatus.ACTIVE },
+      select: {
+        userId: true,
+        role: true,
+        canEditDocuments: true,
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+    const memberUserIds = members
+      .map((member) => member.userId)
+      .filter((memberUserId) => memberUserId !== currentProject.ownerId);
+    const profiles = await this.userProfiles.getProfilesByUserIds(memberUserIds);
+
+    try {
+      return await this.projectDocuments.ensureProjectRootFolder({
+        projectId,
+        name: currentProject.name,
+        ownerId: currentProject.ownerId,
+        ownerEmail: this.resolveOwnerEmail(currentProject.ownerId, ownerProfile?.email),
+        members: members
+          .filter((member) => member.userId !== currentProject.ownerId)
+          .map((member) => {
+            const profile = profiles.get(member.userId);
+            return {
+              userId: member.userId,
+              email: this.resolveOwnerEmail(member.userId, profile?.email),
+              permission:
+                member.role === ProjectRole.ADMIN || member.canEditDocuments
+                  ? 'EDITOR'
+                  : 'VIEWER',
+            };
+          }),
+      });
+    } catch {
+      throw new BadGatewayException('Unable to open project documents');
+    }
+  }
+
   async update(userId: string, projectId: string, dto: UpdateProjectDto) {
     const current = await this.access.requireOwner(userId, projectId);
     if (current.archived || current.status === ProjectStatus.ARCHIVED) {
@@ -367,6 +439,27 @@ export class ProjectService {
     return { projectId: project.id, name: project.name };
   }
 
+  async publishDocumentEvent(
+    projectId: string,
+    dto: InternalDocumentEventDto,
+  ) {
+    await this.access.findProject(projectId);
+    const event = {
+      projectId,
+      resource: 'DOCUMENT' as const,
+      action: dto.action,
+      actorId: dto.actorId,
+      entityId: dto.entityId,
+      data: {
+        ...(dto.data ?? {}),
+        parentFolderId: dto.parentFolderId ?? null,
+      },
+      occurredAt: new Date().toISOString(),
+    };
+    this.socketPublisher.publish(event);
+    return event;
+  }
+
   async archive(userId: string, projectId: string): Promise<void> {
     const project = await this.access.requireOwner(userId, projectId);
     try {
@@ -409,5 +502,10 @@ export class ProjectService {
     if (startDate && dueDate && startDate > dueDate) {
       throw new ConflictException('Start date cannot be after due date');
     }
+  }
+
+  private resolveOwnerEmail(ownerId: string, email?: string | null): string {
+    const normalizedEmail = email?.trim();
+    return normalizedEmail || `${ownerId}@workspace.local`;
   }
 }

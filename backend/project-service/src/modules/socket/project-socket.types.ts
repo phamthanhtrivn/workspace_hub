@@ -12,7 +12,8 @@ export type ProjectResource =
   | 'CHECKLIST'
   | 'COMMENT'
   | 'LABEL'
-  | 'DEPENDENCY';
+  | 'DEPENDENCY'
+  | 'DOCUMENT';
 
 export type ProjectChangeAction = 'CREATED' | 'UPDATED' | 'DELETED';
 

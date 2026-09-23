@@ -10,6 +10,7 @@ import {
   getProjectMembers,
   getProjectSpaceStatus,
   getProjects,
+  openProjectDocuments,
   openProjectSpace,
   updateProject,
   type CreateProjectPayload,
@@ -22,6 +23,8 @@ export const projectKeys = {
   list: (query: ProjectListQuery) => ["projects", "list", query] as const,
   detail: (projectId: string) => ["projects", projectId] as const,
   members: (projectId: string) => ["projects", projectId, "members"] as const,
+  documents: (projectId: string) =>
+    ["projects", projectId, "documents"] as const,
   spaceStatus: (projectId: string) =>
     ["projects", projectId, "space-status"] as const,
 };
@@ -100,5 +103,14 @@ export function useOpenProjectSpace(projectId: string) {
         queryKey: projectKeys.spaceStatus(projectId),
       });
     },
+  });
+}
+
+export function useProjectDocuments(projectId: string, enabled = true) {
+  return useQuery({
+    queryKey: projectKeys.documents(projectId),
+    queryFn: () => openProjectDocuments(projectId),
+    enabled: enabled && Boolean(projectId),
+    retry: false,
   });
 }

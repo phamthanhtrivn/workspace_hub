@@ -59,6 +59,7 @@ model ProjectMember {
   canEditOthersTask     Boolean   @default(false) @map("can_edit_others_task")
   canManageMembers      Boolean   @default(false) @map("can_manage_members")
   canManageLabels       Boolean   @default(false) @map("can_manage_labels")
+  canEditDocuments      Boolean   @default(false) @map("can_edit_documents")
   joinedAt              DateTime  @map("joined_at")
   leftAt                DateTime? @map("left_at")
   updatedAt             DateTime  @map("updated_at")

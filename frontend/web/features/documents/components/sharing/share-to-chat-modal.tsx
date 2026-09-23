@@ -22,6 +22,7 @@ interface ShareToChatModalProps {
   isOpen?: boolean;
   onClose: () => void;
   item: DocumentItem | null;
+  projectId?: string;
 }
 
 export function ShareToChatModal({
@@ -29,6 +30,7 @@ export function ShareToChatModal({
   isOpen,
   onClose,
   item,
+  projectId,
 }: ShareToChatModalProps) {
   const isModalOpen = open ?? isOpen ?? false;
 
@@ -51,12 +53,17 @@ export function ShareToChatModal({
     setIsPermissionConfirmOpen,
     pendingUnauthorizedEmails,
     currentUserId,
+    isProjectDocuments,
+    isLoadingProjectSpace,
+    projectSpaceUnavailable,
   } = useShareToChat({
     item,
+    projectId,
     onSuccess: onClose,
   });
 
   if (!isModalOpen || !item) return null;
+  const selectedTab = isProjectDocuments ? ShareTabType.CHANNEL : activeTab;
 
   const spaceOptions =
     spaces?.map((space) => ({
@@ -65,7 +72,14 @@ export function ShareToChatModal({
     })) || [];
 
   const channelOptions = [
-    { value: "", label: "Select channel..." },
+    {
+      value: "",
+      label: projectSpaceUnavailable
+        ? "Project chat space unavailable"
+        : channels.length > 0
+          ? "Select channel..."
+          : "No channels allow sending",
+    },
     ...channels.map((ch) => ({
       value: ch.id,
       label: `# ${ch.name}`,
@@ -105,49 +119,52 @@ export function ShareToChatModal({
             </div>
           </DialogHeader>
 
-          {/* Navigation Tabs */}
-          <div className="mt-3 flex items-center border-b border-slate-100 gap-6">
-            <button
-              type="button"
-              onClick={() => setActiveTab(ShareTabType.CHANNEL)}
-              className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
-                activeTab === ShareTabType.CHANNEL
-                  ? "border-purple-600 text-purple-600"
-                  : "border-transparent text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              <Users className="h-4 w-4" />
-              <span>Channels</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab(ShareTabType.DM)}
-              className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
-                activeTab === ShareTabType.DM
-                  ? "border-purple-600 text-purple-600"
-                  : "border-transparent text-slate-400 hover:text-slate-600"
-              }`}
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span>Direct messages</span>
-            </button>
-          </div>
+          {!isProjectDocuments ? (
+            <div className="mt-3 flex items-center border-b border-slate-100 gap-6">
+              <button
+                type="button"
+                onClick={() => setActiveTab(ShareTabType.CHANNEL)}
+                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
+                  activeTab === ShareTabType.CHANNEL
+                    ? "border-purple-600 text-purple-600"
+                    : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                <span>Channels</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab(ShareTabType.DM)}
+                className={`flex items-center gap-2 pb-3 pt-2 text-sm font-bold border-b-2 transition cursor-pointer ${
+                  activeTab === ShareTabType.DM
+                    ? "border-purple-600 text-purple-600"
+                    : "border-transparent text-slate-400 hover:text-slate-600"
+                }`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span>Direct messages</span>
+              </button>
+            </div>
+          ) : null}
 
           <div className="mt-4 space-y-4">
-            {activeTab === ShareTabType.CHANNEL ? (
+            {selectedTab === ShareTabType.CHANNEL ? (
               <>
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
-                    Space
-                  </label>
-                  <CustomSelect
-                    value={selectedSpaceId}
-                    options={spaceOptions}
-                    onChange={setSelectedSpaceId}
-                    ariaLabel="Select Space"
-                    triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
-                  />
-                </div>
+                {!isProjectDocuments ? (
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
+                      Space
+                    </label>
+                    <CustomSelect
+                      value={selectedSpaceId}
+                      options={spaceOptions}
+                      onChange={setSelectedSpaceId}
+                      ariaLabel="Select Space"
+                      triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                    />
+                  </div>
+                ) : null}
                 <div className="space-y-1.5">
                   <label className="block text-xs font-black text-slate-400 uppercase tracking-wider">
                     Channel
@@ -160,6 +177,11 @@ export function ShareToChatModal({
                     triggerClassName="h-10 rounded-xl border border-slate-200 bg-slate-50 text-sm font-semibold text-slate-700 hover:bg-slate-100"
                   />
                 </div>
+                {projectSpaceUnavailable ? (
+                  <p className="text-xs font-semibold text-amber-600">
+                    Project chat space is not available.
+                  </p>
+                ) : null}
               </>
             ) : (
               <div className="space-y-1.5">
@@ -201,11 +223,16 @@ export function ShareToChatModal({
             </Button>
             <Button
               type="button"
-              disabled={isSubmitting || !selectedChatId}
+              disabled={
+                isSubmitting ||
+                isLoadingProjectSpace ||
+                projectSpaceUnavailable ||
+                !selectedChatId
+              }
               onClick={handleShare}
               className="h-10 rounded-2xl bg-purple-600 hover:bg-purple-700 px-5 text-sm font-bold text-white shadow-md shadow-purple-500/10 disabled:opacity-50"
             >
-              {isSubmitting ? "Sharing..." : "Share"}
+              {isSubmitting || isLoadingProjectSpace ? "Sharing..." : "Share"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -213,7 +240,7 @@ export function ShareToChatModal({
 
       {/* Permission Grant Confirm Dialog */}
       <DocumentsConfirmDialog
-        open={isPermissionConfirmOpen}
+        open={!isProjectDocuments && isPermissionConfirmOpen}
         title="Permissions required"
         description={`Some members (${pendingUnauthorizedEmails.length}) do not have view access to this file. Grant view permission to them?`}
         confirmLabel="Grant access and share"

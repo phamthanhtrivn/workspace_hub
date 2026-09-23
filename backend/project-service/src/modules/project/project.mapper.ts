@@ -76,6 +76,7 @@ export function toMemberResponse(
     canEditOthersTask: member.canEditOthersTask,
     canManageMembers: member.canManageMembers,
     canManageLabels: member.canManageLabels,
+    canEditDocuments: member.canEditDocuments,
     joinedAt: member.joinedAt,
     leftAt: member.leftAt,
     updatedAt: member.updatedAt,

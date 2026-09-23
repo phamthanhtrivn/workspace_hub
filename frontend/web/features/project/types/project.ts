@@ -66,6 +66,7 @@ export interface ProjectMember {
   canEditOthersTask: boolean;
   canManageMembers: boolean;
   canManageLabels: boolean;
+  canEditDocuments: boolean;
   joinedAt: string;
 }
 
@@ -76,6 +77,7 @@ export type ProjectMemberPermissions = Pick<
   | "canEditOthersTask"
   | "canManageMembers"
   | "canManageLabels"
+  | "canEditDocuments"
 >;
 
 export interface TaskLabel {

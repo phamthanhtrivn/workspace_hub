@@ -8,6 +8,7 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 import { AddMemberDto } from "./dto/add-member.dto";
 import { UpdateMemberPermissionsDto } from "./dto/update-member-permissions.dto";
 import { ProjectAccessService } from "../project/project-access.service";
+import { ProjectService } from "../project/project.service";
 import { toMemberResponse } from "../project/project.mapper";
 import {
   isUniqueConstraintError,
@@ -22,13 +23,14 @@ export class MemberService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly userProfiles: UserProfileSnapshotService,
+    private readonly projects: ProjectService,
   ) {}
 
   async add(userId: string, projectId: string, dto: AddMemberDto) {
     const project = await this.access.requireOwnerWriteAccess(userId, projectId);
     const permissions = defaultMemberPermissions(project.setting);
     const now = new Date();
-    return this.prisma.$transaction(async (tx) => {
+    const memberResponse = await this.prisma.$transaction(async (tx) => {
       const reactivated = await tx.projectMember.updateMany({
         where: {
           projectId,
@@ -76,6 +78,8 @@ export class MemberService {
         throw error;
       }
     });
+    await this.projects.syncProjectDocumentAccess(projectId);
+    return memberResponse;
   }
 
   async updatePermissions(
@@ -112,6 +116,7 @@ export class MemberService {
     }
 
     const profile = await this.userProfiles.getProfileByUserId(memberUserId);
+    await this.projects.syncProjectDocumentAccess(projectId);
     return toMemberResponse(updated, profile);
   }
 
@@ -120,7 +125,7 @@ export class MemberService {
     projectId: string,
     memberUserId: string,
   ): Promise<void> {
-    return this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       await this.access.requireCanManageMembers(userId, projectId);
       const member = await tx.projectMember.findUnique({
         where: { projectId_userId: { projectId, userId: memberUserId } },
@@ -150,5 +155,6 @@ export class MemberService {
         );
       }
     });
+    await this.projects.syncProjectDocumentAccess(projectId);
   }
 }

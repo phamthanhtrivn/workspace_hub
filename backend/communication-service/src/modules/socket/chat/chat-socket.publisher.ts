@@ -288,7 +288,8 @@ export class ChatSocketPublisher {
     channelId: string,
     payload: ChatSocketPayload,
   ): Promise<void> {
-    this.publishToRooms(channelId, ChatEvent.CHANNEL_SETTING_UPDATED, payload);
+    const targetRooms = await this.roomResolver.getChannelTargetRooms(channelId);
+    this.publishToRooms(targetRooms, ChatEvent.CHANNEL_SETTING_UPDATED, payload);
   }
 
   publishMemberRoleUpdated(

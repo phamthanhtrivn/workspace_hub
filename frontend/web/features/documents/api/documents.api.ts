@@ -121,6 +121,7 @@ export const documentsApi = {
   uploadFile: async (
     file: File,
     parentFolderId?: string | null,
+    projectId?: string,
     onProgress?: (percent: number, state: UploadState) => void,
     overwriteItemId?: string,
   ): Promise<DocumentItem> => {
@@ -132,6 +133,7 @@ export const documentsApi = {
       mimeType,
       sizeBytes: file.size,
       parentFolderId: parentFolderId || undefined,
+      projectId: !parentFolderId ? projectId : undefined,
       overwriteItemId,
     });
 
@@ -156,6 +158,7 @@ export const documentsApi = {
       sizeBytes: file.size,
       s3Key,
       parentFolderId: parentFolderId || undefined,
+      projectId: !parentFolderId ? projectId : undefined,
       overwriteItemId,
     });
 
@@ -170,9 +173,11 @@ export const documentsApi = {
   moveItem: async (
     id: string,
     parentFolderId: string | null,
+    projectId?: string,
   ): Promise<DocumentItem> => {
     const response = await api.put(`/api/documents/${id}/move`, {
       parentFolderId,
+      projectId,
     });
     return response.data.data;
   },

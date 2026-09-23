@@ -19,6 +19,7 @@ interface ExplorerToolbarProps {
   activeView: DocumentViewType;
   onCreateFolder: () => void;
   onUploadFile?: (files: FileList | File[] | File) => void;
+  canEditDocuments?: boolean;
   sortBy: DocumentSortBy;
   onSortByChange: (sortBy: DocumentSortBy) => void;
 }
@@ -31,6 +32,7 @@ export function ExplorerToolbar({
   activeView,
   onCreateFolder,
   onUploadFile,
+  canEditDocuments = true,
   sortBy,
   onSortByChange,
 }: ExplorerToolbarProps) {
@@ -97,7 +99,7 @@ export function ExplorerToolbar({
         </div>
 
         {/* Create/Upload Dropdown */}
-        {activeView === DocumentViewType.MY_FILES ? (
+        {activeView === DocumentViewType.MY_FILES && canEditDocuments ? (
           <div className="relative">
             <Button
               type="button"

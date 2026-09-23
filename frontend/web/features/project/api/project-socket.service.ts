@@ -8,7 +8,8 @@ export type ProjectResource =
   | 'CHECKLIST'
   | 'COMMENT'
   | 'LABEL'
-  | 'DEPENDENCY';
+  | 'DEPENDENCY'
+  | 'DOCUMENT';
 
 export interface ProjectChangedEvent {
   projectId: string;

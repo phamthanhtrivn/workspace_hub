@@ -8,10 +8,15 @@ import { DocumentItem } from "../types/documents.types";
 
 export interface UseDocumentActionsOptions {
   currentFolderId: string | null;
+  projectId?: string;
   onSuccess?: () => void;
 }
 
-export function useDocumentActions({ currentFolderId, onSuccess }: UseDocumentActionsOptions) {
+export function useDocumentActions({
+  currentFolderId,
+  projectId,
+  onSuccess,
+}: UseDocumentActionsOptions) {
   const queryClient = useQueryClient();
   const { enqueueDownload } = useDownloadQueue();
 
@@ -27,6 +32,7 @@ export function useDocumentActions({ currentFolderId, onSuccess }: UseDocumentAc
       documentsApi.createFolder({
         name,
         parentFolderId: currentFolderId || undefined,
+        projectId: !currentFolderId ? projectId : undefined,
       }),
     onSuccess: () => {
       toast.success("Folder created successfully");
@@ -53,7 +59,7 @@ export function useDocumentActions({ currentFolderId, onSuccess }: UseDocumentAc
   // Move Resource Mutation
   const moveMutation = useMutation({
     mutationFn: ({ id, targetFolderId }: { id: string; targetFolderId: string | null }) =>
-      documentsApi.moveItem(id, targetFolderId),
+      documentsApi.moveItem(id, targetFolderId, projectId),
     onSuccess: () => {
       toast.success("Resource moved successfully");
       refreshExplorer();

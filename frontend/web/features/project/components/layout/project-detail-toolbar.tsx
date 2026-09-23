@@ -115,6 +115,8 @@ export default function ProjectDetailToolbar({
   onOpenProjectChat,
 }: ProjectDetailToolbarProps) {
   const isMembersView = viewMode === "members";
+  const isDocumentsView = viewMode === "documents";
+  const isTaskView = !isMembersView && !isDocumentsView;
 
   return (
     <>
@@ -168,6 +170,11 @@ export default function ProjectDetailToolbar({
               Manage members, roles, and project access permissions.
             </p>
           )}
+          {isDocumentsView && (
+            <p className="mt-1 text-xs text-slate-500">
+              Upload and organize files for this project.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -199,7 +206,8 @@ export default function ProjectDetailToolbar({
                   Invite Member
                 </Button>
               )
-            : canCreateTask && (
+            : isTaskView &&
+              canCreateTask && (
                 <Button
                   type="button"
                   onClick={onCreateTask}
@@ -212,7 +220,7 @@ export default function ProjectDetailToolbar({
         </div>
       </div>
 
-      {!isMembersView && (
+      {isTaskView && (
         <>
           <div className="mt-4">
             <TaskStatusCounts tasks={tasks} counts={taskStatusCounts} />

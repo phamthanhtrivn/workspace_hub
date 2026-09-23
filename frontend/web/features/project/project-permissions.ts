@@ -12,6 +12,7 @@ export interface ProjectPermissions {
   canInviteMembers: boolean;
   canManageMembers: boolean;
   canManageLabels: boolean;
+  canEditDocuments: boolean;
   canCreateTask: boolean;
   canEditTask: (task: Pick<Task, "createdBy">) => boolean;
   canContributeTask: (task: Pick<Task, "createdBy" | "assignees">) => boolean;
@@ -23,6 +24,7 @@ export const NO_PROJECT_PERMISSIONS: ProjectPermissions = {
   canInviteMembers: false,
   canManageMembers: false,
   canManageLabels: false,
+  canEditDocuments: false,
   canCreateTask: false,
   canEditTask: () => false,
   canContributeTask: () => false,
@@ -53,6 +55,7 @@ export function getProjectPermissions(
     canInviteMembers: canManageProject || Boolean(membership?.canManageMembers),
     canManageMembers: canManageProject || Boolean(membership?.canManageMembers),
     canManageLabels: canManageProject || Boolean(membership?.canManageLabels),
+    canEditDocuments: canManageProject || Boolean(membership?.canEditDocuments),
     canCreateTask: canManageProject || Boolean(membership?.canCreateTask),
     canEditTask,
     canContributeTask: (task) =>

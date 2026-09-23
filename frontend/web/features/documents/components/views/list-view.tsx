@@ -18,7 +18,7 @@ interface ListViewProps {
   onOpenDetails: (item: DocumentItem) => void;
   onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (item: DocumentItem) => void;
+  onToggleStar?: (item: DocumentItem) => void;
   onMoveToTrash: (item: DocumentItem) => void;
   onRestore: (item: DocumentItem) => void;
   onDeletePermanently: (item: DocumentItem) => void;
@@ -28,6 +28,7 @@ interface ListViewProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
+  isProjectDocuments?: boolean;
 }
 
 function ListView({
@@ -53,6 +54,7 @@ function ListView({
   onManageVersions,
   onShare,
   onShareToChat,
+  isProjectDocuments = false,
 }: ListViewProps) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs animate-in fade-in duration-200">
@@ -82,6 +84,7 @@ function ListView({
                 onManageVersions={onManageVersions}
                 onShare={onShare}
                 onShareToChat={onShareToChat}
+                isProjectDocuments={isProjectDocuments}
               />
             ))}
           </tbody>
