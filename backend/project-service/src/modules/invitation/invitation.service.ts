@@ -363,6 +363,7 @@ export class InvitationService {
     });
 
     await this.projects.syncProjectDocumentAccess(updated.projectId);
+    await this.projects.syncProjectSpaceAccess(updated.projectId);
 
     const profiles = await resolveProfilesForItem(
       this.userProfiles,

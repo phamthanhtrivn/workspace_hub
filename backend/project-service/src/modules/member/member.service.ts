@@ -79,6 +79,7 @@ export class MemberService {
       }
     });
     await this.projects.syncProjectDocumentAccess(projectId);
+    await this.projects.syncProjectSpaceAccess(projectId);
     return memberResponse;
   }
 
@@ -156,5 +157,6 @@ export class MemberService {
       }
     });
     await this.projects.syncProjectDocumentAccess(projectId);
+    await this.projects.syncProjectSpaceAccess(projectId);
   }
 }

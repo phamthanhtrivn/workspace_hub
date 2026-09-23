@@ -273,6 +273,60 @@ export class ProjectService {
     }
   }
 
+  async syncProjectSpaceAccess(
+    projectId: string,
+    project?: Awaited<ReturnType<ProjectAccessService['findProject']>>,
+  ) {
+    const currentProject = project ?? await this.access.findProject(projectId);
+    let status;
+    try {
+      status = await this.projectSpaces.getProjectSpaceStatus(projectId);
+    } catch {
+      throw new BadGatewayException('Unable to load project chat space status');
+    }
+    if (!status.exists) return status;
+
+    const members = await this.prisma.projectMember.findMany({
+      where: {
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    const roleByUserId = new Map<string, ProjectSpaceRole>();
+    for (const member of members) {
+      roleByUserId.set(
+        member.userId,
+        member.userId === currentProject.ownerId ||
+          member.role === ProjectRole.ADMIN
+          ? 'ADMIN'
+          : 'MEMBER',
+      );
+    }
+    roleByUserId.set(currentProject.ownerId, 'ADMIN');
+
+    try {
+      return await this.projectSpaces.ensureProjectSpace({
+        projectId,
+        name: currentProject.name,
+        ownerId: currentProject.ownerId,
+        members: Array.from(roleByUserId.entries()).map(
+          ([memberUserId, role]) => ({
+            userId: memberUserId,
+            role,
+          }),
+        ),
+      });
+    } catch {
+      throw new BadGatewayException('Unable to sync project chat space members');
+    }
+  }
+
   async openProjectDocuments(userId: string, projectId: string) {
     const project = await this.access.requireReadAccess(userId, projectId);
     return this.syncProjectDocumentAccess(projectId, project);

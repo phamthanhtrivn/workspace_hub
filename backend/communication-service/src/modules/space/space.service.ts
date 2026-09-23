@@ -514,27 +514,41 @@ export class SpaceService {
       space.createdBy,
     );
     const memberUserIds = members.map((member) => member.userId);
-    const [existingSpaceMembers, existingChannelMembers] = await Promise.all([
-      tx.spaceMember.findMany({
-        where: { spaceId: space.id, userId: { in: memberUserIds } },
-        select: { userId: true },
-      }),
-      tx.channelMember.findMany({
-        where: { channelId: defaultChannel.id, userId: { in: memberUserIds } },
-        select: { userId: true },
-      }),
-    ]);
+    const [channels, existingSpaceMembers, existingChannelMembers] =
+      await Promise.all([
+        tx.channel.findMany({
+          where: { spaceId: space.id },
+          select: { id: true },
+        }),
+        tx.spaceMember.findMany({
+          where: { spaceId: space.id },
+          select: { userId: true },
+        }),
+        tx.channelMember.findMany({
+          where: {
+            channelId: defaultChannel.id,
+            userId: { in: memberUserIds },
+          },
+          select: { userId: true },
+        }),
+      ]);
     const existingSpaceMemberIds = new Set(
       existingSpaceMembers.map((member) => member.userId),
     );
     const existingChannelMemberIds = new Set(
       existingChannelMembers.map((member) => member.userId),
     );
+    const activeMemberIds = new Set(memberUserIds);
     const joinedMembers = members.filter(
       (member) =>
         !existingSpaceMemberIds.has(member.userId) ||
         !existingChannelMemberIds.has(member.userId),
     );
+    const removedMembers = existingSpaceMembers.filter(
+      (member) => !activeMemberIds.has(member.userId),
+    );
+    const removedMemberIds = removedMembers.map((member) => member.userId);
+    const channelIds = channels.map((channel) => channel.id);
 
     for (const member of members) {
       await tx.spaceMember.upsert({
@@ -569,11 +583,28 @@ export class SpaceService {
       });
     }
 
+    if (removedMemberIds.length > 0) {
+      await tx.channelMember.deleteMany({
+        where: {
+          userId: { in: removedMemberIds },
+          channelId: { in: channelIds },
+        },
+      });
+      await tx.spaceMember.deleteMany({
+        where: {
+          spaceId: space.id,
+          userId: { in: removedMemberIds },
+        },
+      });
+    }
+
     return {
       projectId: dto.projectId,
       spaceId: space.id,
       channelId: defaultChannel.id,
+      channelIds,
       joinedMembers,
+      removedMembers,
     };
   }
 
@@ -634,6 +665,41 @@ export class SpaceService {
           role: member.role,
         },
       });
+    }
+  }
+
+  private async publishProjectSpaceMembersRemoved(result: {
+    spaceId: string;
+    channelId: string;
+    channelIds?: string[];
+    removedMembers?: { userId: string }[];
+  }) {
+    const removedMembers = result.removedMembers ?? [];
+    if (removedMembers.length === 0) return;
+
+    const remainingMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId: result.spaceId },
+      select: { userId: true },
+    });
+    const targetRooms = [
+      ...remainingMembers.map((member) => member.userId),
+      ...(result.channelIds ?? [result.channelId]),
+    ];
+
+    for (const member of removedMembers) {
+      this.chatSocketPublisher.publishMemberKicked(
+        [...new Set([member.userId, ...targetRooms])],
+        {
+          eventType: SPACE_SOCKET_EVENT_TYPE.MEMBER_REMOVED,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+          spaceId: result.spaceId,
+          channelId: result.channelId,
+          channelIds: result.channelIds ?? [result.channelId],
+          userId: member.userId,
+          affectedUserIds: [member.userId],
+          leftSpace: true,
+        },
+      );
     }
   }
 
@@ -701,11 +767,19 @@ export class SpaceService {
           projectId: dto.projectId,
           spaceId: space.id,
           channelId: defaultChannel.id,
+          channelIds: [defaultChannel.id],
           joinedMembers: members,
+          removedMembers: [],
         };
       });
       await this.publishProjectSpaceMembersJoined(result);
-      const { joinedMembers: _joinedMembers, ...response } = result;
+      await this.publishProjectSpaceMembersRemoved(result);
+      const {
+        joinedMembers: _joinedMembers,
+        removedMembers: _removedMembers,
+        channelIds: _channelIds,
+        ...response
+      } = result;
       return response;
     } catch (error) {
       if (!this.isProjectSpaceUniqueConstraint(error)) {
@@ -726,7 +800,13 @@ export class SpaceService {
         );
       });
       await this.publishProjectSpaceMembersJoined(result);
-      const { joinedMembers: _joinedMembers, ...response } = result;
+      await this.publishProjectSpaceMembersRemoved(result);
+      const {
+        joinedMembers: _joinedMembers,
+        removedMembers: _removedMembers,
+        channelIds: _channelIds,
+        ...response
+      } = result;
       return response;
     }
   }
