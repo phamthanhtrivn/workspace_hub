@@ -12,6 +12,7 @@ interface MembersTabProps {
   currentUserRole?: SpaceRole | null;
   isLoading: boolean;
   isMutating: boolean;
+  allowRoleUpdates?: boolean;
   members: SpaceMemberListItem[];
   readOnly?: boolean;
   search: string;
@@ -27,6 +28,7 @@ export function MembersTab({
   currentUserRole,
   isLoading,
   isMutating,
+  allowRoleUpdates,
   members,
   readOnly,
   search,
@@ -71,7 +73,9 @@ export function MembersTab({
               member={member}
               onTransferOwnership={readOnly ? undefined : onTransferOwnership}
               onRemove={readOnly ? undefined : onRemove}
-              onUpdateRole={readOnly ? undefined : onUpdateRole}
+              onUpdateRole={
+                readOnly && !allowRoleUpdates ? undefined : onUpdateRole
+              }
               spaceCreatorId={spaceCreatorId}
             />
           ))
@@ -109,6 +113,8 @@ function MemberRow({
     (isCurrentUserCreator ||
       (currentUserRole === SpaceRole.ADMIN &&
         member.role === SpaceRole.MEMBER));
+  const canCurrentUserUpdateRole =
+    isCurrentUserCreator && !isCreator && Boolean(onUpdateRole);
 
   return (
     <div className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-slate-50">
@@ -166,7 +172,7 @@ function MemberRow({
 
       {!isMe && (
         <div className="flex shrink-0 items-center gap-1">
-          {isCurrentUserCreator && !isCreator && onTransferOwnership && (
+          {canCurrentUserUpdateRole && (
             <>
               {member.role === SpaceRole.MEMBER && (
                 <button
@@ -190,6 +196,10 @@ function MemberRow({
                   <ShieldOff size={16} />
                 </button>
               )}
+            </>
+          )}
+          {isCurrentUserCreator && !isCreator && onTransferOwnership && (
+            <>
               <button
                 type="button"
                 title="Transfer Ownership"

@@ -10,12 +10,22 @@ import { MembersTab } from "./members-tab";
 import { OverviewTab } from "./overview-tab";
 import { PermissionsTab } from "./permissions-tab";
 import InviteSpaceMembersModal from "../invite-space-members-modal";
-import { SpaceResponse } from "@/features/chat/types/chat.types";
+import {
+  SpaceMemberListItem,
+  SpaceResponse,
+  SpaceRole,
+} from "@/features/chat/types/chat.types";
 import { SpaceSettingsTab } from "@/features/chat/types/space-settings/space-settings.types";
 import { SPACE_MEMBER_SEARCH_DEBOUNCE_MS } from "@/features/chat/types/chat.constant";
 import { useSpaceSettings } from "@/features/chat/hooks/space/useSpaceSettings";
 import { SPACE_SETTINGS_TABS } from "@/features/chat/types/space-settings/space-settings.constants";
 import { useDebouncedValue } from "@/features/chat/hooks/useDebouncedValue";
+import ChatConfirmDialog, {
+  type ChatConfirmVariant,
+} from "@/features/chat/components/ui/chat-confirm-dialog";
+import {
+  getSpaceMemberName,
+} from "@/features/chat/types/space-settings/space-settings.types";
 
 const TAB_LABELS: Record<SpaceSettingsTab, string> = {
   [SpaceSettingsTab.OVERVIEW]: "Overview",
@@ -33,6 +43,18 @@ interface SpaceSettingsModalProps {
   onSpaceDeletedOrLeft: (spaceId: string) => void;
 }
 
+interface SpaceConfirmState {
+  title: string;
+  description?: string;
+  confirmLabel: string;
+  cancelLabel?: string;
+  variant?: ChatConfirmVariant;
+  confirmationText?: string;
+  confirmationValue?: string;
+  confirmationLabel?: string;
+  onConfirm: () => void;
+}
+
 export default function SpaceSettingsModal({
   isOpen,
   onClose,
@@ -46,6 +68,9 @@ export default function SpaceSettingsModal({
   );
   const [memberSearch, setMemberSearch] = useState("");
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [confirmState, setConfirmState] = useState<SpaceConfirmState | null>(
+    null,
+  );
   const debouncedMemberSearch = useDebouncedValue(
     memberSearch.trim(),
     SPACE_MEMBER_SEARCH_DEBOUNCE_MS,
@@ -71,12 +96,14 @@ export default function SpaceSettingsModal({
       setActiveTab(SpaceSettingsTab.OVERVIEW);
       setMemberSearch("");
       setIsInviteModalOpen(false);
+      setConfirmState(null);
     }
   }, [isOpen, settings.setSpaceName, space.name]);
 
   const isOwner =
     (settings.detail?.createdBy || space.createdBy) === currentUserId;
   const isProjectSpace = Boolean(settings.detail?.projectId || space.projectId);
+  const canManagePermissions = isProjectSpace ? settings.isAdmin : isOwner;
 
   const visibleTabs = useMemo(
     () =>
@@ -85,11 +112,14 @@ export default function SpaceSettingsModal({
           return !isProjectSpace && settings.isAdmin;
         }
         if (tab.id === SpaceSettingsTab.PERMISSIONS) {
-          return isOwner;
+          return canManagePermissions;
+        }
+        if (tab.id === SpaceSettingsTab.DANGER) {
+          return isProjectSpace ? settings.isAdmin : true;
         }
         return !tab.adminOnly || settings.isAdmin;
       }),
-    [isProjectSpace, settings.isAdmin, isOwner],
+    [canManagePermissions, isProjectSpace, settings.isAdmin],
   );
 
   useEffect(() => {
@@ -97,6 +127,105 @@ export default function SpaceSettingsModal({
       setActiveTab(SpaceSettingsTab.OVERVIEW);
     }
   }, [activeTab, visibleTabs]);
+
+  const openConfirm = (nextConfirm: SpaceConfirmState) => {
+    setConfirmState(nextConfirm);
+  };
+
+  const closeConfirm = () => {
+    setConfirmState(null);
+  };
+
+  const handleConfirm = () => {
+    const action = confirmState?.onConfirm;
+    setConfirmState(null);
+    action?.();
+  };
+
+  const confirmOwnershipTransfer = (member: SpaceMemberListItem) => {
+    openConfirm({
+      title: "Transfer Space Ownership",
+      description: `Transfer ownership of this space to ${getSpaceMemberName(member)}?`,
+      confirmLabel: "Transfer",
+      variant: "warning",
+      onConfirm: () => settings.transferOwnershipMutation.mutate(member.userId),
+    });
+  };
+
+  const confirmRemoveMember = (member: SpaceMemberListItem) => {
+    openConfirm({
+      title: "Remove Member",
+      description: `Remove ${getSpaceMemberName(member)} from this space?`,
+      confirmLabel: "Remove",
+      variant: "danger",
+      onConfirm: () => settings.removeMemberMutation.mutate(member.userId),
+    });
+  };
+
+  const confirmUpdateMemberRole = (
+    member: SpaceMemberListItem,
+    role: SpaceRole,
+  ) => {
+    const isPromoting = role === SpaceRole.ADMIN;
+    const actionLabel = isPromoting ? "Promote" : "Demote";
+    const roleLabel = isPromoting ? "to Admin" : "to Member";
+    openConfirm({
+      title: isPromoting ? "Promote to Admin" : "Demote to Member",
+      description: `${actionLabel} ${getSpaceMemberName(member)} ${roleLabel}?`,
+      confirmLabel: isPromoting ? "Promote" : "Demote",
+      variant: "warning",
+      onConfirm: () =>
+        settings.updateMemberRoleMutation.mutate({
+          memberId: member.userId,
+          role,
+        }),
+    });
+  };
+
+  const confirmCancelInvitation = (invitationId: string) => {
+    openConfirm({
+      title: "Cancel Invitation",
+      description: "Cancel this pending space invitation?",
+      confirmLabel: "Cancel Invitation",
+      variant: "warning",
+      onConfirm: () => settings.cancelInvitationMutation.mutate(invitationId),
+    });
+  };
+
+  const confirmResendInvitation = (invitationId: string) => {
+    openConfirm({
+      title: "Resend Invitation",
+      description: "Resend this invitation email?",
+      confirmLabel: "Resend",
+      variant: "info",
+      onConfirm: () => settings.resendInvitationMutation.mutate(invitationId),
+    });
+  };
+
+  const confirmLeaveSpace = () => {
+    openConfirm({
+      title: "Leave Space",
+      description:
+        "You will lose access to all channels and messages in this space.",
+      confirmLabel: "Leave",
+      variant: "danger",
+      onConfirm: () => settings.leaveSpaceMutation.mutate(),
+    });
+  };
+
+  const confirmDeleteSpace = () => {
+    openConfirm({
+      title: "Delete Space",
+      description:
+        "Permanently delete this space and all its channels, messages, and files.",
+      confirmLabel: "Delete",
+      variant: "danger",
+      confirmationText: space.name,
+      confirmationValue: "",
+      confirmationLabel: `Type "${space.name}" to confirm deletion`,
+      onConfirm: () => settings.deleteSpaceMutation.mutate(),
+    });
+  };
 
   if (!isOpen || !mounted) return null;
 
@@ -158,18 +287,18 @@ export default function SpaceSettingsModal({
                 currentUserRole={settings.currentMember?.role}
                 isLoading={settings.isLoadingMembers}
                 isMutating={
-                  isProjectSpace ||
                   settings.transferOwnershipMutation.isPending ||
                   settings.removeMemberMutation.isPending ||
                   settings.updateMemberRoleMutation.isPending
                 }
+                allowRoleUpdates={isProjectSpace}
                 members={settings.allMembers}
                 readOnly={isProjectSpace}
                 search={memberSearch}
                 onSearchChange={setMemberSearch}
-                onTransferOwnership={settings.confirmOwnershipTransfer}
-                onRemove={settings.confirmRemoveMember}
-                onUpdateRole={settings.confirmUpdateMemberRole}
+                onTransferOwnership={confirmOwnershipTransfer}
+                onRemove={confirmRemoveMember}
+                onUpdateRole={confirmUpdateMemberRole}
                 spaceCreatorId={settings.detail?.createdBy || space.createdBy}
               />
             )}
@@ -182,13 +311,14 @@ export default function SpaceSettingsModal({
                   settings.cancelInvitationMutation.isPending ||
                   settings.resendInvitationMutation.isPending
                 }
-                onCancel={settings.confirmCancelInvitation}
+                onCancel={confirmCancelInvitation}
                 onInvite={() => setIsInviteModalOpen(true)}
-                onResend={settings.confirmResendInvitation}
+                onResend={confirmResendInvitation}
               />
             )}
 
-            {activeTab === SpaceSettingsTab.PERMISSIONS && isOwner && (
+            {activeTab === SpaceSettingsTab.PERMISSIONS &&
+              canManagePermissions && (
               <PermissionsTab
                 isSaving={settings.updateSettingsMutation.isPending}
                 setting={settings.detail.setting}
@@ -205,18 +335,20 @@ export default function SpaceSettingsModal({
                   })
                 }
               />
-            )}
+              )}
 
             {activeTab === SpaceSettingsTab.DANGER && (
               <DangerZoneTab
                 isAdmin={settings.isAdmin}
                 isOwner={isOwner}
+                canDelete={isProjectSpace ? settings.isAdmin : isOwner}
+                hideLeave={isProjectSpace}
                 isDeleting={settings.deleteSpaceMutation.isPending}
                 isLastAdmin={settings.isLastAdmin}
                 isLeaving={settings.leaveSpaceMutation.isPending}
                 isResolvingMembership={settings.isResolvingMembership}
-                onDelete={settings.confirmDeleteSpace}
-                onLeave={settings.confirmLeaveSpace}
+                onDelete={confirmDeleteSpace}
+                onLeave={confirmLeaveSpace}
               />
             )}
           </div>
@@ -246,6 +378,24 @@ export default function SpaceSettingsModal({
             spaceId={space.id}
           />
         )}
+        <ChatConfirmDialog
+          open={Boolean(confirmState)}
+          title={confirmState?.title ?? ""}
+          description={confirmState?.description}
+          confirmLabel={confirmState?.confirmLabel ?? "Confirm"}
+          cancelLabel={confirmState?.cancelLabel}
+          variant={confirmState?.variant}
+          confirmationText={confirmState?.confirmationText}
+          confirmationValue={confirmState?.confirmationValue}
+          confirmationLabel={confirmState?.confirmationLabel}
+          onConfirmationValueChange={(confirmationValue) =>
+            setConfirmState((current) =>
+              current ? { ...current, confirmationValue } : current,
+            )
+          }
+          onConfirm={handleConfirm}
+          onCancel={closeConfirm}
+        />
       </div>
     </div>,
     document.body,

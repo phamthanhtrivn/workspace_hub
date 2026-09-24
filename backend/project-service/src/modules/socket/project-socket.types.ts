@@ -9,6 +9,7 @@ export type ProjectResource =
   | 'TASK'
   | 'MEMBER'
   | 'INVITATION'
+  | 'PROJECT_SPACE'
   | 'CHECKLIST'
   | 'COMMENT'
   | 'LABEL'

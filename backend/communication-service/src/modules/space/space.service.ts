@@ -100,6 +100,60 @@ export class SpaceService {
     return space;
   }
 
+  private async assertCanManageSpaceSettings(spaceId: string, userId: string) {
+    const [space, member] = await Promise.all([
+      this.prisma.space.findUnique({
+        where: { id: spaceId },
+        select: { createdBy: true, name: true, projectId: true },
+      }),
+      this.prisma.spaceMember.findUnique({
+        where: { spaceId_userId: { spaceId, userId } },
+      }),
+    ]);
+
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (!member) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+    }
+    if (space.createdBy === userId) {
+      return space;
+    }
+    if (space.projectId && member.role === SpaceRole.ADMIN) {
+      return space;
+    }
+
+    throw new ForbiddenException(SPACE_ERROR_MESSAGES.OWNER_REQUIRED);
+  }
+
+  private async assertCanDeleteSpace(spaceId: string, userId: string) {
+    const [space, member] = await Promise.all([
+      this.prisma.space.findUnique({
+        where: { id: spaceId },
+        select: { createdBy: true, name: true, projectId: true },
+      }),
+      this.prisma.spaceMember.findUnique({
+        where: { spaceId_userId: { spaceId, userId } },
+      }),
+    ]);
+
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (!member) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+    }
+    if (space.createdBy === userId) {
+      return space;
+    }
+    if (space.projectId && member.role === SpaceRole.ADMIN) {
+      return space;
+    }
+
+    throw new ForbiddenException(SPACE_ERROR_MESSAGES.OWNER_REQUIRED);
+  }
+
   private async assertSpaceAdminOrOwner(spaceId: string, userId: string) {
     const [space, member] = await Promise.all([
       this.prisma.space.findUnique({
@@ -563,9 +617,8 @@ export class SpaceService {
           userId: member.userId,
           role: member.role,
         },
-        update: {
-          role: member.role,
-        },
+        update:
+          member.userId === dto.ownerId ? { role: SpaceRole.ADMIN } : {},
       });
 
       await tx.channelMember.upsert({
@@ -1012,7 +1065,7 @@ export class SpaceService {
     spaceId: string,
     settings: UpdateSpaceSettingDto,
   ) {
-    await this.assertSpaceOwner(spaceId, userId);
+    await this.assertCanManageSpaceSettings(spaceId, userId);
     try {
       const updatedSetting = await (this.prisma as any).spaceSetting.upsert({
         where: { spaceId },
@@ -1243,7 +1296,6 @@ export class SpaceService {
     targetUserId: string,
     newRole: SpaceRole,
   ) {
-    await this.assertNotProjectSpace(spaceId);
     if (userId === targetUserId) {
       throw new BadRequestException('You cannot change your own role');
     }
@@ -1427,6 +1479,7 @@ export class SpaceService {
   }
 
   async leaveSpace(userId: string, spaceId: string) {
+    await this.assertNotProjectSpace(spaceId);
     const member = await this.assertSpaceMember(spaceId, userId);
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
@@ -1482,10 +1535,10 @@ export class SpaceService {
   }
 
   async deleteSpace(userId: string, spaceId: string) {
-    await this.assertSpaceOwner(spaceId, userId);
+    await this.assertCanDeleteSpace(spaceId, userId);
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
-      select: { name: true },
+      select: { name: true, projectId: true },
     });
     const channels = await this.prisma.channel.findMany({
       where: { spaceId },
@@ -1533,6 +1586,18 @@ export class SpaceService {
         actorName,
       },
     });
+
+    if (space?.projectId) {
+      await this.projectNames
+        .publishProjectSpaceEvent(space.projectId, {
+          action: 'DELETED',
+          actorId: userId,
+          spaceId,
+          channelId: null,
+          exists: false,
+        })
+        .catch(() => undefined);
+    }
 
     return { success: true };
   }

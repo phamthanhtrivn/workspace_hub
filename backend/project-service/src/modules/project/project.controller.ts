@@ -17,6 +17,7 @@ import { CurrentUserId } from '../../common/decorators/current-user-id.decorator
 import { Public } from '../../common/decorators/public.decorator';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { InternalDocumentEventDto } from './dto/internal-document-event.dto';
+import { InternalProjectSpaceEventDto } from './dto/internal-project-space-event.dto';
 import { InternalRenameProjectDto } from './dto/internal-rename-project.dto';
 import { ProjectListQueryDto } from './dto/project-list-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -106,6 +107,20 @@ export class ProjectController {
     return ApiResponse.success(
       await this.projects.publishDocumentEvent(projectId, dto),
       'Project document event published successfully',
+    );
+  }
+
+  @Post('internal/:projectId/space-events')
+  @Public()
+  async publishProjectSpaceEvent(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() dto: InternalProjectSpaceEventDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    return ApiResponse.success(
+      await this.projects.publishProjectSpaceEvent(projectId, dto),
+      'Project space event published successfully',
     );
   }
 

@@ -3,8 +3,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAppSelector } from "@/store/store";
-import { getProjects, type ProjectListQuery } from "../api/project.api";
 import {
+  getProjects,
+  type ProjectListQuery,
+  type ProjectSpaceStatusResponse,
+} from "../api/project.api";
+import {
+  applyProjectSpaceSocketEvent,
   applyTaskSocketEvent,
   projectQueriesForEvent,
 } from "../api/project-realtime";
@@ -50,6 +55,12 @@ export default function ProjectRealtimeManager() {
         queryClient.setQueryData<Task[]>(
           taskKeys.project(event.projectId),
           (current) => applyTaskSocketEvent(current, event),
+        );
+      }
+      if (event.resource === "PROJECT_SPACE") {
+        queryClient.setQueryData<ProjectSpaceStatusResponse>(
+          projectKeys.spaceStatus(event.projectId),
+          (current) => applyProjectSpaceSocketEvent(current, event),
         );
       }
       for (const invalidation of projectQueriesForEvent(event)) {

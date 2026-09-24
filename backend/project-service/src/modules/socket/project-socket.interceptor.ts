@@ -125,6 +125,7 @@ export class ProjectSocketInterceptor implements NestInterceptor {
     if (path.includes('/dependencies')) return 'DEPENDENCY';
     if (path.includes('/labels')) return 'LABEL';
     if (path.includes('/tasks')) return 'TASK';
+    if (path.includes('/space')) return undefined;
     if (path.includes('/projects')) return 'PROJECT';
     return undefined;
   }
