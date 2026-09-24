@@ -67,7 +67,6 @@ export function TasksCalendarListItem({
       <CalendarColorPopover
         value={color}
         label={intl.formatMessage({ id: "calendar.color" })}
-        triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
         onChange={onColorChange}
       />
     </div>

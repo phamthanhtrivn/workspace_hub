@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
@@ -19,9 +20,11 @@ import {
   calendarKeys,
   useCalendarEvent,
   useCalendarTasks,
+  useCreateCalendar,
 } from "../../hooks/use-calendar-queries";
 import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
 import { CalendarEvent, EventStatus } from "../../types/calendar.types";
+import type { CalendarModalValues } from "../modal/calendar-modal";
 
 const EventDetailModal = dynamic(() =>
   import("../modal/event-detail-modal").then(
@@ -36,10 +39,8 @@ const RecurrenceScopeModal = dynamic(() =>
     (module) => module.RecurrenceScopeModal,
   ),
 );
-const CreateCalendarModal = dynamic(() =>
-  import("../modal/create-calendar-modal").then(
-    (module) => module.CreateCalendarModal,
-  ),
+const CalendarModal = dynamic(() =>
+  import("../modal/calendar-modal").then((module) => module.CalendarModal),
 );
 
 export function CalendarWorkspace() {
@@ -47,6 +48,7 @@ export function CalendarWorkspace() {
   const calendarRef = useRef<FullCalendar | null>(null);
   const calendar = useCalendarWorkspace(calendarRef);
   const tasksQuery = useCalendarTasks();
+  const createCalendar = useCreateCalendar();
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [tasksDrawerOpen, setTasksDrawerOpen] = useState(false);
@@ -57,6 +59,22 @@ export function CalendarWorkspace() {
   const timeParam = searchParams.get("t");
   const lastOpenedKeyRef = useRef<string | null>(null);
   const directEventQuery = useCalendarEvent(eventParam);
+
+  const handleCreateCalendar = async (values: CalendarModalValues) => {
+    try {
+      await createCalendar.mutateAsync({
+        ...values,
+        isVisible: true,
+      });
+      toast.success(intl.formatMessage({ id: "calendar.calendarCreated" }));
+      return true;
+    } catch {
+      toast.error(
+        intl.formatMessage({ id: "calendar.calendarCreateFailed" }),
+      );
+      return false;
+    }
+  };
 
   const {
     handleCalendarNavigate,
@@ -340,9 +358,11 @@ export function CalendarWorkspace() {
       )}
 
       {createCalendarOpen && (
-        <CreateCalendarModal
-          open
+        <CalendarModal
+          mode="create"
+          pending={createCalendar.isPending}
           onClose={() => setCreateCalendarOpen(false)}
+          onSave={handleCreateCalendar}
         />
       )}
     </section>
