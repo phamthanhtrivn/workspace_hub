@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   type ProjectMember,
   type Task,
+  type TaskDependency,
   TaskPriority,
 } from "@/features/project/types/project";
 import {
@@ -29,6 +30,7 @@ import { ProjectSelect } from "../ui/project-form-controls";
 interface TaskPropertiesPanelProps {
   task: Task;
   tasks: Task[];
+  dependencies: TaskDependency[];
   members: ProjectMember[];
   isReadOnly: boolean;
   memberDisplayName: (userId?: string | null) => string;
@@ -44,6 +46,7 @@ interface TaskPropertiesPanelProps {
 export default function TaskPropertiesPanel({
   task,
   tasks,
+  dependencies,
   members,
   isReadOnly,
   memberDisplayName,
@@ -63,13 +66,23 @@ export default function TaskPropertiesPanel({
 
   const assigneeDropdownRef = useRef<HTMLDivElement>(null);
   const priorityDropdownRef = useRef<HTMLDivElement>(null);
+  const hasChildTasks = tasks.some((candidate) => candidate.parentTaskId === task.id);
 
   const parentTaskOptions = [
     { value: "", label: "No Parent Task (Independent)" },
     ...tasks
       .filter(
         (candidate) =>
-          candidate.id !== task.id && !candidate.parentTaskId,
+          !hasChildTasks &&
+          candidate.id !== task.id &&
+          !candidate.parentTaskId &&
+          !dependencies.some(
+            (dependency) =>
+              (dependency.predecessorTaskId === task.id &&
+                dependency.successorTaskId === candidate.id) ||
+              (dependency.predecessorTaskId === candidate.id &&
+                dependency.successorTaskId === task.id),
+          ),
       )
       .map((candidate) => ({
         value: candidate.id,

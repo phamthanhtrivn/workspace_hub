@@ -46,6 +46,10 @@ import { TaskDocumentAttachmentSource } from "./task-document.enums";
 
 const taskWithCount = taskInclude;
 const TASK_PROGRESS_FIELDS = new Set<keyof UpdateTaskDto>(['status', 'rank']);
+const PARENT_SUBTASK_DEPENDENCY_ERROR =
+  "A task cannot depend on its parent or subtask.";
+const COMPLETE_SUBTASKS_BEFORE_DONE_ERROR =
+  "Complete all subtasks before marking this task as done.";
 
 function isTaskProgressUpdate(dto: UpdateTaskDto): boolean {
   const fields = Object.entries(dto)
@@ -423,6 +427,9 @@ export class TaskService {
         if (dto.parentTaskId !== undefined) {
           await this.validateParent(current.projectId, dto.parentTaskId, current.id, tx);
         }
+        if (dto.status === TaskStatus.DONE) {
+          await this.assertCanCompleteTaskWithSubtasks(current.id, tx);
+        }
         const updated = await tx.task.update({
           where: { id: taskId, version: current.version },
           data: { ...data, version: { increment: 1 } },
@@ -638,6 +645,43 @@ export class TaskService {
       throw new ConflictException("Only top-level tasks can be parents");
     if (currentTaskId && await database.task.count({ where: { parentTaskId: currentTaskId, deletedAt: null } })) {
       throw new ConflictException("A task with children cannot become a subtask");
+    }
+    if (currentTaskId) {
+      const dependencyCount = await database.taskDependency.count({
+        where: {
+          projectId,
+          OR: [
+            {
+              predecessorTaskId: currentTaskId,
+              successorTaskId: parentTaskId,
+            },
+            {
+              predecessorTaskId: parentTaskId,
+              successorTaskId: currentTaskId,
+            },
+          ],
+        },
+      });
+      if (dependencyCount > 0) {
+        throw new ConflictException(PARENT_SUBTASK_DEPENDENCY_ERROR);
+      }
+    }
+  }
+
+  private async assertCanCompleteTaskWithSubtasks(
+    taskId: string,
+    database: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    const openSubtasks = await database.task.count({
+      where: {
+        parentTaskId: taskId,
+        deletedAt: null,
+        archived: false,
+        status: { not: TaskStatus.DONE },
+      },
+    });
+    if (openSubtasks > 0) {
+      throw new ConflictException(COMPLETE_SUBTASKS_BEFORE_DONE_ERROR);
     }
   }
 

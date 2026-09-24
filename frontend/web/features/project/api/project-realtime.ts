@@ -43,7 +43,7 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
     CHECKLIST: [[...projectKey, 'tasks']],
     TASK_DOCUMENT: [[...projectKey, 'tasks']],
     LABEL: [[...projectKey, 'labels'], [...projectKey, 'tasks']],
-    DEPENDENCY: [[...projectKey, 'dependencies']],
+    DEPENDENCY: [[...projectKey, 'dependencies'], [...projectKey, 'tasks']],
     DOCUMENT: [
       ['documents'],
       ['document-versions'],
@@ -69,6 +69,18 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
   const taskIds = new Set(event.taskIds ?? []);
   if (event.taskId) taskIds.add(event.taskId);
   if (event.resource === 'TASK' && event.entityId) taskIds.add(event.entityId);
+  if (event.resource === 'DEPENDENCY' && event.data && typeof event.data === 'object') {
+    const dependency = event.data as Partial<{
+      predecessorTaskId: unknown;
+      successorTaskId: unknown;
+    }>;
+    if (typeof dependency.predecessorTaskId === 'string') {
+      taskIds.add(dependency.predecessorTaskId);
+    }
+    if (typeof dependency.successorTaskId === 'string') {
+      taskIds.add(dependency.successorTaskId);
+    }
+  }
   for (const taskId of taskIds) {
     invalidations.push({ queryKey: ['tasks', taskId] });
   }

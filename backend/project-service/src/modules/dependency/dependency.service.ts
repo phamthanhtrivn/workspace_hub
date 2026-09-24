@@ -2,16 +2,19 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { ProjectAccessService } from '../project/project-access.service';
 import { CreateDependencyDto } from './dto/create-dependency.dto';
-import { assertTaskEditable } from '../task/task-edit.guard';
 import { wouldCreateDependencyCycle } from './dependency-cycle';
-import { TaskPolicyService } from '../task/task-policy.service';
+import { TaskStatus, isTerminalTaskStatus } from '../project/project.enums';
+
+const PARENT_SUBTASK_DEPENDENCY_ERROR =
+  'A task cannot depend on its parent or subtask.';
+const CLOSED_SUCCESSOR_DEPENDENCY_ERROR =
+  'Closed tasks cannot change dependencies.';
 
 @Injectable()
 export class DependencyService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
-    private readonly taskPolicy: TaskPolicyService,
   ) {}
 
   async list(userId: string, projectId: string) {
@@ -20,11 +23,26 @@ export class DependencyService {
   }
 
   async create(userId: string, successorTaskId: string, dto: CreateDependencyDto) {
-    const successor = await this.taskPolicy.requireEditable(userId, successorTaskId, 'Successor task not found');
-    const predecessor = await this.prisma.task.findUnique({ where: { id: dto.predecessorTaskId }, select: { id: true, projectId: true, status: true } });
+    const successor = await this.requireDependencySuccessor(userId, successorTaskId);
+    const predecessor = await this.prisma.task.findFirst({
+      where: { id: dto.predecessorTaskId, deletedAt: null },
+      select: {
+        id: true,
+        projectId: true,
+        status: true,
+        archived: true,
+        parentTaskId: true,
+      },
+    });
     if (!predecessor || predecessor.projectId !== successor.projectId) throw new ConflictException('Tasks must belong to the same project');
     if (predecessor.id === successor.id) throw new ConflictException('A task cannot depend on itself');
-    assertTaskEditable(predecessor.status);
+    if (predecessor.archived) throw new ConflictException('Archived tasks cannot be used as dependencies');
+    if (predecessor.status === TaskStatus.CANCELLED) {
+      throw new ConflictException('Cancelled tasks cannot be used as dependencies');
+    }
+    if (this.isParentChildDependency(predecessor, successor)) {
+      throw new ConflictException(PARENT_SUBTASK_DEPENDENCY_ERROR);
+    }
     const dependencies = await this.prisma.taskDependency.findMany({
       where: { projectId: successor.projectId },
       select: { predecessorTaskId: true, successorTaskId: true },
@@ -40,16 +58,46 @@ export class DependencyService {
   }
 
   async remove(userId: string, successorTaskId: string, predecessorTaskId: string) {
-    const successor = await this.taskPolicy.requireEditable(userId, successorTaskId, 'Successor task not found');
-    const predecessor = await this.prisma.task.findUnique({
-      where: { id: predecessorTaskId },
-      select: { projectId: true, status: true },
+    const successor = await this.requireDependencySuccessor(userId, successorTaskId);
+    const predecessor = await this.prisma.task.findFirst({
+      where: { id: predecessorTaskId, deletedAt: null },
+      select: { projectId: true },
     });
     if (!predecessor || predecessor.projectId !== successor.projectId) {
       throw new NotFoundException('Predecessor task not found');
     }
-    assertTaskEditable(predecessor.status);
     await this.prisma.taskDependency.deleteMany({ where: { projectId: successor.projectId, successorTaskId, predecessorTaskId } });
     return { successorTaskId, predecessorTaskId };
+  }
+
+  private async requireDependencySuccessor(userId: string, taskId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: { id: taskId, deletedAt: null },
+      select: {
+        id: true,
+        projectId: true,
+        createdBy: true,
+        status: true,
+        archived: true,
+        parentTaskId: true,
+      },
+    });
+    if (!task) throw new NotFoundException('Successor task not found');
+    await this.access.requireCanEditTask(userId, task.projectId, task.createdBy);
+    if (task.archived) throw new ConflictException('Archived tasks cannot change dependencies');
+    if (isTerminalTaskStatus(task.status)) {
+      throw new ConflictException(CLOSED_SUCCESSOR_DEPENDENCY_ERROR);
+    }
+    return task;
+  }
+
+  private isParentChildDependency(
+    predecessor: { id: string; parentTaskId: string | null },
+    successor: { id: string; parentTaskId: string | null },
+  ): boolean {
+    return (
+      predecessor.parentTaskId === successor.id ||
+      successor.parentTaskId === predecessor.id
+    );
   }
 }

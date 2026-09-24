@@ -280,7 +280,7 @@ export default function TaskDetailDrawer({
             />
 
             <TaskDependenciesSection
-              taskId={task.id}
+              task={task}
               dependencies={dependencies}
               tasks={tasks}
               onCreateDependency={
@@ -359,6 +359,7 @@ export default function TaskDetailDrawer({
             isReadOnly={isReadOnly}
             onCreateSubtask={onCreateSubtask}
             onTaskClick={onTaskClick}
+            onMarkParentDone={() => handleStatusChange(TaskStatus.DONE)}
           />
 
           {/* Checklist Section */}
@@ -382,6 +383,7 @@ export default function TaskDetailDrawer({
             tasks={tasks}
             members={members}
             isReadOnly={isReadOnly}
+            dependencies={dependencies}
             memberDisplayName={memberDisplayName}
             onAssigneeChange={handleAssigneeChange}
             onPriorityChange={handlePriorityChange}
