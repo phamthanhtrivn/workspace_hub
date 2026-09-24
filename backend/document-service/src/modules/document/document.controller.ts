@@ -9,6 +9,7 @@ import {
   Query,
   Headers,
   BadRequestException,
+  UnauthorizedException,
   Res,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -24,6 +25,8 @@ import { UpdateLinkAccessDto } from './dto/update-link-access.dto';
 import { AddShareDto } from './dto/add-share.dto';
 import { CheckPermissionsDto } from './dto/check-permissions.dto';
 import { AddShareBatchDto } from './dto/add-share-batch.dto';
+import { EnsureProjectRootFolderDto } from './dto/ensure-project-root-folder.dto';
+import { TaskAttachmentDocumentsDto } from './dto/task-attachment-documents.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
 
@@ -35,6 +38,70 @@ export class DocumentController {
     if (!userId || !userEmail) {
       throw new BadRequestException('Missing x-user-id or x-user-email header');
     }
+  }
+
+  private assertInternalServiceKey(serviceKey?: string): void {
+    const expected = process.env.INTERNAL_SERVICE_KEY || 'local-internal-key';
+    if (!serviceKey || serviceKey !== expected) {
+      throw new UnauthorizedException('Invalid internal service key');
+    }
+  }
+
+  @Post('internal/projects/:projectId/root-folder')
+  async ensureProjectRootFolder(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() dto: EnsureProjectRootFolderDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const folder = await this.documentService.ensureProjectRootFolder(
+      projectId,
+      dto,
+    );
+    return {
+      message: 'Project root folder ensured successfully',
+      data: {
+        projectId,
+        folderId: folder.id,
+        name: folder.name,
+      },
+    };
+  }
+
+  @Post('internal/task-attachments/resolve')
+  async resolveTaskAttachmentDocuments(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Body() dto: TaskAttachmentDocumentsDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const documents = await this.documentService.resolveTaskAttachmentDocuments(
+      dto.userId,
+      dto.userEmail,
+      dto.projectId,
+      dto.documentItemIds,
+    );
+    return {
+      message: 'Task attachment documents resolved successfully',
+      data: documents,
+    };
+  }
+
+  @Post('internal/task-attachments/import')
+  async importTaskAttachmentDocuments(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Body() dto: TaskAttachmentDocumentsDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const documents = await this.documentService.importTaskAttachmentDocuments(
+      dto.userId,
+      dto.userEmail,
+      dto.projectId,
+      dto.documentItemIds,
+    );
+    return {
+      message: 'Task attachment documents imported successfully',
+      data: documents,
+    };
   }
 
   @Post('folders')
@@ -167,6 +234,34 @@ export class DocumentController {
         limit: limitNum,
         totalPages,
       },
+    };
+  }
+
+  @Get('conflicts')
+  async getNameConflict(
+    @Headers('x-user-id') userId: string,
+    @Headers('x-user-email') userEmail: string,
+    @Query('name') name?: string,
+    @Query('parentFolderId') parentFolderId?: string,
+    @Query('projectId') projectId?: string,
+  ) {
+    this.validateUserHeaders(userId, userEmail);
+    if (!name?.trim()) {
+      throw new BadRequestException('Missing document name');
+    }
+
+    const result = await this.documentService.getNameConflict(
+      userId,
+      userEmail,
+      {
+        name,
+        parentFolderId,
+        projectId,
+      },
+    );
+    return {
+      message: 'Document name conflict checked successfully',
+      data: result,
     };
   }
 

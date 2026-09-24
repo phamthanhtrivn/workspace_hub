@@ -7,6 +7,7 @@ import { GridViewCard } from "./grid-view-card";
 
 interface GridViewProps {
   items: DocumentItem[];
+  activeView: DocumentViewType;
   selectedItemId: string | null;
   onSelectItem: (id: string | null) => void;
   onOpenItem: (item: DocumentItem) => void;
@@ -15,7 +16,7 @@ interface GridViewProps {
   onOpenDetails: (item: DocumentItem) => void;
   onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (item: DocumentItem) => void;
+  onToggleStar?: (item: DocumentItem) => void;
   onMoveToTrash: (item: DocumentItem) => void;
   onRestore: (item: DocumentItem) => void;
   onDeletePermanently: (item: DocumentItem) => void;
@@ -25,10 +26,12 @@ interface GridViewProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
+  isProjectDocuments?: boolean;
 }
 
 function GridView({
   items,
+  activeView,
   selectedItemId,
   onSelectItem,
   onOpenItem,
@@ -47,6 +50,7 @@ function GridView({
   onManageVersions,
   onShare,
   onShareToChat,
+  isProjectDocuments = false,
 }: GridViewProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in duration-200">
@@ -57,7 +61,7 @@ function GridView({
           selectedItemId={selectedItemId}
           onSelect={onSelectItem}
           onFolderClick={onOpenItem}
-          activeView={DocumentViewType.MY_FILES}
+          activeView={activeView}
           activeMenuId={activeMenuId}
           setActiveMenuId={setActiveMenuId}
           onRename={onRename}
@@ -73,6 +77,7 @@ function GridView({
           onManageVersions={onManageVersions}
           onShare={onShare}
           onShareToChat={onShareToChat}
+          isProjectDocuments={isProjectDocuments}
         />
       ))}
     </div>

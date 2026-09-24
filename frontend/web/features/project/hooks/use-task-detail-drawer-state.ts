@@ -67,6 +67,14 @@ export function useTaskDetailDrawerState({
   const canChangeStatus = task
     ? !isTerminalTaskStatus(task.status) && (canEditTask || canContributeTask)
     : false;
+  const openSubtasks = task
+    ? tasks.filter(
+        (candidate) =>
+          candidate.parentTaskId === task.id &&
+          !candidate.archived &&
+          candidate.status !== TaskStatus.DONE,
+      )
+    : [];
 
   useEffect(() => {
     if (!task) return;
@@ -123,6 +131,10 @@ export function useTaskDetailDrawerState({
 
   const handleStatusChange = async (newStatus: TaskStatus) => {
     if (!task || !canChangeStatus || newStatus === task.status) return;
+    if (newStatus === TaskStatus.DONE && openSubtasks.length > 0) {
+      toast.error("Complete all subtasks before marking this task as done.");
+      return;
+    }
     try {
       if (onUpdateTask) {
         await onUpdateTask(task.id, { status: newStatus });
@@ -296,6 +308,7 @@ export function useTaskDetailDrawerState({
     isActivitiesError,
     refetchActivities,
     handleStatusChange,
+    openSubtasks,
     handleAssigneeChange,
     handlePriorityChange,
     handleParentTaskChange,

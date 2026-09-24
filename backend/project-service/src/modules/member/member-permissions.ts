@@ -13,5 +13,6 @@ export function defaultMemberPermissions(
     canEditOthersTask: setting?.allowMemberEditOthersTask ?? false,
     canManageMembers: false,
     canManageLabels: false,
+    canEditDocuments: false,
   };
 }

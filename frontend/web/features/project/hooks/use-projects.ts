@@ -8,7 +8,10 @@ import {
   createProject,
   getProject,
   getProjectMembers,
+  getProjectSpaceStatus,
   getProjects,
+  openProjectDocuments,
+  openProjectSpace,
   updateProject,
   type CreateProjectPayload,
   type ProjectListQuery,
@@ -20,6 +23,10 @@ export const projectKeys = {
   list: (query: ProjectListQuery) => ["projects", "list", query] as const,
   detail: (projectId: string) => ["projects", projectId] as const,
   members: (projectId: string) => ["projects", projectId, "members"] as const,
+  documents: (projectId: string) =>
+    ["projects", projectId, "documents"] as const,
+  spaceStatus: (projectId: string) =>
+    ["projects", projectId, "space-status"] as const,
 };
 
 export function useProjects(query: ProjectListQuery) {
@@ -75,5 +82,35 @@ export function useArchiveProject(projectId: string) {
       queryClient.invalidateQueries({ queryKey: projectKeys.all });
       queryClient.removeQueries({ queryKey: projectKeys.detail(projectId) });
     },
+  });
+}
+
+export function useProjectSpaceStatus(projectId: string) {
+  return useQuery({
+    queryKey: projectKeys.spaceStatus(projectId),
+    queryFn: () => getProjectSpaceStatus(projectId),
+    enabled: Boolean(projectId),
+  });
+}
+
+export function useOpenProjectSpace(projectId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => openProjectSpace(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: projectKeys.spaceStatus(projectId),
+      });
+    },
+  });
+}
+
+export function useProjectDocuments(projectId: string, enabled = true) {
+  return useQuery({
+    queryKey: projectKeys.documents(projectId),
+    queryFn: () => openProjectDocuments(projectId),
+    enabled: enabled && Boolean(projectId),
+    retry: false,
   });
 }

@@ -1,0 +1,2 @@
+ALTER TABLE project_members
+    ADD COLUMN IF NOT EXISTS can_edit_documents BOOLEAN NOT NULL DEFAULT FALSE;

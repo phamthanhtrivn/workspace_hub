@@ -1,18 +1,17 @@
 "use client";
 
-import React, { useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { DndContext } from "@dnd-kit/core";
 import { documentsApi } from "../api/documents.api";
 import { DocumentItem } from "../types/documents.types";
-import { DocumentViewType } from "../types/documents.enums";
+import { DocumentRole, DocumentViewType } from "../types/documents.enums";
 
 // UI Building Blocks
 import { DocumentsConfirmDialog } from "./ui/documents-confirm-dialog";
 import { DocumentsInputModal } from "./ui/documents-input-modal";
 import { DocumentsEmptyState } from "./ui/documents-empty-state";
 import { DocumentsLoadingState } from "./ui/documents-loading-state";
-import { DocumentsPagination } from "./ui/documents-pagination";
 
 // Explorer & Modal Sub-components
 import DetailsPanel from "./explorer/details-panel";
@@ -34,7 +33,7 @@ import { useDocumentUpload } from "../hooks/useDocumentUpload";
 import { useDocumentDragAndDrop } from "../hooks/useDocumentDragAndDrop";
 import { useDocumentModals } from "../hooks/useDocumentModals";
 import { ITEMS_PER_PAGE } from "../types/documents.constants";
-import { UploadCloud, FolderPlus, Edit3 } from "lucide-react";
+import { Info, UploadCloud, FolderPlus, Edit3 } from "lucide-react";
 
 interface DocumentExplorerProps {
   currentFolderId: string | null;
@@ -44,6 +43,10 @@ interface DocumentExplorerProps {
   setPath: React.Dispatch<
     React.SetStateAction<{ id: string | null; name: string }[]>
   >;
+  projectId?: string;
+  canEditDocuments?: boolean;
+  accessErrorTitle?: string;
+  accessErrorDescription?: string;
 }
 
 export function DocumentExplorer({
@@ -52,7 +55,14 @@ export function DocumentExplorer({
   activeView,
   path,
   setPath,
+  projectId,
+  canEditDocuments = true,
+  accessErrorTitle = "Unable to load documents",
+  accessErrorDescription = "You do not have access to these documents yet",
 }: DocumentExplorerProps) {
+  const isProjectDocuments = Boolean(projectId);
+  const projectRootFolderId = isProjectDocuments ? path[0]?.id ?? null : null;
+  const projectRootLabel = isProjectDocuments ? path[0]?.name : undefined;
   // 1. Explorer State Hook
   const {
     activeMenuId,
@@ -65,8 +75,6 @@ export function DocumentExplorer({
     setActiveDetailsItemId,
     sortBy,
     setSortBy,
-    currentPage,
-    setCurrentPage,
     searchQuery,
     setSearchQuery,
     handleNavigate,
@@ -130,41 +138,68 @@ export function DocumentExplorer({
     deletePermanently,
     isDeletingPermanently,
     downloadItem,
-  } = useDocumentActions({ currentFolderId });
+  } = useDocumentActions({ currentFolderId, projectId });
 
   // 4. File Upload Hook
   const {
     uploadState,
     uploadProgress,
     uploadingFileName,
+    overwriteConflict,
     isDraggingOver,
     uploadFile,
-  } = useDocumentUpload({ currentFolderId });
+    confirmOverwrite,
+    cancelOverwrite,
+  } = useDocumentUpload({
+    currentFolderId,
+    projectId,
+    enabled: canEditDocuments,
+  });
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   // 5. Drag and Drop Hook
   const { sensors, handleDragEnd } = useDocumentDragAndDrop({
     onMoveItem: (itemId, targetFolderId) =>
-      moveResource({ id: itemId, targetFolderId }),
+      canEditDocuments
+        ? moveResource({ id: itemId, targetFolderId })
+        : Promise.resolve(),
   });
 
   // Query Main Document List
   const {
     data: documentResponse,
     isLoading,
-    isFetching,
-  } = useQuery({
+    isError,
+    error: documentError,
+    isFetchingNextPage,
+    fetchNextPage,
+    hasNextPage,
+  } = useInfiniteQuery({
     queryKey: [
       "documents",
       activeView,
+      projectId,
       currentFolderId,
       sortBy,
       searchQuery,
-      currentPage,
     ],
-    queryFn: () => {
+    initialPageParam: 1,
+    queryFn: ({ pageParam = 1 }) => {
+      const page = Number(pageParam);
+      if (currentFolderId) {
+        return documentsApi.getDocuments({
+          folderId: currentFolderId,
+          sortBy,
+          search: searchQuery || undefined,
+          page,
+          limit: ITEMS_PER_PAGE,
+        });
+      }
+
       if (activeView === DocumentViewType.SHARED) {
         return documentsApi.getSharedDocuments({
-          page: currentPage,
+          page,
           limit: ITEMS_PER_PAGE,
           sortBy,
           search: searchQuery || undefined,
@@ -172,45 +207,66 @@ export function DocumentExplorer({
       }
       return documentsApi.getDocuments({
         folderId: currentFolderId || undefined,
-        starred: activeView === DocumentViewType.STARRED ? true : undefined,
+        projectId: projectId && !currentFolderId ? projectId : undefined,
+        starred: !isProjectDocuments && activeView === DocumentViewType.STARRED ? true : undefined,
         archived: activeView === DocumentViewType.TRASH ? true : undefined,
         sortBy,
         search: searchQuery || undefined,
-        page: currentPage,
+        page,
         limit: ITEMS_PER_PAGE,
       });
     },
+    getNextPageParam: (lastPage) => {
+      const meta = lastPage.meta;
+      return meta.page < meta.totalPages ? meta.page + 1 : undefined;
+    },
   });
 
-  const items = useMemo(() => documentResponse?.data || [], [documentResponse]);
-  const meta = useMemo(() => {
-    if (documentResponse?.meta) return documentResponse.meta;
-    if (items.length > 0) {
-      return {
-        totalItems: items.length,
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-        totalPages: Math.ceil(items.length / ITEMS_PER_PAGE),
-      };
-    }
-    return undefined;
-  }, [documentResponse, items.length, currentPage]);
+  const items = useMemo(
+    () => documentResponse?.pages.flatMap((page) => page.data) || [],
+    [documentResponse],
+  );
 
-  const totalPages = meta?.totalPages || 1;
-  const totalItems = meta?.totalItems || items.length;
+  useEffect(() => {
+    const sentinel = loadMoreRef.current;
+    if (!sentinel || !hasNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: "160px",
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    items.length,
+    viewLayout,
+  ]);
 
   const activeDetailsItem = useMemo(
     () => items.find((i: DocumentItem) => i.id === activeDetailsItemId) || null,
     [items, activeDetailsItemId],
   );
+  const canEditActiveDetailsItem =
+    activeDetailsItem?.userRole === DocumentRole.OWNER ||
+    activeDetailsItem?.userRole === DocumentRole.EDITOR;
 
   // Folder click navigation
   const handleFolderClick = useCallback(
     (folder: DocumentItem) => {
       handleNavigate(folder.id, folder.name);
-      setPath((prev) => [...prev, { id: folder.id, name: folder.name }]);
     },
-    [handleNavigate, setPath],
+    [handleNavigate],
   );
 
   // Breadcrumb navigation click
@@ -251,6 +307,16 @@ export function DocumentExplorer({
     }
   };
 
+  const loadMoreFooter =
+    items.length > 0 ? (
+      <div
+        ref={loadMoreRef}
+        className="flex min-h-8 items-center justify-center px-4 py-2 text-xs font-semibold text-slate-400"
+      >
+        {isFetchingNextPage ? "Loading more..." : null}
+      </div>
+    ) : null;
+
   return (
     <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
       <div className="relative flex flex-1 flex-col min-h-0 h-full overflow-hidden bg-white text-slate-800">
@@ -282,7 +348,17 @@ export function DocumentExplorer({
             onSearchQueryChange={setSearchQuery}
             onCreateFolder={openCreateFolder}
             onUploadFile={uploadFile}
+            canEditDocuments={canEditDocuments}
           />
+          {activeView === DocumentViewType.TRASH ? (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-xs font-semibold text-amber-800">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <p>
+                Items in Trash are automatically deleted after 30 days. You can
+                permanently delete them now.
+              </p>
+            </div>
+          ) : null}
         </div>
 
         {/* Main Content Area */}
@@ -293,6 +369,14 @@ export function DocumentExplorer({
               {isLoading ? (
                 <DocumentsLoadingState
                   view={viewLayout === "GRID" ? "grid" : "list"}
+                />
+              ) : isError ? (
+                <DocumentsEmptyState
+                  title={accessErrorTitle}
+                  description={
+                    (documentError as { response?: { data?: { message?: string } } })
+                      ?.response?.data?.message || accessErrorDescription
+                  }
                 />
               ) : items.length === 0 ? (
                 <DocumentsEmptyState
@@ -308,13 +392,19 @@ export function DocumentExplorer({
                   description={
                     searchQuery
                       ? `No matching resources found for "${searchQuery}"`
+                      : activeView === DocumentViewType.TRASH
+                        ? "Deleted items will appear here before permanent removal"
                       : "Upload files or create new folders to get started"
                   }
                 />
               ) : viewLayout === "GRID" ? (
-                <div className="flex-1 min-h-0 overflow-y-auto">
+                <div
+                  ref={scrollContainerRef}
+                  className="flex-1 min-h-0 overflow-y-auto"
+                >
                   <GridView
                     items={items}
+                    activeView={activeView}
                     selectedItemId={selectedItemId}
                     onSelectItem={setSelectedItemId}
                     onOpenItem={(item) =>
@@ -327,7 +417,11 @@ export function DocumentExplorer({
                     onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
                     onRename={openRename}
                     onMove={openMoveModal}
-                    onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
+                    onToggleStar={
+                      isProjectDocuments
+                        ? undefined
+                        : (item) => toggleStar(item.id, item.isStarred)
+                    }
                     onMoveToTrash={openTrashConfirm}
                     onRestore={(item) => restoreFromTrash(item.id)}
                     onDeletePermanently={openDeleteConfirm}
@@ -335,14 +429,19 @@ export function DocumentExplorer({
                     onDownload={downloadItem}
                     onDownloadFolder={downloadItem}
                     onManageVersions={openVersionModal}
-                    onShare={openShareModal}
+                    onShare={isProjectDocuments ? undefined : openShareModal}
                     onShareToChat={openShareToChatModal}
+                    isProjectDocuments={isProjectDocuments}
                   />
+                  {loadMoreFooter}
                 </div>
               ) : (
                 <div className="flex flex-1 min-h-0 flex-col overflow-hidden">
                   <ListView
+                    scrollContainerRef={scrollContainerRef}
                     items={items}
+                    activeView={activeView}
+                    footer={loadMoreFooter}
                     selectedItemId={selectedItemId}
                     onSelectItem={setSelectedItemId}
                     onOpenItem={(item) =>
@@ -355,7 +454,11 @@ export function DocumentExplorer({
                     onOpenDetails={(item) => setActiveDetailsItemId(item.id)}
                     onRename={openRename}
                     onMove={openMoveModal}
-                    onToggleStar={(item) => toggleStar(item.id, item.isStarred)}
+                    onToggleStar={
+                      isProjectDocuments
+                        ? undefined
+                        : (item) => toggleStar(item.id, item.isStarred)
+                    }
                     onMoveToTrash={openTrashConfirm}
                     onRestore={(item) => restoreFromTrash(item.id)}
                     onDeletePermanently={openDeleteConfirm}
@@ -363,27 +466,13 @@ export function DocumentExplorer({
                     onDownload={downloadItem}
                     onDownloadFolder={downloadItem}
                     onManageVersions={openVersionModal}
-                    onShare={openShareModal}
+                    onShare={isProjectDocuments ? undefined : openShareModal}
                     onShareToChat={openShareToChatModal}
+                    isProjectDocuments={isProjectDocuments}
                   />
                 </div>
               )}
             </div>
-
-            {/* Fixed Pagination Footer (Outside Scrollable Grid/List Area) */}
-            {items.length > 0 ? (
-              <div className="shrink-0 border-t border-slate-100 bg-white px-6 py-3">
-                <DocumentsPagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  totalItems={totalItems}
-                  itemsPerPage={ITEMS_PER_PAGE}
-                  isLoading={isFetching}
-                  onPageChange={setCurrentPage}
-                  className="border-t-0 pt-0"
-                />
-              </div>
-            ) : null}
           </div>
 
           {/* Details Side Panel */}
@@ -391,10 +480,22 @@ export function DocumentExplorer({
             <DetailsPanel
               item={activeDetailsItem}
               onClose={() => setActiveDetailsItemId(null)}
-              onRename={() => openRename(activeDetailsItem)}
-              onShare={() => openShareModal(activeDetailsItem)}
+              onRename={
+                canEditActiveDetailsItem
+                  ? () => openRename(activeDetailsItem)
+                  : undefined
+              }
+              onShare={
+                canEditActiveDetailsItem && !isProjectDocuments
+                  ? () => openShareModal(activeDetailsItem)
+                  : undefined
+              }
               onDownload={() => downloadItem(activeDetailsItem)}
-              onManageVersions={() => openVersionModal(activeDetailsItem)}
+              onManageVersions={
+                canEditActiveDetailsItem
+                  ? () => openVersionModal(activeDetailsItem)
+                  : undefined
+              }
             />
           ) : null}
         </div>
@@ -434,7 +535,23 @@ export function DocumentExplorer({
           onCancel={closeRename}
         />
 
-        {/* Shadcn Alert Dialog: Move to Trash */}
+        {/* Shadcn Alert Dialog: Overwrite File */}
+        <DocumentsConfirmDialog
+          open={Boolean(overwriteConflict)}
+          title="Overwrite existing file?"
+          description={
+            overwriteConflict
+              ? `"${overwriteConflict.item.name}" already exists in this folder. Overwriting will upload this file as a new version.`
+              : undefined
+          }
+          confirmLabel="Overwrite"
+          cancelLabel="Cancel"
+          variant="warning"
+          isLoading={false}
+          onConfirm={confirmOverwrite}
+          onCancel={cancelOverwrite}
+        />
+
         <DocumentsConfirmDialog
           open={isTrashConfirmOpen}
           title="Move to trash?"
@@ -451,7 +568,11 @@ export function DocumentExplorer({
         <DocumentsConfirmDialog
           open={isDeleteConfirmOpen}
           title="Delete permanently?"
-          description="This action cannot be undone. This item will be permanently deleted."
+          description={
+            isProjectDocuments
+              ? "This project document will be permanently deleted for every project member. This action cannot be undone."
+              : "This action cannot be undone. This item will be permanently deleted."
+          }
           confirmLabel="Delete"
           cancelLabel="Cancel"
           variant="danger"
@@ -466,6 +587,9 @@ export function DocumentExplorer({
             open={isMoveModalOpen}
             movingItemId={movingItemId}
             onClose={closeMoveModal}
+            projectId={projectId}
+            projectRootFolderId={projectRootFolderId}
+            rootLabel={projectRootLabel}
             onSelectFolder={(targetFolderId) =>
               moveResource({ id: movingItemId, targetFolderId })
             }
@@ -495,7 +619,7 @@ export function DocumentExplorer({
         ) : null}
 
         {/* Share Modal */}
-        {isShareModalOpen && sharingItem ? (
+        {!isProjectDocuments && isShareModalOpen && sharingItem ? (
           <ShareModal
             open={isShareModalOpen}
             item={sharingItem}
@@ -508,6 +632,7 @@ export function DocumentExplorer({
           <ShareToChatModal
             open={isShareToChatOpen}
             item={shareToChatItem}
+            projectId={projectId}
             onClose={closeShareToChatModal}
           />
         ) : null}

@@ -48,23 +48,24 @@ export function DetailsPanel({
   const isFolder = item.type === DocumentItemType.FOLDER || (item.type as any) === "FOLDER";
 
   return (
-    <div className="w-80 shrink-0 border-l border-slate-100 bg-white p-6 text-slate-700 flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right-4 duration-300">
-      <div>
-        {/* Panel Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-          <h3 className="text-sm font-black text-slate-800">
-            Details
-          </h3>
+    <div className="flex h-full min-h-0 w-80 shrink-0 flex-col overflow-hidden border-l border-slate-100 bg-white text-slate-700 animate-in slide-in-from-right-4 duration-300">
+      {/* Panel Header */}
+      <div className="shrink-0 border-b border-slate-100 bg-white px-6 py-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-800">Details</h3>
           <DocumentsIconButton
             icon={X}
             label="Close"
+            showTooltip={false}
             onClick={onClose}
             size="icon-sm"
           />
         </div>
+      </div>
 
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
         {/* Thumbnail / Large Icon */}
-        <div className="my-6 flex flex-col items-center justify-center rounded-3xl border border-slate-100 bg-slate-50/50 p-6 text-center shadow-xs">
+        <div className="flex flex-col items-center justify-center rounded-3xl border border-slate-100 bg-slate-50/50 p-6 text-center shadow-xs">
           <DocumentIcon item={item} iconSize={40} className="p-4 rounded-2xl bg-white shadow-xs border border-slate-100" />
           <h4 className="mt-4 text-xs font-bold text-slate-800 max-w-[200px] truncate">
             {item.name}
@@ -75,7 +76,7 @@ export function DetailsPanel({
         </div>
 
         {/* Action Buttons */}
-        <div className="grid grid-cols-4 gap-2 py-3 border-y border-slate-100">
+        <div className="mt-6 grid grid-cols-4 gap-2 border-y border-slate-100 py-3">
           {onDownload ? (
             <DocumentsIconButton
               icon={Download}
@@ -151,7 +152,7 @@ export function DetailsPanel({
       </div>
 
       {/* Footer Role Status */}
-      <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+      <div className="flex shrink-0 items-center justify-between border-t border-slate-100 px-6 py-4">
         <span className="text-xs text-slate-500 font-bold">Access Permission</span>
         <DocumentsStatusBadge type="role" role={item.userRole} />
       </div>

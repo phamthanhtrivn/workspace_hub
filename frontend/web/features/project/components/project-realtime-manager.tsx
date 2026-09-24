@@ -3,8 +3,13 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useAppSelector } from "@/store/store";
-import { getProjects } from "../api/project.api";
 import {
+  getProjects,
+  type ProjectListQuery,
+  type ProjectSpaceStatusResponse,
+} from "../api/project.api";
+import {
+  applyProjectSpaceSocketEvent,
   applyTaskSocketEvent,
   projectQueriesForEvent,
 } from "../api/project-realtime";
@@ -15,6 +20,8 @@ import {
 import { projectKeys } from "../hooks/use-projects";
 import { taskKeys } from "../hooks/use-tasks";
 import type { Task } from "../types/project";
+
+const PROJECT_SYNC_QUERY: ProjectListQuery = { page: 1, limit: 100 };
 
 export default function ProjectRealtimeManager() {
   const token = useAppSelector((state) => state.auth.accessToken);
@@ -33,11 +40,11 @@ export default function ProjectRealtimeManager() {
     const syncProjects = async () => {
       try {
         const projects = await queryClient.fetchQuery({
-          queryKey: projectKeys.all,
-          queryFn: getProjects,
+          queryKey: projectKeys.list(PROJECT_SYNC_QUERY),
+          queryFn: () => getProjects(PROJECT_SYNC_QUERY),
         });
         projectSocketService.syncProjects(
-          projects.map((project) => project.id),
+          projects.data.map((project) => project.id),
         );
       } catch {
         // The normal query error state remains the source of user-facing feedback.
@@ -48,6 +55,12 @@ export default function ProjectRealtimeManager() {
         queryClient.setQueryData<Task[]>(
           taskKeys.project(event.projectId),
           (current) => applyTaskSocketEvent(current, event),
+        );
+      }
+      if (event.resource === "PROJECT_SPACE") {
+        queryClient.setQueryData<ProjectSpaceStatusResponse>(
+          projectKeys.spaceStatus(event.projectId),
+          (current) => applyProjectSpaceSocketEvent(current, event),
         );
       }
       for (const invalidation of projectQueriesForEvent(event)) {

@@ -1,6 +1,8 @@
 import {
+  BadGatewayException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -12,6 +14,7 @@ import {
 } from './project.enums';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { InternalRenameProjectDto } from './dto/internal-rename-project.dto';
 import { ProjectListQueryDto } from './dto/project-list-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectAccessService } from './project-access.service';
@@ -20,6 +23,14 @@ import { toMemberResponse, toProjectResponse } from './project.mapper';
 import { rethrowWriteConflict } from '../../common/prisma/prisma-errors';
 import { paginate } from '../../common/utils/pagination';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
+import { ProjectDocumentClient } from './project-document.client';
+import { InternalDocumentEventDto } from './dto/internal-document-event.dto';
+import { InternalProjectSpaceEventDto } from './dto/internal-project-space-event.dto';
+import { ProjectSocketPublisher } from '../socket/project-socket.publisher';
+import {
+  ProjectSpaceClient,
+  ProjectSpaceRole,
+} from './project-space.client';
 
 @Injectable()
 export class ProjectService {
@@ -27,6 +38,9 @@ export class ProjectService {
     private readonly prisma: PrismaService,
     private readonly access: ProjectAccessService,
     private readonly userProfiles: UserProfileSnapshotService,
+    private readonly projectDocuments: ProjectDocumentClient,
+    private readonly projectSpaces: ProjectSpaceClient,
+    private readonly socketPublisher: ProjectSocketPublisher,
   ) {}
 
   async create(userId: string, dto: CreateProjectDto) {
@@ -70,6 +84,7 @@ export class ProjectService {
               canEditOthersTask: true,
               canManageMembers: true,
               canManageLabels: true,
+              canEditDocuments: true,
               joinedAt: now,
               updatedAt: now,
             },
@@ -80,6 +95,20 @@ export class ProjectService {
     });
 
     const ownerProfile = await this.userProfiles.getProfileByUserId(userId);
+    try {
+      await this.projectDocuments.ensureProjectRootFolder({
+        projectId: project.id,
+        name: project.name,
+        ownerId: project.ownerId,
+        ownerEmail: this.resolveOwnerEmail(project.ownerId, ownerProfile?.email),
+        members: [],
+      });
+    } catch {
+      await this.prisma.project
+        .delete({ where: { id: project.id } })
+        .catch(() => undefined);
+      throw new BadGatewayException('Unable to create project documents folder');
+    }
     return toProjectResponse(project, {}, ownerProfile);
   }
 
@@ -186,6 +215,185 @@ export class ProjectService {
     return toProjectResponse(project, {}, ownerProfile);
   }
 
+  async openProjectSpace(userId: string, projectId: string) {
+    const project = await this.access.requireReadAccess(userId, projectId);
+    const status = await this.getProjectSpaceStatus(userId, projectId);
+    const member = project.ownerId === userId
+      ? null
+      : await this.access.getActiveMember(projectId, userId);
+    const canCreateProjectSpace =
+      project.ownerId === userId || member?.role === ProjectRole.ADMIN;
+    if (!status.exists && !canCreateProjectSpace) {
+      throw new ForbiddenException('Project chat space has not been created yet');
+    }
+
+    const members = await this.prisma.projectMember.findMany({
+      where: {
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    const roleByUserId = new Map<string, ProjectSpaceRole>();
+    for (const member of members) {
+      roleByUserId.set(
+        member.userId,
+        member.userId === project.ownerId || member.role === ProjectRole.ADMIN
+          ? 'ADMIN'
+          : 'MEMBER',
+      );
+    }
+    roleByUserId.set(project.ownerId, 'ADMIN');
+
+    try {
+      const projectSpace = await this.projectSpaces.ensureProjectSpace({
+        projectId,
+        name: project.name,
+        ownerId: project.ownerId,
+        members: Array.from(roleByUserId.entries()).map(([memberUserId, role]) => ({
+          userId: memberUserId,
+          role,
+        })),
+      });
+      this.socketPublisher.publish({
+        projectId,
+        resource: 'PROJECT_SPACE',
+        action: status.exists ? 'UPDATED' : 'CREATED',
+        actorId: userId,
+        entityId: projectSpace.spaceId,
+        data: {
+          exists: true,
+          spaceId: projectSpace.spaceId,
+          channelId: projectSpace.channelId,
+        },
+        occurredAt: new Date().toISOString(),
+      });
+      return projectSpace;
+    } catch {
+      throw new BadGatewayException('Unable to open project chat space');
+    }
+  }
+
+  async getProjectSpaceStatus(userId: string, projectId: string) {
+    await this.access.requireReadAccess(userId, projectId);
+    try {
+      return await this.projectSpaces.getProjectSpaceStatus(projectId);
+    } catch {
+      throw new BadGatewayException('Unable to load project chat space status');
+    }
+  }
+
+  async syncProjectSpaceAccess(
+    projectId: string,
+    project?: Awaited<ReturnType<ProjectAccessService['findProject']>>,
+  ) {
+    const currentProject = project ?? await this.access.findProject(projectId);
+    let status;
+    try {
+      status = await this.projectSpaces.getProjectSpaceStatus(projectId);
+    } catch {
+      throw new BadGatewayException('Unable to load project chat space status');
+    }
+    if (!status.exists) return status;
+
+    const members = await this.prisma.projectMember.findMany({
+      where: {
+        projectId,
+        status: ProjectMemberStatus.ACTIVE,
+      },
+      select: {
+        userId: true,
+        role: true,
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    const roleByUserId = new Map<string, ProjectSpaceRole>();
+    for (const member of members) {
+      roleByUserId.set(
+        member.userId,
+        member.userId === currentProject.ownerId ||
+          member.role === ProjectRole.ADMIN
+          ? 'ADMIN'
+          : 'MEMBER',
+      );
+    }
+    roleByUserId.set(currentProject.ownerId, 'ADMIN');
+
+    try {
+      return await this.projectSpaces.ensureProjectSpace({
+        projectId,
+        name: currentProject.name,
+        ownerId: currentProject.ownerId,
+        members: Array.from(roleByUserId.entries()).map(
+          ([memberUserId, role]) => ({
+            userId: memberUserId,
+            role,
+          }),
+        ),
+      });
+    } catch {
+      throw new BadGatewayException('Unable to sync project chat space members');
+    }
+  }
+
+  async openProjectDocuments(userId: string, projectId: string) {
+    const project = await this.access.requireReadAccess(userId, projectId);
+    return this.syncProjectDocumentAccess(projectId, project);
+  }
+
+  async syncProjectDocumentAccess(
+    projectId: string,
+    project?: Awaited<ReturnType<ProjectAccessService['findProject']>>,
+  ) {
+    const currentProject = project ?? await this.access.findProject(projectId);
+    const ownerProfile = await this.userProfiles.getProfileByUserId(
+      currentProject.ownerId,
+    );
+    const members = await this.prisma.projectMember.findMany({
+      where: { projectId, status: ProjectMemberStatus.ACTIVE },
+      select: {
+        userId: true,
+        role: true,
+        canEditDocuments: true,
+      },
+      orderBy: { joinedAt: 'asc' },
+    });
+    const memberUserIds = members
+      .map((member) => member.userId)
+      .filter((memberUserId) => memberUserId !== currentProject.ownerId);
+    const profiles = await this.userProfiles.getProfilesByUserIds(memberUserIds);
+
+    try {
+      return await this.projectDocuments.ensureProjectRootFolder({
+        projectId,
+        name: currentProject.name,
+        ownerId: currentProject.ownerId,
+        ownerEmail: this.resolveOwnerEmail(currentProject.ownerId, ownerProfile?.email),
+        members: members
+          .filter((member) => member.userId !== currentProject.ownerId)
+          .map((member) => {
+            const profile = profiles.get(member.userId);
+            return {
+              userId: member.userId,
+              email: this.resolveOwnerEmail(member.userId, profile?.email),
+              permission:
+                member.role === ProjectRole.ADMIN || member.canEditDocuments
+                  ? 'EDITOR'
+                  : 'VIEWER',
+            };
+          }),
+      });
+    } catch {
+      throw new BadGatewayException('Unable to open project documents');
+    }
+  }
+
   async update(userId: string, projectId: string, dto: UpdateProjectDto) {
     const current = await this.access.requireOwner(userId, projectId);
     if (current.archived || current.status === ProjectStatus.ARCHIVED) {
@@ -199,12 +407,14 @@ export class ProjectService {
     }
     const data: Prisma.ProjectUpdateInput = {};
 
+    let nextProjectName: string | undefined;
     if (dto.name !== undefined) {
       const name = dto.name.trim();
       if (!name) {
         throw new BadRequestException('Project name cannot be empty');
       }
       data.name = name;
+      nextProjectName = name;
     }
     if (dto.color !== undefined) data.color = dto.color;
     if (dto.icon !== undefined) data.icon = dto.icon;
@@ -226,6 +436,20 @@ export class ProjectService {
       data.archived = dto.status === ProjectStatus.ARCHIVED;
     }
 
+    let syncedProjectSpace = false;
+    if (nextProjectName !== undefined && nextProjectName !== current.name) {
+      try {
+        const result = await this.projectSpaces.renameProjectSpace(
+          projectId,
+          nextProjectName,
+          userId,
+        );
+        syncedProjectSpace = result.spaceId !== null;
+      } catch {
+        throw new BadGatewayException('Unable to sync project chat space name');
+      }
+    }
+
     let project;
     try {
       project = await this.prisma.project.update({
@@ -233,11 +457,99 @@ export class ProjectService {
         data: { ...data, version: { increment: 1 } },
       });
     } catch (error) {
+      if (syncedProjectSpace) {
+        await this.projectSpaces
+          .renameProjectSpace(projectId, current.name, userId)
+          .catch(() => undefined);
+      }
       rethrowWriteConflict(error, 'Project was changed by another request');
     }
 
     const ownerProfile = await this.userProfiles.getProfileByUserId(project.ownerId);
     return toProjectResponse(project, {}, ownerProfile);
+  }
+
+  async renameProjectFromSpace(
+    projectId: string,
+    dto: InternalRenameProjectDto,
+  ) {
+    const name = dto.name.trim();
+    if (!name) {
+      throw new BadRequestException('Project name cannot be empty');
+    }
+
+    const current = await this.prisma.project.findUnique({
+      where: { id: projectId },
+      select: {
+        id: true,
+        name: true,
+        archived: true,
+        status: true,
+      },
+    });
+    if (!current) {
+      throw new BadRequestException('Project not found');
+    }
+    if (current.archived || current.status === ProjectStatus.ARCHIVED) {
+      throw new ConflictException(
+        'Archived projects are read-only; restore the project before editing it',
+      );
+    }
+    if (current.name === name) {
+      return { projectId, name: current.name };
+    }
+
+    const project = await this.prisma.project.update({
+      where: { id: projectId },
+      data: { name, version: { increment: 1 } },
+      select: { id: true, name: true },
+    });
+
+    return { projectId: project.id, name: project.name };
+  }
+
+  async publishDocumentEvent(
+    projectId: string,
+    dto: InternalDocumentEventDto,
+  ) {
+    await this.access.findProject(projectId);
+    const event = {
+      projectId,
+      resource: 'DOCUMENT' as const,
+      action: dto.action,
+      actorId: dto.actorId,
+      entityId: dto.entityId,
+      data: {
+        ...(dto.data ?? {}),
+        parentFolderId: dto.parentFolderId ?? null,
+      },
+      occurredAt: new Date().toISOString(),
+    };
+    this.socketPublisher.publish(event);
+    return event;
+  }
+
+  async publishProjectSpaceEvent(
+    projectId: string,
+    dto: InternalProjectSpaceEventDto,
+  ) {
+    await this.access.findProject(projectId);
+    const spaceId = dto.spaceId ?? dto.entityId ?? null;
+    const event = {
+      projectId,
+      resource: 'PROJECT_SPACE' as const,
+      action: dto.action,
+      actorId: dto.actorId,
+      entityId: dto.entityId ?? dto.spaceId ?? undefined,
+      data: {
+        exists: dto.exists ?? dto.action !== 'DELETED',
+        spaceId,
+        channelId: dto.channelId ?? null,
+      },
+      occurredAt: new Date().toISOString(),
+    };
+    this.socketPublisher.publish(event);
+    return event;
   }
 
   async archive(userId: string, projectId: string): Promise<void> {
@@ -282,5 +594,10 @@ export class ProjectService {
     if (startDate && dueDate && startDate > dueDate) {
       throw new ConflictException('Start date cannot be after due date');
     }
+  }
+
+  private resolveOwnerEmail(ownerId: string, email?: string | null): string {
+    const normalizedEmail = email?.trim();
+    return normalizedEmail || `${ownerId}@workspace.local`;
   }
 }

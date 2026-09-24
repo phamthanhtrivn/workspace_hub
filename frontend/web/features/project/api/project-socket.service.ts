@@ -5,10 +5,13 @@ export type ProjectResource =
   | 'TASK'
   | 'MEMBER'
   | 'INVITATION'
+  | 'PROJECT_SPACE'
   | 'CHECKLIST'
   | 'COMMENT'
+  | 'TASK_DOCUMENT'
   | 'LABEL'
-  | 'DEPENDENCY';
+  | 'DEPENDENCY'
+  | 'DOCUMENT';
 
 export interface ProjectChangedEvent {
   projectId: string;

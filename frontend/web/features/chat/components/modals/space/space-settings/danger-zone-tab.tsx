@@ -3,6 +3,8 @@ import { LogOut, Trash2 } from "lucide-react";
 interface DangerZoneTabProps {
   isAdmin: boolean;
   isOwner?: boolean;
+  canDelete?: boolean;
+  hideLeave?: boolean;
   isDeleting: boolean;
   isLastAdmin: boolean;
   isLeaving: boolean;
@@ -14,6 +16,8 @@ interface DangerZoneTabProps {
 export function DangerZoneTab({
   isAdmin,
   isOwner = false,
+  canDelete = isOwner,
+  hideLeave = false,
   isDeleting,
   isLastAdmin,
   isLeaving,
@@ -32,38 +36,40 @@ export function DangerZoneTab({
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-red-100 bg-red-50/60 p-4">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-sm font-bold text-red-700">
-              Leave Space
-            </p>
-            <p className="mt-1 text-xs text-red-500">
-              You will lose access to all channels and messages in this space.
-            </p>
-            {isOwner ? (
-              <p className="mt-2 text-xs font-semibold text-red-700">
-                You must transfer ownership to another member before leaving this space.
+      {!hideLeave && (
+        <div className="rounded-xl border border-red-100 bg-red-50/60 p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-red-700">
+                Leave Space
               </p>
-            ) : isLastAdmin ? (
-              <p className="mt-2 text-xs font-semibold text-red-700">
-                You are the last admin in this space. Promote another member to admin before leaving.
+              <p className="mt-1 text-xs text-red-500">
+                You will lose access to all channels and messages in this space.
               </p>
-            ) : null}
+              {isOwner ? (
+                <p className="mt-2 text-xs font-semibold text-red-700">
+                  You must transfer ownership to another member before leaving this space.
+                </p>
+              ) : isLastAdmin ? (
+                <p className="mt-2 text-xs font-semibold text-red-700">
+                  You are the last admin in this space. Promote another member to admin before leaving.
+                </p>
+              ) : null}
+            </div>
+            <button
+              type="button"
+              disabled={isLeaving || isLastAdmin || isOwner}
+              onClick={onLeave}
+              className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              <LogOut size={15} />
+              Leave
+            </button>
           </div>
-          <button
-            type="button"
-            disabled={isLeaving || isLastAdmin || isOwner}
-            onClick={onLeave}
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-100 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <LogOut size={15} />
-            Leave
-          </button>
         </div>
-      </div>
+      )}
 
-      {isOwner && (
+      {canDelete && (
         <div className="rounded-xl border border-red-200 bg-white p-4">
           <div className="flex items-start justify-between gap-4">
             <div>

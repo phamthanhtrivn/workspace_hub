@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  ConflictException,
+  Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 import * as archiver from 'archiver';
@@ -13,6 +15,7 @@ import { MoveItemDto } from './dto/move-item.dto';
 import { InitiateUploadDto } from './dto/initiate-upload.dto';
 import { ConfirmUploadDto } from './dto/confirm-upload.dto';
 import { CreateVersionDto } from './dto/create-version.dto';
+import { EnsureProjectRootFolderDto } from './dto/ensure-project-root-folder.dto';
 import {
   ItemType,
   DocumentItem,
@@ -27,42 +30,305 @@ import { S3Service } from '../../infrastructure/s3/s3.service';
 import { DOCUMENT_CONSTANTS } from '../../common/constants/document.constants';
 import { UserProfileSnapshotService } from '../user-profile-snapshot/user-profile-snapshot.service';
 import { UserProfileSnapshotResponse } from '../user-profile-snapshot/types/user-profile-snapshot.types';
+import { ProjectDocumentRealtimeClient } from './project-document-realtime.client';
 
 @Injectable()
 export class DocumentService {
+  private readonly logger = new Logger(DocumentService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly quotaService: QuotaService,
     private readonly s3Service: S3Service,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    private readonly projectDocumentRealtime: ProjectDocumentRealtimeClient,
   ) {}
+
+  private normalizeItemName(name: string) {
+    return name.trim();
+  }
+
+  private toDocumentEventData(item: Pick<DocumentItem, 'id' | 'name' | 'type' | 'parentFolderId'>) {
+    return {
+      id: item.id,
+      name: item.name,
+      type: item.type,
+      parentFolderId: item.parentFolderId,
+    };
+  }
+
+  private async publishProjectDocumentEvent(
+    item: Pick<DocumentItem, 'id' | 'name' | 'type' | 'parentFolderId' | 'projectId'>,
+    actorId: string,
+    action: 'CREATED' | 'UPDATED' | 'DELETED',
+  ): Promise<void> {
+    if (!item.projectId) return;
+    try {
+      await this.projectDocumentRealtime.publish({
+        projectId: item.projectId,
+        action,
+        actorId,
+        entityId: item.id,
+        parentFolderId: item.parentFolderId,
+        data: this.toDocumentEventData(item),
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'unknown error';
+      this.logger.warn(
+        `Failed to publish project document event for ${item.id}: ${reason}`,
+      );
+    }
+  }
+
+  private buildSiblingScopeWhere(
+    ownerUserId: string,
+    parentFolderId?: string | null,
+    projectId?: string | null,
+  ) {
+    if (parentFolderId) {
+      return { parentFolderId };
+    }
+    if (projectId) {
+      return { parentFolderId: null, projectId };
+    }
+    return { ownerUserId, parentFolderId: null, projectId: null };
+  }
+
+  private async findActiveSiblingByName(
+    ownerUserId: string,
+    name: string,
+    parentFolderId?: string | null,
+    projectId?: string | null,
+    excludeId?: string,
+  ) {
+    const normalizedName = this.normalizeItemName(name);
+    if (!normalizedName) {
+      throw new BadRequestException('Name cannot be empty');
+    }
+
+    return this.prisma.documentItem.findFirst({
+      where: {
+        ...this.buildSiblingScopeWhere(ownerUserId, parentFolderId, projectId),
+        isArchived: false,
+        name: { equals: normalizedName, mode: 'insensitive' },
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        parentFolderId: true,
+        projectId: true,
+      },
+    });
+  }
+
+  private throwDuplicateNameConflict(conflict: {
+    name: string;
+    type: ItemType;
+  }) {
+    throw new ConflictException(
+      `${conflict.type === ItemType.FOLDER ? 'A folder' : 'A file'} named "${conflict.name}" already exists in this location`,
+    );
+  }
+
+  private async assertNoActiveSiblingWithName(
+    ownerUserId: string,
+    name: string,
+    parentFolderId?: string | null,
+    projectId?: string | null,
+    excludeId?: string,
+  ) {
+    const conflict = await this.findActiveSiblingByName(
+      ownerUserId,
+      name,
+      parentFolderId,
+      projectId,
+      excludeId,
+    );
+    if (conflict) {
+      this.throwDuplicateNameConflict(conflict);
+    }
+  }
+
+  private async findProjectRootFolder(projectId: string) {
+    const rootFolder = await this.prisma.documentItem.findFirst({
+      where: {
+        projectId,
+        parentFolderId: null,
+        type: ItemType.FOLDER,
+        isArchived: false,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (!rootFolder) {
+      throw new NotFoundException('Project documents folder not found');
+    }
+
+    return rootFolder;
+  }
+
+  private async resolveWritableParentFolder(
+    userId: string,
+    userEmail: string,
+    parentFolderId?: string | null,
+    projectId?: string | null,
+    archivedMessage = 'Cannot modify an archived or trashed folder',
+  ): Promise<(DocumentItem & { shares: DocumentShare[] }) | null> {
+    let parentFolder: (DocumentItem & { shares: DocumentShare[] }) | null = null;
+
+    if (parentFolderId) {
+      parentFolder = await this.checkPermission(
+        parentFolderId,
+        userId,
+        userEmail,
+        DocumentRole.EDITOR,
+      );
+    } else if (projectId) {
+      const rootFolder = await this.findProjectRootFolder(projectId);
+      parentFolder = await this.checkPermission(
+        rootFolder.id,
+        userId,
+        userEmail,
+        DocumentRole.EDITOR,
+      );
+    }
+
+    if (!parentFolder) return null;
+    if (parentFolder.type !== ItemType.FOLDER) {
+      throw new BadRequestException('Parent item must be a folder');
+    }
+    if (parentFolder.isArchived) {
+      throw new BadRequestException(archivedMessage);
+    }
+
+    return parentFolder;
+  }
+
+  private async validateUploadNameConflict(
+    userId: string,
+    userEmail: string,
+    options: {
+      name: string;
+      parentFolderId?: string | null;
+      projectId?: string | null;
+      overwriteItemId?: string;
+    },
+  ) {
+    const conflict = await this.findActiveSiblingByName(
+      userId,
+      options.name,
+      options.parentFolderId,
+      options.projectId,
+    );
+
+    if (!conflict) {
+      if (options.overwriteItemId) {
+        throw new ConflictException(
+          'The file selected for overwrite no longer matches this upload',
+        );
+      }
+      return null;
+    }
+
+    if (conflict.type === ItemType.FOLDER) {
+      this.throwDuplicateNameConflict(conflict);
+    }
+
+    if (!options.overwriteItemId) {
+      this.throwDuplicateNameConflict(conflict);
+    }
+
+    if (conflict.id !== options.overwriteItemId) {
+      throw new ConflictException(
+        'The file selected for overwrite no longer matches this upload',
+      );
+    }
+
+    await this.checkPermission(conflict.id, userId, userEmail, DocumentRole.EDITOR);
+    return conflict;
+  }
+
+  private splitFileName(name: string) {
+    const dotIndex = name.lastIndexOf('.');
+    if (dotIndex <= 0 || dotIndex === name.length - 1) {
+      return { base: name, ext: '' };
+    }
+    return { base: name.slice(0, dotIndex), ext: name.slice(dotIndex) };
+  }
+
+  private async getAvailableImportName(
+    ownerUserId: string,
+    originalName: string,
+    parentFolderId: string | null,
+    projectId: string,
+  ) {
+    const normalizedName = this.normalizeItemName(originalName);
+    const { base, ext } = this.splitFileName(normalizedName);
+    let candidate = normalizedName;
+    let suffix = 1;
+    while (
+      await this.findActiveSiblingByName(
+        ownerUserId,
+        candidate,
+        parentFolderId,
+        projectId,
+      )
+    ) {
+      candidate = `${base} (${suffix})${ext}`;
+      suffix += 1;
+    }
+    return candidate;
+  }
+
+  private toTaskAttachmentDocumentMetadata(
+    item: Pick<DocumentItem, 'id' | 'name' | 'mimeType' | 'sizeBytes' | 'projectId'>,
+  ) {
+    return {
+      id: item.id,
+      name: item.name,
+      mimeType: item.mimeType,
+      sizeBytes: Number(item.sizeBytes),
+      projectId: item.projectId,
+    };
+  }
+
+  private assertAttachableFile(item: DocumentItem) {
+    if (item.type !== ItemType.FILE) {
+      throw new BadRequestException('Only files can be attached to tasks');
+    }
+    if (item.isArchived) {
+      throw new BadRequestException('Archived or trashed documents cannot be attached');
+    }
+    if (!item.s3Key) {
+      throw new BadRequestException('Document file is missing storage metadata');
+    }
+  }
 
   async initiateUpload(
     userId: string,
     userEmail: string,
     dto: InitiateUploadDto,
   ): Promise<{ presignedUrl: string; s3Key: string }> {
-    let parentFolder: DocumentItem | null = null;
-
-    if (dto.parentFolderId) {
-      parentFolder = await this.checkPermission(
-        dto.parentFolderId,
-        userId,
-        userEmail,
-        DocumentRole.EDITOR,
-      );
-      if (parentFolder.type !== ItemType.FOLDER) {
-        throw new BadRequestException('Parent item must be a folder');
-      }
-      if (parentFolder.isArchived) {
-        throw new BadRequestException(
-          'Cannot upload files into an archived or trashed folder',
-        );
-      }
-    }
+    const parentFolder = await this.resolveWritableParentFolder(
+      userId,
+      userEmail,
+      dto.parentFolderId,
+      dto.projectId,
+      'Cannot upload files into an archived or trashed folder',
+    );
 
     // Check storage quota
     await this.quotaService.checkQuota(userId, dto.sizeBytes);
+
+    const projectId = parentFolder?.projectId || dto.projectId || null;
+    await this.validateUploadNameConflict(userId, userEmail, {
+      name: dto.name,
+      parentFolderId: parentFolder?.id ?? null,
+      projectId,
+      overwriteItemId: dto.overwriteItemId,
+    });
 
     const { presignedUrl, s3Key } =
       await this.s3Service.generatePresignedUploadUrl(
@@ -74,44 +340,158 @@ export class DocumentService {
     return { presignedUrl, s3Key };
   }
 
+  async resolveTaskAttachmentDocuments(
+    userId: string,
+    userEmail: string,
+    projectId: string,
+    documentItemIds: string[],
+  ) {
+    const uniqueIds = [...new Set(documentItemIds)];
+    const documents: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] = [];
+    for (const documentItemId of uniqueIds) {
+      const item = await this.checkPermission(
+        documentItemId,
+        userId,
+        userEmail,
+        DocumentRole.VIEWER,
+      );
+      this.assertAttachableFile(item);
+      if (item.projectId !== projectId) {
+        throw new ForbiddenException(
+          'Document does not belong to this project',
+        );
+      }
+      documents.push(this.toTaskAttachmentDocumentMetadata(item));
+    }
+    return documents;
+  }
+
+  async importTaskAttachmentDocuments(
+    userId: string,
+    userEmail: string,
+    projectId: string,
+    documentItemIds: string[],
+  ) {
+    const uniqueIds = [...new Set(documentItemIds)];
+    const rootFolder = await this.findProjectRootFolder(projectId);
+    const imported: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] = [];
+
+    for (const documentItemId of uniqueIds) {
+      const source = await this.checkPermission(
+        documentItemId,
+        userId,
+        userEmail,
+        DocumentRole.VIEWER,
+      );
+      this.assertAttachableFile(source);
+      if (source.projectId) {
+        throw new BadRequestException(
+          'Only personal files can be imported into a task',
+        );
+      }
+      if (source.ownerUserId !== userId) {
+        throw new ForbiddenException('Only your own files can be imported');
+      }
+
+      const name = await this.getAvailableImportName(
+        userId,
+        source.name,
+        rootFolder.id,
+        projectId,
+      );
+      const item = await this.prisma.$transaction(async (tx) => {
+        const createdItem = await tx.documentItem.create({
+          data: {
+            name,
+            type: ItemType.FILE,
+            ownerUserId: userId,
+            ownerEmail: userEmail,
+            parentFolderId: rootFolder.id,
+            projectId,
+            s3Key: source.s3Key,
+            mimeType: source.mimeType,
+            sizeBytes: source.sizeBytes,
+          },
+        });
+
+        await tx.documentVersion.create({
+          data: {
+            documentItemId: createdItem.id,
+            versionNumber: 1,
+            s3Key: source.s3Key!,
+            sizeBytes: source.sizeBytes,
+            uploadedBy: userId,
+          },
+        });
+
+        return createdItem;
+      });
+
+      await this.publishProjectDocumentEvent(item, userId, 'CREATED');
+      imported.push(this.toTaskAttachmentDocumentMetadata(item));
+    }
+
+    return imported;
+  }
+
   async confirmUpload(
     userId: string,
     userEmail: string,
     dto: ConfirmUploadDto,
   ): Promise<DocumentItem> {
-    let parentFolder: DocumentItem | null = null;
+    const parentFolder = await this.resolveWritableParentFolder(
+      userId,
+      userEmail,
+      dto.parentFolderId,
+      dto.projectId,
+      'Cannot save documents into an archived or trashed folder',
+    );
 
-    if (dto.parentFolderId) {
-      parentFolder = await this.checkPermission(
-        dto.parentFolderId,
+    const projectId = parentFolder?.projectId || dto.projectId || null;
+    const normalizedName = this.normalizeItemName(dto.name);
+    const overwriteTarget = await this.validateUploadNameConflict(
+      userId,
+      userEmail,
+      {
+        name: normalizedName,
+        parentFolderId: parentFolder?.id ?? null,
+        projectId,
+        overwriteItemId: dto.overwriteItemId,
+      },
+    );
+
+    if (overwriteTarget) {
+      const version = await this.createVersion(
         userId,
         userEmail,
-        DocumentRole.EDITOR,
+        overwriteTarget.id,
+        {
+          s3Key: dto.s3Key,
+          sizeBytes: dto.sizeBytes,
+          mimeType: dto.mimeType,
+        },
       );
-      if (parentFolder.type !== ItemType.FOLDER) {
-        throw new BadRequestException('Parent item must be a folder');
+      const updatedItem = await this.prisma.documentItem.findUnique({
+        where: { id: version.documentItemId },
+      });
+      if (!updatedItem) {
+        throw new NotFoundException('Document or folder not found');
       }
-      if (parentFolder.isArchived) {
-        throw new BadRequestException(
-          'Cannot save documents into an archived or trashed folder',
-        );
-      }
+      return this.enrichDocumentItem(updatedItem);
     }
 
     // Double check quota
     await this.quotaService.checkQuota(userId, dto.sizeBytes);
 
-    const projectId = dto.projectId || parentFolder?.projectId || null;
-
     // Create DocumentItem and first Version in Database
     const item = await this.prisma.$transaction(async (tx) => {
       const createdItem = await tx.documentItem.create({
         data: {
-          name: dto.name,
+          name: normalizedName,
           type: ItemType.FILE,
           ownerUserId: userId,
           ownerEmail: userEmail,
-          parentFolderId: dto.parentFolderId || null,
+          parentFolderId: parentFolder?.id ?? null,
           projectId,
           s3Key: dto.s3Key,
           mimeType: dto.mimeType,
@@ -135,7 +515,45 @@ export class DocumentService {
     // Update storage quota (add to usedBytes)
     await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
 
+    await this.publishProjectDocumentEvent(item, userId, 'CREATED');
     return this.enrichDocumentItem(item);
+  }
+
+  async getNameConflict(
+    userId: string,
+    userEmail: string,
+    options: {
+      name: string;
+      parentFolderId?: string;
+      projectId?: string;
+    },
+  ) {
+    const parentFolder = await this.resolveWritableParentFolder(
+      userId,
+      userEmail,
+      options.parentFolderId,
+      options.projectId,
+      'Cannot upload files into an archived or trashed folder',
+    );
+
+    const projectId = parentFolder?.projectId || options.projectId || null;
+    const conflict = await this.findActiveSiblingByName(
+      userId,
+      options.name,
+      parentFolder?.id ?? null,
+      projectId,
+    );
+
+    return {
+      exists: Boolean(conflict),
+      item: conflict
+        ? {
+            id: conflict.id,
+            name: conflict.name,
+            type: conflict.type,
+          }
+        : null,
+    };
   }
 
   /**
@@ -275,6 +693,36 @@ export class DocumentService {
     throw new ForbiddenException('You are not allowed to access this item');
   }
 
+  private assertPersonalDocumentFeature(
+    item: Pick<DocumentItem, 'projectId'>,
+    feature: string,
+  ): void {
+    if (item.projectId) {
+      throw new BadRequestException(
+        `${feature} not available for project documents`,
+      );
+    }
+  }
+
+  private async checkPersonalOwnerFeature(
+    itemId: string,
+    userId: string,
+    userEmail: string,
+    feature: string,
+  ): Promise<DocumentItem & { shares: DocumentShare[] }> {
+    const item = await this.checkPermission(
+      itemId,
+      userId,
+      userEmail,
+      DocumentRole.VIEWER,
+    );
+    this.assertPersonalDocumentFeature(item, feature);
+    if (item.ownerUserId !== userId) {
+      throw new ForbiddenException('Only the owner can perform this action');
+    }
+    return item;
+  }
+
   /**
    * Checks recursively if possibleDescendantId is a child of possibleAncestorId.
    * Useful to prevent cyclic graphs (e.g. moving a folder into its own subfolder).
@@ -296,6 +744,95 @@ export class DocumentService {
     return this.isDescendant(item.parentFolderId, ancestorId);
   }
 
+  async ensureProjectRootFolder(
+    projectId: string,
+    dto: EnsureProjectRootFolderDto,
+  ): Promise<DocumentItem> {
+    const existing = await this.prisma.documentItem.findFirst({
+      where: {
+        projectId,
+        parentFolderId: null,
+        type: ItemType.FOLDER,
+        isArchived: false,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    if (existing) {
+      await this.syncProjectRootShares(existing, dto);
+      return this.enrichDocumentItem(existing);
+    }
+
+    const normalizedName = this.normalizeItemName(dto.name);
+    const folder = await this.prisma.documentItem.create({
+      data: {
+        name: normalizedName,
+        type: ItemType.FOLDER,
+        ownerUserId: dto.ownerId,
+        ownerEmail: dto.ownerEmail.toLowerCase(),
+        parentFolderId: null,
+        projectId,
+        sizeBytes: BigInt(0),
+      },
+    });
+
+    await this.syncProjectRootShares(folder, dto);
+    return this.enrichDocumentItem(folder);
+  }
+
+  private async syncProjectRootShares(
+    folder: DocumentItem,
+    dto: EnsureProjectRootFolderDto,
+  ): Promise<void> {
+    const members = (dto.members ?? [])
+      .filter((member) => member.userId !== folder.ownerUserId)
+      .map((member) => ({
+        userId: member.userId,
+        email: member.email.toLowerCase(),
+        permission: member.permission,
+      }));
+    const memberUserIds = [...new Set(members.map((member) => member.userId))];
+    const memberEmails = [...new Set(members.map((member) => member.email))];
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const member of members) {
+        await tx.documentShare.upsert({
+          where: {
+            documentItemId_shareWithEmail: {
+              documentItemId: folder.id,
+              shareWithEmail: member.email,
+            },
+          },
+          update: {
+            shareWithUserId: member.userId,
+            permission: member.permission,
+          },
+          create: {
+            documentItemId: folder.id,
+            shareWithUserId: member.userId,
+            shareWithEmail: member.email,
+            permission: member.permission,
+          },
+        });
+      }
+
+      await tx.documentShare.deleteMany({
+        where: {
+          documentItemId: folder.id,
+          shareWithUserId: { not: null },
+          ...(memberUserIds.length === 0
+            ? {}
+            : {
+                OR: [
+                  { shareWithUserId: { notIn: memberUserIds } },
+                  { shareWithEmail: { notIn: memberEmails } },
+                ],
+              }),
+        },
+      });
+    });
+  }
+
   /**
    * Creates a folder.
    */
@@ -304,40 +841,37 @@ export class DocumentService {
     userEmail: string,
     dto: CreateFolderDto,
   ): Promise<DocumentItem> {
-    let parentFolder: DocumentItem | null = null;
-
-    if (dto.parentFolderId) {
-      parentFolder = await this.checkPermission(
-        dto.parentFolderId,
-        userId,
-        userEmail,
-        DocumentRole.EDITOR,
-      );
-      if (parentFolder.type !== ItemType.FOLDER) {
-        throw new BadRequestException('Parent item must be a folder');
-      }
-      if (parentFolder.isArchived) {
-        throw new BadRequestException(
-          'Cannot create folders inside an archived or trashed folder',
-        );
-      }
-    }
+    const parentFolder = await this.resolveWritableParentFolder(
+      userId,
+      userEmail,
+      dto.parentFolderId,
+      dto.projectId,
+      'Cannot create folders inside an archived or trashed folder',
+    );
 
     // Inherit project ID from parent if not specified
-    const projectId = dto.projectId || parentFolder?.projectId || null;
+    const projectId = parentFolder?.projectId || dto.projectId || null;
+    const normalizedName = this.normalizeItemName(dto.name);
+    await this.assertNoActiveSiblingWithName(
+      userId,
+      normalizedName,
+      parentFolder?.id ?? null,
+      projectId,
+    );
 
     const folder = await this.prisma.documentItem.create({
       data: {
-        name: dto.name,
+        name: normalizedName,
         type: ItemType.FOLDER,
         ownerUserId: userId,
         ownerEmail: userEmail,
-        parentFolderId: dto.parentFolderId || null,
+        parentFolderId: parentFolder?.id ?? null,
         projectId,
         sizeBytes: BigInt(0),
       },
     });
 
+    await this.publishProjectDocumentEvent(folder, userId, 'CREATED');
     return this.enrichDocumentItem(folder);
   }
 
@@ -395,6 +929,19 @@ export class DocumentService {
     } else if (options.projectId) {
       where.projectId = options.projectId;
       where.parentFolderId = null;
+      where.OR = [
+        { ownerUserId: userId },
+        {
+          shares: {
+            some: {
+              OR: [
+                { shareWithUserId: userId },
+                { shareWithEmail: { equals: userEmail, mode: 'insensitive' } },
+              ],
+            },
+          },
+        },
+      ];
     } else if (options.folderId) {
       const folder = await this.checkPermission(
         options.folderId,
@@ -508,12 +1055,26 @@ export class DocumentService {
     id: string,
     dto: RenameItemDto,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+    const normalizedName = this.normalizeItemName(dto.name);
+    await this.assertNoActiveSiblingWithName(
+      item.ownerUserId,
+      normalizedName,
+      item.parentFolderId,
+      item.projectId,
+      id,
+    );
 
     const updated = await this.prisma.documentItem.update({
       where: { id },
-      data: { name: dto.name },
+      data: { name: normalizedName },
     });
+    await this.publishProjectDocumentEvent(updated, userId, 'UPDATED');
     return this.enrichDocumentItem(updated);
   }
 
@@ -526,19 +1087,29 @@ export class DocumentService {
     id: string,
     dto: MoveItemDto,
   ): Promise<DocumentItem> {
+    const target = await this.prisma.documentItem.findUnique({
+      where: { id },
+      select: { projectId: true },
+    });
     const item = await this.checkPermission(
       id,
       userId,
       userEmail,
-      DocumentRole.OWNER,
+      target?.projectId ? DocumentRole.EDITOR : DocumentRole.OWNER,
     );
+    if (item.projectId && item.parentFolderId === null) {
+      throw new BadRequestException(
+        'Project documents root folder cannot be moved',
+      );
+    }
 
+    let destParentFolderId = dto.parentFolderId || null;
     let destProjectId: string | null = null;
 
-    if (dto.parentFolderId) {
+    if (destParentFolderId) {
       if (item.type === ItemType.FOLDER) {
         // Prevent cyclic reference
-        const circular = await this.isDescendant(dto.parentFolderId, id);
+        const circular = await this.isDescendant(destParentFolderId, id);
         if (circular) {
           throw new BadRequestException(
             'Cannot move a folder into itself or one of its descendants',
@@ -547,7 +1118,7 @@ export class DocumentService {
       }
 
       const destFolder = await this.checkPermission(
-        dto.parentFolderId,
+        destParentFolderId,
         userId,
         userEmail,
         DocumentRole.EDITOR,
@@ -561,15 +1132,57 @@ export class DocumentService {
         );
       }
       destProjectId = destFolder.projectId;
+    } else if (item.projectId) {
+      if (!dto.projectId || dto.projectId !== item.projectId) {
+        throw new BadRequestException(
+          'Project document destination must stay in the same project',
+        );
+      }
+      const rootFolder = await this.findProjectRootFolder(item.projectId);
+      await this.checkPermission(
+        rootFolder.id,
+        userId,
+        userEmail,
+        DocumentRole.EDITOR,
+      );
+      destParentFolderId = rootFolder.id;
+      destProjectId = rootFolder.projectId;
+    } else if (dto.projectId) {
+      throw new BadRequestException(
+        'Personal documents cannot be moved into project documents',
+      );
     }
+
+    if (item.projectId && destProjectId !== item.projectId) {
+      throw new BadRequestException(
+        'Project documents can only be moved within the same project',
+      );
+    }
+    if (!item.projectId && destProjectId) {
+      throw new BadRequestException(
+        'Personal documents cannot be moved into project documents',
+      );
+    }
+
+    await this.assertNoActiveSiblingWithName(
+      item.ownerUserId,
+      item.name,
+      destParentFolderId,
+      destProjectId,
+      id,
+    );
 
     const updated = await this.prisma.documentItem.update({
       where: { id },
       data: {
-        parentFolderId: dto.parentFolderId || null,
+        parentFolderId: destParentFolderId,
         projectId: destProjectId,
       },
     });
+    await this.publishProjectDocumentEvent(updated, userId, 'UPDATED');
+    if (item.projectId && item.projectId !== updated.projectId) {
+      await this.publishProjectDocumentEvent(item, userId, 'DELETED');
+    }
     return this.enrichDocumentItem(updated);
   }
 
@@ -582,7 +1195,27 @@ export class DocumentService {
     id: string,
     archive: boolean,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
+    const target = await this.prisma.documentItem.findUnique({
+      where: { id },
+      select: { projectId: true },
+    });
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      target?.projectId ? DocumentRole.EDITOR : DocumentRole.OWNER,
+    );
+    this.assertPersonalDocumentFeature(item, 'Trash is');
+
+    if (!archive) {
+      await this.assertNoActiveSiblingWithName(
+        item.ownerUserId,
+        item.name,
+        item.parentFolderId,
+        item.projectId,
+        id,
+      );
+    }
 
     const updated = await this.prisma.documentItem.update({
       where: { id },
@@ -591,6 +1224,11 @@ export class DocumentService {
         archivedAt: archive ? new Date() : null,
       },
     });
+    await this.publishProjectDocumentEvent(
+      updated,
+      userId,
+      archive ? 'DELETED' : 'UPDATED',
+    );
     return this.enrichDocumentItem(updated);
   }
 
@@ -609,6 +1247,7 @@ export class DocumentService {
       userEmail,
       DocumentRole.VIEWER,
     );
+    this.assertPersonalDocumentFeature(item, 'Star is');
 
     if (isStarred) {
       await this.prisma.userStarredDocument.upsert({
@@ -633,6 +1272,7 @@ export class DocumentService {
       });
     }
 
+    await this.publishProjectDocumentEvent(item, userId, 'UPDATED');
     return {
       ...item,
       sizeBytes: Number(item.sizeBytes),
@@ -712,12 +1352,21 @@ export class DocumentService {
     userEmail: string,
     id: string,
   ): Promise<void> {
+    const target = await this.prisma.documentItem.findUnique({
+      where: { id },
+      select: { projectId: true },
+    });
     const item = await this.checkPermission(
       id,
       userId,
       userEmail,
-      DocumentRole.OWNER,
+      target?.projectId ? DocumentRole.EDITOR : DocumentRole.OWNER,
     );
+    if (item.projectId && item.parentFolderId === null) {
+      throw new BadRequestException(
+        'Project documents root folder cannot be deleted',
+      );
+    }
 
     let filesToDelete: DocumentItem[] = [];
     let folderIdsToDelete: string[] = [];
@@ -769,6 +1418,7 @@ export class DocumentService {
         );
       });
     }
+    await this.publishProjectDocumentEvent(item, userId, 'DELETED');
   }
 
   /**
@@ -998,6 +1648,7 @@ export class DocumentService {
     // Update uploader storage quota
     await this.quotaService.updateUsedBytes(userId, dto.sizeBytes);
 
+    await this.publishProjectDocumentEvent(item, userId, 'UPDATED');
     const [enrichedVersion] = await this.userProfileSnapshotService.attachProfilesToDocumentVersions([newVersion]);
     return enrichedVersion;
   }
@@ -1041,12 +1692,19 @@ export class DocumentService {
     id: string,
     linkAccess: LinkAccess,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
+    const item = await this.checkPersonalOwnerFeature(
+      id,
+      userId,
+      userEmail,
+      'Link sharing is',
+    );
 
-    return this.prisma.documentItem.update({
+    const updated = await this.prisma.documentItem.update({
       where: { id },
       data: { linkAccess },
     });
+    await this.publishProjectDocumentEvent(updated, userId, 'UPDATED');
+    return updated;
   }
 
   /**
@@ -1059,11 +1717,11 @@ export class DocumentService {
     shareEmail: string,
     permission: SharePermission,
   ): Promise<DocumentShare> {
-    const item = await this.checkPermission(
+    const item = await this.checkPersonalOwnerFeature(
       id,
       userId,
       userEmail,
-      DocumentRole.OWNER,
+      'Direct sharing is',
     );
 
     if (shareEmail.toLowerCase() === item.ownerEmail.toLowerCase()) {
@@ -1087,6 +1745,7 @@ export class DocumentService {
       },
     });
 
+    await this.publishProjectDocumentEvent(item, userId, 'UPDATED');
     return share;
   }
 
@@ -1099,7 +1758,12 @@ export class DocumentService {
     id: string,
     shareId: string,
   ): Promise<void> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.OWNER);
+    const item = await this.checkPersonalOwnerFeature(
+      id,
+      userId,
+      userEmail,
+      'Direct sharing is',
+    );
 
     const share = await this.prisma.documentShare.findUnique({
       where: { id: shareId },
@@ -1112,6 +1776,7 @@ export class DocumentService {
     await this.prisma.documentShare.delete({
       where: { id: shareId },
     });
+    await this.publishProjectDocumentEvent(item, userId, 'UPDATED');
   }
 
   /**
@@ -1310,11 +1975,24 @@ export class DocumentService {
     userId?: string,
     userEmail?: string,
   ): Promise<DocumentItem> {
-    await this.checkPermission(id, userId, userEmail, DocumentRole.EDITOR);
+    const item = await this.checkPermission(
+      id,
+      userId,
+      userEmail,
+      DocumentRole.EDITOR,
+    );
+    const normalizedName = this.normalizeItemName(dto.name);
+    await this.assertNoActiveSiblingWithName(
+      item.ownerUserId,
+      normalizedName,
+      item.parentFolderId,
+      item.projectId,
+      id,
+    );
 
     return this.prisma.documentItem.update({
       where: { id },
-      data: { name: dto.name },
+      data: { name: normalizedName },
     });
   }
 
@@ -1621,11 +2299,11 @@ export class DocumentService {
     emails: string[],
     permission: SharePermission,
   ): Promise<DocumentShare[]> {
-    const item = await this.checkPermission(
+    const item = await this.checkPersonalOwnerFeature(
       id,
       userId,
       userEmail,
-      DocumentRole.OWNER,
+      'Direct sharing is',
     );
 
     const shares: DocumentShare[] = [];
@@ -1652,6 +2330,7 @@ export class DocumentService {
       shares.push(share);
     }
 
+    await this.publishProjectDocumentEvent(item, userId, 'UPDATED');
     return shares;
   }
 

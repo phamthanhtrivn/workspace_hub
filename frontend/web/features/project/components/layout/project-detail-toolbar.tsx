@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, Plus, UserPlus } from "lucide-react";
+import { Loader2, Menu, MessageCircle, Plus, UserPlus } from "lucide-react";
 import { AvatarStack } from "../ui/avatar-stack";
 import { ProjectSearchInput } from "../ui/project-form-controls";
 import TaskQuickFilters from "../ui/task-quick-filters";
@@ -39,7 +39,9 @@ interface ProjectDetailToolbarProps {
   onlyMyIssues: boolean;
   isFiltersActive: boolean;
   canCreateTask: boolean;
+  canOpenProjectChat?: boolean;
   canInviteMembers?: boolean;
+  isOpeningProjectChat?: boolean;
   onViewChange?: (view: ProjectViewMode) => void;
   onSearchChange: (value: string) => void;
   onStatusChange: (value: TaskStatus | "") => void;
@@ -52,6 +54,7 @@ interface ProjectDetailToolbarProps {
   onOpenProjectNavigation: () => void;
   onCreateTask: () => void;
   onInviteMembers?: () => void;
+  onOpenProjectChat?: () => void;
 }
 
 function TaskStatusCounts({
@@ -94,8 +97,10 @@ export default function ProjectDetailToolbar({
   onlyMyIssues,
   isFiltersActive,
   canCreateTask,
+  canOpenProjectChat,
   viewMode,
   canInviteMembers,
+  isOpeningProjectChat,
   onViewChange,
   onSearchChange,
   onStatusChange,
@@ -107,8 +112,11 @@ export default function ProjectDetailToolbar({
   onOpenProjectNavigation,
   onCreateTask,
   onInviteMembers,
+  onOpenProjectChat,
 }: ProjectDetailToolbarProps) {
   const isMembersView = viewMode === "members";
+  const isDocumentsView = viewMode === "documents";
+  const isTaskView = !isMembersView && !isDocumentsView;
 
   return (
     <>
@@ -162,9 +170,30 @@ export default function ProjectDetailToolbar({
               Manage members, roles, and project access permissions.
             </p>
           )}
+          {isDocumentsView && (
+            <p className="mt-1 text-xs text-slate-500">
+              Upload and organize files for this project.
+            </p>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
+          {canOpenProjectChat && onOpenProjectChat && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onOpenProjectChat}
+              disabled={isOpeningProjectChat}
+              className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isOpeningProjectChat ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} />
+              )}
+              Project Chat
+            </Button>
+          )}
           {isMembersView
             ? canInviteMembers &&
               onInviteMembers && (
@@ -177,7 +206,8 @@ export default function ProjectDetailToolbar({
                   Invite Member
                 </Button>
               )
-            : canCreateTask && (
+            : isTaskView &&
+              canCreateTask && (
                 <Button
                   type="button"
                   onClick={onCreateTask}
@@ -190,7 +220,7 @@ export default function ProjectDetailToolbar({
         </div>
       </div>
 
-      {!isMembersView && (
+      {isTaskView && (
         <>
           <div className="mt-4">
             <TaskStatusCounts tasks={tasks} counts={taskStatusCounts} />

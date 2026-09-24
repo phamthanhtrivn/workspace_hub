@@ -5,6 +5,7 @@ import {
   CalendarClock,
   ChevronLeft,
   ChevronRight,
+  FileText,
   FolderKanban,
   LayoutDashboard,
   LayoutGrid,
@@ -38,6 +39,7 @@ export type ProjectViewMode =
   | "list"
   | "calendar"
   | "gantt"
+  | "documents"
   | "members";
 
 interface ProjectDetailSidebarProps {
@@ -81,6 +83,7 @@ const NAV_ITEMS: Array<{
     { view: "list", label: "Backlog", icon: ListTodo },
     { view: "calendar", label: "Schedule", icon: CalendarClock },
     { view: "gantt", label: "Grantt Chart", icon: Route },
+    { view: "documents", label: "Documents", icon: FileText },
   ];
 
 function SidebarTooltip({
@@ -257,7 +260,7 @@ export default function ProjectDetailSidebar({
           </Button>
         </header>
 
-        <nav className="flex min-h-0 flex-1 flex-col px-2 py-3">
+        <nav className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 py-3">
           <div className="space-y-1">
             {NAV_ITEMS.map(({ view, label, icon }) => (
               <SidebarNavItem
@@ -275,7 +278,7 @@ export default function ProjectDetailSidebar({
           <div className="my-3 h-px shrink-0 bg-slate-100" />
 
           <section
-            className="flex min-h-0 flex-1 flex-col"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden"
             aria-label="Project members"
           >
             <div
@@ -364,7 +367,7 @@ export default function ProjectDetailSidebar({
 
             <div
               className={cn(
-                "mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto px-1 pb-2",
+                "mt-1 min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-1 pb-2 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300",
                 isCollapsed && "lg:hidden",
               )}
             >

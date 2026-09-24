@@ -1,14 +1,34 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ApiResponse } from '../../common/utils/api-response';
+import { RuntimeConfigService } from '../../common/config/runtime-config.service';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
+import { Public } from '../../common/decorators/public.decorator';
 import { CreateProjectDto } from './dto/create-project.dto';
+import { InternalDocumentEventDto } from './dto/internal-document-event.dto';
+import { InternalProjectSpaceEventDto } from './dto/internal-project-space-event.dto';
+import { InternalRenameProjectDto } from './dto/internal-rename-project.dto';
 import { ProjectListQueryDto } from './dto/project-list-query.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ProjectService } from './project.service';
 
 @Controller('api/projects')
 export class ProjectController {
-  constructor(private readonly projects: ProjectService) {}
+  constructor(
+    private readonly projects: ProjectService,
+    private readonly config: RuntimeConfigService,
+  ) {}
 
   @Post()
   async create(@CurrentUserId() userId: string, @Body() dto: CreateProjectDto) {
@@ -21,12 +41,87 @@ export class ProjectController {
     return ApiResponse.success(result.items, 'Projects loaded successfully', result.pagination);
   }
 
+  @Post(':projectId/space')
+  async openProjectSpace(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return ApiResponse.success(
+      await this.projects.openProjectSpace(userId, projectId),
+      'Project space opened successfully',
+    );
+  }
+
+  @Get(':projectId/space/status')
+  async getProjectSpaceStatus(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return ApiResponse.success(
+      await this.projects.getProjectSpaceStatus(userId, projectId),
+      'Project space status loaded successfully',
+    );
+  }
+
+  @Post(':projectId/documents')
+  async openProjectDocuments(
+    @CurrentUserId() userId: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+  ) {
+    return ApiResponse.success(
+      await this.projects.openProjectDocuments(userId, projectId),
+      'Project documents opened successfully',
+    );
+  }
+
   @Get(':projectId')
   async findOne(
     @CurrentUserId() userId: string,
     @Param('projectId', new ParseUUIDPipe()) projectId: string,
   ) {
     return ApiResponse.success(await this.projects.findOne(userId, projectId), 'Project loaded successfully');
+  }
+
+  @Patch('internal/:projectId/name')
+  @Public()
+  async renameProjectFromSpace(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() dto: InternalRenameProjectDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    return ApiResponse.success(
+      await this.projects.renameProjectFromSpace(projectId, dto),
+      'Project name synced successfully',
+    );
+  }
+
+  @Post('internal/:projectId/document-events')
+  @Public()
+  async publishProjectDocumentEvent(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() dto: InternalDocumentEventDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    return ApiResponse.success(
+      await this.projects.publishDocumentEvent(projectId, dto),
+      'Project document event published successfully',
+    );
+  }
+
+  @Post('internal/:projectId/space-events')
+  @Public()
+  async publishProjectSpaceEvent(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Param('projectId', new ParseUUIDPipe()) projectId: string,
+    @Body() dto: InternalProjectSpaceEventDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    return ApiResponse.success(
+      await this.projects.publishProjectSpaceEvent(projectId, dto),
+      'Project space event published successfully',
+    );
   }
 
   @Patch(':projectId')
@@ -45,5 +140,11 @@ export class ProjectController {
   ) {
     await this.projects.archive(userId, projectId);
     return ApiResponse.success(null, 'Project archived successfully');
+  }
+
+  private assertInternalServiceKey(serviceKey?: string): void {
+    if (!serviceKey || serviceKey !== this.config.internalServiceKey) {
+      throw new UnauthorizedException('Invalid internal service key');
+    }
   }
 }

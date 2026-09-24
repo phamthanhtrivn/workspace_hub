@@ -147,6 +147,7 @@ export interface SpaceResponse {
   id: string;
   name: string;
   createdBy?: string;
+  projectId?: string | null;
   avatarUrl?: string | null;
   ownerId?: string | null;
   createdAt?: string;

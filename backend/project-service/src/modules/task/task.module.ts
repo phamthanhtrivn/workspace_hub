@@ -6,6 +6,8 @@ import { ProjectModule } from '../project/project.module';
 import { ActivityModule } from '../activity/activity.module';
 import { NotificationOutboxModule } from '../notification-outbox/notification-outbox.module';
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
+import { HttpJsonClient } from '../../common/adapters/http-json.client';
+import { TaskDocumentClient } from './task-document.client';
 
 @Module({
   imports: [
@@ -15,7 +17,7 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     UserProfileSnapshotModule,
   ],
   controllers: [TaskController],
-  providers: [TaskService, TaskPolicyService],
+  providers: [TaskService, TaskPolicyService, TaskDocumentClient, HttpJsonClient],
   exports: [TaskService, TaskPolicyService],
 })
 export class TaskModule {}

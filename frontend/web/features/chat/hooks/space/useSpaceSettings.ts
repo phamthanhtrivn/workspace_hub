@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import Swal from "sweetalert2";
 import { toast } from "sonner";
 import {
   cancelSpaceInvitation,
@@ -23,14 +22,12 @@ import {
   chatKeys,
 } from "../../types/chat.constant";
 import {
-  SpaceMemberListItem,
   SpaceResponse,
   SpaceSettingResponse,
   SpaceRole,
 } from "../../types/chat.types";
 import {
   getErrorMessage,
-  getSpaceMemberName,
   isLastSpaceAdmin,
   isSpaceAdmin,
 } from "../../types/space-settings/space-settings.types";
@@ -116,10 +113,11 @@ export function useSpaceSettings({
   const isResolvingMembership =
     membersQuery.isLoading || roleMembersQuery.isLoading;
   const detail = detailsQuery.data || space;
+  const isProjectSpace = Boolean(detail.projectId || space.projectId);
   const invitationsQuery = useQuery({
     queryKey: chatKeys.spaceInvitations(space.id),
     queryFn: async () => (await getSpaceInvitations(space.id)).data,
-    enabled: isOpen && isAdmin,
+    enabled: isOpen && isAdmin && !isProjectSpace,
   });
 
   const invalidateSpaceData = () => {
@@ -321,122 +319,6 @@ export function useSpaceSettings({
       ),
   });
 
-  const confirmOwnershipTransfer = async (member: SpaceMemberListItem) => {
-    const result = await Swal.fire({
-      title: "Transfer Space Ownership",
-      text: `Are you sure you want to transfer space ownership to ${getSpaceMemberName(member)}?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Transfer",
-      cancelButtonText: "Cancel",
-    });
-    if (result.isConfirmed) {
-      transferOwnershipMutation.mutate(member.userId);
-    }
-  };
-
-  const confirmRemoveMember = async (member: SpaceMemberListItem) => {
-    const result = await Swal.fire({
-      title: "Remove Member",
-      text: `Are you sure you want to remove ${getSpaceMemberName(member)} from this space?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Remove",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#dc2626",
-    });
-    if (result.isConfirmed) {
-      removeMemberMutation.mutate(member.userId);
-    }
-  };
-
-  const confirmUpdateMemberRole = async (
-    member: SpaceMemberListItem,
-    role: SpaceRole,
-  ) => {
-    const actionText =
-      role === SpaceRole.ADMIN
-        ? "promote this user to Admin"
-        : "demote this user to Member";
-    const result = await Swal.fire({
-      title: "Update Member Role",
-      text: `Are you sure you want to ${actionText}?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes",
-      cancelButtonText: "Cancel",
-    });
-
-    if (result.isConfirmed) {
-      updateMemberRoleMutation.mutate({ memberId: member.userId, role });
-    }
-  };
-
-  const confirmCancelInvitation = async (invitationId: string) => {
-    const result = await Swal.fire({
-      title: "Cancel Invitation",
-      text: "Are you sure you want to cancel this pending invitation?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Confirm",
-      cancelButtonText: "Cancel",
-    });
-    if (result.isConfirmed) {
-      cancelInvitationMutation.mutate(invitationId);
-    }
-  };
-
-  const confirmResendInvitation = async (invitationId: string) => {
-    const result = await Swal.fire({
-      title: "Resend Invitation",
-      text: "Do you want to resend this invitation email?",
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Resend",
-      cancelButtonText: "Cancel",
-    });
-    if (result.isConfirmed) {
-      resendInvitationMutation.mutate(invitationId);
-    }
-  };
-
-  const confirmLeaveSpace = async () => {
-    const result = await Swal.fire({
-      title: "Leave Space",
-      text: "Are you sure you want to leave this space?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Leave",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#dc2626",
-    });
-    if (result.isConfirmed) {
-      leaveSpaceMutation.mutate();
-    }
-  };
-
-  const confirmDeleteSpace = async () => {
-    const result = await Swal.fire({
-      title: "Delete Space",
-      input: "text",
-      inputLabel: `Type "${space.name}" to confirm space deletion`,
-      inputValidator: (value) =>
-        value === space.name
-          ? null
-          : "Space name does not match",
-      icon: "error",
-      showCancelButton: true,
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
-      confirmButtonColor: "#dc2626",
-    });
-    if (result.isConfirmed) {
-      deleteSpaceMutation.mutate();
-    }
-  };
-
   return {
     allMembers,
     currentMember,
@@ -459,13 +341,6 @@ export function useSpaceSettings({
     deleteSpaceMutation,
     cancelInvitationMutation,
     resendInvitationMutation,
-    confirmOwnershipTransfer,
-    confirmRemoveMember,
-    confirmCancelInvitation,
-    confirmResendInvitation,
-    confirmLeaveSpace,
-    confirmDeleteSpace,
-    confirmUpdateMemberRole,
     invalidateSpaceData,
   };
 }

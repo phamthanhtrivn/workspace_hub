@@ -59,6 +59,7 @@ model ProjectMember {
   canEditOthersTask     Boolean   @default(false) @map("can_edit_others_task")
   canManageMembers      Boolean   @default(false) @map("can_manage_members")
   canManageLabels       Boolean   @default(false) @map("can_manage_labels")
+  canEditDocuments      Boolean   @default(false) @map("can_edit_documents")
   joinedAt              DateTime  @map("joined_at")
   leftAt                DateTime? @map("left_at")
   updatedAt             DateTime  @map("updated_at")
@@ -102,6 +103,7 @@ model Task {
   activities TaskActivity[]
   checklists TaskChecklist[]
   assignees TaskAssignee[]
+  documentAttachments TaskDocumentAttachment[]
   labelMappings TaskLabelMapping[]
   dependenciesFrom TaskDependency[] @relation("DependencyPredecessor")
   dependenciesTo TaskDependency[] @relation("DependencySuccessor")
@@ -218,6 +220,26 @@ model TaskActivity {
 
   @@index([taskId, createdAt], map: "idx_task_activities_task_created")
   @@map("task_activities")
+}
+
+model TaskDocumentAttachment {
+  id             String   @id @default(uuid()) @db.Uuid
+  taskId         String   @map("task_id") @db.Uuid
+  projectId      String   @map("project_id") @db.Uuid
+  documentItemId String   @map("document_item_id") @db.Uuid
+  source         String   @db.VarChar(30)
+  name           String
+  mimeType       String?  @map("mime_type")
+  sizeBytes      BigInt   @default(0) @map("size_bytes")
+  attachedBy     String   @map("attached_by") @db.Uuid
+  createdAt      DateTime @map("created_at")
+
+  task Task @relation(fields: [taskId, projectId], references: [id, projectId], onDelete: Cascade)
+
+  @@unique([taskId, documentItemId], map: "uk_task_document_attachments_task_document")
+  @@index([projectId, createdAt], map: "idx_task_document_attachments_project_created")
+  @@index([documentItemId], map: "idx_task_document_attachments_document")
+  @@map("task_document_attachments")
 }
 
 model ProjectInvitation {

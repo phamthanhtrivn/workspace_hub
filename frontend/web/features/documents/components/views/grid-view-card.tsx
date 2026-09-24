@@ -21,7 +21,7 @@ export interface GridViewCardProps {
   setActiveMenuId: (id: string | null) => void;
   onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (item: DocumentItem) => void;
+  onToggleStar?: (item: DocumentItem) => void;
   onMoveToTrash: (item: DocumentItem) => void;
   onRestore: (item: DocumentItem) => void;
   onViewDetails: (item: DocumentItem) => void;
@@ -32,6 +32,7 @@ export interface GridViewCardProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
+  isProjectDocuments?: boolean;
 }
 
 export function GridViewCard({
@@ -55,6 +56,7 @@ export function GridViewCard({
   onManageVersions,
   onShare,
   onShareToChat,
+  isProjectDocuments = false,
 }: GridViewCardProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
   const isSelected = item.id === selectedItemId;
@@ -126,7 +128,7 @@ export function GridViewCard({
             setActiveMenuId={setActiveMenuId}
             onRename={() => onRename(item)}
             onMove={() => onMove(item.id)}
-            onToggleStar={() => onToggleStar(item)}
+            onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
             onArchive={(archive) => (archive ? onMoveToTrash(item) : onRestore(item))}
             onViewDetails={() => onViewDetails(item)}
             onDeletePermanently={() => onDeletePermanently(item)}
@@ -136,6 +138,7 @@ export function GridViewCard({
             onManageVersions={() => onManageVersions?.(item)}
             onShare={() => onShare?.(item)}
             onShareToChat={() => onShareToChat?.(item)}
+            isProjectDocuments={isProjectDocuments}
           />
         </div>
 
@@ -152,7 +155,7 @@ export function GridViewCard({
         {/* Footer Indicators */}
         <div className="flex items-center justify-between pt-2 border-t border-slate-100">
           <DocumentsStatusBadge type="itemType" itemType={item.type} />
-          {item.isStarred ? (
+          {!isProjectDocuments && item.isStarred ? (
             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
           ) : null}
         </div>
