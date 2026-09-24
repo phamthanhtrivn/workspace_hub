@@ -41,6 +41,7 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
     ],
     PROJECT_SPACE: [[...projectKey, 'space-status']],
     CHECKLIST: [[...projectKey, 'tasks']],
+    TASK_DOCUMENT: [[...projectKey, 'tasks']],
     LABEL: [[...projectKey, 'labels'], [...projectKey, 'tasks']],
     DEPENDENCY: [[...projectKey, 'dependencies']],
     DOCUMENT: [
@@ -58,6 +59,11 @@ export function projectQueriesForEvent(event: ProjectChangedEvent): ProjectQuery
   if (event.resource === 'DOCUMENT' && event.entityId) {
     invalidations.push({ queryKey: ['document-versions', event.entityId] });
     invalidations.push({ queryKey: ['document-preview', event.entityId] });
+  }
+  if (event.resource === 'TASK_DOCUMENT' && event.taskId) {
+    invalidations.push({ queryKey: ['tasks', event.taskId] });
+    invalidations.push({ queryKey: ['tasks', event.taskId, 'documents'] });
+    invalidations.push({ queryKey: ['tasks', event.taskId, 'activities'] });
   }
 
   const taskIds = new Set(event.taskIds ?? []);

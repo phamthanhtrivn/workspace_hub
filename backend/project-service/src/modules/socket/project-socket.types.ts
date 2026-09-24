@@ -12,6 +12,7 @@ export type ProjectResource =
   | 'PROJECT_SPACE'
   | 'CHECKLIST'
   | 'COMMENT'
+  | 'TASK_DOCUMENT'
   | 'LABEL'
   | 'DEPENDENCY'
   | 'DOCUMENT';

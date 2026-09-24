@@ -27,6 +27,8 @@ export const ACTIVITY_ACTION_LABELS: Record<string, string> = {
   comment_created: "commented on task",
   comment_updated: "edited a comment",
   comment_deleted: "deleted a comment",
+  "documents.attached": "attached document",
+  "documents.detached": "removed document",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -77,6 +79,16 @@ export function createTaskActivityPresenter(
           return `${checklist.title || "Checklist item"} (${checklist.completed ? "Done" : "Pending"})`;
         }
         return checklist.title || "Checklist item";
+      } catch {
+        return value;
+      }
+    }
+    if (activity.field.startsWith("documents.")) {
+      try {
+        const parsed = JSON.parse(value) as unknown;
+        if (Array.isArray(parsed)) {
+          return parsed.filter(Boolean).join(", ");
+        }
       } catch {
         return value;
       }

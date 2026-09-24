@@ -250,6 +250,62 @@ export class DocumentService {
     return conflict;
   }
 
+  private splitFileName(name: string) {
+    const dotIndex = name.lastIndexOf('.');
+    if (dotIndex <= 0 || dotIndex === name.length - 1) {
+      return { base: name, ext: '' };
+    }
+    return { base: name.slice(0, dotIndex), ext: name.slice(dotIndex) };
+  }
+
+  private async getAvailableImportName(
+    ownerUserId: string,
+    originalName: string,
+    parentFolderId: string | null,
+    projectId: string,
+  ) {
+    const normalizedName = this.normalizeItemName(originalName);
+    const { base, ext } = this.splitFileName(normalizedName);
+    let candidate = normalizedName;
+    let suffix = 1;
+    while (
+      await this.findActiveSiblingByName(
+        ownerUserId,
+        candidate,
+        parentFolderId,
+        projectId,
+      )
+    ) {
+      candidate = `${base} (${suffix})${ext}`;
+      suffix += 1;
+    }
+    return candidate;
+  }
+
+  private toTaskAttachmentDocumentMetadata(
+    item: Pick<DocumentItem, 'id' | 'name' | 'mimeType' | 'sizeBytes' | 'projectId'>,
+  ) {
+    return {
+      id: item.id,
+      name: item.name,
+      mimeType: item.mimeType,
+      sizeBytes: Number(item.sizeBytes),
+      projectId: item.projectId,
+    };
+  }
+
+  private assertAttachableFile(item: DocumentItem) {
+    if (item.type !== ItemType.FILE) {
+      throw new BadRequestException('Only files can be attached to tasks');
+    }
+    if (item.isArchived) {
+      throw new BadRequestException('Archived or trashed documents cannot be attached');
+    }
+    if (!item.s3Key) {
+      throw new BadRequestException('Document file is missing storage metadata');
+    }
+  }
+
   async initiateUpload(
     userId: string,
     userEmail: string,
@@ -282,6 +338,100 @@ export class DocumentService {
       );
 
     return { presignedUrl, s3Key };
+  }
+
+  async resolveTaskAttachmentDocuments(
+    userId: string,
+    userEmail: string,
+    projectId: string,
+    documentItemIds: string[],
+  ) {
+    const uniqueIds = [...new Set(documentItemIds)];
+    const documents: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] = [];
+    for (const documentItemId of uniqueIds) {
+      const item = await this.checkPermission(
+        documentItemId,
+        userId,
+        userEmail,
+        DocumentRole.VIEWER,
+      );
+      this.assertAttachableFile(item);
+      if (item.projectId !== projectId) {
+        throw new ForbiddenException(
+          'Document does not belong to this project',
+        );
+      }
+      documents.push(this.toTaskAttachmentDocumentMetadata(item));
+    }
+    return documents;
+  }
+
+  async importTaskAttachmentDocuments(
+    userId: string,
+    userEmail: string,
+    projectId: string,
+    documentItemIds: string[],
+  ) {
+    const uniqueIds = [...new Set(documentItemIds)];
+    const rootFolder = await this.findProjectRootFolder(projectId);
+    const imported: ReturnType<typeof this.toTaskAttachmentDocumentMetadata>[] = [];
+
+    for (const documentItemId of uniqueIds) {
+      const source = await this.checkPermission(
+        documentItemId,
+        userId,
+        userEmail,
+        DocumentRole.VIEWER,
+      );
+      this.assertAttachableFile(source);
+      if (source.projectId) {
+        throw new BadRequestException(
+          'Only personal files can be imported into a task',
+        );
+      }
+      if (source.ownerUserId !== userId) {
+        throw new ForbiddenException('Only your own files can be imported');
+      }
+
+      const name = await this.getAvailableImportName(
+        userId,
+        source.name,
+        rootFolder.id,
+        projectId,
+      );
+      const item = await this.prisma.$transaction(async (tx) => {
+        const createdItem = await tx.documentItem.create({
+          data: {
+            name,
+            type: ItemType.FILE,
+            ownerUserId: userId,
+            ownerEmail: userEmail,
+            parentFolderId: rootFolder.id,
+            projectId,
+            s3Key: source.s3Key,
+            mimeType: source.mimeType,
+            sizeBytes: source.sizeBytes,
+          },
+        });
+
+        await tx.documentVersion.create({
+          data: {
+            documentItemId: createdItem.id,
+            versionNumber: 1,
+            s3Key: source.s3Key!,
+            sizeBytes: source.sizeBytes,
+            uploadedBy: userId,
+          },
+        });
+
+        return createdItem;
+      });
+
+      await this.publishProjectDocumentEvent(item, userId, 'CREATED');
+      imported.push(this.toTaskAttachmentDocumentMetadata(item));
+    }
+
+    return imported;
   }
 
   async confirmUpload(

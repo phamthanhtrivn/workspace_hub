@@ -104,6 +104,13 @@ export class ProjectSocketInterceptor implements NestInterceptor {
         });
         return { projectId: comment?.task.projectId, taskId: comment?.taskId };
       }
+      if (params.attachmentId) {
+        const attachment = await this.prisma.taskDocumentAttachment.findUnique({
+          where: { id: params.attachmentId },
+          select: { taskId: true, projectId: true },
+        });
+        return { projectId: attachment?.projectId, taskId: attachment?.taskId };
+      }
       if (params.labelId) {
         const label = await this.prisma.taskLabel.findUnique({ where: { id: params.labelId }, select: { projectId: true } });
         return { projectId: label?.projectId };
@@ -122,6 +129,7 @@ export class ProjectSocketInterceptor implements NestInterceptor {
     if (path.includes('/members')) return 'MEMBER';
     if (path.includes('/checklists')) return 'CHECKLIST';
     if (path.includes('/task-comments') || path.includes('/comments')) return 'COMMENT';
+    if (path.includes('/tasks') && path.includes('/documents')) return 'TASK_DOCUMENT';
     if (path.includes('/dependencies')) return 'DEPENDENCY';
     if (path.includes('/labels')) return 'LABEL';
     if (path.includes('/tasks')) return 'TASK';
@@ -140,7 +148,7 @@ export class ProjectSocketInterceptor implements NestInterceptor {
   private entityId(request: Request): string | undefined {
     const params = request.params as Record<string, string | undefined>;
     return params.taskId ?? params.successorTaskId ?? params.checklistId
-      ?? params.commentId ?? params.labelId ?? params.invitationId ?? params.memberUserId;
+      ?? params.commentId ?? params.attachmentId ?? params.labelId ?? params.invitationId ?? params.memberUserId;
   }
 
   private targetUsers(

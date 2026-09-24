@@ -11,6 +11,7 @@ import TaskChatButton from "../ui/task-chat-button";
 import TaskActivityPanel from "./task-activity-panel";
 import TaskChecklistSection from "./task-checklist-section";
 import TaskCommentsSection from "./task-comments-section";
+import TaskDocumentsSection from "./task-documents-section";
 import TaskStatusPicker from "./task-status-picker";
 import TaskLabelsPicker from "./task-labels-picker";
 import TaskDependenciesSection from "./task-dependencies-section";
@@ -367,6 +368,11 @@ export default function TaskDetailDrawer({
             onCreate={onCreateChecklist}
             onUpdate={onUpdateChecklist}
             onDelete={onDeleteChecklist}
+          />
+
+          <TaskDocumentsSection
+            task={task}
+            isReadOnly={isCollaborationReadOnly}
           />
 
           {/* Details Accordion / Properties Panel */}

@@ -130,6 +130,25 @@ export interface TaskActivity {
   createdAt: string;
 }
 
+export enum TaskDocumentAttachmentSource {
+  DEVICE_UPLOAD = "DEVICE_UPLOAD",
+  MY_FILES = "MY_FILES",
+  PROJECT_DOCUMENT = "PROJECT_DOCUMENT",
+}
+
+export interface TaskDocumentAttachment {
+  id: string;
+  taskId: string;
+  projectId: string;
+  documentItemId: string;
+  source: TaskDocumentAttachmentSource;
+  name: string;
+  mimeType: string | null;
+  sizeBytes: number;
+  attachedBy: string;
+  createdAt: string;
+}
+
 export interface TaskAssignee {
   id: string;
   taskId: string;
@@ -181,6 +200,7 @@ export interface Task {
 
   // Relations (populated)
   checklists: TaskChecklist[];
+  documentAttachments: TaskDocumentAttachment[];
   assignees: TaskAssignee[];
   comments: TaskComment[];
   activities: TaskActivity[];

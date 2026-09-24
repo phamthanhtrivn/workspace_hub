@@ -28,6 +28,7 @@ type TaskWithCount = Prisma.TaskGetPayload<{
     _count: { select: { children: true } };
     checklists: true;
     assignees: true;
+    documentAttachments: true;
     labelMappings: { include: { label: true } };
   };
 }>;
@@ -140,6 +141,21 @@ export function toTaskResponse(
         ? task.checklists
         : [],
     assignees,
+    documentAttachments:
+      "documentAttachments" in task && Array.isArray(task.documentAttachments)
+        ? task.documentAttachments.map((attachment) => ({
+            id: attachment.id,
+            taskId: attachment.taskId,
+            projectId: attachment.projectId,
+            documentItemId: attachment.documentItemId,
+            source: attachment.source,
+            name: attachment.name,
+            mimeType: attachment.mimeType,
+            sizeBytes: Number(attachment.sizeBytes),
+            attachedBy: attachment.attachedBy,
+            createdAt: attachment.createdAt,
+          }))
+        : [],
     labels:
       "labelMappings" in task && Array.isArray(task.labelMappings)
         ? task.labelMappings.map((mapping) => mapping.label)

@@ -26,6 +26,7 @@ import { AddShareDto } from './dto/add-share.dto';
 import { CheckPermissionsDto } from './dto/check-permissions.dto';
 import { AddShareBatchDto } from './dto/add-share-batch.dto';
 import { EnsureProjectRootFolderDto } from './dto/ensure-project-root-folder.dto';
+import { TaskAttachmentDocumentsDto } from './dto/task-attachment-documents.dto';
 
 import { DocumentSortBy } from '../../common/enums/document.enum';
 
@@ -64,6 +65,42 @@ export class DocumentController {
         folderId: folder.id,
         name: folder.name,
       },
+    };
+  }
+
+  @Post('internal/task-attachments/resolve')
+  async resolveTaskAttachmentDocuments(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Body() dto: TaskAttachmentDocumentsDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const documents = await this.documentService.resolveTaskAttachmentDocuments(
+      dto.userId,
+      dto.userEmail,
+      dto.projectId,
+      dto.documentItemIds,
+    );
+    return {
+      message: 'Task attachment documents resolved successfully',
+      data: documents,
+    };
+  }
+
+  @Post('internal/task-attachments/import')
+  async importTaskAttachmentDocuments(
+    @Headers('x-internal-service-key') serviceKey: string,
+    @Body() dto: TaskAttachmentDocumentsDto,
+  ) {
+    this.assertInternalServiceKey(serviceKey);
+    const documents = await this.documentService.importTaskAttachmentDocuments(
+      dto.userId,
+      dto.userEmail,
+      dto.projectId,
+      dto.documentItemIds,
+    );
+    return {
+      message: 'Task attachment documents imported successfully',
+      data: documents,
     };
   }
 
