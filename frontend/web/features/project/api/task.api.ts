@@ -7,6 +7,8 @@ import {
   type TaskAssignee,
   type TaskLabel,
   type TaskActivity,
+  type TaskDocumentAttachment,
+  TaskDocumentAttachmentSource,
 } from "@/features/project/types/project";
 import { fetchAllPages, type PaginationMeta } from "./pagination";
 import type { ProjectTaskQuery } from "../project-task-view";
@@ -44,6 +46,7 @@ export interface TaskApiModel {
     Pick<TaskAssignee, "id" | "taskId" | "userId" | "assignedAt">
   >;
   labels?: TaskLabel[];
+  documentAttachments?: TaskDocumentAttachment[];
 }
 
 export interface CreateTaskPayload {
@@ -78,6 +81,11 @@ export interface UpdateTaskPayload {
 
 export type ProjectTaskStatusCounts = Record<TaskStatus, number>;
 
+export interface AttachTaskDocumentsPayload {
+  documentItemIds: string[];
+  source: TaskDocumentAttachmentSource;
+}
+
 function unwrap<T>(response: { data: ApiResponse<T> }): T {
   if (!response.data.success) {
     throw new Error(response.data.message || "Task API request failed");
@@ -111,6 +119,7 @@ export function normalizeTask(task: TaskApiModel): Task {
     createdAt: task.createdAt || now,
     updatedAt: task.updatedAt || now,
     checklists: task.checklists || [],
+    documentAttachments: task.documentAttachments || [],
     assignees: (task.assignees || []).map((assignee) => ({
       ...assignee,
       displayName: "",
@@ -212,4 +221,34 @@ export async function getTaskActivities(
     );
     return { items: unwrap(response) || [], meta: response.data.meta };
   });
+}
+
+export async function getTaskDocuments(
+  taskId: string,
+): Promise<TaskDocumentAttachment[]> {
+  const response = await api.get<ApiResponse<TaskDocumentAttachment[]>>(
+    `/api/tasks/${taskId}/documents`,
+  );
+  return unwrap(response) || [];
+}
+
+export async function attachTaskDocuments(
+  taskId: string,
+  payload: AttachTaskDocumentsPayload,
+): Promise<TaskDocumentAttachment[]> {
+  const response = await api.post<ApiResponse<TaskDocumentAttachment[]>>(
+    `/api/tasks/${taskId}/documents`,
+    payload,
+  );
+  return unwrap(response) || [];
+}
+
+export async function detachTaskDocument(
+  taskId: string,
+  attachmentId: string,
+): Promise<TaskDocumentAttachment> {
+  const response = await api.delete<ApiResponse<TaskDocumentAttachment>>(
+    `/api/tasks/${taskId}/documents/${attachmentId}`,
+  );
+  return unwrap(response);
 }

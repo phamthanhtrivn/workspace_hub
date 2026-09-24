@@ -82,7 +82,10 @@ export class MessageService {
 
         if (spaceMember.role === SpaceRole.MEMBER && member.channel.setting) {
           const setting = member.channel.setting;
-          if (type === MessageType.TEXT && !setting.allowSendMessage) {
+          if (
+            (type === MessageType.TEXT || type === MessageType.DOCUMENT) &&
+            !setting.allowSendMessage
+          ) {
             throw new BadRequestException(
               MESSAGE_ERROR_MESSAGES.MESSAGE_DISABLED,
             );

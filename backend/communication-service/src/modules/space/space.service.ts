@@ -1,6 +1,7 @@
 import {
   Injectable,
   BadRequestException,
+  BadGatewayException,
   Inject,
   ForbiddenException,
   NotFoundException,
@@ -14,7 +15,9 @@ import {
 } from '../../common/constants/kafka.constants';
 import { DefaultSpaceChannelNames } from './types/space.types';
 import { InviteSpaceMemberDto } from './dto/invite-space-members.dto';
+import { EnsureProjectSpaceDto } from './dto/ensure-project-space.dto';
 import { UpdateSpaceSettingDto } from './dto/update-space-setting.dto';
+import { ProjectNameClient } from './project-name.client';
 import { UserProfileSnapshot } from 'src/common/types/user.types';
 import { CHAT_CONTEXT_TYPE } from '../../common/types/chat.enums';
 import { ChatEvent } from '../socket/chat/chat-socket.events';
@@ -35,6 +38,7 @@ export class SpaceService {
     @Inject('KAFKA_PRODUCER') private readonly kafkaClient: ClientKafka,
     private readonly chatSocketPublisher: ChatSocketPublisher,
     private readonly userProfileSnapshotService: UserProfileSnapshotService,
+    private readonly projectNames: ProjectNameClient,
   ) {}
 
   private normalizeLimit(limit?: string | number) {
@@ -67,10 +71,25 @@ export class SpaceService {
     return member;
   }
 
+  private async assertNotProjectSpace(spaceId: string) {
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { projectId: true },
+    });
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (space.projectId) {
+      throw new BadRequestException(
+        SPACE_ERROR_MESSAGES.PROJECT_SPACE_MANAGED_BY_PROJECT,
+      );
+    }
+  }
+
   private async assertSpaceOwner(spaceId: string, userId: string) {
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
-      select: { createdBy: true },
+      select: { createdBy: true, name: true, projectId: true },
     });
     if (!space) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
@@ -79,6 +98,60 @@ export class SpaceService {
       throw new ForbiddenException(SPACE_ERROR_MESSAGES.OWNER_REQUIRED);
     }
     return space;
+  }
+
+  private async assertCanManageSpaceSettings(spaceId: string, userId: string) {
+    const [space, member] = await Promise.all([
+      this.prisma.space.findUnique({
+        where: { id: spaceId },
+        select: { createdBy: true, name: true, projectId: true },
+      }),
+      this.prisma.spaceMember.findUnique({
+        where: { spaceId_userId: { spaceId, userId } },
+      }),
+    ]);
+
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (!member) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+    }
+    if (space.createdBy === userId) {
+      return space;
+    }
+    if (space.projectId && member.role === SpaceRole.ADMIN) {
+      return space;
+    }
+
+    throw new ForbiddenException(SPACE_ERROR_MESSAGES.OWNER_REQUIRED);
+  }
+
+  private async assertCanDeleteSpace(spaceId: string, userId: string) {
+    const [space, member] = await Promise.all([
+      this.prisma.space.findUnique({
+        where: { id: spaceId },
+        select: { createdBy: true, name: true, projectId: true },
+      }),
+      this.prisma.spaceMember.findUnique({
+        where: { spaceId_userId: { spaceId, userId } },
+      }),
+    ]);
+
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (!member) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.NOT_MEMBER);
+    }
+    if (space.createdBy === userId) {
+      return space;
+    }
+    if (space.projectId && member.role === SpaceRole.ADMIN) {
+      return space;
+    }
+
+    throw new ForbiddenException(SPACE_ERROR_MESSAGES.OWNER_REQUIRED);
   }
 
   private async assertSpaceAdminOrOwner(spaceId: string, userId: string) {
@@ -376,6 +449,421 @@ export class SpaceService {
     };
   }
 
+  private async publishSpaceRenamed(
+    spaceId: string,
+    name: string,
+    actorId: string,
+  ) {
+    const defaultChannel = await this.prisma.channel.findFirst({
+      where: { spaceId, isDefault: true },
+    });
+
+    if (defaultChannel) {
+      const profileMap =
+        await this.userProfileSnapshotService.getProfilesByUserIds([actorId]);
+      const actorProfile = profileMap.get(actorId);
+      const content = `Space name was updated to "${name}" by ${actorProfile?.fullName || 'an admin'}`;
+      await this.chatSocketPublisher.sendSystemMessage(
+        defaultChannel.id,
+        actorId,
+        content,
+      );
+    }
+
+    const members = await this.prisma.spaceMember.findMany({
+      where: { spaceId },
+      select: { userId: true },
+    });
+
+    this.chatSocketPublisher.publishToRooms(
+      members.map((member) => member.userId),
+      ChatEvent.CHANNEL_SETTING_UPDATED,
+      {
+        eventType: 'space_updated',
+        spaceId,
+        name,
+      },
+    );
+  }
+
+  private normalizeProjectSpaceMembers(dto: EnsureProjectSpaceDto) {
+    const roleByUserId = new Map<string, SpaceRole>();
+    for (const member of dto.members ?? []) {
+      if (!member.userId) continue;
+      const existingRole = roleByUserId.get(member.userId);
+      if (existingRole === SpaceRole.ADMIN) continue;
+      roleByUserId.set(
+        member.userId,
+        member.role === SpaceRole.ADMIN ? SpaceRole.ADMIN : SpaceRole.MEMBER,
+      );
+    }
+    roleByUserId.set(dto.ownerId, SpaceRole.ADMIN);
+    return Array.from(roleByUserId.entries()).map(([userId, role]) => ({
+      userId,
+      role,
+    }));
+  }
+
+  private async ensureDefaultProjectChannel(
+    tx: any,
+    spaceId: string,
+    createdBy: string,
+  ) {
+    const existingDefaultChannel = await tx.channel.findFirst({
+      where: { spaceId, isDefault: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    if (existingDefaultChannel) {
+      return existingDefaultChannel;
+    }
+
+    const channel = await tx.channel.create({
+      data: {
+        spaceId,
+        name: DefaultSpaceChannelNames[0],
+        createdBy,
+        isDefault: true,
+      },
+    });
+
+    await tx.channelSetting.create({
+      data: {
+        channelId: channel.id,
+        allowSendMessage: true,
+        allowCreateNote: true,
+        allowCreatePoll: true,
+        allowPinMessage: true,
+      },
+    });
+
+    return channel;
+  }
+
+  private isProjectSpaceUniqueConstraint(error: unknown) {
+    if (typeof error !== 'object' || error === null) return false;
+    const prismaError = error as { code?: string; meta?: { target?: unknown } };
+    return (
+      prismaError.code === 'P2002' &&
+      String(prismaError.meta?.target ?? '').includes('project_id')
+    );
+  }
+
+  private async syncProjectSpace(
+    tx: any,
+    existingSpace: { id: string; name: string; createdBy: string },
+    dto: EnsureProjectSpaceDto,
+    trimmedName: string,
+    members: { userId: string; role: SpaceRole }[],
+  ) {
+    const space =
+      existingSpace.name === trimmedName
+        ? existingSpace
+        : await tx.space.update({
+            where: { id: existingSpace.id },
+            data: { name: trimmedName },
+          });
+    const defaultChannel = await this.ensureDefaultProjectChannel(
+      tx,
+      space.id,
+      space.createdBy,
+    );
+    const memberUserIds = members.map((member) => member.userId);
+    const [channels, existingSpaceMembers, existingChannelMembers] =
+      await Promise.all([
+        tx.channel.findMany({
+          where: { spaceId: space.id },
+          select: { id: true },
+        }),
+        tx.spaceMember.findMany({
+          where: { spaceId: space.id },
+          select: { userId: true },
+        }),
+        tx.channelMember.findMany({
+          where: {
+            channelId: defaultChannel.id,
+            userId: { in: memberUserIds },
+          },
+          select: { userId: true },
+        }),
+      ]);
+    const existingSpaceMemberIds = new Set(
+      existingSpaceMembers.map((member) => member.userId),
+    );
+    const existingChannelMemberIds = new Set(
+      existingChannelMembers.map((member) => member.userId),
+    );
+    const activeMemberIds = new Set(memberUserIds);
+    const joinedMembers = members.filter(
+      (member) =>
+        !existingSpaceMemberIds.has(member.userId) ||
+        !existingChannelMemberIds.has(member.userId),
+    );
+    const removedMembers = existingSpaceMembers.filter(
+      (member) => !activeMemberIds.has(member.userId),
+    );
+    const removedMemberIds = removedMembers.map((member) => member.userId);
+    const channelIds = channels.map((channel) => channel.id);
+
+    for (const member of members) {
+      await tx.spaceMember.upsert({
+        where: {
+          spaceId_userId: {
+            spaceId: space.id,
+            userId: member.userId,
+          },
+        },
+        create: {
+          spaceId: space.id,
+          userId: member.userId,
+          role: member.role,
+        },
+        update:
+          member.userId === dto.ownerId ? { role: SpaceRole.ADMIN } : {},
+      });
+
+      await tx.channelMember.upsert({
+        where: {
+          channelId_userId: {
+            channelId: defaultChannel.id,
+            userId: member.userId,
+          },
+        },
+        create: {
+          channelId: defaultChannel.id,
+          userId: member.userId,
+        },
+        update: {},
+      });
+    }
+
+    if (removedMemberIds.length > 0) {
+      await tx.channelMember.deleteMany({
+        where: {
+          userId: { in: removedMemberIds },
+          channelId: { in: channelIds },
+        },
+      });
+      await tx.spaceMember.deleteMany({
+        where: {
+          spaceId: space.id,
+          userId: { in: removedMemberIds },
+        },
+      });
+    }
+
+    return {
+      projectId: dto.projectId,
+      spaceId: space.id,
+      channelId: defaultChannel.id,
+      channelIds,
+      joinedMembers,
+      removedMembers,
+    };
+  }
+
+  async getProjectSpaceStatus(projectId: string) {
+    const space = await this.prisma.space.findFirst({
+      where: { projectId },
+      select: { id: true },
+    });
+    if (!space) {
+      return {
+        projectId,
+        exists: false,
+        spaceId: null,
+        channelId: null,
+      };
+    }
+
+    const defaultChannel = await this.prisma.channel.findFirst({
+      where: { spaceId: space.id, isDefault: true },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return {
+      projectId,
+      exists: true,
+      spaceId: space.id,
+      channelId: defaultChannel?.id ?? null,
+    };
+  }
+
+  private async publishProjectSpaceMembersJoined(result: {
+    spaceId: string;
+    channelId: string;
+    joinedMembers?: { userId: string; role: SpaceRole }[];
+  }) {
+    const joinedMembers = result.joinedMembers ?? [];
+    if (joinedMembers.length === 0) return;
+
+    const allMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId: result.spaceId },
+      select: { userId: true },
+    });
+    const targetRooms = [
+      result.channelId,
+      ...allMembers.map((member) => member.userId),
+    ];
+
+    for (const member of joinedMembers) {
+      this.chatSocketPublisher.publishMemberJoin(targetRooms, {
+        chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+        channelId: result.channelId,
+        spaceId: result.spaceId,
+        userId: member.userId,
+        member: {
+          channelId: result.channelId,
+          userId: member.userId,
+          role: member.role,
+        },
+      });
+    }
+  }
+
+  private async publishProjectSpaceMembersRemoved(result: {
+    spaceId: string;
+    channelId: string;
+    channelIds?: string[];
+    removedMembers?: { userId: string }[];
+  }) {
+    const removedMembers = result.removedMembers ?? [];
+    if (removedMembers.length === 0) return;
+
+    const remainingMembers = await this.prisma.spaceMember.findMany({
+      where: { spaceId: result.spaceId },
+      select: { userId: true },
+    });
+    const targetRooms = [
+      ...remainingMembers.map((member) => member.userId),
+      ...(result.channelIds ?? [result.channelId]),
+    ];
+
+    for (const member of removedMembers) {
+      this.chatSocketPublisher.publishMemberKicked(
+        [...new Set([member.userId, ...targetRooms])],
+        {
+          eventType: SPACE_SOCKET_EVENT_TYPE.MEMBER_REMOVED,
+          chatType: CHAT_CONTEXT_TYPE.CHANNEL,
+          spaceId: result.spaceId,
+          channelId: result.channelId,
+          channelIds: result.channelIds ?? [result.channelId],
+          userId: member.userId,
+          affectedUserIds: [member.userId],
+          leftSpace: true,
+        },
+      );
+    }
+  }
+
+  async ensureProjectSpace(dto: EnsureProjectSpaceDto) {
+    const trimmedName = dto.name?.trim();
+    if (!trimmedName) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
+    }
+
+    const members = this.normalizeProjectSpaceMembers(dto);
+    if (members.length === 0) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.MISSING_REQUIRED_INFO);
+    }
+
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const existingSpace = await tx.space.findFirst({
+          where: { projectId: dto.projectId },
+        });
+
+        if (existingSpace) {
+          return this.syncProjectSpace(
+            tx,
+            existingSpace,
+            dto,
+            trimmedName,
+            members,
+          );
+        }
+
+        const space = await tx.space.create({
+          data: {
+            name: trimmedName,
+            createdBy: dto.ownerId,
+            projectId: dto.projectId,
+          },
+        });
+
+        await tx.spaceMember.createMany({
+          data: members.map((member) => ({
+            spaceId: space.id,
+            userId: member.userId,
+            role: member.role,
+          })),
+          skipDuplicates: true,
+        });
+
+        await this.createSpaceSettingIfAvailable(tx, space.id);
+
+        const defaultChannel = await this.ensureDefaultProjectChannel(
+          tx,
+          space.id,
+          dto.ownerId,
+        );
+
+        await tx.channelMember.createMany({
+          data: members.map((member) => ({
+            channelId: defaultChannel.id,
+            userId: member.userId,
+          })),
+          skipDuplicates: true,
+        });
+
+        return {
+          projectId: dto.projectId,
+          spaceId: space.id,
+          channelId: defaultChannel.id,
+          channelIds: [defaultChannel.id],
+          joinedMembers: members,
+          removedMembers: [],
+        };
+      });
+      await this.publishProjectSpaceMembersJoined(result);
+      await this.publishProjectSpaceMembersRemoved(result);
+      const {
+        joinedMembers: _joinedMembers,
+        removedMembers: _removedMembers,
+        channelIds: _channelIds,
+        ...response
+      } = result;
+      return response;
+    } catch (error) {
+      if (!this.isProjectSpaceUniqueConstraint(error)) {
+        throw error;
+      }
+
+      const result = await this.prisma.$transaction(async (tx) => {
+        const existingSpace = await tx.space.findFirst({
+          where: { projectId: dto.projectId },
+        });
+        if (!existingSpace) throw error;
+        return this.syncProjectSpace(
+          tx,
+          existingSpace,
+          dto,
+          trimmedName,
+          members,
+        );
+      });
+      await this.publishProjectSpaceMembersJoined(result);
+      await this.publishProjectSpaceMembersRemoved(result);
+      const {
+        joinedMembers: _joinedMembers,
+        removedMembers: _removedMembers,
+        channelIds: _channelIds,
+        ...response
+      } = result;
+      return response;
+    }
+  }
+
   async createSpace(userId: string, name: string) {
     if (!name || name.trim().length === 0) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
@@ -506,48 +994,70 @@ export class SpaceService {
   }
 
   async updateSpace(userId: string, spaceId: string, name: string) {
-    await this.assertSpaceOwner(spaceId, userId);
+    const current = await this.assertSpaceOwner(spaceId, userId);
     if (!name || name.trim().length === 0) {
       throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
     }
 
+    const trimmedName = name.trim();
     const updatedSpace = await this.prisma.space.update({
       where: { id: spaceId },
-      data: { name: name.trim() },
+      data: { name: trimmedName },
     });
 
-    const defaultChannel = await this.prisma.channel.findFirst({
-      where: { spaceId, isDefault: true },
-    });
-
-    if (defaultChannel) {
-      const profileMap =
-        await this.userProfileSnapshotService.getProfilesByUserIds([userId]);
-      const actorProfile = profileMap.get(userId);
-      const content = `Space name was updated to "${updatedSpace.name}" by ${actorProfile?.fullName || 'an admin'}`;
-      await this.chatSocketPublisher.sendSystemMessage(
-        defaultChannel.id,
-        userId,
-        content,
-      );
+    if (current.projectId && current.name !== trimmedName) {
+      try {
+        await this.projectNames.renameProject(
+          current.projectId,
+          trimmedName,
+          userId,
+        );
+      } catch {
+        await this.prisma.space
+          .update({
+            where: { id: spaceId },
+            data: { name: current.name },
+          })
+          .catch(() => undefined);
+        throw new BadGatewayException('Unable to sync project name');
+      }
     }
 
-    const members = await this.prisma.spaceMember.findMany({
-      where: { spaceId },
-      select: { userId: true },
-    });
-
-    this.chatSocketPublisher.publishToRooms(
-      members.map((member) => member.userId),
-      ChatEvent.CHANNEL_SETTING_UPDATED,
-      {
-        eventType: 'space_updated',
-        spaceId,
-        name: updatedSpace.name,
-      },
-    );
+    await this.publishSpaceRenamed(spaceId, updatedSpace.name, userId);
 
     return updatedSpace;
+  }
+
+  async renameProjectSpaceFromProject(
+    projectId: string,
+    name: string,
+    actorId: string,
+  ) {
+    if (!name || name.trim().length === 0) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NAME_EMPTY);
+    }
+
+    const trimmedName = name.trim();
+    const space = await this.prisma.space.findFirst({
+      where: { projectId },
+      select: { id: true, name: true },
+    });
+
+    if (!space) {
+      return { projectId, spaceId: null, name: trimmedName };
+    }
+    if (space.name === trimmedName) {
+      return { projectId, spaceId: space.id, name: space.name };
+    }
+
+    const updatedSpace = await this.prisma.space.update({
+      where: { id: space.id },
+      data: { name: trimmedName },
+    });
+
+    await this.publishSpaceRenamed(updatedSpace.id, updatedSpace.name, actorId);
+
+    return { projectId, spaceId: updatedSpace.id, name: updatedSpace.name };
   }
 
   async updateSpaceSettings(
@@ -555,7 +1065,7 @@ export class SpaceService {
     spaceId: string,
     settings: UpdateSpaceSettingDto,
   ) {
-    await this.assertSpaceOwner(spaceId, userId);
+    await this.assertCanManageSpaceSettings(spaceId, userId);
     try {
       const updatedSetting = await (this.prisma as any).spaceSetting.upsert({
         where: { spaceId },
@@ -659,6 +1169,7 @@ export class SpaceService {
     spaceId: string,
     targetUserId: string,
   ) {
+    await this.assertNotProjectSpace(spaceId);
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
     });
@@ -858,6 +1369,7 @@ export class SpaceService {
     spaceId: string,
     targetUserId: string,
   ) {
+    await this.assertNotProjectSpace(spaceId);
     const { space, isOwner } = await this.assertSpaceAdminOrOwner(
       spaceId,
       userId,
@@ -967,7 +1479,19 @@ export class SpaceService {
   }
 
   async leaveSpace(userId: string, spaceId: string) {
+    await this.assertNotProjectSpace(spaceId);
     const member = await this.assertSpaceMember(spaceId, userId);
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { createdBy: true },
+    });
+    if (!space) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.SPACE_NOT_FOUND);
+    }
+    if (space.createdBy === userId) {
+      throw new BadRequestException(SPACE_ERROR_MESSAGES.OWNER_CANNOT_LEAVE);
+    }
+
     if (member.role === SpaceRole.ADMIN) {
       const adminCount = await this.getAdminCount(spaceId);
       if (adminCount <= 1) {
@@ -1011,10 +1535,10 @@ export class SpaceService {
   }
 
   async deleteSpace(userId: string, spaceId: string) {
-    await this.assertSpaceOwner(spaceId, userId);
+    await this.assertCanDeleteSpace(spaceId, userId);
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
-      select: { name: true },
+      select: { name: true, projectId: true },
     });
     const channels = await this.prisma.channel.findMany({
       where: { spaceId },
@@ -1063,11 +1587,29 @@ export class SpaceService {
       },
     });
 
+    if (space?.projectId) {
+      await this.projectNames
+        .publishProjectSpaceEvent(space.projectId, {
+          action: 'DELETED',
+          actorId: userId,
+          spaceId,
+          channelId: null,
+          exists: false,
+        })
+        .catch(() => undefined);
+    }
+
     return { success: true };
   }
 
   async getSpaceInvitations(userId: string, spaceId: string) {
     await this.assertSpaceAdmin(spaceId, userId);
+    const space = await this.prisma.space.findUnique({
+      where: { id: spaceId },
+      select: { projectId: true },
+    });
+    if (space?.projectId) return [];
+
     const invitations = await this.prisma.spaceInvitation.findMany({
       where: { spaceId, status: InvitationStatus.PENDING },
       orderBy: { createdAt: 'desc' },
@@ -1083,6 +1625,7 @@ export class SpaceService {
     invitationId: string,
   ) {
     await this.assertSpaceAdmin(spaceId, userId);
+    await this.assertNotProjectSpace(spaceId);
     const invitation = await this.prisma.spaceInvitation.findFirst({
       where: { id: invitationId, spaceId },
     });
@@ -1100,6 +1643,7 @@ export class SpaceService {
     invitationId: string,
   ) {
     await this.assertSpaceAdmin(spaceId, userId);
+    await this.assertNotProjectSpace(spaceId);
     const space = await this.prisma.space.findUnique({
       where: { id: spaceId },
       select: { name: true },
@@ -1310,6 +1854,7 @@ export class SpaceService {
     invitees: InviteSpaceMemberDto[],
     invitedBySnapshot: UserProfileSnapshot,
   ) {
+    await this.assertNotProjectSpace(spaceId);
     const requester = await this.prisma.spaceMember.findUnique({
       where: {
         spaceId_userId: {

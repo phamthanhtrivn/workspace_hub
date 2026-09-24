@@ -21,6 +21,11 @@ export interface ChatConfirmDialogProps {
   cancelLabel?: string;
   variant?: ChatConfirmVariant;
   isLoading?: boolean;
+  confirmationText?: string;
+  confirmationValue?: string;
+  confirmationPlaceholder?: string;
+  confirmationLabel?: string;
+  onConfirmationValueChange?: (value: string) => void;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -51,20 +56,36 @@ export function ChatConfirmDialog({
   cancelLabel = "Cancel",
   variant = "danger",
   isLoading = false,
+  confirmationText,
+  confirmationValue = "",
+  confirmationPlaceholder,
+  confirmationLabel,
+  onConfirmationValueChange,
   onConfirm,
   onCancel,
 }: ChatConfirmDialogProps) {
   const IconComponent = iconByVariant[variant];
+  const isConfirmDisabled =
+    isLoading ||
+    (confirmationText !== undefined && confirmationValue !== confirmationText);
 
   return (
-    <AlertDialog open={open} onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(nextOpen) => !nextOpen && !isLoading && onCancel()}
+    >
       <AlertDialogContent
         role="alertdialog"
         className="max-w-md border-slate-100 bg-white p-6 text-slate-800 shadow-2xl rounded-3xl"
         showCloseButton={false}
       >
         <div className="flex items-start gap-4">
-          <div className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-2xl", iconBgByVariant[variant])}>
+          <div
+            className={cn(
+              "grid h-10 w-10 shrink-0 place-items-center rounded-2xl",
+              iconBgByVariant[variant],
+            )}
+          >
             <IconComponent className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
@@ -75,6 +96,23 @@ export function ChatConfirmDialog({
               <AlertDialogDescription className="mt-1.5 text-sm font-semibold leading-relaxed text-slate-500">
                 {description}
               </AlertDialogDescription>
+            ) : null}
+            {confirmationText !== undefined ? (
+              <div className="mt-4 space-y-2">
+                <label className="text-xs font-black uppercase text-slate-500">
+                  {confirmationLabel ?? `Type "${confirmationText}" to confirm`}
+                </label>
+                <input
+                  type="text"
+                  value={confirmationValue}
+                  disabled={isLoading}
+                  onChange={(event) =>
+                    onConfirmationValueChange?.(event.target.value)
+                  }
+                  placeholder={confirmationPlaceholder ?? confirmationText}
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
+                />
+              </div>
             ) : null}
           </div>
         </div>
@@ -90,11 +128,11 @@ export function ChatConfirmDialog({
           </button>
           <button
             type="button"
-            disabled={isLoading}
+            disabled={isConfirmDisabled}
             onClick={onConfirm}
             className={cn(
               "h-10 cursor-pointer rounded-2xl px-5 text-xs font-bold transition shadow-md disabled:opacity-50",
-              confirmButtonClassByVariant[variant]
+              confirmButtonClassByVariant[variant],
             )}
           >
             {isLoading ? "..." : confirmLabel}

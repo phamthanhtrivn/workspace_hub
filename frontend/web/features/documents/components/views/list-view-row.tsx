@@ -25,7 +25,7 @@ export interface ListViewRowProps {
   setActiveMenuId: (id: string | null) => void;
   onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (item: DocumentItem) => void;
+  onToggleStar?: (item: DocumentItem) => void;
   onMoveToTrash: (item: DocumentItem) => void;
   onRestore: (item: DocumentItem) => void;
   onViewDetails: (item: DocumentItem) => void;
@@ -36,6 +36,7 @@ export interface ListViewRowProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
+  isProjectDocuments?: boolean;
 }
 
 export function ListViewRow({
@@ -59,6 +60,7 @@ export function ListViewRow({
   onManageVersions,
   onShare,
   onShareToChat,
+  isProjectDocuments = false,
 }: ListViewRowProps) {
   const isFolder = item.type === DocumentItemType.FOLDER;
   const isSelected = item.id === selectedItemId;
@@ -124,7 +126,7 @@ export function ListViewRow({
         <span className="font-bold text-slate-700 truncate max-w-xs">
           {item.name}
         </span>
-        {item.isStarred ? (
+        {!isProjectDocuments && item.isStarred ? (
           <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 shrink-0 ml-1" />
         ) : null}
       </td>
@@ -138,24 +140,27 @@ export function ListViewRow({
         {isFolder ? "—" : formatBytes(getDocumentDisplaySize(item))}
       </td>
       <td className="p-4 text-right">
-        <ItemActionsMenu
-          item={item}
-          activeView={activeView}
-          activeMenuId={activeMenuId}
-          setActiveMenuId={setActiveMenuId}
-          onRename={() => onRename(item)}
-          onMove={() => onMove(item.id)}
-          onToggleStar={() => onToggleStar(item)}
-          onArchive={(archive) => (archive ? onMoveToTrash(item) : onRestore(item))}
-          onViewDetails={() => onViewDetails(item)}
-          onDeletePermanently={() => onDeletePermanently(item)}
-          onPreview={() => onPreview?.(item)}
-          onDownload={() => onDownload?.(item)}
-          onDownloadFolder={() => onDownloadFolder?.(item)}
-          onManageVersions={() => onManageVersions?.(item)}
-          onShare={() => onShare?.(item)}
-          onShareToChat={() => onShareToChat?.(item)}
-        />
+        <div className="flex items-center justify-end gap-2">
+          <ItemActionsMenu
+            item={item}
+            activeView={activeView}
+            activeMenuId={activeMenuId}
+            setActiveMenuId={setActiveMenuId}
+            onRename={() => onRename(item)}
+            onMove={() => onMove(item.id)}
+            onToggleStar={onToggleStar ? () => onToggleStar(item) : undefined}
+            onArchive={(archive) => (archive ? onMoveToTrash(item) : onRestore(item))}
+            onViewDetails={() => onViewDetails(item)}
+            onDeletePermanently={() => onDeletePermanently(item)}
+            onPreview={() => onPreview?.(item)}
+            onDownload={() => onDownload?.(item)}
+            onDownloadFolder={() => onDownloadFolder?.(item)}
+            onManageVersions={() => onManageVersions?.(item)}
+            onShare={() => onShare?.(item)}
+            onShareToChat={() => onShareToChat?.(item)}
+            isProjectDocuments={isProjectDocuments}
+          />
+        </div>
       </td>
     </tr>
   );

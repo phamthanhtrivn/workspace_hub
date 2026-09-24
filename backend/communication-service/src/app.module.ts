@@ -16,9 +16,11 @@ import { SocketModule } from './modules/socket/socket.module';
 import { MeetingModule } from './modules/meeting/meeting.module';
 import { LiveKitModule } from './infrastructure/livekit/livekit.module';
 import { HealthController } from './common/health.controller';
+import { RuntimeConfigModule } from './common/config/runtime-config.module';
 
 @Module({
   imports: [
+    RuntimeConfigModule,
     PrismaModule,
     ChannelModule,
     SpaceModule,

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   CheckCircle2,
+  FilePenLine,
   Info,
   ListChecks,
   Settings2,
@@ -62,6 +63,14 @@ const MANAGEMENT_PERMISSION_OPTIONS: PermissionOption[] = [
   },
 ];
 
+const DOCUMENT_PERMISSION_OPTIONS: PermissionOption[] = [
+  {
+    key: "canEditDocuments",
+    label: "Edit project documents",
+    description: "Allow uploading, creating folders, renaming, and updating project documents.",
+  },
+];
+
 const DEFAULT_CAPABILITIES = [
   {
     title: "View Project & Tasks",
@@ -80,6 +89,7 @@ function getMemberPermissions(member: ProjectMember): ProjectMemberPermissions {
     canEditOthersTask: member.canEditOthersTask,
     canManageMembers: member.canManageMembers,
     canManageLabels: member.canManageLabels,
+    canEditDocuments: member.canEditDocuments,
   };
 }
 
@@ -184,7 +194,7 @@ export default function MemberPermissionsDialog({
               </p>
             </div>
             <span className="shrink-0 text-[11px] font-bold text-slate-500">
-              {enabledCount} of 5 active
+              {enabledCount} of 6 active
             </span>
           </div>
 
@@ -202,6 +212,13 @@ export default function MemberPermissionsDialog({
               title: "Project Administration",
               description: "Permissions for managing project members and labels.",
               options: MANAGEMENT_PERMISSION_OPTIONS,
+            },
+            {
+              id: "document-permissions",
+              icon: FilePenLine,
+              title: "Project Documents",
+              description: "Permissions for editing files and folders in project documents.",
+              options: DOCUMENT_PERMISSION_OPTIONS,
             },
           ].map((group) => {
             const GroupIcon = group.icon;

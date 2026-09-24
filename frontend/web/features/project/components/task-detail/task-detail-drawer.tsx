@@ -11,6 +11,7 @@ import TaskChatButton from "../ui/task-chat-button";
 import TaskActivityPanel from "./task-activity-panel";
 import TaskChecklistSection from "./task-checklist-section";
 import TaskCommentsSection from "./task-comments-section";
+import TaskDocumentsSection from "./task-documents-section";
 import TaskStatusPicker from "./task-status-picker";
 import TaskLabelsPicker from "./task-labels-picker";
 import TaskDependenciesSection from "./task-dependencies-section";
@@ -279,7 +280,7 @@ export default function TaskDetailDrawer({
             />
 
             <TaskDependenciesSection
-              taskId={task.id}
+              task={task}
               dependencies={dependencies}
               tasks={tasks}
               onCreateDependency={
@@ -358,6 +359,7 @@ export default function TaskDetailDrawer({
             isReadOnly={isReadOnly}
             onCreateSubtask={onCreateSubtask}
             onTaskClick={onTaskClick}
+            onMarkParentDone={() => handleStatusChange(TaskStatus.DONE)}
           />
 
           {/* Checklist Section */}
@@ -369,6 +371,11 @@ export default function TaskDetailDrawer({
             onDelete={onDeleteChecklist}
           />
 
+          <TaskDocumentsSection
+            task={task}
+            isReadOnly={isCollaborationReadOnly}
+          />
+
           {/* Details Accordion / Properties Panel */}
           <TaskPropertiesPanel
             key={`${task.id}:${task.estimatedMinutes}`}
@@ -376,6 +383,7 @@ export default function TaskDetailDrawer({
             tasks={tasks}
             members={members}
             isReadOnly={isReadOnly}
+            dependencies={dependencies}
             memberDisplayName={memberDisplayName}
             onAssigneeChange={handleAssigneeChange}
             onPriorityChange={handlePriorityChange}

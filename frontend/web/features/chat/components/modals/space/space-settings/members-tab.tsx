@@ -12,7 +12,9 @@ interface MembersTabProps {
   currentUserRole?: SpaceRole | null;
   isLoading: boolean;
   isMutating: boolean;
+  allowRoleUpdates?: boolean;
   members: SpaceMemberListItem[];
+  readOnly?: boolean;
   search: string;
   onSearchChange: (search: string) => void;
   onTransferOwnership?: (member: SpaceMemberListItem) => void;
@@ -26,7 +28,9 @@ export function MembersTab({
   currentUserRole,
   isLoading,
   isMutating,
+  allowRoleUpdates,
   members,
+  readOnly,
   search,
   onSearchChange,
   onTransferOwnership,
@@ -67,9 +71,11 @@ export function MembersTab({
               currentUserRole={currentUserRole}
               disabled={isMutating}
               member={member}
-              onTransferOwnership={onTransferOwnership}
-              onRemove={onRemove}
-              onUpdateRole={onUpdateRole}
+              onTransferOwnership={readOnly ? undefined : onTransferOwnership}
+              onRemove={readOnly ? undefined : onRemove}
+              onUpdateRole={
+                readOnly && !allowRoleUpdates ? undefined : onUpdateRole
+              }
               spaceCreatorId={spaceCreatorId}
             />
           ))
@@ -94,7 +100,7 @@ function MemberRow({
   disabled: boolean;
   member: SpaceMemberListItem;
   onTransferOwnership?: (member: SpaceMemberListItem) => void;
-  onRemove: (member: SpaceMemberListItem) => void;
+  onRemove?: (member: SpaceMemberListItem) => void;
   onUpdateRole?: (member: SpaceMemberListItem, role: SpaceRole) => void;
   spaceCreatorId?: string | null;
 }) {
@@ -107,6 +113,8 @@ function MemberRow({
     (isCurrentUserCreator ||
       (currentUserRole === SpaceRole.ADMIN &&
         member.role === SpaceRole.MEMBER));
+  const canCurrentUserUpdateRole =
+    isCurrentUserCreator && !isCreator && Boolean(onUpdateRole);
 
   return (
     <div className="flex items-center justify-between rounded-xl px-3 py-2 hover:bg-slate-50">
@@ -164,7 +172,7 @@ function MemberRow({
 
       {!isMe && (
         <div className="flex shrink-0 items-center gap-1">
-          {isCurrentUserCreator && !isCreator && (
+          {canCurrentUserUpdateRole && (
             <>
               {member.role === SpaceRole.MEMBER && (
                 <button
@@ -188,6 +196,10 @@ function MemberRow({
                   <ShieldOff size={16} />
                 </button>
               )}
+            </>
+          )}
+          {isCurrentUserCreator && !isCreator && onTransferOwnership && (
+            <>
               <button
                 type="button"
                 title="Transfer Ownership"
@@ -199,7 +211,7 @@ function MemberRow({
               </button>
             </>
           )}
-          {canCurrentUserRemove && (
+          {canCurrentUserRemove && onRemove && (
             <button
               type="button"
               title="Remove from Space"

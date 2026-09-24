@@ -438,8 +438,14 @@ export default function ProjectMembersView({
                                   Manage Members
                                 </span>
                               )}
+                              {member.canEditDocuments && (
+                                <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600">
+                                  Edit Documents
+                                </span>
+                              )}
                               {!member.canCreateTask &&
-                                !member.canManageMembers && (
+                                !member.canManageMembers &&
+                                !member.canEditDocuments && (
                                   <span className="text-[11px] text-slate-400">
                                     Standard permissions
                                   </span>

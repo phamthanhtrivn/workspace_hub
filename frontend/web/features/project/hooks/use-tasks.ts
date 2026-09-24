@@ -7,7 +7,11 @@ import {
   createChecklist,
   updateChecklist,
   deleteChecklist,
+  attachTaskDocuments,
+  detachTaskDocument,
+  getTaskDocuments,
   getTaskActivities,
+  type AttachTaskDocumentsPayload,
   type CreateTaskPayload,
   type ProjectTaskStatusCounts,
   type UpdateTaskPayload,
@@ -22,6 +26,8 @@ export const taskKeys = {
   statusCounts: (projectId: string) =>
     ["projects", projectId, "task-status-counts"] as const,
   detail: (taskId: string) => ["tasks", taskId] as const,
+  documents: (taskId: string) => ["tasks", taskId, "documents"] as const,
+  activities: (taskId: string) => ["tasks", taskId, "activities"] as const,
 };
 
 export function useProjectTasks(
@@ -96,8 +102,43 @@ export function useDeleteChecklist(projectId: string) {
 
 export function useTaskActivities(taskId: string) {
   return useQuery({
-    queryKey: ["tasks", taskId, "activities"],
+    queryKey: taskKeys.activities(taskId),
     queryFn: () => getTaskActivities(taskId),
     enabled: Boolean(taskId),
+  });
+}
+
+export function useTaskDocuments(taskId: string) {
+  return useQuery({
+    queryKey: taskKeys.documents(taskId),
+    queryFn: () => getTaskDocuments(taskId),
+    enabled: Boolean(taskId),
+  });
+}
+
+export function useAttachTaskDocuments(projectId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AttachTaskDocumentsPayload) =>
+      attachTaskDocuments(taskId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.documents(taskId) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.activities(taskId) });
+    },
+  });
+}
+
+export function useDetachTaskDocument(projectId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (attachmentId: string) => detachTaskDocument(taskId, attachmentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.documents(taskId) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.project(projectId) });
+      queryClient.invalidateQueries({ queryKey: taskKeys.activities(taskId) });
+    },
   });
 }

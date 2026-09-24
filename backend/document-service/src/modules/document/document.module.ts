@@ -5,6 +5,7 @@ import { DocumentController } from './document.controller';
 import { QuotaModule } from '../quota/quota.module';
 import { S3Module } from '../../infrastructure/s3/s3.module';
 import { TrashCleanupService } from './trash-cleanup.service';
+import { ProjectDocumentRealtimeClient } from './project-document-realtime.client';
 
 import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile-snapshot.module';
 
@@ -16,7 +17,11 @@ import { UserProfileSnapshotModule } from '../user-profile-snapshot/user-profile
     UserProfileSnapshotModule,
   ],
   controllers: [DocumentController],
-  providers: [DocumentService, TrashCleanupService],
+  providers: [
+    DocumentService,
+    TrashCleanupService,
+    ProjectDocumentRealtimeClient,
+  ],
   exports: [DocumentService],
 })
 export class DocumentModule {}

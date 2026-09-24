@@ -5,6 +5,7 @@ import GanttView from "../views/gantt-view";
 import ListView from "../views/list-view";
 import ProjectMembersPanel from "../members/project-members-panel";
 import ProjectMembersView from "../views/project-members-view";
+import ProjectDocumentsView from "../views/project-documents-view";
 import SummaryView from "../views/summary-view";
 import type { ProjectPermissions } from "@/features/project/project-permissions";
 import type { ProjectViewMode } from "./project-detail-sidebar";
@@ -63,6 +64,16 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
   );
 
   const renderView = () => {
+    if (props.viewMode === "documents") {
+      return (
+        <ProjectDocumentsView
+          projectId={props.projectId}
+          projectName={props.project.name}
+          canEditDocuments={permissions.canEditDocuments}
+        />
+      );
+    }
+
     if (props.isLoading)
       return (
         <div className="rounded-xl border border-slate-200 bg-white py-24 text-center text-sm font-semibold text-slate-400 shadow-2xs">
@@ -167,7 +178,8 @@ export default function ProjectDetailContent(props: ProjectDetailContentProps) {
           props.viewMode === "board" ||
           props.viewMode === "list" ||
           props.viewMode === "calendar" ||
-          props.viewMode === "gantt"
+          props.viewMode === "gantt" ||
+          props.viewMode === "documents"
             ? "min-w-0 flex-1 overflow-hidden pr-1"
             : "min-w-0 flex-1 overflow-y-auto pr-1"
         }

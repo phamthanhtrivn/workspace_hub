@@ -8,6 +8,7 @@ import {
   ChevronDown,
   PlusCircle,
   ChevronRight,
+  FolderKanban,
   Globe,
   Settings,
 } from "lucide-react";
@@ -89,6 +90,15 @@ interface ChatSidebarProps {
   onSelectChat?: () => void;
 }
 
+function ProjectSpaceBadge() {
+  return (
+    <span className="inline-flex shrink-0 items-center gap-1 rounded-md border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[10px] font-bold normal-case leading-none text-blue-600">
+      <FolderKanban size={11} strokeWidth={2.5} />
+      Project
+    </span>
+  );
+}
+
 export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -158,10 +168,17 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
       spaces.length > 0 &&
       !spaces.some((space) => space.id === activeSpaceId)
     ) {
+      const requestedSpaceId = new URLSearchParams(window.location.search).get(
+        "spaceId",
+      );
+      if (requestedSpaceId === activeSpaceId) {
+        void refetchSpaces();
+        return;
+      }
       dispatch(setActiveSpaceId(spaces[0].id));
       dispatch(setActiveConversation(null));
     }
-  }, [spaces, activeSpaceId, dispatch]);
+  }, [spaces, activeSpaceId, dispatch, refetchSpaces]);
 
   const activeSpace = useMemo(() => {
     return spaces.find((g) => g.id === activeSpaceId) || null;
@@ -684,16 +701,19 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
           onClick={() => setIsSpaceDropdownOpen((prev) => !prev)}
           className="flex items-center justify-between px-3 py-2 bg-slate-50 border border-slate-200/40 hover:bg-slate-100 hover:border-slate-200/80 rounded-xl cursor-pointer transition-all duration-200 select-none group"
         >
-          <div className="flex flex-col min-w-0">
-            <h2 className="text-sm font-bold text-slate-800 truncate flex items-center gap-1.5">
-              <span>{activeSpace ? activeSpace.name : "Select Space"}</span>
+          <div className="flex min-w-0 flex-1 flex-col pr-2">
+            <h2 className="flex min-w-0 items-start gap-1.5 text-sm font-bold leading-tight text-slate-800 mb-2">
+              <span className="min-w-0 break-words">
+                {activeSpace ? activeSpace.name : "Select Space"}
+              </span>
               <ChevronDown
                 size={14}
-                className="text-slate-400 group-hover:text-slate-600 shrink-0 transition"
+                className="mt-0.5 shrink-0 text-slate-400 transition group-hover:text-slate-600"
               />
             </h2>
-            <span className="text-[10px] text-slate-400 font-medium tracking-wide uppercase flex items-center gap-1 select-none">
+            <span className="flex flex-wrap items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-slate-400 select-none">
               <span>Space</span>
+              {activeSpace?.projectId && <ProjectSpaceBadge />}
               {activeSpace &&
                 spaceNameCounts[activeSpace.name] > 1 &&
                 activeSpace.creatorProfile?.fullName && (
@@ -759,10 +779,13 @@ export default function ChatSidebar({ onSelectChat }: ChatSidebarProps) {
                         : "text-slate-600 hover:bg-slate-50",
                     )}
                   >
-                    <div className="flex gap-2 min-w-0 items-center">
-                      <span className="truncate">{space.name}</span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate">{space.name}</span>
+                        {space.projectId && <ProjectSpaceBadge />}
+                      </div>
                       {hasCollision && space.creatorProfile?.fullName && (
-                        <div className="flex gap-1 text-[10px] text-slate-400 font-normal truncate">
+                        <div className="flex min-w-0 gap-1 truncate text-[10px] font-normal text-slate-400">
                           <span>
                             Created by
                           </span>

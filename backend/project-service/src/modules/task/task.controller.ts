@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query
 import { ApiResponse } from '../../common/utils/api-response';
 import { CurrentUserId } from '../../common/decorators/current-user-id.decorator';
 import { CreateTaskDto } from './dto/create-task.dto';
+import { AttachTaskDocumentsDto } from './dto/attach-task-documents.dto';
 import { GetProjectTasksQueryDto } from './dto/get-project-tasks-query.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { TaskService } from './task.service';
@@ -43,6 +44,41 @@ export class TaskController {
     @Param('taskId', new ParseUUIDPipe()) taskId: string,
   ) {
     return ApiResponse.success(await this.tasks.findOne(userId, taskId), 'Task loaded successfully');
+  }
+
+  @Get('tasks/:taskId/documents')
+  async listDocuments(
+    @CurrentUserId() userId: string,
+    @Param('taskId', new ParseUUIDPipe()) taskId: string,
+  ) {
+    return ApiResponse.success(
+      await this.tasks.listDocuments(userId, taskId),
+      'Task documents loaded successfully',
+    );
+  }
+
+  @Post('tasks/:taskId/documents')
+  async attachDocuments(
+    @CurrentUserId() userId: string,
+    @Param('taskId', new ParseUUIDPipe()) taskId: string,
+    @Body() dto: AttachTaskDocumentsDto,
+  ) {
+    return ApiResponse.success(
+      await this.tasks.attachDocuments(userId, taskId, dto),
+      'Task documents attached successfully',
+    );
+  }
+
+  @Delete('tasks/:taskId/documents/:attachmentId')
+  async detachDocument(
+    @CurrentUserId() userId: string,
+    @Param('taskId', new ParseUUIDPipe()) taskId: string,
+    @Param('attachmentId', new ParseUUIDPipe()) attachmentId: string,
+  ) {
+    return ApiResponse.success(
+      await this.tasks.detachDocument(userId, taskId, attachmentId),
+      'Task document detached successfully',
+    );
   }
 
   @Patch('tasks/:taskId')

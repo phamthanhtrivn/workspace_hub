@@ -7,6 +7,9 @@ import { ListViewRow } from "./list-view-row";
 
 interface ListViewProps {
   items: DocumentItem[];
+  activeView: DocumentViewType;
+  footer?: React.ReactNode;
+  scrollContainerRef?: React.Ref<HTMLDivElement>;
   selectedItemId: string | null;
   onSelectItem: (id: string | null) => void;
   onOpenItem: (item: DocumentItem) => void;
@@ -15,7 +18,7 @@ interface ListViewProps {
   onOpenDetails: (item: DocumentItem) => void;
   onRename: (item: DocumentItem) => void;
   onMove: (id: string) => void;
-  onToggleStar: (item: DocumentItem) => void;
+  onToggleStar?: (item: DocumentItem) => void;
   onMoveToTrash: (item: DocumentItem) => void;
   onRestore: (item: DocumentItem) => void;
   onDeletePermanently: (item: DocumentItem) => void;
@@ -25,10 +28,14 @@ interface ListViewProps {
   onManageVersions?: (item: DocumentItem) => void;
   onShare?: (item: DocumentItem) => void;
   onShareToChat?: (item: DocumentItem) => void;
+  isProjectDocuments?: boolean;
 }
 
 function ListView({
   items,
+  activeView,
+  footer,
+  scrollContainerRef,
   selectedItemId,
   onSelectItem,
   onOpenItem,
@@ -47,10 +54,11 @@ function ListView({
   onManageVersions,
   onShare,
   onShareToChat,
+  isProjectDocuments = false,
 }: ListViewProps) {
   return (
     <div className="flex h-full min-h-0 w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-xs animate-in fade-in duration-200">
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto">
         <table className="w-full border-collapse text-left text-sm text-slate-700">
           <tbody className="divide-y divide-slate-100">
             {items.map((item) => (
@@ -60,7 +68,7 @@ function ListView({
                 selectedItemId={selectedItemId}
                 onSelect={onSelectItem}
                 onFolderClick={onOpenItem}
-                activeView={DocumentViewType.MY_FILES}
+                activeView={activeView}
                 activeMenuId={activeMenuId}
                 setActiveMenuId={setActiveMenuId}
                 onRename={onRename}
@@ -76,10 +84,12 @@ function ListView({
                 onManageVersions={onManageVersions}
                 onShare={onShare}
                 onShareToChat={onShareToChat}
+                isProjectDocuments={isProjectDocuments}
               />
             ))}
           </tbody>
         </table>
+        {footer}
       </div>
     </div>
   );

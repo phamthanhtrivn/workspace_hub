@@ -24,4 +24,8 @@ export class ConfirmUploadDto {
   @IsUUID(4, { message: 'Invalid project ID' })
   @IsOptional()
   projectId?: string;
+
+  @IsUUID(4, { message: 'Invalid overwrite item ID' })
+  @IsOptional()
+  overwriteItemId?: string;
 }

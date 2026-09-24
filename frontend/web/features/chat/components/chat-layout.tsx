@@ -5,13 +5,16 @@ import ChatSidebar from "./sidebar/chat-sidebar";
 import ChatArea from "./chat-area/chat-area";
 import ChatRightPanel from "./right-panel/chat-right-panel";
 import ThreadSidePanel from "./right-panel/thread/thread-side-panel";
-import { useAppSelector } from "@/store/store";
+import { useAppDispatch, useAppSelector } from "@/store/store";
 import { MessageCircle } from "lucide-react";
 import UserProfileModal from "./modals/shared/user-profile-modal";
 import { useChatSocket } from "../hooks/socket/useChatSocket";
+import { setActiveChat, setActiveSpaceId } from "@/store/chat/chat-slice";
+import { ChatContextType } from "../types/chat.types";
 
 export default function ChatLayout() {
   useChatSocket();
+  const dispatch = useAppDispatch();
   const [showRightPanel, setShowRightPanel] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"search" | null>(null);
   const [mobileView, setMobileView] = useState<"sidebar" | "chat">("sidebar");
@@ -19,6 +22,22 @@ export default function ChatLayout() {
   const activeThreadRootMessageId = useAppSelector(
     (state) => state.chat.activeThreadRootMessageId,
   );
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const spaceId = searchParams.get("spaceId");
+    const channelId = searchParams.get("channelId");
+    if (!spaceId || !channelId) return;
+
+    dispatch(setActiveSpaceId(spaceId));
+    dispatch(
+      setActiveChat({
+        chatId: channelId,
+        chatType: ChatContextType.CHANNEL,
+      }),
+    );
+    setMobileView("chat");
+  }, [dispatch]);
 
   useEffect(() => {
     if (activeChatId) {

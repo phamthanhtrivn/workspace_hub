@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  BadGatewayException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -8,6 +9,7 @@ import { Prisma } from "@prisma/client";
 import { isTerminalTaskStatus, TaskStatus } from "../project/project.enums";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateTaskDto } from "./dto/create-task.dto";
+import { AttachTaskDocumentsDto } from "./dto/attach-task-documents.dto";
 import { UpdateTaskDto } from "./dto/update-task.dto";
 import { ProjectAccessService } from "../project/project-access.service";
 import { toTaskResponse } from "../project/project.mapper";
@@ -36,9 +38,18 @@ import {
   resolveProfilesForItem,
   resolveProfilesForItems,
 } from "../../common/utils/profile-mapper.util";
+import {
+  TaskDocumentClient,
+  TaskDocumentMetadata,
+} from "./task-document.client";
+import { TaskDocumentAttachmentSource } from "./task-document.enums";
 
 const taskWithCount = taskInclude;
 const TASK_PROGRESS_FIELDS = new Set<keyof UpdateTaskDto>(['status', 'rank']);
+const PARENT_SUBTASK_DEPENDENCY_ERROR =
+  "A task cannot depend on its parent or subtask.";
+const COMPLETE_SUBTASKS_BEFORE_DONE_ERROR =
+  "Complete all subtasks before marking this task as done.";
 
 function isTaskProgressUpdate(dto: UpdateTaskDto): boolean {
   const fields = Object.entries(dto)
@@ -57,6 +68,7 @@ export class TaskService {
     private readonly activities: ActivityService,
     private readonly notifications: NotificationOutboxService,
     private readonly userProfiles: UserProfileSnapshotService,
+    private readonly taskDocuments: TaskDocumentClient,
   ) {}
 
   async create(userId: string, projectId: string, dto: CreateTaskDto) {
@@ -206,6 +218,136 @@ export class TaskService {
     return toTaskResponse(task, profiles);
   }
 
+  async listDocuments(userId: string, taskId: string) {
+    const task = await this.findTask(taskId);
+    await this.access.requireReadAccess(userId, task.projectId);
+    return this.toDocumentAttachmentResponses(task.documentAttachments);
+  }
+
+  async attachDocuments(
+    userId: string,
+    taskId: string,
+    dto: AttachTaskDocumentsDto,
+  ) {
+    const task = await this.findTask(taskId);
+    await this.access.requireCanContributeTask(
+      userId,
+      task.projectId,
+      task.createdBy,
+      task.assignees.map((assignee) => assignee.userId),
+    );
+    assertTaskEditable(task.status);
+
+    const documentItemIds = [...new Set(dto.documentItemIds)];
+    if (documentItemIds.length !== dto.documentItemIds.length) {
+      throw new ConflictException('Duplicate documents cannot be attached');
+    }
+
+    const profile = await this.userProfiles.getProfileByUserId(userId);
+    const userEmail = profile?.email?.trim() || `${userId}@workspace.local`;
+    const documents = await this.resolveTaskDocuments(
+      task.projectId,
+      userId,
+      userEmail,
+      documentItemIds,
+      dto.source,
+    );
+
+    if (documents.length !== documentItemIds.length) {
+      throw new BadGatewayException('Unable to resolve all task documents');
+    }
+
+    const documentsById = new Map(documents.map((document) => [document.id, document]));
+    const attachmentsToCreate =
+      dto.source === TaskDocumentAttachmentSource.MY_FILES
+        ? documents
+        : documentItemIds
+            .map((documentItemId) => documentsById.get(documentItemId))
+            .filter((document): document is TaskDocumentMetadata => Boolean(document));
+    const now = new Date();
+    const created = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.taskDocumentAttachment.findMany({
+        where: {
+          taskId,
+          documentItemId: {
+            in: attachmentsToCreate.map((document) => document.id),
+          },
+        },
+        select: { documentItemId: true },
+      });
+      if (existing.length > 0) {
+        throw new ConflictException('One or more documents are already attached');
+      }
+
+      const attachments = [];
+      for (const document of attachmentsToCreate) {
+        attachments.push(
+          await tx.taskDocumentAttachment.create({
+            data: {
+              id: crypto.randomUUID(),
+              taskId,
+              projectId: task.projectId,
+              documentItemId: document.id,
+              source: dto.source,
+              name: document.name,
+              mimeType: document.mimeType,
+              sizeBytes: BigInt(document.sizeBytes),
+              attachedBy: userId,
+              createdAt: now,
+            },
+          }),
+        );
+      }
+
+      await this.activities.record(
+        taskId,
+        userId,
+        'documents.attached',
+        null,
+        attachments.map((attachment) => attachment.name),
+        tx,
+      );
+
+      return attachments;
+    });
+
+    return this.toDocumentAttachmentResponses(created);
+  }
+
+  async detachDocument(
+    userId: string,
+    taskId: string,
+    attachmentId: string,
+  ) {
+    const task = await this.findTask(taskId);
+    const attachment = task.documentAttachments.find((item) => item.id === attachmentId);
+    if (!attachment) {
+      throw new NotFoundException('Task document attachment not found');
+    }
+
+    await this.access.requireCanContributeTask(
+      userId,
+      task.projectId,
+      task.createdBy,
+      task.assignees.map((assignee) => assignee.userId),
+    );
+    assertTaskEditable(task.status);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.taskDocumentAttachment.delete({ where: { id: attachmentId } });
+      await this.activities.record(
+        taskId,
+        userId,
+        'documents.detached',
+        attachment.name,
+        null,
+        tx,
+      );
+    });
+
+    return this.toDocumentAttachmentResponse(attachment);
+  }
+
   async update(userId: string, taskId: string, dto: UpdateTaskDto) {
     const current = await this.findTask(taskId);
     if (isTaskProgressUpdate(dto)) {
@@ -284,6 +426,9 @@ export class TaskService {
         await lockProject(tx, current.projectId);
         if (dto.parentTaskId !== undefined) {
           await this.validateParent(current.projectId, dto.parentTaskId, current.id, tx);
+        }
+        if (dto.status === TaskStatus.DONE) {
+          await this.assertCanCompleteTaskWithSubtasks(current.id, tx);
         }
         const updated = await tx.task.update({
           where: { id: taskId, version: current.version },
@@ -408,6 +553,71 @@ export class TaskService {
     return task;
   }
 
+  private async resolveTaskDocuments(
+    projectId: string,
+    userId: string,
+    userEmail: string,
+    documentItemIds: string[],
+    source: TaskDocumentAttachmentSource,
+  ): Promise<TaskDocumentMetadata[]> {
+    try {
+      if (source === TaskDocumentAttachmentSource.MY_FILES) {
+        return await this.taskDocuments.importPersonalFiles({
+          projectId,
+          userId,
+          userEmail,
+          documentItemIds,
+        });
+      }
+
+      return await this.taskDocuments.resolveProjectFiles({
+        projectId,
+        userId,
+        userEmail,
+        documentItemIds,
+      });
+    } catch {
+      throw new BadGatewayException('Unable to prepare task documents');
+    }
+  }
+
+  private toDocumentAttachmentResponses(
+    attachments: Array<{
+      id: string;
+      taskId: string;
+      projectId: string;
+      documentItemId: string;
+      source: string;
+      name: string;
+      mimeType: string | null;
+      sizeBytes: bigint | number;
+      attachedBy: string;
+      createdAt: Date;
+    }>,
+  ) {
+    return attachments.map((attachment) =>
+      this.toDocumentAttachmentResponse(attachment),
+    );
+  }
+
+  private toDocumentAttachmentResponse(attachment: {
+    id: string;
+    taskId: string;
+    projectId: string;
+    documentItemId: string;
+    source: string;
+    name: string;
+    mimeType: string | null;
+    sizeBytes: bigint | number;
+    attachedBy: string;
+    createdAt: Date;
+  }) {
+    return {
+      ...attachment,
+      sizeBytes: Number(attachment.sizeBytes),
+    };
+  }
+
   private async validateParent(
     projectId: string,
     parentTaskId?: string,
@@ -435,6 +645,43 @@ export class TaskService {
       throw new ConflictException("Only top-level tasks can be parents");
     if (currentTaskId && await database.task.count({ where: { parentTaskId: currentTaskId, deletedAt: null } })) {
       throw new ConflictException("A task with children cannot become a subtask");
+    }
+    if (currentTaskId) {
+      const dependencyCount = await database.taskDependency.count({
+        where: {
+          projectId,
+          OR: [
+            {
+              predecessorTaskId: currentTaskId,
+              successorTaskId: parentTaskId,
+            },
+            {
+              predecessorTaskId: parentTaskId,
+              successorTaskId: currentTaskId,
+            },
+          ],
+        },
+      });
+      if (dependencyCount > 0) {
+        throw new ConflictException(PARENT_SUBTASK_DEPENDENCY_ERROR);
+      }
+    }
+  }
+
+  private async assertCanCompleteTaskWithSubtasks(
+    taskId: string,
+    database: Prisma.TransactionClient = this.prisma,
+  ): Promise<void> {
+    const openSubtasks = await database.task.count({
+      where: {
+        parentTaskId: taskId,
+        deletedAt: null,
+        archived: false,
+        status: { not: TaskStatus.DONE },
+      },
+    });
+    if (openSubtasks > 0) {
+      throw new ConflictException(COMPLETE_SUBTASKS_BEFORE_DONE_ERROR);
     }
   }
 

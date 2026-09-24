@@ -5,4 +5,9 @@ export class MoveItemDto {
   @IsOptional()
   @ValidateIf((object, value) => value !== null)
   parentFolderId?: string | null;
+
+  @IsUUID(4, { message: 'Invalid project ID' })
+  @IsOptional()
+  @ValidateIf((object, value) => value !== null)
+  projectId?: string | null;
 }

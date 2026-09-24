@@ -6,11 +6,19 @@ export class RuntimeConfigService {
     process.env.NOTIFICATION_SERVICE_URL,
     'NOTIFICATION_SERVICE_URL',
   );
+  readonly communicationServiceUrl = this.baseUrl(
+    process.env.COMMUNICATION_SERVICE_URL ?? 'http://localhost:8083',
+  );
+  readonly documentServiceUrl = this.baseUrl(
+    process.env.DOCUMENT_SERVICE_URL ?? 'http://localhost:8085',
+  );
   readonly frontendUrl = this.baseUrl(process.env.FRONTEND_URL ?? 'http://localhost:3000');
   readonly notificationServiceKey = this.required(
     process.env.NOTIFICATION_INTERNAL_SERVICE_KEY ?? process.env.INTERNAL_SERVICE_KEY,
     'NOTIFICATION_INTERNAL_SERVICE_KEY or INTERNAL_SERVICE_KEY',
   );
+  readonly internalServiceKey =
+    this.optional(process.env.INTERNAL_SERVICE_KEY) ?? 'local-internal-key';
   readonly httpTimeoutMs = this.positiveInteger(process.env.SERVICE_HTTP_TIMEOUT_MS, 5_000);
   readonly outboxPollIntervalMs = this.positiveInteger(process.env.OUTBOX_POLL_INTERVAL_MS, 2_000);
   readonly outboxBatchSize = this.positiveInteger(process.env.OUTBOX_BATCH_SIZE, 20);
@@ -30,6 +38,11 @@ export class RuntimeConfigService {
   private required(value: string | undefined, key: string): string {
     if (!value?.trim()) throw new Error(`${key} must be configured`);
     return value;
+  }
+
+  private optional(value: string | undefined): string | undefined {
+    const trimmed = value?.trim();
+    return trimmed || undefined;
   }
 
   private positiveInteger(value: string | undefined, fallback: number): number {

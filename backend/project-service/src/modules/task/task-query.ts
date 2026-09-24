@@ -7,6 +7,7 @@ export const taskInclude = {
   _count: { select: { children: { where: { archived: false, deletedAt: null } } } },
   checklists: { orderBy: [{ rank: 'asc' }, { createdAt: 'asc' }] },
   assignees: { orderBy: { assignedAt: 'asc' } },
+  documentAttachments: { orderBy: { createdAt: 'desc' } },
   labelMappings: { include: { label: true }, orderBy: { labelId: 'asc' } },
 } satisfies Prisma.TaskInclude;
 

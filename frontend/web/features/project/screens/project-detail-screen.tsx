@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   type Task,
@@ -13,8 +13,10 @@ import { useAppSelector } from "@/store/store";
 import {
   useProject,
   useProjectMembers,
+  useProjectSpaceStatus,
   useUpdateProject,
   useArchiveProject,
+  useOpenProjectSpace,
 } from "@/features/project/hooks/use-projects";
 import {
   useCreateTask,
@@ -54,6 +56,7 @@ import { projectSocketService } from "../api/project-socket.service";
 
 export default function ProjectDetailScreen() {
   const params = useParams();
+  const router = useRouter();
   const projectId = params.id as string;
   const { data: project, isLoading, isError } = useProject(projectId);
   const { data: members = [] } = useProjectMembers(projectId);
@@ -67,6 +70,8 @@ export default function ProjectDetailScreen() {
   const updateTaskMutation = useUpdateTask(projectId);
   const updateProjectMutation = useUpdateProject(projectId);
   const archiveProjectMutation = useArchiveProject(projectId);
+  const projectSpaceStatusQuery = useProjectSpaceStatus(projectId);
+  const openProjectSpaceMutation = useOpenProjectSpace(projectId);
   const { data: labels = [] } = useProjectLabels(projectId);
 
   useEffect(() => {
@@ -82,6 +87,9 @@ export default function ProjectDetailScreen() {
   const permissions = project
     ? getProjectPermissions(project, members, currentUserId)
     : NO_PROJECT_PERMISSIONS;
+  const canOpenProjectChat =
+    permissions.canManageProject ||
+    Boolean(projectSpaceStatusQuery.data?.exists);
   const pendingInvitationsQuery = usePendingProjectInvitations(
     projectId,
     permissions.canInviteMembers,
@@ -196,6 +204,7 @@ export default function ProjectDetailScreen() {
     setQuickAssignee: setQuickAssigneeFilter,
     onlyMyIssues,
     setOnlyMyIssues,
+    statusOverrides,
     setStatusOverrides: setTaskStatusOverrides,
     toggleAssignee: toggleAssigneeFilter,
     clear: clearAllFilters,
@@ -209,8 +218,8 @@ export default function ProjectDetailScreen() {
   } = useProjectTasks(projectId, taskQuery, hasApiFilters);
   const visibleTaskSource = hasApiFilters ? filteredServerTasks : serverTasks;
   const filteredTasks = useMemo(
-    () => enrichProjectTasks(visibleTaskSource, members, setTaskStatusOverrides),
-    [members, setTaskStatusOverrides, visibleTaskSource],
+    () => enrichProjectTasks(visibleTaskSource, members, statusOverrides),
+    [members, statusOverrides, visibleTaskSource],
   );
   const visibleTasksLoading =
     tasksLoading || (hasApiFilters && filteredTasksLoading);
@@ -279,6 +288,23 @@ export default function ProjectDetailScreen() {
     }
   };
 
+  const handleOpenProjectChat = async () => {
+    try {
+      const projectSpace = await openProjectSpaceMutation.mutateAsync();
+      const searchParams = new URLSearchParams({
+        spaceId: projectSpace.spaceId,
+        channelId: projectSpace.channelId,
+      });
+      router.push(`/chat?${searchParams.toString()}`);
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      toast.error(
+        apiError.response?.data?.message ||
+          "Failed to open project chat",
+      );
+    }
+  };
+
   if (isLoading) {
     return <ProjectDetailLoading />;
   }
@@ -294,6 +320,7 @@ export default function ProjectDetailScreen() {
     list: "Backlog",
     calendar: "Schedule",
     gantt: "Grantt Chart",
+    documents: "Documents",
     members: "Members",
   };
 
@@ -324,7 +351,11 @@ export default function ProjectDetailScreen() {
       />
 
       {/* ── Main Content Area ── */}
-      <main className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-white px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+      <main
+        className={`flex min-w-0 flex-1 flex-col bg-white px-4 py-5 sm:px-6 lg:px-8 lg:py-6 ${
+          viewMode === "documents" ? "overflow-hidden" : "overflow-y-auto"
+        }`}
+      >
         <ProjectDetailToolbar
           project={project}
           members={projectWithMembers.members}
@@ -341,6 +372,8 @@ export default function ProjectDetailScreen() {
           isFiltersActive={isFiltersActive}
           canCreateTask={permissions.canCreateTask}
           canInviteMembers={permissions.canInviteMembers}
+          canOpenProjectChat={canOpenProjectChat}
+          isOpeningProjectChat={openProjectSpaceMutation.isPending}
           onViewChange={setViewMode}
           onSearchChange={setSearchQuery}
           onStatusChange={setStatusFilter}
@@ -356,6 +389,7 @@ export default function ProjectDetailScreen() {
           onOpenProjectNavigation={openMobileSidebar}
           onCreateTask={() => openCreateTask()}
           onInviteMembers={() => setShowInviteDialog(true)}
+          onOpenProjectChat={canOpenProjectChat ? handleOpenProjectChat : undefined}
         />
 
         <ProjectDetailContent

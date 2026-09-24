@@ -9,6 +9,7 @@ import {
   DocumentShare,
   SharingSettings,
   ChatMetadataResponse,
+  DocumentNameConflict,
 } from "../types/documents.types";
 import { UploadState } from "../types/documents.enums";
 import axios from "axios";
@@ -77,12 +78,28 @@ export const documentsApi = {
     return response.data.data;
   },
 
+  getNameConflict: async (params: {
+    name: string;
+    parentFolderId?: string;
+    projectId?: string;
+  }): Promise<DocumentNameConflict> => {
+    const response = await api.get("/api/documents/conflicts", {
+      params: {
+        name: params.name,
+        parentFolderId: params.parentFolderId,
+        projectId: params.projectId,
+      },
+    });
+    return response.data.data;
+  },
+
   initiateUpload: async (data: {
     name: string;
     mimeType: string;
     sizeBytes: number;
     parentFolderId?: string;
     projectId?: string;
+    overwriteItemId?: string;
   }): Promise<{ presignedUrl: string; s3Key: string }> => {
     const response = await api.post("/api/documents/upload/initiate", data);
     return response.data.data;
@@ -95,6 +112,7 @@ export const documentsApi = {
     s3Key: string;
     parentFolderId?: string;
     projectId?: string;
+    overwriteItemId?: string;
   }): Promise<DocumentItem> => {
     const response = await api.post("/api/documents/upload/confirm", data);
     return response.data.data;
@@ -103,7 +121,9 @@ export const documentsApi = {
   uploadFile: async (
     file: File,
     parentFolderId?: string | null,
+    projectId?: string,
     onProgress?: (percent: number, state: UploadState) => void,
+    overwriteItemId?: string,
   ): Promise<DocumentItem> => {
     const mimeType = file.type || DEFAULT_MIME_TYPE;
 
@@ -113,6 +133,8 @@ export const documentsApi = {
       mimeType,
       sizeBytes: file.size,
       parentFolderId: parentFolderId || undefined,
+      projectId: !parentFolderId ? projectId : undefined,
+      overwriteItemId,
     });
 
     onProgress?.(0, UploadState.UPLOADING);
@@ -136,6 +158,8 @@ export const documentsApi = {
       sizeBytes: file.size,
       s3Key,
       parentFolderId: parentFolderId || undefined,
+      projectId: !parentFolderId ? projectId : undefined,
+      overwriteItemId,
     });
 
     return item;
@@ -149,9 +173,11 @@ export const documentsApi = {
   moveItem: async (
     id: string,
     parentFolderId: string | null,
+    projectId?: string,
   ): Promise<DocumentItem> => {
     const response = await api.put(`/api/documents/${id}/move`, {
       parentFolderId,
+      projectId,
     });
     return response.data.data;
   },

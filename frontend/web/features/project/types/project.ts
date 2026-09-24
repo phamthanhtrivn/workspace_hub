@@ -66,6 +66,7 @@ export interface ProjectMember {
   canEditOthersTask: boolean;
   canManageMembers: boolean;
   canManageLabels: boolean;
+  canEditDocuments: boolean;
   joinedAt: string;
 }
 
@@ -76,6 +77,7 @@ export type ProjectMemberPermissions = Pick<
   | "canEditOthersTask"
   | "canManageMembers"
   | "canManageLabels"
+  | "canEditDocuments"
 >;
 
 export interface TaskLabel {
@@ -125,6 +127,25 @@ export interface TaskActivity {
   field: string;
   oldValue?: string | null;
   newValue?: string | null;
+  createdAt: string;
+}
+
+export enum TaskDocumentAttachmentSource {
+  DEVICE_UPLOAD = "DEVICE_UPLOAD",
+  MY_FILES = "MY_FILES",
+  PROJECT_DOCUMENT = "PROJECT_DOCUMENT",
+}
+
+export interface TaskDocumentAttachment {
+  id: string;
+  taskId: string;
+  projectId: string;
+  documentItemId: string;
+  source: TaskDocumentAttachmentSource;
+  name: string;
+  mimeType: string | null;
+  sizeBytes: number;
+  attachedBy: string;
   createdAt: string;
 }
 
@@ -179,6 +200,7 @@ export interface Task {
 
   // Relations (populated)
   checklists: TaskChecklist[];
+  documentAttachments: TaskDocumentAttachment[];
   assignees: TaskAssignee[];
   comments: TaskComment[];
   activities: TaskActivity[];

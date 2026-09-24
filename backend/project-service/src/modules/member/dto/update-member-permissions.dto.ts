@@ -15,4 +15,7 @@ export class UpdateMemberPermissionsDto {
 
   @IsBoolean()
   canManageLabels!: boolean;
+
+  @IsBoolean()
+  canEditDocuments!: boolean;
 }
