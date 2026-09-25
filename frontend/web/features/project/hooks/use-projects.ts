@@ -44,11 +44,15 @@ export function useProject(projectId: string) {
   });
 }
 
-export function useProjectMembers(projectId: string) {
+export function useProjectMembers(
+  projectId: string,
+  options?: { enabled?: boolean; staleTime?: number },
+) {
   return useQuery({
     queryKey: projectKeys.members(projectId),
     queryFn: () => getProjectMembers(projectId),
-    enabled: Boolean(projectId),
+    enabled: Boolean(projectId) && (options?.enabled ?? true),
+    staleTime: options?.staleTime,
   });
 }
 

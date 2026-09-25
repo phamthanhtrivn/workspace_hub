@@ -1,6 +1,7 @@
 "use client";
 
 import FullCalendar from "@fullcalendar/react";
+import type { EventClickArg } from "@fullcalendar/core";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -9,11 +10,16 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
+import { useProjectTasks } from "@/features/project/hooks/use-tasks";
+import type { Task } from "@/features/project/types/project";
 import { CalendarSidebar } from "../sidebar/calendar-sidebar";
 import { CalendarToolbar } from "../toolbar/calendar-toolbar";
 import { CalendarGrid } from "./calendar-grid";
 import { CalendarTasksDrawer } from "../drawer/calendar-tasks-drawer";
 import { useCalendarWorkspace } from "../../hooks/use-calendar-workspace";
+import { useCalendarProjects } from "../../hooks/use-calendar-projects";
+import { mapProjectTasksToCalendarEvents } from "../../utils/project-task-event.utils";
+import { ProjectTaskDetailModal } from "../modal/project-task-detail-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCalendarKeyboardShortcuts } from "../../hooks/use-calendar-keyboard-shortcuts";
 import {
@@ -47,6 +53,20 @@ export function CalendarWorkspace() {
   const intl = useAppIntl();
   const calendarRef = useRef<FullCalendar | null>(null);
   const calendar = useCalendarWorkspace(calendarRef);
+  const projectsQuery = useCalendarProjects();
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectTask, setSelectedProjectTask] = useState<Task | null>(null);
+  const projects = projectsQuery.data ?? [];
+  const selectedProject = projects.find((project) => project.id === selectedProjectId);
+  const projectTasksQuery = useProjectTasks(selectedProject?.id ?? "");
+  const projectTaskEvents = useMemo(
+    () => mapProjectTasksToCalendarEvents(projectTasksQuery.data ?? [], selectedProject),
+    [projectTasksQuery.data, selectedProject],
+  );
+  const displayEvents = useMemo(
+    () => [...calendar.fullCalendarEvents, ...projectTaskEvents],
+    [calendar.fullCalendarEvents, projectTaskEvents],
+  );
   const tasksQuery = useCalendarTasks();
   const createCalendar = useCreateCalendar();
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
@@ -188,8 +208,31 @@ export function CalendarWorkspace() {
     setTasksDrawerOpen(false);
   }, []);
 
+  const handleToggleProject = useCallback((projectId: string) => {
+    setSelectedProjectId((current) => current === projectId ? null : projectId);
+    setSelectedProjectTask(null);
+  }, []);
+
+  const handleEventClick = useCallback((arg: EventClickArg) => {
+    const projectTask = arg.event.extendedProps.projectTask as Task | undefined;
+    if (projectTask) {
+      setSelectedProjectTask(projectTask);
+      return;
+    }
+    calendar.handleEventClick(arg);
+  }, [calendar]);
+
+  const handleRetryProjects = useCallback(() => {
+    if (projectsQuery.isError) void projectsQuery.refetch();
+    if (projectTasksQuery.isError) void projectTasksQuery.refetch();
+  }, [projectsQuery, projectTasksQuery]);
+
   const calendarEvents = calendar.events;
   const tasksData = tasksQuery.data;
+  const projectCalendarIds = useMemo(
+    () => new Set(calendar.calendars.filter((item) => item.projectId).map((item) => item.id)),
+    [calendar.calendars],
+  );
 
   // Merge tasks from dedicated query + visible calendar events (guarantees tasks on the calendar grid are NEVER missing)
   const allTasks = useMemo(() => {
@@ -198,7 +241,7 @@ export function CalendarWorkspace() {
     // 1. Tasks from dedicated paginated task query (across all dates)
     if (Array.isArray(tasksData)) {
       for (const t of tasksData) {
-        if (isTaskCalendarEvent(t) && t.status !== EventStatus.CANCELLED) {
+        if (isTaskCalendarEvent(t) && t.status !== EventStatus.CANCELLED && !t.calendar?.projectId && !projectCalendarIds.has(t.calendarId)) {
           taskMap.set(t.id, t);
         }
       }
@@ -207,13 +250,13 @@ export function CalendarWorkspace() {
     // 2. Tasks from current workspace calendar events (guarantees tasks visible on grid are never missing)
     const workspaceEvents = Array.isArray(calendarEvents) ? calendarEvents : [];
     for (const e of workspaceEvents) {
-      if (isTaskCalendarEvent(e) && e.status !== EventStatus.CANCELLED) {
+      if (isTaskCalendarEvent(e) && e.status !== EventStatus.CANCELLED && !e.calendar?.projectId && !projectCalendarIds.has(e.calendarId)) {
         taskMap.set(e.id, e);
       }
     }
 
     return Array.from(taskMap.values());
-  }, [tasksData, calendarEvents]);
+  }, [tasksData, calendarEvents, projectCalendarIds]);
 
   return (
     <section className="relative h-full w-full overflow-hidden bg-white">
@@ -248,6 +291,13 @@ export function CalendarWorkspace() {
               tasksVisible={calendar.tasksVisible}
               tasksColor={calendar.tasksColor}
               tasksDrawerOpen={tasksDrawerOpen}
+              projects={projects}
+              selectedProjectId={selectedProject?.id ?? null}
+              projectsLoading={projectsQuery.isLoading}
+              projectsError={projectsQuery.isError}
+              projectTasksError={projectTasksQuery.isError}
+              onToggleProject={handleToggleProject}
+              onRetryProjects={handleRetryProjects}
               onToggleCalendar={calendar.toggleCalendar}
               onToggleTasks={calendar.toggleTasks}
               onOpenTasksDrawer={handleOpenTasksDrawer}
@@ -289,13 +339,13 @@ export function CalendarWorkspace() {
           ) : (
             <CalendarGrid
               calendarRef={calendarRef}
-              events={calendar.fullCalendarEvents}
+              events={displayEvents}
               timeZone={calendar.displayTimeZone}
-              loading={calendar.loading}
+              loading={calendar.loading || projectTasksQuery.isLoading}
               onDatesSet={calendar.handleDatesSet}
               onSelect={calendar.handleSelect}
               onDateClick={calendar.handleDateClick}
-              onEventClick={calendar.handleEventClick}
+              onEventClick={handleEventClick}
               onEventMove={calendar.handleEventMove}
               onTaskCompletionToggle={calendar.handleTaskCompletionQuickToggle}
               taskCompletionBusy={calendar.taskCompletionBusy}
@@ -346,6 +396,14 @@ export function CalendarWorkspace() {
           onRespond={calendar.handleRespond}
           onTaskCompletionChange={calendar.handleTaskCompletionChange}
           busy={calendar.detailBusy}
+        />
+      )}
+
+      {selectedProject && selectedProjectTask && (
+        <ProjectTaskDetailModal
+          task={selectedProjectTask}
+          project={selectedProject}
+          onClose={() => setSelectedProjectTask(null)}
         />
       )}
 

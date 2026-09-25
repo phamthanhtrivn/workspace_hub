@@ -76,13 +76,15 @@ export const CalendarGrid = memo(function CalendarGrid({
         arg.event.extendedProps.hasCustomEventColor,
       );
       const isTask =
-        arg.event.extendedProps.sourceType === EventSourceType.TASK;
+        arg.event.extendedProps.sourceType === EventSourceType.TASK ||
+        Boolean(arg.event.extendedProps.projectTask);
+      const isProjectTask = Boolean(arg.event.extendedProps.projectTask);
       const isCompletedTask =
         isTask && Boolean(arg.event.extendedProps.completedAt);
       const isDeclined = Boolean(arg.event.extendedProps.isDeclined);
-      const taskEvent = arg.event.extendedProps.model as CalendarEvent;
+      const taskEvent = arg.event.extendedProps.model as CalendarEvent | undefined;
       const canToggleTask =
-        isTask && Boolean(taskEvent.permissions?.canManage);
+        isTask && !isProjectTask && Boolean(taskEvent?.permissions?.canManage);
       const taskToggleLabel = intl.formatMessage({
         id: isCompletedTask
           ? "calendar.task.markIncomplete"
@@ -148,7 +150,9 @@ export const CalendarGrid = memo(function CalendarGrid({
                 onClick={(event) => {
                   event.stopPropagation();
                 }}
-                onCheckedChange={() => onTaskCompletionToggle(taskEvent)}
+                onCheckedChange={() => {
+                  if (taskEvent) onTaskCompletionToggle(taskEvent);
+                }}
                 className={`group/task-toggle relative mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full outline-none ring-white/90 focus-visible:ring-2 ${
                   taskCompletionBusy
                     ? "cursor-wait opacity-70"

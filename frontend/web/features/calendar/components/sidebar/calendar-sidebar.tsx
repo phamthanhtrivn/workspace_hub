@@ -4,6 +4,7 @@ import { CalendarPlus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { WorkspaceCalendar } from "../../types/calendar.types";
+import type { Project } from "@/features/project/types/project";
 import { CalendarListItem } from "./calendar-list-item";
 import { MiniCalendar } from "./mini-calendar";
 import { ProjectCalendarsSection } from "./project-calendars-section";
@@ -17,6 +18,13 @@ export function CalendarSidebar({
   tasksVisible,
   tasksColor,
   tasksDrawerOpen,
+  projects,
+  selectedProjectId,
+  projectsLoading,
+  projectsError,
+  projectTasksError,
+  onToggleProject,
+  onRetryProjects,
   onToggleCalendar,
   onToggleTasks,
   onOpenTasksDrawer,
@@ -32,6 +40,13 @@ export function CalendarSidebar({
   tasksVisible: boolean;
   tasksColor: string;
   tasksDrawerOpen?: boolean;
+  projects: Project[];
+  selectedProjectId: string | null;
+  projectsLoading: boolean;
+  projectsError: boolean;
+  projectTasksError: boolean;
+  onToggleProject: (projectId: string) => void;
+  onRetryProjects: () => void;
   onToggleCalendar: (calendarId: string) => void;
   onToggleTasks: () => void;
   onOpenTasksDrawer?: () => void;
@@ -44,7 +59,7 @@ export function CalendarSidebar({
 
   return (
     <aside className="flex h-full min-h-0 flex-col overflow-y-auto border-r border-slate-200 bg-white [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="px-4 pb-2 pt-4">
+      <div className="shrink-0 px-4 pb-2 pt-4">
         <Button
           type="button"
           variant="outline"
@@ -58,14 +73,16 @@ export function CalendarSidebar({
         </Button>
       </div>
 
-      <MiniCalendar
-        currentDate={currentDate}
-        selectedDate={selectedDate}
-        onSelectDate={onSelectDate}
-      />
+      <div className="shrink-0">
+        <MiniCalendar
+          currentDate={currentDate}
+          selectedDate={selectedDate}
+          onSelectDate={onSelectDate}
+        />
+      </div>
 
-      <div className="min-h-0 flex-1 px-3 py-3">
-        <div className="mb-2 flex items-center justify-between px-2">
+      <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
+        <div className="mb-2 flex shrink-0 items-center justify-between px-2">
           <div className="flex items-center gap-2">
             <CalendarPlus className="h-4 w-4 text-[var(--color-primary)]" />
             <h2 className="text-sm font-semibold text-slate-700">
@@ -88,16 +105,15 @@ export function CalendarSidebar({
         </div>
         {(() => {
           const personalCalendars = calendars.filter((c) => !c.projectId);
-          const projectCalendars = calendars.filter((c) => !!c.projectId);
 
           return (
             <>
               {personalCalendars.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center text-xs font-semibold text-slate-400">
+                <div className="shrink-0 rounded-lg border border-dashed border-slate-200 px-3 py-5 text-center text-xs font-semibold text-slate-400">
                   {intl.formatMessage({ id: "calendar.noCalendars" })}
                 </div>
               ) : (
-                <div className="space-y-1">
+                <div className="shrink-0 space-y-1">
                   {personalCalendars.map((calendar) => {
                     const selected = selectedCalendarIds.has(calendar.id);
                     return (
@@ -121,9 +137,13 @@ export function CalendarSidebar({
               )}
 
               <ProjectCalendarsSection
-                calendars={projectCalendars}
-                selectedCalendarIds={selectedCalendarIds}
-                onToggleCalendar={onToggleCalendar}
+                projects={projects}
+                selectedProjectId={selectedProjectId}
+                loading={projectsLoading}
+                error={projectsError}
+                tasksError={projectTasksError}
+                onToggleProject={onToggleProject}
+                onRetry={onRetryProjects}
               />
             </>
           );
