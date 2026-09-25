@@ -387,7 +387,9 @@ export function EventDetailModal({
                     <span>
                       {event.location!.includes("meet.google.com")
                         ? "Join with Google Meet"
-                        : "Join Meeting"}
+                        : event.location!.includes("/meetings/")
+                          ? "Join with Workspace Hub Meeting"
+                          : "Join Meeting"}
                     </span>
                     <ExternalLink className="h-3.5 w-3.5 opacity-80" />
                   </a>

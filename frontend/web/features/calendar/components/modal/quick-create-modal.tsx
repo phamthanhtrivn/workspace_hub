@@ -264,6 +264,9 @@ export function QuickCreateModal({
                 onLocationChange={(val) =>
                   setValue("location", val, { shouldDirty: true })
                 }
+                hasConference={controller.hasConference}
+                onToggleConference={controller.setHasConference}
+                isPastEvent={controller.isPastEvent}
                 register={register}
               />
             )}

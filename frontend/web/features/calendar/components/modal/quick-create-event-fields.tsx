@@ -2,12 +2,11 @@
 
 import { MapPin, Users, Video } from "lucide-react";
 import { UseFormRegister } from "react-hook-form";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
 import { CalendarEventAttendeePayload } from "../../types/calendar.types";
 import { AttendeePicker } from "../workspace/attendee-picker";
+import { CalendarConferenceCard } from "./calendar-conference-card";
 import { LocationPickerInput } from "./location-picker-input";
 import { QuickRow } from "./quick-create-time-section";
 
@@ -16,6 +15,9 @@ interface QuickCreateEventFieldsProps {
   onAttendeesChange: (attendees: CalendarEventAttendeePayload[]) => void;
   locationValue?: string;
   onLocationChange?: (val: string) => void;
+  hasConference?: boolean;
+  onToggleConference?: (enabled: boolean) => void;
+  isPastEvent?: boolean;
   register: UseFormRegister<CalendarEventEditorValues>;
 }
 
@@ -24,6 +26,9 @@ export function QuickCreateEventFields({
   onAttendeesChange,
   locationValue = "",
   onLocationChange,
+  hasConference = false,
+  onToggleConference,
+  isPastEvent = false,
   register,
 }: QuickCreateEventFieldsProps) {
   return (
@@ -35,16 +40,16 @@ export function QuickCreateEventFields({
           onChange={onAttendeesChange}
         />
       </QuickRow>
+
       <QuickRow icon={<Video className="h-5 w-5" />}>
-        <Button
-          type="button"
-          variant="ghost"
-          onClick={() => toast.info(copy.conferenceUnavailable)}
-          className="h-auto w-full cursor-pointer justify-start rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50"
-        >
-          {copy.addConference}
-        </Button>
+        <CalendarConferenceCard
+          hasConference={hasConference}
+          locationValue={locationValue}
+          onToggleConference={(enabled) => onToggleConference?.(enabled)}
+          isPastEvent={isPastEvent}
+        />
       </QuickRow>
+
       <QuickRow icon={<MapPin className="h-5 w-5" />}>
         <LocationPickerInput
           value={locationValue}
