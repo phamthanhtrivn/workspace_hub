@@ -1,13 +1,13 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import { CalendarEvent, RecurrenceScope } from "../types/calendar.types";
 import { createEventEndFromStart } from "../utils/calendar-event.utils";
 import { CalendarEventMoveInfo } from "./calendar-workspace.types";
 import { useUpdateCalendarEvent } from "./use-calendar-queries";
 
 export function useCalendarEventMove(events: CalendarEvent[]) {
-  const intl = useAppIntl();
+
   const { mutateAsync: updateEventAsync } = useUpdateCalendarEvent();
   const [pendingEventMove, setPendingEventMove] =
     useState<CalendarEventMoveInfo | null>(null);
@@ -46,13 +46,13 @@ export function useCalendarEventMove(events: CalendarEvent[]) {
             recurrenceScope,
           },
         });
-        toast.success(intl.formatMessage({ id: "calendar.eventMoved" }));
+        toast.success("Event updated");
       } catch {
         info.revert();
-        toast.error(intl.formatMessage({ id: "calendar.eventMoveFailed" }));
+        toast.error("Failed to update event position");
       }
     },
-    [events, intl, updateEventAsync],
+    [events, updateEventAsync],
   );
 
   const handleEventMove = useCallback(

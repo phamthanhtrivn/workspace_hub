@@ -6,7 +6,6 @@ import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
 import { CALENDAR_DEFAULT_EVENT_COLOR } from "../../types/calendar.constants";
 import {
@@ -42,7 +41,6 @@ type CalendarModalProps =
   | EditCalendarModalProps;
 
 export function CalendarModal(props: CalendarModalProps) {
-  const intl = useAppIntl();
   const dialogRef = useRef<HTMLFormElement>(null);
   const initialValues =
     props.mode === "create"
@@ -58,9 +56,7 @@ export function CalendarModal(props: CalendarModalProps) {
   const [showCustomColor, setShowCustomColor] = useState(false);
   const isCreateMode = props.mode === "create";
   const headingId = `calendar-${props.mode}-heading`;
-  const previewName =
-    name.trim() ||
-    intl.formatMessage({ id: "calendar.calendarNamePlaceholder" });
+  const previewName = name.trim() || "Calendar name";
 
   useModalDialog({ dialogRef, onClose: props.onClose, lockDocumentScroll: false });
 
@@ -71,7 +67,7 @@ export function CalendarModal(props: CalendarModalProps) {
     const normalizedName = name.trim();
 
     if (!normalizedName) {
-      toast.error(intl.formatMessage({ id: "calendar.nameRequired" }));
+      toast.error("Calendar name is required");
       return;
     }
 
@@ -126,11 +122,7 @@ export function CalendarModal(props: CalendarModalProps) {
             id={headingId}
             className="text-base font-semibold text-slate-800"
           >
-            {intl.formatMessage({
-              id: isCreateMode
-                ? "calendar.createCalendar"
-                : "calendar.editCalendar",
-            })}
+            {isCreateMode ? "Create calendar" : "Edit calendar"}
           </h2>
           <Button
             type="button"
@@ -138,7 +130,7 @@ export function CalendarModal(props: CalendarModalProps) {
             size="icon"
             disabled={props.pending}
             onClick={props.onClose}
-            aria-label={intl.formatMessage({ id: "app.close" })}
+            aria-label="Close"
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 disabled:cursor-wait disabled:opacity-60"
           >
             <X className="h-4 w-4" />
@@ -148,7 +140,7 @@ export function CalendarModal(props: CalendarModalProps) {
         <div className="min-h-0 space-y-4 overflow-y-auto px-5 py-5">
           <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-              {intl.formatMessage({ id: "calendar.preview" })}
+              Preview
             </p>
             <div className="mt-2.5 flex items-center gap-2.5 rounded-lg border border-slate-100 bg-white px-3 py-2 shadow-xs">
               <span
@@ -168,7 +160,7 @@ export function CalendarModal(props: CalendarModalProps) {
 
           <label className="block space-y-1.5">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              {intl.formatMessage({ id: "calendar.calendarName" })}
+              Calendar name
             </span>
             <Input
               data-modal-initial-focus
@@ -176,23 +168,21 @@ export function CalendarModal(props: CalendarModalProps) {
               maxLength={120}
               disabled={props.pending}
               onChange={(event) => setName(event.target.value)}
-              placeholder={intl.formatMessage({
-                id: "calendar.calendarNamePlaceholder",
-              })}
+              placeholder="Calendar name"
               className="h-10 w-full rounded-lg border border-slate-200 px-3.5 py-2 text-sm text-slate-700 shadow-none outline-none transition placeholder:text-slate-400 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100 disabled:opacity-60"
             />
           </label>
 
           <div className="space-y-1.5">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              {intl.formatMessage({ id: "calendar.icon" })}
+              Icon
             </span>
             <CalendarIconPicker value={icon} onChange={setIcon} />
           </div>
 
           <div className="space-y-1.5">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
-              {intl.formatMessage({ id: "calendar.color" })}
+              Color
             </span>
             <CalendarColorPicker
               value={color}
@@ -213,7 +203,7 @@ export function CalendarModal(props: CalendarModalProps) {
               className="inline-flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 hover:text-red-700 disabled:cursor-wait disabled:opacity-60"
             >
               <Trash2 className="h-4 w-4" />
-              {intl.formatMessage({ id: "calendar.deleteCalendar" })}
+              Delete calendar
             </Button>
           ) : (
             <div />
@@ -227,20 +217,14 @@ export function CalendarModal(props: CalendarModalProps) {
               onClick={props.onClose}
               className="cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-800 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
             >
-              {intl.formatMessage({ id: "app.cancel" })}
+              Cancel
             </Button>
             <Button
               type="submit"
               disabled={props.pending}
               className="cursor-pointer rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-xs transition-all hover:bg-blue-700 active:scale-[0.98] disabled:cursor-wait disabled:opacity-60"
             >
-              {intl.formatMessage({
-                id: props.pending
-                  ? "app.saving"
-                  : isCreateMode
-                    ? "app.create"
-                    : "app.save",
-              })}
+              {props.pending ? "Saving..." : isCreateMode ? "Create" : "Save"}
             </Button>
           </div>
         </div>

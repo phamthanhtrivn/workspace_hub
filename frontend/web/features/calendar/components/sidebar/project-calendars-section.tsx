@@ -3,7 +3,7 @@
 import { FolderKanban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import type { Project } from "@/features/project/types/project";
 
 export function ProjectCalendarsSection({
@@ -23,7 +23,7 @@ export function ProjectCalendarsSection({
   onToggleProject: (projectId: string) => void;
   onRetry: () => void;
 }) {
-  const intl = useAppIntl();
+
 
   return (
     <section className="mt-5 flex min-h-24 flex-1 flex-col" aria-labelledby="project-calendars-heading">
@@ -33,31 +33,31 @@ export function ProjectCalendarsSection({
           id="project-calendars-heading"
           className="flex-1 text-sm font-semibold text-slate-700"
         >
-          {intl.formatMessage({ id: "calendar.projects" })}
+          Projects
         </h2>
       </div>
 
       {loading ? (
         <p className="px-8 py-1 text-xs text-slate-500" role="status">
-          {intl.formatMessage({ id: "calendar.projectsLoading" })}
+          Loading projects...
         </p>
       ) : error ? (
         <div className="px-8 py-1 text-xs text-red-600" role="alert">
-          <p>{intl.formatMessage({ id: "calendar.projectsLoadFailed" })}</p>
+          <p>Could not load projects</p>
           <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={onRetry}>
-            {intl.formatMessage({ id: "calendar.projectsRetry" })}
+            Retry
           </Button>
         </div>
       ) : projects.length === 0 ? (
         <p className="px-8 py-1 text-xs font-medium leading-5 text-slate-400">
-          {intl.formatMessage({ id: "calendar.noProjects" })}
+          No project calendars available
         </p>
       ) : (
         <>
           <div
             className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain pr-1 focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
             role="region"
-            aria-label={intl.formatMessage({ id: "calendar.projects" })}
+            aria-label="Projects"
             tabIndex={0}
           >
             {projects.map((project) => {
@@ -85,9 +85,9 @@ export function ProjectCalendarsSection({
           </div>
           {tasksError && (
             <div className="px-2 text-xs text-red-600" role="alert">
-              <span>{intl.formatMessage({ id: "calendar.projectTasksLoadFailed" })}</span>{" "}
+              <span>Could not load project tasks</span>{" "}
               <Button type="button" variant="link" className="h-auto p-0 text-xs" onClick={onRetry}>
-                {intl.formatMessage({ id: "calendar.projectsRetry" })}
+                Retry
               </Button>
             </div>
           )}

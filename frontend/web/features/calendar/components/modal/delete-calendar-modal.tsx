@@ -1,6 +1,5 @@
 "use client";
 
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarConfirmDialog } from "../ui/calendar-confirm-dialog";
 
 export function DeleteCalendarModal({
@@ -16,18 +15,13 @@ export function DeleteCalendarModal({
   onClose: () => void;
   onConfirm: () => void;
 }) {
-  const intl = useAppIntl();
-
   return (
     <CalendarConfirmDialog
       open={open}
-      title={intl.formatMessage({ id: "calendar.deleteCalendar" })}
-      description={intl.formatMessage(
-        { id: "calendar.deleteCalendarConfirm" },
-        { name: calendarName },
-      )}
-      confirmLabel={intl.formatMessage({ id: "calendar.deleteCalendar" })}
-      cancelLabel={intl.formatMessage({ id: "app.cancel" })}
+      title="Delete calendar"
+      description={`Are you sure you want to delete the calendar "${calendarName}"? All events in this calendar will also be deleted.`}
+      confirmLabel="Delete calendar"
+      cancelLabel="Cancel"
       variant="danger"
       isLoading={pending}
       onCancel={onClose}

@@ -8,7 +8,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
 import { useProjectTasks } from "@/features/project/hooks/use-tasks";
 import type { Task } from "@/features/project/types/project";
@@ -41,7 +40,7 @@ const RecurrenceScopeModal = dynamic(() =>
 );
 
 export function CalendarWorkspace() {
-  const intl = useAppIntl();
+
   const calendarRef = useRef<FullCalendar | null>(null);
   const calendar = useCalendarWorkspace(calendarRef);
   const projectsQuery = useCalendarProjects();
@@ -77,12 +76,10 @@ export function CalendarWorkspace() {
         ...values,
         isVisible: true,
       });
-      toast.success(intl.formatMessage({ id: "calendar.calendarCreated" }));
+      toast.success("Calendar created");
       return true;
     } catch {
-      toast.error(
-        intl.formatMessage({ id: "calendar.calendarCreateFailed" }),
-      );
+      toast.error("Failed to create calendar");
       return false;
     }
   };
@@ -262,7 +259,7 @@ export function CalendarWorkspace() {
           variant="ghost"
           className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-slate-950/30 p-0 lg:hidden"
           onClick={() => setMobileSidebarOpen(false)}
-          aria-label={intl.formatMessage({ id: "app.close" })}
+          aria-label="Close"
         />
       )}
       <div className="flex h-full min-h-0 w-full overflow-hidden">
@@ -325,7 +322,7 @@ export function CalendarWorkspace() {
               <div className="rounded-xl border border-red-100 bg-white px-5 py-4 text-center shadow-sm">
                 <AlertCircle className="mx-auto h-8 w-8 text-red-500" />
                 <p className="mt-2 text-sm font-bold text-slate-700">
-                  {intl.formatMessage({ id: "calendar.loadFailed" })}
+                  Failed to load calendar events
                 </p>
               </div>
             </div>

@@ -17,7 +17,7 @@ import type { DateClickArg } from "@fullcalendar/interaction";
 import { Circle, CircleCheck } from "lucide-react";
 import { memo, RefObject, useCallback, useEffect, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import {
   CALENDAR_INITIAL_VIEW,
   CALENDAR_SLOT_MAX_TIME,
@@ -61,7 +61,7 @@ export const CalendarGrid = memo(function CalendarGrid({
   onTaskCompletionToggle: (event: CalendarEvent) => void;
   taskCompletionBusy: boolean;
 }) {
-  const intl = useAppIntl();
+
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lastSelectionEventRef = useRef<MouseEvent | null>(null);
   const handleSelect = useCallback(
@@ -97,11 +97,11 @@ export const CalendarGrid = memo(function CalendarGrid({
       const taskEvent = arg.event.extendedProps.model as CalendarEvent | undefined;
       const canToggleTask =
         isTask && !isProjectTask && Boolean(taskEvent?.permissions?.canManage);
-      const taskToggleLabel = intl.formatMessage({
-        id: isCompletedTask
-          ? "calendar.task.markIncomplete"
-          : "calendar.task.markCompleted",
-      });
+      const taskToggleLabel = isCompletedTask ? "Mark task incomplete" : "Mark task completed";
+
+
+
+
       const isMonthTimedEvent =
         arg.view.type === "dayGridMonth" && !arg.event.allDay && !isTask;
 
@@ -198,7 +198,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         </div>
       );
     },
-    [intl, onTaskCompletionToggle, taskCompletionBusy],
+    [onTaskCompletionToggle, taskCompletionBusy],
   );
 
   useEffect(() => {
@@ -217,7 +217,7 @@ export const CalendarGrid = memo(function CalendarGrid({
     >
       {loading && (
         <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 rounded-full border border-blue-100 bg-white/95 px-4 py-2 text-xs font-semibold text-blue-700 shadow-sm">
-          {intl.formatMessage({ id: "app.loading" })}
+          Loading...
         </div>
       )}
       <FullCalendar
@@ -225,7 +225,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         plugins={FULL_CALENDAR_PLUGINS}
         initialView={CALENDAR_INITIAL_VIEW}
         headerToolbar={false}
-        locale={intl.locale}
+        locale="en"
         timeZone={timeZone}
         firstDay={1}
         height="100%"

@@ -1,7 +1,7 @@
 import { EventClickArg } from "@fullcalendar/core";
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -29,7 +29,7 @@ export function useCalendarEventDetailActions({
   onEdit,
   setDetailEvent,
 }: UseCalendarEventDetailActionsInput) {
-  const intl = useAppIntl();
+
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const cancelEvent = useCancelCalendarEvent();
   const updateEvent = useUpdateCalendarEvent();
@@ -74,17 +74,17 @@ export function useCalendarEventDetailActions({
         await cancelEvent.mutateAsync({ eventId: targetEvent.id, scope });
         setDetailEvent(null);
         toast.success(
-          targetEvent.sourceType === EventSourceType.TASK
-            ? intl.locale === "vi"
-              ? `Đã xóa "${targetEvent.title}"`
-              : `Deleted "${targetEvent.title}"`
-            : intl.locale === "vi"
-              ? `Đã xóa "${targetEvent.title}"`
-              : `Deleted "${targetEvent.title}"`,
+          `Deleted "${targetEvent.title}"`,
+
+
+
+
+
+
           {
             duration: 6000,
             action: {
-              label: intl.locale === "vi" ? "Hoàn tác" : "Undo",
+              label: "Undo",
               onClick: async () => {
                 try {
                   await updateEvent.mutateAsync({
@@ -92,13 +92,13 @@ export function useCalendarEventDetailActions({
                     payload: { status: EventStatus.CONFIRMED },
                   });
                   toast.success(
-                    intl.locale === "vi" ? "Đã hoàn tác" : "Restored",
+                    "Restored",
                   );
                 } catch {
                   toast.error(
-                    intl.locale === "vi"
-                      ? "Không thể hoàn tác"
-                      : "Could not restore",
+                    "Could not restore",
+
+
                   );
                 }
               },
@@ -106,10 +106,10 @@ export function useCalendarEventDetailActions({
           },
         );
       } catch {
-        toast.error(intl.formatMessage({ id: "calendar.eventCancelFailed" }));
+        toast.error("Failed to delete event");
       }
     },
-    [cancelEvent, detailEvent, intl, setDetailEvent, updateEvent],
+    [cancelEvent, detailEvent, setDetailEvent, updateEvent],
   );
 
   const handleRespond = useCallback(
@@ -128,12 +128,12 @@ export function useCalendarEventDetailActions({
           eventId: detailEvent.id,
           responseStatus,
         });
-        toast.success(intl.formatMessage({ id: "calendar.responseSaved" }));
+        toast.success("Response saved");
       } catch {
-        toast.error(intl.formatMessage({ id: "calendar.responseSaveFailed" }));
+        toast.error("Failed to save response");
       }
     },
-    [currentUserId, detailEvent, intl, setDetailEvent, updateResponse],
+    [currentUserId, detailEvent, setDetailEvent, updateResponse],
   );
 
   const updateTaskCompletionForEvent = useCallback(
@@ -152,20 +152,21 @@ export function useCalendarEventDetailActions({
           current?.id === updatedEvent.id ? updatedEvent : current,
         );
         toast.success(
-          intl.formatMessage({
-            id: completed
-              ? "calendar.task.markedCompleted"
-              : "calendar.task.markedIncomplete",
-          }),
+          completed ? "Task marked as completed" : "Task marked as incomplete",
         );
+
+
+
+
+
+
       } catch {
-        toast.error(
-          intl.formatMessage({ id: "calendar.task.completionFailed" }),
-        );
+        toast.error("Failed to update task status");
+
+
       }
     },
     [
-      intl,
       setDetailEvent,
       taskCompletionPending,
       updateTaskCompletionAsync,

@@ -25,8 +25,11 @@ import {
   EventSourceType,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
-import { readTaskDeadline, writeTaskDeadline } from "../../utils/calendar-task-deadline.utils";
-import { AttachmentEditor } from "./attachment-editor";
+import {
+  readTaskDeadline,
+  writeTaskDeadline,
+} from "../../utils/calendar-task-deadline.utils";
+import { CalendarDocumentsSection } from "./calendar-documents-section";
 import { QuickCreateEventFields } from "./quick-create-event-fields";
 import {
   QuickCreateKind,
@@ -34,6 +37,7 @@ import {
   QuickRow,
 } from "./quick-create-time-section";
 import { ReminderEditor } from "./reminder-editor";
+import { formatReminderSummary } from "../../utils/calendar-reminder.utils";
 
 export type { QuickCreateKind } from "./quick-create-time-section";
 
@@ -72,7 +76,7 @@ export function QuickCreateModal({
   const modalAccent = kind === "task" ? tasksColor || "#f59e0b" : "#2563eb";
   const modalTitle = isEditing
     ? kind === "task"
-      ? copy.task
+      ? copy.editTask
       : copy.editEvent
     : kind === "task"
       ? copy.addTask
@@ -94,7 +98,9 @@ export function QuickCreateModal({
 
   // Task deadline state
   const initialDeadline = readTaskDeadline(event?.description);
-  const [showDeadline, setShowDeadline] = useState(Boolean(initialDeadline.date));
+  const [showDeadline, setShowDeadline] = useState(
+    Boolean(initialDeadline.date),
+  );
   const [deadlineDate, setDeadlineDate] = useState(initialDeadline.date);
   const [deadlineTime, setDeadlineTime] = useState(initialDeadline.time);
 
@@ -233,7 +239,7 @@ export function QuickCreateModal({
 
         {/* Scrollable Body */}
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 pt-4 sm:px-7">
-          <div className="space-y-4">
+          <div className="space-y-2.5">
             {/* Time & Recurrence Section */}
             <QuickCreateTimeSection
               form={controller.form}
@@ -314,9 +320,9 @@ export function QuickCreateModal({
               <Textarea
                 {...register("description")}
                 aria-label={copy.addDescription}
-                rows={kind === "event" ? 2 : 3}
+                rows={3}
                 placeholder={copy.addDescriptionAttachment}
-                className="min-h-0 w-full resize-none rounded-xl border border-transparent bg-transparent px-3 py-2 text-sm font-medium text-slate-700 shadow-none outline-none transition placeholder:text-slate-500 hover:bg-slate-100 focus:border-blue-500/50 focus:bg-white focus-visible:ring-1 focus-visible:ring-blue-100"
+                className="min-h-[42px] w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-2xs outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
               />
             </QuickRow>
 
@@ -330,7 +336,7 @@ export function QuickCreateModal({
                   />
                 }
               >
-                <div className="rounded-2xl border border-transparent px-3 py-2 transition hover:border-slate-200/70 hover:bg-slate-50">
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-2xs transition hover:border-slate-300">
                   <div className="flex items-center gap-2">
                     <span
                       className="h-3 w-3 shrink-0 rounded-full"
@@ -341,13 +347,15 @@ export function QuickCreateModal({
                     </span>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-slate-500">
-                    {copy.myTasks}
+                    {reminders && reminders.length > 0
+                      ? `${copy.myTasks} · ${formatReminderSummary(reminders)}`
+                      : copy.myTasks}
                   </p>
                 </div>
               </QuickRow>
             ) : (
               <QuickRow icon={<CalendarDays className="h-5 w-5" />}>
-                <div className="rounded-2xl border border-transparent px-3 py-2 transition hover:border-slate-200/70 hover:bg-slate-50">
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-2xs transition hover:border-slate-300">
                   <div className="flex items-center gap-2">
                     <CustomSelect
                       value={calendarId}
@@ -370,7 +378,7 @@ export function QuickCreateModal({
                     />
                   </div>
                   <p className="mt-0.5 truncate text-xs text-slate-500">
-                    {copy.notifyBefore(reminders?.[0]?.minutesBefore ?? 10)}
+                    {formatReminderSummary(reminders)}
                   </p>
                 </div>
               </QuickRow>
@@ -383,9 +391,13 @@ export function QuickCreateModal({
                 </QuickRow>
 
                 <QuickRow icon={<Paperclip className="h-5 w-5" />}>
-                  <AttachmentEditor
-                    documentCount={controller.documentIds.length}
-                  />
+                  <div className="w-full px-1 py-1">
+                    <CalendarDocumentsSection
+                      documentIds={controller.documentIds}
+                      onChangeDocumentIds={controller.setDocumentIds}
+                      busy={submitting}
+                    />
+                  </div>
                 </QuickRow>
               </div>
             )}

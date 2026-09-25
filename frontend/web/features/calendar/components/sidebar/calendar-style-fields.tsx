@@ -3,7 +3,7 @@
 import { Ban, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import {
   CALENDAR_COLOR_CHOICES,
   CALENDAR_ICON_CHOICES,
@@ -19,7 +19,7 @@ export function CalendarIconPicker({
   onChange: (icon: string | null) => void;
   compact?: boolean;
 }) {
-  const intl = useAppIntl();
+
 
   return (
     <div
@@ -39,7 +39,7 @@ export function CalendarIconPicker({
             ? "bg-blue-600 text-white shadow-xs ring-2 ring-blue-600/30 ring-offset-1"
             : "bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600",
         )}
-        aria-label={intl.formatMessage({ id: "calendar.noIcon" })}
+        aria-label="No icon"
       >
         <Ban className="h-4 w-4" />
       </Button>

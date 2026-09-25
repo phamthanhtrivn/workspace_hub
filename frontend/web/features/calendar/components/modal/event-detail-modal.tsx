@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   AlignLeft,
@@ -23,10 +23,10 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAppSelector } from "@/store/store";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { useAttendeeProfiles } from "../../hooks/use-calendar-users";
 import { useCalendarEvent } from "../../hooks/use-calendar-queries";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
+import { CalendarDocumentsSection } from "./calendar-documents-section";
 import {
   AttendeeResponseStatus,
   CalendarEvent,
@@ -69,7 +69,6 @@ export function EventDetailModal({
     open && initialEvent ? initialEvent.id : null,
   );
   const event = freshEvent ?? initialEvent;
-  const intl = useAppIntl();
   const currentUserId = useAppSelector((state) => state.auth.userId);
   const dialogRef = useRef<HTMLDivElement>(null);
   const resolvedProfiles = useAttendeeProfiles(event, open);
@@ -133,13 +132,9 @@ export function EventDetailModal({
     if (emails.length > 0) {
       window.location.href = `mailto:${emails.join(",")}?subject=${encodeURIComponent(event.title)}`;
     } else {
-      const info = `${event.title} (${formatCalendarEventRange(event, intl.locale)})`;
+      const info = `${event.title} (${formatCalendarEventRange(event, "en")})`;
       navigator.clipboard.writeText(info).then(() => {
-        toast.success(
-          intl.locale === "vi"
-            ? "ÄÃ£ sao chÃ©p thÃ´ng tin sá»± kiá»‡n"
-            : "Event details copied to clipboard",
-        );
+        toast.success("Event details copied to clipboard");
       });
     }
   };
@@ -149,11 +144,7 @@ export function EventDetailModal({
     const eventUrl = `${origin}/calendar?event=${event.id}`;
     navigator.clipboard.writeText(eventUrl).then(() => {
       setShowMoreMenu(false);
-      toast.success(
-        intl.locale === "vi"
-          ? "ÄÃ£ sao chÃ©p liÃªn káº¿t sá»± kiá»‡n"
-          : "Event link copied to clipboard",
-      );
+      toast.success("Event link copied to clipboard");
     });
   };
 
@@ -167,11 +158,7 @@ export function EventDetailModal({
       await navigator.clipboard.writeText(url);
       setCopiedMeeting(true);
       setTimeout(() => setCopiedMeeting(false), 2000);
-      toast.success(
-        intl.locale === "vi"
-          ? "ÄÃ£ sao chÃ©p liÃªn káº¿t cuá»™c há»p"
-          : "Meeting link copied to clipboard",
-      );
+      toast.success("Meeting link copied to clipboard");
     } catch {
       // fallback
     }
@@ -187,17 +174,15 @@ export function EventDetailModal({
   const reminderText =
     event.reminders && event.reminders.length > 0
       ? event.reminders
-          .map((r) => formatReminderLabel(r.minutesBefore, intl.locale))
+          .map((r) => formatReminderLabel(r.minutesBefore))
           .join(", ")
-      : intl.locale === "vi"
-        ? "30 phÃºt trÆ°á»›c"
-        : "30 minutes before";
+      : "No reminders";
 
   const calendarName =
     event.calendar?.name ||
     event.creatorProfile?.fullName ||
     event.creatorProfile?.email ||
-    (intl.locale === "vi" ? "Lá»‹ch cá»§a tÃ´i" : "My Calendar");
+    "My Calendar";
 
   const eventColor =
     (isTask ? tasksColor : undefined) ||
@@ -247,8 +232,8 @@ export function EventDetailModal({
                 variant="ghost"
                 size="icon"
                 onClick={onEdit}
-                aria-label={intl.formatMessage({ id: "calendar.editEvent" })}
-                title={intl.formatMessage({ id: "calendar.editEvent" })}
+                aria-label="Edit event"
+                title="Edit event"
                 className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
               >
                 <Pencil className="h-4 w-4" />
@@ -260,8 +245,8 @@ export function EventDetailModal({
                 size="icon"
                 onClick={handleDelete}
                 disabled={busy}
-                aria-label={intl.formatMessage({ id: "calendar.cancelEvent" })}
-                title={intl.formatMessage({ id: "calendar.cancelEvent" })}
+                aria-label="Cancel event"
+                title="Cancel event"
                 className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Trash2 className="h-4 w-4" />
@@ -275,12 +260,8 @@ export function EventDetailModal({
               variant="ghost"
               size="icon"
               onClick={handleEmailGuests}
-              aria-label={
-                intl.locale === "vi" ? "Gá»­i email cho khÃ¡ch" : "Email guests"
-              }
-              title={
-                intl.locale === "vi" ? "Gá»­i email cho khÃ¡ch" : "Email guests"
-              }
+              aria-label="Email guests"
+              title="Email guests"
               className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               <Mail className="h-4 w-4" />
@@ -293,10 +274,8 @@ export function EventDetailModal({
               variant="ghost"
               size="icon"
               onClick={() => setShowMoreMenu((prev) => !prev)}
-              aria-label={
-                intl.locale === "vi" ? "TÃ¹y chá»n khÃ¡c" : "More options"
-              }
-              title={intl.locale === "vi" ? "TÃ¹y chá»n khÃ¡c" : "More options"}
+              aria-label="More options"
+              title="More options"
               className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
             >
               <MoreVertical className="h-4 w-4" />
@@ -311,11 +290,7 @@ export function EventDetailModal({
                   className="flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-none px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
                 >
                   <Copy className="h-3.5 w-3.5 text-slate-400" />
-                  <span>
-                    {intl.locale === "vi"
-                      ? "Sao chÃ©p liÃªn káº¿t sá»± kiá»‡n"
-                      : "Copy event link"}
-                  </span>
+                  <span>Copy event link</span>
                 </Button>
                 <Button
                   type="button"
@@ -324,9 +299,7 @@ export function EventDetailModal({
                   className="flex h-auto w-full cursor-pointer items-center justify-start gap-2.5 rounded-none px-4 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
                 >
                   <Printer className="h-3.5 w-3.5 text-slate-400" />
-                  <span>
-                    {intl.locale === "vi" ? "In sá»± kiá»‡n" : "Print event"}
-                  </span>
+                  <span>Print event</span>
                 </Button>
               </div>
             )}
@@ -337,8 +310,8 @@ export function EventDetailModal({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            aria-label={intl.formatMessage({ id: "app.close" })}
-            title={intl.formatMessage({ id: "app.close" })}
+            aria-label="Close"
+            title="Close"
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-full text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
           >
             <X className="h-4 w-4" />
@@ -365,7 +338,7 @@ export function EventDetailModal({
                 {event.title}
               </h2>
               <p className="mt-1 text-sm font-normal text-slate-600">
-                {formatCalendarEventRange(event, intl.locale)}
+                {formatCalendarEventRange(event, "en")}
               </p>
             </div>
           </div>
@@ -393,9 +366,7 @@ export function EventDetailModal({
               )}
             </div>
             <div className="min-w-0 flex-1 text-sm text-slate-700">
-              {isTask
-                ? intl.formatMessage({ id: "calendar.tasks" })
-                : calendarName}
+              {isTask ? "Tasks" : calendarName}
             </div>
           </div>
 
@@ -415,12 +386,8 @@ export function EventDetailModal({
                   >
                     <span>
                       {event.location!.includes("meet.google.com")
-                        ? intl.locale === "vi"
-                          ? "Tham gia báº±ng Google Meet"
-                          : "Join with Google Meet"
-                        : intl.locale === "vi"
-                          ? "Tham gia cuá»™c há»p Meeting"
-                          : "Join Meeting"}
+                        ? "Join with Google Meet"
+                        : "Join Meeting"}
                     </span>
                     <ExternalLink className="h-3.5 w-3.5 opacity-80" />
                   </a>
@@ -430,11 +397,7 @@ export function EventDetailModal({
                     size="icon"
                     onClick={() => handleCopyMeeting(event.location!)}
                     className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
-                    title={
-                      intl.locale === "vi"
-                        ? "Sao chÃ©p liÃªn káº¿t"
-                        : "Copy meeting link"
-                    }
+                    title="Copy meeting link"
                   >
                     {copiedMeeting ? (
                       <Check className="h-4 w-4 text-emerald-600" />
@@ -490,17 +453,18 @@ export function EventDetailModal({
             </div>
           )}
 
-          {/* Row 8: Attached documents (if present) */}
+          {/* Row 8: Attached documents */}
           {event.documentIds.length > 0 && (
             <div className="flex items-start gap-4">
               <div className="mt-0.5 flex w-5 shrink-0 justify-center">
                 <Paperclip className="h-4 w-4 text-slate-500" />
               </div>
-              <div className="min-w-0 flex-1 text-sm text-slate-600">
-                {intl.formatMessage(
-                  { id: "calendar.attachedDocuments" },
-                  { count: event.documentIds.length },
-                )}
+              <div className="min-w-0 flex-1">
+                <CalendarDocumentsSection
+                  documentIds={event.documentIds}
+                  isReadOnly={true}
+                  hideHeader={true}
+                />
               </div>
             </div>
           )}
@@ -509,9 +473,7 @@ export function EventDetailModal({
         {/* Guest RSVP Footer Bar */}
         {event.permissions?.canRespond && !event.permissions.canManage && (
           <div className="flex items-center justify-between border-t border-slate-200/80 bg-slate-50 px-6 py-3.5">
-            <span className="text-xs font-semibold text-slate-600">
-              {intl.locale === "vi" ? "Báº¡n cÃ³ tham gia khÃ´ng?" : "Going?"}
-            </span>
+            <span className="text-xs font-semibold text-slate-600">Going?</span>
             <div className="inline-flex rounded-full bg-slate-200/80 p-1">
               <Button
                 type="button"
@@ -527,9 +489,7 @@ export function EventDetailModal({
                 {myResponseStatus === AttendeeResponseStatus.ACCEPTED && (
                   <Check className="h-3.5 w-3.5 stroke-[3]" />
                 )}
-                <span>
-                  {intl.formatMessage({ id: "calendar.response.ACCEPTED" })}
-                </span>
+                <span>Yes</span>
               </Button>
               <Button
                 type="button"
@@ -545,9 +505,7 @@ export function EventDetailModal({
                 {myResponseStatus === AttendeeResponseStatus.DECLINED && (
                   <Check className="h-3.5 w-3.5 stroke-[3]" />
                 )}
-                <span>
-                  {intl.formatMessage({ id: "calendar.response.DECLINED" })}
-                </span>
+                <span>No</span>
               </Button>
             </div>
           </div>
@@ -561,11 +519,7 @@ export function EventDetailModal({
               disabled={busy}
               className="cursor-pointer rounded-full bg-blue-100 px-5 py-2.5 text-sm font-semibold text-blue-800 transition-colors hover:bg-blue-200 disabled:cursor-wait disabled:opacity-60"
             >
-              {intl.formatMessage({
-                id: isCompletedTask
-                  ? "calendar.task.markIncomplete"
-                  : "calendar.task.markCompleted",
-              })}
+              {isCompletedTask ? "Mark as incomplete" : "Mark as completed"}
             </Button>
           </div>
         )}
@@ -574,39 +528,35 @@ export function EventDetailModal({
         {showDeleteScopeModal && (
           <CalendarConfirmDialog
             open={showDeleteScopeModal}
-          title={intl.formatMessage({ id: "calendar.deleteRecurringEvent" })}
-          description={intl.formatMessage({
-            id: "calendar.deleteRecurringEventDescription",
-          })}
-            confirmLabel={intl.formatMessage({ id: "calendar.cancelEvent" })}
-            cancelLabel={intl.formatMessage({ id: "app.cancel" })}
+            title="Delete recurring event"
+            description="Choose the scope you want to apply when deleting this event:"
+            confirmLabel="Delete event"
+            cancelLabel="Cancel"
             variant="danger"
             isLoading={busy}
             onCancel={() => setShowDeleteScopeModal(false)}
             onConfirm={handleConfirmDeleteScope}
           >
-          <CalendarRadioGroup<RecurrenceScope>
-            name="recurrence-delete-scope"
-            value={cancelScope}
-            ariaLabel={intl.formatMessage({ id: "calendar.cancelEvent" })}
-            onChange={setCancelScope}
-            options={[
-              {
-                value: RecurrenceScope.THIS,
-                label: intl.formatMessage({ id: "calendar.scope.THIS" }),
-              },
-              {
-                value: RecurrenceScope.THIS_AND_FOLLOWING,
-                label: intl.formatMessage({
-                  id: "calendar.scope.THIS_AND_FOLLOWING",
-                }),
-              },
-              {
-                value: RecurrenceScope.ALL,
-                label: intl.formatMessage({ id: "calendar.scope.ALL" }),
-              },
-            ]}
-          />
+            <CalendarRadioGroup<RecurrenceScope>
+              name="recurrence-delete-scope"
+              value={cancelScope}
+              ariaLabel="Delete event"
+              onChange={setCancelScope}
+              options={[
+                {
+                  value: RecurrenceScope.THIS,
+                  label: "This event",
+                },
+                {
+                  value: RecurrenceScope.THIS_AND_FOLLOWING,
+                  label: "This and following events",
+                },
+                {
+                  value: RecurrenceScope.ALL,
+                  label: "All events in series",
+                },
+              ]}
+            />
           </CalendarConfirmDialog>
         )}
       </div>

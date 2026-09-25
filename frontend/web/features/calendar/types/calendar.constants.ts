@@ -6,6 +6,8 @@ export const CALENDAR_DEFAULT_NAME = "Personal";
 export const CALENDAR_DEFAULT_ICON = "📅";
 export const CALENDAR_DEFAULT_EVENT_DURATION_MS = 60 * 60 * 1000;
 export const CALENDAR_MIN_EVENT_DURATION_MS = 15 * 60 * 1000;
+export const CALENDAR_MAX_REMINDERS = 5;
+export const CALENDAR_MAX_REMINDER_MINUTES_BEFORE = 30 * 24 * 60;
 export const CALENDAR_INITIAL_RANGE_LOOKBACK_DAYS = 14;
 export const CALENDAR_INITIAL_RANGE_LOOKAHEAD_DAYS = 45;
 export const CALENDAR_INITIAL_VIEW = "timeGridWeek";
@@ -46,11 +48,11 @@ export const CALENDAR_ICON_CHOICES = [
 ] as const;
 
 export const CALENDAR_VIEW_OPTIONS = [
-  { value: "listYear", labelId: "calendar.view.year" },
-  { value: "dayGridMonth", labelId: "calendar.view.month" },
-  { value: "timeGridWeek", labelId: "calendar.view.week" },
-  { value: "timeGridDay", labelId: "calendar.view.day" },
-  { value: "listWeek", labelId: "calendar.view.list" },
+  { value: "listYear", label: "Year" },
+  { value: "dayGridMonth", label: "Month" },
+  { value: "timeGridWeek", label: "Week" },
+  { value: "timeGridDay", label: "Day" },
+  { value: "listWeek", label: "List" },
 ] as const;
 
 export const CALENDAR_RECURRENCE_PRESET_VALUES = {

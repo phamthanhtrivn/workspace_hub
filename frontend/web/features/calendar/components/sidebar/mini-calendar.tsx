@@ -7,7 +7,7 @@ import FullCalendar from "@fullcalendar/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import { getMiniCalendarWeekdayLabel, isSameDate } from "../../utils/calendar-date.utils";
 
 export const MiniCalendar = memo(function MiniCalendar({
@@ -19,17 +19,17 @@ export const MiniCalendar = memo(function MiniCalendar({
   selectedDate: Date | null;
   onSelectDate: (date: Date) => void;
 }) {
-  const intl = useAppIntl();
+
   const miniCalendarRef = useRef<FullCalendar | null>(null);
   const [visibleDate, setVisibleDate] = useState(currentDate);
 
   const title = useMemo(
     () =>
-      new Intl.DateTimeFormat(intl.locale, {
+      new Intl.DateTimeFormat("en", {
         month: "long",
         year: "numeric",
       }).format(visibleDate),
-    [intl.locale, visibleDate],
+    [visibleDate],
   );
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export const MiniCalendar = memo(function MiniCalendar({
   };
 
   const renderDayHeader = (arg: DayHeaderContentArg) => (
-    <span>{getMiniCalendarWeekdayLabel(arg.date, intl.locale)}</span>
+    <span>{getMiniCalendarWeekdayLabel(arg.date, "en")}</span>
   );
 
   return (
@@ -74,7 +74,7 @@ export const MiniCalendar = memo(function MiniCalendar({
             size="icon-sm"
             onClick={() => move("prev")}
             className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-            aria-label={intl.formatMessage({ id: "app.previous" })}
+            aria-label="Previous"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -84,7 +84,7 @@ export const MiniCalendar = memo(function MiniCalendar({
             size="icon-sm"
             onClick={() => move("next")}
             className="grid h-7 w-7 cursor-pointer place-items-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
-            aria-label={intl.formatMessage({ id: "app.next" })}
+            aria-label="Next"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -96,7 +96,7 @@ export const MiniCalendar = memo(function MiniCalendar({
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         initialDate={currentDate}
-        locale={intl.locale}
+        locale="en"
         firstDay={1}
         headerToolbar={false}
         height="auto"

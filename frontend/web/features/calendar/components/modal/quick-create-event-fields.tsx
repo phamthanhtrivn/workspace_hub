@@ -36,7 +36,7 @@ export function QuickCreateEventFields({
           type="button"
           variant="ghost"
           onClick={() => toast.info(copy.conferenceUnavailable)}
-          className="h-auto w-full cursor-pointer justify-start rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-100"
+          className="h-auto w-full cursor-pointer justify-start rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-medium text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50"
         >
           {copy.addConference}
         </Button>
@@ -46,7 +46,7 @@ export function QuickCreateEventFields({
           {...register("location")}
           aria-label={copy.location}
           placeholder={copy.addLocation}
-          className="h-auto w-full rounded-xl border border-transparent bg-transparent px-3 py-2.5 text-sm font-medium text-slate-700 shadow-none outline-none transition placeholder:text-slate-600 hover:bg-slate-100 focus:border-blue-500/50 focus:bg-white focus-visible:ring-1 focus-visible:ring-blue-100"
+          className="h-auto w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-2xs outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus-visible:border-blue-500 focus-visible:ring-2 focus-visible:ring-blue-100"
         />
       </QuickRow>
     </>

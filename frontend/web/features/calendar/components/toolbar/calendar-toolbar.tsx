@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import { CALENDAR_VIEW_OPTIONS } from "../../types/calendar.constants";
 
 export function CalendarToolbar({
@@ -24,7 +24,7 @@ export function CalendarToolbar({
   onNavigate: (direction: "prev" | "next" | "today") => void;
   onToggleSidebar: () => void;
 }) {
-  const intl = useAppIntl();
+
 
   return (
     <div className="flex min-h-14 items-center justify-between gap-3 border-b border-slate-200/80 bg-white px-3 py-2 sm:px-5">
@@ -35,8 +35,8 @@ export function CalendarToolbar({
           size="icon"
           onClick={onToggleSidebar}
           className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
-          aria-label={intl.formatMessage({ id: "calendar.myCalendars" })}
-          title={intl.formatMessage({ id: "calendar.myCalendars" })}
+          aria-label="My Calendars"
+          title="My Calendars"
         >
           <Menu className="h-5 w-5" />
         </Button>
@@ -46,7 +46,7 @@ export function CalendarToolbar({
           onClick={() => onNavigate("today")}
           className="hidden cursor-pointer rounded-lg border border-slate-200 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 active:scale-[0.98] sm:block"
         >
-          {intl.formatMessage({ id: "calendar.today" })}
+          Today
         </Button>
         <div className="flex items-center gap-0.5">
           <Button
@@ -55,7 +55,7 @@ export function CalendarToolbar({
             size="icon-sm"
             onClick={() => onNavigate("prev")}
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 active:scale-95"
-            aria-label={intl.formatMessage({ id: "app.previous" })}
+            aria-label="Previous"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -65,13 +65,13 @@ export function CalendarToolbar({
             size="icon-sm"
             onClick={() => onNavigate("next")}
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 active:scale-95"
-            aria-label={intl.formatMessage({ id: "app.next" })}
+            aria-label="Next"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
         <h2 className="truncate px-2 text-base font-bold capitalize tracking-tight text-slate-800 sm:text-lg">
-          {title || intl.formatMessage({ id: "nav.calendar" })}
+          {title || "Calendar"}
         </h2>
       </div>
 
@@ -80,10 +80,10 @@ export function CalendarToolbar({
         <CustomSelect
           value={activeView}
           onChange={onViewChange}
-          ariaLabel={intl.formatMessage({ id: "nav.calendar" })}
+          ariaLabel="Calendar view"
           options={CALENDAR_VIEW_OPTIONS.map((view) => ({
             value: view.value,
-            label: intl.formatMessage({ id: view.labelId }),
+            label: view.label,
           }))}
           triggerClassName="h-9 cursor-pointer rounded-lg border-slate-200 bg-white pl-3 pr-8 text-xs font-bold text-slate-700 shadow-xs transition hover:border-slate-300 hover:bg-slate-50 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-blue-100"
           contentClassName="rounded-lg border-slate-200"

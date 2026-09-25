@@ -10,7 +10,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import { cn } from "@/lib/utils";
 import { CalendarEvent } from "../../types/calendar.types";
 import {
@@ -50,7 +50,6 @@ export function CalendarTasksDrawer({
   onToggleTask,
   onSelectTask,
 }: CalendarTasksDrawerProps) {
-  const intl = useAppIntl();
   const [activeTab, setActiveTab] = useState<TasksDrawerTab>("personal");
   const [timeFilter, setTimeFilter] = useState<TaskTimeFilter>("all");
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>(() =>
@@ -100,11 +99,11 @@ export function CalendarTasksDrawer({
   const tabs = [
     {
       value: "personal",
-      label: intl.formatMessage({ id: "calendar.quick.myTasks" }),
+      label: "My tasks",
     },
     {
       value: "project",
-      label: intl.formatMessage({ id: "calendar.quick.projectTasks" }),
+      label: "Project tasks",
     },
   ] satisfies Array<{
     value: TasksDrawerTab;
@@ -119,7 +118,7 @@ export function CalendarTasksDrawer({
           variant="ghost"
           className="fixed inset-0 z-40 h-auto w-auto cursor-default rounded-none bg-slate-950/30 p-0 backdrop-blur-xs lg:hidden"
           onClick={onClose}
-          aria-label={intl.formatMessage({ id: "app.close" })}
+          aria-label="Close"
         />
       )}
 
@@ -135,14 +134,12 @@ export function CalendarTasksDrawer({
             : "lg:w-0 lg:overflow-hidden lg:opacity-0 lg:border-none pointer-events-none lg:pointer-events-none",
         )}
         role="dialog"
-        aria-label={intl.formatMessage({ id: "calendar.tasks" })}
+        aria-label="Tasks"
         aria-hidden={!open}
       >
         <div className="flex h-full w-full flex-col sm:w-[400px] lg:w-[400px]">
           <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-slate-200/80 px-3 sm:px-4">
-            <h2 className="sr-only">
-              {intl.formatMessage({ id: "calendar.tasks" })}
-            </h2>
+            <h2 className="sr-only">Tasks</h2>
 
             <div className="flex min-w-0 flex-1 items-center gap-2">
               {/* Time filter */}
@@ -150,39 +147,27 @@ export function CalendarTasksDrawer({
                 <CustomSelect
                   value={timeFilter}
                   onChange={(value) => setTimeFilter(value as TaskTimeFilter)}
-                  ariaLabel={intl.formatMessage({
-                    id: "calendar.tasks.timeFilter",
-                  })}
+                  ariaLabel="Time filter"
                   options={[
                     {
                       value: "all",
-                      label: intl.formatMessage({
-                        id: "calendar.tasks.filterAll",
-                      }),
+                      label: "All time",
                     },
                     {
                       value: "today",
-                      label: intl.formatMessage({
-                        id: "calendar.tasks.filterToday",
-                      }),
+                      label: "Today",
                     },
                     {
                       value: "week",
-                      label: intl.formatMessage({
-                        id: "calendar.tasks.filterWeek",
-                      }),
+                      label: "This week",
                     },
                     {
                       value: "month",
-                      label: intl.formatMessage({
-                        id: "calendar.tasks.filterMonth",
-                      }),
+                      label: "This month",
                     },
                     {
                       value: "overdue",
-                      label: intl.formatMessage({
-                        id: "calendar.tasks.filterOverdue",
-                      }),
+                      label: "Overdue",
                     },
                   ]}
                   triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-slate-200 bg-white pl-2.5 pr-6 text-xs font-medium text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -197,27 +182,19 @@ export function CalendarTasksDrawer({
                   onChange={(value) =>
                     handleStatusFilterChange(value as TaskStatusFilter)
                   }
-                  ariaLabel={intl.formatMessage({
-                    id: "calendar.tasks.statusFilter",
-                  })}
+                  ariaLabel="Status filter"
                   options={[
                     {
                       value: "all",
-                      label: intl.formatMessage({
-                        id: "calendar.tasks.statusAll",
-                      }),
+                      label: "All",
                     },
                     {
                       value: "active",
-                      label: intl.formatMessage({
-                        id: "calendar.tasks.statusActive",
-                      }),
+                      label: "Incomplete",
                     },
                     {
                       value: "completed",
-                      label: intl.formatMessage({
-                        id: "calendar.tasks.statusCompleted",
-                      }),
+                      label: "Completed",
                     },
                   ]}
                   triggerClassName="h-8 w-full cursor-pointer truncate rounded-lg border-slate-200 bg-white pl-2.5 pr-6 text-xs font-medium text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -232,7 +209,7 @@ export function CalendarTasksDrawer({
               size="icon-sm"
               onClick={onClose}
               className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
-              aria-label={intl.formatMessage({ id: "app.close" })}
+              aria-label="Close"
             >
               <X className="h-4.5 w-4.5" />
             </Button>
@@ -241,7 +218,7 @@ export function CalendarTasksDrawer({
           <div
             className="grid shrink-0 grid-cols-2 gap-1 border-b border-slate-200/80 bg-slate-50/70 p-1.5"
             role="tablist"
-            aria-label={intl.formatMessage({ id: "calendar.tasks" })}
+            aria-label="Tasks"
           >
             {tabs.map((tab) => (
               <Button
@@ -281,7 +258,7 @@ export function CalendarTasksDrawer({
                   <ListTodo className="h-5 w-5" />
                 </span>
                 <p className="mt-3 text-xs font-semibold text-slate-600">
-                  {intl.formatMessage({ id: "calendar.tasks.noFilteredTasks" })}
+                  No tasks match the selected filter
                 </p>
               </div>
             ) : (
@@ -312,8 +289,6 @@ function TaskLoadError({
   compact?: boolean;
   onRetry?: () => void;
 }) {
-  const intl = useAppIntl();
-
   if (compact) {
     return (
       <div
@@ -322,7 +297,7 @@ function TaskLoadError({
       >
         <AlertCircle className="h-4 w-4 shrink-0" />
         <span className="min-w-0 flex-1">
-          {intl.formatMessage({ id: "calendar.tasks.loadFailed" })}
+          Could not load tasks
         </span>
         {onRetry && (
           <Button
@@ -331,8 +306,8 @@ function TaskLoadError({
             size="icon-sm"
             onClick={onRetry}
             className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md transition hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/40"
-            aria-label={intl.formatMessage({ id: "app.retry" })}
-            title={intl.formatMessage({ id: "app.retry" })}
+            aria-label="Retry"
+            title="Retry"
           >
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
@@ -350,7 +325,7 @@ function TaskLoadError({
         <AlertCircle className="h-6 w-6" />
       </span>
       <p className="mt-3 text-sm font-semibold text-slate-700">
-        {intl.formatMessage({ id: "calendar.tasks.loadFailed" })}
+        Could not load tasks
       </p>
       {onRetry && (
         <Button
@@ -360,7 +335,7 @@ function TaskLoadError({
           className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40"
         >
           <RefreshCw className="h-3.5 w-3.5" />
-          {intl.formatMessage({ id: "app.retry" })}
+          Retry
         </Button>
       )}
     </div>
@@ -374,7 +349,6 @@ function TaskEmptyState({
   tab: TasksDrawerTab;
   color: string;
 }) {
-  const intl = useAppIntl();
   const projectTab = tab === "project";
 
   return (
@@ -391,18 +365,12 @@ function TaskEmptyState({
         )}
       </span>
       <p className="mt-3 text-sm font-semibold text-slate-700">
-        {intl.formatMessage({
-          id: projectTab
-            ? "calendar.tasks.noProjectTasks"
-            : "calendar.tasks.noTasks",
-        })}
+        {projectTab ? "No project tasks" : "No tasks yet"}
       </p>
       <p className="mt-1 max-w-[220px] text-xs text-slate-400">
-        {intl.formatMessage({
-          id: projectTab
-            ? "calendar.tasks.noProjectTasksDescription"
-            : "calendar.tasks.noTasksDescription",
-        })}
+        {projectTab
+          ? "Tasks synced from projects will appear here"
+          : "All your personal tasks will appear here"}
       </p>
     </div>
   );

@@ -12,7 +12,6 @@ import {
 import { ReactNode, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { CalendarEvent } from "../../types/calendar.types";
 import {
   formatTaskDueDate,
@@ -40,7 +39,6 @@ export function CalendarTaskList({
   onToggleTask,
   onSelectTask,
 }: CalendarTaskListProps) {
-  const intl = useAppIntl();
   const [completedOpen, setCompletedOpen] = useState(false);
   const grouped = useMemo(
     () =>
@@ -58,7 +56,7 @@ export function CalendarTaskList({
       key={task.id}
       task={task}
       color={color}
-      locale={intl.locale}
+      locale="en"
       isOverdue={isOverdue}
       readOnly={readOnly}
       onToggle={readOnly ? undefined : () => onToggleTask(task)}
@@ -71,7 +69,7 @@ export function CalendarTaskList({
       return (
         <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
           <p className="text-xs font-semibold text-slate-500">
-            {intl.formatMessage({ id: "calendar.tasks.noCompletedTasks" })}
+            No completed tasks
           </p>
         </div>
       );
@@ -79,7 +77,7 @@ export function CalendarTaskList({
     return (
       <div className="space-y-4">
         <TaskSection
-          title={intl.formatMessage({ id: "calendar.tasks.completed" })}
+          title="Completed"
           count={grouped.completed.length}
           tone="neutral"
         >
@@ -93,7 +91,7 @@ export function CalendarTaskList({
     <div className="space-y-4">
       {grouped.overdue.length > 0 && (
         <TaskSection
-          title={intl.formatMessage({ id: "calendar.tasks.overdue" })}
+          title="Overdue"
           count={grouped.overdue.length}
           tone="danger"
         >
@@ -103,7 +101,7 @@ export function CalendarTaskList({
 
       {grouped.today.length > 0 && (
         <TaskSection
-          title={intl.formatMessage({ id: "calendar.tasks.today" })}
+          title="Today"
           count={grouped.today.length}
           tone="primary"
         >
@@ -113,7 +111,7 @@ export function CalendarTaskList({
 
       {grouped.upcoming.length > 0 && (
         <TaskSection
-          title={intl.formatMessage({ id: "calendar.tasks.upcoming" })}
+          title="Upcoming"
           count={grouped.upcoming.length}
           tone="neutral"
         >
@@ -127,10 +125,10 @@ export function CalendarTaskList({
             <Check className="h-5 w-5 stroke-[2.5]" />
           </div>
           <p className="mt-2 text-xs font-semibold text-slate-700">
-            {intl.formatMessage({ id: "calendar.tasks.allDone" })}
+            All caught up!
           </p>
           <p className="mt-0.5 text-[11px] text-slate-400">
-            {intl.formatMessage({ id: "calendar.tasks.allDoneDescription" })}
+            You have no pending tasks right now
           </p>
         </div>
       )}
@@ -149,8 +147,7 @@ export function CalendarTaskList({
               ) : (
                 <ChevronRight className="h-3.5 w-3.5" />
               )}
-              {intl.formatMessage({ id: "calendar.tasks.completed" })} (
-              {grouped.completed.length})
+              Completed ({grouped.completed.length})
             </span>
           </Button>
 

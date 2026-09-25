@@ -2,15 +2,12 @@
 
 import Link from "next/link";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const intl = useAppIntl();
-
   return (
     <main className="min-h-dvh bg-[#f5f9fb] text-[var(--color-primary-dark)]">
       <div className="grid min-h-dvh lg:grid-cols-[1.08fr_0.92fr]">
@@ -32,12 +29,12 @@ export default function AuthLayout({
               className="mb-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             >
               <ArrowLeft className="h-4 w-4" />
-              {intl.formatMessage({ id: "auth.backToHome" })}
+              Back to main page
             </Link>
             <div className="max-w-2xl">
               <div className="mb-8 inline-flex items-center gap-2 rounded-md border border-white/12 bg-white/8 px-3.5 py-2 text-sm font-medium text-cyan-50 shadow-xl shadow-blue-950/20 backdrop-blur-md">
                 <Sparkles className="h-4 w-4 text-[#9fd8e7]" />
-                {intl.formatMessage({ id: "app.intelligentWorkspace" })}
+                Intelligent Workspace Platform
               </div>
 
               <h1 className="max-w-xl text-balance text-6xl font-black leading-[0.95] tracking-tight text-white xl:text-7xl">
@@ -45,7 +42,7 @@ export default function AuthLayout({
               </h1>
 
               <p className="mt-7 max-w-lg text-pretty text-lg leading-8 text-slate-300">
-                {intl.formatMessage({ id: "auth.layoutDescription" })}
+                Centralize tasks, notes, calendar events, and team collaboration in one intelligent workspace.
               </p>
             </div>
           </div>

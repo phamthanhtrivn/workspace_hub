@@ -48,6 +48,7 @@ export function useCalendarEventForm({
     defaultValues: defaults.values,
   });
   const [attendees, setAttendees] = useState(defaults.attendees);
+  const [documentIds, setDocumentIds] = useState<string[]>(defaults.documentIds);
   const [showCustomEventColor, setShowCustomEventColor] = useState(
     defaults.showCustomEventColor,
   );
@@ -79,7 +80,7 @@ export function useCalendarEventForm({
       ),
       visibility: values.visibility,
       status: values.status,
-      documentIds: defaults.documentIds,
+      documentIds,
       sourceType: values.sourceType,
     });
   };
@@ -105,10 +106,11 @@ export function useCalendarEventForm({
     ...time,
     ...recurrence,
     attendees,
-    documentIds: defaults.documentIds,
+    documentIds,
     enableEventColor,
     form,
     setAttendees: (next: CalendarEventAttendeePayload[]) => setAttendees(next),
+    setDocumentIds: (next: string[]) => setDocumentIds(next),
     setShowCustomEventColor,
     showCustomEventColor,
     submit: form.handleSubmit(submitValidForm, submitInvalidForm),

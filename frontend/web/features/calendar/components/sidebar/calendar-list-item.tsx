@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+
 import { cn } from "@/lib/utils";
 import {
   useDeleteCalendar,
@@ -48,7 +48,7 @@ export function CalendarListItem({
   selected: boolean;
   onToggle: () => void;
 }) {
-  const intl = useAppIntl();
+
   const updateCalendar = useUpdateCalendar();
   const deleteCalendar = useDeleteCalendar();
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -65,17 +65,17 @@ export function CalendarListItem({
         payload: { color },
       });
     } catch {
-      toast.error(intl.formatMessage({ id: "calendar.calendarUpdateFailed" }));
+      toast.error("Failed to update calendar");
     }
   };
 
   const handleDelete = async () => {
     try {
       await deleteCalendar.mutateAsync(calendar.id);
-      toast.success(intl.formatMessage({ id: "calendar.calendarDeleted" }));
+      toast.success("Calendar deleted");
       setDeleteModalOpen(false);
     } catch {
-      toast.error(intl.formatMessage({ id: "calendar.calendarDeleteFailed" }));
+      toast.error("Failed to delete calendar");
     }
   };
 
@@ -89,7 +89,7 @@ export function CalendarListItem({
     color: string;
   }) => {
     if (!name) {
-      toast.error(intl.formatMessage({ id: "calendar.nameRequired" }));
+      toast.error("Calendar name is required");
       return false;
     }
 
@@ -106,10 +106,10 @@ export function CalendarListItem({
         calendarId: calendar.id,
         payload: { name, icon, color },
       });
-      toast.success(intl.formatMessage({ id: "calendar.calendarUpdated" }));
+      toast.success("Calendar updated");
       return true;
     } catch {
-      toast.error(intl.formatMessage({ id: "calendar.calendarUpdateFailed" }));
+      toast.error("Failed to update calendar");
       return false;
     }
   };
@@ -134,7 +134,7 @@ export function CalendarListItem({
         {calendar.projectId ? (
           <CalendarColorPopover
             value={calendar.color}
-            label={intl.formatMessage({ id: "calendar.color" })}
+            label="Color"
             pending={updateCalendar.isPending}
             triggerClassName="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity"
             onChange={changeColor}
@@ -151,7 +151,7 @@ export function CalendarListItem({
             )}
             aria-expanded={editModalOpen}
             aria-haspopup="dialog"
-            aria-label={intl.formatMessage({ id: "calendar.editCalendar" })}
+            aria-label="Edit calendar"
           >
             <MoreVertical className="h-3.5 w-3.5" />
           </Button>
