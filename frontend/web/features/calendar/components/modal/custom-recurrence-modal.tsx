@@ -5,7 +5,12 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Input } from "@/components/ui/input";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import {
+  CALENDAR_FORM_COPY as copy,
+  CALENDAR_FORM_RECURRENCE_END_LABELS,
+  CALENDAR_FORM_RECURRENCE_UNITS,
+  CALENDAR_FORM_WEEKDAY_INITIALS,
+} from "../../constants/calendar-form-copy";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
 import { CalendarRadioGroup } from "../ui/calendar-radio-group";
 import {
@@ -29,7 +34,6 @@ export function CustomRecurrenceModal({
   onClose: () => void;
   onSave: (value: CalendarCustomRecurrence) => void;
 }) {
-  const intl = useAppIntl();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(value);
   useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
@@ -97,14 +101,14 @@ export function CustomRecurrenceModal({
             id="calendar-custom-recurrence-heading"
             className="text-lg font-black text-[var(--color-primary-dark)]"
           >
-            {intl.formatMessage({ id: "calendar.recurrence.customTitle" })}
+            {copy.customRecurrence}
           </h3>
           <Button
             type="button"
             variant="ghost"
             size="icon"
             onClick={onClose}
-            aria-label={intl.formatMessage({ id: "app.close" })}
+            aria-label={copy.close}
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700"
           >
             <X className="h-5 w-5" />
@@ -114,7 +118,7 @@ export function CustomRecurrenceModal({
         <div className="space-y-5 px-5 py-5">
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold text-slate-500">
-              {intl.formatMessage({ id: "calendar.recurrence.repeatEvery" })}
+              {copy.recurrenceRepeatEvery}
             </span>
             <Input
               data-modal-initial-focus
@@ -137,12 +141,10 @@ export function CustomRecurrenceModal({
                   frequency,
                 }))
               }
-              ariaLabel={intl.formatMessage({
-                id: "calendar.recurrence.repeatEvery",
-              })}
+              ariaLabel={copy.recurrenceRepeatEvery}
               options={CALENDAR_RECURRENCE_FREQUENCY_OPTIONS.map((option) => ({
                 value: option.value,
-                label: intl.formatMessage({ id: option.labelId }),
+                label: CALENDAR_FORM_RECURRENCE_UNITS[option.value],
               }))}
               className="min-w-32"
               triggerClassName="h-11 rounded-lg border-slate-200 px-3 text-sm font-bold text-slate-700 shadow-none"
@@ -153,7 +155,7 @@ export function CustomRecurrenceModal({
           {draft.frequency === "WEEKLY" && (
             <div className="space-y-3">
               <span className="text-sm font-bold text-slate-500">
-                {intl.formatMessage({ id: "calendar.recurrence.repeatOn" })}
+                {copy.recurrenceRepeatOn}
               </span>
               <div className="flex flex-wrap gap-2">
                 {CALENDAR_RECURRENCE_WEEKDAY_OPTIONS.map((weekday) => {
@@ -172,7 +174,7 @@ export function CustomRecurrenceModal({
                           : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                       }`}
                     >
-                      {intl.formatMessage({ id: weekday.labelId })}
+                      {CALENDAR_FORM_WEEKDAY_INITIALS[weekday.value]}
                     </Button>
                   );
                 })}
@@ -182,11 +184,11 @@ export function CustomRecurrenceModal({
 
           <div className="space-y-3">
             <span className="text-sm font-bold text-slate-500">
-              {intl.formatMessage({ id: "calendar.recurrence.ends" })}
+              {copy.recurrenceEnds}
             </span>
             <CalendarRadioGroup<CalendarRecurrenceEndType>
               name="recurrenceEndType"
-              ariaLabel={intl.formatMessage({ id: "calendar.recurrence.ends" })}
+              ariaLabel={copy.recurrenceEnds}
               value={draft.endType}
               onChange={(endType) =>
                 setDraft((current) => ({ ...current, endType }))
@@ -194,9 +196,7 @@ export function CustomRecurrenceModal({
               options={(["never", "on", "after"] as CalendarRecurrenceEndType[]).map(
                 (endType) => ({
                   value: endType,
-                  label: intl.formatMessage({
-                    id: `calendar.recurrence.ends.${endType}`,
-                  }),
+                  label: CALENDAR_FORM_RECURRENCE_END_LABELS[endType],
                 }),
               )}
               optionClassName="text-sm font-bold"
@@ -238,14 +238,14 @@ export function CustomRecurrenceModal({
             onClick={onClose}
             className="cursor-pointer rounded-lg border border-slate-200 px-4 py-2 text-sm font-bold text-slate-600 hover:bg-slate-50"
           >
-            {intl.formatMessage({ id: "app.cancel" })}
+            {copy.cancel}
           </Button>
           <Button
             type="button"
             onClick={handleSave}
             className="cursor-pointer rounded-lg bg-[var(--color-primary-dark)] px-4 py-2 text-sm font-bold text-white hover:bg-[var(--color-primary)]"
           >
-            {intl.formatMessage({ id: "app.done" })}
+            {copy.done}
           </Button>
         </div>
       </div>

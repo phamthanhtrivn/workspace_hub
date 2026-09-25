@@ -16,8 +16,8 @@ import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
+import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 import { CalendarEventFormController } from "../../hooks/use-calendar-event-form";
 import { useModalDialog } from "../../hooks/use-modal-dialog";
 import {
@@ -25,6 +25,7 @@ import {
   EventSourceType,
   WorkspaceCalendar,
 } from "../../types/calendar.types";
+import { readTaskDeadline, writeTaskDeadline } from "../../utils/calendar-task-deadline.utils";
 import { AttachmentEditor } from "./attachment-editor";
 import { QuickCreateEventFields } from "./quick-create-event-fields";
 import {
@@ -47,9 +48,9 @@ export interface QuickCreateModalProps {
   onClose: () => void;
 }
 
-const QUICK_CREATE_TABS: Array<{ value: QuickCreateKind; labelId: string }> = [
-  { value: "event", labelId: "calendar.quick.event" },
-  { value: "task", labelId: "calendar.quick.task" },
+const QUICK_CREATE_TABS: Array<{ value: QuickCreateKind; label: string }> = [
+  { value: "event", label: copy.event },
+  { value: "task", label: copy.task },
 ];
 
 export function QuickCreateModal({
@@ -62,7 +63,6 @@ export function QuickCreateModal({
   onKindChange,
   onClose,
 }: QuickCreateModalProps) {
-  const intl = useAppIntl();
   const dialogRef = useRef<HTMLFormElement>(null);
   const isEditing = Boolean(event?.id);
 
@@ -71,12 +71,12 @@ export function QuickCreateModal({
   const reminders = useWatch({ control, name: "reminders" });
   const modalAccent = kind === "task" ? tasksColor || "#f59e0b" : "#2563eb";
   const modalTitle = isEditing
-    ? intl.formatMessage({
-        id: kind === "task" ? "calendar.quick.task" : "calendar.editEvent",
-      })
-    : intl.formatMessage({
-        id: kind === "task" ? "calendar.tasks.addTask" : "calendar.createEvent",
-      });
+    ? kind === "task"
+      ? copy.task
+      : copy.editEvent
+    : kind === "task"
+      ? copy.addTask
+      : copy.createEvent;
 
   const selectedCalendar =
     calendars.find((calendar) => calendar.id === calendarId) ?? calendars[0];
@@ -93,22 +93,10 @@ export function QuickCreateModal({
   });
 
   // Task deadline state
-  const [showDeadline, setShowDeadline] = useState<boolean>(() => {
-    const desc = event?.description || "";
-    return /\[(?:Hạn chót|Deadline):/i.test(desc);
-  });
-  const [deadlineDate, setDeadlineDate] = useState<string>(() => {
-    const desc = event?.description || "";
-    const match = desc.match(/\[(?:Hạn chót|Deadline):\s*(\d{4}-\d{2}-\d{2})/i);
-    return match ? match[1] : "";
-  });
-  const [deadlineTime, setDeadlineTime] = useState<string>(() => {
-    const desc = event?.description || "";
-    const match = desc.match(
-      /\[(?:Hạn chót|Deadline):\s*\d{4}-\d{2}-\d{2}\s+(\d{2}:\d{2})/i,
-    );
-    return match ? match[1] : "";
-  });
+  const initialDeadline = readTaskDeadline(event?.description);
+  const [showDeadline, setShowDeadline] = useState(Boolean(initialDeadline.date));
+  const [deadlineDate, setDeadlineDate] = useState(initialDeadline.date);
+  const [deadlineTime, setDeadlineTime] = useState(initialDeadline.time);
 
   const handleSubmit: FormEventHandler<HTMLFormElement> = (submitEvent) => {
     if (kind === "task") {
@@ -122,17 +110,15 @@ export function QuickCreateModal({
       if (personalCalendar) {
         setValue("calendarId", personalCalendar.id);
       }
-      let curDesc = getValues("description") || "";
-      if (!curDesc.includes("[TASK]")) {
-        curDesc = curDesc ? `[TASK] ${curDesc}` : "[TASK]";
-      }
-      if (showDeadline && deadlineDate) {
-        const deadlineStr = `[${intl.formatMessage({ id: "calendar.quick.deadline" })}: ${deadlineDate}${deadlineTime ? ` ${deadlineTime}` : ""}]`;
-        if (!curDesc.includes(deadlineStr)) {
-          curDesc = curDesc ? `${curDesc}\n${deadlineStr}` : deadlineStr;
-        }
-      }
-      setValue("description", curDesc);
+      setValue(
+        "description",
+        writeTaskDeadline(
+          getValues("description") || "",
+          deadlineDate,
+          deadlineTime,
+          showDeadline,
+        ),
+      );
     } else {
       setValue("sourceType", EventSourceType.USER);
     }
@@ -188,7 +174,7 @@ export function QuickCreateModal({
             size="icon"
             onClick={onClose}
             className="grid h-8 w-8 cursor-pointer place-items-center rounded-full text-slate-500 transition hover:bg-white hover:text-slate-900"
-            aria-label={intl.formatMessage({ id: "app.close" })}
+            aria-label={copy.close}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -200,14 +186,14 @@ export function QuickCreateModal({
             {...register("title")}
             data-modal-initial-focus
             id="calendar-quick-create-title"
-            aria-label={intl.formatMessage({ id: "calendar.quick.addTitle" })}
-            placeholder={intl.formatMessage({ id: "calendar.quick.addTitle" })}
+            aria-label={copy.addTitle}
+            placeholder={copy.addTitle}
             aria-invalid={Boolean(formState.errors.title)}
             className="ml-12 h-auto w-[calc(100%-3rem)] rounded-none border-0 border-b border-slate-200 bg-transparent px-0 pb-2 text-2xl font-medium leading-tight text-slate-800 shadow-none outline-none placeholder:text-slate-500 focus:border-blue-500 focus-visible:ring-0 sm:text-[1.7rem]"
           />
           {formState.errors.title && (
             <p className="ml-12 mt-2 text-xs font-semibold text-red-600">
-              {intl.formatMessage({ id: "calendar.requiredFields" })}
+              {copy.requiredFields}
             </p>
           )}
 
@@ -238,7 +224,7 @@ export function QuickCreateModal({
                       : undefined
                   }
                 >
-                  {intl.formatMessage({ id: tab.labelId })}
+                  {tab.label}
                 </Button>
               ))}
             </div>
@@ -255,6 +241,7 @@ export function QuickCreateModal({
               recurrencePreset={controller.recurrencePreset}
               recurrenceOptions={controller.recurrenceOptions}
               onStartDateChange={controller.handleStartDateChange}
+              onEndDateChange={controller.handleEndDateChange}
               onStartTimeChange={controller.handleStartTimeChange}
               onEndDateTimeChange={controller.handleEndDateTimeChange}
               onAllDayChange={controller.handleAllDayChange}
@@ -280,7 +267,7 @@ export function QuickCreateModal({
                     onClick={() => setShowDeadline(true)}
                     className="h-auto w-full cursor-pointer justify-start rounded-xl px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-100"
                   >
-                    {intl.formatMessage({ id: "calendar.quick.addDeadline" })}
+                    {copy.addDeadline}
                   </Button>
                 ) : (
                   <div
@@ -292,18 +279,14 @@ export function QuickCreateModal({
                     <Input
                       type="date"
                       value={deadlineDate}
-                      aria-label={intl.formatMessage({
-                        id: "calendar.quick.deadline",
-                      })}
+                      aria-label={copy.deadline}
                       onChange={(e) => setDeadlineDate(e.target.value)}
                       className="h-8 w-auto cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
                     />
                     <Input
                       type="time"
                       value={deadlineTime}
-                      aria-label={intl.formatMessage({
-                        id: "calendar.quick.deadline",
-                      })}
+                      aria-label={copy.deadline}
                       onChange={(e) => setDeadlineTime(e.target.value)}
                       className="h-8 w-auto cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
                     />
@@ -317,7 +300,7 @@ export function QuickCreateModal({
                         setDeadlineTime("");
                       }}
                       className="ml-auto h-7 w-7 cursor-pointer rounded-full p-1 text-slate-500 hover:bg-slate-200 hover:text-slate-800"
-                      aria-label={intl.formatMessage({ id: "app.close" })}
+                      aria-label={copy.close}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -330,13 +313,9 @@ export function QuickCreateModal({
             <QuickRow icon={<AlignLeft className="h-5 w-5" />}>
               <Textarea
                 {...register("description")}
-                aria-label={intl.formatMessage({
-                  id: "calendar.quick.addDescription",
-                })}
+                aria-label={copy.addDescription}
                 rows={kind === "event" ? 2 : 3}
-                placeholder={intl.formatMessage({
-                  id: "calendar.quick.addDescriptionAttachment",
-                })}
+                placeholder={copy.addDescriptionAttachment}
                 className="min-h-0 w-full resize-none rounded-xl border border-transparent bg-transparent px-3 py-2 text-sm font-medium text-slate-700 shadow-none outline-none transition placeholder:text-slate-500 hover:bg-slate-100 focus:border-blue-500/50 focus:bg-white focus-visible:ring-1 focus-visible:ring-blue-100"
               />
             </QuickRow>
@@ -358,11 +337,11 @@ export function QuickCreateModal({
                       style={{ backgroundColor: tasksColor || "#f59e0b" }}
                     />
                     <span className="text-sm font-semibold text-slate-700">
-                      {intl.formatMessage({ id: "calendar.tasks" })}
+                      {copy.task}
                     </span>
                   </div>
                   <p className="mt-0.5 truncate text-xs text-slate-500">
-                    {intl.formatMessage({ id: "calendar.quick.myTasks" })}
+                    {copy.myTasks}
                   </p>
                 </div>
               </QuickRow>
@@ -375,7 +354,7 @@ export function QuickCreateModal({
                       onChange={(value) =>
                         setValue("calendarId", value, { shouldDirty: true })
                       }
-                      ariaLabel={intl.formatMessage({ id: "nav.calendar" })}
+                      ariaLabel={copy.calendar}
                       options={calendars.map((cal) => ({
                         value: cal.id,
                         label: cal.name,
@@ -391,10 +370,7 @@ export function QuickCreateModal({
                     />
                   </div>
                   <p className="mt-0.5 truncate text-xs text-slate-500">
-                    {intl.formatMessage(
-                      { id: "calendar.quick.eventSummary" },
-                      { reminder: reminders?.[0]?.minutesBefore ?? 10 },
-                    )}
+                    {copy.notifyBefore(reminders?.[0]?.minutesBefore ?? 10)}
                   </p>
                 </div>
               </QuickRow>
@@ -424,11 +400,7 @@ export function QuickCreateModal({
             className="inline-flex h-9 w-fit cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 active:scale-[0.98]"
           >
             <span>
-              {showMoreOptions
-                ? intl.locale === "vi"
-                  ? "Thu g\u1ECDn t\u00F9y ch\u1ECDn"
-                  : "Fewer options"
-                : intl.formatMessage({ id: "calendar.moreOptions" })}
+              {showMoreOptions ? copy.fewerOptions : copy.moreOptions}
             </span>
             <ChevronDown
               className={`h-4 w-4 transition-transform duration-200 ${
@@ -444,16 +416,14 @@ export function QuickCreateModal({
               onClick={onClose}
               className="h-9 cursor-pointer rounded-full border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 active:scale-[0.98]"
             >
-              {intl.formatMessage({ id: "app.cancel" })}
+              {copy.cancel}
             </Button>
             <Button
               type="submit"
               disabled={submitting || formState.isSubmitting}
               className="h-9 cursor-pointer rounded-full bg-blue-700 px-6 text-sm font-semibold text-white shadow-sm shadow-blue-700/20 transition hover:bg-blue-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {submitting
-                ? intl.formatMessage({ id: "app.saving" })
-                : intl.formatMessage({ id: "app.save" })}
+              {submitting ? copy.saving : copy.save}
             </Button>
           </div>
         </div>

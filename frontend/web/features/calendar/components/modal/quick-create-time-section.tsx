@@ -5,8 +5,11 @@ import { ReactNode, useMemo } from "react";
 import { UseFormReturn, useWatch } from "react-hook-form";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { cn } from "@/lib/utils";
+import {
+  CALENDAR_FORM_COPY as copy,
+  CALENDAR_FORM_LOCALE,
+} from "../../constants/calendar-form-copy";
 import { CalendarEventEditorValues } from "../../schemas/calendar-event-form.schema";
 import {
   getDateInputValue,
@@ -53,6 +56,7 @@ export function QuickCreateTimeSection({
   recurrencePreset,
   recurrenceOptions,
   onStartDateChange,
+  onEndDateChange,
   onStartTimeChange,
   onEndDateTimeChange,
   onAllDayChange,
@@ -63,24 +67,24 @@ export function QuickCreateTimeSection({
   recurrencePreset: CalendarRecurrencePreset;
   recurrenceOptions: Array<{ value: string; label: string }>;
   onStartDateChange: (date: string) => void;
+  onEndDateChange: (date: string) => void;
   onStartTimeChange: (time: string) => void;
   onEndDateTimeChange: (dateTime: string) => void;
   onAllDayChange: (checked: boolean) => void;
   onRecurrenceChange: (preset: CalendarRecurrencePreset) => void;
 }) {
-  const intl = useAppIntl();
   const { control, setValue } = form;
   const startAt = useWatch({ control, name: "startAt" });
   const endAt = useWatch({ control, name: "endAt" });
   const allDay = useWatch({ control, name: "allDay" });
   const startTime = getTimeInputValue(startAt);
   const startTimeOptions = useMemo(
-    () => createStartTimeOptions(intl.locale, startTime),
-    [intl.locale, startTime],
+    () => createStartTimeOptions(CALENDAR_FORM_LOCALE, startTime),
+    [startTime],
   );
   const endTimeOptions = useMemo(
-    () => createEndTimeOptions(startAt, endAt, intl.locale),
-    [endAt, intl.locale, startAt],
+    () => createEndTimeOptions(startAt, endAt, CALENDAR_FORM_LOCALE),
+    [endAt, startAt],
   );
   const selectedEndTimeLabel = useMemo(
     () =>
@@ -93,14 +97,32 @@ export function QuickCreateTimeSection({
   return (
     <QuickRow icon={<Clock3 className="h-5 w-5" />}>
       <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2 transition-colors hover:bg-slate-100/90">
-          <Input
-            type="date"
-            aria-label={intl.formatMessage({ id: "calendar.start" })}
-            value={getDateInputValue(startAt)}
-            onChange={(event) => onStartDateChange(event.target.value)}
-            className="h-8 w-auto cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
-          />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className="min-w-0 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2 transition-colors hover:bg-slate-100/90">
+            <span className="block text-xs font-medium text-slate-500">
+              {copy.startDate}
+            </span>
+            <Input
+              type="date"
+              aria-label={copy.startDate}
+              value={getDateInputValue(startAt)}
+              onChange={(event) => onStartDateChange(event.target.value)}
+              className="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
+            />
+          </label>
+          <label className="min-w-0 rounded-2xl border border-slate-200/70 bg-slate-50/90 px-3 py-2 transition-colors hover:bg-slate-100/90">
+            <span className="block text-xs font-medium text-slate-500">
+              {copy.endDate}
+            </span>
+            <Input
+              type="date"
+              aria-label={copy.endDate}
+              value={getDateInputValue(endAt)}
+              min={getDateInputValue(startAt)}
+              onChange={(event) => onEndDateChange(event.target.value)}
+              className="h-8 w-full min-w-0 cursor-pointer border-0 bg-transparent px-0 py-0 text-sm font-semibold text-slate-700 shadow-none outline-none focus-visible:ring-0"
+            />
+          </label>
         </div>
 
         {!allDay && (
@@ -108,7 +130,7 @@ export function QuickCreateTimeSection({
             <CalendarSelect
               value={startTime}
               options={startTimeOptions}
-              ariaLabel={intl.formatMessage({ id: "calendar.start" })}
+              ariaLabel={copy.start}
               onChange={onStartTimeChange}
               triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-slate-700 hover:bg-slate-200/70 data-[state=open]:bg-white"
               popupClassName="min-w-[11.75rem]"
@@ -119,7 +141,7 @@ export function QuickCreateTimeSection({
             <CalendarSelect
               value={endAt}
               options={endTimeOptions}
-              ariaLabel={intl.formatMessage({ id: "calendar.end" })}
+              ariaLabel={copy.end}
               onChange={onEndDateTimeChange}
               triggerLabel={selectedEndTimeLabel}
               triggerClassName="h-10 w-full justify-between rounded-xl border border-slate-200/70 bg-slate-100/80 px-3 text-slate-700 hover:bg-slate-200/70 data-[state=open]:bg-white"
@@ -131,7 +153,7 @@ export function QuickCreateTimeSection({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 px-1 text-xs font-medium text-slate-500">
           <label className="inline-flex cursor-pointer items-center gap-2">
             <Checkbox
-              aria-label={intl.formatMessage({ id: "calendar.allDay" })}
+              aria-label={copy.allDay}
               checked={allDay}
               onCheckedChange={(checked) => {
                 setValue("allDay", checked, { shouldDirty: true });
@@ -139,13 +161,13 @@ export function QuickCreateTimeSection({
               }}
               className="h-3.5 w-3.5 rounded border-slate-300"
             />
-            {intl.formatMessage({ id: "calendar.allDay" })}
+            {copy.allDay}
           </label>
           {kind === "event" && (
             <>
               <span className="text-slate-300">{"\u00B7"}</span>
               <span>
-                {intl.formatMessage({ id: "calendar.quick.timeZone" })}
+                {copy.timeZone}
               </span>
             </>
           )}
@@ -154,7 +176,7 @@ export function QuickCreateTimeSection({
         <CalendarSelect
           value={recurrencePreset}
           options={recurrenceOptions}
-          ariaLabel={intl.formatMessage({ id: "calendar.recurrence" })}
+          ariaLabel={copy.recurrence}
           onChange={(value) =>
             onRecurrenceChange(value as CalendarRecurrencePreset)
           }

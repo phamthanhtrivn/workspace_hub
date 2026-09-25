@@ -2,7 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { FieldErrors, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import {
   CalendarEventEditorValues,
   calendarEventFormSchema,
@@ -33,7 +33,6 @@ export function useCalendarEventForm({
   event,
   onSubmit,
 }: UseCalendarEventFormInput) {
-  const intl = useAppIntl();
   const defaultCalendar =
     calendars.find((calendar) => !calendar.projectId && calendar.isDefault) ??
     calendars.find((calendar) => !calendar.projectId);
@@ -92,11 +91,7 @@ export function useCalendarEventForm({
       errors.endAt?.message ||
       errors.title?.message ||
       errors.calendarId?.message;
-    toast.error(
-      intl.formatMessage({
-        id: typeof message === "string" ? message : "calendar.requiredFields",
-      }),
-    );
+    toast.error(typeof message === "string" ? message : copy.requiredFields);
   };
 
   const enableEventColor = (checked: boolean) => {

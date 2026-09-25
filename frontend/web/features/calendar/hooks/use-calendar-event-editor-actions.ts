@@ -1,7 +1,7 @@
 import { DateSelectArg } from "@fullcalendar/core";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { CALENDAR_FORM_COPY as copy } from "../constants/calendar-form-copy";
 import {
   CalendarEvent,
   CalendarEventDraft,
@@ -74,7 +74,6 @@ export function useCalendarEventEditorActions({
   defaultCalendarId,
   onEventUpdated,
 }: UseCalendarEventEditorActionsInput) {
-  const intl = useAppIntl();
   const [draft, setDraft] = useState<CalendarEventDraft | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const createEvent = useCreateCalendarEvent();
@@ -152,12 +151,12 @@ export function useCalendarEventEditorActions({
           await createEvent.mutateAsync(values);
           setDraft(null);
         }
-        toast.success(intl.formatMessage({ id: "calendar.eventSaved" }));
+        toast.success(copy.eventSaved);
       } catch {
-        toast.error(intl.formatMessage({ id: "calendar.eventSaveFailed" }));
+        toast.error(copy.eventSaveFailed);
       }
     },
-    [createEvent, editingEvent, intl, onEventUpdated, updateEvent],
+    [createEvent, editingEvent, onEventUpdated, updateEvent],
   );
 
   const closeForm = useCallback(() => {

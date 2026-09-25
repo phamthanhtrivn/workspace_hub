@@ -1,5 +1,8 @@
 import { useMemo, useState } from "react";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import {
+  CALENDAR_FORM_COPY as copy,
+  CALENDAR_FORM_LOCALE,
+} from "../constants/calendar-form-copy";
 import { CALENDAR_RECURRENCE_PRESET_VALUES } from "../types/calendar.constants";
 import { CalendarEvent } from "../types/calendar.types";
 import {
@@ -17,7 +20,6 @@ export function useCalendarRecurrence(
   defaultStart: Date,
   event?: CalendarEvent | null,
 ) {
-  const intl = useAppIntl();
   const [recurrenceRule, setRecurrenceRule] = useState<string | null>(
     event?.recurrenceRule || null,
   );
@@ -52,43 +54,38 @@ export function useCalendarRecurrence(
     () => [
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.NONE,
-        label: intl.formatMessage({ id: "calendar.recurrence.none" }),
+        label: copy.recurrenceNone,
       },
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.DAILY,
-        label: intl.formatMessage({ id: "calendar.recurrence.daily" }),
+        label: copy.recurrenceDaily,
       },
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.WEEKLY,
-        label: intl.formatMessage(
-          { id: "calendar.recurrence.weeklyOn" },
-          { weekday: getWeekdayName(new Date(startAt), intl.locale) },
+        label: copy.recurrenceWeeklyOn(
+          getWeekdayName(new Date(startAt), CALENDAR_FORM_LOCALE),
         ),
       },
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.MONTHLY,
-        label: intl.formatMessage(
-          { id: "calendar.recurrence.monthlyOn" },
-          { day: new Date(startAt).getDate() },
-        ),
+        label: copy.recurrenceMonthlyOn(new Date(startAt).getDate()),
       },
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.YEARLY,
-        label: intl.formatMessage(
-          { id: "calendar.recurrence.yearlyOn" },
-          { date: getMonthDayName(new Date(startAt), intl.locale) },
+        label: copy.recurrenceYearlyOn(
+          getMonthDayName(new Date(startAt), CALENDAR_FORM_LOCALE),
         ),
       },
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.WEEKDAYS,
-        label: intl.formatMessage({ id: "calendar.recurrence.weekdays" }),
+        label: copy.recurrenceWeekdays,
       },
       {
         value: CALENDAR_RECURRENCE_PRESET_VALUES.CUSTOM,
-        label: intl.formatMessage({ id: "calendar.recurrence.custom" }),
+        label: copy.recurrenceCustom,
       },
     ],
-    [intl, startAt],
+    [startAt],
   );
 
   return {

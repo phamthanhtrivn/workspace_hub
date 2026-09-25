@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useAppIntl } from "@/features/i18n/useAppIntl";
+import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import { useAttendeeSearch } from "../../hooks/use-calendar-users";
 import { CalendarEventAttendeePayload } from "../../types/calendar.types";
@@ -19,7 +19,6 @@ export function AttendeePicker({
   onChange: (attendees: CalendarEventAttendeePayload[]) => void;
   compact?: boolean;
 }) {
-  const intl = useAppIntl();
   const [query, setQuery] = useState("");
   const { data: results = [], isFetching: loading } = useAttendeeSearch(query);
   const attendeeIds = useMemo(
@@ -52,7 +51,7 @@ export function AttendeePicker({
     <div className="space-y-2">
       {!compact && (
         <label className="text-xs font-black uppercase text-slate-400">
-          {intl.formatMessage({ id: "calendar.attendees" })}
+          {copy.attendees}
         </label>
       )}
       <div className="relative">
@@ -61,17 +60,9 @@ export function AttendeePicker({
         )}
         <Input
           value={query}
-          aria-label={intl.formatMessage({
-            id: compact
-              ? "calendar.quick.addGuests"
-              : "calendar.searchAttendees",
-          })}
+          aria-label={compact ? copy.addGuests : copy.searchAttendees}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={intl.formatMessage({
-            id: compact
-              ? "calendar.quick.addGuests"
-              : "calendar.searchAttendees",
-          })}
+          placeholder={compact ? copy.addGuests : copy.searchAttendees}
           className={`h-auto w-full rounded-lg py-2 pr-3 text-sm text-slate-700 shadow-none outline-none transition placeholder:text-slate-500 ${
             compact
               ? "rounded-xl border border-transparent bg-transparent pl-3 font-medium hover:bg-slate-100 focus:border-blue-500/50 focus:bg-white focus-visible:ring-1 focus-visible:ring-blue-100"
@@ -84,11 +75,11 @@ export function AttendeePicker({
         <div className="max-h-44 overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-sm">
           {loading ? (
             <div className="px-3 py-3 text-xs font-semibold text-slate-400">
-              {intl.formatMessage({ id: "chat.searching" })}
+              {copy.searching}
             </div>
           ) : results.length === 0 ? (
             <div className="px-3 py-3 text-xs font-semibold text-slate-400">
-              {intl.formatMessage({ id: "chat.noResults" })}
+              {copy.noResults}
             </div>
           ) : (
             results.map((user) => (
@@ -162,7 +153,7 @@ export function AttendeePicker({
                   size="icon"
                   onClick={() => removeUser(attendee.userId)}
                   className="h-5 w-5 cursor-pointer p-0 text-slate-400 hover:bg-transparent hover:text-slate-700"
-                  aria-label={intl.formatMessage({ id: "app.delete" })}
+                  aria-label={copy.delete}
                 >
                   <X className="h-3.5 w-3.5" />
                 </Button>
