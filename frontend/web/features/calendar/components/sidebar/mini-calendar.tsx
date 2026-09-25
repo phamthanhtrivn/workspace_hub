@@ -5,12 +5,12 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin, { DateClickArg } from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import { getMiniCalendarWeekdayLabel, isSameDate } from "../../utils/calendar-date.utils";
 
-export function MiniCalendar({
+export const MiniCalendar = memo(function MiniCalendar({
   currentDate,
   selectedDate,
   onSelectDate,
@@ -112,4 +112,4 @@ export function MiniCalendar({
       />
     </div>
   );
-}
+});

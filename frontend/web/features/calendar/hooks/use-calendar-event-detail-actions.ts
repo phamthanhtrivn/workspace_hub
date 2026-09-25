@@ -1,5 +1,5 @@
 import { EventClickArg } from "@fullcalendar/core";
-import { useCallback } from "react";
+import { useCallback, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import { useAppIntl } from "@/features/i18n/useAppIntl";
 import {
@@ -21,7 +21,7 @@ import { useAppSelector } from "@/store/store";
 interface UseCalendarEventDetailActionsInput {
   detailEvent: CalendarEvent | null;
   onEdit: (event: CalendarEvent) => void;
-  setDetailEvent: (event: CalendarEvent | null) => void;
+  setDetailEvent: Dispatch<SetStateAction<CalendarEvent | null>>;
 }
 
 export function useCalendarEventDetailActions({
@@ -34,7 +34,10 @@ export function useCalendarEventDetailActions({
   const cancelEvent = useCancelCalendarEvent();
   const updateEvent = useUpdateCalendarEvent();
   const updateResponse = useUpdateCalendarEventResponse();
-  const updateTaskCompletion = useUpdateCalendarTaskCompletion();
+  const {
+    mutateAsync: updateTaskCompletionAsync,
+    isPending: taskCompletionPending,
+  } = useUpdateCalendarTaskCompletion();
 
   const handleEventClick = useCallback(
     (arg: EventClickArg) => {
@@ -135,22 +138,19 @@ export function useCalendarEventDetailActions({
 
   const updateTaskCompletionForEvent = useCallback(
     async (event: CalendarEvent) => {
-      if (
-        !isTaskCalendarEvent(event) ||
-        updateTaskCompletion.isPending
-      ) {
+      if (!isTaskCalendarEvent(event) || taskCompletionPending) {
         return;
       }
 
       const completed = !event.completedAt;
       try {
-        const updatedEvent = await updateTaskCompletion.mutateAsync({
+        const updatedEvent = await updateTaskCompletionAsync({
           eventId: event.id,
           completed,
         });
-        if (detailEvent?.id === updatedEvent.id) {
-          setDetailEvent(updatedEvent);
-        }
+        setDetailEvent((current) =>
+          current?.id === updatedEvent.id ? updatedEvent : current,
+        );
         toast.success(
           intl.formatMessage({
             id: completed
@@ -164,7 +164,12 @@ export function useCalendarEventDetailActions({
         );
       }
     },
-    [detailEvent, intl, setDetailEvent, updateTaskCompletion],
+    [
+      intl,
+      setDetailEvent,
+      taskCompletionPending,
+      updateTaskCompletionAsync,
+    ],
   );
 
   const handleTaskCompletionChange = useCallback(async () => {
@@ -177,7 +182,7 @@ export function useCalendarEventDetailActions({
     detailBusy:
       cancelEvent.isPending ||
       updateResponse.isPending ||
-      updateTaskCompletion.isPending,
+      taskCompletionPending,
     handleCancelEvent,
     handleEventClick,
     handleRespond,
@@ -185,6 +190,6 @@ export function useCalendarEventDetailActions({
     handleTaskCompletionQuickToggle: updateTaskCompletionForEvent,
     openDetail,
     startEditingDetailEvent,
-    taskCompletionBusy: updateTaskCompletion.isPending,
+    taskCompletionBusy: taskCompletionPending,
   };
 }

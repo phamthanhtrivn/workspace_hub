@@ -62,7 +62,7 @@ export function CalendarModal(props: CalendarModalProps) {
     name.trim() ||
     intl.formatMessage({ id: "calendar.calendarNamePlaceholder" });
 
-  useModalDialog({ dialogRef, onClose: props.onClose });
+  useModalDialog({ dialogRef, onClose: props.onClose, lockDocumentScroll: false });
 
   if (typeof document === "undefined") return null;
 
@@ -90,16 +90,38 @@ export function CalendarModal(props: CalendarModalProps) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs"
+      onWheelCapture={(event) => {
+        if (
+          event.target instanceof Node &&
+          dialogRef.current?.contains(event.target)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onTouchMoveCapture={(event) => {
+        if (
+          event.target instanceof Node &&
+          dialogRef.current?.contains(event.target)
+        ) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
       <form
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={headingId}
         onSubmit={handleSubmit}
-        className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl"
+        className="flex max-h-[calc(100dvh-2rem)] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-2xl"
       >
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 py-4">
           <h2
             id={headingId}
             className="text-base font-semibold text-slate-800"
@@ -123,7 +145,7 @@ export function CalendarModal(props: CalendarModalProps) {
           </Button>
         </div>
 
-        <div className="space-y-4 px-5 py-5">
+        <div className="min-h-0 space-y-4 overflow-y-auto px-5 py-5">
           <div className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               {intl.formatMessage({ id: "calendar.preview" })}
@@ -181,7 +203,7 @@ export function CalendarModal(props: CalendarModalProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-slate-100 px-5 py-3.5">
           {props.mode === "edit" && props.canDelete ? (
             <Button
               type="button"

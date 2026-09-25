@@ -16,6 +16,9 @@ import { CalendarSidebar } from "../sidebar/calendar-sidebar";
 import { CalendarToolbar } from "../toolbar/calendar-toolbar";
 import { CalendarGrid } from "./calendar-grid";
 import { CalendarTasksDrawer } from "../drawer/calendar-tasks-drawer";
+import { CalendarModal, type CalendarModalValues } from "../modal/calendar-modal";
+import { EventDetailModal } from "../modal/event-detail-modal";
+import { EventFormModal } from "../modal/event-form-modal";
 import { useCalendarWorkspace } from "../../hooks/use-calendar-workspace";
 import { useCalendarProjects } from "../../hooks/use-calendar-projects";
 import { mapProjectTasksToCalendarEvents } from "../../utils/project-task-event.utils";
@@ -30,23 +33,11 @@ import {
 } from "../../hooks/use-calendar-queries";
 import { isTaskCalendarEvent } from "../../utils/calendar-event.utils";
 import { CalendarEvent, EventStatus } from "../../types/calendar.types";
-import type { CalendarModalValues } from "../modal/calendar-modal";
 
-const EventDetailModal = dynamic(() =>
-  import("../modal/event-detail-modal").then(
-    (module) => module.EventDetailModal,
-  ),
-);
-const loadEventFormModal = () =>
-  import("../modal/event-form-modal").then((module) => module.EventFormModal);
-const EventFormModal = dynamic(loadEventFormModal);
 const RecurrenceScopeModal = dynamic(() =>
   import("../modal/recurrence-scope-modal").then(
     (module) => module.RecurrenceScopeModal,
   ),
-);
-const CalendarModal = dynamic(() =>
-  import("../modal/calendar-modal").then((module) => module.CalendarModal),
 );
 
 export function CalendarWorkspace() {
@@ -151,7 +142,6 @@ export function CalendarWorkspace() {
   ]);
 
   useEffect(() => {
-    void loadEventFormModal();
     queueMicrotask(() => {
       try {
         const saved = localStorage.getItem("calendar_sidebar_open");
@@ -213,14 +203,20 @@ export function CalendarWorkspace() {
     setSelectedProjectTask(null);
   }, []);
 
+  const handlePersonalEventClick = calendar.handleEventClick;
   const handleEventClick = useCallback((arg: EventClickArg) => {
     const projectTask = arg.event.extendedProps.projectTask as Task | undefined;
     if (projectTask) {
       setSelectedProjectTask(projectTask);
       return;
     }
-    calendar.handleEventClick(arg);
-  }, [calendar]);
+    handlePersonalEventClick(arg);
+  }, [handlePersonalEventClick]);
+
+  const handleSelectDate = useCallback((date: Date) => {
+    handleMiniCalendarDateSelect(date);
+    setMobileSidebarOpen(false);
+  }, [handleMiniCalendarDateSelect]);
 
   const handleRetryProjects = useCallback(() => {
     if (projectsQuery.isError) void projectsQuery.refetch();
@@ -302,10 +298,7 @@ export function CalendarWorkspace() {
               onToggleTasks={calendar.toggleTasks}
               onOpenTasksDrawer={handleOpenTasksDrawer}
               onTasksColorChange={calendar.changeTasksColor}
-              onSelectDate={(date) => {
-                calendar.handleMiniCalendarDateSelect(date);
-                setMobileSidebarOpen(false);
-              }}
+              onSelectDate={handleSelectDate}
               onCreateEvent={() => {
                 calendar.openCreateModal();
                 setMobileSidebarOpen(false);

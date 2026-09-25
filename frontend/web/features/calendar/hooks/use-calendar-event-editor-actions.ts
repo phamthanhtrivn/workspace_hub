@@ -21,55 +21,6 @@ interface UseCalendarEventEditorActionsInput {
   onEventUpdated: (event: CalendarEvent) => void;
 }
 
-const CALENDAR_SCROLLER_SELECTOR = ".calendar-shell .fc-scroller";
-
-function captureCalendarScroll() {
-  if (typeof document === "undefined") return () => {};
-
-  const snapshots = Array.from(
-    document.querySelectorAll<HTMLElement>(CALENDAR_SCROLLER_SELECTOR),
-  ).map((element, index) => ({
-    element,
-    index,
-    scrollLeft: element.scrollLeft,
-    scrollTop: element.scrollTop,
-  }));
-
-  return () => {
-    const currentScrollers = Array.from(
-      document.querySelectorAll<HTMLElement>(CALENDAR_SCROLLER_SELECTOR),
-    );
-
-    for (const snapshot of snapshots) {
-      const target = snapshot.element.isConnected
-        ? snapshot.element
-        : currentScrollers[snapshot.index];
-      if (!target) continue;
-
-      target.scrollLeft = snapshot.scrollLeft;
-      target.scrollTop = snapshot.scrollTop;
-    }
-  };
-}
-
-function restoreCalendarScrollAfterRender(restore: () => void) {
-  if (typeof window === "undefined") return;
-
-  let frame = 0;
-  const restoreForSeveralFrames = () => {
-    restore();
-    frame += 1;
-    if (frame < 12) {
-      window.requestAnimationFrame(restoreForSeveralFrames);
-    }
-  };
-
-  window.requestAnimationFrame(restoreForSeveralFrames);
-  window.setTimeout(restore, 150);
-  window.setTimeout(restore, 350);
-  window.setTimeout(restore, 700);
-}
-
 export function useCalendarEventEditorActions({
   defaultCalendarId,
   onEventUpdated,
@@ -81,10 +32,8 @@ export function useCalendarEventEditorActions({
 
   const openCreateModal = useCallback(
     (nextDraft?: CalendarEventDraft) => {
-      const restoreScroll = captureCalendarScroll();
       setEditingEvent(null);
       setDraft(nextDraft ?? createDefaultEventDraft(defaultCalendarId));
-      restoreCalendarScrollAfterRender(restoreScroll);
     },
     [defaultCalendarId],
   );
@@ -106,13 +55,13 @@ export function useCalendarEventEditorActions({
         endAt = selection.end;
       }
 
+      selection.view.calendar.unselect();
       openCreateModal({
         startAt: selection.start,
         endAt,
         allDay: selection.allDay,
         calendarId: defaultCalendarId,
       });
-      selection.view.calendar.unselect();
     },
     [defaultCalendarId, openCreateModal],
   );
@@ -165,10 +114,8 @@ export function useCalendarEventEditorActions({
   }, []);
 
   const openEditForm = useCallback((event: CalendarEvent) => {
-    const restoreScroll = captureCalendarScroll();
     setEditingEvent(event);
     setDraft(null);
-    restoreCalendarScrollAfterRender(restoreScroll);
   }, []);
 
   return {

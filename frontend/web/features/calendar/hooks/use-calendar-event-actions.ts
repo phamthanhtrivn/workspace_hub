@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CalendarEvent } from "../types/calendar.types";
 import { useCalendarEventDetailActions } from "./use-calendar-event-detail-actions";
 import { useCalendarEventEditorActions } from "./use-calendar-event-editor-actions";
@@ -13,10 +13,7 @@ export function useCalendarEventActions({
   defaultCalendarId,
   events,
 }: UseCalendarEventActionsInput) {
-  const [detailEvent, setDetailEventState] = useState<CalendarEvent | null>(null);
-  const setDetailEvent = useCallback((event: CalendarEvent | null) => {
-    setDetailEventState(event);
-  }, []);
+  const [detailEvent, setDetailEvent] = useState<CalendarEvent | null>(null);
 
   const activeDetailEvent = useMemo(() => {
     if (!detailEvent) return null;

@@ -8,7 +8,7 @@ import { useUpdateCalendarEvent } from "./use-calendar-queries";
 
 export function useCalendarEventMove(events: CalendarEvent[]) {
   const intl = useAppIntl();
-  const updateEvent = useUpdateCalendarEvent();
+  const { mutateAsync: updateEventAsync } = useUpdateCalendarEvent();
   const [pendingEventMove, setPendingEventMove] =
     useState<CalendarEventMoveInfo | null>(null);
 
@@ -37,7 +37,7 @@ export function useCalendarEventMove(events: CalendarEvent[]) {
                 return d;
               })()
             : rawEnd;
-        await updateEvent.mutateAsync({
+        await updateEventAsync({
           eventId: info.event.id,
           payload: {
             startAt: info.event.start.toISOString(),
@@ -52,7 +52,7 @@ export function useCalendarEventMove(events: CalendarEvent[]) {
         toast.error(intl.formatMessage({ id: "calendar.eventMoveFailed" }));
       }
     },
-    [events, intl, updateEvent],
+    [events, intl, updateEventAsync],
   );
 
   const handleEventMove = useCallback(

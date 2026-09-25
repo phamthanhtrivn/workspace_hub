@@ -13,6 +13,7 @@ import listPlugin from "@fullcalendar/list";
 import luxonPlugin from "@fullcalendar/luxon3";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import type { DateClickArg } from "@fullcalendar/interaction";
 import { Circle, CircleCheck } from "lucide-react";
 import { memo, RefObject, useCallback, useEffect, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -62,8 +63,19 @@ export const CalendarGrid = memo(function CalendarGrid({
 }) {
   const intl = useAppIntl();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const lastSelectionEventRef = useRef<MouseEvent | null>(null);
+  const handleSelect = useCallback(
+    (selection: DateSelectArg) => {
+      lastSelectionEventRef.current = selection.jsEvent;
+      onSelect(selection);
+    },
+    [onSelect],
+  );
   const handleDateClick = useCallback(
-    (arg: { date: Date; allDay: boolean }) => onDateClick(arg.date, arg.allDay),
+    (arg: DateClickArg) => {
+      if (arg.jsEvent === lastSelectionEventRef.current) return;
+      onDateClick(arg.date, arg.allDay);
+    },
     [onDateClick],
   );
   const renderEventContent = useCallback(
@@ -219,6 +231,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         height="100%"
         nowIndicator
         selectable
+        selectMinDistance={5}
         selectMirror
         editable
         eventResizableFromStart
@@ -236,7 +249,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         allDayMaintainDuration
         events={events}
         datesSet={onDatesSet}
-        select={onSelect}
+        select={handleSelect}
         dateClick={handleDateClick}
         eventClick={onEventClick}
         eventDrop={onEventMove}
