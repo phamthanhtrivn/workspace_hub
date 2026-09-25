@@ -419,8 +419,21 @@ export function EventDetailModal({
               <div className="mt-0.5 flex w-5 shrink-0 justify-center">
                 <MapPin className="h-4 w-4 text-slate-500" />
               </div>
-              <div className="min-w-0 flex-1 text-sm text-slate-700">
-                {event.location}
+              <div className="min-w-0 flex-1">
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    event.location!,
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="group flex items-start gap-1.5 text-sm font-medium text-slate-700 transition hover:text-blue-600"
+                  title="Open in Google Maps"
+                >
+                  <span className="break-words whitespace-normal leading-relaxed group-hover:underline">
+                    {event.location}
+                  </span>
+                  <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400 transition group-hover:text-blue-600" />
+                </a>
               </div>
             </div>
           )}

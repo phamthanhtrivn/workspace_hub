@@ -84,6 +84,7 @@ export function QuickCreateModal({
 
   const selectedCalendar =
     calendars.find((calendar) => calendar.id === calendarId) ?? calendars[0];
+  const locationValue = useWatch({ control, name: "location" }) ?? "";
   useModalDialog({ dialogRef, onClose, lockDocumentScroll: false });
 
   // Expand "More options" downwards
@@ -259,6 +260,10 @@ export function QuickCreateModal({
               <QuickCreateEventFields
                 attendees={controller.attendees}
                 onAttendeesChange={controller.setAttendees}
+                locationValue={locationValue}
+                onLocationChange={(val) =>
+                  setValue("location", val, { shouldDirty: true })
+                }
                 register={register}
               />
             )}

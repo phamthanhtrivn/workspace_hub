@@ -239,6 +239,7 @@ export const CalendarGrid = memo(function CalendarGrid({
         moreLinkText={renderMoreLinkText}
         expandRows
         navLinks
+        navLinkDayClick="timeGridDay"
         slotDuration="00:30:00"
         snapDuration="00:15:00"
         defaultTimedEventDuration="01:00:00"
