@@ -61,6 +61,10 @@ export class MeetingService {
     return this.meetingScheduleService.listUpcomingMeetings(params);
   }
 
+  cleanupStaleScheduledMeetings() {
+    return this.meetingScheduleService.cleanupStaleScheduledMeetings();
+  }
+
   getMeetingAccess(params: GetMeetingAccessParams) {
     return this.meetingRoomService.getMeetingAccess(params);
   }

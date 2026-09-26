@@ -141,25 +141,93 @@ export class MeetingScheduleService {
     return this.toScheduledMeetingResponse(meeting);
   }
 
+  async cleanupStaleScheduledMeetings(): Promise<number> {
+    const now = new Date();
+    const staleMeetings = await this.prisma.meeting.findMany({
+      where: {
+        type: MeetingType.SCHEDULED,
+        status: MeetingStatus.SCHEDULED,
+        OR: [
+          { scheduledEndAt: { lte: now } },
+          {
+            scheduledEndAt: null,
+            scheduledStartAt: { lte: now },
+          },
+        ],
+      },
+      include: { participants: true },
+    });
+
+    if (staleMeetings.length === 0) return 0;
+
+    for (const meeting of staleMeetings) {
+      try {
+        const cancelledAt = now;
+        const cancelledMeeting = await this.prisma.$transaction(async (tx) => {
+          await tx.meeting.update({
+            where: { id: meeting.id },
+            data: {
+              status: MeetingStatus.CANCELLED,
+              cancelledAt,
+            },
+          });
+          await tx.meetingEvent.create({
+            data: {
+              meetingId: meeting.id,
+              actorId: meeting.hostId,
+              type: MeetingEventType.CANCELLED,
+              metadata: {
+                cancelledAt: cancelledAt.toISOString(),
+                reason: 'stale_past_meeting_cleanup',
+              },
+            },
+          });
+          return tx.meeting.findUniqueOrThrow({
+            where: { id: meeting.id },
+            include: { participants: true },
+          });
+        });
+
+        await this.publishScheduledMeetingCancelled(cancelledMeeting);
+      } catch {
+        // Continue cleaning other stale meetings
+      }
+    }
+
+    return staleMeetings.length;
+  }
+
   async listUpcomingMeetings({ userId, query }: ListUpcomingMeetingsParams) {
     const page = Math.max(1, query?.page ?? 1);
     const limit = Math.min(
       MAX_UPCOMING_LIMIT,
       Math.max(1, query?.limit ?? DEFAULT_UPCOMING_LIMIT),
     );
+
+    await this.cleanupStaleScheduledMeetings();
+
+    const now = new Date();
     const where: Prisma.MeetingWhereInput = {
       type: MeetingType.SCHEDULED,
       status: { in: [MeetingStatus.SCHEDULED, MeetingStatus.LIVE] },
-      scheduledStartAt: { not: null },
       OR: [
-        { hostId: userId },
+        { scheduledEndAt: { gt: now } },
+        { scheduledEndAt: null, scheduledStartAt: { gt: now } },
+        { status: MeetingStatus.LIVE },
+      ],
+      AND: [
         {
-          participants: {
-            some: {
-              userId,
-              status: { in: UPCOMING_PARTICIPANT_STATUSES },
+          OR: [
+            { hostId: userId },
+            {
+              participants: {
+                some: {
+                  userId,
+                  status: { in: UPCOMING_PARTICIPANT_STATUSES },
+                },
+              },
             },
-          },
+          ],
         },
       ],
     };
