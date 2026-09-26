@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useProjectMembers } from "@/features/project/hooks/use-projects";
 import { Avatar } from "@/features/project/components/ui/avatar-stack";
 import { TaskPriority, TaskStatus, type Project, type ProjectMember, type Task } from "@/features/project/types/project";
+import { TaskStatusBadge, TaskPriorityBadge } from "@/features/project/components/ui/status-badge";
 import { taskDateKey } from "@/features/project/utils/task-dates";
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -87,11 +88,15 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="mb-1 text-xs font-medium text-slate-500">Status</p>
-                <p className="font-semibold text-slate-800">{STATUS_LABELS[task.status]}</p>
+                <div>
+                  <TaskStatusBadge status={task.status} />
+                </div>
               </div>
               <div>
                 <p className="mb-1 text-xs font-medium text-slate-500">Priority</p>
-                <p className="font-semibold text-slate-800">{PRIORITY_LABELS[task.priority]}</p>
+                <div>
+                  <TaskPriorityBadge priority={task.priority} />
+                </div>
               </div>
             </div>
 
@@ -201,7 +206,7 @@ export function ProjectTaskDetailModal({ task, project, onClose }: {
 
         <DialogFooter className="shrink-0 border-slate-100 bg-white px-6 py-4">
           <Button asChild variant="outline">
-            <Link href={`/projects/${project.id}`}>
+            <Link href={`/projects/${project.id}?taskId=${task.id}`}>
               Open project
               <ExternalLink className="ml-2 size-4" />
             </Link>

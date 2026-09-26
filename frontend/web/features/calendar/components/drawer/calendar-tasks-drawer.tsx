@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { CustomSelect } from "@/components/ui/custom/custom-select";
 
+import type { Project } from "@/features/project/types/project";
 import { cn } from "@/lib/utils";
 import { CalendarEvent } from "../../types/calendar.types";
 import {
@@ -24,6 +25,10 @@ import { CalendarTaskList } from "./calendar-task-list";
 interface CalendarTasksDrawerProps {
   open: boolean;
   tasks: CalendarEvent[];
+  projectTaskEvents?: CalendarEvent[];
+  projects?: Project[];
+  selectedProject?: Project | null;
+  onSelectProject?: (projectId: string) => void;
   color?: string;
   loading?: boolean;
   error?: boolean;
@@ -40,6 +45,10 @@ type TasksDrawerTab = "personal" | "project";
 export function CalendarTasksDrawer({
   open,
   tasks,
+  projectTaskEvents = [],
+  projects = [],
+  selectedProject = null,
+  onSelectProject,
   color = "#f59e0b",
   loading = false,
   error = false,
@@ -74,15 +83,19 @@ export function CalendarTasksDrawer({
   const { personalTasks, projectTasks } = useMemo(
     () => ({
       personalTasks: tasks.filter((task) => !isProjectCalendarTask(task)),
-      projectTasks: tasks.filter(isProjectCalendarTask),
+      projectTasks:
+        projectTaskEvents.length > 0
+          ? projectTaskEvents
+          : tasks.filter(isProjectCalendarTask),
     }),
-    [tasks],
+    [tasks, projectTaskEvents],
   );
   const displayedTasks =
     activeTab === "personal" ? personalTasks : projectTasks;
 
   const filteredTasks = useMemo(
-    () => filterCalendarTasks(displayedTasks, timeFilter, effectiveStatusFilter),
+    () =>
+      filterCalendarTasks(displayedTasks, timeFilter, effectiveStatusFilter),
     [displayedTasks, timeFilter, effectiveStatusFilter],
   );
 
@@ -240,7 +253,35 @@ export function CalendarTasksDrawer({
             ))}
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+            {activeTab === "project" && projects.length > 0 && (
+              <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-slate-200/80 bg-slate-50/80 px-3 py-2 shadow-2xs">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ backgroundColor: selectedProject?.color || color }}
+                  />
+                  <span className="truncate text-xs font-bold text-slate-700">
+                    {selectedProject ? selectedProject.name : "Select project"}
+                  </span>
+                </div>
+                <div className="w-40 shrink-0">
+                  <CustomSelect
+                    placeholder="Select project"
+                    value={selectedProject?.id || ""}
+                    onChange={(value) => onSelectProject?.(value)}
+                    ariaLabel="Select project"
+                    options={projects.map((p) => ({
+                      value: p.id,
+                      label: p.name,
+                    }))}
+                    triggerClassName="h-7 w-full cursor-pointer truncate rounded-lg border-slate-200 bg-white px-2 text-[11px] font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
+                    contentClassName="rounded-lg border-slate-200"
+                  />
+                </div>
+              </div>
+            )}
+
             {loading ? (
               <div className="flex h-32 items-center justify-center">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
@@ -248,7 +289,13 @@ export function CalendarTasksDrawer({
             ) : error && displayedTasks.length === 0 ? (
               <TaskLoadError onRetry={onRetry} />
             ) : displayedTasks.length === 0 ? (
-              <TaskEmptyState tab={activeTab} color={color} />
+              <TaskEmptyState
+                tab={activeTab}
+                color={color}
+                selectedProject={selectedProject}
+                projects={projects}
+                onSelectProject={onSelectProject}
+              />
             ) : filteredTasks.length === 0 ? (
               <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
                 <span
@@ -296,9 +343,7 @@ function TaskLoadError({
         role="alert"
       >
         <AlertCircle className="h-4 w-4 shrink-0" />
-        <span className="min-w-0 flex-1">
-          Could not load tasks
-        </span>
+        <span className="min-w-0 flex-1">Could not load tasks</span>
         {onRetry && (
           <Button
             type="button"
@@ -345,17 +390,59 @@ function TaskLoadError({
 function TaskEmptyState({
   tab,
   color,
+  selectedProject,
+  projects,
+  onSelectProject,
 }: {
   tab: TasksDrawerTab;
   color: string;
+  selectedProject?: Project | null;
+  projects?: Project[];
+  onSelectProject?: (projectId: string) => void;
 }) {
   const projectTab = tab === "project";
+
+  if (projectTab && !selectedProject && projects && projects.length > 0) {
+    return (
+      <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+        <span
+          className="grid h-12 w-12 place-items-center rounded-xl bg-blue-50 text-blue-600"
+          aria-hidden="true"
+        >
+          <FolderKanban className="h-6 w-6" />
+        </span>
+        <p className="mt-3 text-sm font-semibold text-slate-700">
+          No project selected
+        </p>
+        <p className="mt-1 max-w-[240px] text-xs text-slate-400">
+          Select a project from the sidebar or dropdown below to view project
+          tasks
+        </p>
+        <div className="mt-4 w-56">
+          <CustomSelect
+            value=""
+            onChange={(val) => onSelectProject?.(val)}
+            ariaLabel="Select project"
+            placeholder="Select a project..."
+            options={projects.map((p) => ({
+              value: p.id,
+              label: p.name,
+            }))}
+            triggerClassName="h-9 w-full cursor-pointer rounded-xl border-slate-200 bg-white px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50"
+            contentClassName="rounded-xl border-slate-200"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const activeColor = selectedProject?.color || color;
 
   return (
     <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
       <span
         className="grid h-12 w-12 place-items-center rounded-xl"
-        style={{ backgroundColor: color + "15", color }}
+        style={{ backgroundColor: activeColor + "15", color: activeColor }}
         aria-hidden="true"
       >
         {projectTab ? (
@@ -365,11 +452,15 @@ function TaskEmptyState({
         )}
       </span>
       <p className="mt-3 text-sm font-semibold text-slate-700">
-        {projectTab ? "No project tasks" : "No tasks yet"}
+        {projectTab
+          ? selectedProject
+            ? `No tasks in ${selectedProject.name}`
+            : "No project tasks"
+          : "No tasks yet"}
       </p>
       <p className="mt-1 max-w-[220px] text-xs text-slate-400">
         {projectTab
-          ? "Tasks synced from projects will appear here"
+          ? "Tasks created in this project will appear here"
           : "All your personal tasks will appear here"}
       </p>
     </div>

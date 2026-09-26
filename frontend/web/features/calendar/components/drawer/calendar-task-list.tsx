@@ -100,11 +100,7 @@ export function CalendarTaskList({
       )}
 
       {grouped.today.length > 0 && (
-        <TaskSection
-          title="Today"
-          count={grouped.today.length}
-          tone="primary"
-        >
+        <TaskSection title="Today" count={grouped.today.length} tone="primary">
           {grouped.today.map((task) => renderTask(task))}
         </TaskSection>
       )}
@@ -133,31 +129,33 @@ export function CalendarTaskList({
         </div>
       )}
 
-      {showCompleted && statusFilter === "all" && grouped.completed.length > 0 && (
-        <div className="border-t border-slate-100 pt-2">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => setCompletedOpen((current) => !current)}
-            className="flex h-auto w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100"
-          >
-            <span className="flex items-center gap-1.5">
-              {completedOpen ? (
-                <ChevronDown className="h-3.5 w-3.5" />
-              ) : (
-                <ChevronRight className="h-3.5 w-3.5" />
-              )}
-              Completed ({grouped.completed.length})
-            </span>
-          </Button>
+      {showCompleted &&
+        statusFilter === "all" &&
+        grouped.completed.length > 0 && (
+          <div className="border-t border-slate-100 pt-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setCompletedOpen((current) => !current)}
+              className="flex h-auto w-full cursor-pointer items-center justify-between rounded-lg px-2 py-1.5 text-xs font-semibold text-slate-500 transition hover:bg-slate-100"
+            >
+              <span className="flex items-center gap-1.5">
+                {completedOpen ? (
+                  <ChevronDown className="h-3.5 w-3.5" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5" />
+                )}
+                Completed ({grouped.completed.length})
+              </span>
+            </Button>
 
-          {completedOpen && (
-            <div className="mt-1 space-y-1">
-              {grouped.completed.map((task) => renderTask(task))}
-            </div>
-          )}
-        </div>
-      )}
+            {completedOpen && (
+              <div className="mt-1 space-y-1">
+                {grouped.completed.map((task) => renderTask(task))}
+              </div>
+            )}
+          </div>
+        )}
     </div>
   );
 }
@@ -252,20 +250,15 @@ function TaskRowItem({
         onClick={onSelect}
       >
         <span
-          className={`block break-words text-sm font-medium leading-snug ${
+          className={`block truncate text-sm font-medium leading-snug ${
             completed
               ? "line-through text-slate-400"
               : "text-slate-700 group-hover:text-slate-900"
           }`}
+          title={task.title}
         >
           {task.title}
         </span>
-
-        {readOnly && task.calendar?.name && (
-          <span className="mt-0.5 block truncate text-[11px] font-medium text-slate-500">
-            {task.calendar.name}
-          </span>
-        )}
 
         {dateLabel && (
           <span

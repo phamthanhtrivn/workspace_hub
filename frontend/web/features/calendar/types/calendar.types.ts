@@ -124,6 +124,7 @@ export interface CalendarEvent {
     canManage: boolean;
     canRespond: boolean;
   };
+  extendedProps?: Record<string, unknown>;
 }
 
 export interface CalendarEventFilters {

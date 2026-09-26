@@ -20,7 +20,10 @@ import { EventDetailModal } from "../modal/event-detail-modal";
 import { EventFormModal } from "../modal/event-form-modal";
 import { useCalendarWorkspace } from "../../hooks/use-calendar-workspace";
 import { useCalendarProjects } from "../../hooks/use-calendar-projects";
-import { mapProjectTasksToCalendarEvents } from "../../utils/project-task-event.utils";
+import {
+  mapProjectTasksToCalendarEvents,
+  mapProjectTasksToDomainCalendarEvents,
+} from "../../utils/project-task-event.utils";
 import { ProjectTaskDetailModal } from "../modal/project-task-detail-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCalendarKeyboardShortcuts } from "../../hooks/use-calendar-keyboard-shortcuts";
@@ -51,6 +54,10 @@ export function CalendarWorkspace() {
   const projectTasksQuery = useProjectTasks(selectedProject?.id ?? "");
   const projectTaskEvents = useMemo(
     () => mapProjectTasksToCalendarEvents(projectTasksQuery.data ?? [], selectedProject),
+    [projectTasksQuery.data, selectedProject],
+  );
+  const domainProjectTaskEvents = useMemo(
+    () => mapProjectTasksToDomainCalendarEvents(projectTasksQuery.data ?? [], selectedProject),
     [projectTasksQuery.data, selectedProject],
   );
   const displayEvents = useMemo(
@@ -346,6 +353,10 @@ export function CalendarWorkspace() {
         <CalendarTasksDrawer
           open={tasksDrawerOpen}
           tasks={allTasks}
+          projectTaskEvents={domainProjectTaskEvents}
+          projects={projects}
+          selectedProject={selectedProject}
+          onSelectProject={handleToggleProject}
           color={calendar.tasksColor}
           loading={tasksQuery.isLoading && allTasks.length === 0}
           error={tasksQuery.isError}
@@ -354,7 +365,14 @@ export function CalendarWorkspace() {
           onClose={handleCloseTasksDrawer}
           onRetry={() => void tasksQuery.refetch()}
           onToggleTask={calendar.handleTaskCompletionQuickToggle}
-          onSelectTask={(task) => calendar.openDetail(task)}
+          onSelectTask={(task) => {
+            const projectTask = task.extendedProps?.projectTask as Task | undefined;
+            if (projectTask) {
+              setSelectedProjectTask(projectTask);
+            } else {
+              calendar.openDetail(task);
+            }
+          }}
         />
       </div>
 
