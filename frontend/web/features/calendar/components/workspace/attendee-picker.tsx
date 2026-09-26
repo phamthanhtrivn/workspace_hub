@@ -6,6 +6,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CALENDAR_FORM_COPY as copy } from "../../constants/calendar-form-copy";
+import { useAppSelector } from "@/store/store";
 import { UserSearchResponse } from "@/features/chat/types/chat.types";
 import { useAttendeeSearch } from "../../hooks/use-calendar-users";
 import { CalendarEventAttendeePayload } from "../../types/calendar.types";
@@ -21,9 +22,14 @@ export function AttendeePicker({
 }) {
   const [query, setQuery] = useState("");
   const { data: results = [], isFetching: loading } = useAttendeeSearch(query);
+  const currentUserId = useAppSelector((state) => state.auth.userId);
   const attendeeIds = useMemo(
-    () => new Set(attendees.map((attendee) => attendee.userId)),
-    [attendees],
+    () =>
+      new Set([
+        ...attendees.map((attendee) => attendee.userId),
+        ...(currentUserId ? [currentUserId] : []),
+      ]),
+    [attendees, currentUserId],
   );
 
   const addUser = (user: UserSearchResponse) => {
